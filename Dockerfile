@@ -14,5 +14,13 @@ RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
 COPY database ./database
 COPY scripts ./scripts
+COPY src ./src
+
+# Create local data directory for PGlite
+RUN mkdir -p .local
+
 EXPOSE 3000
-CMD ["sh", "-c", "node scripts/migrate.mjs && node dist/server/server.js"]
+
+# Start: run migrations, then the server.
+# Autopilot runs inside the app when AUTOPILOT_ENABLED=1 in .env
+CMD ["sh", "-c", "node scripts/setup-pglite.mjs 2>/dev/null; node dist/server/server.js"]

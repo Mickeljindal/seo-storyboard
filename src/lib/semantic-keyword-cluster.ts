@@ -55,24 +55,24 @@ export type DataFirstDiscoveryOptions = {
 
 const DEFAULT_OPTS: DataFirstDiscoveryOptions = {
   topicsPerCluster: 5,
-  minMonthlyVolume: 100,
-  minTrafficScore: 35,
-  relatedDepth: 2,
-  ideasPerSeed: 25,
+  minMonthlyVolume: 50,
+  minTrafficScore: 25,
+  relatedDepth: 1,
+  ideasPerSeed: 20,
 };
 
 export function defaultMinVolumeForGeo(geo: string): number {
   switch (geo) {
     case "sa":
-      return 80;
+      return 30;
     case "ae":
-      return 120;
+      return 50;
     case "in":
-      return 200;
-    case "global":
-      return 400;
-    default:
       return 100;
+    case "global":
+      return 200;
+    default:
+      return 50;
   }
 }
 
@@ -161,7 +161,11 @@ export async function bulkFetchSearchVolumes(
       const results = res?.tasks?.[0]?.result ?? [];
       for (const row of results) {
         const kw = String(row?.keyword ?? "").trim();
-        if (kw) out.set(normalizeKeyword(kw), row?.search_volume ?? null);
+        if (!kw) continue;
+        const vol = row?.search_volume ?? null;
+        out.set(normalizeKeyword(kw), vol);
+        // Also store original casing key for lookup mismatches
+        if (kw.toLowerCase() !== kw) out.set(normalizeKeyword(kw.toLowerCase()), vol);
       }
     } catch {
       /* partial failure ok */
@@ -467,21 +471,56 @@ export async function discoverTopicsDataFirst(
   const semanticGroups = buildSemanticClusters(volumeFiltered);
   stats.semantic_groups = semanticGroups.length;
 
-  const topics: DiscoveredTopic[] = [];
-  const perClusterCount = new Map<number, number>();
+  function pickTopics(
+    groups: SemanticClusterGroup[],
+    minTraffic: number,
+    minVol: number,
+  ): DiscoveredTopic[] {
+    const picked: DiscoveredTopic[] = [];
+    const perClusterCount = new Map<number, number>();
 
-  for (const group of semanticGroups) {
-    if (group.traffic_score < opts.minTrafficScore) continue;
+    for (const group of groups) {
+      const hubVol = group.keywords[0]?.volume ?? 0;
+      if (hubVol > 0 && hubVol < minVol) continue;
+      if (group.traffic_score < minTraffic) continue;
 
-    const count = perClusterCount.get(group.editorial_cluster_id) ?? 0;
-    if (count >= opts.topicsPerCluster) continue;
+      const count = perClusterCount.get(group.editorial_cluster_id) ?? 0;
+      if (count >= opts.topicsPerCluster) continue;
 
-    topics.push(clusterToTopic(group, geo));
-    perClusterCount.set(group.editorial_cluster_id, count + 1);
+      picked.push(clusterToTopic(group, geo));
+      perClusterCount.set(group.editorial_cluster_id, count + 1);
+    }
+
+    picked.sort(
+      (a, b) =>
+        (b.traffic_score ?? 0) - (a.traffic_score ?? 0) + (b.opportunity_score - a.opportunity_score),
+    );
+    return picked;
   }
 
-  topics.sort((a, b) => (b.traffic_score ?? 0) - (a.traffic_score ?? 0) + (b.opportunity_score - a.opportunity_score));
-  stats.selected = topics.length;
+  let topics = pickTopics(semanticGroups, opts.minTrafficScore, opts.minMonthlyVolume);
 
+  // Relax filters if nothing passed — niche Kloudbean keywords often have low SA volume
+  if (topics.length === 0 && volumeFiltered.length > 0) {
+    topics = pickTopics(semanticGroups, 15, Math.max(10, Math.floor(opts.minMonthlyVolume / 3)));
+    stats.selected = topics.length;
+    if (topics.length > 0) return { topics, stats: { ...stats, selected: topics.length, relaxed: 1 } };
+  }
+
+  // Last resort: top hub per editorial cluster by volume (still Kloudbean-scoped)
+  if (topics.length === 0 && volumeFiltered.length > 0) {
+    const byCluster = new Map<number, KeywordCandidate>();
+    for (const c of volumeFiltered) {
+      const prev = byCluster.get(c.editorial_cluster_id);
+      if (!prev || (c.volume ?? 0) > (prev.volume ?? 0)) byCluster.set(c.editorial_cluster_id, c);
+    }
+    for (const c of byCluster.values()) {
+      const group = buildSemanticClusters([c])[0];
+      if (group) topics.push(clusterToTopic(group, geo));
+    }
+    return { topics, stats: { ...stats, selected: topics.length, relaxed: 2 } };
+  }
+
+  stats.selected = topics.length;
   return { topics, stats };
 }

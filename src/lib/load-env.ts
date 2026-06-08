@@ -21,7 +21,8 @@ export function loadProjectEnv() {
         val = val.slice(1, -1);
       }
       if (!val) continue;
-      if (!process.env[key]) process.env[key] = val;
+      const cur = process.env[key];
+      if (!cur || cur.trim() === "") process.env[key] = val;
     }
   }
   loaded = true;

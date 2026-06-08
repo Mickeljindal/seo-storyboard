@@ -6,24 +6,29 @@ import {
   FileText,
   TrendingUp,
   Settings,
-  Zap,
   Dices,
   Brain,
   Cog,
+  Sparkles,
+  Network,
+  Lock,
 } from "lucide-react";
 import { ReactNode } from "react";
 import { SystemHealthBanner, SystemHealthOkBadge } from "./SystemHealthBanner";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, kbd: "1" },
-  { to: "/strategy", label: "Strategy", icon: Brain, kbd: "2" },
-  { to: "/engine", label: "Engine", icon: Cog, kbd: "3" },
-  { to: "/raffle", label: "Idea Raffle", icon: Dices, kbd: "4" },
-  { to: "/calendar", label: "Calendar", icon: CalendarDays, kbd: "5" },
-  { to: "/keywords", label: "Keywords", icon: Search, kbd: "6" },
-  { to: "/briefs", label: "Briefs", icon: FileText, kbd: "7" },
-  { to: "/performance", label: "Performance", icon: TrendingUp, kbd: "8" },
-  { to: "/settings", label: "Settings", icon: Settings, kbd: "9" },
+  { to: "/how-it-works", label: "How it works", icon: Sparkles, kbd: "2" },
+  { to: "/strategy", label: "Strategy", icon: Brain, kbd: "3" },
+  { to: "/topical-map", label: "Topical Map", icon: Network, kbd: "4" },
+  { to: "/scope", label: "Scope", icon: Lock, kbd: "5" },
+  { to: "/engine", label: "Engine", icon: Cog, kbd: "6" },
+  { to: "/raffle", label: "Idea Raffle", icon: Dices, kbd: "7" },
+  { to: "/calendar", label: "Calendar", icon: CalendarDays, kbd: "8" },
+  { to: "/keywords", label: "Keywords", icon: Search, kbd: "9" },
+  { to: "/briefs", label: "Briefs", icon: FileText, kbd: "0" },
+  { to: "/performance", label: "Performance", icon: TrendingUp, kbd: "P" },
+  { to: "/settings", label: "Settings", icon: Settings, kbd: "S" },
 ] as const;
 
 export function AppLayout({ children }: { children: ReactNode }) {

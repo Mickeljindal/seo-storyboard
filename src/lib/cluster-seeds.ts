@@ -1,104 +1,131 @@
 import { CLUSTERS } from "./pillars";
 
 /**
- * Hub seeds for DataForSEO discovery — every seed must expand into
- * Kloudbean-scoped topics (managed cloud, deploy on Kloudbean, self-host on Kloudbean, or vs competitors).
+ * Hub seeds for keyword discovery — every seed must expand into Kloudbean-scoped
+ * topics that match the real ICP (deploy AI/vibe-coded apps, self-host tools,
+ * agency multi-app hosting, vs competitors, pricing/consolidation, enterprise).
+ * Cluster IDs map to CLUSTERS in pillars.ts.
  */
 export const CLUSTER_HUBS: Record<
   number,
   { seeds: string[]; pillar: 1 | 2 | 3 | 4 | 5; anchor: string }
 > = {
+  // 1 — Deploy AI / Vibe-Coded Apps
   1: {
     seeds: [
-      "kloudbean managed cloud hosting",
-      "managed hosting saudi arabia",
-      "multi cloud hosting kloudbean",
+      "deploy lovable app",
+      "lovable self hosted",
+      "deploy bolt.new app",
+      "deploy cursor app",
+      "where to host vibe coded app",
+      "deploy ai generated app",
     ],
-    pillar: 1,
-    anchor: "Managed Cloud",
+    pillar: 4,
+    anchor: "Deploy Lovable",
   },
+  // 2 — Self-Hosted Tools
   2: {
     seeds: [
-      "kloudbean enterprise plan",
-      "nca compliant cloud hosting saudi",
-      "misa cloud hosting kloudbean",
-      "gcp dammam managed hosting kloudbean",
-      "google cloud me-central2 saudi data residency",
+      "self host n8n",
+      "self host supabase",
+      "self host gitlab",
+      "ollama hosting",
+      "langflow deploy",
     ],
-    pillar: 2,
-    anchor: "NCA Compliance",
+    pillar: 3,
+    anchor: "AI & Tools",
   },
+  // 3 — App Deployment Tutorials (stacks)
   3: {
     seeds: [
-      "kloudbean ddos protection included",
-      "bitninja managed hosting kloudbean",
-      "waf managed cloud kloudbean",
+      "deploy nextjs app to server",
+      "deploy nodejs app with database",
+      "deploy laravel app",
+      "deploy django app",
+      "deploy react app to production",
     ],
-    pillar: 5,
-    anchor: "Security",
+    pillar: 4,
+    anchor: "Deploy Next.js",
   },
+  // 4 — vs Competitors
   4: {
     seeds: [
-      "cloudways alternative kloudbean",
-      "wp engine alternative managed hosting",
-      "managed aws vs diy kloudbean",
+      "vercel alternative full stack hosting",
+      "render.com alternative",
+      "railway alternative",
+      "cloudways alternative",
+      "heroku alternative",
+      "netlify alternative backend",
     ],
     pillar: 1,
     anchor: "Alternatives Page",
   },
+  // 5 — Agency & Multi-App Hosting
   5: {
     seeds: [
-      "deploy nodejs kloudbean",
-      "deploy django kloudbean",
-      "kloudbean github auto deploy",
+      "host multiple client websites one server",
+      "agency hosting many apps",
+      "white label hosting agency",
+      "reseller cloud hosting",
     ],
-    pillar: 4,
-    anchor: "Deploy Docs",
+    pillar: 1,
+    anchor: "Agency Partners",
   },
+  // 6 — WordPress & Frontend
   6: {
     seeds: [
-      "self host n8n kloudbean",
-      "ollama hosting kloudbean",
-      "langflow kloudbean deploy",
+      "managed wordpress hosting",
+      "host wordpress and nextjs together",
+      "wp engine alternative",
+      "kinsta alternative",
     ],
-    pillar: 3,
-    anchor: "AI Tools",
+    pillar: 1,
+    anchor: "WordPress Hosting",
   },
+  // 7 — Databases, Storage & S3
   7: {
     seeds: [
-      "managed postgresql kloudbean",
-      "managed mongodb kloudbean",
-      "kloudbean s3 object storage r2",
+      "managed postgresql hosting",
+      "managed mongodb hosting",
+      "s3 object storage zero egress",
+      "managed redis hosting",
     ],
     pillar: 5,
-    anchor: "S3 Storage",
+    anchor: "Managed Databases",
   },
+  // 8 — Pricing, Cost & SaaS Consolidation
   8: {
     seeds: [
-      "kloudbean flexible load balancer",
-      "multi cloud load balancer kloudbean",
-      "auto scaling managed cloud kloudbean",
-    ],
-    pillar: 5,
-    anchor: "FLB",
-  },
-  9: {
-    seeds: [
-      "kloudbean pricing plans",
-      "managed cloud hosting pricing comparison",
-      "enterprise managed hosting cost kloudbean",
+      "reduce saas costs self host",
+      "cheap full stack hosting",
+      "managed cloud hosting pricing",
+      "consolidate apps one server",
     ],
     pillar: 1,
     anchor: "Pricing",
   },
+  // 9 — Security, Scaling & Load Balancing
+  9: {
+    seeds: [
+      "ddos protection included hosting",
+      "bitninja managed hosting",
+      "flexible load balancer multi cloud",
+      "auto scaling managed cloud",
+    ],
+    pillar: 5,
+    anchor: "Security Suite",
+  },
+  // 10 — Enterprise & Data Residency (incl. KSA)
   10: {
     seeds: [
-      "agency hosting kloudbean",
-      "wordpress agency managed hosting",
-      "freelancer managed cloud kloudbean",
+      "enterprise managed cloud hosting",
+      "data residency cloud hosting",
+      "nca compliant cloud hosting saudi",
+      "gcp dammam managed hosting",
+      "self host gitlab enterprise",
     ],
-    pillar: 1,
-    anchor: "Agency Program",
+    pillar: 2,
+    anchor: "Enterprise Hosting",
   },
 };
 

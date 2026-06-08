@@ -83,9 +83,9 @@ function Dashboard() {
               on <span className="grad-text">autopilot.</span>
             </h1>
             <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
-              1,000 Kloudbean-scoped ideas. 10 topical-authority clusters — managed cloud, deploy on Kloudbean, self-hosted apps, NCA enterprise. Every brief stays on-brand.
+              10 topical-authority clusters built for Kloudbean's real buyers — vibecoders deploying Lovable & Bolt apps, agencies hosting many client sites, SaaS founders self-hosting n8n & Supabase, and enterprises that need data residency.
               Spin the <span className="font-mono text-foreground">Idea Raffle</span>, generate the brief, auto-publish to{" "}
-              <span className="font-mono text-foreground">kloudbean.com</span> — and win Google without waiting for backlinks.
+              <span className="font-mono text-foreground">kloudbean.com</span> — and win Google + AI search without waiting for backlinks.
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
               {empty ? (

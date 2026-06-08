@@ -8,9 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { runAutonomousEngine, getEngineRuns } from "@/lib/authority-engine.functions";
+import { runContentAutomation } from "@/lib/automation.functions";
 import { CLUSTERS } from "@/lib/pillars";
 import { useState } from "react";
-import { Bot, Loader2, Play, Database, Search, FileText, PenLine, CheckCircle2 } from "lucide-react";
+import { Bot, Loader2, Play, Database, Search, FileText, PenLine, CheckCircle2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/engine")({ component: EnginePage });
@@ -26,18 +27,23 @@ const STEPS = [
 
 function EnginePage() {
   const qc = useQueryClient();
-  const [geo, setGeo] = useState("sa");
+  const [geo, setGeo] = useState("global");
   const [topicsPerCluster, setTopicsPerCluster] = useState(5);
-  const [minVolume, setMinVolume] = useState(80);
+  const [minVolume, setMinVolume] = useState(30);
   const [semanticClustering, setSemanticClustering] = useState(true);
   const [competitor, setCompetitor] = useState("cloudways.com");
   const [includeCompetitor, setIncludeCompetitor] = useState(true);
   const [generateBriefs, setGenerateBriefs] = useState(true);
   const [generateContent, setGenerateContent] = useState(false);
+  const [discoverySource, setDiscoverySource] = useState<"serper" | "dataforseo" | "auto">("serper");
   const [lastLog, setLastLog] = useState<{ phase: string; message: string }[]>([]);
 
   const runFn = useServerFn(runAutonomousEngine);
   const runsFn = useServerFn(getEngineRuns);
+  const automateFn = useServerFn(runContentAutomation);
+
+  const [autoPublish, setAutoPublish] = useState(false);
+  const [autoLimit, setAutoLimit] = useState(5);
 
   const { data: history, refetch: refetchRuns } = useQuery({
     queryKey: ["engine-runs"],
@@ -56,6 +62,7 @@ function EnginePage() {
           competitorDomain: competitor,
           generateBriefs,
           generateContent,
+          discoverySource,
         },
       }),
     onSuccess: (r) => {
@@ -68,6 +75,29 @@ function EnginePage() {
       qc.invalidateQueries({ queryKey: ["opportunities"] });
       qc.invalidateQueries({ queryKey: ["cluster-authority"] });
       refetchRuns();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const automate = useMutation({
+    mutationFn: () =>
+      automateFn({
+        data: {
+          limit: autoLimit,
+          geo: geo as "sa" | "in" | "ae" | "global",
+          doResearch: true,
+          doBriefs: true,
+          doContent: true,
+          autoPublish,
+          publishStatus: autoPublish ? "publish" : "draft",
+          publishMinScore: 88,
+        },
+      }),
+    onSuccess: (r) => {
+      toast.success(
+        `Automation: ${r.written} written · ${r.published} published · ${r.blocked} blocked · ${r.skippedLowScore} low-score`,
+      );
+      qc.invalidateQueries({ queryKey: ["articles"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -116,6 +146,18 @@ function EnginePage() {
           <h2 className="mb-4 text-sm font-semibold">Configuration</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
+              <Label>Discovery source</Label>
+              <Select value={discoverySource} onValueChange={(v) => setDiscoverySource(v as typeof discoverySource)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="serper">Serper.dev (cheap — recommended)</SelectItem>
+                  <SelectItem value="dataforseo">DataForSEO (volume data, costly)</SelectItem>
+                  <SelectItem value="auto">Auto (Serper if available)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="mt-1 text-xs text-muted-foreground">Serper uses autocomplete + SERP signals — far cheaper than DataForSEO.</p>
+            </div>
+            <div>
               <Label>Geo market</Label>
               <Select value={geo} onValueChange={setGeo}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -147,7 +189,7 @@ function EnginePage() {
                 value={minVolume}
                 onChange={(e) => setMinVolume(Number(e.target.value) || 80)}
               />
-              <p className="mt-1 text-xs text-muted-foreground">Filters low-traffic keywords — SA default ~80/mo</p>
+              <p className="mt-1 text-xs text-muted-foreground">Filters noise — SA default 30/mo; lowers automatically if too strict</p>
             </div>
             <div className="sm:col-span-2">
               <Label>Competitor domain (gap analysis)</Label>
@@ -187,8 +229,47 @@ function EnginePage() {
             Run full autonomous engine
           </Button>
           <p className="mt-2 text-xs text-muted-foreground">
-            Requires <code>DATABASE_URL</code>, <code>DATAFORSEO_LOGIN</code>, <code>DATAFORSEO_PASSWORD</code>
-            {generateBriefs && ", DEEPSEEK_API_KEY or OPENAI_API_KEY"} in .env
+            Requires <code>DATABASE_MODE=pglite</code> (local) or Postgres vars, plus{" "}
+            <code>DATAFORSEO_LOGIN</code>, <code>DATAFORSEO_PASSWORD</code>
+            {generateBriefs && ", DEEPSEEK_API_KEY or OPENAI_API_KEY"} in .env.
+            Run <code>npm run fix</code> if the app or database fails to start.
+          </p>
+        </section>
+
+        <section className="mb-8 rounded-xl border border-border bg-card/60 p-6 backdrop-blur">
+          <div className="mb-2 flex items-center gap-2">
+            <Wand2 className="h-4 w-4 text-primary" />
+            <h2 className="text-sm font-semibold">Content Quality Engine — write &amp; score existing ideas</h2>
+          </div>
+          <p className="mb-4 text-xs text-muted-foreground">
+            Advances articles that have no draft yet: DataForSEO research → AI brief → multi-pass writing
+            (section-by-section + editor pass) → quality scorecard. Grounded in the live Kloudbean knowledge base.
+            Optionally auto-publishes drafts scoring ≥ 88 with no banned claims. Runs a bounded batch each click;
+            schedule <code>npm run automate</code> with cron for hands-off operation.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label>Articles per run</Label>
+              <Input
+                type="number"
+                min={1}
+                max={50}
+                value={autoLimit}
+                onChange={(e) => setAutoLimit(Number(e.target.value) || 5)}
+              />
+            </div>
+            <label className="flex items-center gap-2 self-end text-sm">
+              <Checkbox checked={autoPublish} onCheckedChange={(v) => setAutoPublish(!!v)} />
+              Auto-publish drafts scoring ≥ 88 to WordPress (live)
+            </label>
+          </div>
+          <Button className="mt-4" disabled={automate.isPending} onClick={() => automate.mutate()}>
+            {automate.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+            Generate &amp; score content
+          </Button>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Requires AI key{autoPublish && " and WordPress credentials"}. The quality gate blocks publishing of any
+            draft with false/unsupported-provider claims.
           </p>
         </section>
 

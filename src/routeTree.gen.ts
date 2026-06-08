@@ -9,16 +9,24 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TopicalMapRouteImport } from './routes/topical-map'
 import { Route as StrategyRouteImport } from './routes/strategy'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ScopeRouteImport } from './routes/scope'
 import { Route as RaffleRouteImport } from './routes/raffle'
 import { Route as PerformanceRouteImport } from './routes/performance'
 import { Route as KeywordsRouteImport } from './routes/keywords'
+import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as EngineRouteImport } from './routes/engine'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as BriefsRouteImport } from './routes/briefs'
 import { Route as IndexRouteImport } from './routes/index'
 
+const TopicalMapRoute = TopicalMapRouteImport.update({
+  id: '/topical-map',
+  path: '/topical-map',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StrategyRoute = StrategyRouteImport.update({
   id: '/strategy',
   path: '/strategy',
@@ -27,6 +35,11 @@ const StrategyRoute = StrategyRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScopeRoute = ScopeRouteImport.update({
+  id: '/scope',
+  path: '/scope',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RaffleRoute = RaffleRouteImport.update({
@@ -42,6 +55,11 @@ const PerformanceRoute = PerformanceRouteImport.update({
 const KeywordsRoute = KeywordsRouteImport.update({
   id: '/keywords',
   path: '/keywords',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HowItWorksRoute = HowItWorksRouteImport.update({
+  id: '/how-it-works',
+  path: '/how-it-works',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EngineRoute = EngineRouteImport.update({
@@ -70,22 +88,28 @@ export interface FileRoutesByFullPath {
   '/briefs': typeof BriefsRoute
   '/calendar': typeof CalendarRoute
   '/engine': typeof EngineRoute
+  '/how-it-works': typeof HowItWorksRoute
   '/keywords': typeof KeywordsRoute
   '/performance': typeof PerformanceRoute
   '/raffle': typeof RaffleRoute
+  '/scope': typeof ScopeRoute
   '/settings': typeof SettingsRoute
   '/strategy': typeof StrategyRoute
+  '/topical-map': typeof TopicalMapRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/briefs': typeof BriefsRoute
   '/calendar': typeof CalendarRoute
   '/engine': typeof EngineRoute
+  '/how-it-works': typeof HowItWorksRoute
   '/keywords': typeof KeywordsRoute
   '/performance': typeof PerformanceRoute
   '/raffle': typeof RaffleRoute
+  '/scope': typeof ScopeRoute
   '/settings': typeof SettingsRoute
   '/strategy': typeof StrategyRoute
+  '/topical-map': typeof TopicalMapRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -93,11 +117,14 @@ export interface FileRoutesById {
   '/briefs': typeof BriefsRoute
   '/calendar': typeof CalendarRoute
   '/engine': typeof EngineRoute
+  '/how-it-works': typeof HowItWorksRoute
   '/keywords': typeof KeywordsRoute
   '/performance': typeof PerformanceRoute
   '/raffle': typeof RaffleRoute
+  '/scope': typeof ScopeRoute
   '/settings': typeof SettingsRoute
   '/strategy': typeof StrategyRoute
+  '/topical-map': typeof TopicalMapRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -106,33 +133,42 @@ export interface FileRouteTypes {
     | '/briefs'
     | '/calendar'
     | '/engine'
+    | '/how-it-works'
     | '/keywords'
     | '/performance'
     | '/raffle'
+    | '/scope'
     | '/settings'
     | '/strategy'
+    | '/topical-map'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/briefs'
     | '/calendar'
     | '/engine'
+    | '/how-it-works'
     | '/keywords'
     | '/performance'
     | '/raffle'
+    | '/scope'
     | '/settings'
     | '/strategy'
+    | '/topical-map'
   id:
     | '__root__'
     | '/'
     | '/briefs'
     | '/calendar'
     | '/engine'
+    | '/how-it-works'
     | '/keywords'
     | '/performance'
     | '/raffle'
+    | '/scope'
     | '/settings'
     | '/strategy'
+    | '/topical-map'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -140,15 +176,25 @@ export interface RootRouteChildren {
   BriefsRoute: typeof BriefsRoute
   CalendarRoute: typeof CalendarRoute
   EngineRoute: typeof EngineRoute
+  HowItWorksRoute: typeof HowItWorksRoute
   KeywordsRoute: typeof KeywordsRoute
   PerformanceRoute: typeof PerformanceRoute
   RaffleRoute: typeof RaffleRoute
+  ScopeRoute: typeof ScopeRoute
   SettingsRoute: typeof SettingsRoute
   StrategyRoute: typeof StrategyRoute
+  TopicalMapRoute: typeof TopicalMapRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/topical-map': {
+      id: '/topical-map'
+      path: '/topical-map'
+      fullPath: '/topical-map'
+      preLoaderRoute: typeof TopicalMapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/strategy': {
       id: '/strategy'
       path: '/strategy'
@@ -161,6 +207,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/scope': {
+      id: '/scope'
+      path: '/scope'
+      fullPath: '/scope'
+      preLoaderRoute: typeof ScopeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/raffle': {
@@ -182,6 +235,13 @@ declare module '@tanstack/react-router' {
       path: '/keywords'
       fullPath: '/keywords'
       preLoaderRoute: typeof KeywordsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-it-works': {
+      id: '/how-it-works'
+      path: '/how-it-works'
+      fullPath: '/how-it-works'
+      preLoaderRoute: typeof HowItWorksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/engine': {
@@ -220,11 +280,14 @@ const rootRouteChildren: RootRouteChildren = {
   BriefsRoute: BriefsRoute,
   CalendarRoute: CalendarRoute,
   EngineRoute: EngineRoute,
+  HowItWorksRoute: HowItWorksRoute,
   KeywordsRoute: KeywordsRoute,
   PerformanceRoute: PerformanceRoute,
   RaffleRoute: RaffleRoute,
+  ScopeRoute: ScopeRoute,
   SettingsRoute: SettingsRoute,
   StrategyRoute: StrategyRoute,
+  TopicalMapRoute: TopicalMapRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

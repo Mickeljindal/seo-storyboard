@@ -123,7 +123,68 @@ function mockResearch(keyword: string, geo: string, articleTitle?: string): Keyw
   };
 }
 
+async function buildResearchFromSerper(keyword: string, geo: string, articleTitle?: string): Promise<KeywordResearch> {
+  const { serperSearch, estimateCompetitorStrength, inferIntentFromKeyword } = await import("./serper-client");
+  const serp = await serperSearch(keyword, geo);
+  const intent = inferIntentFromKeyword(keyword);
+  const paa = serp.peopleAlsoAsk.map((p) => p.question).slice(0, 8);
+  const related: RelatedKeyword[] = serp.relatedSearches.slice(0, 15).map((k) => ({
+    keyword: k,
+    volume: null,
+    difficulty: null,
+    intent: null,
+  }));
+  const top = serp.organic.slice(0, 10).map((o) => o.link);
+  const titles = serp.organic.slice(0, 10).map((o) => o.title);
+  // SERP-signal difficulty (0–100) — Serper has no keyword-difficulty metric.
+  const difficulty = Math.round(estimateCompetitorStrength(serp.organic) * 100);
+  // SERP-signal opportunity from demand depth + winnability.
+  const { serperOpportunityScore } = await import("./serper-client");
+  const opportunity_score = serperOpportunityScore({
+    paaCount: paa.length,
+    relatedCount: related.length,
+    organicCount: serp.organic.length,
+    intent,
+    competitorStrength: difficulty / 100,
+  });
+  const meta = generateMetaFromResearch({
+    keyword,
+    articleTitle,
+    intent,
+    volume: null,
+    paa,
+    serpTitles: titles,
+  });
+  return {
+    keyword,
+    geo_target: geo,
+    monthly_volume: null, // Serper provides no volume; demand is validated via SERP signals
+    cpc: null,
+    difficulty,
+    search_intent: intent,
+    intent_probability: null,
+    serp_features: paa.length ? ["people_also_ask", "organic"] : ["organic"],
+    paa_questions: paa,
+    top_10_urls: top,
+    serp_titles: titles,
+    related_keywords: related,
+    trend_data: { source: "serper" },
+    opportunity_score,
+    ...meta,
+    last_refreshed_at: new Date().toISOString(),
+  };
+}
+
 async function buildFullResearch(keyword: string, geo: string, articleTitle?: string): Promise<KeywordResearch> {
+  const { hasSerperCredentials } = await import("./serper-client");
+  // Prefer Serper (cheap). Fall back to DataForSEO only if Serper is unavailable.
+  if (hasSerperCredentials()) {
+    try {
+      return await buildResearchFromSerper(keyword, geo, articleTitle);
+    } catch {
+      /* fall through to DataForSEO / mock */
+    }
+  }
   if (!hasDataForSeoCredentials()) return mockResearch(keyword, geo, articleTitle);
 
   const base = await fetchVolumeAndSerp(keyword, geo);
@@ -392,7 +453,9 @@ export async function applyResearchToArticleInternal(articleId: string, geoOverr
     status: article.status === "idea" ? "keyword_researched" : article.status,
   });
 
-  return { articleId, research: full, mock: !hasDataForSeoCredentials() };
+  const { hasSerperCredentials } = await import("./serper-client");
+  const isMock = !hasSerperCredentials() && !hasDataForSeoCredentials();
+  return { articleId, research: full, mock: isMock };
 }
 
 export const applyResearchToArticle = createServerFn({ method: "POST" })

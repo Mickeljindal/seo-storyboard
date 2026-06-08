@@ -12,32 +12,41 @@ import { loadProjectEnv } from "@/lib/load-env";
 import * as schema from "./schema";
 
 type AppDb = ReturnType<typeof drizzlePg<typeof schema>>;
-let _db: AppDb | undefined;
-let _pglite: import("@electric-sql/pglite").PGlite | undefined;
+
+type PgliteGlobals = typeof globalThis & {
+  __seoDb?: AppDb;
+  __seoPglite?: import("@electric-sql/pglite").PGlite;
+  __seoDbPromise?: Promise<AppDb>;
+};
+
+const g = globalThis as PgliteGlobals;
 
 export function isPgliteMode() {
   loadProjectEnv();
   return process.env.DATABASE_MODE === "pglite";
 }
 
-export async function getDb(): Promise<AppDb> {
-  if (_db) return _db;
-  loadProjectEnv();
+async function openPgliteDb(): Promise<AppDb> {
+  if (g.__seoDb) return g.__seoDb;
 
-  if (isPgliteMode()) {
-    const { PGlite } = await import("@electric-sql/pglite");
-    const { drizzle } = await import("drizzle-orm/pglite");
-    const dataDir = path.join(
-      process.cwd(),
-      process.env.DATABASE_PATH ?? ".local/seo-pglite",
-    );
-    const fs = await import("node:fs");
-    fs.mkdirSync(path.dirname(dataDir), { recursive: true });
-    _pglite = new PGlite(dataDir);
-    _db = drizzle(_pglite, { schema }) as AppDb;
-    return _db;
+  const { PGlite } = await import("@electric-sql/pglite");
+  const { drizzle } = await import("drizzle-orm/pglite");
+  const dataDir = path.join(process.cwd(), process.env.DATABASE_PATH ?? ".local/seo-pglite");
+  const fs = await import("node:fs");
+  fs.mkdirSync(path.dirname(dataDir), { recursive: true });
+
+  if (!g.__seoPglite) {
+    g.__seoPglite = new PGlite(dataDir);
   }
 
+  const { ensurePgliteReady } = await import("./pglite-init");
+  await ensurePgliteReady(g.__seoPglite);
+
+  g.__seoDb = drizzle(g.__seoPglite, { schema }) as AppDb;
+  return g.__seoDb;
+}
+
+async function openPostgresDb(): Promise<AppDb> {
   const cfg = getKloudbeanDbConfig();
   if (!cfg) {
     throw new Error(
@@ -50,8 +59,7 @@ export async function getDb(): Promise<AppDb> {
     try {
       const client = postgres(postgresOptions(attempt));
       await client`SELECT 1`;
-      _db = drizzlePg(client, { schema });
-      return _db;
+      return drizzlePg(client, { schema });
     } catch (e) {
       lastErr = e as Error;
       if (!/ENOTFOUND|ECONNREFUSED|ETIMEDOUT|EPERM/i.test(lastErr.message)) {
@@ -60,6 +68,23 @@ export async function getDb(): Promise<AppDb> {
     }
   }
   throw new Error(formatKloudbeanDbError(lastErr));
+}
+
+async function initDb(): Promise<AppDb> {
+  loadProjectEnv();
+  if (isPgliteMode()) return openPgliteDb();
+  return openPostgresDb();
+}
+
+export async function getDb(): Promise<AppDb> {
+  if (g.__seoDb) return g.__seoDb;
+  if (!g.__seoDbPromise) {
+    g.__seoDbPromise = initDb().catch((e) => {
+      g.__seoDbPromise = undefined;
+      throw e;
+    });
+  }
+  return g.__seoDbPromise;
 }
 
 export { schema };

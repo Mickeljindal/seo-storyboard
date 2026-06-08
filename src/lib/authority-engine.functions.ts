@@ -12,6 +12,10 @@ const engineConfigSchema = z.object({
   competitorDomain: z.string().default("cloudways.com"),
   generateBriefs: z.boolean().default(true),
   generateContent: z.boolean().default(false),
+  discoverySource: z.enum(["serper", "dataforseo", "auto"]).default("auto"),
+  validateDemand: z.boolean().default(true),
+  demandThreshold: z.number().min(0).max(100).optional(),
+  useLearning: z.boolean().default(true),
 });
 
 export const runAutonomousEngine = createServerFn({ method: "POST" })

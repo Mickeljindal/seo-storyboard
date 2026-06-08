@@ -35,6 +35,14 @@ CREATE TABLE IF NOT EXISTS articles (
   schema_jsonld jsonb,
   internal_link_targets text[] DEFAULT '{}',
   content_draft text,
+  content_html text,
+  quality_score smallint,
+  quality_report jsonb,
+  silo_role text,
+  hub_article_id uuid,
+  demand_score smallint,
+  demand_validated text,
+  published_at timestamptz,
   engine_source text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
@@ -93,6 +101,23 @@ CREATE INDEX IF NOT EXISTS idx_articles_cluster ON articles(cluster_id);
 CREATE INDEX IF NOT EXISTS idx_articles_geo ON articles(geo_target);
 CREATE INDEX IF NOT EXISTS idx_content_briefs_article ON content_briefs(article_id);
 CREATE INDEX IF NOT EXISTS idx_engine_runs_started ON engine_runs(started_at DESC);
+
+CREATE TABLE IF NOT EXISTS topic_signals (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  article_id uuid,
+  keyword text,
+  cluster_id smallint,
+  geo text,
+  intent text,
+  demand_score smallint,
+  quality_score smallint,
+  event text NOT NULL,
+  reward numeric(6,3),
+  features jsonb,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_topic_signals_cluster ON topic_signals(cluster_id);
+CREATE INDEX IF NOT EXISTS idx_topic_signals_event ON topic_signals(event);
 
 CREATE OR REPLACE FUNCTION set_updated_at() RETURNS trigger AS $$
 BEGIN NEW.updated_at = now(); RETURN NEW; END;

@@ -64,11 +64,13 @@ export default defineConfig(({ mode }) => {
   },
   server: {
     port: Number(process.env.PORT) || 3000,
-    host: true,
+    host: "127.0.0.1",
+    strictPort: false,
   },
   preview: {
     port: Number(process.env.PORT) || 3000,
-    host: true,
+    host: "127.0.0.1",
+    strictPort: false,
   },
 };
 });

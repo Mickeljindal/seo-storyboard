@@ -7,6 +7,7 @@ import {
 } from "./kloudbean-db";
 import { loadProjectEnv } from "./load-env";
 import { hasDataForSeoCredentials } from "./dataforseo-client";
+import { hasSerperCredentials, testSerperConnection } from "./serper-client";
 import { hasAiCredentials, testAiConnection, getAiProviderLabel } from "./ai-provider";
 import { getWpConfig } from "./wordpress-client";
 
@@ -16,11 +17,13 @@ export const getSystemHealth = createServerFn({ method: "GET" }).handler(async (
   const checks: {
     database: { ok: boolean; message: string };
     dataforseo: { ok: boolean; message: string };
+    serper: { ok: boolean; message: string };
     ai: { ok: boolean; message: string };
     wordpress: { ok: boolean; message: string };
   } = {
     database: { ok: false, message: "Not checked" },
     dataforseo: { ok: false, message: "Not configured" },
+    serper: { ok: false, message: "Not configured" },
     ai: { ok: false, message: "Not configured" },
     wordpress: { ok: false, message: "Not configured" },
   };
@@ -109,6 +112,14 @@ export const getSystemHealth = createServerFn({ method: "GET" }).handler(async (
     }
   }
 
+  // Serper.dev (preferred discovery source)
+  if (!hasSerperCredentials()) {
+    checks.serper = { ok: false, message: "Set SERPER_API_KEY in .env (https://serper.dev) — preferred over DataForSEO" };
+  } else {
+    const s = await testSerperConnection();
+    checks.serper = { ok: s.ok, message: s.message };
+  }
+
   // AI — live ping (DeepSeek or OpenAI-compatible)
   if (!hasAiCredentials()) {
     checks.ai = {
@@ -136,7 +147,8 @@ export const getSystemHealth = createServerFn({ method: "GET" }).handler(async (
     }
   }
 
-  const allOk = checks.database.ok && checks.dataforseo.ok && checks.ai.ok;
+  const discoveryOk = checks.serper.ok || checks.dataforseo.ok;
+  const allOk = checks.database.ok && discoveryOk && checks.ai.ok;
   const articleCount =
     checks.database.ok && "articleCount" in checks.database
       ? (checks.database as { articleCount?: number }).articleCount ?? 0

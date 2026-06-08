@@ -6,12 +6,12 @@ import { generateBrief, generateContent } from "@/lib/ai.functions";
 import { applyResearchToArticle } from "@/lib/dataforseo.functions";
 import { IntentBadge, OpportunityBadge } from "@/components/seo/IntentBadge";
 import type { KeywordResearch } from "@/lib/seo-types";
-import { publishToWordPress } from "@/lib/wordpress.functions";
+import { publishToWordPress, markArticlePublished } from "@/lib/wordpress.functions";
 import { STATUSES, pillarMeta, statusLabel } from "@/lib/pillars";
 import { StatusBadge, PillarBadge } from "@/components/Badges";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Sparkles, Search, ExternalLink, Loader2, RefreshCw, Send, PenLine } from "lucide-react";
+import { Sparkles, Search, ExternalLink, Loader2, RefreshCw, Send, PenLine, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -19,6 +19,19 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+type QualityCheck = { id: string; label: string; weight: number; earned: number; pass: boolean; detail: string };
+type QualityReport = {
+  score: number;
+  grade: string;
+  summary: string;
+  blocking: boolean;
+  banned_claims: string[];
+  checks: QualityCheck[];
+  passes: number;
+  internal_links?: { resolved: number; total: number };
+  rag_sources?: { title: string; url: string }[];
+};
 
 export function ArticleSidePanel({
   articleId,
@@ -45,6 +58,7 @@ export function ArticleSidePanel({
   const contentFn = useServerFn(generateContent);
   const researchFn = useServerFn(applyResearchToArticle);
   const publishFn = useServerFn(publishToWordPress);
+  const markPublishedFn = useServerFn(markArticlePublished);
 
   const briefMut = useMutation({
     mutationFn: () => briefFn({ data: { articleId: articleId! } }),
@@ -55,7 +69,7 @@ export function ArticleSidePanel({
   const researchMut = useMutation({
     mutationFn: () => researchFn({ data: { articleId: articleId! } }),
     onSuccess: (r: { mock?: boolean }) => {
-      toast.success(r.mock ? "Research complete (mock — add DataForSEO keys)" : "Live DataForSEO research applied");
+      toast.success(r.mock ? "Research complete (mock — add SERPER_API_KEY)" : "Live SERP research applied");
       refetch();
       qc.invalidateQueries({ queryKey: ["articles"] });
       qc.invalidateQueries({ queryKey: ["opportunities"] });
@@ -83,6 +97,17 @@ export function ArticleSidePanel({
     onError: (e: any) => toast.error(e.message ?? "WordPress publish failed"),
   });
 
+  const markPublishedMut = useMutation({
+    mutationFn: () => markPublishedFn({ data: { articleId: articleId! } }),
+    onSuccess: () => {
+      toast.success("Marked as published — system updated & learning recorded");
+      refetch();
+      qc.invalidateQueries({ queryKey: ["articles"] });
+      qc.invalidateQueries({ queryKey: ["topical-map"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to mark published"),
+  });
+
   async function updateField(patch: Record<string, unknown>) {
     await updateFn({ data: { id: articleId!, patch } });
     refetch();
@@ -93,6 +118,8 @@ export function ArticleSidePanel({
   const p = pillarMeta(article.pillar);
   const kd = article.keyword_data as KeywordResearch | null;
   const brief: Record<string, unknown> | null = article.brief as Record<string, unknown> | null;
+  const quality = article.quality_report as QualityReport | null;
+  const blocked = !!quality?.blocking;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -130,7 +157,7 @@ export function ArticleSidePanel({
         <div className="mt-3 flex flex-wrap gap-2">
           <Button variant="secondary" size="sm" disabled={researchMut.isPending || !article.target_keyword} onClick={() => researchMut.mutate()}>
             {researchMut.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-            DataForSEO Research
+            SERP Research
           </Button>
 
           <AlertDialog>
@@ -159,14 +186,14 @@ export function ArticleSidePanel({
             {article.content_draft ? "Regenerate draft" : "Write draft"}
           </Button>
 
-          <Button size="sm" variant="outline" disabled={!brief || publishMut.isPending} onClick={() => publishMut.mutate("draft")}>
+          <Button size="sm" variant="outline" disabled={!brief || publishMut.isPending || blocked} onClick={() => publishMut.mutate("draft")}>
             {publishMut.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
             Send to WP (Draft)
           </Button>
 
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button size="sm" variant="default" disabled={!brief || publishMut.isPending}>
+              <Button size="sm" variant="default" disabled={!brief || publishMut.isPending || blocked}>
                 <Send className="mr-2 h-4 w-4" /> Auto-Publish to WordPress
               </Button>
             </AlertDialogTrigger>
@@ -183,6 +210,16 @@ export function ArticleSidePanel({
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+
+          <Button
+            size="sm"
+            variant={article.status === "published" ? "secondary" : "outline"}
+            disabled={markPublishedMut.isPending}
+            onClick={() => markPublishedMut.mutate()}
+          >
+            {markPublishedMut.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+            {article.status === "published" ? "Published ✓" : "Mark as published"}
+          </Button>
         </div>
 
         {article.published_url && (
@@ -257,7 +294,7 @@ export function ArticleSidePanel({
               </div>
             )}
             <Button variant="ghost" size="sm" className="mt-2" onClick={() => researchMut.mutate()}>
-              <RefreshCw className="mr-1.5 h-3 w-3" /> Refresh from DataForSEO
+              <RefreshCw className="mr-1.5 h-3 w-3" /> Refresh SERP data
             </Button>
           </section>
         )}
@@ -299,6 +336,61 @@ export function ArticleSidePanel({
                 </div>
               )}
               {brief.cta && <div><span className="text-xs text-muted-foreground">CTA: </span>{brief.cta}</div>}
+            </div>
+          </section>
+        )}
+
+        {quality && (
+          <section className="mt-4 rounded-lg border border-border bg-card p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Quality Scorecard</h3>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`grid h-9 w-9 place-items-center rounded-md text-sm font-bold ${
+                    quality.score >= 80
+                      ? "bg-emerald-500/15 text-emerald-500"
+                      : quality.score >= 70
+                        ? "bg-amber-500/15 text-amber-500"
+                        : "bg-destructive/15 text-destructive"
+                  }`}
+                >
+                  {quality.score}
+                </span>
+                <span className="text-xs text-muted-foreground">{quality.grade}</span>
+              </div>
+            </div>
+            <p className={`mb-3 text-xs ${blocked ? "text-destructive" : "text-muted-foreground"}`}>{quality.summary}</p>
+
+            {blocked && quality.banned_claims?.length > 0 && (
+              <div className="mb-3 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">
+                <div className="mb-1 font-semibold">Publishing blocked — fix these claims:</div>
+                <ul className="list-disc space-y-0.5 pl-4">
+                  {quality.banned_claims.map((b, i) => <li key={i}>{b}</li>)}
+                </ul>
+                <div className="mt-2">Regenerate the draft after the engine corrects these, or edit the source facts.</div>
+              </div>
+            )}
+
+            <div className="space-y-1">
+              {quality.checks?.map((c) => (
+                <div key={c.id} className="flex items-center justify-between gap-2 text-xs">
+                  <span className="flex items-center gap-1.5">
+                    <span className={c.pass ? "text-emerald-500" : "text-amber-500"}>{c.pass ? "✓" : "○"}</span>
+                    {c.label}
+                  </span>
+                  <span className="text-muted-foreground">{c.detail}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
+              {quality.internal_links && (
+                <span>Internal links: {quality.internal_links.resolved}/{quality.internal_links.total}</span>
+              )}
+              {typeof quality.passes === "number" && <span>Editor passes: {quality.passes}</span>}
+              {quality.rag_sources && quality.rag_sources.length > 0 && (
+                <span>KB sources: {quality.rag_sources.length}</span>
+              )}
             </div>
           </section>
         )}

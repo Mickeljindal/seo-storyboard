@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { PGlite } from "@electric-sql/pglite";
-import { execSync } from "node:child_process";
+import { createJiti } from "jiti";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
@@ -32,13 +32,15 @@ if (fs.existsSync(patchPath)) {
   console.log("✓ Schema:", path.basename(patchPath));
 }
 
-const count = await client.query(`SELECT COUNT(*)::int AS n FROM articles`);
-const n = count.rows[0]?.n ?? 0;
-console.log(`✓ Articles: ${n}`);
-
-if (n === 0) {
-  console.log("\nSeeding 59 articles…");
-  execSync("npx --yes jiti scripts/seed-db-pglite.ts", { stdio: "inherit", cwd: root, env: { ...process.env, DATABASE_MODE: "pglite" } });
+const jiti = createJiti(import.meta.url, {
+  alias: { "@": path.join(root, "src") },
+});
+const { seedPgliteArticles } = jiti(path.join(root, "src/server/db/pglite-seed.ts"));
+const seeded = await seedPgliteArticles(client);
+if (seeded > 0) console.log(`✓ Seeded ${seeded} articles`);
+else {
+  const count = await client.query(`SELECT COUNT(*)::int AS n FROM articles`);
+  console.log(`✓ Articles: ${count.rows[0]?.n ?? 0}`);
 }
 
 await client.close();

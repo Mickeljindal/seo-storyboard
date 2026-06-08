@@ -9,6 +9,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { seedArticles } from "@/lib/seed.functions";
 import { wpStatus } from "@/lib/wordpress.functions";
 import { testDataForSeoConnection } from "@/lib/dataforseo.functions";
+import { testSerperConnectionFn } from "@/lib/serper.functions";
 import { testAiConnectionFn, refreshSupportKbFn } from "@/lib/ai.functions";
 import {
   KLOUDBEAN_CAPABILITY_GUARD,
@@ -23,6 +24,9 @@ export const Route = createFileRoute("/settings")({ component: Settings });
 function Settings() {
   const testDfs = useServerFn(testDataForSeoConnection);
   const dfsTest = useQuery({ queryKey: ["dfs-test"], queryFn: () => testDfs({}) });
+
+  const testSerper = useServerFn(testSerperConnectionFn);
+  const serperTest = useQuery({ queryKey: ["serper-test"], queryFn: () => testSerper({}) });
 
   const testAi = useServerFn(testAiConnectionFn);
   const aiTest = useQuery({ queryKey: ["ai-test"], queryFn: () => testAi({}) });
@@ -58,9 +62,35 @@ function Settings() {
         </p>
 
         <Section
+          icon={Search}
+          title="Serper.dev — keyword & idea discovery (recommended)"
+          desc="Cheap Google SERP API: autocomplete keyword expansion, People Also Ask, related searches, and SERP competitors. Preferred over DataForSEO."
+        >
+          <StatusLine loading={serperTest.isLoading} ok={serperTest.data?.ok} message={serperTest.data?.message ?? "Not tested"} />
+          <ol className="mb-4 ml-4 list-decimal space-y-2 text-xs text-muted-foreground">
+            <li>
+              Get an API key at{" "}
+              <a href="https://serper.dev/" target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-0.5">
+                serper.dev <ExternalLink className="h-3 w-3" />
+              </a>{" "}
+              (2,500 free credits, then very low cost per search).
+            </li>
+            <li>
+              Add to <code>.env</code>:
+              <pre className="mt-2 overflow-x-auto rounded-md border border-border bg-background/60 p-3 text-[11px]">{`SERPER_API_KEY=your-serper-key`}</pre>
+            </li>
+            <li>Restart the server: <code>npm run dev</code></li>
+            <li>In <Link to="/engine" className="text-primary hover:underline">Engine</Link>, set Discovery source = <b>Serper.dev</b>.</li>
+          </ol>
+          <Button size="sm" variant="outline" onClick={() => serperTest.refetch()}>
+            <Search className="mr-1.5 h-3 w-3" /> Test Serper connection
+          </Button>
+        </Section>
+
+        <Section
           icon={KeyRound}
-          title="DataForSEO"
-          desc="Live keyword volume, SERP features, search intent, related keywords, and competitor gaps."
+          title="DataForSEO (optional — volume data)"
+          desc="Live keyword volume, SERP features, search intent, related keywords, and competitor gaps. Costlier; optional if using Serper."
         >
           <StatusLine loading={dfsTest.isLoading} ok={dfsTest.data?.ok} message={dfsTest.data?.message ?? "Not tested"} />
           <ol className="mb-4 ml-4 list-decimal space-y-2 text-xs text-muted-foreground">

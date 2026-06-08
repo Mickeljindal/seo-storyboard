@@ -4,9 +4,11 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
-    "dev": "vite dev",
+    "dev": "vite dev --host 127.0.0.1",
+    "fix": "node scripts/db-reset.mjs && node scripts/setup.mjs && vite dev --host 127.0.0.1",
     "dev:local": "node scripts/start-local.mjs",
     "db:up": "node scripts/setup-pglite.mjs",
+    "db:reset": "node scripts/db-reset.mjs",
     "db:down": "docker compose down",
     "build": "vite build",
     "start": "node dist/server/server.js",
@@ -18,6 +20,9 @@
     "db:seed": "npx --yes tsx scripts/seed-db.ts",
     "test:all": "node scripts/test-all.mjs",
     "test:run": "bash scripts/run-and-test.sh",
+    "automate": "npx --yes tsx scripts/automate.mjs",
+    "autopilot": "AUTOPILOT_ENABLED=1 npx --yes tsx scripts/autopilot-start.mjs",
+    "digest": "npx --yes tsx -e \"import{sendDigestWebhook}from'./src/lib/digest.ts';sendDigestWebhook().then(r=>console.log(r))\"",
     "lint": "eslint .",
     "format": "prettier --write ."
   },

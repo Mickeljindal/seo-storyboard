@@ -38,7 +38,7 @@ function Strategy() {
     mutationFn: (clusterId?: number) =>
       bulkFn({ data: { onlyMissing: true, limit: 15, clusterId } }),
     onSuccess: (r) => {
-      toast.success(`Researched ${r.success}/${r.total} articles with DataForSEO`);
+      toast.success(`Researched ${r.success}/${r.total} articles (SERP)`);
       qc.invalidateQueries({ queryKey: ["opportunities"] });
       qc.invalidateQueries({ queryKey: ["cluster-authority"] });
       qc.invalidateQueries({ queryKey: ["articles"] });
@@ -59,7 +59,7 @@ function Strategy() {
           </div>
           <h1 className="text-display text-4xl font-semibold tracking-tight">Topical Authority Command Center</h1>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-            DataForSEO drives keyword decisions, search intent, meta titles/descriptions, and which topics to publish first —
+            Live SERP data (Serper) drives keyword decisions, search intent, meta titles/descriptions, and which topics to publish first —
             organized into 10 authority clusters so Kloudbean wins without backlinks.
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -81,7 +81,7 @@ function Strategy() {
               style={{ background: "var(--gradient-brand)", color: "var(--brand-foreground)" }}
             >
               {bulkMut.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
-              Research top 15 with DataForSEO
+              Research top 15 (SERP)
             </Button>
           </div>
         </header>

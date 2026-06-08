@@ -11,15 +11,28 @@ export type SeedArticle = {
 };
 
 export const SEED_ARTICLES: SeedArticle[] = [
+  // === ICP HERO ARTICLES — vibecoders, agencies, SaaS founders (global) ===
+  { pillar: 4, priority: "high", title: "How to Deploy a Lovable App to Your Own Server (Step-by-Step)", target_keyword: "deploy lovable app" },
+  { pillar: 4, priority: "high", title: "Where to Host a Vibe-Coded App: From localhost to Live in Minutes", target_keyword: "where to host vibe coded app" },
+  { pillar: 4, priority: "high", title: "Deploy a Bolt.new App to Production Without the DevOps Headache", target_keyword: "deploy bolt.new app" },
+  { pillar: 4, priority: "high", title: "Deploy a Cursor-Built App: The Complete Hosting Guide", target_keyword: "deploy cursor app" },
+  { pillar: 3, priority: "high", title: "Self-Host n8n: Run Unlimited Automations on Your Own Server", target_keyword: "self host n8n" },
+  { pillar: 3, priority: "high", title: "Self-Host Supabase: Your Own Firebase Without the Per-Project Bill", target_keyword: "self host supabase" },
+  { pillar: 1, priority: "high", title: "How Agencies Host 20+ Client Apps on One Managed Server", target_keyword: "host multiple client websites one server" },
+  { pillar: 1, priority: "high", title: "Vercel Alternative for Full-Stack Apps: Predictable Pricing at Scale", target_keyword: "vercel alternative full stack hosting" },
+  { pillar: 1, priority: "high", title: "Render Alternative: Stop Overpaying for Always-On Services", target_keyword: "render alternative" },
+  { pillar: 1, priority: "high", title: "Railway Alternative: Escape Usage-Based Bill Shock", target_keyword: "railway alternative" },
+  { pillar: 1, priority: "high", title: "Cut Your SaaS Bill from $4,000 to $100 by Self-Hosting on One Server", target_keyword: "reduce saas costs self host" },
+
   // Pillar 1 — Managed Cloud Hosting (Multi-Cloud) — 13
   { pillar: 1, priority: "high",   title: "Managed Cloud Hosting in 2026: Why Kloudbean Beats Raw AWS, DO and Linode for 90% of Teams", target_keyword: "managed cloud hosting" },
   { pillar: 1, priority: "high",   title: "Linode Managed Hosting: How Kloudbean Turns $8 Linodes into Production-Ready Servers", target_keyword: "managed Linode hosting" },
   { pillar: 1, priority: "high",   title: "Managed AWS Hosting Without the AWS Bill Shock — Kloudbean's Flat-Price Model Explained", target_keyword: "managed AWS hosting Kloudbean" },
   { pillar: 1, priority: "high",   title: "DigitalOcean vs Kloudbean: The True Cost of DIY vs Managed Cloud", target_keyword: "DigitalOcean managed hosting" },
   { pillar: 1, priority: "high",   title: "Managed GCP Hosting for Startups: Run Google Cloud Without Hiring DevOps", target_keyword: "managed GCP hosting" },
-  { pillar: 1, priority: "medium", title: "Hetzner + Kloudbean: The Cheapest Path to a Production EU Cloud Server", target_keyword: "managed Hetzner hosting" },
+  { pillar: 1, priority: "medium", title: "UpCloud Managed Hosting on Kloudbean: High-Performance MaxIOPS Servers, Fully Managed", target_keyword: "managed UpCloud hosting" },
   { pillar: 1, priority: "medium", title: "Vultr Managed Hosting: 30 Global Regions, One Kloudbean Dashboard", target_keyword: "managed Vultr hosting" },
-  { pillar: 1, priority: "medium", title: "Microsoft Azure Managed Hosting on Kloudbean: When It Makes Sense", target_keyword: "managed Azure hosting" },
+  { pillar: 1, priority: "medium", title: "Migrating Off Microsoft Azure to Kloudbean: A Cost & Complexity Breakdown", target_keyword: "Azure alternative managed hosting" },
   { pillar: 1, priority: "high",   title: "WordPress Managed Hosting on Kloudbean: 3x Faster than WP Engine at 1/4 the Price", target_keyword: "managed WordPress hosting Kloudbean" },
   { pillar: 1, priority: "high",   title: "Agency Hosting: How to Run 50+ Client Sites on Kloudbean Without Burning Out", target_keyword: "agency cloud hosting" },
   { pillar: 1, priority: "medium", title: "Cloudways Alternative 2026: Why Teams Are Migrating to Kloudbean", target_keyword: "Cloudways alternative" },

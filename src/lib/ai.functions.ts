@@ -3,6 +3,8 @@ import { z } from "zod";
 import { generateText } from "ai";
 import { createAiProvider, getAiModelName } from "./ai-provider";
 import { KLOUDBEAN_PROMPT_CORE } from "./kloudbean-scope";
+import { geoPolicyPromptBlock } from "./geo-provider-policy";
+import { competitorContextForTopic } from "./competitors";
 import type { KeywordResearch } from "./seo-types";
 
 async function repos() {
@@ -61,7 +63,7 @@ const SYSTEM = `You are the in-house SEO/GEO/AIO content strategist for Kloudbea
 ${KLOUDBEAN_PROMPT_CORE}
 
 KLOUDBEAN FACTS YOU MUST USE:
-- What it is: managed cloud hosting on 7 providers (Linode/Akamai, DigitalOcean, AWS, Vultr, GCP, Azure, Hetzner). Any language, any framework — not just WordPress.
+- What it is: managed cloud hosting on these providers (Akamai Linode, DigitalOcean, AWS, Vultr, Google Cloud, UpCloud). Any language, any framework — not just WordPress. Kloudbean does NOT offer Azure, Oracle Cloud, Alibaba Cloud, IBM Cloud, or Hetzner — never present them as a hosting option.
 - Bundled FREE on every plan (~$5,000/mo of value): Cloudflare Enterprise DDoS, BitNinja Pro security + WAF, unlimited DevOps support hours, advanced caching, 45-day automated backups, free SSL, free migrations, uptime monitoring, CI/CD pipelines, managed databases (MySQL, Postgres, MongoDB, Elasticsearch).
 - Products: Managed Cloud Hosting, Flexible Load Balancer (FLB), S3 Object Storage on Cloudflare R2 (zero egress), KloudGPT chat-deploy, Static Site Hosting, Self-Hosted apps (n8n, Langflow, Open WebUI, Ollama, Nextcloud, Plausible, Ghost, Vaultwarden, Gitea, Immich), Enterprise Hosting.
 - Pricing anchors: Linode plans from $8/mo, DigitalOcean from $11/mo, AWS from $28/mo, n8n self-hosted from $6.99/mo, ENTERPRISE PLAN from $7,500/mo with $45,000 of implementation value, dedicated AM, NCA/CSCC/ECC delivery (trusted by MISA — Ministry of Investment Saudi Arabia).
@@ -73,13 +75,18 @@ TOPICAL AUTHORITY RULES:
 3. Always include a final CTA pointing to the most relevant Kloudbean URL.
 4. Quantify value vs DIY/AWS/WP-Engine/Cloudways/Zapier wherever possible.
 
+GEO PROVIDER POLICY OVERRIDES THE GENERIC PROVIDER LIST:
+- A "GEO PROVIDER POLICY" block is supplied per article. It is the SINGLE SOURCE OF TRUTH for which providers/regions Kloudbean can serve in that market. It overrides the generic provider list above whenever they conflict.
+- For Saudi Arabia, the only in-Kingdom region is Google Cloud me-central2 (Dammam). Never recommend AWS/Linode/DigitalOcean/Vultr/UpCloud as a Saudi/KSA in-country hosting or data-residency option. Kloudbean does NOT offer Azure/Oracle/Alibaba/IBM Cloud or Hetzner at all.
+- When a COMPETITOR INTELLIGENCE block is supplied, build the comparison_table from it: acknowledge the competitor fairly, then show where Kloudbean wins for the reader's use case. Never fabricate competitor specs.
+
 Return ONLY a strict JSON object — no prose, no markdown fences. Schema:
 {
   "h1": string,
   "target_keyword": string,
   "secondary_keywords": string[5],
   "search_intent": "informational" | "commercial" | "transactional" | "navigational",
-  "word_count": number,
+  "word_count": number (default 2000–2400 for a full blog post),
   "meta_title": string (max 60 chars),
   "meta_description": string (max 160 chars),
   "url_slug": string,
@@ -87,9 +94,9 @@ Return ONLY a strict JSON object — no prose, no markdown fences. Schema:
   "key_takeaways": string[],
   "entity_table": [{ "entity": string, "definition": string }],
   "comparison_table": { "columns": string[], "rows": [{ "label": string, "values": string[] }] } | null,
-  "outline": [{ "h2": string, "description": string, "h3": [{ "title": string, "description": string }] }],
+  "outline": [{ "h2": string, "description": string, "h3": [{ "title": string, "description": string }] }] (6–8 H2 sections, each with a one-line intent so the writer has real substance to cover),
   "paa_questions": string[],
-  "faq": [{ "q": string, "a": string }],
+  "faq": [{ "q": string, "a": string }] (5–7 real questions),
   "schema_jsonld": object,
   "competing_urls": string[3],
   "internal_links": [{ "anchor": string, "target_topic": string }],
@@ -99,17 +106,6 @@ Return ONLY a strict JSON object — no prose, no markdown fences. Schema:
   "cta_url": string,
   "tone": string
 }`;
-
-const CONTENT_SYSTEM = `You are the lead content writer for Kloudbean (kloudbean.com). Write publish-ready SEO articles in Markdown.
-
-${KLOUDBEAN_PROMPT_CORE}
-
-Follow the brief outline exactly. Open with a TL;DR that states what Kloudbean delivers for this keyword. Mention Kloudbean by name in the first 120 words.
-Every major section must explain Kloudbean-specific setup, pricing, bundled features (BitNinja, Cloudflare Enterprise, backups, DevOps support), or compliance (NCA/MISA) — not generic industry advice.
-For KSA/Saudi topics: center GCP me-central2 (Dammam) for in-Kingdom data residency; do not over-promise bandwidth or regions Kloudbean does not offer.
-End with ## FAQ (cite Kloudbean in answers) and a clear CTA to kloudbean.com. Use [anchor](internal:slug) for internal links to other Kloudbean cluster topics.
-Do NOT write about tools or hosts the reader should use outside Kloudbean unless comparing them unfavorably to Kloudbean.
-Return Markdown only — no JSON fences.`;
 
 async function applyBriefToArticle(articleId: string, article: Record<string, unknown>, briefData: Record<string, unknown>) {
   const { articlesRepo, briefsRepo } = await repos();
@@ -147,15 +143,30 @@ export async function generateBriefInternal(articleId: string): Promise<{ ok: bo
   if (!article) return { ok: false, error: "not found" };
   const model = createAiProvider();
   const kb = await supportKbBlock();
+  const geo = String(article.geo_target ?? "sa");
+  const geoBlock = geoPolicyPromptBlock(geo);
+  const competitorBlock = competitorContextForTopic(
+    `${article.title} ${article.target_keyword ?? ""}`,
+  );
+  let ragBlock = "";
+  try {
+    const { ragGroundingForTopic } = await import("./rag-client");
+    const g = await ragGroundingForTopic(String(article.title), article.target_keyword, geo);
+    ragBlock = g.block;
+  } catch {
+    /* RAG optional */
+  }
   const prompt = `Create a complete SEO content brief grounded in live search data. The reader must finish understanding Kloudbean deeply — not generic cloud theory.
 Title: ${article.title}
 Target keyword: ${article.target_keyword ?? ""}
-Geo: ${article.geo_target ?? "sa"}
+Geo: ${geo}
 Pillar: ${article.pillar}
 Cluster: ${article.cluster_name ?? article.cluster_id ?? "n/a"}
 Required outcome: Explain how Kloudbean hosts, secures, prices, or migrates this use case. kloudbean_angle must be specific (feature + proof point).
-${article.geo_target === "sa" ? "\nKSA NOTE: Align GCP content to me-central2 (Dammam) as the in-Kingdom GCP region. Reference support.kloudbean.com for product facts. No over-promising on egress or certifications.\n" : ""}
 
+${geoBlock}
+${competitorBlock ? `\n${competitorBlock}\n` : ""}
+${ragBlock ? `\n${ragBlock}\n` : ""}
 ${kb ? `${kb}\n\n` : ""}${buildResearchContext(article as Record<string, unknown>)}`;
   try {
     const response = await generateText({ model, system: SYSTEM, prompt });
@@ -181,21 +192,34 @@ export async function generateContentInternal(articleId: string): Promise<{ ok: 
   const brief = article.brief as Record<string, unknown> | null;
   if (!brief) return { ok: false, error: "brief required first" };
 
-  const model = createAiProvider();
-  const kb = await supportKbBlock();
-  const prompt = `Write the full article in Markdown for Kloudbean only.
-H1: ${brief.h1 ?? article.title}
-Target keyword: ${article.target_keyword}
-Kloudbean angle from brief: ${brief.kloudbean_angle ?? "Emphasize managed multi-cloud + bundled DevOps stack"}
-Word count: ${brief.word_count ?? 2500}
-OUTLINE: ${JSON.stringify(brief.outline ?? [])}
-FAQ: ${JSON.stringify(brief.faq ?? [])}
-${kb ? `${kb}\n\n` : ""}${buildResearchContext(article as Record<string, unknown>)}`;
-
   try {
-    const response = await generateText({ model, system: CONTENT_SYSTEM, prompt, maxOutputTokens: 8000 });
+    const { runContentEngine } = await import("./content-engine");
+    const { renderArticleHtml } = await import("./content-render");
+    const result = await runContentEngine(article as Record<string, unknown>, {
+      minScore: Number(process.env.CONTENT_MIN_SCORE ?? 82),
+      maxRevisions: Number(process.env.CONTENT_MAX_REVISIONS ?? 2),
+      useRag: process.env.KLOUDBEAN_RAG_DISABLED !== "1",
+      baseUrl: process.env.WP_SITE_URL,
+    });
+    if (!result.ok) return { ok: false, error: result.error ?? "content engine failed" };
+
+    const html = renderArticleHtml(result.markdown, brief);
     await articlesRepo.updateArticle(articleId, {
-      content_draft: response.text.trim(),
+      content_draft: result.markdown,
+      content_html: html,
+      quality_score: result.score.score,
+      quality_report: {
+        score: result.score.score,
+        grade: result.score.grade,
+        summary: result.score.summary,
+        blocking: result.score.blocking,
+        banned_claims: result.score.bannedClaims,
+        checks: result.score.checks,
+        passes: result.passes,
+        internal_links: result.internalLinks,
+        rag_sources: result.ragSources,
+        log: result.log,
+      },
       status: article.status === "brief_generated" ? "writing" : article.status,
       word_count_target: (brief.word_count as number) ?? article.word_count_target,
     });

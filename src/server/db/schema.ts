@@ -41,6 +41,17 @@ export const articles = pgTable("articles", {
   schemaJsonld: jsonb("schema_jsonld"),
   internalLinkTargets: text("internal_link_targets").array().default([]),
   contentDraft: text("content_draft"),
+  contentHtml: text("content_html"),
+  qualityScore: smallint("quality_score"),
+  qualityReport: jsonb("quality_report"),
+  // Semantic silo / topical map
+  siloRole: text("silo_role"), // "pillar" | "hub" | "supporting"
+  hubArticleId: uuid("hub_article_id"), // the hub/pillar this supporting article rolls up to
+  // Search-demand gate (no zero-demand ideas)
+  demandScore: smallint("demand_score"),
+  demandValidated: text("demand_validated"), // "yes" | "no" | null (unchecked)
+  // Lifecycle
+  publishedAt: timestamp("published_at", { withTimezone: true }),
   engineSource: text("engine_source"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
@@ -89,6 +100,29 @@ export const engineRuns = pgTable("engine_runs", {
   errorMessage: text("error_message"),
   startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
   finishedAt: timestamp("finished_at", { withTimezone: true }),
+});
+
+/**
+ * Self-learning signal store. Every generated/selected/published article emits
+ * a signal row capturing its features (cluster, intent, keyword shape, demand,
+ * quality score, outcome). The discovery ranker reads aggregates from here to
+ * favour patterns that historically produced high-quality, published articles.
+ */
+export const topicSignals = pgTable("topic_signals", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  articleId: uuid("article_id"),
+  keyword: text("keyword"),
+  clusterId: smallint("cluster_id"),
+  geo: text("geo"),
+  intent: text("intent"),
+  demandScore: smallint("demand_score"),
+  qualityScore: smallint("quality_score"),
+  /** "generated" | "selected" | "published" | "rejected" */
+  event: text("event").notNull(),
+  /** numeric reward used by the learning ranker (higher = better outcome) */
+  reward: numeric("reward", { precision: 6, scale: 3 }),
+  features: jsonb("features"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export type ArticleRow = typeof articles.$inferSelect;

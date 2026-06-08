@@ -20,6 +20,7 @@ export function SystemHealthBanner() {
         checks: {
           database: { ok: false, message: String((e as Error)?.message ?? e) },
           dataforseo: { ok: false, message: "—" },
+          serper: { ok: false, message: "—" },
           ai: { ok: false, message: "—" },
           wordpress: { ok: false, message: "—" },
         },
@@ -37,6 +38,8 @@ export function SystemHealthBanner() {
   if (!health || health.ready) return null;
 
   const { checks } = health;
+  // Discovery is fine if EITHER Serper (preferred) or DataForSEO works.
+  const discoveryOk = checks.serper?.ok || checks.dataforseo?.ok;
   return (
     <div className="border-b border-amber-500/30 bg-amber-500/10 px-6 py-4">
       <div className="flex items-start gap-3">
@@ -47,9 +50,9 @@ export function SystemHealthBanner() {
             <li>
               <strong>Database:</strong> {checks.database.message}
             </li>
-            {!checks.dataforseo.ok && (
+            {!discoveryOk && checks.serper && (
               <li>
-                <strong>DataForSEO:</strong> {checks.dataforseo.message}
+                <strong>Keyword data (Serper):</strong> {checks.serper.message}
               </li>
             )}
             {!checks.ai.ok && (

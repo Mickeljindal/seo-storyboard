@@ -127,6 +127,14 @@ export async function updateArticle(id: string, patch: Record<string, unknown>) 
     entities: "entities",
     internal_link_targets: "internalLinkTargets",
     content_draft: "contentDraft",
+    content_html: "contentHtml",
+    quality_score: "qualityScore",
+    quality_report: "qualityReport",
+    silo_role: "siloRole",
+    hub_article_id: "hubArticleId",
+    demand_score: "demandScore",
+    demand_validated: "demandValidated",
+    published_at: "publishedAt",
     published_url: "publishedUrl",
     performance_data: "performanceData",
     word_count_target: "wordCountTarget",
@@ -143,6 +151,11 @@ export async function updateArticle(id: string, patch: Record<string, unknown>) 
 export async function deleteAllArticles() {
   const db = await getDb();
   await db.delete(articles).where(ne(articles.id, "00000000-0000-0000-0000-000000000000"));
+}
+
+export async function deleteArticleById(id: string) {
+  const db = await getDb();
+  await db.delete(articles).where(eq(articles.id, id));
 }
 
 /** Assign cluster + anchor to rows seeded before cluster fields existed. */

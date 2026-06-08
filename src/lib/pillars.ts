@@ -10,16 +10,16 @@ export const PILLARS = [
 
 // 10 topical-authority clusters powering the 1,000-article roadmap.
 export const CLUSTERS: { id: number; name: string; short: string }[] = [
-  { id: 1, name: "Saudi Arabia Cloud Hosting Market", short: "SA Market" },
-  { id: 2, name: "NCA Compliance Deep-Dive", short: "NCA" },
-  { id: 3, name: "Security and DDoS Protection", short: "Security" },
-  { id: 4, name: "Managed Cloud vs Competitors", short: "vs Competitors" },
-  { id: 5, name: "Developer Deployment Tutorials", short: "Deploy" },
-  { id: 6, name: "Self-Hosted AI Tools and Open Source Apps", short: "Self-host AI" },
-  { id: 7, name: "Databases and Storage", short: "Data" },
-  { id: 8, name: "Load Balancing and Scaling", short: "Scale" },
-  { id: 9, name: "Cloud Pricing and Value", short: "Pricing" },
-  { id: 10, name: "Agency, Freelancer, and Partner Programs", short: "Partners" },
+  { id: 1, name: "Deploy AI / Vibe-Coded Apps (Lovable, Bolt, Cursor)", short: "Deploy AI Apps" },
+  { id: 2, name: "Self-Hosted Tools (n8n, Supabase, GitLab)", short: "Self-host" },
+  { id: 3, name: "App Deployment Tutorials (Next.js, Node, Laravel, Python)", short: "Deploy Stacks" },
+  { id: 4, name: "Managed Cloud vs Competitors (Vercel, Render, Railway, Cloudways)", short: "vs Competitors" },
+  { id: 5, name: "Agency & Multi-App Hosting", short: "Agencies" },
+  { id: 6, name: "WordPress & Frontend Hosting", short: "WordPress" },
+  { id: 7, name: "Databases, Storage & S3", short: "Data" },
+  { id: 8, name: "Pricing, Cost & SaaS Consolidation", short: "Pricing" },
+  { id: 9, name: "Security, Scaling & Load Balancing", short: "Security/Scale" },
+  { id: 10, name: "Enterprise & Data Residency (incl. KSA / Dammam)", short: "Enterprise" },
 ];
 
 export const clusterMeta = (id: number | null | undefined) =>
@@ -27,11 +27,10 @@ export const clusterMeta = (id: number | null | undefined) =>
 
 // Anchor pages on kloudbean.com that articles should internal-link to.
 export const ANCHORS = [
-  "Enterprise Hosting", "Managed Cloud", "Pricing", "FLB", "KloudGPT",
-  "AI Tools", "NCA Compliance", "Security", "BitNinja", "WAF", "DDoS",
-  "S3 Storage", "CI/CD", "Deploy Docs", "DB Docs", "Free Trial",
-  "Agency Program", "Partner Program", "Alternatives Page", "n8n Plans",
-  "Security Suite", "Enterprise",
+  "Managed Cloud", "Pricing", "Free Trial", "Deploy Lovable", "Deploy Next.js",
+  "Deploy Node.js", "WordPress Hosting", "AI & Tools", "FLB", "KloudGPT",
+  "S3 Storage", "CI/CD", "Managed Databases", "Security Suite", "BitNinja",
+  "Agency Partners", "Alternatives Page", "Enterprise Hosting", "NCA Compliance",
 ] as const;
 
 export type ArticleStatus =

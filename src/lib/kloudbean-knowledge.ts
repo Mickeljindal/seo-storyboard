@@ -47,19 +47,24 @@ export const KSA_GCP_DAMMAM_FACTS = {
 /** What Kloudbean can claim vs must not invent. */
 export const KLOUDBEAN_CAPABILITY_GUARD = {
   canClaim: [
-    "Managed multi-cloud hosting (Linode/Akamai, DigitalOcean, AWS, Vultr, GCP, Azure, Hetzner) through one console",
-    "Any stack / language — not WordPress-only",
-    "Bundled on plans: BitNinja, Cloudflare Enterprise DDoS, unlimited DevOps support hours, 45-day backups, free SSL, free migrations, CI/CD, managed DBs",
-    "Products: FLB, R2 object storage, KloudGPT, static sites, self-hosted catalog (n8n, Ollama, Langflow, etc.)",
-    "Enterprise Plan from $7,500/mo (verify current pricing on site before publishing)",
-    "24/7 support, ~2 min avg response (marketing claim — do not fabricate SLAs beyond published copy)",
-    "KSA GCP Dammam (me-central2) hosting path for data residency use cases",
+    "Managed multi-cloud hosting (AWS, Akamai Linode, Vultr, DigitalOcean, Google Cloud, Amazon Lightsail, UpCloud) through one console",
+    "Any stack / language — not WordPress-only; one-click deploy of apps and self-hosted tools",
+    "Bundled value (~$5,000/mo): unlimited DevOps support hours, advanced caching, free SSL, free migrations, uptime monitoring, CI/CD, 9+ managed DBs",
+    "Premium/Enterprise add BitNinja Pro security + daily automated backups (NOT on Standard)",
+    "Products: FLB, S3/R2 object storage, KloudGPT, static sites, self-hosted catalog (n8n, Supabase, GitLab, Ollama, Langflow, etc.)",
+    "Three tiers: Standard (from $8/mo), Premium (custom), Enterprise (from $7,500/mo) — verify current pricing on site",
+    "24/7 human support, ~2 min avg response, 1,000+ businesses across 30+ countries (published figures only)",
+    "KSA GCP Dammam (me-central2) hosting path for data-residency use cases",
   ],
   mustNotClaim: [
     "Features not documented on kloudbean.com or support.kloudbean.com",
     "Unlimited egress/bandwidth in KSA/Dammam",
-    "AWS/Azure regions in KSA when only GCP Dammam is the in-Kingdom GCP option",
-    "Certifications or government approvals beyond published MISA/NCA marketing copy",
+    "Any in-KSA region — only GCP Dammam (me-central2) is the in-Kingdom option; other providers have no in-KSA region on Kloudbean",
+    "Azure, Oracle Cloud, Alibaba Cloud, IBM Cloud, or Hetzner as a Kloudbean offering — Kloudbean does NOT provide them (mention only as a competitor to migrate away from)",
+    "SOC 2 / ISO 27001 / HIPAA / GDPR as ACHIEVED — they are IN PROGRESS. Never say 'certified' or 'compliant'; say 'compliance support / in progress' and route to Enterprise + sales",
+    "That Kloudbean alone makes a customer compliant (PCI-DSS, HIPAA, SAMA) — it provides infrastructure foundations, not regulatory outcomes",
+    "BitNinja or automated backups on the Standard plan (those are Premium/Enterprise)",
+    "Absolute guarantees: 100% uptime, 'never goes down', guaranteed rankings",
     "Exact pricing without checking current plan pages",
     "Competitor features as if Kloudbean offers them (e.g. Vercel Edge, PlanetScale-specific features)",
     "Generic tutorials that never resolve to 'host this on Kloudbean'",
@@ -71,7 +76,7 @@ export const KLOUDBEAN_CAPABILITY_GUARD = {
 /** Injected into every AI system prompt. */
 export const KLOUDBEAN_KNOWLEDGE_PROMPT = `KNOWLEDGE GRAPH & TRUTH (support.kloudbean.com):
 - Treat ${SUPPORT_KB_BASE} as the primary product knowledge base. When stating how something works, prefer wording consistent with Kloudbean docs — not generic cloud blogs.
-- For Saudi Arabia (geo sa): GCP **me-central2 (Dammam)** is the in-Kingdom Google Cloud region to center KSA data-residency content on. Do not imply AWS/Azure have equivalent in-KSA regions unless explicitly comparing multi-cloud outside KSA.
+- For Saudi Arabia (geo sa): GCP **me-central2 (Dammam)** is the in-Kingdom Google Cloud region to center KSA data-residency content on. Do not imply other providers have equivalent in-KSA regions. Kloudbean does NOT offer Azure/Oracle/Alibaba/IBM Cloud at all.
 - Dammam pricing: premium compute + metered egress; same-region app↔DB traffic is internal. Never promise unlimited KSA bandwidth.
 - Ideation rule: every topic/brief must be something Kloudbean can **serve** (host, migrate, secure, operate) — not abstract SEO filler.
 - No over-promising: if a feature is not in CAN CLAIM list or support docs, omit it or use "contact Kloudbean" / link to docs.

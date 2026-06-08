@@ -102,12 +102,28 @@ export function articleToHtml(article: {
   title: string;
   brief?: unknown;
   content_draft?: string | null;
+  content_html?: string | null;
   meta_description?: string | null;
+  cluster_name?: string | null;
 }): string {
+  // Prefer pre-rendered HTML from the content engine (includes tables + JSON-LD).
+  if (article.content_html?.trim()) {
+    return article.content_html.trim();
+  }
+  // Otherwise render the markdown draft now (rich renderer with tables + schema).
   if (article.content_draft?.trim()) {
-    return markdownToHtml(article.content_draft.trim());
+    const { renderArticleHtml } = requireRender();
+    return renderArticleHtml(article.content_draft.trim(), article.brief as Record<string, unknown> | null, {
+      clusterName: article.cluster_name ?? null,
+    });
   }
   return briefToHtml(article.brief, article.meta_description);
+}
+
+// Lazy require to avoid a hard import cycle in some bundler setups.
+function requireRender(): typeof import("./content-render") {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  return require("./content-render");
 }
 
 export function briefToHtml(brief: unknown, fallbackExcerpt?: string | null): string {
@@ -195,6 +211,8 @@ export function buildPostPayload(article: {
   meta_description?: string | null;
   brief?: unknown;
   content_draft?: string | null;
+  content_html?: string | null;
+  cluster_name?: string | null;
 }, status: "draft" | "publish"): WpPostPayload {
   const b = (article.brief ?? {}) as Record<string, unknown>;
   const title = String(b.h1 ?? article.title);
