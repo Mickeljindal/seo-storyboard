@@ -116,3 +116,20 @@ CREATE TABLE IF NOT EXISTS topic_signals (
 );
 CREATE INDEX IF NOT EXISTS idx_topic_signals_cluster ON topic_signals(cluster_id);
 CREATE INDEX IF NOT EXISTS idx_topic_signals_event ON topic_signals(event);
+
+CREATE TABLE IF NOT EXISTS search_performance (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  article_id uuid,
+  page text NOT NULL,
+  top_query text,
+  clicks integer DEFAULT 0,
+  impressions integer DEFAULT 0,
+  ctr numeric(6,4),
+  position numeric(6,2),
+  date_start text,
+  date_end text,
+  fetched_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_search_perf_page_window
+  ON search_performance(page, date_start, date_end);
+CREATE INDEX IF NOT EXISTS idx_search_perf_article ON search_performance(article_id);

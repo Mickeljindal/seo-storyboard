@@ -43,3 +43,123 @@ CREATE TABLE IF NOT EXISTS topic_signals (
 );
 CREATE INDEX IF NOT EXISTS idx_topic_signals_cluster ON topic_signals(cluster_id);
 CREATE INDEX IF NOT EXISTS idx_topic_signals_event ON topic_signals(event);
+
+-- Own analytics: real Google Search Console performance per URL (v4)
+CREATE TABLE IF NOT EXISTS search_performance (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  article_id uuid,
+  page text NOT NULL,
+  top_query text,
+  clicks integer DEFAULT 0,
+  impressions integer DEFAULT 0,
+  ctr numeric(6,4),
+  position numeric(6,2),
+  date_start text,
+  date_end text,
+  fetched_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_search_perf_page_window
+  ON search_performance(page, date_start, date_end);
+CREATE INDEX IF NOT EXISTS idx_search_perf_article ON search_performance(article_id);
+
+-- Tool pages: interactive free tools published as Elementor WordPress Pages (v5)
+CREATE TABLE IF NOT EXISTS tools (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  url_slug text,
+  target_keyword text,
+  secondary_keywords text[] DEFAULT '{}',
+  category text DEFAULT 'Developer Tools',
+  geo_target text DEFAULT 'global',
+  status text NOT NULL DEFAULT 'idea',
+  origin text DEFAULT 'discovered',
+  wp_post_id integer,
+  published_url text,
+  meta_title text,
+  meta_description text,
+  tool_html text,
+  seo_content jsonb,
+  schema_jsonld jsonb,
+  elementor_data jsonb,
+  idea_data jsonb,
+  volume integer,
+  difficulty smallint,
+  demand_score smallint,
+  quality_score smallint,
+  quality_report jsonb,
+  aioseo_score_before smallint,
+  aioseo_score_after smallint,
+  audit_report jsonb,
+  notes text,
+  engine_source text,
+  published_at timestamptz,
+  optimized_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_tools_status ON tools(status);
+CREATE INDEX IF NOT EXISTS idx_tools_wp_post ON tools(wp_post_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tools_slug ON tools(url_slug) WHERE url_slug IS NOT NULL;
+
+-- Signup gate columns (added after initial tools table)
+ALTER TABLE tools ADD COLUMN IF NOT EXISTS gate_enabled text;
+ALTER TABLE tools ADD COLUMN IF NOT EXISTS gate_mode text;
+
+-- Self-learning knowledge graph (v6)
+CREATE TABLE IF NOT EXISTS kg_nodes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  type text NOT NULL,
+  node_key text NOT NULL,
+  label text NOT NULL,
+  description text,
+  data jsonb,
+  weight numeric(8,3) DEFAULT 1,
+  reward numeric(8,3) DEFAULT 0,
+  mentions integer DEFAULT 0,
+  cluster_id smallint,
+  geo text,
+  source text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_kg_nodes_type_key ON kg_nodes(type, node_key);
+CREATE INDEX IF NOT EXISTS idx_kg_nodes_weight ON kg_nodes(weight);
+
+CREATE TABLE IF NOT EXISTS kg_edges (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_id uuid NOT NULL,
+  target_id uuid NOT NULL,
+  relation text NOT NULL,
+  weight numeric(8,3) DEFAULT 1,
+  mentions integer DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_kg_edges_triple ON kg_edges(source_id, target_id, relation);
+
+-- Reels studio (v6)
+CREATE TABLE IF NOT EXISTS reels (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  topic text,
+  format text NOT NULL DEFAULT 'explainer',
+  status text NOT NULL DEFAULT 'idea',
+  hook text,
+  hook_variations text[] DEFAULT '{}',
+  script jsonb,
+  voiceover text,
+  caption text,
+  hashtags text[] DEFAULT '{}',
+  cta text,
+  duration_seconds integer DEFAULT 45,
+  platform_prompts jsonb,
+  cluster_id smallint,
+  demand_score smallint,
+  idea_data jsonb,
+  notes text,
+  engine_source text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_reels_status ON reels(status);
+CREATE INDEX IF NOT EXISTS idx_reels_format ON reels(format);

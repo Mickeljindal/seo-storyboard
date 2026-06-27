@@ -42,6 +42,17 @@ export type AutopilotConfig = {
   usePlugin: boolean;
   /** Refresh articles older than N days */
   refreshAfterDays: number;
+  // --- Tool pages (Elementor) ---
+  /** Master switch for the tool-pages phase */
+  toolsEnabled: boolean;
+  /** Discover + persist this many new tool ideas per run (0 = off) */
+  toolsDiscoverPerRun: number;
+  /** Generate this many pending tool ideas per run */
+  toolsGeneratePerRun: number;
+  /** How to publish generated tools: "off" | "draft" | "publish" */
+  toolsPublishStatus: "off" | "draft" | "publish";
+  /** Optimize this many worst-scoring existing pages per run (additive, slug-safe) */
+  toolsOptimizePerRun: number;
 };
 
 const DEFAULT_CONFIG: AutopilotConfig = {
@@ -57,6 +68,11 @@ const DEFAULT_CONFIG: AutopilotConfig = {
   autoPublish: true,
   usePlugin: true,
   refreshAfterDays: 90,
+  toolsEnabled: false,
+  toolsDiscoverPerRun: 3,
+  toolsGeneratePerRun: 1,
+  toolsPublishStatus: "draft",
+  toolsOptimizePerRun: 3,
 };
 
 export function getAutopilotConfig(): AutopilotConfig {
@@ -65,7 +81,9 @@ export function getAutopilotConfig(): AutopilotConfig {
     enabled: process.env.AUTOPILOT_ENABLED === "1",
     intervalMs: Number(process.env.AUTOPILOT_INTERVAL_MS || DEFAULT_CONFIG.intervalMs),
     maxPublishPerDay: Number(process.env.AUTOPILOT_MAX_PER_DAY || DEFAULT_CONFIG.maxPublishPerDay),
-    maxPublishPerWeek: Number(process.env.AUTOPILOT_MAX_PER_WEEK || DEFAULT_CONFIG.maxPublishPerWeek),
+    maxPublishPerWeek: Number(
+      process.env.AUTOPILOT_MAX_PER_WEEK || DEFAULT_CONFIG.maxPublishPerWeek,
+    ),
     minPublishScore: Number(process.env.AUTOPILOT_MIN_SCORE || DEFAULT_CONFIG.minPublishScore),
     topicsPerRun: Number(process.env.AUTOPILOT_TOPICS_PER_RUN || DEFAULT_CONFIG.topicsPerRun),
     progressPerRun: Number(process.env.AUTOPILOT_PROGRESS_PER_RUN || DEFAULT_CONFIG.progressPerRun),
@@ -74,6 +92,19 @@ export function getAutopilotConfig(): AutopilotConfig {
     autoPublish: process.env.AUTOPILOT_PUBLISH !== "0",
     usePlugin: process.env.AUTOPILOT_USE_PLUGIN !== "0",
     refreshAfterDays: Number(process.env.AUTOPILOT_REFRESH_DAYS || DEFAULT_CONFIG.refreshAfterDays),
+    toolsEnabled: process.env.AUTOPILOT_TOOLS === "1",
+    toolsDiscoverPerRun: Number(
+      process.env.AUTOPILOT_TOOLS_DISCOVER || DEFAULT_CONFIG.toolsDiscoverPerRun,
+    ),
+    toolsGeneratePerRun: Number(
+      process.env.AUTOPILOT_TOOLS_GENERATE || DEFAULT_CONFIG.toolsGeneratePerRun,
+    ),
+    toolsPublishStatus:
+      (process.env.AUTOPILOT_TOOLS_PUBLISH as "off" | "draft" | "publish") ||
+      DEFAULT_CONFIG.toolsPublishStatus,
+    toolsOptimizePerRun: Number(
+      process.env.AUTOPILOT_TOOLS_OPTIMIZE || DEFAULT_CONFIG.toolsOptimizePerRun,
+    ),
   };
 }
 
@@ -86,6 +117,11 @@ export type AutopilotRunResult = {
   refreshed: number;
   blocked: number;
   cadenceLimited: number;
+  syncedPages: number;
+  toolsDiscovered: number;
+  toolsGenerated: number;
+  toolsPublished: number;
+  toolsOptimized: number;
   errors: string[];
   log: string[];
 };
@@ -112,17 +148,34 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
   loadProjectEnv();
   const cfg = getAutopilotConfig();
   const result: AutopilotRunResult = {
-    discovered: 0, researched: 0, briefed: 0, written: 0,
-    published: 0, refreshed: 0, blocked: 0, cadenceLimited: 0,
-    errors: [], log: [],
+    discovered: 0,
+    researched: 0,
+    briefed: 0,
+    written: 0,
+    published: 0,
+    refreshed: 0,
+    blocked: 0,
+    cadenceLimited: 0,
+    syncedPages: 0,
+    toolsDiscovered: 0,
+    toolsGenerated: 0,
+    toolsPublished: 0,
+    toolsOptimized: 0,
+    errors: [],
+    log: [],
   };
 
-  const log = (msg: string) => result.log.push(`[${new Date().toISOString().slice(11, 19)}] ${msg}`);
-  log(`Autopilot cycle started (geo=${cfg.geo}, discover=${cfg.autoDiscover}, publish=${cfg.autoPublish})`);
+  const log = (msg: string) =>
+    result.log.push(`[${new Date().toISOString().slice(11, 19)}] ${msg}`);
+  log(
+    `Autopilot cycle started (geo=${cfg.geo}, discover=${cfg.autoDiscover}, publish=${cfg.autoPublish})`,
+  );
 
   const repo = await import("@/server/db/repos/articles");
   const counts = await getPublishCounts();
-  log(`Published: ${counts.today} today, ${counts.week} this week (limits: ${cfg.maxPublishPerDay}/day, ${cfg.maxPublishPerWeek}/week)`);
+  log(
+    `Published: ${counts.today} today, ${counts.week} this week (limits: ${cfg.maxPublishPerDay}/day, ${cfg.maxPublishPerWeek}/week)`,
+  );
 
   // 1. DISCOVER new topics
   if (cfg.autoDiscover) {
@@ -160,7 +213,10 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
       .filter((a) => !a.content_draft || !a.quality_score)
       .sort((a, b) => {
         const priorityOrder: Record<string, number> = { high: 0, medium: 1, low: 2 };
-        return (priorityOrder[a.priority ?? "medium"] ?? 1) - (priorityOrder[b.priority ?? "medium"] ?? 1);
+        return (
+          (priorityOrder[a.priority ?? "medium"] ?? 1) -
+          (priorityOrder[b.priority ?? "medium"] ?? 1)
+        );
       })
       .slice(0, cfg.progressPerRun);
 
@@ -193,24 +249,34 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
         result.errors.push(`progress ${article.id}: ${String((e as Error)?.message ?? e)}`);
       }
     }
-    log(`Progressed: ${result.researched} researched, ${result.briefed} briefed, ${result.written} written`);
+    log(
+      `Progressed: ${result.researched} researched, ${result.briefed} briefed, ${result.written} written`,
+    );
   }
 
   // 3. AUTO-PUBLISH passing articles (respecting cadence)
   if (cfg.autoPublish) {
     const publishable = (await repo.listArticles({ geo: cfg.geo, limit: 500 }))
-      .filter((a) =>
-        a.content_draft &&
-        a.quality_score &&
-        a.quality_score >= cfg.minPublishScore &&
-        !(a.quality_report as { blocking?: boolean })?.blocking &&
-        a.status !== "published" && a.status !== "promoted",
+      .filter(
+        (a) =>
+          a.content_draft &&
+          a.quality_score &&
+          a.quality_score >= cfg.minPublishScore &&
+          !(a.quality_report as { blocking?: boolean })?.blocking &&
+          a.status !== "published" &&
+          a.status !== "promoted",
       )
       .sort((a, b) => (b.quality_score ?? 0) - (a.quality_score ?? 0));
 
     for (const article of publishable) {
-      if (counts.today >= cfg.maxPublishPerDay) { result.cadenceLimited++; break; }
-      if (counts.week >= cfg.maxPublishPerWeek) { result.cadenceLimited++; break; }
+      if (counts.today >= cfg.maxPublishPerDay) {
+        result.cadenceLimited++;
+        break;
+      }
+      if (counts.week >= cfg.maxPublishPerWeek) {
+        result.cadenceLimited++;
+        break;
+      }
 
       try {
         if (cfg.usePlugin) {
@@ -222,7 +288,9 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
           if (hasPluginConfigured()) {
             const brief = (article.brief ?? {}) as Record<string, unknown>;
             const cluster = CLUSTERS.find((c) => c.id === article.cluster_id);
-            const html = renderArticleHtml(article.content_draft!, brief, { clusterName: cluster?.name });
+            const html = renderArticleHtml(article.content_draft!, brief, {
+              clusterName: cluster?.name,
+            });
             const image = await generateHeroImage(article.title, article.target_keyword ?? "");
             const schema = buildJsonLd(brief, { title: article.title, clusterName: cluster?.name });
 
@@ -243,7 +311,9 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
               toc: true,
               reading_time: Math.ceil((article.word_count_target ?? 2000) / 250),
               excerpt: String(brief.meta_description ?? article.meta_description ?? ""),
-              existing_post_id: (article.performance_data as { wordpress_post_id?: number })?.wordpress_post_id ?? null,
+              existing_post_id:
+                (article.performance_data as { wordpress_post_id?: number })?.wordpress_post_id ??
+                null,
             });
 
             if (r.ok) {
@@ -252,7 +322,7 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
                 published_url: r.link,
                 published_at: new Date(),
                 performance_data: {
-                  ...(article.performance_data as Record<string, unknown> ?? {}),
+                  ...((article.performance_data as Record<string, unknown>) ?? {}),
                   wordpress_post_id: r.post_id,
                   wordpress_last_sync: new Date().toISOString(),
                   featured_image: image.url,
@@ -274,9 +344,14 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
                   geo: article.geo_target,
                   qualityScore: article.quality_score,
                   event: "published",
-                  reward: computeReward({ event: "published", qualityScore: article.quality_score }),
+                  reward: computeReward({
+                    event: "published",
+                    qualityScore: article.quality_score,
+                  }),
                 });
-              } catch {}
+              } catch {
+                /* signal recording is optional */
+              }
             } else {
               result.errors.push(`plugin publish: ${r.error}`);
             }
@@ -299,7 +374,9 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
         result.errors.push(`publish ${article.id}: ${String((e as Error)?.message ?? e)}`);
       }
     }
-    log(`Publishing: ${result.published} published, ${result.cadenceLimited} cadence-limited, ${result.blocked} blocked`);
+    log(
+      `Publishing: ${result.published} published, ${result.cadenceLimited} cadence-limited, ${result.blocked} blocked`,
+    );
   }
 
   // 4. REFRESH stale articles
@@ -314,7 +391,11 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
       });
       // Mark as needing refresh (reset quality score so next cycle re-writes)
       for (const a of stale.slice(0, 2)) {
-        await repo.updateArticle(a.id, { quality_score: null, quality_report: null, content_draft: null });
+        await repo.updateArticle(a.id, {
+          quality_score: null,
+          quality_report: null,
+          content_draft: null,
+        });
         result.refreshed++;
       }
       if (result.refreshed) log(`Refresh: flagged ${result.refreshed} stale articles for rewrite`);
@@ -323,7 +404,80 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
     }
   }
 
-  log(`Cycle complete: ${result.discovered} discovered, ${result.written} written, ${result.published} published`);
+  // 5. SYNC ANALYTICS — pull real Google Search Console data into the learning loop.
+  try {
+    const { hasGscCredentials, querySearchAnalytics, isoDaysAgo } = await import("./gsc-client");
+    if (hasGscCredentials()) {
+      const startDate = isoDaysAgo(30);
+      const endDate = isoDaysAgo(2);
+      const rows = await querySearchAnalytics({
+        startDate,
+        endDate,
+        dimensions: ["page"],
+        rowLimit: 1000,
+      });
+      const { upsertSearchPerformance } = await import("@/server/db/repos/search-performance");
+      const { stored } = await upsertSearchPerformance(
+        rows.map((r) => ({
+          page: r.page,
+          clicks: r.clicks,
+          impressions: r.impressions,
+          ctr: r.ctr,
+          position: r.position,
+          dateStart: startDate,
+          dateEnd: endDate,
+        })),
+      );
+      result.syncedPages = stored;
+      if (stored)
+        log(
+          `Analytics: synced ${stored} pages from Search Console (real ranking data → learning loop)`,
+        );
+    }
+  } catch (e) {
+    result.errors.push(`analytics sync: ${String((e as Error)?.message ?? e)}`);
+  }
+
+  // 6. TOOL PAGES — discover/generate/publish new tools + optimize existing ones.
+  if (cfg.toolsEnabled) {
+    try {
+      const { runToolsCycleInternal } = await import("./tools.functions");
+      const t = await runToolsCycleInternal({
+        geo: cfg.geo,
+        sync: true,
+        discover: cfg.toolsDiscoverPerRun > 0,
+        discoverCount: cfg.toolsDiscoverPerRun,
+        generateCount: cfg.toolsGeneratePerRun,
+        publishStatus: cfg.toolsPublishStatus,
+        optimizeCount: cfg.toolsOptimizePerRun,
+      });
+      result.toolsDiscovered = t.discovered;
+      result.toolsGenerated = t.generated;
+      result.toolsPublished = t.published;
+      result.toolsOptimized = t.optimized;
+      for (const e of t.errors) result.errors.push(`tools: ${e}`);
+      log(
+        `Tools: ${t.discovered} ideas, ${t.generated} generated, ${t.published} published (${cfg.toolsPublishStatus}), ${t.optimized} pages optimized`,
+      );
+    } catch (e) {
+      result.errors.push(`tools phase: ${String((e as Error)?.message ?? e)}`);
+    }
+  }
+
+  // 7. KNOWLEDGE GRAPH — keep the system's understanding fresh + learning.
+  try {
+    const { rebuildKnowledgeGraph } = await import("./knowledge-graph");
+    const kgRes = await rebuildKnowledgeGraph();
+    log(
+      `Knowledge graph: ${kgRes.totals.nodes} entities, ${kgRes.totals.edges} links (learned ${kgRes.learned.clustersRewarded} clusters)`,
+    );
+  } catch (e) {
+    result.errors.push(`knowledge graph: ${String((e as Error)?.message ?? e)}`);
+  }
+
+  log(
+    `Cycle complete: ${result.discovered} discovered, ${result.written} written, ${result.published} published`,
+  );
   return result;
 }
 
@@ -338,7 +492,9 @@ export function startAutopilot(): boolean {
   if (!cfg.enabled) return false;
   if (schedulerTimer) return true; // already running
 
-  console.log(`[autopilot] Starting scheduler (interval: ${Math.round(cfg.intervalMs / 60000)}min)`);
+  console.log(
+    `[autopilot] Starting scheduler (interval: ${Math.round(cfg.intervalMs / 60000)}min)`,
+  );
 
   // Run once immediately, then on interval
   runCycleWrapped();
@@ -366,13 +522,27 @@ async function runCycleWrapped() {
   try {
     lastRunResult = await runAutopilotCycle();
     lastRunAt = new Date().toISOString();
-    console.log(`[autopilot] Cycle done: ${lastRunResult.published} published, ${lastRunResult.discovered} discovered`);
+    console.log(
+      `[autopilot] Cycle done: ${lastRunResult.published} published, ${lastRunResult.discovered} discovered`,
+    );
   } catch (e) {
     console.error("[autopilot] Cycle failed:", e);
     lastRunResult = {
-      discovered: 0, researched: 0, briefed: 0, written: 0,
-      published: 0, refreshed: 0, blocked: 0, cadenceLimited: 0,
-      errors: [String((e as Error)?.message ?? e)], log: ["Fatal error"],
+      discovered: 0,
+      researched: 0,
+      briefed: 0,
+      written: 0,
+      published: 0,
+      refreshed: 0,
+      blocked: 0,
+      cadenceLimited: 0,
+      syncedPages: 0,
+      toolsDiscovered: 0,
+      toolsGenerated: 0,
+      toolsPublished: 0,
+      toolsOptimized: 0,
+      errors: [String((e as Error)?.message ?? e)],
+      log: ["Fatal error"],
     };
     lastRunAt = new Date().toISOString();
   }

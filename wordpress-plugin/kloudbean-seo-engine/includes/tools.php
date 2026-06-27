@@ -1,0 +1,414 @@
+<?php
+/**
+ * TOOL PAGES — Elementor-native publishing + safe additive optimization.
+ *
+ * Endpoints (all under /wp-json/kbseo/v1/):
+ *   GET  /tools/list        — list pages in a category with AIOSEO score + Elementor info
+ *   GET  /tools/get/{id}    — full _elementor_data + meta + AIOSEO for one page (audit)
+ *   POST /publish-tool      — create/update a PAGE built with Elementor (new tools)
+ *   POST /optimize-tool     — ADDITIVE injection into an existing page (never changes slug)
+ *
+ * SAFETY GUARANTEES:
+ *   - Tool pages are post_type = 'page'.
+ *   - The interactive tool HTML lives in an Elementor "html" widget and is stored
+ *     RAW in _elementor_data (never wp_kses'd — that would strip the tool's JS/CSS).
+ *   - On update/optimize the post slug (post_name) is NEVER changed.
+ *   - /optimize-tool only PREPENDS/APPENDS sections; it never edits or removes the
+ *     existing widgets (the tool stays byte-for-byte the same).
+ */
+
+if (!defined('ABSPATH')) exit;
+
+/** Register tool routes (called from kbseo_register_routes in api.php). */
+function kbseo_register_tool_routes($namespace) {
+    register_rest_route($namespace, '/tools/list', [
+        'methods' => 'GET',
+        'callback' => 'kbseo_tools_list',
+        'permission_callback' => 'kbseo_verify_request',
+    ]);
+    register_rest_route($namespace, '/tools/get/(?P<id>\d+)', [
+        'methods' => 'GET',
+        'callback' => 'kbseo_tools_get',
+        'permission_callback' => 'kbseo_verify_request',
+    ]);
+    register_rest_route($namespace, '/publish-tool', [
+        'methods' => 'POST',
+        'callback' => 'kbseo_publish_tool',
+        'permission_callback' => 'kbseo_verify_request',
+    ]);
+    register_rest_route($namespace, '/optimize-tool', [
+        'methods' => 'POST',
+        'callback' => 'kbseo_optimize_tool',
+        'permission_callback' => 'kbseo_verify_request',
+    ]);
+}
+
+/** Current Elementor version string (best effort). */
+function kbseo_elementor_version() {
+    if (defined('ELEMENTOR_VERSION')) return ELEMENTOR_VERSION;
+    return '3.0.0';
+}
+
+/** Read AIOSEO score + focus keyword for a post (best effort). */
+function kbseo_aioseo_score($post_id) {
+    global $wpdb;
+    $table = $wpdb->prefix . 'aioseo_posts';
+    // Guard: table may not exist if AIOSEO isn't installed.
+    $exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table));
+    if (!$exists) return ['score' => null, 'focus_keyword' => '', 'title' => '', 'description' => ''];
+    $row = $wpdb->get_row($wpdb->prepare("SELECT title, description, keyphrases, seo_score FROM {$table} WHERE post_id = %d", $post_id), ARRAY_A);
+    if (!$row) return ['score' => null, 'focus_keyword' => '', 'title' => '', 'description' => ''];
+    $focus = '';
+    if (!empty($row['keyphrases'])) {
+        $kp = json_decode($row['keyphrases'], true);
+        $focus = $kp['focus']['keyphrase'] ?? '';
+    }
+    return [
+        'score' => isset($row['seo_score']) ? intval($row['seo_score']) : null,
+        'focus_keyword' => $focus,
+        'title' => $row['title'] ?? '',
+        'description' => $row['description'] ?? '',
+    ];
+}
+
+/** Persist Elementor data + builder meta for a page. Stores RAW (slashed) JSON. */
+function kbseo_set_elementor_data($post_id, $data_array) {
+    // Elementor expects the meta stored slashed; wp_slash before update_post_meta.
+    $json = wp_json_encode($data_array);
+    update_post_meta($post_id, '_elementor_data', wp_slash($json));
+    update_post_meta($post_id, '_elementor_edit_mode', 'builder');
+    if (!get_post_meta($post_id, '_elementor_template_type', true)) {
+        update_post_meta($post_id, '_elementor_template_type', 'wp-page');
+    }
+    update_post_meta($post_id, '_elementor_version', kbseo_elementor_version());
+    kbseo_clear_elementor_cache($post_id);
+}
+
+/** Clear Elementor's cached CSS so injected content renders immediately. */
+function kbseo_clear_elementor_cache($post_id) {
+    delete_post_meta($post_id, '_elementor_css');
+    if (class_exists('\Elementor\Plugin')) {
+        try {
+            \Elementor\Plugin::$instance->files_manager->clear_cache();
+        } catch (\Throwable $e) {
+            // non-fatal
+        }
+    }
+}
+
+/**
+ * Recursively remove HTML widgets whose markup contains a marker string.
+ * Makes gate add/update/remove idempotent (strip old gate, then re-add).
+ * Returns the filtered element list; counts removed via &$removed.
+ */
+function kbseo_strip_widgets_by_marker($elements, $marker, &$removed) {
+    if (!is_array($elements)) return $elements;
+    $out = [];
+    foreach ($elements as $el) {
+        if (!is_array($el)) { $out[] = $el; continue; }
+        $is_widget = (($el['elType'] ?? '') === 'widget');
+        $html = ($is_widget && isset($el['settings']['html'])) ? (string) $el['settings']['html'] : '';
+        if ($html !== '' && strpos($html, $marker) !== false) {
+            $removed++;
+            continue; // drop this widget
+        }
+        if (!empty($el['elements']) && is_array($el['elements'])) {
+            $el['elements'] = kbseo_strip_widgets_by_marker($el['elements'], $marker, $removed);
+        }
+        // Drop sections/columns left empty after stripping their only widget.
+        $type = $el['elType'] ?? '';
+        if (($type === 'section' || $type === 'column' || $type === 'container') && empty($el['elements'])) {
+            continue;
+        }
+        $out[] = $el;
+    }
+    return $out;
+}
+
+/** Simple per-IP rate limit for write endpoints. */
+function kbseo_tool_rate_ok($bucket, $max = 120) {
+    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    $key = 'kbseo_trate_' . $bucket . '_' . md5($ip);
+    $count = (int) get_transient($key);
+    if ($count >= $max) return false;
+    set_transient($key, $count + 1, HOUR_IN_SECONDS);
+    return true;
+}
+
+/**
+ * GET /tools/list — pages in a category with AIOSEO + Elementor info.
+ * Query: category (slug or name, default "Developer Tools"), per_page, page, status.
+ */
+function kbseo_tools_list($request) {
+    $category = $request->get_param('category');
+    if ($category === null || $category === '') $category = 'Developer Tools';
+    $per_page = min(100, max(1, intval($request->get_param('per_page') ?: 50)));
+    $page = max(1, intval($request->get_param('page') ?: 1));
+    $status = $request->get_param('status') ?: 'publish';
+
+    $args = [
+        'post_type' => 'page',
+        'post_status' => $status === 'any' ? ['publish', 'draft', 'pending', 'private'] : $status,
+        'posts_per_page' => $per_page,
+        'paged' => $page,
+        'orderby' => 'modified',
+        'order' => 'DESC',
+    ];
+
+    // Resolve category by slug or name.
+    $term = get_term_by('slug', sanitize_title($category), 'category');
+    if (!$term) $term = get_term_by('name', $category, 'category');
+    if ($term) {
+        $args['cat'] = $term->term_id;
+    }
+
+    $query = new WP_Query($args);
+    $items = [];
+    foreach ($query->posts as $post) {
+        $aioseo = kbseo_aioseo_score($post->ID);
+        $edit_mode = get_post_meta($post->ID, '_elementor_edit_mode', true);
+        $items[] = [
+            'id' => $post->ID,
+            'title' => get_the_title($post),
+            'slug' => $post->post_name,
+            'link' => get_permalink($post->ID),
+            'status' => $post->post_status,
+            'modified' => $post->post_modified_gmt,
+            'has_elementor' => ($edit_mode === 'builder'),
+            'aioseo_score' => $aioseo['score'],
+            'focus_keyword' => $aioseo['focus_keyword'],
+            'meta_title' => $aioseo['title'],
+        ];
+    }
+
+    return [
+        'ok' => true,
+        'category' => $category,
+        'total' => intval($query->found_posts),
+        'page' => $page,
+        'per_page' => $per_page,
+        'total_pages' => intval($query->max_num_pages),
+        'items' => $items,
+    ];
+}
+
+/**
+ * GET /tools/get/{id} — full data for an audit (no writes).
+ */
+function kbseo_tools_get($request) {
+    $post_id = intval($request['id']);
+    $post = get_post($post_id);
+    if (!$post) return new WP_Error('not_found', 'Page not found', ['status' => 404]);
+
+    $raw = get_post_meta($post_id, '_elementor_data', true);
+    $elementor_data = null;
+    if (is_string($raw) && $raw !== '') {
+        $decoded = json_decode($raw, true);
+        if (is_array($decoded)) $elementor_data = $decoded;
+    }
+    $aioseo = kbseo_aioseo_score($post_id);
+
+    return [
+        'ok' => true,
+        'id' => $post_id,
+        'title' => get_the_title($post),
+        'slug' => $post->post_name,
+        'link' => get_permalink($post_id),
+        'status' => $post->post_status,
+        'edit_mode' => get_post_meta($post_id, '_elementor_edit_mode', true),
+        'has_elementor' => (get_post_meta($post_id, '_elementor_edit_mode', true) === 'builder'),
+        'elementor_data' => $elementor_data,
+        'post_content' => $post->post_content,
+        'aioseo' => $aioseo,
+    ];
+}
+
+/**
+ * POST /publish-tool — create/update a PAGE built with Elementor.
+ *
+ * Body: { title, slug, status (draft|publish), category, meta_title,
+ *   meta_description, focus_keyword, secondary_keywords[], canonical_url,
+ *   schema_jsonld, elementor_data (array), existing_post_id }
+ *
+ * On update: post_name (slug) is NEVER changed.
+ */
+function kbseo_publish_tool($request) {
+    if (!kbseo_tool_rate_ok('publish')) {
+        return new WP_Error('rate_limited', 'Too many requests', ['status' => 429]);
+    }
+    $data = $request->get_json_params();
+    if (!$data || !is_array($data)) {
+        return new WP_Error('invalid_body', 'Body must be JSON', ['status' => 400]);
+    }
+    if (empty($data['elementor_data']) || !is_array($data['elementor_data'])) {
+        return new WP_Error('invalid_body', 'elementor_data (array) is required', ['status' => 400]);
+    }
+
+    $allowed_statuses = ['draft', 'publish', 'pending', 'private'];
+    $status = in_array($data['status'] ?? 'draft', $allowed_statuses, true) ? $data['status'] : 'draft';
+    $post_id = isset($data['existing_post_id']) ? intval($data['existing_post_id']) : 0;
+
+    $post_arr = [
+        'post_title' => sanitize_text_field($data['title'] ?? ''),
+        'post_status' => $status,
+        'post_type' => 'page',
+        // Elementor renders from _elementor_data; keep post_content empty.
+        'post_content' => '',
+    ];
+
+    if ($post_id > 0) {
+        // UPDATE — never touch the slug.
+        $post_arr['ID'] = $post_id;
+        $result = wp_update_post($post_arr, true);
+    } else {
+        // CREATE — slug set once, here only.
+        if (!empty($data['slug'])) $post_arr['post_name'] = sanitize_title($data['slug']);
+        $result = wp_insert_post($post_arr, true);
+    }
+    if (is_wp_error($result)) {
+        return new WP_Error('post_failed', $result->get_error_message(), ['status' => 500]);
+    }
+    $post_id = $result;
+
+    // Elementor data (RAW — preserves the tool's JS/CSS).
+    kbseo_set_elementor_data($post_id, $data['elementor_data']);
+
+    // Category (works on pages when the category taxonomy is attached to pages).
+    if (!empty($data['category'])) {
+        kbseo_assign_category($post_id, $data['category']);
+    }
+    if (!empty($data['tags']) && is_array($data['tags'])) {
+        wp_set_post_tags($post_id, $data['tags'], false);
+    }
+
+    // AIOSEO meta + schema.
+    kbseo_set_aioseo_meta($post_id, [
+        'title' => $data['meta_title'] ?? '',
+        'description' => $data['meta_description'] ?? '',
+        'focus_keyword' => $data['focus_keyword'] ?? '',
+        'canonical' => $data['canonical_url'] ?? '',
+        'og_image' => $data['og_image_url'] ?? '',
+        'schema' => $data['schema_jsonld'] ?? null,
+    ]);
+
+    kbseo_ping_sitemaps();
+
+    return [
+        'ok' => true,
+        'post_id' => $post_id,
+        'link' => get_permalink($post_id),
+        'slug' => get_post_field('post_name', $post_id),
+        'status' => get_post_status($post_id),
+        'created' => empty($data['existing_post_id']),
+    ];
+}
+
+/**
+ * POST /optimize-tool — ADDITIVE SEO injection into an existing page.
+ *
+ * Body: { post_id (required), prepend (array), append (array), meta_title,
+ *   meta_description, focus_keyword, secondary_keywords[], canonical_url,
+ *   schema_jsonld, dry_run (bool) }
+ *
+ * Guarantees:
+ *   - post_name (slug) is NEVER changed.
+ *   - post_title and existing widgets are NEVER changed.
+ *   - Only prepends/appends new Elementor sections + updates AIOSEO meta.
+ */
+function kbseo_optimize_tool($request) {
+    if (!kbseo_tool_rate_ok('optimize')) {
+        return new WP_Error('rate_limited', 'Too many requests', ['status' => 429]);
+    }
+    $data = $request->get_json_params();
+    if (!$data || !is_array($data)) {
+        return new WP_Error('invalid_body', 'Body must be JSON', ['status' => 400]);
+    }
+    $post_id = intval($data['post_id'] ?? 0);
+    if ($post_id <= 0) return new WP_Error('invalid_body', 'post_id is required', ['status' => 400]);
+    $post = get_post($post_id);
+    if (!$post) return new WP_Error('not_found', 'Page not found', ['status' => 404]);
+
+    $dry_run = !empty($data['dry_run']);
+    $prepend = (isset($data['prepend']) && is_array($data['prepend'])) ? $data['prepend'] : [];
+    $append = (isset($data['append']) && is_array($data['append'])) ? $data['append'] : [];
+    $strip_marker = isset($data['strip_marker']) ? (string) $data['strip_marker'] : '';
+
+    $raw = get_post_meta($post_id, '_elementor_data', true);
+    $existing = [];
+    if (is_string($raw) && $raw !== '') {
+        $decoded = json_decode($raw, true);
+        if (is_array($decoded)) $existing = $decoded;
+    }
+    $has_elementor = (get_post_meta($post_id, '_elementor_edit_mode', true) === 'builder') && count($existing) > 0;
+
+    // Strip widgets matching the marker (e.g. an old signup gate) before merging,
+    // so add/update/remove of the gate is idempotent.
+    $stripped = 0;
+    if ($strip_marker !== '' && $has_elementor) {
+        $existing = kbseo_strip_widgets_by_marker($existing, $strip_marker, $stripped);
+    }
+
+    $report = [
+        'post_id' => $post_id,
+        'slug' => $post->post_name, // echoed back so callers can confirm it's unchanged
+        'has_elementor' => $has_elementor,
+        'existing_sections' => count($existing),
+        'stripped_widgets' => $stripped,
+        'will_prepend' => count($prepend),
+        'will_append' => count($append),
+        'injected_elementor' => false,
+        'updated_meta' => false,
+        'dry_run' => $dry_run,
+    ];
+
+    if ($dry_run) {
+        $report['ok'] = true;
+        return $report;
+    }
+
+    // 1. Additive Elementor injection (only when the page is Elementor-built).
+    if ($has_elementor && (count($prepend) || count($append) || $stripped > 0)) {
+        $merged = array_merge($prepend, $existing, $append);
+        kbseo_set_elementor_data($post_id, $merged);
+        $report['injected_elementor'] = true;
+        $report['existing_sections_after'] = count($merged);
+    }
+
+    // 2. AIOSEO meta + schema — the biggest score lift, safe on any page.
+    $has_meta = !empty($data['meta_title']) || !empty($data['meta_description']) || !empty($data['focus_keyword']) || !empty($data['schema_jsonld']);
+    if ($has_meta) {
+        kbseo_set_aioseo_meta($post_id, [
+            'title' => $data['meta_title'] ?? '',
+            'description' => $data['meta_description'] ?? '',
+            'focus_keyword' => $data['focus_keyword'] ?? '',
+            'canonical' => $data['canonical_url'] ?? '',
+            'og_image' => $data['og_image_url'] ?? '',
+            'schema' => $data['schema_jsonld'] ?? null,
+        ]);
+        $report['updated_meta'] = true;
+    }
+
+    // 3. If NOT Elementor-built, append schema into post_content as a safe fallback
+    //    (does not disturb existing layout/builders).
+    if (!$has_elementor && !empty($data['schema_jsonld'])) {
+        $schema = $data['schema_jsonld'];
+        $blocks = isset($schema[0]) ? $schema : [$schema];
+        $tags = '';
+        foreach ($blocks as $b) {
+            $tags .= '<script type="application/ld+json">' . wp_json_encode($b) . '</script>' . "\n";
+        }
+        if (strpos($post->post_content, 'application/ld+json') === false) {
+            wp_update_post([
+                'ID' => $post_id,
+                'post_content' => $post->post_content . "\n" . $tags,
+            ]);
+            $report['appended_schema_to_content'] = true;
+        }
+    }
+
+    kbseo_ping_sitemaps();
+
+    $report['ok'] = true;
+    $report['link'] = get_permalink($post_id);
+    return $report;
+}

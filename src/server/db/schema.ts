@@ -74,7 +74,9 @@ export const keywords = pgTable("keywords", {
 
 export const contentBriefs = pgTable("content_briefs", {
   id: uuid("id").primaryKey().defaultRandom(),
-  articleId: uuid("article_id").notNull().references(() => articles.id, { onDelete: "cascade" }),
+  articleId: uuid("article_id")
+    .notNull()
+    .references(() => articles.id, { onDelete: "cascade" }),
   briefData: jsonb("brief_data").notNull(),
   version: integer("version").notNull().default(1),
   generatedBy: text("generated_by").default("ai"),
@@ -125,5 +127,160 @@ export const topicSignals = pgTable("topic_signals", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+/**
+ * Real search performance — our own analytics, pulled directly from Google
+ * Search Console (free API). One row per page per sync window. This is the
+ * "single source of truth" for what actually ranks and gets clicked, and it
+ * feeds the self-learning ranker with real outcomes (not just internal scores).
+ */
+export const searchPerformance = pgTable("search_performance", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  articleId: uuid("article_id"), // matched to articles.published_url when known
+  page: text("page").notNull(), // full URL from GSC
+  topQuery: text("top_query"), // best query for this page (optional)
+  clicks: integer("clicks").default(0),
+  impressions: integer("impressions").default(0),
+  ctr: numeric("ctr", { precision: 6, scale: 4 }),
+  position: numeric("position", { precision: 6, scale: 2 }),
+  dateStart: text("date_start"), // ISO date (window start)
+  dateEnd: text("date_end"), // ISO date (window end)
+  fetchedAt: timestamp("fetched_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/**
+ * TOOL PAGES — interactive free tools (calculators, generators, converters)
+ * published as WordPress Pages built with Elementor (HTML widget). Separate from
+ * `articles` because tools are interactive HTML, live on Pages (not posts), and
+ * follow a different lifecycle (idea → generated → published → optimized).
+ *
+ * SAFETY: for EXISTING pages we adopt `wpPostId` + `urlSlug` and treat the slug
+ * as READ-ONLY (some pages already rank). The optimizer only adds SEO around the
+ * existing tool — it never rewrites the tool widget or changes the slug.
+ */
+export const tools = pgTable("tools", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(), // e.g. "A/B Test Calculator"
+  // The WordPress page slug. For existing pages this is adopted from WP and
+  // NEVER changed. For new pages the engine proposes it once at creation.
+  urlSlug: text("url_slug"),
+  targetKeyword: text("target_keyword"),
+  secondaryKeywords: text("secondary_keywords").array().default([]),
+  category: text("category").default("Developer Tools"),
+  geoTarget: text("geo_target").default("global"),
+  // idea | generated | review | published | optimized | error
+  status: text("status").notNull().default("idea"),
+  // discovered | manual | existing (adopted from WP)
+  origin: text("origin").default("discovered"),
+  // WordPress linkage
+  wpPostId: integer("wp_post_id"),
+  publishedUrl: text("published_url"),
+  // SEO meta
+  metaTitle: text("meta_title"),
+  metaDescription: text("meta_description"),
+  // Generated assets
+  toolHtml: text("tool_html"), // the interactive tool (Elementor HTML widget body)
+  seoContent: jsonb("seo_content"), // { h1, intro, how_to[], faq[], related[] }
+  schemaJsonld: jsonb("schema_jsonld"), // SoftwareApplication + FAQPage + Breadcrumb
+  elementorData: jsonb("elementor_data"), // last-built/known _elementor_data snapshot
+  // Demand / idea signals
+  ideaData: jsonb("idea_data"),
+  volume: integer("volume"),
+  difficulty: smallint("difficulty"),
+  demandScore: smallint("demand_score"),
+  // Scoring
+  qualityScore: smallint("quality_score"),
+  qualityReport: jsonb("quality_report"),
+  aioseoScoreBefore: smallint("aioseo_score_before"),
+  aioseoScoreAfter: smallint("aioseo_score_after"),
+  // Audit snapshot (what the optimizer found before touching the page)
+  auditReport: jsonb("audit_report"),
+  // Signup gate (lead-gen): require a console.kloudbean.com account to use the tool
+  gateEnabled: text("gate_enabled"), // "yes" | "no" | null
+  gateMode: text("gate_mode"), // "soft" | "hard" | null
+  notes: text("notes"),
+  engineSource: text("engine_source"),
+  publishedAt: timestamp("published_at", { withTimezone: true }),
+  optimizedAt: timestamp("optimized_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export type ArticleRow = typeof articles.$inferSelect;
+
+/**
+ * SELF-LEARNING KNOWLEDGE GRAPH — the system's evolving understanding of what
+ * Kloudbean is and what topics surround it.
+ *
+ * Nodes are entities (product, feature, provider, competitor, persona, cluster,
+ * region, app, topic, keyword). Edges are typed relations (offers, supports,
+ * competes_with, serves, belongs_to, relates_to, targets). Both carry a `weight`
+ * that grows from mentions + real ranking/quality rewards, so the graph learns
+ * which entities and connections actually drive results.
+ */
+export const kgNodes = pgTable("kg_nodes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  // product | feature | provider | competitor | persona | cluster | region | app | topic | keyword | concept
+  type: text("type").notNull(),
+  // stable dedupe key (lowercased), unique per type via app logic
+  nodeKey: text("node_key").notNull(),
+  label: text("label").notNull(),
+  description: text("description"),
+  data: jsonb("data"),
+  // importance — grows from mentions + learning reward
+  weight: numeric("weight", { precision: 8, scale: 3 }).default("1"),
+  reward: numeric("reward", { precision: 8, scale: 3 }).default("0"),
+  mentions: integer("mentions").default(0),
+  clusterId: smallint("cluster_id"),
+  geo: text("geo"),
+  source: text("source"), // seed | article | tool | keyword | learned
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const kgEdges = pgTable("kg_edges", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  sourceId: uuid("source_id").notNull(),
+  targetId: uuid("target_id").notNull(),
+  relation: text("relation").notNull(),
+  weight: numeric("weight", { precision: 8, scale: 3 }).default("1"),
+  mentions: integer("mentions").default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/**
+ * REELS — short-video ideas + scripts generated from the same knowledge, with
+ * ready-to-paste prompts for text-to-video tools (Sora, Veo, Google AI Studio).
+ */
+export const reels = pgTable("reels", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  topic: text("topic"),
+  // explainer | educational | how_it_works | viral | comparison | listicle
+  format: text("format").notNull().default("explainer"),
+  status: text("status").notNull().default("idea"), // idea | scripted | ready | published
+  hook: text("hook"),
+  hookVariations: text("hook_variations").array().default([]),
+  script: jsonb("script"), // [{ seconds, narration, on_screen, visual_prompt }]
+  voiceover: text("voiceover"),
+  caption: text("caption"),
+  hashtags: text("hashtags").array().default([]),
+  cta: text("cta"),
+  durationSeconds: integer("duration_seconds").default(45),
+  platformPrompts: jsonb("platform_prompts"), // { sora, veo, ai_studio }
+  clusterId: smallint("cluster_id"),
+  demandScore: smallint("demand_score"),
+  ideaData: jsonb("idea_data"),
+  notes: text("notes"),
+  engineSource: text("engine_source"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export type ArticleInsert = typeof articles.$inferInsert;
+export type SearchPerformanceRow = typeof searchPerformance.$inferSelect;
+export type ToolRow = typeof tools.$inferSelect;
+export type ToolInsert = typeof tools.$inferInsert;
+export type KgNodeRow = typeof kgNodes.$inferSelect;
+export type KgEdgeRow = typeof kgEdges.$inferSelect;
+export type ReelRow = typeof reels.$inferSelect;

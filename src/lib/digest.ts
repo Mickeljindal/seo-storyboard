@@ -18,6 +18,14 @@ export type DigestData = {
   topArticles: { title: string; score: number; status: string }[];
   refreshed: number;
   errors: number;
+  search?: { clicks: number; impressions: number; avgPosition: number; pages: number };
+  tools?: {
+    total: number;
+    published: number;
+    optimized: number;
+    gated: number;
+    avgAioseo: number | null;
+  };
 };
 
 export async function buildWeeklyDigest(): Promise<DigestData> {
@@ -36,12 +44,54 @@ export async function buildWeeklyDigest(): Promise<DigestData> {
   const drafted = thisWeek.filter((a) => a.content_draft && a.status !== "published");
   const discovered = thisWeek.filter((a) => a.status === "idea");
   const scores = all.filter((a) => a.quality_score).map((a) => a.quality_score!);
-  const avgScore = scores.length ? Math.round(scores.reduce((s, n) => s + n, 0) / scores.length) : 0;
+  const avgScore = scores.length
+    ? Math.round(scores.reduce((s, n) => s + n, 0) / scores.length)
+    : 0;
 
   const topArticles = [...published, ...drafted]
     .sort((a, b) => (b.quality_score ?? 0) - (a.quality_score ?? 0))
     .slice(0, 5)
     .map((a) => ({ title: a.title, score: a.quality_score ?? 0, status: a.status }));
+
+  // Real search performance (own analytics) — best-effort, never blocks the digest.
+  let search: DigestData["search"];
+  try {
+    const { getPerformanceTotals } = await import("@/server/db/repos/search-performance");
+    const totals = await getPerformanceTotals();
+    if (totals.pages > 0) {
+      search = {
+        clicks: totals.clicks,
+        impressions: totals.impressions,
+        avgPosition: totals.avgPosition,
+        pages: totals.pages,
+      };
+    }
+  } catch {
+    /* analytics optional */
+  }
+
+  // Tool pages summary — best-effort.
+  let tools: DigestData["tools"];
+  try {
+    const toolsRepo = await import("@/server/db/repos/tools");
+    const allTools = await toolsRepo.listTools({ limit: 2000 });
+    if (allTools.length) {
+      const published = allTools.filter(
+        (t) => t.status === "published" || t.status === "optimized",
+      ).length;
+      const optimized = allTools.filter((t) => t.status === "optimized").length;
+      const gated = allTools.filter((t) => t.gate_enabled === "yes").length;
+      const scoreVals = allTools
+        .map((t) => t.aioseo_score_after ?? t.aioseo_score_before)
+        .filter((s): s is number => typeof s === "number");
+      const avgAioseo = scoreVals.length
+        ? Math.round(scoreVals.reduce((a, b) => a + b, 0) / scoreVals.length)
+        : null;
+      tools = { total: allTools.length, published, optimized, gated, avgAioseo };
+    }
+  } catch {
+    /* tools optional */
+  }
 
   return {
     period: `${new Date(weekAgo).toISOString().slice(0, 10)} → ${new Date().toISOString().slice(0, 10)}`,
@@ -53,6 +103,8 @@ export async function buildWeeklyDigest(): Promise<DigestData> {
     topArticles,
     refreshed: 0,
     errors: 0,
+    search,
+    tools,
   };
 }
 
@@ -70,8 +122,18 @@ export async function sendDigestWebhook(): Promise<{ ok: boolean; error?: string
       `📄 Drafted: ${digest.drafted}`,
       `🔍 New topics discovered: ${digest.discovered}`,
       `📈 Avg quality score: ${digest.avgScore}/100`,
-      digest.topArticles.length ? `\n**Top articles:**\n${digest.topArticles.map((a) => `• ${a.title} (${a.score} pts, ${a.status})`).join("\n")}` : "",
-    ].filter(Boolean).join("\n");
+      digest.search
+        ? `\n**Real search (Google Search Console):**\n🖱️ Clicks: ${digest.search.clicks} · 👁️ Impressions: ${digest.search.impressions} · 📍 Avg position: ${digest.search.avgPosition} · across ${digest.search.pages} pages`
+        : "",
+      digest.tools
+        ? `\n**Tool pages:**\n🧰 ${digest.tools.total} tools · ✅ ${digest.tools.published} live · ✨ ${digest.tools.optimized} optimized · 🔒 ${digest.tools.gated} gated · 📊 avg AIOSEO ${digest.tools.avgAioseo ?? "?"}/100`
+        : "",
+      digest.topArticles.length
+        ? `\n**Top articles:**\n${digest.topArticles.map((a) => `• ${a.title} (${a.score} pts, ${a.status})`).join("\n")}`
+        : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
 
     const payload = { text: message, content: message }; // works for Slack + Discord
 

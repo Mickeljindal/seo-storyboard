@@ -41,6 +41,11 @@ function kbseo_register_routes() {
         'callback' => 'kbseo_audit_bulk',
         'permission_callback' => 'kbseo_verify_request',
     ]);
+
+    // Tool pages (Elementor-native publish + additive optimize)
+    if (function_exists('kbseo_register_tool_routes')) {
+        kbseo_register_tool_routes($namespace);
+    }
 }
 
 function kbseo_health() {

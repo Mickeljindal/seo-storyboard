@@ -2,8 +2,8 @@
 /**
  * Plugin Name: Kloudbean SEO Engine
  * Plugin URI: https://kloudbean.com
- * Description: Full WordPress control for the Kloudbean autonomous SEO engine. Handles AIOSEO meta, featured images, categories, internal link injection, TOC, sitemap pings, and on-page SEO automation.
- * Version: 1.0.0
+ * Description: Full WordPress control for the Kloudbean autonomous SEO engine. Handles AIOSEO meta, featured images, categories, internal link injection, TOC, sitemap pings, on-page SEO automation, and Elementor-native tool pages.
+ * Version: 1.1.0
  * Author: Kloudbean
  * Author URI: https://kloudbean.com
  * License: Proprietary
@@ -13,7 +13,7 @@
 
 if (!defined('ABSPATH')) exit;
 
-define('KBSEO_VERSION', '1.0.0');
+define('KBSEO_VERSION', '1.1.0');
 define('KBSEO_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
 // Load modules
@@ -26,6 +26,7 @@ require_once KBSEO_PLUGIN_DIR . 'includes/internal-links.php';
 require_once KBSEO_PLUGIN_DIR . 'includes/toc.php';
 require_once KBSEO_PLUGIN_DIR . 'includes/sitemap.php';
 require_once KBSEO_PLUGIN_DIR . 'includes/audit.php';
+require_once KBSEO_PLUGIN_DIR . 'includes/tools.php';
 
 // Register REST API routes on init
 add_action('rest_api_init', 'kbseo_register_routes');

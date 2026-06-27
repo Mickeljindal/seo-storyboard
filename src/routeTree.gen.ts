@@ -10,11 +10,14 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TopicalMapRouteImport } from './routes/topical-map'
+import { Route as ToolsRouteImport } from './routes/tools'
 import { Route as StrategyRouteImport } from './routes/strategy'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ScopeRouteImport } from './routes/scope'
+import { Route as ReelsRouteImport } from './routes/reels'
 import { Route as RaffleRouteImport } from './routes/raffle'
 import { Route as PerformanceRouteImport } from './routes/performance'
+import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as KeywordsRouteImport } from './routes/keywords'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as EngineRouteImport } from './routes/engine'
@@ -25,6 +28,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const TopicalMapRoute = TopicalMapRouteImport.update({
   id: '/topical-map',
   path: '/topical-map',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ToolsRoute = ToolsRouteImport.update({
+  id: '/tools',
+  path: '/tools',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StrategyRoute = StrategyRouteImport.update({
@@ -42,6 +50,11 @@ const ScopeRoute = ScopeRouteImport.update({
   path: '/scope',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReelsRoute = ReelsRouteImport.update({
+  id: '/reels',
+  path: '/reels',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RaffleRoute = RaffleRouteImport.update({
   id: '/raffle',
   path: '/raffle',
@@ -50,6 +63,11 @@ const RaffleRoute = RaffleRouteImport.update({
 const PerformanceRoute = PerformanceRouteImport.update({
   id: '/performance',
   path: '/performance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KnowledgeRoute = KnowledgeRouteImport.update({
+  id: '/knowledge',
+  path: '/knowledge',
   getParentRoute: () => rootRouteImport,
 } as any)
 const KeywordsRoute = KeywordsRouteImport.update({
@@ -90,11 +108,14 @@ export interface FileRoutesByFullPath {
   '/engine': typeof EngineRoute
   '/how-it-works': typeof HowItWorksRoute
   '/keywords': typeof KeywordsRoute
+  '/knowledge': typeof KnowledgeRoute
   '/performance': typeof PerformanceRoute
   '/raffle': typeof RaffleRoute
+  '/reels': typeof ReelsRoute
   '/scope': typeof ScopeRoute
   '/settings': typeof SettingsRoute
   '/strategy': typeof StrategyRoute
+  '/tools': typeof ToolsRoute
   '/topical-map': typeof TopicalMapRoute
 }
 export interface FileRoutesByTo {
@@ -104,11 +125,14 @@ export interface FileRoutesByTo {
   '/engine': typeof EngineRoute
   '/how-it-works': typeof HowItWorksRoute
   '/keywords': typeof KeywordsRoute
+  '/knowledge': typeof KnowledgeRoute
   '/performance': typeof PerformanceRoute
   '/raffle': typeof RaffleRoute
+  '/reels': typeof ReelsRoute
   '/scope': typeof ScopeRoute
   '/settings': typeof SettingsRoute
   '/strategy': typeof StrategyRoute
+  '/tools': typeof ToolsRoute
   '/topical-map': typeof TopicalMapRoute
 }
 export interface FileRoutesById {
@@ -119,11 +143,14 @@ export interface FileRoutesById {
   '/engine': typeof EngineRoute
   '/how-it-works': typeof HowItWorksRoute
   '/keywords': typeof KeywordsRoute
+  '/knowledge': typeof KnowledgeRoute
   '/performance': typeof PerformanceRoute
   '/raffle': typeof RaffleRoute
+  '/reels': typeof ReelsRoute
   '/scope': typeof ScopeRoute
   '/settings': typeof SettingsRoute
   '/strategy': typeof StrategyRoute
+  '/tools': typeof ToolsRoute
   '/topical-map': typeof TopicalMapRoute
 }
 export interface FileRouteTypes {
@@ -135,11 +162,14 @@ export interface FileRouteTypes {
     | '/engine'
     | '/how-it-works'
     | '/keywords'
+    | '/knowledge'
     | '/performance'
     | '/raffle'
+    | '/reels'
     | '/scope'
     | '/settings'
     | '/strategy'
+    | '/tools'
     | '/topical-map'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -149,11 +179,14 @@ export interface FileRouteTypes {
     | '/engine'
     | '/how-it-works'
     | '/keywords'
+    | '/knowledge'
     | '/performance'
     | '/raffle'
+    | '/reels'
     | '/scope'
     | '/settings'
     | '/strategy'
+    | '/tools'
     | '/topical-map'
   id:
     | '__root__'
@@ -163,11 +196,14 @@ export interface FileRouteTypes {
     | '/engine'
     | '/how-it-works'
     | '/keywords'
+    | '/knowledge'
     | '/performance'
     | '/raffle'
+    | '/reels'
     | '/scope'
     | '/settings'
     | '/strategy'
+    | '/tools'
     | '/topical-map'
   fileRoutesById: FileRoutesById
 }
@@ -178,11 +214,14 @@ export interface RootRouteChildren {
   EngineRoute: typeof EngineRoute
   HowItWorksRoute: typeof HowItWorksRoute
   KeywordsRoute: typeof KeywordsRoute
+  KnowledgeRoute: typeof KnowledgeRoute
   PerformanceRoute: typeof PerformanceRoute
   RaffleRoute: typeof RaffleRoute
+  ReelsRoute: typeof ReelsRoute
   ScopeRoute: typeof ScopeRoute
   SettingsRoute: typeof SettingsRoute
   StrategyRoute: typeof StrategyRoute
+  ToolsRoute: typeof ToolsRoute
   TopicalMapRoute: typeof TopicalMapRoute
 }
 
@@ -193,6 +232,13 @@ declare module '@tanstack/react-router' {
       path: '/topical-map'
       fullPath: '/topical-map'
       preLoaderRoute: typeof TopicalMapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tools': {
+      id: '/tools'
+      path: '/tools'
+      fullPath: '/tools'
+      preLoaderRoute: typeof ToolsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/strategy': {
@@ -216,6 +262,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ScopeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reels': {
+      id: '/reels'
+      path: '/reels'
+      fullPath: '/reels'
+      preLoaderRoute: typeof ReelsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/raffle': {
       id: '/raffle'
       path: '/raffle'
@@ -228,6 +281,13 @@ declare module '@tanstack/react-router' {
       path: '/performance'
       fullPath: '/performance'
       preLoaderRoute: typeof PerformanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/knowledge': {
+      id: '/knowledge'
+      path: '/knowledge'
+      fullPath: '/knowledge'
+      preLoaderRoute: typeof KnowledgeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/keywords': {
@@ -282,11 +342,14 @@ const rootRouteChildren: RootRouteChildren = {
   EngineRoute: EngineRoute,
   HowItWorksRoute: HowItWorksRoute,
   KeywordsRoute: KeywordsRoute,
+  KnowledgeRoute: KnowledgeRoute,
   PerformanceRoute: PerformanceRoute,
   RaffleRoute: RaffleRoute,
+  ReelsRoute: ReelsRoute,
   ScopeRoute: ScopeRoute,
   SettingsRoute: SettingsRoute,
   StrategyRoute: StrategyRoute,
+  ToolsRoute: ToolsRoute,
   TopicalMapRoute: TopicalMapRoute,
 }
 export const routeTree = rootRouteImport

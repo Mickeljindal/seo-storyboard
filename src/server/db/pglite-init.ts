@@ -24,11 +24,15 @@ async function initPglite(client: PGlite): Promise<void> {
 
   if (!check.rows[0]?.t) {
     const schemaPath = path.join(root, "database/migrations/001_schema_pglite.sql");
-    const patchPath = path.join(root, "database/migrations/002_patch_columns.sql");
     await client.exec(fs.readFileSync(schemaPath, "utf8"));
-    if (fs.existsSync(patchPath)) {
-      await client.exec(fs.readFileSync(patchPath, "utf8"));
-    }
+  }
+
+  // The patch file is fully idempotent (ADD COLUMN / CREATE TABLE IF NOT EXISTS),
+  // so run it every init — this lets existing DBs pick up new tables/columns
+  // (e.g. search_performance) without a full reset.
+  const patchPath = path.join(root, "database/migrations/002_patch_columns.sql");
+  if (fs.existsSync(patchPath)) {
+    await client.exec(fs.readFileSync(patchPath, "utf8"));
   }
 
   const seeded = await seedPgliteArticles(client);
