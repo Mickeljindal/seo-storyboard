@@ -15,9 +15,11 @@ import {
   Wrench,
   Brain as BrainIcon,
   Clapperboard,
+  BookOpen,
 } from "lucide-react";
 import { ReactNode } from "react";
 import { SystemHealthBanner, SystemHealthOkBadge } from "./SystemHealthBanner";
+import { AssistantWidget } from "./AssistantWidget";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, kbd: "1" },
@@ -35,6 +37,7 @@ const NAV = [
   { to: "/briefs", label: "Briefs", icon: FileText, kbd: "0" },
   { to: "/performance", label: "Performance", icon: TrendingUp, kbd: "P" },
   { to: "/settings", label: "Settings", icon: Settings, kbd: "S" },
+  { to: "/help", label: "Help & Docs", icon: BookOpen, kbd: "H" },
 ] as const;
 
 export function AppLayout({ children }: { children: ReactNode }) {
@@ -118,6 +121,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           {children}
         </div>
       </main>
+      <AssistantWidget />
     </div>
   );
 }

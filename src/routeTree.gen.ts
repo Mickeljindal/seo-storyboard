@@ -20,6 +20,7 @@ import { Route as PerformanceRouteImport } from './routes/performance'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as KeywordsRouteImport } from './routes/keywords'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
+import { Route as HelpRouteImport } from './routes/help'
 import { Route as EngineRouteImport } from './routes/engine'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as BriefsRouteImport } from './routes/briefs'
@@ -80,6 +81,11 @@ const HowItWorksRoute = HowItWorksRouteImport.update({
   path: '/how-it-works',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EngineRoute = EngineRouteImport.update({
   id: '/engine',
   path: '/engine',
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/briefs': typeof BriefsRoute
   '/calendar': typeof CalendarRoute
   '/engine': typeof EngineRoute
+  '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
   '/keywords': typeof KeywordsRoute
   '/knowledge': typeof KnowledgeRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByTo {
   '/briefs': typeof BriefsRoute
   '/calendar': typeof CalendarRoute
   '/engine': typeof EngineRoute
+  '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
   '/keywords': typeof KeywordsRoute
   '/knowledge': typeof KnowledgeRoute
@@ -141,6 +149,7 @@ export interface FileRoutesById {
   '/briefs': typeof BriefsRoute
   '/calendar': typeof CalendarRoute
   '/engine': typeof EngineRoute
+  '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
   '/keywords': typeof KeywordsRoute
   '/knowledge': typeof KnowledgeRoute
@@ -160,6 +169,7 @@ export interface FileRouteTypes {
     | '/briefs'
     | '/calendar'
     | '/engine'
+    | '/help'
     | '/how-it-works'
     | '/keywords'
     | '/knowledge'
@@ -177,6 +187,7 @@ export interface FileRouteTypes {
     | '/briefs'
     | '/calendar'
     | '/engine'
+    | '/help'
     | '/how-it-works'
     | '/keywords'
     | '/knowledge'
@@ -194,6 +205,7 @@ export interface FileRouteTypes {
     | '/briefs'
     | '/calendar'
     | '/engine'
+    | '/help'
     | '/how-it-works'
     | '/keywords'
     | '/knowledge'
@@ -212,6 +224,7 @@ export interface RootRouteChildren {
   BriefsRoute: typeof BriefsRoute
   CalendarRoute: typeof CalendarRoute
   EngineRoute: typeof EngineRoute
+  HelpRoute: typeof HelpRoute
   HowItWorksRoute: typeof HowItWorksRoute
   KeywordsRoute: typeof KeywordsRoute
   KnowledgeRoute: typeof KnowledgeRoute
@@ -304,6 +317,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HowItWorksRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/engine': {
       id: '/engine'
       path: '/engine'
@@ -340,6 +360,7 @@ const rootRouteChildren: RootRouteChildren = {
   BriefsRoute: BriefsRoute,
   CalendarRoute: CalendarRoute,
   EngineRoute: EngineRoute,
+  HelpRoute: HelpRoute,
   HowItWorksRoute: HowItWorksRoute,
   KeywordsRoute: KeywordsRoute,
   KnowledgeRoute: KnowledgeRoute,
