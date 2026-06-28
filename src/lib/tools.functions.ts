@@ -716,6 +716,65 @@ export const addToolFn = createServerFn({ method: "POST" })
   });
 
 // ============================================================================
+// 6d. BULK ACTIONS — build many ideas / optimize many pages in one call
+// ============================================================================
+
+export const bulkGenerateToolsFn = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ toolIds: z.array(z.string().uuid()).min(1).max(12) }).parse)
+  .handler(async ({ data }) => {
+    const { loadProjectEnv } = await import("./load-env");
+    loadProjectEnv();
+    let succeeded = 0;
+    const errors: string[] = [];
+    for (const id of data.toolIds) {
+      try {
+        const r = await generateToolInternal(id);
+        if (r.ok) succeeded++;
+        else errors.push(r.error ?? "failed");
+      } catch (e) {
+        errors.push(String((e as Error)?.message ?? e));
+      }
+      await new Promise((res) => setTimeout(res, 300));
+    }
+    return {
+      ok: true,
+      succeeded,
+      failed: data.toolIds.length - succeeded,
+      errors: errors.slice(0, 5),
+    };
+  });
+
+export const bulkOptimizeToolsFn = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      toolIds: z.array(z.string().uuid()).min(1).max(30),
+      dryRun: z.boolean().default(false),
+    }).parse,
+  )
+  .handler(async ({ data }) => {
+    const { loadProjectEnv } = await import("./load-env");
+    loadProjectEnv();
+    let succeeded = 0;
+    const errors: string[] = [];
+    for (const id of data.toolIds) {
+      try {
+        const r = await optimizeToolInternal(id, data.dryRun);
+        if (r.ok) succeeded++;
+        else errors.push(r.error ?? "failed");
+      } catch (e) {
+        errors.push(String((e as Error)?.message ?? e));
+      }
+      await new Promise((res) => setTimeout(res, 400));
+    }
+    return {
+      ok: true,
+      succeeded,
+      failed: data.toolIds.length - succeeded,
+      errors: errors.slice(0, 5),
+    };
+  });
+
+// ============================================================================
 // 7. AUTOPILOT — scheduled tools cycle (discover → generate → publish → optimize)
 // ============================================================================
 

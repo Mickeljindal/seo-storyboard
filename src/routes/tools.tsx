@@ -31,6 +31,8 @@ import {
   runToolsCycleFn,
   setToolGateFn,
   addToolFn,
+  bulkGenerateToolsFn,
+  bulkOptimizeToolsFn,
 } from "@/lib/tools.functions";
 
 export const Route = createFileRoute("/tools")({ component: ToolsPage });
@@ -89,6 +91,9 @@ function ToolsPage() {
   const addFn = useServerFn(addToolFn);
   const poolFn = useServerFn(discoverToolPoolFn);
   const dismissFn = useServerFn(dismissToolFn);
+  const bulkGenFn = useServerFn(bulkGenerateToolsFn);
+  const bulkOptFn = useServerFn(bulkOptimizeToolsFn);
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const { data: status } = useQuery({ queryKey: ["tools-status"], queryFn: () => statusFn({}) });
   const { data: tools, isLoading } = useQuery({
@@ -240,6 +245,40 @@ function ToolsPage() {
   const toggleGateMode = (t: ToolRow, mode: "soft" | "hard") =>
     run(t.id, () => gateFn({ data: { toolId: t.id, enable: true, mode } }), `Gate set to ${mode}`);
 
+  const bulkBuild = async () => {
+    const ids = pool.slice(0, 8).map((t) => t.id);
+    if (!ids.length) return;
+    setBulkBusy(true);
+    try {
+      const r = await bulkGenFn({ data: { toolIds: ids } });
+      toast.success(
+        `Built ${r.succeeded}/${ids.length} tools${r.failed ? ` · ${r.failed} failed` : ""}`,
+      );
+      invalidate();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const bulkOptimize = async () => {
+    const ids = existing.slice(0, 25).map((t) => t.id);
+    if (!ids.length) return;
+    setBulkBusy(true);
+    try {
+      const r = await bulkOptFn({ data: { toolIds: ids, dryRun: false } });
+      toast.success(
+        `Optimized ${r.succeeded}/${ids.length} pages${r.failed ? ` · ${r.failed} failed` : ""}`,
+      );
+      invalidate();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
   return (
     <AppLayout>
       <div className="mx-auto max-w-7xl px-8 py-8">
@@ -373,6 +412,21 @@ function ToolsPage() {
             <span className="text-muted-foreground">
               {pool.length} of {poolAll.length}
             </span>
+            <Button
+              size="sm"
+              className="ml-auto"
+              variant="outline"
+              disabled={bulkBusy || pool.length === 0}
+              onClick={bulkBuild}
+              title="Build the top filtered ideas (up to 8) in one go"
+            >
+              {bulkBusy ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Wrench className="mr-2 h-4 w-4" />
+              )}
+              Build top {Math.min(pool.length, 8)}
+            </Button>
           </div>
 
           {pool.length === 0 ? (
@@ -565,6 +619,21 @@ function ToolsPage() {
                 <span className="text-muted-foreground">
                   {existing.length} of {existingAll.length}
                 </span>
+                <Button
+                  size="sm"
+                  className="ml-auto"
+                  variant="outline"
+                  disabled={bulkBusy || existing.length === 0}
+                  onClick={bulkOptimize}
+                  title="Optimize the filtered pages (up to 25), slug-safe"
+                >
+                  {bulkBusy ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <ShieldCheck className="mr-2 h-4 w-4" />
+                  )}
+                  Optimize {Math.min(existing.length, 25)}
+                </Button>
               </div>
               <ToolTable
                 rows={existing.slice(0, 150)}
