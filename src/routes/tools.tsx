@@ -31,8 +31,6 @@ import {
   runToolsCycleFn,
   setToolGateFn,
   addToolFn,
-  bulkGenerateToolsFn,
-  bulkOptimizeToolsFn,
 } from "@/lib/tools.functions";
 
 export const Route = createFileRoute("/tools")({ component: ToolsPage });
@@ -91,9 +89,8 @@ function ToolsPage() {
   const addFn = useServerFn(addToolFn);
   const poolFn = useServerFn(discoverToolPoolFn);
   const dismissFn = useServerFn(dismissToolFn);
-  const bulkGenFn = useServerFn(bulkGenerateToolsFn);
-  const bulkOptFn = useServerFn(bulkOptimizeToolsFn);
-  const [bulkBusy, setBulkBusy] = useState(false);
+  // Bulk run progress: { done, total, label } while a batch is running.
+  const [bulk, setBulk] = useState<{ done: number; total: number; label: string } | null>(null);
 
   const { data: status } = useQuery({ queryKey: ["tools-status"], queryFn: () => statusFn({}) });
   const { data: tools, isLoading } = useQuery({
@@ -245,39 +242,40 @@ function ToolsPage() {
   const toggleGateMode = (t: ToolRow, mode: "soft" | "hard") =>
     run(t.id, () => gateFn({ data: { toolId: t.id, enable: true, mode } }), `Gate set to ${mode}`);
 
-  const bulkBuild = async () => {
-    const ids = pool.slice(0, 8).map((t) => t.id);
-    if (!ids.length) return;
-    setBulkBusy(true);
-    try {
-      const r = await bulkGenFn({ data: { toolIds: ids } });
-      toast.success(
-        `Built ${r.succeeded}/${ids.length} tools${r.failed ? ` · ${r.failed} failed` : ""}`,
-      );
-      invalidate();
-    } catch (e) {
-      toast.error((e as Error).message);
-    } finally {
-      setBulkBusy(false);
+  const BUILD_CAP = 25;
+  const OPTIMIZE_CAP = 100;
+
+  /** Run a per-item server fn over a list, reporting live progress. */
+  const runBatch = async (rows: ToolRow[], fn: (t: ToolRow) => Promise<unknown>, verb: string) => {
+    if (!rows.length || bulk) return;
+    let done = 0;
+    let failed = 0;
+    setBulk({ done: 0, total: rows.length, label: verb });
+    for (const t of rows) {
+      try {
+        await fn(t);
+      } catch {
+        failed++;
+      }
+      done++;
+      setBulk({ done, total: rows.length, label: verb });
     }
+    setBulk(null);
+    invalidate();
+    toast.success(
+      `${verb}: ${done - failed}/${rows.length} done${failed ? ` · ${failed} failed` : ""}`,
+    );
   };
 
-  const bulkOptimize = async () => {
-    const ids = existing.slice(0, 25).map((t) => t.id);
-    if (!ids.length) return;
-    setBulkBusy(true);
-    try {
-      const r = await bulkOptFn({ data: { toolIds: ids, dryRun: false } });
-      toast.success(
-        `Optimized ${r.succeeded}/${ids.length} pages${r.failed ? ` · ${r.failed} failed` : ""}`,
-      );
-      invalidate();
-    } catch (e) {
-      toast.error((e as Error).message);
-    } finally {
-      setBulkBusy(false);
-    }
-  };
+  const bulkBuild = () =>
+    runBatch(pool.slice(0, BUILD_CAP), (t) => genFn({ data: { toolId: t.id } }), "Building");
+
+  const bulkOptimize = () =>
+    runBatch(
+      existing.slice(0, OPTIMIZE_CAP),
+      (t) => optFn({ data: { toolId: t.id, dryRun: false } }),
+      "Optimizing",
+    );
 
   return (
     <AppLayout>
@@ -416,16 +414,21 @@ function ToolsPage() {
               size="sm"
               className="ml-auto"
               variant="outline"
-              disabled={bulkBusy || pool.length === 0}
+              disabled={!!bulk || pool.length === 0}
               onClick={bulkBuild}
-              title="Build the top filtered ideas (up to 8) in one go"
+              title="Build the top filtered ideas (up to 25) in one go"
             >
-              {bulkBusy ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {bulk?.label === "Building" ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Building {bulk.done}/{bulk.total}…
+                </>
               ) : (
-                <Wrench className="mr-2 h-4 w-4" />
+                <>
+                  <Wrench className="mr-2 h-4 w-4" />
+                  Build top {Math.min(pool.length, 25)}
+                </>
               )}
-              Build top {Math.min(pool.length, 8)}
             </Button>
           </div>
 
@@ -623,16 +626,21 @@ function ToolsPage() {
                   size="sm"
                   className="ml-auto"
                   variant="outline"
-                  disabled={bulkBusy || existing.length === 0}
+                  disabled={!!bulk || existing.length === 0}
                   onClick={bulkOptimize}
-                  title="Optimize the filtered pages (up to 25), slug-safe"
+                  title="Optimize the filtered pages (up to 100), slug-safe"
                 >
-                  {bulkBusy ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {bulk?.label === "Optimizing" ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Optimizing {bulk.done}/{bulk.total}…
+                    </>
                   ) : (
-                    <ShieldCheck className="mr-2 h-4 w-4" />
+                    <>
+                      <ShieldCheck className="mr-2 h-4 w-4" />
+                      Optimize {Math.min(existing.length, 100)}
+                    </>
                   )}
-                  Optimize {Math.min(existing.length, 25)}
                 </Button>
               </div>
               <ToolTable
