@@ -869,7 +869,7 @@ export const runToolsCycleFn = createServerFn({ method: "POST" })
 
 export const listToolsFn = createServerFn({ method: "GET" })
   .inputValidator(
-    z.object({ status: z.string().optional(), limit: z.number().min(1).max(500).default(200) })
+    z.object({ status: z.string().optional(), limit: z.number().min(1).max(2000).default(1000) })
       .parse,
   )
   .handler(async ({ data }) => {

@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Loader2,
   Wrench,
@@ -41,6 +41,7 @@ type ToolRow = {
   url_slug: string | null;
   status: string;
   origin: string | null;
+  category: string | null;
   target_keyword: string | null;
   meta_title: string | null;
   published_url: string | null;
@@ -58,11 +59,23 @@ type ToolRow = {
   } | null;
 };
 
+type PoolSort = "score" | "volume" | "audience" | "kd";
+
 function ToolsPage() {
   const qc = useQueryClient();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [newKeyword, setNewKeyword] = useState("");
+
+  // Idea-pool filters
+  const [poolSearch, setPoolSearch] = useState("");
+  const [minVolume, setMinVolume] = useState(0);
+  const [minAudience, setMinAudience] = useState(0);
+  const [poolSort, setPoolSort] = useState<PoolSort>("score");
+
+  // Existing-pages filters
+  const [exSearch, setExSearch] = useState("");
+  const [exBand, setExBand] = useState<"all" | "low" | "mid" | "high">("all");
 
   const statusFn = useServerFn(toolsStatusFn);
   const listFn = useServerFn(listToolsFn);
@@ -80,44 +93,82 @@ function ToolsPage() {
   const { data: status } = useQuery({ queryKey: ["tools-status"], queryFn: () => statusFn({}) });
   const { data: tools, isLoading } = useQuery({
     queryKey: ["tools"],
-    queryFn: () => listFn({ data: { limit: 400 } }),
+    queryFn: () => listFn({ data: { limit: 1000 } }),
   });
 
-  const items = (tools?.items ?? []) as ToolRow[];
-  const ideas = items
-    .filter((t) => t.status === "pool" || t.status === "idea")
-    .sort(
-      (a, b) =>
-        (b.idea_data?.opportunity_score ?? b.demand_score ?? 0) -
-        (a.idea_data?.opportunity_score ?? a.demand_score ?? 0),
-    );
+  // Scope strictly to the Developer Tools category.
+  const items = ((tools?.items ?? []) as ToolRow[]).filter(
+    (t) => (t.category ?? "Developer Tools") === "Developer Tools",
+  );
+
+  const poolAll = items.filter((t) => t.status === "pool" || t.status === "idea");
   const generated = items.filter(
     (t) => ["generated", "review", "published"].includes(t.status) && t.origin !== "existing",
   );
-  const existing = items
-    .filter((t) => t.origin === "existing")
-    .sort((a, b) => (a.aioseo_score_before ?? 999) - (b.aioseo_score_before ?? 999));
+  const existingAll = items.filter((t) => t.origin === "existing");
 
   const liveCount = items.filter(
     (t) => t.status === "published" || t.status === "optimized",
   ).length;
   const gatedCount = items.filter((t) => t.gate_enabled === "yes").length;
+  const needsOpt = existingAll.filter((t) => (t.aioseo_score_before ?? 0) < 70).length;
+
+  const metric = (t: ToolRow) => ({
+    vol: t.volume ?? t.idea_data?.volume ?? 0,
+    aud: t.idea_data?.audience_score ?? 0,
+    kd: t.difficulty ?? t.idea_data?.difficulty ?? null,
+    score: t.idea_data?.opportunity_score ?? t.demand_score ?? 0,
+  });
+
+  // Filter + sort the idea pool.
+  const pool = useMemo(() => {
+    const q = poolSearch.trim().toLowerCase();
+    const rows = poolAll.filter((t) => {
+      const m = metric(t);
+      if (m.vol < minVolume) return false;
+      if (m.aud < minAudience) return false;
+      if (q && !`${t.name} ${t.target_keyword ?? ""}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+    rows.sort((a, b) => {
+      const ma = metric(a);
+      const mb = metric(b);
+      if (poolSort === "volume") return mb.vol - ma.vol;
+      if (poolSort === "audience") return mb.aud - ma.aud;
+      if (poolSort === "kd") return (ma.kd ?? 999) - (mb.kd ?? 999);
+      return mb.score - ma.score;
+    });
+    return rows;
+  }, [poolAll, poolSearch, minVolume, minAudience, poolSort]);
+
+  // Filter + sort existing pages (worst score first).
+  const existing = useMemo(() => {
+    const q = exSearch.trim().toLowerCase();
+    const rows = existingAll.filter((t) => {
+      const s = t.aioseo_score_before ?? 0;
+      if (exBand === "low" && s >= 50) return false;
+      if (exBand === "mid" && (s < 50 || s >= 80)) return false;
+      if (exBand === "high" && s < 80) return false;
+      if (q && !`${t.name} ${t.url_slug ?? ""}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+    rows.sort((a, b) => (a.aioseo_score_before ?? 999) - (b.aioseo_score_before ?? 999));
+    return rows;
+  }, [existingAll, exSearch, exBand]);
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["tools"] });
 
   const discoverMut = useMutation({
     mutationFn: () => poolFn({ data: { geo: "global", limit: 60, minAudience: 25 } }),
     onSuccess: (r) => {
-      toast.success(
-        `Idea pool: ${r.saved} new ideas added (${r.stats.withVolume} with search volume)`,
-      );
+      toast.success(`Idea pool: ${r.saved} new ideas (${r.stats.withVolume} with search volume)`);
       invalidate();
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const syncMut = useMutation({
-    mutationFn: () => syncFn({ data: { category: "Developer Tools", maxPages: 10, perPage: 50 } }),
+    mutationFn: () => syncFn({ data: { category: "Developer Tools", maxPages: 12, perPage: 50 } }),
     onSuccess: (r) => {
       toast.success(
         `Synced ${r.imported} pages · avg AIOSEO ${r.avgAioseoScore ?? "?"} · ${r.lowScorers} below 70`,
@@ -142,7 +193,7 @@ function ToolsPage() {
       }),
     onSuccess: (r) => {
       toast.success(
-        `Cycle: ${r.discovered} ideas · ${r.generated} generated · ${r.published} drafts · ${r.optimized} optimized`,
+        `Cycle: ${r.discovered} ideas · ${r.generated} built · ${r.published} drafts · ${r.optimized} optimized`,
       );
       invalidate();
     },
@@ -153,7 +204,7 @@ function ToolsPage() {
     mutationFn: () =>
       addFn({ data: { name: newName.trim(), targetKeyword: newKeyword.trim() || undefined } }),
     onSuccess: () => {
-      toast.success("Tool idea added");
+      toast.success("Tool idea added to pool");
       setNewName("");
       setNewKeyword("");
       invalidate();
@@ -192,25 +243,17 @@ function ToolsPage() {
   return (
     <AppLayout>
       <div className="mx-auto max-w-7xl px-8 py-8">
-        <header className="mb-8">
+        <header className="mb-6">
           <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
             <Wrench className="h-3 w-3 text-primary" />
-            Free Tool Pages
+            Developer Tools — Process Manager
           </div>
           <h1 className="text-display text-4xl font-semibold tracking-tight">Tool Page Engine</h1>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-            Discover, generate and publish interactive tool pages, optimize existing ones
-            (slug-safe), and turn any tool into a signup magnet for console.kloudbean.com.
+            Pick demand-validated ideas from the pool, build branded tool pages, optimize the ones
+            you already have, and gate any of them for signups — all in the Developer Tools
+            category.
           </p>
-
-          {/* Summary bar */}
-          <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-5">
-            <Stat label="Total tools" value={tools?.total ?? 0} />
-            <Stat label="Live" value={liveCount} />
-            <Stat label="Idea pool" value={ideas.length} />
-            <Stat label="Existing pages" value={existing.length} />
-            <Stat label="Gated" value={gatedCount} accent />
-          </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-3 text-xs">
             <StatusPill ok={!!status?.aiReady} label="AI" />
@@ -234,11 +277,25 @@ function ToolsPage() {
           </div>
         </header>
 
-        {/* IDEA POOL + ADD */}
+        {/* PIPELINE OVERVIEW */}
+        <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-6">
+          <Stage label="Idea pool" value={poolAll.length} hint="ready to build" />
+          <Stage
+            label="Building"
+            value={generated.filter((t) => t.status !== "published").length}
+            hint="drafts/review"
+          />
+          <Stage label="Live" value={liveCount} hint="published" accent />
+          <Stage label="Existing" value={existingAll.length} hint="synced pages" />
+          <Stage label="Needs opt." value={needsOpt} hint="AIOSEO < 70" warn />
+          <Stage label="Gated" value={gatedCount} hint="signup wall" />
+        </div>
+
+        {/* IDEA POOL */}
         <Section
           kicker="01"
           title="Idea pool"
-          desc="Real search demand · audience-fit · you pick what to build"
+          desc="Real demand · audience-fit · you choose what to build"
           action={
             <Button
               onClick={() => discoverMut.mutate()}
@@ -254,30 +311,20 @@ function ToolsPage() {
             </Button>
           }
         >
-          {/* Manual add */}
-          <div className="mb-4 flex flex-wrap items-end gap-2 rounded-lg border border-border bg-card/40 p-3">
-            <div className="flex-1 min-w-[200px]">
-              <label className="mb-1 block text-[10px] uppercase tracking-wide text-muted-foreground">
-                Tool name
-              </label>
-              <input
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="e.g. Kubernetes Cost Calculator"
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-              />
-            </div>
-            <div className="flex-1 min-w-[180px]">
-              <label className="mb-1 block text-[10px] uppercase tracking-wide text-muted-foreground">
-                Focus keyword (optional)
-              </label>
-              <input
-                value={newKeyword}
-                onChange={(e) => setNewKeyword(e.target.value)}
-                placeholder="kubernetes cost calculator"
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-              />
-            </div>
+          {/* Add + filters */}
+          <div className="mb-3 flex flex-wrap items-end gap-2 rounded-lg border border-border bg-card/40 p-3">
+            <input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="Add a tool idea (e.g. Kubernetes Cost Calculator)"
+              className="min-w-[220px] flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm"
+            />
+            <input
+              value={newKeyword}
+              onChange={(e) => setNewKeyword(e.target.value)}
+              placeholder="focus keyword (optional)"
+              className="min-w-[160px] flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm"
+            />
             <Button
               variant="outline"
               onClick={() => addMut.mutate()}
@@ -288,14 +335,51 @@ function ToolsPage() {
               ) : (
                 <Plus className="mr-2 h-4 w-4" />
               )}
-              Add tool
+              Add
             </Button>
           </div>
 
-          {ideas.length === 0 ? (
+          <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
+            <div className="flex items-center gap-1.5 rounded-md border border-border bg-card/50 px-2.5 py-1.5">
+              <Search className="h-3.5 w-3.5 text-muted-foreground" />
+              <input
+                value={poolSearch}
+                onChange={(e) => setPoolSearch(e.target.value)}
+                placeholder="Search ideas…"
+                className="w-40 bg-transparent outline-none"
+              />
+            </div>
+            <NumFilter label="Min volume" value={minVolume} onChange={setMinVolume} step={100} />
+            <NumFilter
+              label="Min audience"
+              value={minAudience}
+              onChange={setMinAudience}
+              step={10}
+              max={100}
+            />
+            <label className="flex items-center gap-1.5 rounded-md border border-border bg-card/50 px-2.5 py-1.5">
+              <span className="text-muted-foreground">Sort</span>
+              <select
+                value={poolSort}
+                onChange={(e) => setPoolSort(e.target.value as PoolSort)}
+                className="bg-transparent outline-none"
+              >
+                <option value="score">Score</option>
+                <option value="volume">Volume</option>
+                <option value="audience">Audience fit</option>
+                <option value="kd">Easiest (KD)</option>
+              </select>
+            </label>
+            <span className="text-muted-foreground">
+              {pool.length} of {poolAll.length}
+            </span>
+          </div>
+
+          {pool.length === 0 ? (
             <Empty>
-              No ideas yet. Click “Refresh idea pool” to pull demand-validated ideas, or add one
-              above.
+              {poolAll.length
+                ? "No ideas match your filters."
+                : "Click “Refresh idea pool” to pull demand-validated ideas, or add one above."}
             </Empty>
           ) : (
             <div className="overflow-hidden rounded-xl border border-border bg-card/60">
@@ -311,10 +395,8 @@ function ToolsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {ideas.map((t) => {
-                    const aud = t.idea_data?.audience_score ?? null;
-                    const kd = t.difficulty ?? t.idea_data?.difficulty ?? null;
-                    const score = t.idea_data?.opportunity_score ?? t.demand_score ?? 0;
+                  {pool.slice(0, 100).map((t) => {
+                    const m = metric(t);
                     return (
                       <tr
                         key={t.id}
@@ -326,15 +408,15 @@ function ToolsPage() {
                             {t.target_keyword}
                           </code>
                         </td>
-                        <td className="px-4 py-3 text-right num">
-                          {t.volume?.toLocaleString() ?? "—"}
+                        <td className="num px-4 py-3 text-right">
+                          {m.vol ? m.vol.toLocaleString() : "—"}
                         </td>
-                        <td className="px-4 py-3 text-right num">{kd ?? "—"}</td>
+                        <td className="num px-4 py-3 text-right">{m.kd ?? "—"}</td>
                         <td className="px-4 py-3 text-right">
-                          <AudienceBadge score={aud} />
+                          <AudienceBadge score={m.aud || null} />
                         </td>
-                        <td className="px-4 py-3 text-right num font-semibold text-primary">
-                          {score}
+                        <td className="num px-4 py-3 text-right font-semibold text-primary">
+                          {m.score}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex justify-end gap-2">
@@ -378,9 +460,9 @@ function ToolsPage() {
         </Section>
 
         {/* GENERATED / NEW TOOLS */}
-        <Section kicker="02" title="Generated tools (publish as draft first)">
+        <Section kicker="02" title="Built tools (publish as draft first)">
           {generated.length === 0 ? (
-            <Empty>Generate a tool from an idea above.</Empty>
+            <Empty>Build a tool from the pool above.</Empty>
           ) : (
             <ToolTable
               rows={generated}
@@ -440,7 +522,7 @@ function ToolsPage() {
         {/* EXISTING PAGE OPTIMIZER */}
         <Section
           kicker="03"
-          title="Optimize existing tool pages"
+          title="Existing tool pages"
           desc="Slug-safe · additive only"
           action={
             <Button variant="outline" onClick={() => syncMut.mutate()} disabled={syncMut.isPending}>
@@ -453,59 +535,91 @@ function ToolsPage() {
             </Button>
           }
         >
-          {existing.length === 0 ? (
+          {existingAll.length === 0 ? (
             <Empty>Click “Sync from WordPress” to pull your Developer Tools pages.</Empty>
           ) : (
-            <ToolTable
-              rows={existing}
-              busyId={busyId}
-              showScore
-              onGate={toggleGate}
-              onGateMode={toggleGateMode}
-              actions={(t) => (
-                <>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    disabled={busyId === t.id}
-                    onClick={() => run(t.id, () => auditFn({ data: { toolId: t.id } }), "Audited")}
+            <>
+              <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
+                <div className="flex items-center gap-1.5 rounded-md border border-border bg-card/50 px-2.5 py-1.5">
+                  <Search className="h-3.5 w-3.5 text-muted-foreground" />
+                  <input
+                    value={exSearch}
+                    onChange={(e) => setExSearch(e.target.value)}
+                    placeholder="Search pages…"
+                    className="w-44 bg-transparent outline-none"
+                  />
+                </div>
+                {(["all", "low", "mid", "high"] as const).map((b) => (
+                  <button
+                    key={b}
+                    onClick={() => setExBand(b)}
+                    className={`rounded-full border px-2.5 py-1 ${
+                      exBand === b
+                        ? "border-primary text-primary"
+                        : "border-border text-muted-foreground hover:text-foreground"
+                    }`}
                   >
-                    <Search className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={busyId === t.id}
-                    onClick={() =>
-                      run(
-                        t.id,
-                        () => optFn({ data: { toolId: t.id, dryRun: true } }),
-                        "Dry-run complete (no changes)",
-                      )
-                    }
-                  >
-                    Preview
-                  </Button>
-                  <Button
-                    size="sm"
-                    disabled={busyId === t.id}
-                    onClick={() =>
-                      run(
-                        t.id,
-                        () => optFn({ data: { toolId: t.id, dryRun: false } }),
-                        "Optimized (slug unchanged)",
-                      )
-                    }
-                  >
-                    {busyId === t.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <ShieldCheck className="h-4 w-4" />
-                    )}
-                  </Button>
-                </>
-              )}
-            />
+                    {b === "all" ? "All" : b === "low" ? "< 50" : b === "mid" ? "50–79" : "80+"}
+                  </button>
+                ))}
+                <span className="text-muted-foreground">
+                  {existing.length} of {existingAll.length}
+                </span>
+              </div>
+              <ToolTable
+                rows={existing.slice(0, 150)}
+                busyId={busyId}
+                showScore
+                onGate={toggleGate}
+                onGateMode={toggleGateMode}
+                actions={(t) => (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={busyId === t.id}
+                      title="Audit"
+                      onClick={() =>
+                        run(t.id, () => auditFn({ data: { toolId: t.id } }), "Audited")
+                      }
+                    >
+                      <Search className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={busyId === t.id}
+                      onClick={() =>
+                        run(
+                          t.id,
+                          () => optFn({ data: { toolId: t.id, dryRun: true } }),
+                          "Dry-run complete (no changes)",
+                        )
+                      }
+                    >
+                      Preview
+                    </Button>
+                    <Button
+                      size="sm"
+                      disabled={busyId === t.id}
+                      onClick={() =>
+                        run(
+                          t.id,
+                          () => optFn({ data: { toolId: t.id, dryRun: false } }),
+                          "Optimized (slug unchanged)",
+                        )
+                      }
+                    >
+                      {busyId === t.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <ShieldCheck className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </>
+                )}
+              />
+            </>
           )}
         </Section>
 
@@ -643,14 +757,55 @@ function Section({
   );
 }
 
-function Stat({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
+function Stage({
+  label,
+  value,
+  hint,
+  accent,
+  warn,
+}: {
+  label: string;
+  value: number;
+  hint: string;
+  accent?: boolean;
+  warn?: boolean;
+}) {
+  const color = accent ? "text-[var(--lime)]" : warn && value > 0 ? "text-amber-400" : "";
   return (
     <div className="rounded-lg border border-border bg-card/60 px-4 py-3">
-      <div className={`num text-2xl font-semibold ${accent ? "text-[var(--lime)]" : ""}`}>
-        {value}
-      </div>
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className={`num text-2xl font-semibold ${color}`}>{value}</div>
+      <div className="text-[11px] font-medium">{label}</div>
+      <div className="text-[10px] text-muted-foreground">{hint}</div>
     </div>
+  );
+}
+
+function NumFilter({
+  label,
+  value,
+  onChange,
+  step,
+  max,
+}: {
+  label: string;
+  value: number;
+  onChange: (n: number) => void;
+  step: number;
+  max?: number;
+}) {
+  return (
+    <label className="flex items-center gap-1.5 rounded-md border border-border bg-card/50 px-2.5 py-1.5">
+      <span className="text-muted-foreground">{label}</span>
+      <input
+        type="number"
+        min={0}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Math.max(0, Number(e.target.value) || 0))}
+        className="w-16 bg-transparent text-right outline-none"
+      />
+    </label>
   );
 }
 
