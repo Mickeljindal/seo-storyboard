@@ -1,4 +1,4 @@
-import type { ArticleRow, ToolRow, KgNodeRow, KgEdgeRow, ReelRow } from "./schema";
+import type { ArticleRow, ToolRow, KgNodeRow, KgEdgeRow, ReelRow, JobRow } from "./schema";
 
 /** API shape (snake_case) — matches former Supabase client responses. */
 export function toApiArticle(row: ArticleRow) {
@@ -156,3 +156,21 @@ export function toApiReel(row: ReelRow) {
   };
 }
 export type ApiReel = ReturnType<typeof toApiReel>;
+
+export function toApiJob(row: JobRow) {
+  return {
+    id: row.id,
+    type: row.type,
+    payload: row.payload,
+    status: row.status,
+    attempts: row.attempts ?? 0,
+    max_attempts: row.maxAttempts ?? 3,
+    result: row.result,
+    error: row.error,
+    label: row.label,
+    run_after: row.runAfter?.toISOString() ?? null,
+    created_at: row.createdAt?.toISOString(),
+    updated_at: row.updatedAt?.toISOString(),
+  };
+}
+export type ApiJob = ReturnType<typeof toApiJob>;

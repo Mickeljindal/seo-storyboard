@@ -34,6 +34,7 @@ import {
   syncToolPerformanceFn,
   revertToolFn,
 } from "@/lib/tools.functions";
+import { enqueueToolJobsFn, drainJobsFn, jobsSummaryFn } from "@/lib/jobs.functions";
 
 export const Route = createFileRoute("/tools")({ component: ToolsPage });
 
@@ -99,6 +100,9 @@ function ToolsPage() {
   const dismissFn = useServerFn(dismissToolFn);
   const perfFn = useServerFn(syncToolPerformanceFn);
   const revertFn = useServerFn(revertToolFn);
+  const enqueueFn = useServerFn(enqueueToolJobsFn);
+  const drainFn = useServerFn(drainJobsFn);
+  const jobsFn = useServerFn(jobsSummaryFn);
   // Bulk run progress: { done, total, label } while a batch is running.
   const [bulk, setBulk] = useState<{ done: number; total: number; label: string } | null>(null);
 
@@ -106,6 +110,11 @@ function ToolsPage() {
   const { data: tools, isLoading } = useQuery({
     queryKey: ["tools"],
     queryFn: () => listFn({ data: { limit: 1000 } }),
+  });
+  const { data: jobs } = useQuery({
+    queryKey: ["tool-jobs"],
+    queryFn: () => jobsFn({}),
+    refetchInterval: 5000,
   });
 
   // Scope strictly to the Developer Tools category.
@@ -264,40 +273,33 @@ function ToolsPage() {
   const toggleGateMode = (t: ToolRow, mode: "soft" | "hard") =>
     run(t.id, () => gateFn({ data: { toolId: t.id, enable: true, mode } }), `Gate set to ${mode}`);
 
-  const BUILD_CAP = 25;
-  const OPTIMIZE_CAP = 100;
-
-  /** Run a per-item server fn over a list, reporting live progress. */
-  const runBatch = async (rows: ToolRow[], fn: (t: ToolRow) => Promise<unknown>, verb: string) => {
-    if (!rows.length || bulk) return;
-    let done = 0;
-    let failed = 0;
-    setBulk({ done: 0, total: rows.length, label: verb });
-    for (const t of rows) {
-      try {
-        await fn(t);
-      } catch {
-        failed++;
-      }
-      done++;
-      setBulk({ done, total: rows.length, label: verb });
+  // Bulk actions enqueue durable server-side jobs (survive a closed tab).
+  const enqueue = async (type: "generate_tool" | "optimize_tool", rows: ToolRow[]) => {
+    if (!rows.length) return;
+    setBulk({ done: 0, total: rows.length, label: "Queueing" });
+    try {
+      const r = await enqueueFn({ data: { type, toolIds: rows.map((t) => t.id) } });
+      toast.success(`Queued ${r.queued} jobs — running in the background`);
+      qc.invalidateQueries({ queryKey: ["tool-jobs"] });
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBulk(null);
     }
-    setBulk(null);
-    invalidate();
-    toast.success(
-      `${verb}: ${done - failed}/${rows.length} done${failed ? ` · ${failed} failed` : ""}`,
-    );
   };
 
-  const bulkBuild = () =>
-    runBatch(pool.slice(0, BUILD_CAP), (t) => genFn({ data: { toolId: t.id } }), "Building");
+  const bulkBuild = () => enqueue("generate_tool", pool.slice(0, 200));
+  const bulkOptimize = () => enqueue("optimize_tool", existing.slice(0, 500));
 
-  const bulkOptimize = () =>
-    runBatch(
-      existing.slice(0, OPTIMIZE_CAP),
-      (t) => optFn({ data: { toolId: t.id, dryRun: false } }),
-      "Optimizing",
-    );
+  const drainMut = useMutation({
+    mutationFn: () => drainFn({ data: { max: 10 } }),
+    onSuccess: (r) => {
+      toast.success(`Ran ${r.processed} jobs (${r.done} done, ${r.failed} failed/retry)`);
+      qc.invalidateQueries({ queryKey: ["tool-jobs"] });
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   return (
     <AppLayout>
@@ -350,6 +352,42 @@ function ToolsPage() {
           <Stage label="Clicks" value={totalClicks} hint="GSC, 28d" accent />
           <Stage label="Gated" value={gatedCount} hint="signup wall" />
         </div>
+
+        {/* JOB QUEUE / ACTIVITY */}
+        {jobs && (jobs.counts.pending > 0 || jobs.counts.running > 0 || jobs.recent.length > 0) && (
+          <div className="mb-8 rounded-xl border border-border bg-card/50 p-4">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="flex items-center gap-3 text-xs">
+                <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Background queue
+                </span>
+                <span className="text-amber-400">{jobs.counts.pending ?? 0} pending</span>
+                <span className="text-primary">{jobs.counts.running ?? 0} running</span>
+                <span className="text-[var(--lime)]">{jobs.counts.done ?? 0} done</span>
+                {jobs.counts.error ? (
+                  <span className="text-red-400">{jobs.counts.error} error</span>
+                ) : null}
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => drainMut.mutate()}
+                disabled={drainMut.isPending || (jobs.counts.pending ?? 0) === 0}
+              >
+                {drainMut.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Zap className="mr-2 h-4 w-4" />
+                )}
+                Run now
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Bulk build/optimize run here server-side — they keep going after you close this tab,
+              and autopilot drains the queue automatically.
+            </p>
+          </div>
+        )}
 
         {/* IDEA POOL */}
         <Section
@@ -439,19 +477,14 @@ function ToolsPage() {
               variant="outline"
               disabled={!!bulk || pool.length === 0}
               onClick={bulkBuild}
-              title="Build the top filtered ideas (up to 25) in one go"
+              title="Queue the filtered ideas to build server-side"
             >
-              {bulk?.label === "Building" ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Building {bulk.done}/{bulk.total}…
-                </>
+              {bulk?.label === "Queueing" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
-                <>
-                  <Wrench className="mr-2 h-4 w-4" />
-                  Build top {Math.min(pool.length, 25)}
-                </>
+                <Wrench className="mr-2 h-4 w-4" />
               )}
+              Queue build ({Math.min(pool.length, 200)})
             </Button>
           </div>
 
@@ -670,19 +703,14 @@ function ToolsPage() {
                   variant="outline"
                   disabled={!!bulk || existing.length === 0}
                   onClick={bulkOptimize}
-                  title="Optimize the filtered pages (up to 100), slug-safe"
+                  title="Queue the filtered pages to optimize server-side (slug-safe)"
                 >
-                  {bulk?.label === "Optimizing" ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Optimizing {bulk.done}/{bulk.total}…
-                    </>
+                  {bulk?.label === "Queueing" ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
-                    <>
-                      <ShieldCheck className="mr-2 h-4 w-4" />
-                      Optimize {Math.min(existing.length, 100)}
-                    </>
+                    <ShieldCheck className="mr-2 h-4 w-4" />
                   )}
+                  Queue optimize ({Math.min(existing.length, 500)})
                 </Button>
               </div>
               <ToolTable

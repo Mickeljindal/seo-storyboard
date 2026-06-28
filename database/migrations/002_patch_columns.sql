@@ -171,3 +171,21 @@ CREATE TABLE IF NOT EXISTS reels (
 );
 CREATE INDEX IF NOT EXISTS idx_reels_status ON reels(status);
 CREATE INDEX IF NOT EXISTS idx_reels_format ON reels(format);
+
+-- Durable job queue (v8)
+CREATE TABLE IF NOT EXISTS jobs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  type text NOT NULL,
+  payload jsonb,
+  status text NOT NULL DEFAULT 'pending',
+  attempts integer DEFAULT 0,
+  max_attempts integer DEFAULT 3,
+  result jsonb,
+  error text,
+  label text,
+  run_after timestamptz DEFAULT now(),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
+CREATE INDEX IF NOT EXISTS idx_jobs_run_after ON jobs(run_after);

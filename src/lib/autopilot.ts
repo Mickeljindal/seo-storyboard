@@ -464,6 +464,16 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
     }
   }
 
+  // 6b. JOB QUEUE — drain durable bulk jobs (build/optimize/publish) server-side.
+  try {
+    const { drainJobs } = await import("./job-queue");
+    const jq = await drainJobs(Number(process.env.AUTOPILOT_JOBS_PER_RUN || 10));
+    if (jq.processed)
+      log(`Jobs: processed ${jq.processed} (${jq.done} done, ${jq.failed} failed/retry)`);
+  } catch (e) {
+    result.errors.push(`job queue: ${String((e as Error)?.message ?? e)}`);
+  }
+
   // 7. KNOWLEDGE GRAPH — keep the system's understanding fresh + learning.
   try {
     const { rebuildKnowledgeGraph } = await import("./knowledge-graph");

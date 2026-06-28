@@ -292,3 +292,25 @@ export type ToolInsert = typeof tools.$inferInsert;
 export type KgNodeRow = typeof kgNodes.$inferSelect;
 export type KgEdgeRow = typeof kgEdges.$inferSelect;
 export type ReelRow = typeof reels.$inferSelect;
+
+/**
+ * DURABLE JOB QUEUE — long-running/bulk work (build, optimize, publish many)
+ * runs server-side and survives a closed browser tab. The autopilot drains the
+ * queue each cycle; failures retry with backoff up to max_attempts.
+ */
+export const jobs = pgTable("jobs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  type: text("type").notNull(), // generate_tool | optimize_tool | publish_tool
+  payload: jsonb("payload"),
+  status: text("status").notNull().default("pending"), // pending | running | done | error
+  attempts: integer("attempts").default(0),
+  maxAttempts: integer("max_attempts").default(3),
+  result: jsonb("result"),
+  error: text("error"),
+  label: text("label"),
+  runAfter: timestamp("run_after", { withTimezone: true }).defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type JobRow = typeof jobs.$inferSelect;
