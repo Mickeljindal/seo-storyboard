@@ -80,17 +80,26 @@ export type ToolPageParts = {
   schemaJsonld?: object[];
   /** Optional extra HTML appended right after the tool (e.g. a signup gate widget). */
   extraHtml?: string;
+  /** Audience-tailored Kloudbean pitch (shown in the banner + CTA block). */
+  pitch?: string;
+  /** CTA button label, tailored to the audience. */
+  ctaLabel?: string;
 };
 
 function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-const BANNER = `<div class="kbt-banner"><div>
-<h3><span>Kloudbean Zero-Ops Managed Cloud</span></h3>
-<p>Powerful, cost-effective managed cloud hosting for everyone.</p>
-<a href="https://console.kloudbean.com/register" rel="noopener" target="_blank">Start Free Trial</a>
+function buildBanner(pitch?: string): string {
+  const sub = pitch
+    ? esc(pitch)
+    : "Powerful, cost-effective managed cloud hosting for developers, founders and agencies.";
+  return `<div class="kbt-banner"><div>
+<h3><span>Build it here? Launch it on Kloudbean.</span></h3>
+<p>${sub}</p>
+<a href="https://console.kloudbean.com/register" rel="noopener" target="_blank">Launch your server — Start Free</a>
 </div></div>`;
+}
 
 function renderSections(sections: ToolPageParts["contentSections"]): string {
   return sections
@@ -137,13 +146,13 @@ export function assembleToolPage(parts: ToolPageParts): string {
 
   ${parts.extraHtml ?? ""}
 
-  ${BANNER}
+  ${buildBanner(parts.pitch)}
 
   ${renderSections(parts.contentSections)}
 
   ${renderFaq(parts.faq)}
 
-  <div class="kbt-cta-row"><a class="kbt-btn" href="https://console.kloudbean.com/register" target="_blank" rel="noopener">Host with Kloudbean — Start Free</a></div>
+  <div class="kbt-cta-row"><a class="kbt-btn" href="https://console.kloudbean.com/register" target="_blank" rel="noopener">${esc(parts.ctaLabel || "Host with Kloudbean — Start Free")}</a></div>
 </div>
 ${jsonLdTags(parts.schemaJsonld)}
 <script>

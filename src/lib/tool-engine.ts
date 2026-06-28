@@ -111,17 +111,28 @@ Return JSON with EXACTLY this shape:
 
 CONTENT must be accurate, specific, human (no "in today's", "seamless", "robust", "unlock", "leverage", "dive into"), and tie back to running/hosting related workloads on Kloudbean where natural. Return ONLY the JSON object.`;
 
-const META_SYSTEM = `You write SEO meta for a Kloudbean free-tool page. Return STRICT JSON only.
+const META_SYSTEM = `You write SEO meta AND a conversion pitch for a Kloudbean free-tool page. Return STRICT JSON only.
 
 ${KLOUDBEAN_PROMPT_CORE}
 
+The visitor is using a free tool. Identify WHO they are and craft a pitch that turns them into a Kloudbean hosting customer. Vary the angle to fit the tool's audience, e.g.:
+- developers deploying apps → "deploy and host your app on Kloudbean managed cloud"
+- vibe-coders (Lovable/Bolt/Cursor/v0) → "host the app you just built — one click, managed"
+- SaaS founders → "launch your mini AI SaaS on Kloudbean without a DevOps team"
+- agencies → "host all your client sites/apps on one managed server"
+- WordPress owners → "move to faster managed WordPress hosting"
+Always end with the idea of launching a server / hosting their site, app, or AI SaaS on Kloudbean. Neutral expert tone, no hype.
+
 Return JSON:
 {
-  "h1": "page H1 — includes the exact target keyword verbatim, human, <= 70 chars (this is the page hero title)",
+  "h1": "page H1 — includes the exact target keyword verbatim, human, <= 70 chars (the hero title)",
   "meta_title": "<= 60 chars, includes the keyword, ends with | Kloudbean",
-  "meta_description": "<= 155 chars, includes the keyword, action-oriented, mentions it's free"
+  "meta_description": "<= 155 chars, includes the keyword, action-oriented, mentions it's free",
+  "audience": "1 short phrase naming who this tool's user is",
+  "pitch": "1–2 sentences (<= 200 chars) pitching Kloudbean hosting tailored to that audience, ending with launching/hosting on Kloudbean",
+  "cta_label": "a short button label tailored to the audience, e.g. 'Deploy your app on Kloudbean' (<= 40 chars)"
 }
-No hype, no banned AI-tell phrases. Return ONLY the JSON object.`;
+No banned AI-tell phrases. Return ONLY the JSON object.`;
 
 const SEO_SYSTEM = `You write the SEO wrapper content for an EXISTING Kloudbean free-tool page (used to optimize pages that already have the interactive tool). Return STRICT JSON only.
 
@@ -244,27 +255,37 @@ Kloudbean angle (work in naturally): ${input.kloudbean_angle}`,
     return emptyTool("Tool build returned incomplete output (no body or JS)");
   }
 
-  // 2. Meta + H1 (JSON).
+  // 2. Meta + H1 + tailored pitch/CTA (JSON).
   let h1 = `${input.name} Tool`;
   let metaTitle = `${input.name} | Kloudbean`;
   let metaDesc = `Free ${input.target_keyword} from Kloudbean. ${input.description}`.replace(
     /\s+/g,
     " ",
   );
+  let pitch = "";
+  let ctaLabel = "";
   try {
     const raw = (
       await generateText({
         model,
         system: META_SYSTEM,
-        prompt: `Tool: ${input.name}\nTarget keyword (verbatim): "${input.target_keyword}"\nSecondary: ${secondary || "(none)"}\nWhat it does: ${input.description}`,
+        prompt: `Tool: ${input.name}\nTarget keyword (verbatim): "${input.target_keyword}"\nSecondary: ${secondary || "(none)"}\nWhat it does: ${input.description}\nKloudbean angle: ${input.kloudbean_angle}`,
         temperature: 0.6,
-        maxOutputTokens: 400,
+        maxOutputTokens: 500,
       })
     ).text;
-    const m = extractJson<{ h1?: string; meta_title?: string; meta_description?: string }>(raw);
+    const m = extractJson<{
+      h1?: string;
+      meta_title?: string;
+      meta_description?: string;
+      pitch?: string;
+      cta_label?: string;
+    }>(raw);
     if (m?.h1) h1 = m.h1.trim();
     if (m?.meta_title) metaTitle = m.meta_title.trim();
     if (m?.meta_description) metaDesc = m.meta_description.trim();
+    if (m?.pitch) pitch = m.pitch.trim();
+    if (m?.cta_label) ctaLabel = m.cta_label.trim();
   } catch (e) {
     log.push(`meta generation fallback: ${String((e as Error)?.message ?? e)}`);
   }
@@ -293,6 +314,8 @@ Kloudbean angle (work in naturally): ${input.kloudbean_angle}`,
     contentSections,
     faq,
     schemaJsonld: schema,
+    pitch: pitch || undefined,
+    ctaLabel: ctaLabel || undefined,
   };
   const tool_html = assembleToolPage(parts);
   log.push(

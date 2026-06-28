@@ -150,6 +150,85 @@ export async function discoverToolIdeasInternal(data: {
   return { ok: true, ideas, stats, saved: saved.length };
 }
 
+/**
+ * Search-driven UNLIMITED idea pool. Expands real queries from live search,
+ * scores by demand + audience fit, dedupes vs existing + WP pages, and persists
+ * as status='pool' for the admin to curate (never auto-generated).
+ */
+export const discoverToolPoolFn = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      geo: z.string().default("global"),
+      limit: z.number().min(1).max(120).default(60),
+      minAudience: z.number().min(0).max(100).default(25),
+    }).parse,
+  )
+  .handler(async ({ data }) => {
+    const { loadProjectEnv } = await import("./load-env");
+    loadProjectEnv();
+    const toolsRepo = await import("@/server/db/repos/tools");
+    const { discoverToolIdeaPool } = await import("./tool-ideas");
+
+    const { names, slugs } = await toolsRepo.listToolNamesAndSlugs();
+    try {
+      const { hasPluginConfigured, listToolPages } = await import("./wp-plugin-client");
+      if (hasPluginConfigured()) {
+        // Pull up to ~600 existing pages so we never re-propose what already exists.
+        for (let page = 1; page <= 12; page++) {
+          const wp = await listToolPages({ perPage: 50, page, status: "any" });
+          for (const p of wp.items ?? []) {
+            if (p.title) names.add(p.title.trim().toLowerCase());
+            if (p.slug) slugs.add(p.slug.trim().toLowerCase());
+          }
+          if (!wp.ok || page >= wp.total_pages) break;
+        }
+      }
+    } catch {
+      /* dedupe vs WP is best-effort */
+    }
+
+    const { ideas, stats } = await discoverToolIdeaPool({
+      geo: data.geo,
+      limit: data.limit,
+      minAudience: data.minAudience,
+      existingNames: names,
+      existingSlugs: slugs,
+    });
+
+    let saved = 0;
+    if (ideas.length) {
+      const rows = await toolsRepo.insertTools(
+        ideas.map((i) => ({
+          name: i.name,
+          url_slug: i.slug,
+          target_keyword: i.target_keyword,
+          secondary_keywords: i.secondary_keywords,
+          category: i.category,
+          geo_target: data.geo,
+          status: "pool",
+          origin: "discovered",
+          volume: i.volume,
+          difficulty: i.difficulty,
+          demand_score: i.demand_score,
+          idea_data: i,
+          engine_source: "idea-pool",
+        })),
+      );
+      saved = rows.length;
+    }
+
+    return { ok: true, saved, stats, found: ideas.length };
+  });
+
+/** Remove an idea from the pool (kept as 'dismissed' so it isn't re-proposed). */
+export const dismissToolFn = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ toolId: z.string().uuid() }).parse)
+  .handler(async ({ data }) => {
+    const toolsRepo = await import("@/server/db/repos/tools");
+    await toolsRepo.updateTool(data.toolId, { status: "dismissed" });
+    return { ok: true };
+  });
+
 // ============================================================================
 // 2. GENERATE — the developer
 // ============================================================================
@@ -160,6 +239,11 @@ export async function generateToolInternal(
   const toolsRepo = await import("@/server/db/repos/tools");
   const tool = await toolsRepo.getToolById(toolId);
   if (!tool) return { ok: false, error: "Tool not found" };
+  // Never regenerate a page that was synced from WordPress — those are optimized
+  // additively (slug-safe), not rebuilt.
+  if (tool.origin === "existing") {
+    return { ok: false, error: "This is an existing WordPress page — use Optimize, not Generate." };
+  }
 
   const idea = (tool.idea_data ?? {}) as Record<string, unknown>;
   const { generateToolPage } = await import("./tool-engine");
@@ -622,7 +706,7 @@ export const addToolFn = createServerFn({ method: "POST" })
       url_slug: slug,
       target_keyword: keyword,
       category: "Developer Tools",
-      status: "idea",
+      status: "pool",
       origin: "manual",
       idea_data: idea,
       engine_source: "manual-add",

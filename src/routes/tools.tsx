@@ -19,7 +19,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import {
-  discoverToolIdeasFn,
+  discoverToolPoolFn,
+  dismissToolFn,
   generateToolFn,
   publishToolFn,
   syncExistingToolsFn,
@@ -45,9 +46,16 @@ type ToolRow = {
   published_url: string | null;
   demand_score: number | null;
   volume: number | null;
+  difficulty: number | null;
   aioseo_score_before: number | null;
   gate_enabled: string | null;
   gate_mode: string | null;
+  idea_data: {
+    audience_score?: number;
+    opportunity_score?: number;
+    difficulty?: number | null;
+    volume?: number | null;
+  } | null;
 };
 
 function ToolsPage() {
@@ -58,7 +66,6 @@ function ToolsPage() {
 
   const statusFn = useServerFn(toolsStatusFn);
   const listFn = useServerFn(listToolsFn);
-  const discoverFn = useServerFn(discoverToolIdeasFn);
   const genFn = useServerFn(generateToolFn);
   const pubFn = useServerFn(publishToolFn);
   const syncFn = useServerFn(syncExistingToolsFn);
@@ -67,6 +74,8 @@ function ToolsPage() {
   const cycleFn = useServerFn(runToolsCycleFn);
   const gateFn = useServerFn(setToolGateFn);
   const addFn = useServerFn(addToolFn);
+  const poolFn = useServerFn(discoverToolPoolFn);
+  const dismissFn = useServerFn(dismissToolFn);
 
   const { data: status } = useQuery({ queryKey: ["tools-status"], queryFn: () => statusFn({}) });
   const { data: tools, isLoading } = useQuery({
@@ -75,7 +84,13 @@ function ToolsPage() {
   });
 
   const items = (tools?.items ?? []) as ToolRow[];
-  const ideas = items.filter((t) => t.status === "idea");
+  const ideas = items
+    .filter((t) => t.status === "pool" || t.status === "idea")
+    .sort(
+      (a, b) =>
+        (b.idea_data?.opportunity_score ?? b.demand_score ?? 0) -
+        (a.idea_data?.opportunity_score ?? a.demand_score ?? 0),
+    );
   const generated = items.filter(
     (t) => ["generated", "review", "published"].includes(t.status) && t.origin !== "existing",
   );
@@ -91,9 +106,11 @@ function ToolsPage() {
   const invalidate = () => qc.invalidateQueries({ queryKey: ["tools"] });
 
   const discoverMut = useMutation({
-    mutationFn: () => discoverFn({ data: { geo: "global", limit: 10, persist: true } }),
+    mutationFn: () => poolFn({ data: { geo: "global", limit: 60, minAudience: 25 } }),
     onSuccess: (r) => {
-      toast.success(`Found ${r.ideas.length} ideas (${r.saved} new saved)`);
+      toast.success(
+        `Idea pool: ${r.saved} new ideas added (${r.stats.withVolume} with search volume)`,
+      );
       invalidate();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -190,7 +207,7 @@ function ToolsPage() {
           <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-5">
             <Stat label="Total tools" value={tools?.total ?? 0} />
             <Stat label="Live" value={liveCount} />
-            <Stat label="Ideas" value={ideas.length} />
+            <Stat label="Idea pool" value={ideas.length} />
             <Stat label="Existing pages" value={existing.length} />
             <Stat label="Gated" value={gatedCount} accent />
           </div>
@@ -217,10 +234,11 @@ function ToolsPage() {
           </div>
         </header>
 
-        {/* IDEA BRINGER + ADD */}
+        {/* IDEA POOL + ADD */}
         <Section
           kicker="01"
-          title="Idea bringer"
+          title="Idea pool"
+          desc="Real search demand · audience-fit · you pick what to build"
           action={
             <Button
               onClick={() => discoverMut.mutate()}
@@ -232,7 +250,7 @@ function ToolsPage() {
               ) : (
                 <Sparkles className="mr-2 h-4 w-4" />
               )}
-              Discover tool ideas
+              Refresh idea pool
             </Button>
           }
         >
@@ -275,42 +293,86 @@ function ToolsPage() {
           </div>
 
           {ideas.length === 0 ? (
-            <Empty>No pending ideas. Discover ideas or add one above.</Empty>
+            <Empty>
+              No ideas yet. Click “Refresh idea pool” to pull demand-validated ideas, or add one
+              above.
+            </Empty>
           ) : (
-            <div className="grid gap-3 md:grid-cols-2">
-              {ideas.map((t) => (
-                <div key={t.id} className="rounded-lg border border-border bg-card/60 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="font-medium">{t.name}</div>
-                      <code className="text-[11px] text-muted-foreground">{t.target_keyword}</code>
-                    </div>
-                    <div className="text-right">
-                      <div className="num text-lg font-semibold">{t.demand_score ?? "—"}</div>
-                      <div className="text-[9px] uppercase text-muted-foreground">demand</div>
-                    </div>
-                  </div>
-                  <div className="mt-2 text-[11px] text-muted-foreground">
-                    Vol {t.volume?.toLocaleString() ?? "n/a"} · /{t.url_slug}
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="mt-3 w-full"
-                    disabled={busyId === t.id}
-                    onClick={() =>
-                      run(t.id, () => genFn({ data: { toolId: t.id } }), `Generated ${t.name}`)
-                    }
-                  >
-                    {busyId === t.id ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Wrench className="mr-2 h-4 w-4" />
-                    )}
-                    Generate tool
-                  </Button>
-                </div>
-              ))}
+            <div className="overflow-hidden rounded-xl border border-border bg-card/60">
+              <table className="w-full text-sm">
+                <thead className="border-b border-border font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-2.5 text-left">Tool idea</th>
+                    <th className="px-4 py-2.5 text-right">Volume</th>
+                    <th className="px-4 py-2.5 text-right">KD</th>
+                    <th className="px-4 py-2.5 text-right">Audience</th>
+                    <th className="px-4 py-2.5 text-right">Score</th>
+                    <th className="px-4 py-2.5 text-right">Build</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ideas.map((t) => {
+                    const aud = t.idea_data?.audience_score ?? null;
+                    const kd = t.difficulty ?? t.idea_data?.difficulty ?? null;
+                    const score = t.idea_data?.opportunity_score ?? t.demand_score ?? 0;
+                    return (
+                      <tr
+                        key={t.id}
+                        className="border-t border-border/60 hover:bg-foreground/[0.02]"
+                      >
+                        <td className="max-w-[320px] px-4 py-3">
+                          <div className="line-clamp-1 font-medium">{t.name}</div>
+                          <code className="text-[10px] text-muted-foreground">
+                            {t.target_keyword}
+                          </code>
+                        </td>
+                        <td className="px-4 py-3 text-right num">
+                          {t.volume?.toLocaleString() ?? "—"}
+                        </td>
+                        <td className="px-4 py-3 text-right num">{kd ?? "—"}</td>
+                        <td className="px-4 py-3 text-right">
+                          <AudienceBadge score={aud} />
+                        </td>
+                        <td className="px-4 py-3 text-right num font-semibold text-primary">
+                          {score}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              size="sm"
+                              disabled={busyId === t.id}
+                              onClick={() =>
+                                run(
+                                  t.id,
+                                  () => genFn({ data: { toolId: t.id } }),
+                                  `Building ${t.name}`,
+                                )
+                              }
+                            >
+                              {busyId === t.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Wrench className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              disabled={busyId === t.id}
+                              title="Dismiss (won't be proposed again)"
+                              onClick={() =>
+                                run(t.id, () => dismissFn({ data: { toolId: t.id } }), "Dismissed")
+                              }
+                            >
+                              ✕
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </Section>
@@ -619,6 +681,13 @@ function StatusPill({ ok, label }: { ok: boolean; label: string }) {
       {label}
     </span>
   );
+}
+
+function AudienceBadge({ score }: { score: number | null | undefined }) {
+  if (score == null) return <span className="text-muted-foreground">—</span>;
+  const color =
+    score >= 70 ? "text-[var(--lime)]" : score >= 40 ? "text-amber-400" : "text-red-400";
+  return <span className={`num font-semibold ${color}`}>{score}</span>;
 }
 
 function ScoreBadge({ score }: { score: number | null | undefined }) {
