@@ -2,20 +2,20 @@ import "@tanstack/react-start/server-only";
 import { generateText } from "ai";
 import { createAiProvider } from "./ai-provider";
 import { KLOUDBEAN_PROMPT_CORE } from "./kloudbean-scope";
+import { assembleToolPage, type ToolPageParts } from "./tool-template";
 
 /**
- * TOOL ENGINE — generates a complete free-tool landing page for Kloudbean.
+ * TOOL ENGINE — generates a complete free-tool page for Kloudbean that looks and
+ * works like the existing live pages (e.g. /a-b-test-calculator/).
  *
- * Output (one idea → one tool page):
- *   1. tool_html  — a self-contained, responsive, interactive tool (HTML + inline
- *                   CSS + JS) destined for the Elementor HTML widget.
- *   2. seo        — the indexable wrapper AIOSEO actually reads: H1, answer-first
- *                   intro, how-to-use, FAQ. This is what lifts the score from ~30.
- *   3. meta       — keyword-optimized title + description.
- *   4. schema     — SoftwareApplication + FAQPage + BreadcrumbList JSON-LD.
+ * The output `tool_html` is ONE self-contained block (the branded template +
+ * working tool + on-page SEO content sections + FAQ + Kloudbean banner + JSON-LD)
+ * destined for a single Elementor HTML widget. The page H1 is added separately as
+ * an Elementor heading widget by the builder.
  *
- * The tool HTML deliberately contains NO <h1> — the Elementor page supplies the
- * single H1 (the builder adds it as a heading widget) to avoid duplicate H1s.
+ * Per-page SEO is set side-by-side: meta_title/description + focus keyword go to
+ * AIOSEO via the plugin, and SoftwareApplication/FAQPage/Breadcrumb JSON-LD is
+ * inlined in the block for GEO/rich results.
  */
 
 export type ToolSeo = {
@@ -28,6 +28,7 @@ export type ToolSeo = {
 export type GeneratedTool = {
   ok: boolean;
   tool_html: string;
+  h1: string;
   seo: ToolSeo;
   meta_title: string;
   meta_description: string;
@@ -75,39 +76,67 @@ function extractJson<T>(raw: string): T | null {
   }
 }
 
-const TOOL_HTML_SYSTEM = `You are a senior front-end engineer building a FREE interactive web tool for Kloudbean (kloudbean.com). You output ONE self-contained block of HTML.
+/** The tool body + working JS + on-page content, generated as JSON. */
+type ToolBuildJson = {
+  tagline?: string;
+  tool_body_html?: string;
+  tool_js?: string;
+  content_sections?: { h2: string; paragraphs?: string[]; bullets?: string[] }[];
+  faq?: { q: string; a: string }[];
+};
 
-HARD REQUIREMENTS:
-- Return a SINGLE block of HTML with an inline <style> and inline <script>. No external libraries, no CDNs, no network calls, no fonts/imports. Everything runs client-side, offline.
-- Do NOT include <!DOCTYPE>, <html>, <head>, or <body> tags. Return only the inner markup (a wrapping <div> is fine). This goes inside an existing page.
-- Do NOT include an <h1>. The page already has one. You may use <h2>/<h3> inside the tool for section labels.
-- Scope ALL CSS to a unique wrapper class (e.g. .kb-tool-XXXX) so it never leaks into the host theme. Never style bare tags globally (no naked "button{}", "input{}", "h2{}" — always prefix with the wrapper class).
-- Mobile-first and responsive. Accessible: labelled inputs, aria where useful, keyboard usable, good contrast.
-- The tool must actually WORK: real calculations/logic in JS, instant results, input validation, sensible defaults so it shows a result on load.
-- Tasteful modern UI (cards, soft shadows, rounded corners). Brand accent color #6c47ff is welcome but keep it clean.
-- End the tool with a subtle, non-spammy CTA line linking to https://kloudbean.com that fits the tool's purpose.
-- No analytics, no tracking, no eval, no inline event-handler attributes that depend on global scope — wire events via the inline <script> using IDs/classes scoped to the wrapper.
+const TOOL_BUILD_SYSTEM = `You build FREE interactive web tools for Kloudbean (kloudbean.com) that are dropped into a pre-styled branded shell. Return STRICT JSON only.
 
-Return ONLY the HTML. No explanation, no code fences.`;
+The shell already provides ALL styling via these CSS classes — USE THEM, do not invent new styles and do NOT include any <style> tag:
+- Layout: ".kbt-grid" (responsive input grid), ".kbt-field" (wraps a label + input/select/textarea + optional <small>).
+- Buttons: ".kbt-btn" (primary, gradient), ".kbt-btn secondary" (outline). Put buttons in a ".kbt-controls" row.
+- Results: ".kbt-results" (container, start with style="display:none"), ".kbt-results-grid", ".kbt-result-card" (with an <h4>), ".kbt-result-item" containing ".kbt-result-label" + ".kbt-result-value". For free-text output use ".kbt-out".
+- Status: an element with id="kbt-status" already exists in the shell — set its textContent and add class "valid" | "invalid" | "warning", and style.display='block' to show messages.
 
-const SEO_SYSTEM = `You write the SEO wrapper content for a Kloudbean free-tool page. Return STRICT JSON only.
-
-${KLOUDBEAN_PROMPT_CORE}
-
-Goal: this text is what search engines and AIOSEO read around the interactive tool. It must be genuinely useful, human, and include the exact target keyword naturally.
+HARD RULES:
+- Do NOT include <style>, <script>, <h1>, <!DOCTYPE>, <html>, <head>, or <body>. Only the inner body markup (in tool_body_html) and raw JS (in tool_js).
+- The tool MUST actually work. tool_js runs inside an IIFE (so top-level const/function are fine). No external libraries, no CDNs, no network calls, no eval. Pure client-side.
+- Give every input/button a unique id prefixed with "kbt-". Wire all events in tool_js via addEventListener using those ids (no inline onclick).
+- Validate inputs and show friendly messages via #kbt-status. Compute on button click AND run once on load with sensible sample defaults so a result shows immediately.
+- Keep it accessible: every input has a <label for>. Mobile friendly (the grid handles layout).
 
 Return JSON with EXACTLY this shape:
 {
-  "h1": "string — page H1, includes the exact target keyword verbatim, human (max ~70 chars)",
-  "intro_html": "string — 2 short paragraphs of HTML (<p>...</p>). The FIRST paragraph is a direct 40–60 word answer to what the tool does and who it helps, with the exact target keyword in the first sentence. Mention Kloudbean once, naturally.",
-  "how_to": { "title": "How to use this tool", "steps": ["step 1", "step 2", "step 3", "step 4"] },
-  "faq": [ {"q": "question", "a": "concise 1–3 sentence answer"}, ... 4 to 6 items ],
-  "meta_title": "string — <= 60 chars, includes the keyword, ends with | Kloudbean",
-  "meta_description": "string — <= 155 chars, includes the keyword, action-oriented, mentions it's free"
+  "tagline": "one sentence under the tool title describing what it does",
+  "tool_body_html": "the inner HTML: inputs in .kbt-grid/.kbt-field, a .kbt-controls button row, and a #... results area using .kbt-results (display:none initially)",
+  "tool_js": "vanilla JS that wires the inputs, validates, calculates, fills the results area, toggles .kbt-results display, and updates #kbt-status. Runs inside an IIFE.",
+  "content_sections": [ {"h2":"section title","paragraphs":["..."],"bullets":["..."]}, ... 3 to 4 sections of genuinely useful, keyword-aware content for SEO/AIO/GEO/topical authority ],
+  "faq": [ {"q":"question","a":"concise answer"}, ... 4 to 6 items ]
 }
 
-STYLE: plain, expert, no hype, no banned AI-tell phrases (no "in today's", "seamless", "robust", "unlock", "leverage", "dive into", "elevate"). Be specific. Answers should read like a knowledgeable engineer wrote them.
-Return ONLY the JSON object.`;
+CONTENT must be accurate, specific, human (no "in today's", "seamless", "robust", "unlock", "leverage", "dive into"), and tie back to running/hosting related workloads on Kloudbean where natural. Return ONLY the JSON object.`;
+
+const META_SYSTEM = `You write SEO meta for a Kloudbean free-tool page. Return STRICT JSON only.
+
+${KLOUDBEAN_PROMPT_CORE}
+
+Return JSON:
+{
+  "h1": "page H1 — includes the exact target keyword verbatim, human, <= 70 chars (this is the page hero title)",
+  "meta_title": "<= 60 chars, includes the keyword, ends with | Kloudbean",
+  "meta_description": "<= 155 chars, includes the keyword, action-oriented, mentions it's free"
+}
+No hype, no banned AI-tell phrases. Return ONLY the JSON object.`;
+
+const SEO_SYSTEM = `You write the SEO wrapper content for an EXISTING Kloudbean free-tool page (used to optimize pages that already have the interactive tool). Return STRICT JSON only.
+
+${KLOUDBEAN_PROMPT_CORE}
+
+Return JSON with EXACTLY this shape:
+{
+  "h1": "string — includes the exact target keyword verbatim, human (max ~70 chars)",
+  "intro_html": "string — 2 short <p> paragraphs; the FIRST is a 40–60 word direct answer with the keyword in the first sentence; mention Kloudbean once",
+  "how_to": { "title": "How to use this tool", "steps": ["step 1","step 2","step 3","step 4"] },
+  "faq": [ {"q":"question","a":"concise answer"}, ... 4 to 6 items ],
+  "meta_title": "<= 60 chars, includes keyword, ends with | Kloudbean",
+  "meta_description": "<= 155 chars, includes keyword, mentions it's free"
+}
+Plain, expert, no hype, no AI-tell phrases. Return ONLY the JSON object.`;
 
 function buildToolSchema(
   input: ToolGenInput,
@@ -159,6 +188,138 @@ function buildToolSchema(
   return blocks;
 }
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function trimTo(s: string, max: number): string {
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max - 1);
+  const lastSpace = cut.lastIndexOf(" ");
+  return (lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).trim() + "…";
+}
+
+/** Generate a complete, branded, working tool page (single HTML block). */
+export async function generateToolPage(input: ToolGenInput): Promise<GeneratedTool> {
+  const log: string[] = [];
+  let model;
+  try {
+    model = createAiProvider();
+  } catch (e) {
+    return emptyTool(`AI not configured: ${String((e as Error)?.message ?? e)}`);
+  }
+
+  const baseUrl = (input.baseUrl ?? "https://kloudbean.com").replace(/\/$/, "");
+  const pageUrl = `${baseUrl}/${input.slug}`;
+  const secondary = (input.secondary_keywords ?? []).join(", ");
+
+  // 1. The tool itself + on-page content (JSON).
+  let build: ToolBuildJson | null = null;
+  try {
+    const raw = (
+      await generateText({
+        model,
+        system: TOOL_BUILD_SYSTEM,
+        prompt: `Build this tool:
+NAME: ${input.name}
+TYPE: ${input.tool_type ?? "tool"}
+TARGET KEYWORD: ${input.target_keyword}
+WHAT IT DOES: ${input.description}
+EXACT SPEC (implement these inputs/outputs): ${input.spec}
+Kloudbean angle (work in naturally): ${input.kloudbean_angle}`,
+        temperature: 0.5,
+        maxOutputTokens: 6000,
+      })
+    ).text;
+    build = extractJson<ToolBuildJson>(raw);
+  } catch (e) {
+    return emptyTool(`Tool build failed: ${String((e as Error)?.message ?? e)}`);
+  }
+
+  if (!build?.tool_body_html || !build?.tool_js) {
+    return emptyTool("Tool build returned incomplete output (no body or JS)");
+  }
+
+  // 2. Meta + H1 (JSON).
+  let h1 = `${input.name} Tool`;
+  let metaTitle = `${input.name} | Kloudbean`;
+  let metaDesc = `Free ${input.target_keyword} from Kloudbean. ${input.description}`.replace(
+    /\s+/g,
+    " ",
+  );
+  try {
+    const raw = (
+      await generateText({
+        model,
+        system: META_SYSTEM,
+        prompt: `Tool: ${input.name}\nTarget keyword (verbatim): "${input.target_keyword}"\nSecondary: ${secondary || "(none)"}\nWhat it does: ${input.description}`,
+        temperature: 0.6,
+        maxOutputTokens: 400,
+      })
+    ).text;
+    const m = extractJson<{ h1?: string; meta_title?: string; meta_description?: string }>(raw);
+    if (m?.h1) h1 = m.h1.trim();
+    if (m?.meta_title) metaTitle = m.meta_title.trim();
+    if (m?.meta_description) metaDesc = m.meta_description.trim();
+  } catch (e) {
+    log.push(`meta generation fallback: ${String((e as Error)?.message ?? e)}`);
+  }
+  metaTitle = trimTo(metaTitle, 60);
+  metaDesc = trimTo(metaDesc, 155);
+
+  const faq = Array.isArray(build.faq) ? build.faq.filter((f) => f?.q && f?.a) : [];
+  const contentSections =
+    Array.isArray(build.content_sections) && build.content_sections.length
+      ? build.content_sections
+      : [
+          {
+            h2: `About this ${input.tool_type ?? "tool"}`,
+            paragraphs: [escapeHtml(input.description)],
+          },
+        ];
+
+  const schema = buildToolSchema(input, { title: metaTitle, description: metaDesc }, faq, pageUrl);
+
+  // 3. Assemble the single branded HTML block.
+  const parts: ToolPageParts = {
+    name: input.name,
+    tagline: build.tagline?.trim() || input.description,
+    toolBodyHtml: build.tool_body_html,
+    toolJs: build.tool_js,
+    contentSections,
+    faq,
+    schemaJsonld: schema,
+  };
+  const tool_html = assembleToolPage(parts);
+  log.push(
+    `assembled tool page: ${tool_html.length} chars, ${contentSections.length} sections, ${faq.length} FAQ`,
+  );
+
+  return {
+    ok: true,
+    tool_html,
+    h1,
+    seo: {
+      h1,
+      intro_html: `<p>${escapeHtml(parts.tagline)}</p>`,
+      how_to: { title: "How to use this tool", steps: [] },
+      faq,
+    },
+    meta_title: metaTitle,
+    meta_description: metaDesc,
+    schema_jsonld: schema,
+    log,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// SEO-ONLY generation — used to optimize EXISTING pages (tool already present).
+// ---------------------------------------------------------------------------
+
 type SeoJson = ToolSeo & { meta_title?: string; meta_description?: string };
 
 export type GeneratedToolSeo = {
@@ -171,10 +332,6 @@ export type GeneratedToolSeo = {
   log: string[];
 };
 
-/**
- * Generate ONLY the SEO wrapper + meta + schema for a tool (no interactive HTML).
- * Used to optimize EXISTING tool pages without regenerating their tool.
- */
 export async function generateToolSeo(input: ToolGenInput): Promise<GeneratedToolSeo> {
   const log: string[] = [];
   let model;
@@ -283,77 +440,11 @@ function seoFallback(input: ToolGenInput, error: string): GeneratedToolSeo {
   };
 }
 
-export async function generateToolPage(input: ToolGenInput): Promise<GeneratedTool> {
-  const log: string[] = [];
-  let model;
-  try {
-    model = createAiProvider();
-  } catch (e) {
-    return emptyTool(`AI not configured: ${String((e as Error)?.message ?? e)}`);
-  }
-
-  // 1. Interactive tool HTML.
-  let toolHtml = "";
-  try {
-    toolHtml = stripFences(
-      (
-        await generateText({
-          model,
-          system: TOOL_HTML_SYSTEM,
-          prompt: `Build this tool:
-NAME: ${input.name}
-TYPE: ${input.tool_type ?? "tool"}
-WHAT IT DOES: ${input.description}
-EXACT SPEC (inputs/outputs to implement): ${input.spec}
-Make it genuinely functional and polished. Scope all CSS to a class like .kb-tool-${input.slug.replace(/[^a-z0-9]/g, "").slice(0, 12)}.`,
-          temperature: 0.6,
-          maxOutputTokens: 7000,
-        })
-      ).text,
-    );
-    log.push(`tool html: ${toolHtml.length} chars`);
-  } catch (e) {
-    return emptyTool(`Tool HTML generation failed: ${String((e as Error)?.message ?? e)}`);
-  }
-
-  if (!toolHtml || toolHtml.length < 200) {
-    return emptyTool("Tool HTML generation returned too little content");
-  }
-
-  // 2. SEO wrapper + meta + schema (shared path).
-  const seoResult = await generateToolSeo(input);
-  log.push(...seoResult.log);
-
-  return {
-    ok: true,
-    tool_html: toolHtml,
-    seo: seoResult.seo,
-    meta_title: seoResult.meta_title,
-    meta_description: seoResult.meta_description,
-    schema_jsonld: seoResult.schema_jsonld,
-    log,
-  };
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function trimTo(s: string, max: number): string {
-  if (s.length <= max) return s;
-  const cut = s.slice(0, max - 1);
-  const lastSpace = cut.lastIndexOf(" ");
-  return (lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).trim() + "…";
-}
-
 function emptyTool(error: string): GeneratedTool {
   return {
     ok: false,
     tool_html: "",
+    h1: "",
     seo: { h1: "", intro_html: "", how_to: { title: "", steps: [] }, faq: [] },
     meta_title: "",
     meta_description: "",

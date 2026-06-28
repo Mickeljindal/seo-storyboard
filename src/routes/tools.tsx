@@ -329,6 +329,17 @@ function ToolsPage() {
                 <>
                   <Button
                     size="sm"
+                    variant="ghost"
+                    disabled={busyId === t.id}
+                    title="Regenerate in the latest branded template"
+                    onClick={() =>
+                      run(t.id, () => genFn({ data: { toolId: t.id } }), "Regenerated in new style")
+                    }
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
                     variant="outline"
                     disabled={busyId === t.id}
                     onClick={() =>

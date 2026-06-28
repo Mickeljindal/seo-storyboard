@@ -185,14 +185,11 @@ export async function generateToolInternal(
     return { ok: false, error: result.error, log: result.log };
   }
 
-  const related = await buildRelatedLinks(toolId);
   const { buildToolElementorData } = await import("./elementor-builder");
   const gateOn = gateOnByDefault();
   const elementorData = buildToolElementorData({
-    seo: result.seo,
+    h1: result.h1,
     toolHtml: result.tool_html,
-    related,
-    schemaJsonld: result.schema_jsonld,
     gate: gateOn ? gateConfig(tool.url_slug ?? "") : null,
   });
 

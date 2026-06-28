@@ -112,57 +112,31 @@ function relatedHtml(related: { anchor: string; url: string }[]): string {
 
 // --- 1. NEW tool page -------------------------------------------------------
 
+/**
+ * A new tool page = an Elementor heading widget (the H1 hero) + ONE HTML widget
+ * holding the entire branded, self-contained block (tool + content + FAQ + banner
+ * + JSON-LD), exactly like the existing kloudbean.com tool pages. The signup gate,
+ * if enabled, is appended as a second HTML widget.
+ */
 export function buildToolElementorData(params: {
-  seo: ToolSeoContent;
+  /** The page H1 (hero heading). */
+  h1: string;
+  /** The fully assembled single-block tool HTML. */
   toolHtml: string;
-  related?: { anchor: string; url: string }[];
-  schemaJsonld?: object[];
   gate?: GateConfig | null;
 }): ElementorElement[] {
   _idCounter = 0;
-  const { seo, toolHtml } = params;
-  const related = params.related ?? [];
   const sections: ElementorElement[] = [];
 
-  // H1 + answer-first intro
-  sections.push(section([headingWidget(seo.h1, "h1"), textWidget(seo.intro_html)]));
+  // H1 hero (separate heading widget, matching the live pages).
+  if (params.h1) sections.push(section([headingWidget(params.h1, "h1")]));
 
-  // The interactive tool itself
-  sections.push(section([htmlWidget(toolHtml)]));
+  // The complete branded tool block in a single HTML widget.
+  sections.push(section([htmlWidget(params.toolHtml)]));
 
-  // Signup gate (placed right after the tool so its targeting picks the tool).
+  // Signup gate (separate widget so it can be toggled/stripped independently).
   if (params.gate) {
     sections.push(section([htmlWidget(buildGateHtml(params.gate))]));
-  }
-
-  // How to use
-  if (seo.how_to?.steps?.length) {
-    sections.push(
-      section([
-        headingWidget(seo.how_to.title || "How to use this tool", "h2"),
-        textWidget(howToHtml(seo.how_to)),
-      ]),
-    );
-  }
-
-  // FAQ
-  if (seo.faq?.length) {
-    sections.push(
-      section([headingWidget("Frequently asked questions", "h2"), textWidget(faqHtml(seo.faq))]),
-    );
-  }
-
-  // Related tools
-  if (related.length) {
-    sections.push(
-      section([headingWidget("Related free tools", "h2"), textWidget(relatedHtml(related))]),
-    );
-  }
-
-  // JSON-LD (own HTML widget so schema ships regardless of the SEO plugin)
-  const schemaTags = jsonLdScriptTags(params.schemaJsonld ?? []);
-  if (schemaTags) {
-    sections.push(section([htmlWidget(schemaTags)]));
   }
 
   return sections;
