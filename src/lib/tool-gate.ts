@@ -104,6 +104,14 @@ export function buildGateHtml(config: GateConfig = {}): string {
     return u;
   }
 
+  // Conversion beacon — count signup-CTA clicks per tool (same-origin plugin).
+  function fireHit(){
+    try{
+      var url=location.origin+"/wp-json/kbseo/v1/gate-hit?tool="+encodeURIComponent(tool);
+      if(navigator.sendBeacon){navigator.sendBeacon(url);}else{fetch(url,{mode:"no-cors",keepalive:true});}
+    }catch(e){}
+  }
+
   // 3) Find the tool container (the widget with the most form controls).
   function findTool(){
     var candidates=[].slice.call(document.querySelectorAll('[class*="kb-tool-"], .elementor-widget-html .elementor-widget-container, .elementor-widget-html'));
@@ -136,6 +144,8 @@ export function buildGateHtml(config: GateConfig = {}): string {
       try{localStorage.setItem(KEY,"1");}catch(e){}
       closeModal();
     });
+    var primary=modal.querySelector(".kbg-primary");
+    if(primary)primary.addEventListener("click",fireHit);
     return modal;
   }
   function openModal(){makeModal().classList.add("kbg-open");}

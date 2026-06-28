@@ -31,6 +31,7 @@ import {
   runToolsCycleFn,
   setToolGateFn,
   addToolFn,
+  syncToolPerformanceFn,
 } from "@/lib/tools.functions";
 
 export const Route = createFileRoute("/tools")({ component: ToolsPage });
@@ -49,6 +50,10 @@ type ToolRow = {
   volume: number | null;
   difficulty: number | null;
   aioseo_score_before: number | null;
+  gsc_clicks: number | null;
+  gsc_impressions: number | null;
+  gsc_position: number | null;
+  gate_clicks: number | null;
   gate_enabled: string | null;
   gate_mode: string | null;
   idea_data: {
@@ -89,6 +94,7 @@ function ToolsPage() {
   const addFn = useServerFn(addToolFn);
   const poolFn = useServerFn(discoverToolPoolFn);
   const dismissFn = useServerFn(dismissToolFn);
+  const perfFn = useServerFn(syncToolPerformanceFn);
   // Bulk run progress: { done, total, label } while a batch is running.
   const [bulk, setBulk] = useState<{ done: number; total: number; label: string } | null>(null);
 
@@ -114,6 +120,7 @@ function ToolsPage() {
   ).length;
   const gatedCount = items.filter((t) => t.gate_enabled === "yes").length;
   const needsOpt = existingAll.filter((t) => (t.aioseo_score_before ?? 0) < 70).length;
+  const totalClicks = items.reduce((s, t) => s + (t.gsc_clicks ?? 0), 0);
 
   const metric = (t: ToolRow) => ({
     vol: t.volume ?? t.idea_data?.volume ?? 0,
@@ -174,6 +181,17 @@ function ToolsPage() {
     onSuccess: (r) => {
       toast.success(
         `Synced ${r.imported} pages · avg AIOSEO ${r.avgAioseoScore ?? "?"} · ${r.lowScorers} below 70`,
+      );
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const perfMut = useMutation({
+    mutationFn: () => perfFn({}),
+    onSuccess: (r) => {
+      toast.success(
+        `Performance synced · ${r.matched} tools matched (${r.withClicks} earning clicks)`,
       );
       invalidate();
     },
@@ -315,7 +333,7 @@ function ToolsPage() {
         </header>
 
         {/* PIPELINE OVERVIEW */}
-        <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-6">
+        <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-7">
           <Stage label="Idea pool" value={poolAll.length} hint="ready to build" />
           <Stage
             label="Building"
@@ -325,6 +343,7 @@ function ToolsPage() {
           <Stage label="Live" value={liveCount} hint="published" accent />
           <Stage label="Existing" value={existingAll.length} hint="synced pages" />
           <Stage label="Needs opt." value={needsOpt} hint="AIOSEO < 70" warn />
+          <Stage label="Clicks" value={totalClicks} hint="GSC, 28d" accent />
           <Stage label="Gated" value={gatedCount} hint="signup wall" />
         </div>
 
@@ -582,14 +601,33 @@ function ToolsPage() {
           title="Existing tool pages"
           desc="Slug-safe · additive only"
           action={
-            <Button variant="outline" onClick={() => syncMut.mutate()} disabled={syncMut.isPending}>
-              {syncMut.isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="mr-2 h-4 w-4" />
-              )}
-              Sync from WordPress
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => perfMut.mutate()}
+                disabled={perfMut.isPending}
+              >
+                {perfMut.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Zap className="mr-2 h-4 w-4" />
+                )}
+                Sync performance
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => syncMut.mutate()}
+                disabled={syncMut.isPending}
+              >
+                {syncMut.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                )}
+                Sync from WordPress
+              </Button>
+            </div>
           }
         >
           {existingAll.length === 0 ? (
@@ -730,6 +768,7 @@ function ToolTable({
             {showScore && <th className="px-4 py-2.5 text-left">AIOSEO</th>}
             <th className="px-4 py-2.5 text-left">Tool</th>
             <th className="px-4 py-2.5 text-left">Status</th>
+            <th className="px-4 py-2.5 text-right">Traffic</th>
             <th className="px-4 py-2.5 text-left">Gate</th>
             <th className="px-4 py-2.5 text-right">Actions</th>
           </tr>
@@ -759,6 +798,22 @@ function ToolTable({
               </td>
               <td className="px-4 py-3">
                 <Badge>{t.status}</Badge>
+              </td>
+              <td
+                className="px-4 py-3 text-right"
+                title={t.gsc_position ? `avg position ${t.gsc_position}` : undefined}
+              >
+                {t.gsc_clicks != null ? (
+                  <span className="num">
+                    <span className="font-semibold text-[var(--lime)]">{t.gsc_clicks}</span>
+                    <span className="text-[10px] text-muted-foreground"> clk</span>
+                    {t.gate_clicks ? (
+                      <span className="ml-1 text-[10px] text-primary">· {t.gate_clicks}🔒</span>
+                    ) : null}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
               </td>
               <td className="px-4 py-3">
                 <div className="flex items-center gap-1.5">

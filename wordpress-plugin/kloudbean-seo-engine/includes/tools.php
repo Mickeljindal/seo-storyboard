@@ -41,12 +41,47 @@ function kbseo_register_tool_routes($namespace) {
         'callback' => 'kbseo_optimize_tool',
         'permission_callback' => 'kbseo_verify_request',
     ]);
+    // Gate conversion beacon (public, same-origin from the tool page) + stats read.
+    register_rest_route($namespace, '/gate-hit', [
+        'methods' => ['GET', 'POST'],
+        'callback' => 'kbseo_gate_hit',
+        'permission_callback' => '__return_true',
+    ]);
+    register_rest_route($namespace, '/gate-stats', [
+        'methods' => 'GET',
+        'callback' => 'kbseo_gate_stats',
+        'permission_callback' => 'kbseo_verify_request',
+    ]);
 }
 
 /** Current Elementor version string (best effort). */
 function kbseo_elementor_version() {
     if (defined('ELEMENTOR_VERSION')) return ELEMENTOR_VERSION;
     return '3.0.0';
+}
+
+/**
+ * Gate conversion beacon: increment a per-slug counter when a visitor clicks the
+ * signup CTA. Public + lightly rate-limited (1 increment per IP+slug / 30s).
+ */
+function kbseo_gate_hit($request) {
+    $tool = sanitize_title($request->get_param('tool'));
+    if (!$tool) return ['ok' => false];
+    $ip = $_SERVER['REMOTE_ADDR'] ?? 'x';
+    $rl = 'kbseo_gh_' . md5($ip . $tool);
+    if (get_transient($rl)) return ['ok' => true, 'throttled' => true];
+    set_transient($rl, 1, 30);
+    $hits = get_option('kbseo_gate_hits', []);
+    if (!is_array($hits)) $hits = [];
+    $hits[$tool] = (int) ($hits[$tool] ?? 0) + 1;
+    update_option('kbseo_gate_hits', $hits, false);
+    return ['ok' => true];
+}
+
+/** Return the per-slug gate-hit counters (auth). */
+function kbseo_gate_stats() {
+    $hits = get_option('kbseo_gate_hits', []);
+    return ['ok' => true, 'hits' => is_array($hits) ? $hits : []];
 }
 
 /** Read AIOSEO score + focus keyword for a post (best effort). */

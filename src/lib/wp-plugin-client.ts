@@ -339,3 +339,9 @@ export async function optimizeTool(payload: OptimizeToolPayload): Promise<Optimi
     ? (r as OptimizeToolResult)
     : { ok: false, error: (r as { error: string }).error };
 }
+
+/** Per-slug gate-hit counters (signup-CTA clicks). */
+export async function getGateStats(): Promise<Record<string, number>> {
+  const r = await pluginGet<{ ok?: boolean; hits?: Record<string, number> }>("/gate-stats");
+  return "hits" in r && r.hits ? r.hits : {};
+}

@@ -169,6 +169,22 @@ export const discoverToolPoolFn = createServerFn({ method: "POST" })
     const toolsRepo = await import("@/server/db/repos/tools");
     const { discoverToolIdeaPool } = await import("./tool-ideas");
 
+    // Learned boost: which tool TYPES have earned real clicks so far.
+    const typeBoost: Record<string, number> = {};
+    try {
+      const all = await toolsRepo.listTools({ limit: 2000 });
+      const clicksByType: Record<string, number> = {};
+      for (const t of all) {
+        const ty = (t.idea_data as { tool_type?: string } | null)?.tool_type;
+        if (!ty) continue;
+        clicksByType[ty] = (clicksByType[ty] ?? 0) + (t.gsc_clicks ?? 0);
+      }
+      const max = Math.max(1, ...Object.values(clicksByType));
+      for (const [ty, c] of Object.entries(clicksByType)) typeBoost[ty] = c / max;
+    } catch {
+      /* boost optional */
+    }
+
     const { names, slugs } = await toolsRepo.listToolNamesAndSlugs();
     try {
       const { hasPluginConfigured, listToolPages } = await import("./wp-plugin-client");
@@ -193,6 +209,7 @@ export const discoverToolPoolFn = createServerFn({ method: "POST" })
       minAudience: data.minAudience,
       existingNames: names,
       existingSlugs: slugs,
+      typeBoost,
     });
 
     let saved = 0;
@@ -500,6 +517,95 @@ export const auditToolFn = createServerFn({ method: "POST" })
     if (!r.ok) throw new Error(r.error ?? "Audit failed");
     return r;
   });
+
+// ============================================================================
+// 5b. PERFORMANCE — pull real Google Search Console outcomes onto each tool
+// ============================================================================
+
+function normUrl(u: string): string {
+  return u
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/[#?].*$/, "")
+    .replace(/\/+$/, "");
+}
+
+export async function syncToolPerformanceInternal(): Promise<{
+  ok: boolean;
+  matched: number;
+  withClicks: number;
+}> {
+  const toolsRepo = await import("@/server/db/repos/tools");
+  const { getLatestPerformance } = await import("@/server/db/repos/search-performance");
+  const perf = await getLatestPerformance(5000);
+
+  // Gate-click counters (conversions) per slug, from the WP plugin.
+  let gateStats: Record<string, number> = {};
+  try {
+    const { hasPluginConfigured, getGateStats } = await import("./wp-plugin-client");
+    if (hasPluginConfigured()) gateStats = await getGateStats();
+  } catch {
+    /* gate stats optional */
+  }
+
+  if (!perf.length && !Object.keys(gateStats).length) {
+    return { ok: true, matched: 0, withClicks: 0 };
+  }
+
+  const byUrl = new Map<string, (typeof perf)[number]>();
+  for (const p of perf) byUrl.set(normUrl(p.page), p);
+
+  const tools = await toolsRepo.listTools({ limit: 2000 });
+  let matched = 0;
+  let withClicks = 0;
+  for (const t of tools) {
+    const gate = t.url_slug ? gateStats[t.url_slug] : undefined;
+    const p = t.published_url ? byUrl.get(normUrl(t.published_url)) : undefined;
+    if (!p && gate == null) continue;
+    if (p) {
+      matched++;
+      if (p.clicks > 0) withClicks++;
+    }
+    await toolsRepo.updateTool(t.id, {
+      ...(p
+        ? {
+            gsc_clicks: p.clicks,
+            gsc_impressions: p.impressions,
+            gsc_position: String(p.position),
+          }
+        : {}),
+      ...(gate != null ? { gate_clicks: gate } : {}),
+      perf_synced_at: new Date(),
+    });
+    // Feed the learning loop: real outcome reward for this tool's keyword.
+    if (p) {
+      try {
+        const signals = await import("@/server/db/repos/signals");
+        const { rewardFromSearch } = await import("./learning-ranker");
+        await signals.recordSignal({
+          keyword: t.target_keyword,
+          geo: t.geo_target,
+          event: "published",
+          reward: rewardFromSearch({
+            clicks: p.clicks,
+            impressions: p.impressions,
+            position: p.position,
+          }),
+          features: { kind: "tool", tool_id: t.id },
+        });
+      } catch {
+        /* signals optional */
+      }
+    }
+  }
+  return { ok: true, matched, withClicks };
+}
+
+export const syncToolPerformanceFn = createServerFn({ method: "POST" }).handler(async () => {
+  const { loadProjectEnv } = await import("./load-env");
+  loadProjectEnv();
+  return syncToolPerformanceInternal();
+});
 
 // ============================================================================
 // 6. OPTIMIZE — additive, slug-safe
@@ -901,6 +1007,17 @@ export async function runToolsCycleInternal(cfg: ToolsCycleConfig): Promise<Tool
       await new Promise((res) => setTimeout(res, 400));
     }
     if (result.optimized) log(`optimized ${result.optimized} existing pages (slugs unchanged)`);
+  }
+
+  // 6. Sync real outcomes (GSC) onto tools so the engine learns what wins.
+  if (pluginReady) {
+    try {
+      const p = await syncToolPerformanceInternal();
+      if (p.matched)
+        log(`performance: ${p.matched} tools matched to GSC (${p.withClicks} earning clicks)`);
+    } catch (e) {
+      result.errors.push(`tool performance: ${String((e as Error)?.message ?? e)}`);
+    }
   }
 
   return result;

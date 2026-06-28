@@ -105,6 +105,13 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_tools_slug ON tools(url_slug) WHERE url_sl
 ALTER TABLE tools ADD COLUMN IF NOT EXISTS gate_enabled text;
 ALTER TABLE tools ADD COLUMN IF NOT EXISTS gate_mode text;
 
+-- Tool outcome loop (v7): real performance + conversions
+ALTER TABLE tools ADD COLUMN IF NOT EXISTS gsc_clicks integer;
+ALTER TABLE tools ADD COLUMN IF NOT EXISTS gsc_impressions integer;
+ALTER TABLE tools ADD COLUMN IF NOT EXISTS gsc_position numeric(6,2);
+ALTER TABLE tools ADD COLUMN IF NOT EXISTS gate_clicks integer;
+ALTER TABLE tools ADD COLUMN IF NOT EXISTS perf_synced_at timestamptz;
+
 -- Self-learning knowledge graph (v6)
 CREATE TABLE IF NOT EXISTS kg_nodes (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

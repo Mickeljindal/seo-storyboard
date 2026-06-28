@@ -414,6 +414,8 @@ export type IdeaPoolOptions = {
   minAudience?: number;
   /** Cap autocomplete expansions (credit control). */
   maxSeeds?: number;
+  /** Learned multiplier per tool_type (0–1) from real outcomes — boosts winners. */
+  typeBoost?: Record<string, number>;
 };
 
 /**
@@ -519,6 +521,9 @@ export async function discoverToolIdeaPool(options: IdeaPoolOptions = {}): Promi
     );
 
     const type = toolTypeFromKeyword(keyword);
+    // Learned boost: tool types that earned real clicks rank higher over time.
+    const boost = options.typeBoost?.[type] ?? 0;
+    const combinedBoosted = Math.round(combined * (1 + 0.25 * boost));
     ideas.push({
       name: nameFromKeyword(keyword),
       slug,
@@ -536,7 +541,7 @@ export async function discoverToolIdeaPool(options: IdeaPoolOptions = {}): Promi
       demand_score: demand,
       scope_score: scope,
       audience_score: audience,
-      opportunity_score: combined,
+      opportunity_score: combinedBoosted,
       demand_source: (volume != null ? "dataforseo" : "serper") as ToolIdea["demand_source"],
     });
   }

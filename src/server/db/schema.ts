@@ -192,6 +192,12 @@ export const tools = pgTable("tools", {
   qualityReport: jsonb("quality_report"),
   aioseoScoreBefore: smallint("aioseo_score_before"),
   aioseoScoreAfter: smallint("aioseo_score_after"),
+  // Real outcomes (self-improvement loop)
+  gscClicks: integer("gsc_clicks"),
+  gscImpressions: integer("gsc_impressions"),
+  gscPosition: numeric("gsc_position", { precision: 6, scale: 2 }),
+  gateClicks: integer("gate_clicks"),
+  perfSyncedAt: timestamp("perf_synced_at", { withTimezone: true }),
   // Audit snapshot (what the optimizer found before touching the page)
   auditReport: jsonb("audit_report"),
   // Signup gate (lead-gen): require a console.kloudbean.com account to use the tool
