@@ -32,6 +32,7 @@ import {
   setToolGateFn,
   addToolFn,
   syncToolPerformanceFn,
+  revertToolFn,
 } from "@/lib/tools.functions";
 
 export const Route = createFileRoute("/tools")({ component: ToolsPage });
@@ -50,6 +51,8 @@ type ToolRow = {
   volume: number | null;
   difficulty: number | null;
   aioseo_score_before: number | null;
+  quality_score: number | null;
+  quality_report: { grade?: string; blocking?: boolean; issues?: string[] } | null;
   gsc_clicks: number | null;
   gsc_impressions: number | null;
   gsc_position: number | null;
@@ -95,6 +98,7 @@ function ToolsPage() {
   const poolFn = useServerFn(discoverToolPoolFn);
   const dismissFn = useServerFn(dismissToolFn);
   const perfFn = useServerFn(syncToolPerformanceFn);
+  const revertFn = useServerFn(revertToolFn);
   // Bulk run progress: { done, total, label } while a batch is running.
   const [bulk, setBulk] = useState<{ done: number; total: number; label: string } | null>(null);
 
@@ -731,6 +735,23 @@ function ToolsPage() {
                         <ShieldCheck className="h-4 w-4" />
                       )}
                     </Button>
+                    {t.status === "optimized" && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={busyId === t.id}
+                        title="Undo — restore the page to its pre-optimize snapshot"
+                        onClick={() =>
+                          run(
+                            t.id,
+                            () => revertFn({ data: { toolId: t.id } }),
+                            "Reverted to snapshot",
+                          )
+                        }
+                      >
+                        ↩︎
+                      </Button>
+                    )}
                   </>
                 )}
               />
@@ -782,7 +803,25 @@ function ToolTable({
                 </td>
               )}
               <td className="max-w-[240px] px-4 py-3">
-                <div className="line-clamp-1 font-medium">{t.name}</div>
+                <div className="flex items-center gap-2">
+                  <span className="line-clamp-1 font-medium">{t.name}</span>
+                  {t.quality_score != null && (
+                    <span
+                      title={(t.quality_report?.issues ?? []).join(", ") || "quality score"}
+                      className={`rounded px-1 py-0.5 text-[9px] font-semibold ${
+                        t.quality_report?.blocking
+                          ? "bg-red-500/15 text-red-400"
+                          : t.quality_score >= 80
+                            ? "bg-[var(--lime)]/15 text-[var(--lime)]"
+                            : t.quality_score >= 70
+                              ? "bg-amber-500/15 text-amber-400"
+                              : "bg-red-500/15 text-red-400"
+                      }`}
+                    >
+                      {t.quality_report?.grade ?? t.quality_score}
+                    </span>
+                  )}
+                </div>
                 {t.published_url ? (
                   <a
                     href={t.published_url}

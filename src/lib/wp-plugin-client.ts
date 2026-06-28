@@ -345,3 +345,17 @@ export async function getGateStats(): Promise<Record<string, number>> {
   const r = await pluginGet<{ ok?: boolean; hits?: Record<string, number> }>("/gate-stats");
   return "hits" in r && r.hits ? r.hits : {};
 }
+
+/** Restore a page's Elementor data to a snapshot (rollback an optimize). */
+export async function restoreTool(
+  postId: number,
+  elementorData: unknown[],
+): Promise<{ ok: boolean; error?: string }> {
+  const r = await pluginPost<{ ok?: boolean }>("/tools/restore", {
+    post_id: postId,
+    elementor_data: elementorData,
+  });
+  return "ok" in r
+    ? { ok: !!(r as { ok?: boolean }).ok }
+    : { ok: false, error: (r as { error: string }).error };
+}

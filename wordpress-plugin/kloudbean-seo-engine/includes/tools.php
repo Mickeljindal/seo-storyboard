@@ -41,6 +41,11 @@ function kbseo_register_tool_routes($namespace) {
         'callback' => 'kbseo_optimize_tool',
         'permission_callback' => 'kbseo_verify_request',
     ]);
+    register_rest_route($namespace, '/tools/restore', [
+        'methods' => 'POST',
+        'callback' => 'kbseo_restore_tool',
+        'permission_callback' => 'kbseo_verify_request',
+    ]);
     // Gate conversion beacon (public, same-origin from the tool page) + stats read.
     register_rest_route($namespace, '/gate-hit', [
         'methods' => ['GET', 'POST'],
@@ -82,6 +87,22 @@ function kbseo_gate_hit($request) {
 function kbseo_gate_stats() {
     $hits = get_option('kbseo_gate_hits', []);
     return ['ok' => true, 'hits' => is_array($hits) ? $hits : []];
+}
+
+/**
+ * Restore a page's _elementor_data to a provided snapshot (one-click rollback of
+ * an optimize). Slug + title untouched.
+ */
+function kbseo_restore_tool($request) {
+    $data = $request->get_json_params();
+    $post_id = intval($data['post_id'] ?? 0);
+    if ($post_id <= 0) return new WP_Error('invalid_body', 'post_id required', ['status' => 400]);
+    if (!get_post($post_id)) return new WP_Error('not_found', 'Page not found', ['status' => 404]);
+    if (empty($data['elementor_data']) || !is_array($data['elementor_data'])) {
+        return new WP_Error('invalid_body', 'elementor_data (array) required', ['status' => 400]);
+    }
+    kbseo_set_elementor_data($post_id, $data['elementor_data']);
+    return ['ok' => true, 'post_id' => $post_id, 'restored_sections' => count($data['elementor_data'])];
 }
 
 /** Read AIOSEO score + focus keyword for a post (best effort). */

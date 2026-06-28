@@ -111,6 +111,7 @@ ALTER TABLE tools ADD COLUMN IF NOT EXISTS gsc_impressions integer;
 ALTER TABLE tools ADD COLUMN IF NOT EXISTS gsc_position numeric(6,2);
 ALTER TABLE tools ADD COLUMN IF NOT EXISTS gate_clicks integer;
 ALTER TABLE tools ADD COLUMN IF NOT EXISTS perf_synced_at timestamptz;
+ALTER TABLE tools ADD COLUMN IF NOT EXISTS elementor_snapshot jsonb;
 
 -- Self-learning knowledge graph (v6)
 CREATE TABLE IF NOT EXISTS kg_nodes (

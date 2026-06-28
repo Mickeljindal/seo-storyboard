@@ -37,6 +37,7 @@ const COL_MAP: Record<string, keyof typeof tools.$inferInsert> = {
   gate_clicks: "gateClicks",
   perf_synced_at: "perfSyncedAt",
   audit_report: "auditReport",
+  elementor_snapshot: "elementorSnapshot",
   gate_enabled: "gateEnabled",
   gate_mode: "gateMode",
   notes: "notes",

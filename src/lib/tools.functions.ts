@@ -294,6 +294,10 @@ export async function generateToolInternal(
     gate: gateOn ? gateConfig(tool.url_slug ?? "") : null,
   });
 
+  // Quality scorecard — blocks auto-publish of broken/thin tools.
+  const { scoreToolHtml } = await import("./tool-scorecard");
+  const quality = scoreToolHtml(result.tool_html);
+
   await toolsRepo.updateTool(toolId, {
     status: "generated",
     tool_html: result.tool_html,
@@ -302,6 +306,8 @@ export async function generateToolInternal(
     meta_description: result.meta_description,
     schema_jsonld: result.schema_jsonld,
     elementor_data: elementorData,
+    quality_score: quality.score,
+    quality_report: quality,
     gate_enabled: gateOn ? "yes" : "no",
     gate_mode: gateOn ? gateConfig(tool.url_slug ?? "").mode : null,
   });
@@ -332,6 +338,14 @@ export async function publishToolInternal(
   if (!tool) return { ok: false, error: "Tool not found" };
   if (!tool.elementor_data || !tool.tool_html) {
     return { ok: false, error: "Generate the tool before publishing." };
+  }
+  // Quality gate: never push a broken tool LIVE (drafts are allowed for review).
+  const quality = tool.quality_report as { blocking?: boolean; issues?: string[] } | null;
+  if (status === "publish" && quality?.blocking) {
+    return {
+      ok: false,
+      error: `Quality gate: tool looks broken (${(quality.issues ?? []).slice(0, 2).join(", ") || "no working JS/inputs"}). Regenerate or publish as draft to review.`,
+    };
   }
 
   const { hasPluginConfigured, publishTool } = await import("./wp-plugin-client");
@@ -665,7 +679,21 @@ export async function optimizeToolInternal(
     },
   });
 
-  const { optimizeTool } = await import("./wp-plugin-client");
+  const { optimizeTool, getToolPage } = await import("./wp-plugin-client");
+
+  // Snapshot the page's current Elementor data BEFORE we write, so the optimize
+  // is reversible. Only capture the first time (preserve the true original).
+  if (!dryRun && !tool.elementor_snapshot) {
+    try {
+      const detail = await getToolPage(tool.wp_post_id);
+      if ("elementor_data" in detail && Array.isArray(detail.elementor_data)) {
+        await toolsRepo.updateTool(toolId, { elementor_snapshot: detail.elementor_data });
+      }
+    } catch {
+      /* snapshot best-effort — don't block optimize */
+    }
+  }
+
   const res = await optimizeTool({
     post_id: tool.wp_post_id,
     prepend: plan.prepend,
@@ -711,6 +739,29 @@ export const optimizeToolFn = createServerFn({ method: "POST" })
     const r = await optimizeToolInternal(data.toolId, data.dryRun);
     if (!r.ok) throw new Error(r.error ?? "Optimize failed");
     return r;
+  });
+
+/** Roll back an optimized page to its pre-optimize snapshot (slug-safe). */
+export const revertToolFn = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ toolId: z.string().uuid() }).parse)
+  .handler(async ({ data }) => {
+    const { loadProjectEnv } = await import("./load-env");
+    loadProjectEnv();
+    const toolsRepo = await import("@/server/db/repos/tools");
+    const tool = await toolsRepo.getToolById(data.toolId);
+    if (!tool) throw new Error("Tool not found");
+    if (!tool.wp_post_id || !tool.elementor_snapshot) {
+      throw new Error("No snapshot to restore for this page.");
+    }
+    const { hasPluginConfigured, restoreTool } = await import("./wp-plugin-client");
+    if (!hasPluginConfigured()) throw new Error("WordPress plugin not configured.");
+    const r = await restoreTool(tool.wp_post_id, tool.elementor_snapshot as unknown[]);
+    if (!r.ok) throw new Error(r.error ?? "Restore failed");
+    await toolsRepo.updateTool(data.toolId, {
+      status: "published",
+      notes: "Reverted to pre-optimize snapshot.",
+    });
+    return { ok: true };
   });
 
 // ============================================================================
@@ -979,7 +1030,16 @@ export async function runToolsCycleInternal(cfg: ToolsCycleConfig): Promise<Tool
 
   // 4. Publish generated tools (DRAFT by default — human reviews before live).
   if (cfg.publishStatus !== "off" && pluginReady) {
-    const ready = await toolsRepo.listTools({ status: "generated", limit: cfg.generateCount || 5 });
+    const minQuality = Number(process.env.TOOL_MIN_QUALITY || 70);
+    const ready = (
+      await toolsRepo.listTools({ status: "generated", limit: cfg.generateCount || 5 })
+    )
+      // For LIVE publishing, only ship tools that pass the quality bar and aren't broken.
+      .filter((t) => {
+        if (cfg.publishStatus !== "publish") return true;
+        const q = t.quality_report as { blocking?: boolean } | null;
+        return !q?.blocking && (t.quality_score ?? 0) >= minQuality;
+      });
     for (const t of ready) {
       try {
         const r = await publishToolInternal(t.id, cfg.publishStatus);

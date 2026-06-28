@@ -200,6 +200,8 @@ export const tools = pgTable("tools", {
   perfSyncedAt: timestamp("perf_synced_at", { withTimezone: true }),
   // Audit snapshot (what the optimizer found before touching the page)
   auditReport: jsonb("audit_report"),
+  // Pre-optimize snapshot of _elementor_data, for one-click rollback
+  elementorSnapshot: jsonb("elementor_snapshot"),
   // Signup gate (lead-gen): require a console.kloudbean.com account to use the tool
   gateEnabled: text("gate_enabled"), // "yes" | "no" | null
   gateMode: text("gate_mode"), // "soft" | "hard" | null
