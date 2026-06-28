@@ -61,17 +61,59 @@ function gradeFor(score: number): ScoreResult["grade"] {
 
 /** AI-tell phrases that make content read like generic machine output. */
 const AI_TELL_PHRASES = [
-  "in today's digital landscape", "in today's fast-paced", "in the world of", "in the realm of",
-  "when it comes to", "it's worth noting", "it is worth noting", "it's important to note",
-  "it is important to note", "needless to say", "moreover", "furthermore", "in conclusion",
-  "in summary", "to sum up", "delve", "dive into", "diving into", "embark", "navigating the",
-  "navigate the", "unlock", "unleash", "elevate your", "game-changer", "game changer",
-  "cutting-edge", "state-of-the-art", "harness the", "empower", "streamline your",
-  "take it to the next level", "look no further", "rest assured", "the bottom line",
-  "at the end of the day", "plethora", "myriad", "a testament to", "in essence",
-  "whether you're a beginner", "this article will", "in this guide we will", "let's explore",
-  "let's dive", "let's take a look", "ever-evolving", "ever-changing", "fast-paced world",
-  "seamlessly", "seamless integration", "robust solution", "tailored to your",
+  "in today's digital landscape",
+  "in today's fast-paced",
+  "in the world of",
+  "in the realm of",
+  "when it comes to",
+  "it's worth noting",
+  "it is worth noting",
+  "it's important to note",
+  "it is important to note",
+  "needless to say",
+  "moreover",
+  "furthermore",
+  "in conclusion",
+  "in summary",
+  "to sum up",
+  "delve",
+  "dive into",
+  "diving into",
+  "embark",
+  "navigating the",
+  "navigate the",
+  "unlock",
+  "unleash",
+  "elevate your",
+  "game-changer",
+  "game changer",
+  "cutting-edge",
+  "state-of-the-art",
+  "harness the",
+  "empower",
+  "streamline your",
+  "take it to the next level",
+  "look no further",
+  "rest assured",
+  "the bottom line",
+  "at the end of the day",
+  "plethora",
+  "myriad",
+  "a testament to",
+  "in essence",
+  "whether you're a beginner",
+  "this article will",
+  "in this guide we will",
+  "let's explore",
+  "let's dive",
+  "let's take a look",
+  "ever-evolving",
+  "ever-changing",
+  "fast-paced world",
+  "seamlessly",
+  "seamless integration",
+  "robust solution",
+  "tailored to your",
 ];
 
 function findAiTells(md: string): string[] {
@@ -106,7 +148,10 @@ function findFormulaic(md: string): string[] {
 
 /** Ratio of prose (paragraph words) to total body words. Low = too listy/AI. */
 function proseRatio(md: string): { ratio: number; bulletLines: number; paraLines: number } {
-  const lines = md.split("\n").map((l) => l.trim()).filter(Boolean);
+  const lines = md
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
   let bulletWords = 0;
   let paraWords = 0;
   let bulletLines = 0;
@@ -114,11 +159,73 @@ function proseRatio(md: string): { ratio: number; bulletLines: number; paraLines
   for (const l of lines) {
     if (/^#{1,6}\s/.test(l) || l.startsWith("|") || l.startsWith(">")) continue;
     const w = (l.match(/\b[\w'-]+\b/g) ?? []).length;
-    if (/^([-*]|\d+\.)\s/.test(l)) { bulletWords += w; bulletLines++; }
-    else { paraWords += w; paraLines++; }
+    if (/^([-*]|\d+\.)\s/.test(l)) {
+      bulletWords += w;
+      bulletLines++;
+    } else {
+      paraWords += w;
+      paraLines++;
+    }
   }
   const total = bulletWords + paraWords;
   return { ratio: total ? paraWords / total : 1, bulletLines, paraLines };
+}
+
+/**
+ * Answer-first analysis: for each H2 section, is the first body line a direct
+ * answer paragraph (~25–70 words) rather than a list, table, or heading? This
+ * is what wins featured snippets and AI-overview citations.
+ */
+function answerFirstSections(md: string): { total: number; answerFirst: number } {
+  const lines = md.split("\n");
+  let total = 0;
+  let answerFirst = 0;
+  for (let i = 0; i < lines.length; i++) {
+    if (!/^##\s+/.test(lines[i]) || /^###\s+/.test(lines[i])) continue;
+    // skip an H2 that is itself the FAQ heading (handled separately)
+    if (/^##\s*(faq|frequently asked)/i.test(lines[i])) continue;
+    total++;
+    // find first non-empty line after the heading
+    let j = i + 1;
+    while (j < lines.length && lines[j].trim() === "") j++;
+    if (j >= lines.length) continue;
+    const first = lines[j].trim();
+    // must be a paragraph: not a heading, list, table, blockquote, code fence, image
+    if (/^(#{1,6}\s|[-*]\s|\d+\.\s|\||>|```|!\[)/.test(first)) continue;
+    const words = (first.match(/\b[\w'-]+\b/g) ?? []).length;
+    if (words >= 20 && words <= 80) answerFirst++;
+  }
+  return { total, answerFirst };
+}
+
+/** Count markdown data/comparison tables (need a header row + a separator row). */
+function countDataTables(md: string): number {
+  const lines = md.split("\n");
+  let tables = 0;
+  for (let i = 0; i < lines.length - 1; i++) {
+    const header = lines[i].trim();
+    const sep = lines[i + 1].trim();
+    if (/^\|.*\|$/.test(header) && /^\|?[\s:-]*-{2,}[\s:|-]*\|?$/.test(sep) && sep.includes("-")) {
+      tables++;
+      i++; // skip the separator
+    }
+  }
+  return tables;
+}
+
+/** Commercial / comparison intent → a data table matters much more. */
+function isCommercialIntent(input: ScoreInput): boolean {
+  const hay = [
+    input.targetKeyword ?? "",
+    ...(input.secondaryKeywords ?? []),
+    String((input.brief?.search_intent as string) ?? ""),
+    String((input.brief?.intent as string) ?? ""),
+  ]
+    .join(" ")
+    .toLowerCase();
+  return /\b(best|top|vs|versus|compare|comparison|pricing|price|cost|cheap|alternative|review|buy)\b/.test(
+    hay,
+  );
 }
 
 function splitSentences(md: string): string[] {
@@ -128,7 +235,10 @@ function splitSentences(md: string): string[] {
     .replace(/^#{1,6}\s+.*$/gm, " ")
     .replace(/[*_`>|#-]/g, " ")
     .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
-  return text.split(/(?<=[.!?])\s+/).map((s) => s.trim()).filter((s) => s.split(/\s+/).length >= 3);
+  return text
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.split(/\s+/).length >= 3);
 }
 
 function countSyllables(word: string): number {
@@ -141,7 +251,7 @@ function countSyllables(word: string): number {
 /** Flesch Reading Ease (higher = easier). ~60–80 is plain English. */
 function fleschReadingEase(md: string): number {
   const sentences = splitSentences(md);
-  const words = (md.replace(/[^A-Za-z\s]/g, " ").match(/[A-Za-z]+/g) ?? []);
+  const words = md.replace(/[^A-Za-z\s]/g, " ").match(/[A-Za-z]+/g) ?? [];
   if (!sentences.length || !words.length) return 50;
   const syllables = words.reduce((s, w) => s + countSyllables(w), 0);
   const wps = words.length / sentences.length;
@@ -180,8 +290,13 @@ function ksaProviderViolations(md: string, geo: string): string[] {
     if (!residencyContext.test(s)) continue;
     if (/(host|hosting|region|data center|datacenter|residen|deploy)/.test(s)) {
       for (const p of offProviders) {
-        if (p.terms.some((t) => s.includes(t)) && !/alternativ|vs |versus|migrat|instead of|unlike|does not|doesn't|no .* region/.test(s)) {
-          out.push(`Possible KSA policy issue: "${p.id}" presented in a Saudi hosting/residency context. KSA must resolve to GCP Dammam (me-central2).`);
+        if (
+          p.terms.some((t) => s.includes(t)) &&
+          !/alternativ|vs |versus|migrat|instead of|unlike|does not|doesn't|no .* region/.test(s)
+        ) {
+          out.push(
+            `Possible KSA policy issue: "${p.id}" presented in a Saudi hosting/residency context. KSA must resolve to GCP Dammam (me-central2).`,
+          );
         }
       }
     }
@@ -201,7 +316,10 @@ export function scoreContent(input: ScoreInput): ScoreResult {
   const first120 = md.split(/\s+/).slice(0, 120).join(" ").toLowerCase();
   const h1Match = md.match(/^#\s+(.+)$/m)?.[1]?.toLowerCase() ?? "";
   const kwEarly = kw ? first120.includes(kw.toLowerCase()) : false;
-  const kwInH1 = kw ? h1Match.includes(kw.toLowerCase().split(" ").slice(0, 3).join(" ")) || h1Match.includes(kw.toLowerCase()) : false;
+  const kwInH1 = kw
+    ? h1Match.includes(kw.toLowerCase().split(" ").slice(0, 3).join(" ")) ||
+      h1Match.includes(kw.toLowerCase())
+    : false;
   checks.push({
     id: "kw_placement",
     label: "Target keyword in intro + H1",
@@ -263,7 +381,9 @@ export function scoreContent(input: ScoreInput): ScoreResult {
 
   // --- 6. Entity coverage (from brief entity_table) ---
   const entities = Array.isArray(input.brief?.entity_table)
-    ? (input.brief!.entity_table as { entity?: string }[]).map((e) => e?.entity).filter(Boolean) as string[]
+    ? ((input.brief!.entity_table as { entity?: string }[])
+        .map((e) => e?.entity)
+        .filter(Boolean) as string[])
     : [];
   let entityHits = 0;
   for (const e of entities) if (lower.includes(e.toLowerCase())) entityHits++;
@@ -278,7 +398,9 @@ export function scoreContent(input: ScoreInput): ScoreResult {
   });
 
   // --- 7. FAQ present ---
-  const hasFaq = /##\s*(faq|frequently asked)/i.test(md) || (Array.isArray(input.brief?.faq) && (input.brief!.faq as unknown[]).length > 0);
+  const hasFaq =
+    /##\s*(faq|frequently asked)/i.test(md) ||
+    (Array.isArray(input.brief?.faq) && (input.brief!.faq as unknown[]).length > 0);
   checks.push({
     id: "faq",
     label: "FAQ section present",
@@ -289,7 +411,8 @@ export function scoreContent(input: ScoreInput): ScoreResult {
   });
 
   // --- 8. Schema JSON-LD available ---
-  const hasSchema = !!input.brief?.schema_jsonld && Object.keys(input.brief!.schema_jsonld as object).length > 0;
+  const hasSchema =
+    !!input.brief?.schema_jsonld && Object.keys(input.brief!.schema_jsonld as object).length > 0;
   checks.push({
     id: "schema",
     label: "Structured data (JSON-LD)",
@@ -312,7 +435,9 @@ export function scoreContent(input: ScoreInput): ScoreResult {
   });
 
   // --- 10. CTA present ---
-  const hasCta = /kloudbean\.com/i.test(md) && /(get started|sign up|try|start|contact|migrate|deploy|book|free trial)/i.test(lower);
+  const hasCta =
+    /kloudbean\.com/i.test(md) &&
+    /(get started|sign up|try|start|contact|migrate|deploy|book|free trial)/i.test(lower);
   checks.push({
     id: "cta",
     label: "CTA to kloudbean.com",
@@ -393,12 +518,44 @@ export function scoreContent(input: ScoreInput): ScoreResult {
     detail: formulaic.length ? formulaic.slice(0, 3).join("; ") : "clean",
   });
 
+  // --- 17. Answer-first sections (snippet / AI-overview wins) ---
+  const af = answerFirstSections(md);
+  const afRatio = af.total ? af.answerFirst / af.total : 1;
+  const afOk = af.total === 0 || afRatio >= 0.6;
+  checks.push({
+    id: "answer_first",
+    label: "Answer-first sections (direct opener after each H2)",
+    weight: 10,
+    earned: af.total ? Math.round(afRatio * 10) : 8,
+    pass: afOk,
+    detail: af.total
+      ? `${af.answerFirst}/${af.total} sections open with a direct answer`
+      : "no H2 sections",
+  });
+
+  // --- 18. Data / comparison table (esp. for commercial intent) ---
+  const tables = countDataTables(md);
+  const commercial = isCommercialIntent(input);
+  const tableNeeded = commercial ? 1 : 1; // always want ≥1; commercial = blocking-ish weight
+  const tableOk = tables >= tableNeeded;
+  checks.push({
+    id: "data_table",
+    label: commercial ? "Comparison table (commercial intent)" : "At least one data table",
+    weight: commercial ? 8 : 5,
+    earned: tableOk ? (commercial ? 8 : 5) : 0,
+    pass: tableOk,
+    detail: `${tables} table(s)${commercial ? " — commercial intent" : ""}`,
+  });
+
   // --- BANNED CLAIMS (hard rules) ---
   const bannedClaims: string[] = [];
   const unsupported = detectUnsupportedProviders(md);
   // Only flag unsupported providers when presented as a Kloudbean offering (not pure comparison).
   for (const u of unsupported) {
-    const re = new RegExp(`(kloudbean|we|our platform)[^.]{0,60}${u.split(" ")[0]}|${u.split(" ")[0]}[^.]{0,40}(on kloudbean|via kloudbean)`, "i");
+    const re = new RegExp(
+      `(kloudbean|we|our platform)[^.]{0,60}${u.split(" ")[0]}|${u.split(" ")[0]}[^.]{0,40}(on kloudbean|via kloudbean)`,
+      "i",
+    );
     if (re.test(md)) {
       bannedClaims.push(`Presents unsupported provider "${u}" as a Kloudbean offering.`);
     }
@@ -413,13 +570,21 @@ export function scoreContent(input: ScoreInput): ScoreResult {
     if (pattern.test(md)) bannedClaims.push(issue);
   }
   // Capability graph: unsupported tech presented as hostable on Kloudbean.
-  const comparisonFrame = /\b(vs|versus|alternative|migrate|migration|move (from|off)|switch (from|off)|instead of)\b/i.test(lower);
+  const comparisonFrame =
+    /\b(vs|versus|alternative|migrate|migration|move (from|off)|switch (from|off)|instead of)\b/i.test(
+      lower,
+    );
   if (!comparisonFrame) {
     for (const u of detectUnsupportedTech(md)) {
       // flag only if tied to running/deploying/hosting ON Kloudbean
-      const re = new RegExp(`(deploy|host|run|install|set ?up)[^.]{0,50}${u.label.split(" ")[0]}|${u.label.split(" ")[0]}[^.]{0,40}(on kloudbean|on your kloudbean|via kloudbean)`, "i");
+      const re = new RegExp(
+        `(deploy|host|run|install|set ?up)[^.]{0,50}${u.label.split(" ")[0]}|${u.label.split(" ")[0]}[^.]{0,40}(on kloudbean|on your kloudbean|via kloudbean)`,
+        "i",
+      );
       if (re.test(md) || /on kloudbean/i.test(lower)) {
-        bannedClaims.push(`Unsupported tech presented as hostable on Kloudbean: ${u.label}. ${u.why}`);
+        bannedClaims.push(
+          `Unsupported tech presented as hostable on Kloudbean: ${u.label}. ${u.why}`,
+        );
       }
     }
   }
@@ -457,28 +622,40 @@ export function buildRevisionInstructions(result: ScoreResult, input: ScoreInput
     if (c.pass) continue;
     switch (c.id) {
       case "kw_placement":
-        fixes.push(`Include the exact target keyword "${input.targetKeyword}" in the H1 and within the first 120 words.`);
+        fixes.push(
+          `Include the exact target keyword "${input.targetKeyword}" in the H1 and within the first 120 words.`,
+        );
         break;
       case "kw_density":
-        fixes.push(`Adjust use of "${input.targetKeyword}" to ~1–2% density naturally (currently ${c.detail}).`);
+        fixes.push(
+          `Adjust use of "${input.targetKeyword}" to ~1–2% density naturally (currently ${c.detail}).`,
+        );
         break;
       case "word_count":
-        fixes.push(`Expand the article to at least ${input.wordCountTarget ?? 2000} words with substantive, Kloudbean-specific detail (currently ${c.detail}).`);
+        fixes.push(
+          `Expand the article to at least ${input.wordCountTarget ?? 2000} words with substantive, Kloudbean-specific detail (currently ${c.detail}).`,
+        );
         break;
       case "structure":
-        fixes.push(`Add more clear ## H2 sections (aim for 5–8) with ### H3 subsections where useful.`);
+        fixes.push(
+          `Add more clear ## H2 sections (aim for 5–8) with ### H3 subsections where useful.`,
+        );
         break;
       case "brand":
         fixes.push(`Reference Kloudbean and its specific features more concretely throughout.`);
         break;
       case "entities":
-        fixes.push(`Cover the brief's named entities (${c.detail}) — weave the missing ones in naturally.`);
+        fixes.push(
+          `Cover the brief's named entities (${c.detail}) — weave the missing ones in naturally.`,
+        );
         break;
       case "faq":
         fixes.push(`Add a ## FAQ section answering the brief's PAA questions, citing Kloudbean.`);
         break;
       case "internal_links":
-        fixes.push(`Add internal links to sibling Kloudbean cluster topics using [anchor](internal:slug) — 4–6 of them.`);
+        fixes.push(
+          `Add internal links to sibling Kloudbean cluster topics using [anchor](internal:slug) — 4–6 of them.`,
+        );
         break;
       case "cta":
         fixes.push(`End with a clear call-to-action linking to kloudbean.com.`);
@@ -487,19 +664,39 @@ export function buildRevisionInstructions(result: ScoreResult, input: ScoreInput
         fixes.push(`Remove or properly form any leftover internal: link placeholders.`);
         break;
       case "human_voice":
-        fixes.push(`Rewrite to remove all AI-tell phrases (${c.detail}). Replace with plain, direct language a human expert would use.`);
+        fixes.push(
+          `Rewrite to remove all AI-tell phrases (${c.detail}). Replace with plain, direct language a human expert would use.`,
+        );
         break;
       case "readability":
-        fixes.push(`Improve readability (${c.detail}) — shorten long sentences, use simpler words, aim for Flesch 55–80.`);
+        fixes.push(
+          `Improve readability (${c.detail}) — shorten long sentences, use simpler words, aim for Flesch 55–80.`,
+        );
         break;
       case "rhythm":
-        fixes.push(`Vary sentence length (${c.detail}) — mix short punchy sentences with longer ones so it doesn't read robotically.`);
+        fixes.push(
+          `Vary sentence length (${c.detail}) — mix short punchy sentences with longer ones so it doesn't read robotically.`,
+        );
         break;
       case "prose_first":
-        fixes.push(`Convert bullet-heavy sections into flowing paragraphs (${c.detail}). Keep at most one genuine list in the whole article.`);
+        fixes.push(
+          `Convert bullet-heavy sections into flowing paragraphs (${c.detail}). Keep at most one genuine list in the whole article.`,
+        );
         break;
       case "no_formulaic":
-        fixes.push(`Remove formulaic AI sentence patterns (${c.detail}) and any "**Label:** ..." bold-label paragraphs — rewrite as natural prose.`);
+        fixes.push(
+          `Remove formulaic AI sentence patterns (${c.detail}) and any "**Label:** ..." bold-label paragraphs — rewrite as natural prose.`,
+        );
+        break;
+      case "answer_first":
+        fixes.push(
+          `Open each ## H2 section with a direct 25–60 word answer paragraph that resolves the section's question immediately, before any list, table, or detail (currently ${c.detail}). This is what wins featured snippets and AI-overview citations.`,
+        );
+        break;
+      case "data_table":
+        fixes.push(
+          `Add at least one genuine markdown comparison/data table (e.g. plans, specs, features, or before/after metrics) with a header row and a separator row (currently ${c.detail}).`,
+        );
         break;
     }
   }
