@@ -376,3 +376,11 @@ export const conversions = pgTable("conversions", {
 });
 
 export type ConversionRow = typeof conversions.$inferSelect;
+
+export const appSettings = pgTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: text("value"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type AppSettingRow = typeof appSettings.$inferSelect;

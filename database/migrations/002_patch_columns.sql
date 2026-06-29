@@ -260,3 +260,10 @@ CREATE INDEX IF NOT EXISTS idx_conversions_slug ON conversions(source_slug);
 CREATE INDEX IF NOT EXISTS idx_conversions_cluster ON conversions(cluster_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_conversions_external
   ON conversions(external_id) WHERE external_id IS NOT NULL;
+
+-- Dashboard-managed integration settings (v13) — e.g. Google Search Console
+CREATE TABLE IF NOT EXISTS app_settings (
+  key text PRIMARY KEY,
+  value text,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);

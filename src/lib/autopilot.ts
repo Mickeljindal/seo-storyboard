@@ -414,6 +414,8 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
 
   // 5. SYNC ANALYTICS — pull real Google Search Console data into the learning loop.
   try {
+    const { hydrateEnvFromSettings } = await import("./app-settings");
+    await hydrateEnvFromSettings();
     const { hasGscCredentials, querySearchAnalytics, isoDaysAgo } = await import("./gsc-client");
     if (hasGscCredentials()) {
       const startDate = isoDaysAgo(30);
