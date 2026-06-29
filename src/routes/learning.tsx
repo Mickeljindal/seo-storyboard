@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AppLayout } from "@/components/AppLayout";
-import { Brain, Loader2, TrendingUp, Quote, Clock, Trophy } from "lucide-react";
+import { Brain, Loader2, TrendingUp, Quote, Clock, Trophy, DollarSign } from "lucide-react";
 import { learningDashboardFn } from "@/lib/learning.functions";
 
 export const Route = createFileRoute("/learning")({ component: LearningPage });
@@ -35,6 +35,14 @@ type Data = {
     due: number;
     intervalDays: number;
     oldestDays: number;
+  };
+  conversions: {
+    total: number;
+    signups: number;
+    paid: number;
+    value: number;
+    currency: string;
+    bySource: { source: string; surface: string; signups: number; paid: number; value: number }[];
   };
 };
 
@@ -115,6 +123,64 @@ function LearningPage() {
                 }
                 sub={`${d.freshness.due} due · oldest ${d.freshness.oldestDays}d`}
               />
+            </div>
+
+            {/* Conversions — the ultimate outcome */}
+            <div className="rounded-lg border p-4">
+              <h2 className="mb-3 flex items-center gap-2 text-sm font-medium">
+                <DollarSign className="h-4 w-4" /> Conversions (90d)
+                <span className="font-normal text-muted-foreground">
+                  — signups & revenue attributed to pages (weighs heaviest in learning)
+                </span>
+              </h2>
+              <div className="mb-3 grid grid-cols-2 gap-4 md:grid-cols-4">
+                <Stat
+                  icon={<DollarSign className="h-4 w-4" />}
+                  label="Signups"
+                  value={String(d.conversions.signups)}
+                />
+                <Stat
+                  icon={<DollarSign className="h-4 w-4" />}
+                  label="Paid"
+                  value={String(d.conversions.paid)}
+                />
+                <Stat
+                  icon={<DollarSign className="h-4 w-4" />}
+                  label="Attributed value"
+                  value={`${d.conversions.value.toLocaleString()} ${d.conversions.currency}`}
+                />
+                <Stat
+                  icon={<DollarSign className="h-4 w-4" />}
+                  label="Total events"
+                  value={String(d.conversions.total)}
+                />
+              </div>
+              {d.conversions.bySource.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No conversions yet. Tag console links are live; connect the console webhook (POST
+                  /wp-json/kbseo/v1/conversion) to attribute signups to pages.
+                </p>
+              ) : (
+                <div className="divide-y">
+                  {d.conversions.bySource.map((s) => (
+                    <div
+                      key={s.source + s.surface}
+                      className="flex items-center justify-between gap-4 py-2 text-sm"
+                    >
+                      <span className="min-w-0 truncate">
+                        <span className="mr-2 rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">
+                          {s.surface}
+                        </span>
+                        {s.source}
+                      </span>
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {s.paid} paid · {s.signups} signups
+                        {s.value ? ` · ${s.value.toLocaleString()} ${d.conversions.currency}` : ""}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Reward by cluster */}

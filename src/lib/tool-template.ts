@@ -84,20 +84,24 @@ export type ToolPageParts = {
   pitch?: string;
   /** CTA button label, tailored to the audience. */
   ctaLabel?: string;
+  /** Attributed console URL for the CTA + banner (carries source params). */
+  ctaHref?: string;
 };
+
+const DEFAULT_CTA_HREF = "https://console.kloudbean.com/register";
 
 function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-function buildBanner(pitch?: string): string {
+function buildBanner(pitch?: string, ctaHref?: string): string {
   const sub = pitch
     ? esc(pitch)
     : "Powerful, cost-effective managed cloud hosting for developers, founders and agencies.";
   return `<div class="kbt-banner"><div>
 <h3><span>Build it here? Launch it on Kloudbean.</span></h3>
 <p>${sub}</p>
-<a href="https://console.kloudbean.com/register" rel="noopener" target="_blank">Launch your server — Start Free</a>
+<a href="${esc(ctaHref || DEFAULT_CTA_HREF)}" rel="noopener" target="_blank">Launch your server — Start Free</a>
 </div></div>`;
 }
 
@@ -146,13 +150,13 @@ export function assembleToolPage(parts: ToolPageParts): string {
 
   ${parts.extraHtml ?? ""}
 
-  ${buildBanner(parts.pitch)}
+  ${buildBanner(parts.pitch, parts.ctaHref)}
 
   ${renderSections(parts.contentSections)}
 
   ${renderFaq(parts.faq)}
 
-  <div class="kbt-cta-row"><a class="kbt-btn" href="https://console.kloudbean.com/register" target="_blank" rel="noopener">${esc(parts.ctaLabel || "Host with Kloudbean — Start Free")}</a></div>
+  <div class="kbt-cta-row"><a class="kbt-btn" href="${esc(parts.ctaHref || DEFAULT_CTA_HREF)}" target="_blank" rel="noopener">${esc(parts.ctaLabel || "Host with Kloudbean — Start Free")}</a></div>
 </div>
 ${jsonLdTags(parts.schemaJsonld)}
 <script>

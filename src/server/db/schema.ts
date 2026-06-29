@@ -355,3 +355,24 @@ export const entityAssets = pgTable("entity_assets", {
 });
 
 export type EntityAssetRow = typeof entityAssets.$inferSelect;
+
+export const conversions = pgTable("conversions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  event: text("event").notNull().default("signup"), // signup | paid | lead | view
+  sourceUrl: text("source_url"),
+  sourceSlug: text("source_slug"),
+  surface: text("surface").default("unknown"), // tool | article | unknown
+  articleId: uuid("article_id"),
+  toolId: uuid("tool_id"),
+  clusterId: smallint("cluster_id"),
+  ref: text("ref"),
+  plan: text("plan"),
+  value: numeric("value", { precision: 10, scale: 2 }),
+  currency: text("currency").default("USD"),
+  externalId: text("external_id"), // dedupe key from console (signup/order id)
+  meta: jsonb("meta"),
+  occurredAt: timestamp("occurred_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type ConversionRow = typeof conversions.$inferSelect;

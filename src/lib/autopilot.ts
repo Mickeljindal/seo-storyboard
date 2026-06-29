@@ -446,6 +446,21 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
     result.errors.push(`analytics sync: ${String((e as Error)?.message ?? e)}`);
   }
 
+  // 5b. SYNC CONVERSIONS — pull console signup/paid events + attribute to pages.
+  try {
+    const { hasPluginConfigured } = await import("./wp-plugin-client");
+    if (hasPluginConfigured()) {
+      const { syncConversionsInternal } = await import("./conversions.functions");
+      const cv = await syncConversionsInternal();
+      if (cv.stored)
+        log(
+          `Conversions: ingested ${cv.stored} (${cv.signups} signups, ${cv.paid} paid, ${cv.value} value)`,
+        );
+    }
+  } catch (e) {
+    result.errors.push(`conversion sync: ${String((e as Error)?.message ?? e)}`);
+  }
+
   // 6. TOOL PAGES — discover/generate/publish new tools + optimize existing ones.
   if (cfg.toolsEnabled) {
     try {

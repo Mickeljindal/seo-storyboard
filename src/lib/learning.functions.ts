@@ -87,6 +87,36 @@ export const learningDashboardFn = createServerFn({ method: "GET" }).handler(asy
     /* freshness optional */
   }
 
+  // Conversions — the ultimate outcome (best-effort).
+  let conversions = {
+    total: 0,
+    signups: 0,
+    paid: 0,
+    value: 0,
+    currency: "USD",
+    bySource: [] as {
+      source: string;
+      surface: string;
+      signups: number;
+      paid: number;
+      value: number;
+    }[],
+  };
+  try {
+    const convRepo = await import("@/server/db/repos/conversions");
+    const s = await convRepo.conversionSummary(90);
+    conversions = {
+      total: s.total,
+      signups: s.signups,
+      paid: s.paid,
+      value: s.value,
+      currency: s.currency,
+      bySource: s.bySource.slice(0, 10),
+    };
+  } catch {
+    /* conversions optional */
+  }
+
   return {
     totalSignals,
     byCluster,
@@ -95,5 +125,6 @@ export const learningDashboardFn = createServerFn({ method: "GET" }).handler(asy
     topPages,
     citations,
     freshness,
+    conversions,
   };
 });

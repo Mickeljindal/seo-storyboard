@@ -235,3 +235,28 @@ CREATE TABLE IF NOT EXISTS entity_assets (
 CREATE INDEX IF NOT EXISTS idx_entity_assets_status ON entity_assets(status);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_entity_assets_platform_name
   ON entity_assets(platform, name);
+
+-- Conversion attribution (v12) — tie traffic -> console signups/revenue
+CREATE TABLE IF NOT EXISTS conversions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  event text NOT NULL DEFAULT 'signup',  -- signup | paid | lead | view
+  source_url text,
+  source_slug text,
+  surface text DEFAULT 'unknown',        -- tool | article | unknown
+  article_id uuid,
+  tool_id uuid,
+  cluster_id smallint,
+  ref text,
+  plan text,
+  value numeric(10,2),
+  currency text DEFAULT 'USD',
+  external_id text,                      -- dedupe key from console
+  meta jsonb,
+  occurred_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_conversions_event ON conversions(event);
+CREATE INDEX IF NOT EXISTS idx_conversions_slug ON conversions(source_slug);
+CREATE INDEX IF NOT EXISTS idx_conversions_cluster ON conversions(cluster_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_conversions_external
+  ON conversions(external_id) WHERE external_id IS NOT NULL;

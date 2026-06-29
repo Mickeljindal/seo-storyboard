@@ -3,7 +3,13 @@ import { getDb, schema } from "../client";
 
 const { topicSignals } = schema;
 
-export type SignalEvent = "generated" | "selected" | "published" | "rejected" | "cited";
+export type SignalEvent =
+  | "generated"
+  | "selected"
+  | "published"
+  | "rejected"
+  | "cited"
+  | "converted";
 
 export async function recordSignal(data: {
   articleId?: string | null;

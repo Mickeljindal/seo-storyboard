@@ -100,7 +100,8 @@ export function buildGateHtml(config: GateConfig = {}): string {
   function buildReturn(){
     var sep=location.search?"&":"?";
     var ret=location.href.split("#")[0]+sep+"kb_unlocked=1";
-    var u=signup+"/signup?ref=tool&tool="+encodeURIComponent(tool)+"&return="+encodeURIComponent(ret);
+    var attr="&utm_source=kloudbean&utm_medium=tool&utm_campaign=seo-engine&kbsurface=tool&utm_content="+encodeURIComponent(tool)+"&kbsrc="+encodeURIComponent(tool);
+    var u=signup+"/signup?ref=tool&tool="+encodeURIComponent(tool)+attr+"&return="+encodeURIComponent(ret);
     return u;
   }
 
@@ -134,7 +135,7 @@ export function buildGateHtml(config: GateConfig = {}): string {
       '<h3>Create your free account to keep using this tool</h3>'+
       '<p>Sign up in seconds at the '+brand+' console — no credit card needed. Your free account also unlocks every other tool on the site.</p>'+
       '<a class="kbg-btn kbg-primary" href="'+buildReturn()+'">Create free account</a>'+
-      '<a class="kbg-btn kbg-secondary" href="'+signup+'/login?return='+encodeURIComponent(location.href)+'">I already have an account — log in</a>'+
+      '<a class="kbg-btn kbg-secondary" href="'+signup+'/login?ref=tool&kbsurface=tool&kbsrc='+encodeURIComponent(tool)+'&return='+encodeURIComponent(location.href)+'">I already have an account — log in</a>'+
       '<a class="kbg-btn kbg-secondary kbg-continue" href="#">I\\'ve created my account — continue</a>'+
       '<div class="kbg-note">You\\'ll be redirected to '+signup.replace(/^https?:\\/\\//,"")+'</div>'+
     '</div>';

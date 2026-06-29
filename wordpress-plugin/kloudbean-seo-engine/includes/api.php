@@ -51,6 +51,11 @@ function kbseo_register_routes() {
     if (function_exists('kbseo_register_indexing_routes')) {
         kbseo_register_indexing_routes($namespace);
     }
+
+    // Conversion attribution webhook + pull
+    if (function_exists('kbseo_register_conversion_routes')) {
+        kbseo_register_conversion_routes($namespace);
+    }
 }
 
 function kbseo_health() {

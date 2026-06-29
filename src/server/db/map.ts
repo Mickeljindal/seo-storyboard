@@ -7,6 +7,7 @@ import type {
   JobRow,
   CitationRow,
   EntityAssetRow,
+  ConversionRow,
 } from "./schema";
 
 /** API shape (snake_case) — matches former Supabase client responses. */
@@ -224,3 +225,25 @@ export function toApiEntityAsset(row: EntityAssetRow) {
   };
 }
 export type ApiEntityAsset = ReturnType<typeof toApiEntityAsset>;
+
+export function toApiConversion(row: ConversionRow) {
+  return {
+    id: row.id,
+    event: row.event,
+    source_url: row.sourceUrl,
+    source_slug: row.sourceSlug,
+    surface: row.surface,
+    article_id: row.articleId,
+    tool_id: row.toolId,
+    cluster_id: row.clusterId,
+    ref: row.ref,
+    plan: row.plan,
+    value: row.value != null ? Number(row.value) : null,
+    currency: row.currency,
+    external_id: row.externalId,
+    meta: row.meta,
+    occurred_at: row.occurredAt?.toISOString() ?? null,
+    created_at: row.createdAt?.toISOString(),
+  };
+}
+export type ApiConversion = ReturnType<typeof toApiConversion>;

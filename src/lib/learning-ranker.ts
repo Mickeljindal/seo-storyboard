@@ -24,6 +24,8 @@ export type LearningModel = {
   total: number;
   /** number of clusters with real GSC outcome data blended in */
   searchClusters: number;
+  /** number of clusters with real conversion data blended in */
+  conversionClusters: number;
 };
 
 /** Build a multiplier model from accumulated signals + real search outcomes. */
@@ -68,16 +70,46 @@ export async function buildLearningModel(learningWeight = 0.25): Promise<Learnin
     /* search performance optional — never block discovery */
   }
 
-  return { clusterMultiplier, intentMultiplier, total: agg.total, searchClusters };
+  // Blend in CONVERSIONS — the ultimate outcome (signups/revenue). Weighted
+  // highest of all signals: a page that drives paid conversions should pull its
+  // cluster up harder than one that merely ranks or gets cited.
+  let conversionClusters = 0;
+  try {
+    const { getConversionRewardByCluster } = await import("@/server/db/repos/conversions");
+    const { conversionClusterReward } = await import("./learning-ranker");
+    const convByCluster = await getConversionRewardByCluster(conversionClusterReward);
+    const convRewards = Object.values(convByCluster).map((c) => c.avgReward);
+    if (convRewards.length) {
+      conversionClusters = convRewards.length;
+      const maxV = Math.max(0.001, ...convRewards.map(Math.abs), 1);
+      const convWeight = learningWeight * 2; // conversions count most
+      for (const [cid, c] of Object.entries(convByCluster)) {
+        const norm = c.avgReward / maxV;
+        const base = clusterMultiplier[Number(cid)] ?? 1;
+        clusterMultiplier[Number(cid)] = base * (1 + convWeight * norm);
+      }
+    }
+  } catch {
+    /* conversions optional */
+  }
+
+  return {
+    clusterMultiplier,
+    intentMultiplier,
+    total: agg.total,
+    searchClusters,
+    conversionClusters,
+  };
 }
 
 /** Apply the learning model to re-rank discovered topics. No-op until signals exist. */
 export function applyLearning(topics: DiscoveredTopic[], model: LearningModel): DiscoveredTopic[] {
-  // Run once we have enough internal signals OR any real search outcome data.
-  if (model.total < 5 && model.searchClusters === 0) return topics; // stay neutral
+  // Run once we have enough internal signals OR any real search/conversion data.
+  if (model.total < 5 && model.searchClusters === 0 && model.conversionClusters === 0)
+    return topics; // stay neutral
   const ranked = topics.map((t) => {
     const cm = model.clusterMultiplier[t.cluster_id] ?? 1;
-    const im = t.intent ? model.intentMultiplier[t.intent] ?? 1 : 1;
+    const im = t.intent ? (model.intentMultiplier[t.intent] ?? 1) : 1;
     const adjusted = Math.round(Math.min(100, t.opportunity_score * cm * im));
     return { ...t, opportunity_score: adjusted };
   });
@@ -142,4 +174,44 @@ export function rewardFromSearch(perf: {
   if (impressions >= 100 && clicks === 0) engagementPenalty = -0.4;
 
   return Number((clickReward + posReward + engagementPenalty).toFixed(3));
+}
+
+/**
+ * CONVERSION reward — the ultimate outcome. A paid conversion is worth far more
+ * than a signup, which is worth more than a click. Monetary value (if known)
+ * adds a log-scaled bonus so high-value plans push their cluster up hardest.
+ *
+ * Baselines sit above the search reward so conversions dominate the learning
+ * signal when they exist:  signup ≈ 2.5, paid ≈ 4 + value bonus.
+ */
+export function rewardFromConversion(opts: {
+  event: "signup" | "paid" | "lead" | "view";
+  value?: number | null;
+}): number {
+  const value = Math.max(0, opts.value ?? 0);
+  const valueBonus = value > 0 ? Math.min(3, Math.log10(value + 1) * 1.2) : 0;
+  switch (opts.event) {
+    case "paid":
+      return Number((4 + valueBonus).toFixed(3));
+    case "signup":
+      return 2.5;
+    case "lead":
+      return 1.5;
+    default:
+      return 0.3; // view
+  }
+}
+
+/**
+ * Aggregate a cluster's conversion record into a single reward for the learning
+ * model: paid conversions and value weigh heaviest, signups next.
+ */
+export function conversionClusterReward(c: {
+  signups: number;
+  paid: number;
+  value: number;
+}): number {
+  return Number(
+    (c.paid * 4 + c.signups * 2 + Math.min(6, Math.log10(c.value + 1) * 1.5)).toFixed(3),
+  );
 }

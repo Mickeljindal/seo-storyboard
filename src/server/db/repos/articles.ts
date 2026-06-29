@@ -92,6 +92,14 @@ export async function getArticleById(id: string): Promise<ApiArticle | null> {
   return row ? toApiArticle(row) : null;
 }
 
+/** Find a published article by its url_slug (for conversion attribution). */
+export async function getArticleBySlug(slug: string): Promise<ApiArticle | null> {
+  if (!slug) return null;
+  const db = await getDb();
+  const [row] = await db.select().from(articles).where(eq(articles.urlSlug, slug)).limit(1);
+  return row ? toApiArticle(row) : null;
+}
+
 export async function insertArticles(rows: Record<string, unknown>[]) {
   const db = await getDb();
   const values = rows.map(rowToInsert);

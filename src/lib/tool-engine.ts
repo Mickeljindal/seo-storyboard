@@ -305,6 +305,14 @@ Kloudbean angle (work in naturally): ${input.kloudbean_angle}`,
 
   const schema = buildToolSchema(input, { title: metaTitle, description: metaDesc }, faq, pageUrl);
 
+  // Attributed console CTA — ties any resulting signup back to this tool page.
+  const { withAttribution } = await import("./attribution");
+  const ctaHref = withAttribution("https://console.kloudbean.com/register", {
+    surface: "tool",
+    slug: input.slug,
+    ref: "tool",
+  });
+
   // 3. Assemble the single branded HTML block.
   const parts: ToolPageParts = {
     name: input.name,
@@ -316,6 +324,7 @@ Kloudbean angle (work in naturally): ${input.kloudbean_angle}`,
     schemaJsonld: schema,
     pitch: pitch || undefined,
     ctaLabel: ctaLabel || undefined,
+    ctaHref,
   };
   const tool_html = assembleToolPage(parts);
   log.push(

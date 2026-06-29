@@ -325,7 +325,13 @@ ${grounding}`;
   }
 
   const ctaText = String(brief.cta ?? "Start your free Kloudbean trial");
-  const ctaUrl = String(brief.cta_url ?? "https://kloudbean.com");
+  const rawCtaUrl = String(brief.cta_url ?? "https://kloudbean.com");
+  const { withAttribution } = await import("./attribution");
+  const ctaUrl = withAttribution(rawCtaUrl, {
+    surface: "article",
+    slug: String(article.url_slug ?? keyword ?? "").trim() || undefined,
+    ref: "article",
+  });
   const ctaBlock = `## Get started with Kloudbean\n\n${ctaText} — [${ctaText}](${ctaUrl}).`;
 
   let markdown = [intro, ...sections, faqBlock, relatedBlock, ctaBlock]

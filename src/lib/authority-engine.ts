@@ -5,13 +5,30 @@ import { applyResearchToArticleInternal } from "@/lib/dataforseo.functions";
 import { generateBriefInternal, generateContentInternal } from "@/lib/ai.functions";
 import { hasAiCredentials } from "@/lib/ai-provider";
 import { CLUSTERS } from "@/lib/pillars";
-import { CLUSTER_HUBS, DEFAULT_COMPETITOR_DOMAIN, normalizeKeyword, slugFromKeyword, titleFromKeyword } from "@/lib/cluster-seeds";
+import {
+  CLUSTER_HUBS,
+  DEFAULT_COMPETITOR_DOMAIN,
+  normalizeKeyword,
+  slugFromKeyword,
+  titleFromKeyword,
+} from "@/lib/cluster-seeds";
 import { isKloudbeanScopedKeyword } from "@/lib/kloudbean-scope";
-import { validateTopicAgainstGeoPolicy, validateSupportedProviders } from "@/lib/geo-provider-policy";
+import {
+  validateTopicAgainstGeoPolicy,
+  validateSupportedProviders,
+} from "@/lib/geo-provider-policy";
 import { validateCapability } from "@/lib/kloudbean-capabilities";
 import { scopeOverrides } from "@/lib/scope-config";
-import { discoverTopicsForCluster, fetchCompetitorTopics, type DiscoveredTopic } from "@/lib/topic-discovery";
-import { discoverTopicsDataFirst, defaultMinVolumeForGeo, bulkFetchSearchVolumes } from "@/lib/semantic-keyword-cluster";
+import {
+  discoverTopicsForCluster,
+  fetchCompetitorTopics,
+  type DiscoveredTopic,
+} from "@/lib/topic-discovery";
+import {
+  discoverTopicsDataFirst,
+  defaultMinVolumeForGeo,
+  bulkFetchSearchVolumes,
+} from "@/lib/semantic-keyword-cluster";
 import { hasDataForSeoCredentials } from "@/lib/dataforseo-client";
 import { discoverTopicsWithSerper } from "@/lib/serper-discovery";
 import { hasSerperCredentials } from "@/lib/serper-client";
@@ -103,9 +120,7 @@ export async function runAuthorityEngine(config: EngineConfig): Promise<{
     `Engine started · geo=${config.geo} · DataForSEO=${hasDataForSeoCredentials() ? "live" : "mock"}`,
   );
 
-  const clusterIds = config.clusterIds?.length
-    ? config.clusterIds
-    : CLUSTERS.map((c) => c.id);
+  const clusterIds = config.clusterIds?.length ? config.clusterIds : CLUSTERS.map((c) => c.id);
 
   const existing = await getExistingKeywords(config.geo);
   const allTopics: DiscoveredTopic[] = [];
@@ -158,45 +173,55 @@ export async function runAuthorityEngine(config: EngineConfig): Promise<{
     );
 
     if (useSemantic) {
-    try {
-      const minVol = config.minMonthlyVolume ?? defaultMinVolumeForGeo(config.geo);
-      const { topics, stats: dfsStats } = await discoverTopicsDataFirst(clusterIds, config.geo, {
-        topicsPerCluster: config.topicsPerCluster,
-        minMonthlyVolume: minVol,
-        minTrafficScore: config.minTrafficScore ?? 25,
-      });
-      for (const t of topics) {
-        if (!existing.has(normalizeKeyword(t.keyword))) allTopics.push(t);
+      try {
+        const minVol = config.minMonthlyVolume ?? defaultMinVolumeForGeo(config.geo);
+        const { topics, stats: dfsStats } = await discoverTopicsDataFirst(clusterIds, config.geo, {
+          topicsPerCluster: config.topicsPerCluster,
+          minMonthlyVolume: minVol,
+          minTrafficScore: config.minTrafficScore ?? 25,
+        });
+        for (const t of topics) {
+          if (!existing.has(normalizeKeyword(t.keyword))) allTopics.push(t);
+        }
+        const relaxed = (dfsStats as { relaxed?: number }).relaxed;
+        await appendLog(
+          runId,
+          log,
+          "discover",
+          `DataForSEO: ${dfsStats.harvested} harvested → ${dfsStats.after_volume} vol≥${minVol} → ${dfsStats.semantic_groups} groups → ${dfsStats.selected} hubs${relaxed ? ` (relaxed tier ${relaxed})` : ""}`,
+        );
+      } catch (e: unknown) {
+        const msg = String((e as Error)?.message ?? e);
+        stats.errors.push(`semantic discover: ${msg}`);
+        await appendLog(runId, log, "discover", `Semantic discovery failed, falling back: ${msg}`);
       }
-      const relaxed = (dfsStats as { relaxed?: number }).relaxed;
-      await appendLog(
-        runId,
-        log,
-        "discover",
-        `DataForSEO: ${dfsStats.harvested} harvested → ${dfsStats.after_volume} vol≥${minVol} → ${dfsStats.semantic_groups} groups → ${dfsStats.selected} hubs${relaxed ? ` (relaxed tier ${relaxed})` : ""}`,
-      );
-    } catch (e: unknown) {
-      const msg = String((e as Error)?.message ?? e);
-      stats.errors.push(`semantic discover: ${msg}`);
-      await appendLog(runId, log, "discover", `Semantic discovery failed, falling back: ${msg}`);
-    }
     }
   }
 
   // Fill gaps: legacy discovery per cluster that still has no topics
   const coveredClusters = new Set(allTopics.map((t) => t.cluster_id));
-  const needsLegacy = allTopics.length === 0 || coveredClusters.size < Math.min(clusterIds.length, 3);
+  const needsLegacy =
+    allTopics.length === 0 || coveredClusters.size < Math.min(clusterIds.length, 3);
   if (needsLegacy) {
     for (let ci = 0; ci < clusterIds.length; ci++) {
       const clusterId = clusterIds[ci];
       if (!CLUSTER_HUBS[clusterId]) continue;
       if (allTopics.length > 0 && coveredClusters.has(clusterId)) continue;
       try {
-        const topics = await discoverTopicsForCluster(clusterId, config.geo, config.topicsPerCluster);
+        const topics = await discoverTopicsForCluster(
+          clusterId,
+          config.geo,
+          config.topicsPerCluster,
+        );
         for (const t of topics) {
           if (!existing.has(normalizeKeyword(t.keyword))) allTopics.push(t);
         }
-        await appendLog(runId, log, "discover", `Cluster ${clusterId}: ${topics.length} ideas (legacy fill)`);
+        await appendLog(
+          runId,
+          log,
+          "discover",
+          `Cluster ${clusterId}: ${topics.length} ideas (legacy fill)`,
+        );
       } catch (e: unknown) {
         const msg = String((e as Error)?.message ?? e);
         stats.errors.push(`cluster ${clusterId}: ${msg}`);
@@ -212,14 +237,17 @@ export async function runAuthorityEngine(config: EngineConfig): Promise<{
       const comp = await fetchCompetitorTopics(config.competitorDomain, config.geo, 25);
       const hub = CLUSTER_HUBS[4];
       const cluster = CLUSTERS.find((c) => c.id === 4)!;
-      const compFiltered = comp.filter((r: { keyword: string }) => isKloudbeanScopedKeyword(r.keyword, 3));
+      const compFiltered = comp.filter((r: { keyword: string }) =>
+        isKloudbeanScopedKeyword(r.keyword, 3),
+      );
       const volMap = await bulkFetchSearchVolumes(
         compFiltered.map((r: { keyword: string }) => r.keyword),
         config.geo,
       );
       for (const row of compFiltered) {
         const norm = normalizeKeyword(row.keyword);
-        if (existing.has(norm) || allTopics.some((t) => normalizeKeyword(t.keyword) === norm)) continue;
+        if (existing.has(norm) || allTopics.some((t) => normalizeKeyword(t.keyword) === norm))
+          continue;
         const verifiedVol = volMap.get(norm) ?? row.volume;
         if ((verifiedVol ?? 0) < minVol) continue;
         const score = Math.min(100, Math.round(((verifiedVol ?? 0) / 10000) * 60 + 40));
@@ -237,7 +265,12 @@ export async function runAuthorityEngine(config: EngineConfig): Promise<{
           source: "competitor",
         });
       }
-      await appendLog(runId, log, "discover", `Competitor gap: ${comp.length} keywords from ${config.competitorDomain} (volume-validated)`);
+      await appendLog(
+        runId,
+        log,
+        "discover",
+        `Competitor gap: ${comp.length} keywords from ${config.competitorDomain} (volume-validated)`,
+      );
     } catch (e: unknown) {
       stats.errors.push(`competitor: ${String((e as Error)?.message ?? e)}`);
     }
@@ -325,7 +358,7 @@ export async function runAuthorityEngine(config: EngineConfig): Promise<{
   if (config.useLearning !== false) {
     try {
       const model = await buildLearningModel();
-      if (model.total >= 5) {
+      if (model.total >= 5 || model.searchClusters > 0 || model.conversionClusters > 0) {
         const reranked = applyLearning(allTopics, model);
         allTopics.length = 0;
         allTopics.push(...reranked);
@@ -333,7 +366,7 @@ export async function runAuthorityEngine(config: EngineConfig): Promise<{
           runId,
           log,
           "discover",
-          `Learning ranker applied (${model.total} signals) — topics re-prioritized by past wins`,
+          `Learning ranker applied (${model.total} signals, ${model.searchClusters} GSC + ${model.conversionClusters} conversion clusters) — topics re-prioritized by real wins`,
         );
       }
     } catch (e) {
@@ -356,7 +389,8 @@ export async function runAuthorityEngine(config: EngineConfig): Promise<{
         geo_target: config.geo,
         language: "en",
         status: "idea",
-        priority: topic.opportunity_score >= 65 ? "high" : topic.opportunity_score >= 45 ? "medium" : "low",
+        priority:
+          topic.opportunity_score >= 65 ? "high" : topic.opportunity_score >= 45 ? "medium" : "low",
         scheduled_week: assignWeek(topic.cluster_id - 1, weekOffset++),
         url_slug: slugFromKeyword(topic.keyword),
         engine_source: `authority_engine:${topic.source}`,
@@ -376,7 +410,12 @@ export async function runAuthorityEngine(config: EngineConfig): Promise<{
           // Serper-derived signals (available when discoverySource=serper)
           paa_questions: (topic as { paa_questions?: string[] }).paa_questions ?? [],
           top_10_urls: (topic as { serp_competitors?: string[] }).serp_competitors ?? [],
-          related_keywords: (topic.supporting_keywords ?? []).map((k) => ({ keyword: k, volume: null, difficulty: null, intent: null })),
+          related_keywords: (topic.supporting_keywords ?? []).map((k) => ({
+            keyword: k,
+            volume: null,
+            difficulty: null,
+            intent: null,
+          })),
           discovery_source: source,
         },
         secondary_keywords: topic.supporting_keywords?.slice(0, 8) ?? [],
@@ -411,7 +450,12 @@ export async function runAuthorityEngine(config: EngineConfig): Promise<{
   try {
     const { rebuildSilo } = await import("@/lib/silo-map");
     const silo = await rebuildSilo(config.geo);
-    await appendLog(runId, log, "create", `Silo rebuilt: ${silo.hubs} hubs, ${silo.supporting} supporting`);
+    await appendLog(
+      runId,
+      log,
+      "create",
+      `Silo rebuilt: ${silo.hubs} hubs, ${silo.supporting} supporting`,
+    );
   } catch (e) {
     stats.errors.push(`silo: ${String((e as Error)?.message ?? e)}`);
   }
@@ -420,7 +464,12 @@ export async function runAuthorityEngine(config: EngineConfig): Promise<{
   // SERP competitors, so we skip the expensive DataForSEO calls. With DataForSEO
   // source, run full research (keywords table + meta).
   if (source === "dataforseo") {
-    await appendLog(runId, log, "research", `Running DataForSEO research on ${createdIds.length} articles…`);
+    await appendLog(
+      runId,
+      log,
+      "research",
+      `Running DataForSEO research on ${createdIds.length} articles…`,
+    );
     for (const id of createdIds) {
       try {
         await applyResearchToArticleInternal(id, config.geo);
@@ -431,7 +480,12 @@ export async function runAuthorityEngine(config: EngineConfig): Promise<{
       }
       await new Promise((r) => setTimeout(r, 350));
     }
-    await appendLog(runId, log, "research", `Researched ${stats.keywords_researched} keywords (saved to keywords + articles)`);
+    await appendLog(
+      runId,
+      log,
+      "research",
+      `Researched ${stats.keywords_researched} keywords (saved to keywords + articles)`,
+    );
   } else {
     stats.keywords_researched = createdIds.length;
     await saveStats(runId, stats);
@@ -449,7 +503,12 @@ export async function runAuthorityEngine(config: EngineConfig): Promise<{
       stats.errors.push("AI not configured — set DEEPSEEK_API_KEY or OPENAI_API_KEY in .env");
       await appendLog(runId, log, "briefs", "Skipped briefs — configure AI in .env");
     } else {
-      await appendLog(runId, log, "briefs", `Generating AI briefs for ${createdIds.length} articles…`);
+      await appendLog(
+        runId,
+        log,
+        "briefs",
+        `Generating AI briefs for ${createdIds.length} articles…`,
+      );
       for (const id of createdIds) {
         const r = await generateBriefInternal(id);
         if (r.ok) stats.briefs_generated++;

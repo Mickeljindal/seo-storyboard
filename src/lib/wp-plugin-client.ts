@@ -373,3 +373,23 @@ export async function getIndexNowKey(): Promise<{ key: string; keyLocation: stri
   }
   return null;
 }
+
+export type PluginConversion = {
+  event?: string;
+  source_slug?: string | null;
+  source_url?: string | null;
+  surface?: string | null;
+  ref?: string | null;
+  plan?: string | null;
+  value?: number | null;
+  currency?: string | null;
+  external_id?: string | null;
+  occurred_at?: string | null;
+};
+
+/** Pull buffered conversion events from the plugin webhook. */
+export async function getConversions(since?: string): Promise<PluginConversion[]> {
+  const q = since ? `?since=${encodeURIComponent(since)}` : "";
+  const r = await pluginGet<{ ok?: boolean; conversions?: PluginConversion[] }>(`/conversions${q}`);
+  return "conversions" in r && Array.isArray(r.conversions) ? r.conversions : [];
+}
