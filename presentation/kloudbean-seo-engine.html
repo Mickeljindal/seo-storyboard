@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kloudbean Content Authority Engine — GEO/AIO 2026</title>
+    <style>
+      :root {
+        --brand: #4f1af3;
+        --brand-2: #7c4dff;
+        --ink: #0b0b18;
+        --paper: #ffffff;
+        --muted: #6b7280;
+        --line: rgba(255, 255, 255, 0.12);
+        --lime: #c4f000;
+        --ok: #10b981;
+        --warn: #f59e0b;
+        --bad: #f43f5e;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        font-family:
+          "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #06060f;
+        color: #eef0ff;
+        overflow: hidden;
+      }
+      #deck {
+        height: 100vh;
+        width: 100vw;
+        position: relative;
+      }
+      .slide {
+        position: absolute;
+        inset: 0;
+        display: none;
+        flex-direction: column;
+        justify-content: center;
+        padding: 7vh 9vw;
+        background:
+          radial-gradient(1200px 600px at 85% -10%, rgba(124, 77, 255, 0.25), transparent 60%),
+          radial-gradient(900px 500px at -10% 110%, rgba(79, 26, 243, 0.22), transparent 55%),
+          linear-gradient(160deg, #0a0a1a 0%, #06060f 100%);
+        animation: fade 0.4s ease;
+      }
+      .slide.active {
+        display: flex;
+      }
+      @keyframes fade {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      .kicker {
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--brand-2);
+        margin-bottom: 1rem;
+      }
+      h1 {
+        font-size: clamp(2.2rem, 5vw, 4rem);
+        line-height: 1.05;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        margin-bottom: 1.2rem;
+      }
+      h2 {
+        font-size: clamp(1.6rem, 3.4vw, 2.6rem);
+        font-weight: 750;
+        letter-spacing: -0.02em;
+        margin-bottom: 1.4rem;
+      }
+      h2 .accent {
+        color: var(--brand-2);
+      }
+      p.lead {
+        font-size: clamp(1.05rem, 1.7vw, 1.4rem);
+        color: #c7c9e8;
+        max-width: 56ch;
+        line-height: 1.5;
+      }
+      .gradient {
+        background: linear-gradient(100deg, #fff 0%, #b9a8ff 60%, var(--brand-2) 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .grid {
+        display: grid;
+        gap: 1rem;
+        margin-top: 1.5rem;
+      }
+      .grid.cols-2 {
+        grid-template-columns: 1fr 1fr;
+      }
+      .grid.cols-3 {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .card {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 1.3rem 1.4rem;
+        backdrop-filter: blur(6px);
+      }
+      .card h3 {
+        font-size: 1.05rem;
+        margin-bottom: 0.45rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .card p {
+        font-size: 0.93rem;
+        color: #b6b9dd;
+        line-height: 1.45;
+      }
+      .tag {
+        display: inline-block;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        padding: 0.2rem 0.55rem;
+        border-radius: 999px;
+        background: rgba(124, 77, 255, 0.18);
+        color: #c9b8ff;
+        border: 1px solid rgba(124, 77, 255, 0.35);
+      }
+      .stat {
+        font-size: clamp(2rem, 4vw, 3.2rem);
+        font-weight: 800;
+        color: var(--lime);
+        line-height: 1;
+      }
+      .stat-sub {
+        font-size: 0.9rem;
+        color: #b6b9dd;
+        margin-top: 0.5rem;
+      }
+      ul.clean {
+        list-style: none;
+        margin-top: 1rem;
+      }
+      ul.clean li {
+        padding: 0.5rem 0 0.5rem 1.8rem;
+        position: relative;
+        font-size: 1.02rem;
+        color: #d6d8f2;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      }
+      ul.clean li::before {
+        content: "→";
+        position: absolute;
+        left: 0;
+        color: var(--brand-2);
+        font-weight: 700;
+      }
+      .flow {
+        display: flex;
+        align-items: stretch;
+        gap: 0.6rem;
+        margin-top: 1.8rem;
+        flex-wrap: wrap;
+      }
+      .flow .step {
+        flex: 1;
+        min-width: 130px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 0.9rem;
+        font-size: 0.85rem;
+        color: #cfd2f0;
+      }
+      .flow .step b {
+        color: #fff;
+        display: block;
+        margin-bottom: 0.3rem;
+        font-size: 0.92rem;
+      }
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1.2rem;
+      }
+      .pill {
+        font-size: 0.82rem;
+        padding: 0.35rem 0.7rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--line);
+        color: #cfd2f0;
+      }
+      .pill.done {
+        border-color: rgba(16, 185, 129, 0.4);
+        color: #7ef0c6;
+      }
+      .footer {
+        position: absolute;
+        bottom: 2.4vh;
+        left: 9vw;
+        right: 9vw;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.78rem;
+        color: #6f72a0;
+      }
+      .logo {
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #fff;
+      }
+      .logo span {
+        color: var(--brand-2);
+      }
+      .nav {
+        position: fixed;
+        bottom: 1.6vh;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 0.4rem;
+        z-index: 10;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.22);
+        cursor: pointer;
+        border: none;
+      }
+      .dot.active {
+        background: var(--brand-2);
+        width: 22px;
+      }
+      .hint {
+        position: fixed;
+        bottom: 2vh;
+        right: 2vw;
+        font-size: 0.72rem;
+        color: #565a86;
+        z-index: 10;
+      }
+      .two {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 2rem;
+        align-items: center;
+      }
+      .big-num {
+        font-size: clamp(1rem, 1.5vw, 1.15rem);
+        color: #9da0c8;
+      }
+      table.mini {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+        font-size: 0.92rem;
+      }
+      table.mini td {
+        padding: 0.55rem 0.6rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        color: #cfd2f0;
+      }
+      table.mini td:first-child {
+        color: #8a8db8;
+        width: 42%;
+      }
+      .num {
+        color: var(--lime);
+        font-weight: 700;
+      }
+      @media print {
+        body {
+          overflow: visible;
+        }
+        .nav,
+        .hint {
+          display: none !important;
+        }
+        #deck {
+          height: auto;
+        }
+        .slide {
+          display: flex !important;
+          position: relative;
+          inset: auto;
+          height: 100vh;
+          page-break-after: always;
+          break-after: page;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="deck">
+      <!-- 1 TITLE -->
+      <section class="slide active">
+        <div class="kicker">Kloudbean · SEO / GEO / AIO Engine</div>
+        <h1 class="gradient">The Content Authority Engine that gets Kloudbean cited by AI</h1>
+        <p class="lead">
+          An autonomous system that finds real demand, writes fact-checked expert content,
+          publishes it Elementor-native, and measures whether AI engines actually cite Kloudbean —
+          then learns from the result.
+        </p>
+        <div class="pill-row">
+          <span class="pill done">Demand-gated</span>
+          <span class="pill done">Fact-checked vs live KB</span>
+          <span class="pill done">Answer-first + schema-rich</span>
+          <span class="pill done">Instant indexing</span>
+          <span class="pill done">Citation-measured</span>
+          <span class="pill done">Self-learning</span>
+        </div>
+        <div class="footer">
+          <span class="logo">Kloud<span>bean</span></span>
+          <span>2026 strategy walkthrough</span>
+        </div>
+      </section>
+
+      <!-- 2 THE SHIFT -->
+      <section class="slide">
+        <div class="kicker">Why this exists</div>
+        <h2>The metric changed: from <span class="accent">ranking</span> to <span class="accent">citation</span></h2>
+        <div class="two">
+          <p class="lead">
+            A growing share of searches are answered by AI before any click happens. The new goal
+            isn't position #1 — it's <b>citation probability</b>: the chance an AI names and links
+            Kloudbean when answering a relevant question.
+          </p>
+          <div class="card">
+            <table class="mini">
+              <tr><td>Old SEO</td><td>Optimize for the blue link</td></tr>
+              <tr><td>2026 GEO/AIO</td><td>Get named inside the answer</td></tr>
+              <tr><td>Old lever</td><td>Backlinks</td></tr>
+              <tr><td>New lever</td><td>Brand mentions + structure</td></tr>
+            </table>
+          </div>
+        </div>
+        <div class="footer"><span class="logo">Kloud<span>bean</span></span><span>01 · The shift</span></div>
+      </section>
+
+      <!-- 3 THE DATA -->
+      <section class="slide">
+        <div class="kicker">Why this makes sense — the data</div>
+        <h2>The research is blunt about what wins citations</h2>
+        <div class="grid cols-3">
+          <div class="card">
+            <div class="stat">~0.66</div>
+            <div class="stat-sub">Brand-mention correlation with AI citations — vs ~0.22 for backlinks.</div>
+          </div>
+          <div class="card">
+            <div class="stat">−26%</div>
+            <div class="stat-sub">Promotional/hype tone <b>lowers</b> citation probability. Neutral expert voice wins.</div>
+          </div>
+          <div class="card">
+            <div class="stat">86%</div>
+            <div class="stat-sub">of AI citations come from brand-owned content — your site, docs, listings.</div>
+          </div>
+          <div class="card">
+            <div class="stat">40–60</div>
+            <div class="stat-sub">word answer blocks get lifted verbatim as citations.</div>
+          </div>
+          <div class="card">
+            <div class="stat">Tables</div>
+            <div class="stat-sub">data tables + first-person FAQs get quoted more than prose.</div>
+          </div>
+          <div class="card">
+            <div class="stat">Entity</div>
+            <div class="stat-sub">consistency (same name + facts everywhere) is the #1 trust signal.</div>
+          </div>
+        </div>
+        <div class="footer"><span class="logo">Kloud<span>bean</span></span><span>02 · The evidence</span></div>
+      </section>
+
+      <!-- 4 PIPELINE -->
+      <section class="slide">
+        <div class="kicker">How it works</div>
+        <h2>One pipeline, end to end</h2>
+        <div class="flow">
+          <div class="step"><b>1 · Demand</b>Real search data; drop zero-demand + off-policy topics.</div>
+          <div class="step"><b>2 · Silo</b>Hub + supporting articles, interlinked into clusters.</div>
+          <div class="step"><b>3 · Ground</b>Pull live Kloudbean facts from the RAG knowledge base.</div>
+          <div class="step"><b>4 · Write</b>Multi-pass, answer-first, human-voice drafting.</div>
+          <div class="step"><b>5 · Verify</b>Scorecard + claim-check vs KB. Block false claims.</div>
+          <div class="step"><b>6 · Publish</b>Elementor-native, schema-rich, instantly indexed.</div>
+          <div class="step"><b>7 · Measure</b>GSC + AI-citation probes feed the learning loop.</div>
+        </div>
+        <p class="lead" style="margin-top: 1.8rem">
+          Every stage has a safety gate. Nothing ships that's low-demand, off-policy, broken, or
+          factually wrong.
+        </p>
+        <div class="footer"><span class="logo">Kloud<span>bean</span></span><span>03 · Architecture</span></div>
+      </section>
+
+      <!-- 5 CONTENT QUALITY -->
+      <section class="slide">
+        <div class="kicker">Feature group · Write content AI wants to cite</div>
+        <h2>Answer-first, human, evidence-led</h2>
+        <div class="grid cols-2">
+          <div class="card">
+            <h3><span class="tag">A1</span> Answer-first + tables</h3>
+            <p>Every section opens with a 25–60 word direct answer; commercial topics must include a comparison/data table. These are the blocks AI lifts verbatim.</p>
+          </div>
+          <div class="card">
+            <h3>Human-voice scorecard</h3>
+            <p>Deterministic 0–100 check: readability, rhythm, prose-first, banned AI-tell phrases, keyword placement. Promotional/robotic tone is penalised.</p>
+          </div>
+          <div class="card">
+            <h3><span class="tag">C3</span> RAG claim verifier</h3>
+            <p>Extracts factual claims about Kloudbean and checks them against the live KB. A contradicted product claim <b>blocks publishing</b> — we never ship confident falsehoods.</p>
+          </div>
+          <div class="card">
+            <h3>Geo + provider truth policy</h3>
+            <p>Saudi = GCP Dammam only; no providers Kloudbean doesn't offer. Wrong facts = no citations, so accuracy is non-negotiable.</p>
+          </div>
+        </div>
+        <div class="footer"><span class="logo">Kloud<span>bean</span></span><span>04 · Content engine</span></div>
+      </section>
+
+      <!-- 6 SCHEMA + ENTITY -->
+      <section class="slide">
+        <div class="kicker">Feature group · Make the machine understand Kloudbean</div>
+        <h2>Schema breadth + a consistent entity</h2>
+        <div class="grid cols-2">
+          <div class="card">
+            <h3>Expanded JSON-LD</h3>
+            <p>Article + FAQPage + Breadcrumb, plus <b>author/E-E-A-T</b>, dates, <b>HowTo</b> (deploy guides) and <b>Service</b> on commercial pages — all linked to the Organization entity.</p>
+          </div>
+          <div class="card">
+            <h3><span class="tag">C4</span> Entity boilerplate</h3>
+            <p>One canonical Organization block (name, legal name, description, sameAs) injected on every page so engines build a single, trusted Kloudbean entity.</p>
+          </div>
+          <div class="card">
+            <h3><span class="tag">C4</span> llms.txt</h3>
+            <p>The plugin serves <code>/llms.txt</code> — a Markdown map of key pages, tools and articles so AI crawlers can find and parse the canonical facts.</p>
+          </div>
+          <div class="card">
+            <h3>Entity Distribution tracker</h3>
+            <p>A prioritised off-site checklist (G2, Capterra, Crunchbase, LinkedIn, Wikidata…) with a copy-verbatim facts card — the ~0.66 brand-mention lever.</p>
+          </div>
+        </div>
+        <div class="footer"><span class="logo">Kloud<span>bean</span></span><span>05 · Entity & schema</span></div>
+      </section>
+
+      <!-- 7 DISTRIBUTION + MEASURE -->
+      <section class="slide">
+        <div class="kicker">Feature group · Ship fast, measure reality</div>
+        <h2>Instant indexing + citation tracking</h2>
+        <div class="grid cols-2">
+          <div class="card">
+            <h3><span class="tag">B1</span> Instant indexing</h3>
+            <p>IndexNow (Bing/Yandex/etc.) + Google Indexing API ping search engines the moment a page publishes — including manual WordPress edits. No waiting for a crawl.</p>
+          </div>
+          <div class="card">
+            <h3><span class="tag">A2</span> Multi-engine citation tracking</h3>
+            <p>Asks Perplexity, Gemini and ChatGPT real buyer questions and records whether Kloudbean is cited/mentioned, its source rank, and which competitors got cited instead.</p>
+          </div>
+          <div class="card">
+            <h3>Freshness / decay</h3>
+            <p>Tracks last-reviewed dates and refreshes the highest-priority decaying pages first (high impressions + weak position) instead of blindly rewriting by age.</p>
+          </div>
+          <div class="card">
+            <h3>Learning loop dashboard</h3>
+            <p>Reward by cluster + intent, GSC outcomes, citation rate by engine, and freshness — visibility into what the engine has learned actually wins.</p>
+          </div>
+        </div>
+        <div class="footer"><span class="logo">Kloud<span>bean</span></span><span>06 · Distribute & measure</span></div>
+      </section>
+
+      <!-- 8 TOOL PAGES -->
+      <section class="slide">
+        <div class="kicker">Feature group · Free tools as traffic magnets</div>
+        <h2>Automated tool pages (Elementor-native)</h2>
+        <div class="two">
+          <div>
+            <ul class="clean">
+              <li>Discovers tool ideas from real search demand (Developer Tools).</li>
+              <li>AI builds a working tool + rich SEO content + FAQ in your design system.</li>
+              <li>Publishes as ONE branded HTML widget in Elementor — never changes live slugs.</li>
+              <li>Quality gate + one-click rollback; lead-gen signup gate to console.kloudbean.com.</li>
+              <li>Optimises existing pages additively; learns which tool types win.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Durable + safe</h3>
+            <p>Bulk build/optimise run through a server-side job queue that survives tab close, drained by the autopilot — with a live activity feed and per-page audience-tailored CTAs.</p>
+          </div>
+        </div>
+        <div class="footer"><span class="logo">Kloud<span>bean</span></span><span>07 · Tool pages</span></div>
+      </section>
+
+      <!-- 9 FLYWHEEL -->
+      <section class="slide">
+        <div class="kicker">Why it compounds</div>
+        <h2>The self-improving flywheel</h2>
+        <div class="flow">
+          <div class="step"><b>Publish</b>demand-validated, fact-checked authority content.</div>
+          <div class="step"><b>Measure</b>real GSC clicks + AI citations per topic.</div>
+          <div class="step"><b>Reward</b>clusters/intents/formats that actually win.</div>
+          <div class="step"><b>Prioritise</b>discovery doubles down on winners; refreshes decayers.</div>
+        </div>
+        <p class="lead" style="margin-top: 1.8rem">
+          Most teams optimise for a draft score. This optimises for <b>real visibility</b> — the
+          reward is grounded in what Google and the AI engines actually do.
+        </p>
+        <div class="footer"><span class="logo">Kloud<span>bean</span></span><span>08 · The moat</span></div>
+      </section>
+
+      <!-- 10 WHAT'S DONE -->
+      <section class="slide">
+        <div class="kicker">Status</div>
+        <h2>Shipped and building green</h2>
+        <div class="pill-row">
+          <span class="pill done">Demand gate</span>
+          <span class="pill done">Topical silos</span>
+          <span class="pill done">Multi-pass writer + human voice</span>
+          <span class="pill done">Quality scorecard</span>
+          <span class="pill done">Answer-first + tables</span>
+          <span class="pill done">RAG claim verifier</span>
+          <span class="pill done">Instant indexing</span>
+          <span class="pill done">Citation tracking</span>
+          <span class="pill done">llms.txt + entity schema</span>
+          <span class="pill done">Schema breadth (E-E-A-T/HowTo/Service)</span>
+          <span class="pill done">Freshness/decay</span>
+          <span class="pill done">Learning dashboard</span>
+          <span class="pill done">Entity distribution</span>
+          <span class="pill done">Tool-page automation</span>
+          <span class="pill done">Knowledge graph + Reels + Help KB</span>
+        </div>
+        <div class="footer"><span class="logo">Kloud<span>bean</span></span><span>09 · Done</span></div>
+      </section>
+
+      <!-- 11 WHAT MORE -->
+      <section class="slide">
+        <div class="kicker">What more to bring in</div>
+        <h2>The next moat: <span class="accent">distribution + proof + agentic ops</span></h2>
+        <div class="grid cols-3">
+          <div class="card"><h3>1 · Proof content engine</h3><p>Auto-draft case studies, real benchmarks, and pricing-math calculators. AI quotes numbers and humans convert on them.</p></div>
+          <div class="card"><h3>2 · Off-site mention automation</h3><p>Turn the entity tracker into outreach: HARO/journalist queries, review-request flows, Reddit/forum monitoring with reply drafts.</p></div>
+          <div class="card"><h3>3 · Programmatic comparison hub</h3><p>"Kloudbean vs X for Y" matrix at scale, fact-table-led, auto-updated from a maintained competitor dataset.</p></div>
+          <div class="card"><h3>4 · Internal-link + silo optimiser</h3><p>Graph-aware linker that finds orphan pages and strengthens hub→spoke authority automatically.</p></div>
+          <div class="card"><h3>5 · AI-overview gap miner</h3><p>Scrape questions where competitors are cited but we aren't, and auto-queue answer-first content to win them.</p></div>
+          <div class="card"><h3>6 · Multi-language / geo expansion</h3><p>Arabic-first KSA content + hreflang, reusing the same engine for India/UAE/Global.</p></div>
+          <div class="card"><h3>7 · Conversion attribution</h3><p>Tie tool/article traffic → console signups → revenue, so reward optimises for pipeline, not just clicks.</p></div>
+          <div class="card"><h3>8 · Human-in-the-loop review queue</h3><p>One inbox for editors to approve drafts, claim-flags, and refresh suggestions with diff view.</p></div>
+          <div class="card"><h3>9 · Agentic autopilot ops</h3><p>Self-healing: detect indexing/citation drops, open a fix task, and re-run the relevant stage automatically.</p></div>
+        </div>
+        <div class="footer"><span class="logo">Kloud<span>bean</span></span><span>10 · Roadmap</span></div>
+      </section>
+
+      <!-- 12 PRIORITISED -->
+      <section class="slide">
+        <div class="kicker">My recommendation</div>
+        <h2>Where I'd invest next, in order</h2>
+        <ul class="clean">
+          <li><b>Conversion attribution (#7)</b> — make the learning loop optimise for signups/revenue, not just traffic. Highest business ROI.</li>
+          <li><b>AI-overview gap miner (#5)</b> — directly targets the citation metric the system already measures. Natural extension of A2.</li>
+          <li><b>Proof content engine (#1)</b> — case studies + benchmarks are the most-quoted, highest-converting content type.</li>
+          <li><b>Off-site mention automation (#2)</b> — operationalises the 0.66 lever the entity tracker only tracks today.</li>
+          <li><b>Human-in-the-loop queue (#8)</b> — keeps quality high as volume scales; low effort, high safety.</li>
+        </ul>
+        <div class="footer"><span class="logo">Kloud<span>bean</span></span><span>11 · Priorities</span></div>
+      </section>
+
+      <!-- 13 CLOSE -->
+      <section class="slide">
+        <div class="kicker">In one line</div>
+        <h1 class="gradient">We don't publish articles. We engineer an entity that AI trusts and quotes.</h1>
+        <p class="lead">
+          Demand-validated, fact-checked, answer-first, schema-rich content — instantly indexed,
+          citation-measured, and self-improving. Already ahead of most teams; the next gains are in
+          distribution, proof, and revenue attribution.
+        </p>
+        <div class="footer"><span class="logo">Kloud<span>bean</span></span><span>Thank you</span></div>
+      </section>
+    </div>
+
+    <div class="nav" id="nav"></div>
+    <div class="hint">← → / Space to navigate · F fullscreen · P print to PDF</div>
+
+    <script>
+      const slides = Array.from(document.querySelectorAll(".slide"));
+      const nav = document.getElementById("nav");
+      let idx = 0;
+      slides.forEach((_, i) => {
+        const b = document.createElement("button");
+        b.className = "dot" + (i === 0 ? " active" : "");
+        b.addEventListener("click", () => go(i));
+        nav.appendChild(b);
+      });
+      const dots = Array.from(nav.children);
+      function go(n) {
+        idx = Math.max(0, Math.min(slides.length - 1, n));
+        slides.forEach((s, i) => s.classList.toggle("active", i === idx));
+        dots.forEach((d, i) => d.classList.toggle("active", i === idx));
+      }
+      document.addEventListener("keydown", (e) => {
+        if (["ArrowRight", " ", "PageDown"].includes(e.key)) {
+          e.preventDefault();
+          go(idx + 1);
+        } else if (["ArrowLeft", "PageUp"].includes(e.key)) {
+          e.preventDefault();
+          go(idx - 1);
+        } else if (e.key === "Home") go(0);
+        else if (e.key === "End") go(slides.length - 1);
+        else if (e.key.toLowerCase() === "f") {
+          if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+          else document.exitFullscreen();
+        } else if (e.key.toLowerCase() === "p") window.print();
+      });
+      // basic touch swipe
+      let sx = 0;
+      document.addEventListener("touchstart", (e) => (sx = e.touches[0].clientX));
+      document.addEventListener("touchend", (e) => {
+        const dx = e.changedTouches[0].clientX - sx;
+        if (Math.abs(dx) > 50) go(idx + (dx < 0 ? 1 : -1));
+      });
+    </script>
+  </body>
+</html>
