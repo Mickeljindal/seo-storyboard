@@ -38,6 +38,7 @@ const NAV = [
   { to: "/briefs", label: "Briefs", icon: FileText, kbd: "0" },
   { to: "/performance", label: "Performance", icon: TrendingUp, kbd: "P" },
   { to: "/citations", label: "AI Citations", icon: Quote, kbd: "C" },
+  { to: "/learning", label: "Learning Loop", icon: Brain, kbd: "L" },
   { to: "/settings", label: "Settings", icon: Settings, kbd: "S" },
   { to: "/help", label: "Help & Docs", icon: BookOpen, kbd: "H" },
 ] as const;
