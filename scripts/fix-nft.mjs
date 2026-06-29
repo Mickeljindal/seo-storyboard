@@ -32,40 +32,24 @@ function versionAt(nftDir) {
 }
 
 /** Recursively find every nested @vercel/nft directory under node_modules. */
-function findNftDirs(nmDir, found = []) {
+function findNftDirs(dir, found = []) {
   let entries;
   try {
-    entries = fs.readdirSync(nmDir, { withFileTypes: true });
+    entries = fs.readdirSync(dir, { withFileTypes: true });
   } catch {
     return found;
   }
   for (const e of entries) {
+    // Skip symlinks (avoid loops); only descend real directories.
     if (!e.isDirectory()) continue;
-    const p = path.join(nmDir, e.name);
-    if (e.name === "@vercel") {
-      const nft = path.join(p, "nft");
-      if (fs.existsSync(path.join(nft, "package.json"))) found.push(nft);
-      // also recurse into other @vercel/* nested node_modules
-      continue;
+    const p = path.join(dir, e.name);
+    if (e.name === "nft" && path.basename(dir) === "@vercel") {
+      if (fs.existsSync(path.join(p, "package.json"))) found.push(p);
+      continue; // no @vercel/nft inside @vercel/nft
     }
-    if (e.name.startsWith("@")) {
-      // scope dir: recurse into each scoped package's node_modules
-      let subs;
-      try {
-        subs = fs.readdirSync(p, { withFileTypes: true });
-      } catch {
-        subs = [];
-      }
-      for (const s of subs) {
-        if (s.isDirectory()) {
-          const nested = path.join(p, s.name, "node_modules");
-          if (fs.existsSync(nested)) findNftDirs(nested, found);
-        }
-      }
-      continue;
-    }
-    const nested = path.join(p, "node_modules");
-    if (fs.existsSync(nested)) findNftDirs(nested, found);
+    // Full recursive walk so deep copies (e.g. nf3/dist/node_modules/@vercel/nft)
+    // are found, not just <pkg>/node_modules/@vercel/nft.
+    findNftDirs(p, found);
   }
   return found;
 }
