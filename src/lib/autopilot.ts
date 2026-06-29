@@ -392,26 +392,21 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
     );
   }
 
-  // 4. REFRESH stale articles
+  // 4. REFRESH stale articles — prioritised review queue (freshness/decay).
   if (cfg.refreshAfterDays > 0) {
     try {
-      const all = await repo.listArticles({ limit: 5000 });
-      const cutoff = Date.now() - cfg.refreshAfterDays * 86400_000;
-      const stale = all.filter((a) => {
-        if (a.status !== "published" && a.status !== "promoted") return false;
-        const pubAt = a.published_at ? new Date(a.published_at).getTime() : 0;
-        return pubAt > 0 && pubAt < cutoff;
-      });
-      // Mark as needing refresh (reset quality score so next cycle re-writes)
+      const { listStaleArticles, markArticleReviewed } = await import("./freshness");
+      const stale = await listStaleArticles(10);
+      // Refresh the highest-priority few; stamp review so we don't re-flag them
+      // next cycle (and they regenerate via the normal pipeline).
       for (const a of stale.slice(0, 2)) {
-        await repo.updateArticle(a.id, {
-          quality_score: null,
-          quality_report: null,
-          content_draft: null,
-        });
+        await markArticleReviewed(a.id, { rewrite: true });
         result.refreshed++;
       }
-      if (result.refreshed) log(`Refresh: flagged ${result.refreshed} stale articles for rewrite`);
+      if (result.refreshed)
+        log(
+          `Refresh: queued ${result.refreshed} stale articles for review (${stale.length} due, top: ${stale[0]?.reason ?? "n/a"})`,
+        );
     } catch (e) {
       result.errors.push(`refresh: ${String((e as Error)?.message ?? e)}`);
     }

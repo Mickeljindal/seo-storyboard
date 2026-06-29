@@ -27,6 +27,12 @@ ALTER TABLE articles ADD COLUMN IF NOT EXISTS demand_score smallint;
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS demand_validated text;
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS published_at timestamptz;
 
+-- Freshness / decay management (v10)
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS last_reviewed_at timestamptz;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS next_review_at timestamptz;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS review_count integer DEFAULT 0;
+CREATE INDEX IF NOT EXISTS idx_articles_next_review ON articles(next_review_at);
+
 CREATE TABLE IF NOT EXISTS topic_signals (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   article_id uuid,

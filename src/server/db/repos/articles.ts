@@ -135,6 +135,9 @@ export async function updateArticle(id: string, patch: Record<string, unknown>) 
     demand_score: "demandScore",
     demand_validated: "demandValidated",
     published_at: "publishedAt",
+    last_reviewed_at: "lastReviewedAt",
+    next_review_at: "nextReviewAt",
+    review_count: "reviewCount",
     published_url: "publishedUrl",
     performance_data: "performanceData",
     word_count_target: "wordCountTarget",
@@ -248,7 +251,10 @@ export async function listTargetKeywords(geo: string): Promise<Set<string>> {
     .from(articles)
     .where(eq(articles.geoTarget, geo));
   const { keywords: kwTable } = schema;
-  const kwRows = await db.select({ kw: kwTable.keyword }).from(kwTable).where(eq(kwTable.geoTarget, geo));
+  const kwRows = await db
+    .select({ kw: kwTable.keyword })
+    .from(kwTable)
+    .where(eq(kwTable.geoTarget, geo));
   const set = new Set<string>();
   for (const r of artRows) if (r.kw) set.add(r.kw.trim().toLowerCase());
   for (const r of kwRows) if (r.kw) set.add(r.kw.trim().toLowerCase());

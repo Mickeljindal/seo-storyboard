@@ -53,6 +53,10 @@ export const articles = pgTable("articles", {
   demandValidated: text("demand_validated"), // "yes" | "no" | null (unchecked)
   // Lifecycle
   publishedAt: timestamp("published_at", { withTimezone: true }),
+  // Freshness / decay management
+  lastReviewedAt: timestamp("last_reviewed_at", { withTimezone: true }),
+  nextReviewAt: timestamp("next_review_at", { withTimezone: true }),
+  reviewCount: integer("review_count").default(0),
   engineSource: text("engine_source"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
