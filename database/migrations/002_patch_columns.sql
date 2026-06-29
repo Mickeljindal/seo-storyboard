@@ -216,3 +216,22 @@ CREATE TABLE IF NOT EXISTS citations (
 CREATE INDEX IF NOT EXISTS idx_citations_engine ON citations(engine);
 CREATE INDEX IF NOT EXISTS idx_citations_cluster ON citations(cluster_id);
 CREATE INDEX IF NOT EXISTS idx_citations_created ON citations(created_at);
+
+-- Entity Distribution tracker (v11) — off-site mentions/listings as tasks
+CREATE TABLE IF NOT EXISTS entity_assets (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  platform text NOT NULL,
+  asset_type text DEFAULT 'listing',     -- listing | profile | review | mention | wiki
+  name text NOT NULL,
+  url text,
+  status text NOT NULL DEFAULT 'todo',   -- todo | in_progress | live | verified
+  priority smallint DEFAULT 2,           -- 1 high, 2 med, 3 low
+  name_consistent boolean,               -- null = unchecked
+  notes text,
+  last_checked_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_entity_assets_status ON entity_assets(status);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_entity_assets_platform_name
+  ON entity_assets(platform, name);

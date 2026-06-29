@@ -22,6 +22,7 @@ import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as KeywordsRouteImport } from './routes/keywords'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as HelpRouteImport } from './routes/help'
+import { Route as EntityRouteImport } from './routes/entity'
 import { Route as EngineRouteImport } from './routes/engine'
 import { Route as CitationsRouteImport } from './routes/citations'
 import { Route as CalendarRouteImport } from './routes/calendar'
@@ -93,6 +94,11 @@ const HelpRoute = HelpRouteImport.update({
   path: '/help',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EntityRoute = EntityRouteImport.update({
+  id: '/entity',
+  path: '/entity',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EngineRoute = EngineRouteImport.update({
   id: '/engine',
   path: '/engine',
@@ -125,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/calendar': typeof CalendarRoute
   '/citations': typeof CitationsRoute
   '/engine': typeof EngineRoute
+  '/entity': typeof EntityRoute
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
   '/keywords': typeof KeywordsRoute
@@ -145,6 +152,7 @@ export interface FileRoutesByTo {
   '/calendar': typeof CalendarRoute
   '/citations': typeof CitationsRoute
   '/engine': typeof EngineRoute
+  '/entity': typeof EntityRoute
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
   '/keywords': typeof KeywordsRoute
@@ -166,6 +174,7 @@ export interface FileRoutesById {
   '/calendar': typeof CalendarRoute
   '/citations': typeof CitationsRoute
   '/engine': typeof EngineRoute
+  '/entity': typeof EntityRoute
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
   '/keywords': typeof KeywordsRoute
@@ -188,6 +197,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/citations'
     | '/engine'
+    | '/entity'
     | '/help'
     | '/how-it-works'
     | '/keywords'
@@ -208,6 +218,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/citations'
     | '/engine'
+    | '/entity'
     | '/help'
     | '/how-it-works'
     | '/keywords'
@@ -228,6 +239,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/citations'
     | '/engine'
+    | '/entity'
     | '/help'
     | '/how-it-works'
     | '/keywords'
@@ -249,6 +261,7 @@ export interface RootRouteChildren {
   CalendarRoute: typeof CalendarRoute
   CitationsRoute: typeof CitationsRoute
   EngineRoute: typeof EngineRoute
+  EntityRoute: typeof EntityRoute
   HelpRoute: typeof HelpRoute
   HowItWorksRoute: typeof HowItWorksRoute
   KeywordsRoute: typeof KeywordsRoute
@@ -357,6 +370,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HelpRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/entity': {
+      id: '/entity'
+      path: '/entity'
+      fullPath: '/entity'
+      preLoaderRoute: typeof EntityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/engine': {
       id: '/engine'
       path: '/engine'
@@ -401,6 +421,7 @@ const rootRouteChildren: RootRouteChildren = {
   CalendarRoute: CalendarRoute,
   CitationsRoute: CitationsRoute,
   EngineRoute: EngineRoute,
+  EntityRoute: EntityRoute,
   HelpRoute: HelpRoute,
   HowItWorksRoute: HowItWorksRoute,
   KeywordsRoute: KeywordsRoute,

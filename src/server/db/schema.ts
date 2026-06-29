@@ -338,3 +338,20 @@ export const citations = pgTable("citations", {
 });
 
 export type CitationRow = typeof citations.$inferSelect;
+
+export const entityAssets = pgTable("entity_assets", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  platform: text("platform").notNull(), // e.g. "G2", "LinkedIn", "Crunchbase"
+  assetType: text("asset_type").default("listing"), // listing | profile | review | mention | wiki
+  name: text("name").notNull(),
+  url: text("url"),
+  status: text("status").notNull().default("todo"), // todo | in_progress | live | verified
+  priority: smallint("priority").default(2), // 1 = high, 2 = med, 3 = low
+  nameConsistent: boolean("name_consistent"), // null = unchecked
+  notes: text("notes"),
+  lastCheckedAt: timestamp("last_checked_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type EntityAssetRow = typeof entityAssets.$inferSelect;

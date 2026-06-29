@@ -6,6 +6,7 @@ import type {
   ReelRow,
   JobRow,
   CitationRow,
+  EntityAssetRow,
 } from "./schema";
 
 /** API shape (snake_case) — matches former Supabase client responses. */
@@ -205,3 +206,21 @@ export function toApiCitation(row: CitationRow) {
   };
 }
 export type ApiCitation = ReturnType<typeof toApiCitation>;
+
+export function toApiEntityAsset(row: EntityAssetRow) {
+  return {
+    id: row.id,
+    platform: row.platform,
+    asset_type: row.assetType,
+    name: row.name,
+    url: row.url,
+    status: row.status,
+    priority: row.priority ?? 2,
+    name_consistent: row.nameConsistent,
+    notes: row.notes,
+    last_checked_at: row.lastCheckedAt?.toISOString() ?? null,
+    created_at: row.createdAt?.toISOString(),
+    updated_at: row.updatedAt?.toISOString(),
+  };
+}
+export type ApiEntityAsset = ReturnType<typeof toApiEntityAsset>;
