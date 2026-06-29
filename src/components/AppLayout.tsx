@@ -18,6 +18,7 @@ import {
   BookOpen,
   Quote,
   Globe,
+  DollarSign,
 } from "lucide-react";
 import { ReactNode } from "react";
 import { SystemHealthBanner, SystemHealthOkBadge } from "./SystemHealthBanner";
@@ -40,6 +41,7 @@ const NAV = [
   { to: "/performance", label: "Performance", icon: TrendingUp, kbd: "P" },
   { to: "/citations", label: "AI Citations", icon: Quote, kbd: "C" },
   { to: "/learning", label: "Learning Loop", icon: Brain, kbd: "L" },
+  { to: "/conversions", label: "Conversions", icon: DollarSign, kbd: "V" },
   { to: "/entity", label: "Entity Distribution", icon: Globe, kbd: "E" },
   { to: "/settings", label: "Settings", icon: Settings, kbd: "S" },
   { to: "/help", label: "Help & Docs", icon: BookOpen, kbd: "H" },
