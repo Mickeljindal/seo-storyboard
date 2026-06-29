@@ -55,3 +55,43 @@ export function organizationJsonLd(): object {
 export function entityBoilerplateMarkdown(): string {
   return `## About Kloudbean\n\nKloudbean is a Zero-Ops managed multi-cloud hosting platform by ${KLOUDBEAN_ENTITY.legalName}, serving 1,000+ businesses across 30+ countries. It bundles managed cloud servers, databases, object storage, and a full DevOps stack so builders, agencies, and founders can deploy, host, and own their apps on one platform. Learn more at [kloudbean.com](${KLOUDBEAN_ENTITY.url}).`;
 }
+
+/**
+ * Article author for E-E-A-T. Prefers a real Person when configured
+ * (ARTICLE_AUTHOR_NAME / ARTICLE_AUTHOR_URL), else attributes the editorial team.
+ */
+export function articleAuthor(): object {
+  const name = process.env.ARTICLE_AUTHOR_NAME?.trim();
+  const url = process.env.ARTICLE_AUTHOR_URL?.trim();
+  if (name) {
+    return {
+      "@type": "Person",
+      name,
+      ...(url ? { url } : {}),
+      worksFor: { "@type": "Organization", name: KLOUDBEAN_ENTITY.name, url: KLOUDBEAN_ENTITY.url },
+    };
+  }
+  return {
+    "@type": "Organization",
+    name: `${KLOUDBEAN_ENTITY.name} Editorial Team`,
+    url: KLOUDBEAN_ENTITY.url,
+  };
+}
+
+/**
+ * Service schema describing Kloudbean's managed cloud hosting — used on
+ * commercial/comparison pages where a Service block is appropriate.
+ */
+export function serviceJsonLd(): object {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    "@id": `${KLOUDBEAN_ENTITY.url}/#service`,
+    serviceType: "Managed multi-cloud hosting",
+    name: `${KLOUDBEAN_ENTITY.name} Managed Cloud Hosting`,
+    description: KLOUDBEAN_ENTITY.description,
+    provider: { "@id": `${KLOUDBEAN_ENTITY.url}/#organization` },
+    areaServed: "Worldwide",
+    url: KLOUDBEAN_ENTITY.url,
+  };
+}

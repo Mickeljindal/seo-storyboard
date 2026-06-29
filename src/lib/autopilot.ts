@@ -288,11 +288,24 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
           if (hasPluginConfigured()) {
             const brief = (article.brief ?? {}) as Record<string, unknown>;
             const cluster = CLUSTERS.find((c) => c.id === article.cluster_id);
+            const image = await generateHeroImage(article.title, article.target_keyword ?? "");
+            const nowIso = new Date().toISOString();
+            const publishedIso = (article.published_at as Date | null)?.toISOString?.() ?? nowIso;
             const html = renderArticleHtml(article.content_draft!, brief, {
               clusterName: cluster?.name,
+              imageUrl: image.url,
+              datePublished: publishedIso,
+              dateModified: nowIso,
             });
-            const image = await generateHeroImage(article.title, article.target_keyword ?? "");
-            const schema = buildJsonLd(brief, { title: article.title, clusterName: cluster?.name });
+            const schema = buildJsonLd(brief, {
+              title: article.title,
+              clusterName: cluster?.name,
+              imageUrl: image.url,
+              datePublished: publishedIso,
+              dateModified: nowIso,
+              howTo: null,
+              includeService: false,
+            });
 
             const r = await publishViaPlugin({
               title: String(brief.h1 ?? article.title),

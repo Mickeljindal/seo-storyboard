@@ -13,7 +13,7 @@
  * clicks publish.
  */
 
-import { organizationJsonLd } from "./entity-boilerplate";
+import { organizationJsonLd, articleAuthor, serviceJsonLd } from "./entity-boilerplate";
 
 function escapeHtml(s: string): string {
   return s
@@ -182,15 +182,70 @@ function extractFaqFromBrief(
   return out;
 }
 
-/** Build JSON-LD: Article + (FAQPage if FAQ) + BreadcrumbList. */
+/** Detect a HowTo from markdown: a "How to…" H2/H3 followed by an ordered list. */
+export function extractHowTo(markdown: string): { name: string; steps: string[] } | null {
+  const lines = markdown.replace(/\r\n/g, "\n").split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const h = lines[i].match(/^#{2,3}\s+(.*how\s+(?:to|do|you)\b.*)$/i);
+    if (!h) continue;
+    const steps: string[] = [];
+    let j = i + 1;
+    // skip blank/intro paragraph lines until the list starts
+    while (j < lines.length && !/^\s*\d+\.\s+/.test(lines[j]) && !/^#{1,6}\s/.test(lines[j])) j++;
+    while (j < lines.length && /^\s*\d+\.\s+/.test(lines[j])) {
+      steps.push(
+        lines[j]
+          .replace(/^\s*\d+\.\s+/, "")
+          .replace(/[*_`]/g, "")
+          .trim(),
+      );
+      j++;
+    }
+    if (steps.length >= 2) {
+      return { name: h[1].replace(/[#*_`]/g, "").trim(), steps: steps.slice(0, 12) };
+    }
+  }
+  return null;
+}
+
+/** Commercial/comparison intent → a Service block is appropriate. */
+function briefIsCommercial(
+  brief: Record<string, unknown> | null | undefined,
+  title: string,
+): boolean {
+  const hay = [
+    String(brief?.search_intent ?? ""),
+    String(brief?.intent ?? ""),
+    title,
+    String(brief?.target_keyword ?? ""),
+  ]
+    .join(" ")
+    .toLowerCase();
+  return /\b(best|top|vs|versus|compare|comparison|pricing|price|cost|cheap|alternative|review|buy|hosting for)\b/.test(
+    hay,
+  );
+}
+
+/** Build JSON-LD: Article + (FAQPage if FAQ) + BreadcrumbList + Organization (+ HowTo/Service). */
 export function buildJsonLd(
   brief: Record<string, unknown> | null | undefined,
-  opts: { title?: string; url?: string; description?: string; clusterName?: string | null } = {},
+  opts: {
+    title?: string;
+    url?: string;
+    description?: string;
+    clusterName?: string | null;
+    imageUrl?: string;
+    datePublished?: string;
+    dateModified?: string;
+    howTo?: { name: string; steps: string[] } | null;
+    includeService?: boolean;
+  } = {},
 ): object[] {
   const blocks: object[] = [];
   const b = brief ?? {};
   const title = opts.title ?? String(b.h1 ?? b.meta_title ?? "Kloudbean");
   const description = opts.description ?? String(b.meta_description ?? b.tldr ?? "");
+  const dateModified = opts.dateModified ?? new Date().toISOString();
 
   // Prefer an explicit schema from the brief if present and valid-looking.
   if (
@@ -205,11 +260,12 @@ export function buildJsonLd(
       "@type": "Article",
       headline: title,
       description,
-      publisher: {
-        "@type": "Organization",
-        name: "Kloudbean",
-        url: "https://kloudbean.com",
-      },
+      inLanguage: "en",
+      author: articleAuthor(),
+      publisher: { "@id": "https://kloudbean.com/#organization" },
+      ...(opts.imageUrl ? { image: opts.imageUrl } : {}),
+      ...(opts.datePublished ? { datePublished: opts.datePublished } : {}),
+      dateModified,
       ...(opts.url ? { mainEntityOfPage: { "@type": "WebPage", "@id": opts.url } } : {}),
     });
   }
@@ -245,6 +301,30 @@ export function buildJsonLd(
     /* entity block is additive — never break rendering */
   }
 
+  // HowTo schema (deploy/setup guides get rich results + AI step citations).
+  if (opts.howTo && opts.howTo.steps.length >= 2) {
+    blocks.push({
+      "@context": "https://schema.org",
+      "@type": "HowTo",
+      name: opts.howTo.name || title,
+      step: opts.howTo.steps.map((s, i) => ({
+        "@type": "HowToStep",
+        position: i + 1,
+        name: s.length > 70 ? s.slice(0, 67) + "..." : s,
+        text: s,
+      })),
+    });
+  }
+
+  // Service schema for commercial/comparison pages.
+  if (opts.includeService) {
+    try {
+      blocks.push(serviceJsonLd());
+    } catch {
+      /* additive */
+    }
+  }
+
   return blocks;
 }
 
@@ -262,14 +342,26 @@ function jsonLdScriptTags(blocks: object[]): string {
 export function renderArticleHtml(
   markdown: string,
   brief: Record<string, unknown> | null | undefined,
-  opts: { url?: string; clusterName?: string | null } = {},
+  opts: {
+    url?: string;
+    clusterName?: string | null;
+    imageUrl?: string;
+    datePublished?: string;
+    dateModified?: string;
+  } = {},
 ): string {
   const body = markdownToHtml(markdown);
+  const title = String(brief?.h1 ?? "");
   const jsonLd = buildJsonLd(brief, {
     url: opts.url,
     clusterName: opts.clusterName,
-    title: String(brief?.h1 ?? ""),
+    title,
     description: String(brief?.meta_description ?? ""),
+    imageUrl: opts.imageUrl,
+    datePublished: opts.datePublished,
+    dateModified: opts.dateModified,
+    howTo: extractHowTo(markdown),
+    includeService: briefIsCommercial(brief, title),
   });
   return `${body}\n\n${jsonLdScriptTags(jsonLd)}`;
 }
