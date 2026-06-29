@@ -13,6 +13,8 @@
  * clicks publish.
  */
 
+import { organizationJsonLd } from "./entity-boilerplate";
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")
@@ -57,8 +59,14 @@ export function markdownToHtml(md: string): string {
   let inOl = false;
 
   const closeLists = () => {
-    if (inUl) { out.push("</ul>"); inUl = false; }
-    if (inOl) { out.push("</ol>"); inOl = false; }
+    if (inUl) {
+      out.push("</ul>");
+      inUl = false;
+    }
+    if (inOl) {
+      out.push("</ol>");
+      inOl = false;
+    }
   };
 
   while (i < lines.length) {
@@ -76,7 +84,9 @@ export function markdownToHtml(md: string): string {
         i++;
       }
       i++; // skip closing fence
-      out.push(`<pre><code${lang ? ` class="language-${escapeHtml(lang)}"` : ""}>${escapeHtml(buf.join("\n"))}</code></pre>`);
+      out.push(
+        `<pre><code${lang ? ` class="language-${escapeHtml(lang)}"` : ""}>${escapeHtml(buf.join("\n"))}</code></pre>`,
+      );
       continue;
     }
 
@@ -124,7 +134,11 @@ export function markdownToHtml(md: string): string {
 
     // Ordered list
     if (/^\d+\.\s+/.test(trimmed)) {
-      if (!inOl) { closeLists(); out.push("<ol>"); inOl = true; }
+      if (!inOl) {
+        closeLists();
+        out.push("<ol>");
+        inOl = true;
+      }
       out.push(`<li>${inlineMd(trimmed.replace(/^\d+\.\s+/, ""))}</li>`);
       i++;
       continue;
@@ -132,7 +146,11 @@ export function markdownToHtml(md: string): string {
 
     // Unordered list
     if (/^[-*]\s+/.test(trimmed)) {
-      if (!inUl) { closeLists(); out.push("<ul>"); inUl = true; }
+      if (!inUl) {
+        closeLists();
+        out.push("<ul>");
+        inUl = true;
+      }
       out.push(`<li>${inlineMd(trimmed.replace(/^[-*]\s+/, ""))}</li>`);
       i++;
       continue;
@@ -149,7 +167,9 @@ export function markdownToHtml(md: string): string {
 
 type FaqItem = { q?: string; a?: string; question?: string; answer?: string };
 
-function extractFaqFromBrief(brief: Record<string, unknown> | null | undefined): { q: string; a: string }[] {
+function extractFaqFromBrief(
+  brief: Record<string, unknown> | null | undefined,
+): { q: string; a: string }[] {
   const faq = brief?.faq;
   const out: { q: string; a: string }[] = [];
   if (Array.isArray(faq)) {
@@ -173,7 +193,11 @@ export function buildJsonLd(
   const description = opts.description ?? String(b.meta_description ?? b.tldr ?? "");
 
   // Prefer an explicit schema from the brief if present and valid-looking.
-  if (b.schema_jsonld && typeof b.schema_jsonld === "object" && Object.keys(b.schema_jsonld).length > 0) {
+  if (
+    b.schema_jsonld &&
+    typeof b.schema_jsonld === "object" &&
+    Object.keys(b.schema_jsonld).length > 0
+  ) {
     blocks.push(b.schema_jsonld as object);
   } else {
     blocks.push({
@@ -212,6 +236,14 @@ export function buildJsonLd(
       { "@type": "ListItem", position: opts.clusterName ? 3 : 2, name: title },
     ],
   });
+
+  // Entity boilerplate: stable Organization block (+ sameAs) on every page so
+  // AI engines build a consistent Kloudbean entity → higher citation odds.
+  try {
+    blocks.push(organizationJsonLd());
+  } catch {
+    /* entity block is additive — never break rendering */
+  }
 
   return blocks;
 }
