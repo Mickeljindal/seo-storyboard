@@ -7,6 +7,7 @@ import { competitorContextForTopic } from "./competitors";
 import { ragGroundingForTopic } from "./rag-client";
 import { rewriteInternalLinksInMarkdown } from "./internal-links";
 import { scoreContent, buildRevisionInstructions, type ScoreResult } from "./content-scorecard";
+import { verifyClaims, buildClaimFixInstructions, type ClaimVerifyResult } from "./claim-verifier";
 
 /**
  * MULTI-PASS CONTENT ENGINE — the "magical output" core.
@@ -27,6 +28,7 @@ export type ContentEngineOptions = {
   minScore?: number; // gate to stop revising (default 82)
   maxRevisions?: number; // editor passes (default 2)
   useRag?: boolean; // ground with live KB (default true)
+  verifyClaims?: boolean; // RAG-grounded fact-check of Kloudbean claims (default = useRag)
   baseUrl?: string; // for internal link hrefs (e.g. https://kloudbean.com)
   humanize?: boolean; // run the human-voice polish pass (default true)
 };
@@ -38,6 +40,7 @@ export type ContentEngineResult = {
   passes: number;
   internalLinks: { resolved: number; total: number };
   ragSources: { title: string; url: string }[];
+  claims?: ClaimVerifyResult; // RAG-grounded fact-check report (when run)
   error?: string;
   log: string[];
 };
@@ -151,14 +154,22 @@ Rules:
 - Return the COMPLETE expanded article in Markdown only — no commentary, no code fences.`;
 
 function stripFences(s: string): string {
-  return s.trim().replace(/^```(?:markdown|md)?\s*/i, "").replace(/```$/i, "").trim();
+  return s
+    .trim()
+    .replace(/^```(?:markdown|md)?\s*/i, "")
+    .replace(/```$/i, "")
+    .trim();
 }
 
 function wordsIn(s: string): number {
   return (s.trim().match(/\b[\w'-]+\b/g) ?? []).length;
 }
 
-type BriefOutlineH2 = { h2?: string; description?: string; h3?: { title?: string; description?: string }[] };
+type BriefOutlineH2 = {
+  h2?: string;
+  description?: string;
+  h3?: { title?: string; description?: string }[];
+};
 
 export async function runContentEngine(
   article: Record<string, unknown>,
@@ -168,6 +179,7 @@ export async function runContentEngine(
   const minScore = options.minScore ?? 82;
   const maxRevisions = options.maxRevisions ?? 2;
   const useRag = options.useRag !== false;
+  const doVerifyClaims = options.verifyClaims ?? useRag;
 
   const brief = (article.brief ?? {}) as Record<string, unknown>;
   const geo = String(article.geo_target ?? "sa");
@@ -186,7 +198,10 @@ export async function runContentEngine(
 
   // 1. Grounding context (shared across passes)
   const geoBlock = geoPolicyPromptBlock(geo);
-  const competitorBlock = competitorContextForTopic(`${title} ${keyword}`, String(article.competitor_domain ?? ""));
+  const competitorBlock = competitorContextForTopic(
+    `${title} ${keyword}`,
+    String(article.competitor_domain ?? ""),
+  );
   let ragBlock = "";
   let ragSources: { title: string; url: string }[] = [];
   if (useRag) {
@@ -228,7 +243,9 @@ export async function runContentEngine(
     // Write sections with limited concurrency to keep ordering + rate limits sane.
     for (let i = 0; i < outline.length; i++) {
       const h2 = outline[i];
-      const h3List = Array.isArray(h2.h3) ? h2.h3.map((h) => `### ${h.title}${h.description ? ` — ${h.description}` : ""}`).join("\n") : "";
+      const h3List = Array.isArray(h2.h3)
+        ? h2.h3.map((h) => `### ${h.title}${h.description ? ` — ${h.description}` : ""}`).join("\n")
+        : "";
       const prompt = `Article H1: ${title}
 Target keyword: ${keyword}
 Geo: ${geo}
@@ -240,7 +257,15 @@ ${h3List ? `Subsections to cover:\n${h3List}` : ""}
 ${grounding}`;
       try {
         const txt = stripFences(
-          (await generateText({ model, system: SECTION_SYSTEM, prompt, temperature: 0.8, maxOutputTokens: 1800 })).text,
+          (
+            await generateText({
+              model,
+              system: SECTION_SYSTEM,
+              prompt,
+              temperature: 0.8,
+              maxOutputTokens: 1800,
+            })
+          ).text,
         );
         sections.push(txt);
         log.push(`section ${i + 1}/${outline.length}: ${h2.h2} (${wordsIn(txt)} words)`);
@@ -272,11 +297,7 @@ ${grounding}`;
   // 3. FAQ + CTA
   let faqBlock = "";
   if (faq.length) {
-    faqBlock =
-      "## FAQ\n\n" +
-      faq
-        .map((f) => `### ${f.q ?? ""}\n\n${f.a ?? ""}`)
-        .join("\n\n");
+    faqBlock = "## FAQ\n\n" + faq.map((f) => `### ${f.q ?? ""}\n\n${f.a ?? ""}`).join("\n\n");
   }
 
   // 3b. Related guides — REAL sibling articles (guarantees a working authority mesh).
@@ -307,7 +328,9 @@ ${grounding}`;
   const ctaUrl = String(brief.cta_url ?? "https://kloudbean.com");
   const ctaBlock = `## Get started with Kloudbean\n\n${ctaText} — [${ctaText}](${ctaUrl}).`;
 
-  let markdown = [intro, ...sections, faqBlock, relatedBlock, ctaBlock].filter(Boolean).join("\n\n");
+  let markdown = [intro, ...sections, faqBlock, relatedBlock, ctaBlock]
+    .filter(Boolean)
+    .join("\n\n");
 
   // 3c. Length floor — if under target, expand the thinnest sections with real
   // substance (not filler) so a "2000-word" article actually lands near 2000.
@@ -438,6 +461,86 @@ ${grounding}`;
     }
   }
 
+  // 7. RAG-grounded claim verification (catch invented product facts)
+  let claims: ClaimVerifyResult | undefined;
+  if (doVerifyClaims) {
+    try {
+      claims = await verifyClaims(markdown, model, {
+        groundingBlock: ragBlock,
+        topic: title,
+        keyword,
+        geo,
+      });
+      log.push(...claims.log);
+      if (claims.findings.length) {
+        const claimFixes = buildClaimFixInstructions(claims);
+        if (claimFixes) {
+          passes++;
+          const revised = stripFences(
+            (
+              await generateText({
+                model,
+                system: EDITOR_SYSTEM,
+                prompt: `${grounding}\n\n${claimFixes}\n\n---\nARTICLE TO REVISE:\n\n${markdown}`,
+                temperature: 0.5,
+                maxOutputTokens: 8000,
+              })
+            ).text,
+          );
+          if (revised && revised.length > 200) {
+            const reLink = await rewriteInternalLinksInMarkdown(
+              revised,
+              String(article.id),
+              (article.cluster_id as number) ?? null,
+              geo,
+              { dropUnresolved: false, baseUrl: options.baseUrl },
+            );
+            markdown = reLink.markdown;
+            linkRes.resolved = reLink.resolved;
+            linkRes.unresolved = reLink.unresolved;
+            score = scoreContent({
+              markdown,
+              targetKeyword: keyword,
+              secondaryKeywords: (article.secondary_keywords as string[]) ?? [],
+              brief,
+              geo,
+              wordCountTarget: wordTarget,
+              internalLinks: {
+                resolved: reLink.resolved,
+                total: reLink.resolved + reLink.unresolved,
+              },
+            });
+            log.push(`claim-fix pass ${passes} score: ${score.score} (${score.grade})`);
+            // Re-verify once to confirm contradictions were resolved.
+            claims = await verifyClaims(markdown, model, {
+              groundingBlock: ragBlock,
+              topic: title,
+              keyword,
+              geo,
+            });
+            log.push(...claims.log);
+          }
+        }
+      }
+      // A contradicted product claim is as serious as a banned claim.
+      if (claims.blocking) {
+        score = { ...score, blocking: true };
+        if (!score.bannedClaims.some((b) => b.startsWith("Unverified claim"))) {
+          score = {
+            ...score,
+            bannedClaims: [
+              ...score.bannedClaims,
+              ...claims.contradicted.map((c) => `Unverified claim contradicted by KB: ${c.claim}`),
+            ],
+            summary: `BLOCKED: ${claims.contradicted.length} claim(s) contradict the Kloudbean KB and must be fixed.`,
+          };
+        }
+      }
+    } catch (e) {
+      log.push(`claim-verify skipped: ${String((e as Error)?.message ?? e)}`);
+    }
+  }
+
   return {
     ok: true,
     markdown,
@@ -445,6 +548,7 @@ ${grounding}`;
     passes,
     internalLinks: { resolved: linkRes.resolved, total: linkRes.resolved + linkRes.unresolved },
     ragSources,
+    claims,
     log,
   };
 }
