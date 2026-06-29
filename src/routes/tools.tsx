@@ -190,10 +190,10 @@ function ToolsPage() {
   });
 
   const syncMut = useMutation({
-    mutationFn: () => syncFn({ data: { category: "Developer Tools", maxPages: 12, perPage: 50 } }),
+    mutationFn: () => syncFn({ data: { category: "Developer Tools", maxPages: 20, perPage: 50 } }),
     onSuccess: (r) => {
       toast.success(
-        `Synced ${r.imported} pages · avg AIOSEO ${r.avgAioseoScore ?? "?"} · ${r.lowScorers} below 70`,
+        `Synced ${r.imported} pages${r.skipped ? ` · skipped ${r.skipped}` : ""} · avg AIOSEO ${r.avgAioseoScore ?? "?"} · ${r.lowScorers} below 70`,
       );
       invalidate();
     },

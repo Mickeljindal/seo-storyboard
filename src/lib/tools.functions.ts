@@ -436,6 +436,7 @@ export async function syncExistingToolsInternal(data: {
 }): Promise<{
   ok: boolean;
   imported: number;
+  skipped: number;
   totalPages: number;
   avgAioseoScore: number | null;
   lowScorers: number;
@@ -445,6 +446,7 @@ export async function syncExistingToolsInternal(data: {
   const toolsRepo = await import("@/server/db/repos/tools");
 
   let imported = 0;
+  let skipped = 0;
   let totalPages = 1;
   const scores: number[] = [];
   for (let page = 1; page <= data.maxPages; page++) {
@@ -457,23 +459,32 @@ export async function syncExistingToolsInternal(data: {
     if (!list.ok) throw new Error(list.error ?? "Failed to list tool pages");
     totalPages = list.total_pages;
     for (const p of list.items) {
-      await toolsRepo.upsertExistingTool({
-        wp_post_id: p.id,
-        name: p.title,
-        url_slug: p.slug,
-        published_url: p.link,
-        aioseo_score_before: p.aioseo_score,
-        target_keyword: p.focus_keyword || keywordFromTitle(p.title),
-      });
-      imported++;
-      if (typeof p.aioseo_score === "number") scores.push(p.aioseo_score);
+      // Per-row isolation: one bad page (e.g. a duplicate slug) must never abort
+      // the whole sync — skip it and keep importing the rest.
+      try {
+        await toolsRepo.upsertExistingTool({
+          wp_post_id: p.id,
+          name: p.title,
+          url_slug: p.slug,
+          published_url: p.link,
+          aioseo_score_before: p.aioseo_score,
+          target_keyword: p.focus_keyword || keywordFromTitle(p.title),
+        });
+        imported++;
+        if (typeof p.aioseo_score === "number") scores.push(p.aioseo_score);
+      } catch (e) {
+        skipped++;
+        console.warn(
+          `[tools] sync skipped "${p.title}" (${p.slug}): ${String((e as Error)?.message ?? e)}`,
+        );
+      }
     }
     if (page >= totalPages) break;
   }
 
   const avg = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
   const lowScorers = scores.filter((s) => s < 70).length;
-  return { ok: true, imported, totalPages, avgAioseoScore: avg, lowScorers };
+  return { ok: true, imported, skipped, totalPages, avgAioseoScore: avg, lowScorers };
 }
 
 // ============================================================================

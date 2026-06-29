@@ -142,7 +142,9 @@ export async function updateTool(id: string, patch: ToolPatch): Promise<ApiTool 
 
 /**
  * Adopt an existing WordPress tool page into the tools table (origin=existing).
- * Matches on wp_post_id; never overwrites the slug once set.
+ * Matches on wp_post_id, then falls back to url_slug so duplicate pages that
+ * share a slug (e.g. a Draft + a Published version) collapse to one row instead
+ * of hitting the unique-slug constraint. Never overwrites the slug once set.
  */
 export async function upsertExistingTool(data: {
   wp_post_id: number;
@@ -153,10 +155,14 @@ export async function upsertExistingTool(data: {
   audit_report?: unknown;
   target_keyword?: string | null;
 }): Promise<ApiTool> {
-  const existing = await getToolByWpPostId(data.wp_post_id);
+  const existing =
+    (await getToolByWpPostId(data.wp_post_id)) ||
+    (data.url_slug ? await getToolBySlug(data.url_slug) : null);
   if (existing) {
     const patch: ToolPatch = {
       name: data.name,
+      // Adopt the latest WordPress post id for this slug (last-seen wins).
+      wp_post_id: data.wp_post_id,
       published_url: data.published_url ?? existing.published_url,
       aioseo_score_before: data.aioseo_score_before ?? existing.aioseo_score_before,
       audit_report: data.audit_report ?? existing.audit_report,
