@@ -7,6 +7,7 @@ import {
   numeric,
   timestamp,
   jsonb,
+  boolean,
 } from "drizzle-orm/pg-core";
 
 export const articles = pgTable("articles", {
@@ -314,3 +315,22 @@ export const jobs = pgTable("jobs", {
 });
 
 export type JobRow = typeof jobs.$inferSelect;
+
+export const citations = pgTable("citations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  query: text("query").notNull(),
+  engine: text("engine").notNull(), // perplexity | gemini | openai
+  geo: text("geo").default("global"),
+  clusterId: smallint("cluster_id"),
+  articleId: uuid("article_id"), // matched owned article/tool, if cited
+  mentioned: boolean("mentioned").default(false), // Kloudbean named in answer text
+  cited: boolean("cited").default(false), // Kloudbean URL in sources
+  position: smallint("position"), // rank among cited sources (1 = first)
+  citedUrl: text("cited_url"),
+  competitors: text("competitors").array().default([]),
+  answerExcerpt: text("answer_excerpt"),
+  sources: jsonb("sources"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type CitationRow = typeof citations.$inferSelect;

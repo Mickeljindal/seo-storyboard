@@ -1,4 +1,12 @@
-import type { ArticleRow, ToolRow, KgNodeRow, KgEdgeRow, ReelRow, JobRow } from "./schema";
+import type {
+  ArticleRow,
+  ToolRow,
+  KgNodeRow,
+  KgEdgeRow,
+  ReelRow,
+  JobRow,
+  CitationRow,
+} from "./schema";
 
 /** API shape (snake_case) — matches former Supabase client responses. */
 export function toApiArticle(row: ArticleRow) {
@@ -174,3 +182,23 @@ export function toApiJob(row: JobRow) {
   };
 }
 export type ApiJob = ReturnType<typeof toApiJob>;
+
+export function toApiCitation(row: CitationRow) {
+  return {
+    id: row.id,
+    query: row.query,
+    engine: row.engine,
+    geo: row.geo,
+    cluster_id: row.clusterId,
+    article_id: row.articleId,
+    mentioned: !!row.mentioned,
+    cited: !!row.cited,
+    position: row.position,
+    cited_url: row.citedUrl,
+    competitors: row.competitors ?? [],
+    answer_excerpt: row.answerExcerpt,
+    sources: row.sources,
+    created_at: row.createdAt?.toISOString(),
+  };
+}
+export type ApiCitation = ReturnType<typeof toApiCitation>;

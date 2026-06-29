@@ -3,7 +3,7 @@ import { getDb, schema } from "../client";
 
 const { topicSignals } = schema;
 
-export type SignalEvent = "generated" | "selected" | "published" | "rejected";
+export type SignalEvent = "generated" | "selected" | "published" | "rejected" | "cited";
 
 export async function recordSignal(data: {
   articleId?: string | null;
@@ -47,7 +47,11 @@ export async function getLearningAggregates(): Promise<{
   const byIntent: Record<string, { avgReward: number; n: number }> = {};
   let total = 0;
   try {
-    const rows = await db.select().from(topicSignals).orderBy(desc(topicSignals.createdAt)).limit(5000);
+    const rows = await db
+      .select()
+      .from(topicSignals)
+      .orderBy(desc(topicSignals.createdAt))
+      .limit(5000);
     total = rows.length;
     for (const r of rows) {
       const reward = r.reward != null ? Number(r.reward) : 0;

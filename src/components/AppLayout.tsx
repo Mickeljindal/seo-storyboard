@@ -16,6 +16,7 @@ import {
   Brain as BrainIcon,
   Clapperboard,
   BookOpen,
+  Quote,
 } from "lucide-react";
 import { ReactNode } from "react";
 import { SystemHealthBanner, SystemHealthOkBadge } from "./SystemHealthBanner";
@@ -36,6 +37,7 @@ const NAV = [
   { to: "/keywords", label: "Keywords", icon: Search, kbd: "9" },
   { to: "/briefs", label: "Briefs", icon: FileText, kbd: "0" },
   { to: "/performance", label: "Performance", icon: TrendingUp, kbd: "P" },
+  { to: "/citations", label: "AI Citations", icon: Quote, kbd: "C" },
   { to: "/settings", label: "Settings", icon: Settings, kbd: "S" },
   { to: "/help", label: "Help & Docs", icon: BookOpen, kbd: "H" },
 ] as const;

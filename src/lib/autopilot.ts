@@ -485,6 +485,36 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
     result.errors.push(`knowledge graph: ${String((e as Error)?.message ?? e)}`);
   }
 
+  // 7b. AI CITATION TRACKING — measure whether we're cited in AI answers (GEO/AIO).
+  if (process.env.AUTOPILOT_CITATIONS === "1") {
+    try {
+      const { hasCitationTracking } = await import("./citation-tracker");
+      if (hasCitationTracking()) {
+        const { buildDefaultCitationQueries, runCitationCheckInternal } =
+          await import("./citations.functions");
+        const perRun = Number(process.env.AUTOPILOT_CITATIONS_PER_RUN || 5);
+        const queries = await buildDefaultCitationQueries(perRun);
+        let cited = 0;
+        let mentioned = 0;
+        let ran = 0;
+        for (const q of queries) {
+          const r = await runCitationCheckInternal({
+            queries: [q.query],
+            geo: q.geo,
+            clusterId: q.clusterId,
+          });
+          cited += r.cited;
+          mentioned += r.mentioned;
+          ran += r.ran;
+        }
+        if (ran)
+          log(`Citations: checked ${ran} engine-answers — cited ${cited}, mentioned ${mentioned}`);
+      }
+    } catch (e) {
+      result.errors.push(`citation tracking: ${String((e as Error)?.message ?? e)}`);
+    }
+  }
+
   log(
     `Cycle complete: ${result.discovered} discovered, ${result.written} written, ${result.published} published`,
   );

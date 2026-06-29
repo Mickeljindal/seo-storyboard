@@ -22,6 +22,7 @@ import { Route as KeywordsRouteImport } from './routes/keywords'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as EngineRouteImport } from './routes/engine'
+import { Route as CitationsRouteImport } from './routes/citations'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as BriefsRouteImport } from './routes/briefs'
 import { Route as IndexRouteImport } from './routes/index'
@@ -91,6 +92,11 @@ const EngineRoute = EngineRouteImport.update({
   path: '/engine',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CitationsRoute = CitationsRouteImport.update({
+  id: '/citations',
+  path: '/citations',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CalendarRoute = CalendarRouteImport.update({
   id: '/calendar',
   path: '/calendar',
@@ -111,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/briefs': typeof BriefsRoute
   '/calendar': typeof CalendarRoute
+  '/citations': typeof CitationsRoute
   '/engine': typeof EngineRoute
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/briefs': typeof BriefsRoute
   '/calendar': typeof CalendarRoute
+  '/citations': typeof CitationsRoute
   '/engine': typeof EngineRoute
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
@@ -148,6 +156,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/briefs': typeof BriefsRoute
   '/calendar': typeof CalendarRoute
+  '/citations': typeof CitationsRoute
   '/engine': typeof EngineRoute
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
@@ -168,6 +177,7 @@ export interface FileRouteTypes {
     | '/'
     | '/briefs'
     | '/calendar'
+    | '/citations'
     | '/engine'
     | '/help'
     | '/how-it-works'
@@ -186,6 +196,7 @@ export interface FileRouteTypes {
     | '/'
     | '/briefs'
     | '/calendar'
+    | '/citations'
     | '/engine'
     | '/help'
     | '/how-it-works'
@@ -204,6 +215,7 @@ export interface FileRouteTypes {
     | '/'
     | '/briefs'
     | '/calendar'
+    | '/citations'
     | '/engine'
     | '/help'
     | '/how-it-works'
@@ -223,6 +235,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BriefsRoute: typeof BriefsRoute
   CalendarRoute: typeof CalendarRoute
+  CitationsRoute: typeof CitationsRoute
   EngineRoute: typeof EngineRoute
   HelpRoute: typeof HelpRoute
   HowItWorksRoute: typeof HowItWorksRoute
@@ -331,6 +344,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EngineRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/citations': {
+      id: '/citations'
+      path: '/citations'
+      fullPath: '/citations'
+      preLoaderRoute: typeof CitationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/calendar': {
       id: '/calendar'
       path: '/calendar'
@@ -359,6 +379,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BriefsRoute: BriefsRoute,
   CalendarRoute: CalendarRoute,
+  CitationsRoute: CitationsRoute,
   EngineRoute: EngineRoute,
   HelpRoute: HelpRoute,
   HowItWorksRoute: HowItWorksRoute,

@@ -189,3 +189,24 @@ CREATE TABLE IF NOT EXISTS jobs (
 );
 CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
 CREATE INDEX IF NOT EXISTS idx_jobs_run_after ON jobs(run_after);
+
+-- Multi-engine AI citation tracking (v9) — is Kloudbean cited in AI answers?
+CREATE TABLE IF NOT EXISTS citations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  query text NOT NULL,
+  engine text NOT NULL,                 -- perplexity | gemini | openai
+  geo text DEFAULT 'global',
+  cluster_id smallint,
+  article_id uuid,
+  mentioned boolean DEFAULT false,      -- Kloudbean named in the answer text
+  cited boolean DEFAULT false,          -- a Kloudbean URL appears in sources
+  position smallint,                    -- rank among cited sources (1 = first)
+  cited_url text,
+  competitors text[] DEFAULT '{}',
+  answer_excerpt text,
+  sources jsonb,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_citations_engine ON citations(engine);
+CREATE INDEX IF NOT EXISTS idx_citations_cluster ON citations(cluster_id);
+CREATE INDEX IF NOT EXISTS idx_citations_created ON citations(created_at);
