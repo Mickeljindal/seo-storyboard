@@ -326,6 +326,7 @@ function ToolsPage() {
               className="ml-auto"
               onClick={() => cycleMut.mutate()}
               disabled={cycleMut.isPending}
+              title="Do everything once now: find ideas, build tools, publish, optimize old pages, and sync stats."
               style={{ background: "var(--gradient-brand)", color: "var(--brand-foreground)" }}
             >
               {cycleMut.isPending ? (
@@ -373,6 +374,7 @@ function ToolsPage() {
                 variant="ghost"
                 onClick={() => drainMut.mutate()}
                 disabled={drainMut.isPending || (jobs.counts.pending ?? 0) === 0}
+                title="Process the waiting background jobs right now, instead of waiting for autopilot."
               >
                 {drainMut.isPending ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -398,6 +400,7 @@ function ToolsPage() {
             <Button
               onClick={() => discoverMut.mutate()}
               disabled={discoverMut.isPending}
+              title="Find fresh developer-tool ideas people are actually searching for (live demand data)."
               style={{ background: "var(--gradient-brand)", color: "var(--brand-foreground)" }}
             >
               {discoverMut.isPending ? (
@@ -427,6 +430,7 @@ function ToolsPage() {
               variant="outline"
               onClick={() => addMut.mutate()}
               disabled={addMut.isPending || newName.trim().length < 2}
+              title="Add your own tool idea to the pool so you can build it."
             >
               {addMut.isPending ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -536,6 +540,7 @@ function ToolsPage() {
                             <Button
                               size="sm"
                               disabled={busyId === t.id}
+                              title="Build this tool now — creates the working tool, SEO content and FAQ."
                               onClick={() =>
                                 run(
                                   t.id,
@@ -599,6 +604,7 @@ function ToolsPage() {
                     size="sm"
                     variant="outline"
                     disabled={busyId === t.id}
+                    title="Save to WordPress as a hidden draft so you can review it before it goes live."
                     onClick={() =>
                       run(
                         t.id,
@@ -612,6 +618,7 @@ function ToolsPage() {
                   <Button
                     size="sm"
                     disabled={busyId === t.id}
+                    title="Publish this tool live on the website now."
                     onClick={() =>
                       run(
                         t.id,
@@ -644,6 +651,7 @@ function ToolsPage() {
                 size="sm"
                 onClick={() => perfMut.mutate()}
                 disabled={perfMut.isPending}
+                title="Pull the latest Google Search Console clicks/positions for these tool pages."
               >
                 {perfMut.isPending ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -656,6 +664,7 @@ function ToolsPage() {
                 variant="outline"
                 onClick={() => syncMut.mutate()}
                 disabled={syncMut.isPending}
+                title="Load your existing Developer Tools pages from WordPress so you can optimize them."
               >
                 {syncMut.isPending ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -725,7 +734,7 @@ function ToolsPage() {
                       size="sm"
                       variant="ghost"
                       disabled={busyId === t.id}
-                      title="Audit"
+                      title="Check this page's SEO health and see what could be improved."
                       onClick={() =>
                         run(t.id, () => auditFn({ data: { toolId: t.id } }), "Audited")
                       }
@@ -736,6 +745,7 @@ function ToolsPage() {
                       size="sm"
                       variant="outline"
                       disabled={busyId === t.id}
+                      title="See the proposed improvements without changing the live page yet."
                       onClick={() =>
                         run(
                           t.id,
@@ -749,6 +759,7 @@ function ToolsPage() {
                     <Button
                       size="sm"
                       disabled={busyId === t.id}
+                      title="Apply the SEO improvements to the live page now (keeps the same web address)."
                       onClick={() =>
                         run(
                           t.id,

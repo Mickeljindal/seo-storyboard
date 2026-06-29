@@ -125,7 +125,7 @@ function CitationsPage() {
             <Button
               onClick={() => runMut.mutate([])}
               disabled={noEngines || runMut.isPending}
-              title="Auto-build questions from recently published articles"
+              title="Ask the AI engines real buyer questions and check if Kloudbean gets cited."
             >
               {runMut.isPending ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -157,6 +157,7 @@ function CitationsPage() {
             <Button
               variant="outline"
               disabled={noEngines || runMut.isPending || customQuery.trim().length < 4}
+              title="Ask the AI engines your typed question and see if Kloudbean is cited."
               onClick={() => {
                 runMut.mutate([customQuery.trim()]);
                 setCustomQuery("");

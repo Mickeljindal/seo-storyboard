@@ -9,7 +9,13 @@ import { AppLayout } from "@/components/AppLayout";
 import { ArticleSidePanel } from "@/components/ArticleSidePanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { CLUSTERS, ANCHORS, clusterMeta } from "@/lib/pillars";
 import { Dices, Sparkles, RefreshCw, Lock } from "lucide-react";
 import { toast } from "sonner";
@@ -50,7 +56,13 @@ function Raffle() {
   const promoteFn = useServerFn(promoteArticlePriority);
   const seedFn = useServerFn(seedArticles);
 
-  const { data: pool, isLoading, isError, error, refetch } = useQuery({
+  const {
+    data: pool,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ["raffle-pool", cluster, anchor, excludeWritten],
     queryFn: () =>
       poolFn({
@@ -76,7 +88,8 @@ function Raffle() {
 
   const drawMut = useMutation({
     mutationFn: async () => {
-      if (!pool || pool.length === 0) throw new Error("Pool is empty — relax filters or seed ideas.");
+      if (!pool || pool.length === 0)
+        throw new Error("Pool is empty — relax filters or seed ideas.");
       const n = Math.min(count, pool.length);
       const drawn = pickRandom(pool, n);
       // Log the draw
@@ -98,7 +111,12 @@ function Raffle() {
 
   const seedMut = useMutation({
     mutationFn: () => seedFn({ data: { force: false } }),
-    onSuccess: (r: { skipped?: boolean; existing?: number; inserted?: number; backfilled?: number }) => {
+    onSuccess: (r: {
+      skipped?: boolean;
+      existing?: number;
+      inserted?: number;
+      backfilled?: number;
+    }) => {
       if (r.backfilled) toast.success(`Fixed ${r.backfilled} articles for raffle clusters`);
       else if (r.skipped) toast.info(`Already have ${r.existing} articles — refreshing pool`);
       else toast.success(`Seeded ${r.inserted} ideas`);
@@ -124,14 +142,15 @@ function Raffle() {
             <Dices className="h-3 w-3 text-primary" /> KloudBean · Idea Raffle
           </div>
           <h1 className="text-display text-[56px] leading-[0.95] tracking-tighter">
-            Spin the wheel.<br />
+            Spin the wheel.
+            <br />
             <span className="grad-text">Build topical authority.</span>
           </h1>
           <p className="mt-4 max-w-2xl text-[15px] text-muted-foreground">
-            {(totalAll.data ?? 0).toLocaleString()} candidate articles across 10 clusters.
-            Pull a random batch, drop them into the pipeline, and let the engine brief +
-            publish them. Random sampling beats decision paralysis — and consistent
-            cluster coverage is how you win Google without backlinks.
+            {(totalAll.data ?? 0).toLocaleString()} candidate articles across 10 clusters. Pull a
+            random batch, drop them into the pipeline, and let the engine brief + publish them.
+            Random sampling beats decision paralysis — and consistent cluster coverage is how you
+            win Google without backlinks.
           </p>
         </header>
 
@@ -141,11 +160,13 @@ function Raffle() {
               {isError ? (
                 <>
                   <strong>Database error:</strong> {(error as Error)?.message}. Run{" "}
-                  <code className="font-mono text-xs">npm run setup</code> then restart the dev server.
+                  <code className="font-mono text-xs">npm run setup</code> then restart the dev
+                  server.
                 </>
               ) : (
                 <>
-                  <strong>No ideas in the database yet.</strong> Seed the 59-article Kloudbean roadmap to fill the raffle pool.
+                  <strong>No ideas in the database yet.</strong> Seed the 59-article Kloudbean
+                  roadmap to fill the raffle pool.
                 </>
               )}
             </p>
@@ -154,6 +175,7 @@ function Raffle() {
               size="sm"
               disabled={seedMut.isPending}
               onClick={() => seedMut.mutate()}
+              title="Create a starter set of 59 article ideas to fill the pool."
               style={{ background: "var(--gradient-brand)", color: "var(--brand-foreground)" }}
             >
               <Sparkles className="mr-2 h-4 w-4" />
@@ -166,31 +188,45 @@ function Raffle() {
         <section className="mb-8 rounded-xl border border-border bg-card/60 p-6 backdrop-blur">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             <div>
-              <label className="mb-1.5 block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Cluster</label>
+              <label className="mb-1.5 block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                Cluster
+              </label>
               <Select value={cluster} onValueChange={setCluster}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All 10 clusters</SelectItem>
                   {CLUSTERS.map((c) => (
-                    <SelectItem key={c.id} value={String(c.id)}>{c.id}. {c.short}</SelectItem>
+                    <SelectItem key={c.id} value={String(c.id)}>
+                      {c.id}. {c.short}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="mb-1.5 block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Anchor page</label>
+              <label className="mb-1.5 block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                Anchor page
+              </label>
               <Select value={anchor} onValueChange={setAnchor}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Any anchor</SelectItem>
                   {ANCHORS.map((a) => (
-                    <SelectItem key={a} value={a}>{a}</SelectItem>
+                    <SelectItem key={a} value={a}>
+                      {a}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="mb-1.5 block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">How many?</label>
+              <label className="mb-1.5 block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                How many?
+              </label>
               <Input
                 type="number"
                 min={1}
@@ -214,19 +250,31 @@ function Raffle() {
 
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
             <div className="text-xs text-muted-foreground">
-              Pool: <span className="num font-semibold text-foreground">{stats.poolSize.toLocaleString()}</span> ideas match these filters.
+              Pool:{" "}
+              <span className="num font-semibold text-foreground">
+                {stats.poolSize.toLocaleString()}
+              </span>{" "}
+              ideas match these filters.
               {anchor !== "all" && stats.poolSize === 0 && !isError && (
-                <span className="ml-2 text-amber-400">Try anchor “Any anchor” or seed ideas first.</span>
+                <span className="ml-2 text-amber-400">
+                  Try anchor “Any anchor” or seed ideas first.
+                </span>
               )}
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => refetch()}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetch()}
+                title="Reload the idea pool with the current filters."
+              >
                 <RefreshCw className="mr-2 h-3.5 w-3.5" /> Refresh pool
               </Button>
               <Button
                 size="lg"
                 disabled={isLoading || drawMut.isPending || stats.poolSize === 0}
                 onClick={() => drawMut.mutate()}
+                title="Randomly pick a batch of ideas from the pool to work on next."
                 style={{ background: "var(--gradient-brand)", color: "var(--brand-foreground)" }}
               >
                 <Dices className="mr-2 h-4 w-4" />
@@ -238,7 +286,9 @@ function Raffle() {
 
         {/* Cluster coverage */}
         <section className="mb-10">
-          <h2 className="mb-3 font-mono text-[10px] uppercase tracking-[0.25em] text-primary">Cluster coverage in the current pool</h2>
+          <h2 className="mb-3 font-mono text-[10px] uppercase tracking-[0.25em] text-primary">
+            Cluster coverage in the current pool
+          </h2>
           <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
             {CLUSTERS.map((c) => {
               const n = stats.byCluster[c.id] ?? 0;
@@ -247,11 +297,17 @@ function Raffle() {
                   key={c.id}
                   onClick={() => setCluster(String(c.id))}
                   className={`rounded-lg border p-3 text-left transition ${
-                    cluster === String(c.id) ? "border-primary bg-primary/5" : "border-border bg-card/60 hover:border-primary/40"
+                    cluster === String(c.id)
+                      ? "border-primary bg-primary/5"
+                      : "border-border bg-card/60 hover:border-primary/40"
                   }`}
                 >
-                  <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">C{String(c.id).padStart(2, "0")}</div>
-                  <div className="mt-1 text-[12px] leading-tight text-foreground/85 line-clamp-2">{c.short}</div>
+                  <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
+                    C{String(c.id).padStart(2, "0")}
+                  </div>
+                  <div className="mt-1 text-[12px] leading-tight text-foreground/85 line-clamp-2">
+                    {c.short}
+                  </div>
                   <div className="num mt-2 text-xl font-semibold">{n}</div>
                 </button>
               );
@@ -263,13 +319,17 @@ function Raffle() {
         <section>
           <div className="mb-4 flex items-end justify-between border-b border-border pb-3">
             <div className="flex items-baseline gap-4">
-              <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary">Drawn</span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary">
+                Drawn
+              </span>
               <h2 className="text-display text-2xl font-semibold tracking-tight">
                 {picked.length ? `${picked.length} winning ideas` : "Press Spin to draw"}
               </h2>
             </div>
             {picked.length > 0 && (
-              <span className="text-xs text-muted-foreground">Click a row to open the brief panel.</span>
+              <span className="text-xs text-muted-foreground">
+                Click a row to open the brief panel.
+              </span>
             )}
           </div>
 
@@ -301,18 +361,34 @@ function Raffle() {
                       className="cursor-pointer border-t border-border/60 transition hover:bg-foreground/[0.03]"
                       onClick={() => setPanelId(a.id)}
                     >
-                      <td className="px-4 py-3 num text-xs text-muted-foreground">{String(i + 1).padStart(2, "0")}</td>
+                      <td className="px-4 py-3 num text-xs text-muted-foreground">
+                        {String(i + 1).padStart(2, "0")}
+                      </td>
                       <td className="px-4 py-3">
                         <div className="line-clamp-2 text-foreground/90">{a.title}</div>
-                        {a.idea_index && <div className="font-mono text-[10px] text-muted-foreground">idea #{a.idea_index}</div>}
+                        {a.idea_index && (
+                          <div className="font-mono text-[10px] text-muted-foreground">
+                            idea #{a.idea_index}
+                          </div>
+                        )}
                       </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">{clusterMeta(a.cluster_id).short}</td>
-                      <td className="px-4 py-3"><code className="rounded bg-secondary/60 px-1.5 py-0.5 font-mono text-[11px]">{a.anchor}</code></td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">
+                        {clusterMeta(a.cluster_id).short}
+                      </td>
+                      <td className="px-4 py-3">
+                        <code className="rounded bg-secondary/60 px-1.5 py-0.5 font-mono text-[11px]">
+                          {a.anchor}
+                        </code>
+                      </td>
                       <td className="px-4 py-3 text-right">
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={(e) => { e.stopPropagation(); promote.mutate(a.id); }}
+                          title="Promote this idea into the active pipeline so the engine writes it."
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            promote.mutate(a.id);
+                          }}
                         >
                           <Lock className="mr-1.5 h-3 w-3" /> Lock in
                         </Button>
@@ -325,7 +401,11 @@ function Raffle() {
           )}
         </section>
       </div>
-      <ArticleSidePanel articleId={panelId} open={!!panelId} onOpenChange={(o) => !o && setPanelId(null)} />
+      <ArticleSidePanel
+        articleId={panelId}
+        open={!!panelId}
+        onOpenChange={(o) => !o && setPanelId(null)}
+      />
     </AppLayout>
   );
 }

@@ -123,6 +123,7 @@ function ReelsPage() {
               className="ml-auto"
               onClick={() => discoverMut.mutate()}
               disabled={discoverMut.isPending}
+              title="Suggest short-video ideas from what the engine knows about Kloudbean."
               style={{ background: "var(--gradient-brand)", color: "var(--brand-foreground)" }}
             >
               {discoverMut.isPending ? (
@@ -180,6 +181,7 @@ function ReelsPage() {
                   className="mt-3 w-full"
                   disabled={busyId === r.id}
                   onClick={() => generate(r.id)}
+                  title="Write the full video script, captions and ready-to-paste AI-video prompts."
                 >
                   {busyId === r.id ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -203,6 +205,7 @@ function ReelsPage() {
               <button
                 key={r.id}
                 onClick={() => setOpenId(r.id)}
+                title="Open this reel to see the script, captions and AI-video prompts."
                 className={`rounded-lg border bg-card/60 p-4 text-left transition-colors hover:border-primary/50 ${
                   openId === r.id ? "border-primary" : "border-border"
                 }`}

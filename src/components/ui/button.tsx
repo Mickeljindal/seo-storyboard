@@ -36,11 +36,33 @@ export interface ButtonProps
   asChild?: boolean;
 }
 
+/** Pull readable text out of button children (ignores icons) for an auto tooltip. */
+function extractText(node: React.ReactNode): string {
+  if (node === null || node === undefined || typeof node === "boolean") return "";
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(extractText).join(" ");
+  if (React.isValidElement(node)) {
+    return extractText((node.props as { children?: React.ReactNode })?.children);
+  }
+  return "";
+}
+
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
+    // Every button gets a hover message: use the explicit title if provided,
+    // otherwise fall back to the button's own visible label so users always get
+    // a hint of what it does. (aria-label is respected for icon-only buttons.)
+    const labelText = extractText(props.children).trim();
+    const autoTitle =
+      props.title ?? (props["aria-label"] as string | undefined) ?? (labelText || undefined);
     return (
-      <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />
+      <Comp
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        {...props}
+        title={autoTitle}
+      />
     );
   },
 );
