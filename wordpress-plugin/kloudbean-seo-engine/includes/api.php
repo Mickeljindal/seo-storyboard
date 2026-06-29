@@ -46,6 +46,11 @@ function kbseo_register_routes() {
     if (function_exists('kbseo_register_tool_routes')) {
         kbseo_register_tool_routes($namespace);
     }
+
+    // Instant indexing (IndexNow key file + submit)
+    if (function_exists('kbseo_register_indexing_routes')) {
+        kbseo_register_indexing_routes($namespace);
+    }
 }
 
 function kbseo_health() {

@@ -383,6 +383,18 @@ export async function publishToolInternal(
     published_at: status === "publish" ? new Date() : undefined,
   });
 
+  // Instant indexing: notify search engines the moment a tool goes live.
+  if (status === "publish" && res.link) {
+    try {
+      const { pingUrlsForIndexing } = await import("./indexing-client");
+      const report = await pingUrlsForIndexing([res.link]);
+      const ok = report.results.some((r) => r.ok && r.submitted > 0);
+      if (ok) console.log(`[tools] indexing pinged for ${res.link}`);
+    } catch (e) {
+      console.warn(`[tools] indexing ping failed: ${String((e as Error)?.message ?? e)}`);
+    }
+  }
+
   return { ok: true, link: res.link, postId: res.post_id };
 }
 

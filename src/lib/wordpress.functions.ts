@@ -30,7 +30,14 @@ export const wpStatus = createServerFn({ method: "GET" }).handler(async () => {
 export async function publishArticleInternal(
   articleId: string,
   status: "draft" | "publish",
-): Promise<{ ok: boolean; link?: string; postId?: number; updated?: boolean; message?: string; error?: string }> {
+): Promise<{
+  ok: boolean;
+  link?: string;
+  postId?: number;
+  updated?: boolean;
+  message?: string;
+  error?: string;
+}> {
   const { config, missing } = getWpConfig();
   if (!config) {
     return { ok: false, error: `WordPress not configured. Add to .env: ${missing.join(", ")}.` };
@@ -40,7 +47,10 @@ export async function publishArticleInternal(
   const article = await articlesRepo.getArticleById(articleId);
   if (!article) return { ok: false, error: "Article not found" };
   if (!article.brief && !article.content_draft) {
-    return { ok: false, error: "Generate a brief or draft content before publishing to WordPress." };
+    return {
+      ok: false,
+      error: "Generate a brief or draft content before publishing to WordPress.",
+    };
   }
 
   // Quality gate: never publish content with blocking (false/banned) claims.
@@ -59,8 +69,9 @@ export async function publishArticleInternal(
   const perf = (article.performance_data as Record<string, unknown> | null) ?? {};
   await articlesRepo.updateArticle(articleId, {
     published_url: post.link,
-    status: status === "publish" ? "published" : article.status === "idea" ? "review" : article.status,
-    published_at: status === "publish" ? new Date() : article.published_at ?? null,
+    status:
+      status === "publish" ? "published" : article.status === "idea" ? "review" : article.status,
+    published_at: status === "publish" ? new Date() : (article.published_at ?? null),
     performance_data: {
       ...perf,
       wordpress_post_id: post.id,
@@ -91,6 +102,15 @@ export async function publishArticleInternal(
     }
   }
 
+  if (status === "publish" && post.link) {
+    try {
+      const { pingUrlsForIndexing } = await import("./indexing-client");
+      await pingUrlsForIndexing([post.link]);
+    } catch {
+      /* indexing is best-effort */
+    }
+  }
+
   return {
     ok: true,
     link: post.link,
@@ -102,12 +122,10 @@ export async function publishArticleInternal(
 
 export const publishToWordPress = createServerFn({ method: "POST" })
   .inputValidator(
-    z
-      .object({
-        articleId: z.string().uuid(),
-        status: z.enum(["draft", "publish"]).default("draft"),
-      })
-      .parse,
+    z.object({
+      articleId: z.string().uuid(),
+      status: z.enum(["draft", "publish"]).default("draft"),
+    }).parse,
   )
   .handler(async ({ data }) => {
     const r = await publishArticleInternal(data.articleId, data.status);
@@ -122,12 +140,10 @@ export const publishToWordPress = createServerFn({ method: "POST" })
  */
 export const markArticlePublished = createServerFn({ method: "POST" })
   .inputValidator(
-    z
-      .object({
-        articleId: z.string().uuid(),
-        publishedUrl: z.string().url().optional(),
-      })
-      .parse,
+    z.object({
+      articleId: z.string().uuid(),
+      publishedUrl: z.string().url().optional(),
+    }).parse,
   )
   .handler(async ({ data }) => {
     const articlesRepo = await import("@/server/db/repos/articles");

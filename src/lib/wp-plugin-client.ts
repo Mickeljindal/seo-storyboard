@@ -359,3 +359,17 @@ export async function restoreTool(
     ? { ok: !!(r as { ok?: boolean }).ok }
     : { ok: false, error: (r as { error: string }).error };
 }
+
+/**
+ * Fetch the IndexNow key the plugin owns + hosts. The plugin auto-generates one
+ * on first call and serves it as a plain key file, so the engine just reuses it.
+ */
+export async function getIndexNowKey(): Promise<{ key: string; keyLocation: string } | null> {
+  const r = await pluginGet<{ ok?: boolean; key?: string; key_location?: string }>(
+    "/indexnow-key?format=json",
+  );
+  if ("key" in r && r.key) {
+    return { key: r.key, keyLocation: r.key_location ?? "" };
+  }
+  return null;
+}
