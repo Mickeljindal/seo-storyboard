@@ -97,6 +97,7 @@ export function toApiTool(row: ToolRow) {
     gate_clicks: row.gateClicks,
     perf_synced_at: row.perfSyncedAt?.toISOString() ?? null,
     audit_report: row.auditReport,
+    optimize_report: row.optimizeReport,
     elementor_snapshot: row.elementorSnapshot,
     gate_enabled: row.gateEnabled,
     gate_mode: row.gateMode,

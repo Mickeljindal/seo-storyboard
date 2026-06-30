@@ -419,7 +419,7 @@ export const syncExistingToolsFn = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
       category: z.string().default("Developer Tools"),
-      maxPages: z.number().min(1).max(20).default(10),
+      maxPages: z.number().min(1).max(40).default(20),
       perPage: z.number().min(1).max(100).default(50),
     }).parse,
   )
@@ -427,6 +427,39 @@ export const syncExistingToolsFn = createServerFn({ method: "POST" })
     const { loadProjectEnv } = await import("./load-env");
     loadProjectEnv();
     return syncExistingToolsInternal(data);
+  });
+
+/** List WordPress categories (with page counts) for the category picker. */
+export const listToolCategoriesFn = createServerFn({ method: "GET" }).handler(async () => {
+  const { loadProjectEnv } = await import("./load-env");
+  loadProjectEnv();
+  const { hasPluginConfigured, listToolCategories } = await import("./wp-plugin-client");
+  if (!hasPluginConfigured())
+    return { ok: false as const, categories: [], error: "Plugin not configured" };
+  const categories = await listToolCategories();
+  return { ok: true as const, categories };
+});
+
+const TOOLS_CATEGORY_KEY = "TOOLS_CATEGORY";
+const DEFAULT_TOOLS_CATEGORY = "Developer Tools";
+
+/** Which WordPress category the tools dashboard syncs/optimizes (persisted). */
+export const getToolsCategoryFn = createServerFn({ method: "GET" }).handler(async () => {
+  const { loadProjectEnv } = await import("./load-env");
+  loadProjectEnv();
+  const { getSetting } = await import("@/server/db/repos/app-settings");
+  const category = (await getSetting(TOOLS_CATEGORY_KEY)) || DEFAULT_TOOLS_CATEGORY;
+  return { category };
+});
+
+export const setToolsCategoryFn = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ category: z.string().min(1) }).parse)
+  .handler(async ({ data }) => {
+    const { loadProjectEnv } = await import("./load-env");
+    loadProjectEnv();
+    const { setSetting } = await import("@/server/db/repos/app-settings");
+    await setSetting(TOOLS_CATEGORY_KEY, data.category);
+    return { ok: true as const, category: data.category };
   });
 
 export async function syncExistingToolsInternal(data: {
@@ -469,6 +502,7 @@ export async function syncExistingToolsInternal(data: {
           published_url: p.link,
           aioseo_score_before: p.aioseo_score,
           target_keyword: p.focus_keyword || keywordFromTitle(p.title),
+          category: data.category,
         });
         imported++;
         if (typeof p.aioseo_score === "number") scores.push(p.aioseo_score);
@@ -738,6 +772,59 @@ export async function optimizeToolInternal(
 
   if (!res.ok) return { ok: false, error: res.error ?? "Optimize failed" };
 
+  // Human-readable change list (what was / will be implemented).
+  const ADDED_LABELS: Record<string, string> = {
+    intro: "Added an SEO intro section",
+    faq: "Added an FAQ section (FAQ schema-eligible)",
+    how_to: "Added a How-to section",
+    schema: "Injected structured data (JSON-LD)",
+    internal_links: "Added internal links to related pages",
+    content: "Added keyword-rich content sections",
+    cta: "Added a Kloudbean call-to-action",
+  };
+  const changes: string[] = [];
+  for (const a of plan.added) changes.push(ADDED_LABELS[a] ?? `Added ${a.replace(/_/g, " ")}`);
+  if (seoRes.meta_title && seoRes.meta_title !== tool.meta_title)
+    changes.push(`Updated meta title → “${seoRes.meta_title}”`);
+  if (seoRes.meta_description && seoRes.meta_description !== tool.meta_description)
+    changes.push("Updated meta description");
+  if (keyword) changes.push(`Set focus keyword → “${keyword}”`);
+  if (related.length) changes.push(`Linked ${related.length} related page(s)`);
+
+  // Best-effort: re-read the page's AIOSEO score after the write (may lag).
+  let scoreAfter: number | null = null;
+  if (!dryRun) {
+    try {
+      const detail = await getToolPage(tool.wp_post_id);
+      if ("aioseo" in detail && detail.aioseo) scoreAfter = detail.aioseo.score ?? null;
+    } catch {
+      /* score refresh best-effort */
+    }
+  }
+
+  const report = {
+    dry_run: dryRun,
+    at: new Date().toISOString(),
+    before: {
+      aioseo_score: tool.aioseo_score_before ?? null,
+      has_faq: audit.has_faq,
+      has_schema: audit.has_jsonld,
+      word_count: audit.word_count,
+      has_elementor: audit.has_elementor,
+      existing_sections: (res as { existing_sections?: number }).existing_sections ?? null,
+    },
+    changes,
+    after: {
+      aioseo_score: scoreAfter,
+      sections: (res as { existing_sections_after?: number }).existing_sections_after ?? null,
+      schema_injected: !!(res as { injected_elementor?: boolean }).injected_elementor,
+      meta_title: seoRes.meta_title,
+      meta_description: seoRes.meta_description,
+      focus_keyword: keyword,
+    },
+    plugin: res,
+  };
+
   if (!dryRun) {
     await toolsRepo.updateTool(toolId, {
       status: "optimized",
@@ -747,11 +834,13 @@ export async function optimizeToolInternal(
       schema_jsonld: seoRes.schema_jsonld,
       target_keyword: keyword,
       optimized_at: new Date(),
-      notes: `Optimized: added ${plan.added.join(", ") || "meta only"} (slug unchanged).`,
+      optimize_report: report,
+      ...(scoreAfter != null ? { aioseo_score_after: scoreAfter } : {}),
+      notes: `Optimized: ${changes.slice(0, 3).join("; ") || "meta only"} (slug unchanged).`,
     });
   }
 
-  return { ok: true, report: { ...res, added: plan.added, dry_run: dryRun } };
+  return { ok: true, report: { ...res, ...report, added: plan.added } };
 }
 
 export const optimizeToolFn = createServerFn({ method: "POST" })

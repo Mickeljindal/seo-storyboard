@@ -267,3 +267,6 @@ CREATE TABLE IF NOT EXISTS app_settings (
   value text,
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Before/after optimization report per tool page (v14)
+ALTER TABLE tools ADD COLUMN IF NOT EXISTS optimize_report jsonb;

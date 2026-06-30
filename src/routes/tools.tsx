@@ -16,6 +16,7 @@ import {
   Lock,
   Unlock,
   Plus,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -33,6 +34,9 @@ import {
   addToolFn,
   syncToolPerformanceFn,
   revertToolFn,
+  listToolCategoriesFn,
+  getToolsCategoryFn,
+  setToolsCategoryFn,
 } from "@/lib/tools.functions";
 import { enqueueToolJobsFn, drainJobsFn, jobsSummaryFn } from "@/lib/jobs.functions";
 
@@ -52,6 +56,17 @@ type ToolRow = {
   volume: number | null;
   difficulty: number | null;
   aioseo_score_before: number | null;
+  optimize_report: {
+    dry_run?: boolean;
+    before?: {
+      aioseo_score?: number | null;
+      has_faq?: boolean;
+      has_schema?: boolean;
+      word_count?: number;
+    };
+    after?: { aioseo_score?: number | null; meta_title?: string; focus_keyword?: string };
+    changes?: string[];
+  } | null;
   quality_score: number | null;
   quality_report: { grade?: string; blocking?: boolean; issues?: string[] } | null;
   gsc_clicks: number | null;
@@ -69,6 +84,26 @@ type ToolRow = {
 };
 
 type PoolSort = "score" | "volume" | "audience" | "kd";
+
+type OptimizeReport = {
+  dry_run?: boolean;
+  before?: {
+    aioseo_score?: number | null;
+    has_faq?: boolean;
+    has_schema?: boolean;
+    word_count?: number;
+    has_elementor?: boolean;
+  };
+  after?: {
+    aioseo_score?: number | null;
+    sections?: number | null;
+    meta_title?: string;
+    meta_description?: string;
+    focus_keyword?: string;
+    schema_injected?: boolean;
+  };
+  changes?: string[];
+};
 
 function ToolsPage() {
   const qc = useQueryClient();
@@ -103,8 +138,15 @@ function ToolsPage() {
   const enqueueFn = useServerFn(enqueueToolJobsFn);
   const drainFn = useServerFn(drainJobsFn);
   const jobsFn = useServerFn(jobsSummaryFn);
+  const catsFn = useServerFn(listToolCategoriesFn);
+  const getCatFn = useServerFn(getToolsCategoryFn);
+  const setCatFn = useServerFn(setToolsCategoryFn);
   // Bulk run progress: { done, total, label } while a batch is running.
   const [bulk, setBulk] = useState<{ done: number; total: number; label: string } | null>(null);
+  // Before/after optimization report being viewed in the modal.
+  const [reportView, setReportView] = useState<{ name: string; report: OptimizeReport } | null>(
+    null,
+  );
 
   const { data: status } = useQuery({ queryKey: ["tools-status"], queryFn: () => statusFn({}) });
   const { data: tools, isLoading } = useQuery({
@@ -117,23 +159,54 @@ function ToolsPage() {
     refetchInterval: 5000,
   });
 
-  // Scope strictly to the Developer Tools category.
-  const items = ((tools?.items ?? []) as ToolRow[]).filter(
+  // Which WordPress category to work on (persisted; default Developer Tools).
+  const { data: catData } = useQuery({
+    queryKey: ["tools-category"],
+    queryFn: () => getCatFn({}),
+  });
+  const selectedCategory = catData?.category ?? "Developer Tools";
+  const { data: catsData } = useQuery({
+    queryKey: ["wp-categories"],
+    queryFn: () => catsFn({}),
+  });
+  const categories = (catsData?.categories ?? []) as {
+    id: number;
+    name: string;
+    slug: string;
+    page_count: number;
+  }[];
+  const setCatMut = useMutation({
+    mutationFn: (category: string) => setCatFn({ data: { category } }),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["tools-category"] });
+      toast.success(
+        `Category set to “${r.category}”. Click “Sync from WordPress” to pull its pages.`,
+      );
+    },
+  });
+
+  // New-tool sections (idea pool, built tools) are always Developer Tools — that's
+  // the only category the engine GENERATES tools for. The existing-pages optimizer
+  // works on whichever WordPress category is selected.
+  const allRows = (tools?.items ?? []) as ToolRow[];
+  const devToolRows = allRows.filter(
     (t) => (t.category ?? "Developer Tools") === "Developer Tools",
   );
 
-  const poolAll = items.filter((t) => t.status === "pool" || t.status === "idea");
-  const generated = items.filter(
+  const poolAll = devToolRows.filter((t) => t.status === "pool" || t.status === "idea");
+  const generated = devToolRows.filter(
     (t) => ["generated", "review", "published"].includes(t.status) && t.origin !== "existing",
   );
-  const existingAll = items.filter((t) => t.origin === "existing");
+  const existingAll = allRows.filter(
+    (t) => t.origin === "existing" && (t.category ?? "Developer Tools") === selectedCategory,
+  );
 
-  const liveCount = items.filter(
+  const liveCount = devToolRows.filter(
     (t) => t.status === "published" || t.status === "optimized",
   ).length;
-  const gatedCount = items.filter((t) => t.gate_enabled === "yes").length;
+  const gatedCount = devToolRows.filter((t) => t.gate_enabled === "yes").length;
   const needsOpt = existingAll.filter((t) => (t.aioseo_score_before ?? 0) < 70).length;
-  const totalClicks = items.reduce((s, t) => s + (t.gsc_clicks ?? 0), 0);
+  const totalClicks = [...devToolRows, ...existingAll].reduce((s, t) => s + (t.gsc_clicks ?? 0), 0);
 
   const metric = (t: ToolRow) => ({
     vol: t.volume ?? t.idea_data?.volume ?? 0,
@@ -190,7 +263,7 @@ function ToolsPage() {
   });
 
   const syncMut = useMutation({
-    mutationFn: () => syncFn({ data: { category: "Developer Tools", maxPages: 20, perPage: 50 } }),
+    mutationFn: () => syncFn({ data: { category: selectedCategory, maxPages: 40, perPage: 50 } }),
     onSuccess: (r) => {
       toast.success(
         `Synced ${r.imported} pages${r.skipped ? ` · skipped ${r.skipped}` : ""} · avg AIOSEO ${r.avgAioseoScore ?? "?"} · ${r.lowScorers} below 70`,
@@ -250,6 +323,22 @@ function ToolsPage() {
     try {
       await fn();
       toast.success(okMsg);
+      invalidate();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  // Like run(), but captures the optimize/preview report so we can show a
+  // before/after panel of exactly what was (or will be) implemented.
+  const runReport = async (id: string, name: string, fn: () => Promise<unknown>, okMsg: string) => {
+    setBusyId(id);
+    try {
+      const r = (await fn()) as { report?: OptimizeReport };
+      toast.success(okMsg);
+      if (r?.report) setReportView({ name, report: r.report });
       invalidate();
     } catch (e) {
       toast.error((e as Error).message);
@@ -645,7 +734,23 @@ function ToolsPage() {
           title="Existing tool pages"
           desc="Slug-safe · additive only"
           action={
-            <div className="flex gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                value={selectedCategory}
+                onChange={(e) => setCatMut.mutate(e.target.value)}
+                title="Choose which WordPress category of pages to sync and optimize."
+                className="rounded-md border border-border bg-background px-2.5 py-2 text-sm"
+              >
+                {/* Ensure the current value is always present even before categories load */}
+                {!categories.some((c) => c.name === selectedCategory) && (
+                  <option value={selectedCategory}>{selectedCategory}</option>
+                )}
+                {categories.map((c) => (
+                  <option key={c.id} value={c.name}>
+                    {c.name} ({c.page_count})
+                  </option>
+                ))}
+              </select>
               <Button
                 variant="ghost"
                 size="sm"
@@ -664,7 +769,7 @@ function ToolsPage() {
                 variant="outline"
                 onClick={() => syncMut.mutate()}
                 disabled={syncMut.isPending}
-                title="Load your existing Developer Tools pages from WordPress so you can optimize them."
+                title={`Load all pages in the “${selectedCategory}” category from WordPress so you can optimize them.`}
               >
                 {syncMut.isPending ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -677,7 +782,9 @@ function ToolsPage() {
           }
         >
           {existingAll.length === 0 ? (
-            <Empty>Click “Sync from WordPress” to pull your Developer Tools pages.</Empty>
+            <Empty>
+              Pick a category above, then click “Sync from WordPress” to pull its pages.
+            </Empty>
           ) : (
             <>
               <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
@@ -747,10 +854,11 @@ function ToolsPage() {
                       disabled={busyId === t.id}
                       title="See the proposed improvements without changing the live page yet."
                       onClick={() =>
-                        run(
+                        runReport(
                           t.id,
+                          t.name,
                           () => optFn({ data: { toolId: t.id, dryRun: true } }),
-                          "Dry-run complete (no changes)",
+                          "Preview ready — see what will be implemented",
                         )
                       }
                     >
@@ -761,8 +869,9 @@ function ToolsPage() {
                       disabled={busyId === t.id}
                       title="Apply the SEO improvements to the live page now (keeps the same web address)."
                       onClick={() =>
-                        run(
+                        runReport(
                           t.id,
+                          t.name,
                           () => optFn({ data: { toolId: t.id, dryRun: false } }),
                           "Optimized (slug unchanged)",
                         )
@@ -774,6 +883,21 @@ function ToolsPage() {
                         <ShieldCheck className="h-4 w-4" />
                       )}
                     </Button>
+                    {t.optimize_report && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        title="See the before/after and exactly what was implemented on this page."
+                        onClick={() =>
+                          setReportView({
+                            name: t.name,
+                            report: t.optimize_report as OptimizeReport,
+                          })
+                        }
+                      >
+                        <Info className="h-4 w-4" />
+                      </Button>
+                    )}
                     {t.status === "optimized" && (
                       <Button
                         size="sm"
@@ -800,7 +924,117 @@ function ToolsPage() {
 
         {isLoading && <div className="py-8 text-center text-muted-foreground">Loading tools…</div>}
       </div>
+
+      {reportView && (
+        <OptimizeReportModal
+          name={reportView.name}
+          report={reportView.report}
+          onClose={() => setReportView(null)}
+        />
+      )}
     </AppLayout>
+  );
+}
+
+function OptimizeReportModal({
+  name,
+  report,
+  onClose,
+}: {
+  name: string;
+  report: OptimizeReport;
+  onClose: () => void;
+}) {
+  const before = report.before ?? {};
+  const after = report.after ?? {};
+  const changes = report.changes ?? [];
+  const preview = report.dry_run;
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[85vh] w-full max-w-lg overflow-auto rounded-xl border border-border bg-card p-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-1 flex items-start justify-between gap-3">
+          <h3 className="text-lg font-semibold">{name}</h3>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            ✕
+          </button>
+        </div>
+        <p className="mb-4 text-xs text-muted-foreground">
+          {preview
+            ? "Preview — these changes will be applied when you click optimize. Nothing changed yet."
+            : "Optimization applied. The page URL was not changed; changes are additive."}
+        </p>
+
+        {/* Before / After scores */}
+        <div className="mb-4 grid grid-cols-2 gap-3">
+          <div className="rounded-lg border border-border p-3">
+            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Before</div>
+            <div className="mt-1 text-2xl font-semibold">
+              {before.aioseo_score ?? "—"}
+              <span className="text-sm text-muted-foreground">/100</span>
+            </div>
+            <div className="mt-1 text-[11px] text-muted-foreground">
+              {before.has_faq ? "FAQ ✓" : "no FAQ"} · {before.has_schema ? "schema ✓" : "no schema"}{" "}
+              · {before.word_count ?? 0} words
+            </div>
+          </div>
+          <div className="rounded-lg border border-primary/40 bg-primary/5 p-3">
+            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+              After{preview ? " (expected)" : ""}
+            </div>
+            <div className="mt-1 text-2xl font-semibold text-primary">
+              {after.aioseo_score ?? (preview ? "↑" : "—")}
+              <span className="text-sm text-muted-foreground">/100</span>
+            </div>
+            <div className="mt-1 text-[11px] text-muted-foreground">
+              {after.focus_keyword ? `keyword: ${after.focus_keyword}` : ""}
+            </div>
+          </div>
+        </div>
+
+        {/* Changes list */}
+        <div className="mb-2 text-sm font-medium">
+          {preview ? "What will be implemented" : "What was implemented"}
+        </div>
+        {changes.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Meta/SEO refresh only.</p>
+        ) : (
+          <ul className="space-y-1.5">
+            {changes.map((c, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm">
+                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                <span>{c}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {after.meta_title && (
+          <div className="mt-4 rounded-lg border border-border bg-background/60 p-3 text-xs">
+            <div className="text-muted-foreground">New meta title</div>
+            <div className="font-medium">{after.meta_title}</div>
+            {after.meta_description && (
+              <>
+                <div className="mt-2 text-muted-foreground">New meta description</div>
+                <div>{after.meta_description}</div>
+              </>
+            )}
+          </div>
+        )}
+
+        {!preview && after.aioseo_score == null && (
+          <p className="mt-3 text-[11px] text-amber-500">
+            The AIOSEO score updates a little after publishing — click “Sync from WordPress” in a
+            minute to see the new number.
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
 

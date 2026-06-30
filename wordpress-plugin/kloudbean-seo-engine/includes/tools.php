@@ -26,6 +26,11 @@ function kbseo_register_tool_routes($namespace) {
         'callback' => 'kbseo_tools_list',
         'permission_callback' => 'kbseo_verify_request',
     ]);
+    register_rest_route($namespace, '/categories', [
+        'methods' => 'GET',
+        'callback' => 'kbseo_list_categories',
+        'permission_callback' => 'kbseo_verify_request',
+    ]);
     register_rest_route($namespace, '/tools/get/(?P<id>\d+)', [
         'methods' => 'GET',
         'callback' => 'kbseo_tools_get',
@@ -192,15 +197,63 @@ function kbseo_tool_rate_ok($bucket, $max = 120) {
 }
 
 /**
+ * GET /categories — every category that has pages, so the dashboard can let the
+ * user choose which category to sync/optimize. Returns counts of PAGES per
+ * category (not posts), since tool/landing pages live in the page post type.
+ */
+function kbseo_list_categories($request) {
+    $terms = get_terms([
+        'taxonomy' => 'category',
+        'hide_empty' => false,
+        'orderby' => 'name',
+        'order' => 'ASC',
+    ]);
+    if (is_wp_error($terms)) {
+        return ['ok' => false, 'error' => $terms->get_error_message(), 'categories' => []];
+    }
+    $out = [];
+    foreach ($terms as $t) {
+        // Count published+draft PAGES in this category.
+        $q = new WP_Query([
+            'post_type' => 'page',
+            'post_status' => ['publish', 'draft', 'pending', 'private'],
+            'posts_per_page' => 1,
+            'fields' => 'ids',
+            'no_found_rows' => false,
+            'tax_query' => [[
+                'taxonomy' => 'category',
+                'field' => 'term_id',
+                'terms' => $t->term_id,
+            ]],
+        ]);
+        $page_count = intval($q->found_posts);
+        if ($page_count === 0) continue; // only show categories that have pages
+        $out[] = [
+            'id' => $t->term_id,
+            'name' => $t->name,
+            'slug' => $t->slug,
+            'page_count' => $page_count,
+        ];
+    }
+    // Sort by page_count desc so the biggest categories surface first.
+    usort($out, function ($a, $b) { return $b['page_count'] - $a['page_count']; });
+    return ['ok' => true, 'categories' => $out];
+}
+
+/**
  * GET /tools/list — pages in a category with AIOSEO + Elementor info.
- * Query: category (slug or name, default "Developer Tools"), per_page, page, status.
+ * Query: category (slug or name) OR category_id, per_page, page, status.
+ * When a category is requested but cannot be resolved, returns an EMPTY result
+ * (never silently falls back to all pages).
  */
 function kbseo_tools_list($request) {
     $category = $request->get_param('category');
+    $category_id = intval($request->get_param('category_id') ?: 0);
     if ($category === null || $category === '') $category = 'Developer Tools';
     $per_page = min(100, max(1, intval($request->get_param('per_page') ?: 50)));
     $page = max(1, intval($request->get_param('page') ?: 1));
     $status = $request->get_param('status') ?: 'publish';
+    $all_categories = ($category === '*' || $category === 'all');
 
     $args = [
         'post_type' => 'page',
@@ -211,11 +264,33 @@ function kbseo_tools_list($request) {
         'order' => 'DESC',
     ];
 
-    // Resolve category by slug or name.
-    $term = get_term_by('slug', sanitize_title($category), 'category');
-    if (!$term) $term = get_term_by('name', $category, 'category');
-    if ($term) {
-        $args['cat'] = $term->term_id;
+    $resolved_category = $all_categories ? 'All categories' : $category;
+    if (!$all_categories) {
+        // Resolve the term by id, then slug, then name.
+        $term = null;
+        if ($category_id > 0) $term = get_term($category_id, 'category');
+        if ((!$term || is_wp_error($term))) $term = get_term_by('slug', sanitize_title($category), 'category');
+        if (!$term) $term = get_term_by('name', $category, 'category');
+        if (!$term || is_wp_error($term)) {
+            // Category requested but not found — return empty, do NOT list all pages.
+            return [
+                'ok' => true,
+                'category' => $category,
+                'category_found' => false,
+                'total' => 0,
+                'page' => $page,
+                'per_page' => $per_page,
+                'total_pages' => 0,
+                'items' => [],
+            ];
+        }
+        $resolved_category = $term->name;
+        // tax_query is more reliable than 'cat' for the page post type.
+        $args['tax_query'] = [[
+            'taxonomy' => 'category',
+            'field' => 'term_id',
+            'terms' => $term->term_id,
+        ]];
     }
 
     $query = new WP_Query($args);
@@ -239,7 +314,8 @@ function kbseo_tools_list($request) {
 
     return [
         'ok' => true,
-        'category' => $category,
+        'category' => $resolved_category,
+        'category_found' => true,
         'total' => intval($query->found_posts),
         'page' => $page,
         'per_page' => $per_page,

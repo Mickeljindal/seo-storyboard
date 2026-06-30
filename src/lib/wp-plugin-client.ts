@@ -165,8 +165,12 @@ export type ToolPageList = {
   per_page: number;
   total_pages: number;
   items: ToolPageListItem[];
+  category?: string;
+  category_found?: boolean;
   error?: string;
 };
+
+export type WpCategory = { id: number; name: string; slug: string; page_count: number };
 
 export type ToolPageDetail = {
   ok: boolean;
@@ -238,10 +242,17 @@ async function pluginPost<T>(
 
 /** List existing tool pages in a category (with AIOSEO score + Elementor info). */
 export async function listToolPages(
-  opts: { category?: string; perPage?: number; page?: number; status?: string } = {},
+  opts: {
+    category?: string;
+    categoryId?: number;
+    perPage?: number;
+    page?: number;
+    status?: string;
+  } = {},
 ): Promise<ToolPageList> {
   const params = new URLSearchParams();
   if (opts.category) params.set("category", opts.category);
+  if (opts.categoryId) params.set("category_id", String(opts.categoryId));
   params.set("per_page", String(opts.perPage ?? 50));
   params.set("page", String(opts.page ?? 1));
   if (opts.status) params.set("status", opts.status);
@@ -258,6 +269,12 @@ export async function listToolPages(
     };
   }
   return r;
+}
+
+/** List WordPress categories that contain pages (for the category picker). */
+export async function listToolCategories(): Promise<WpCategory[]> {
+  const r = await pluginGet<{ ok?: boolean; categories?: WpCategory[] }>("/categories");
+  return "categories" in r && Array.isArray(r.categories) ? r.categories : [];
 }
 
 /** Fetch one tool page's full Elementor data + meta (audit, no writes). */

@@ -37,6 +37,7 @@ const COL_MAP: Record<string, keyof typeof tools.$inferInsert> = {
   gate_clicks: "gateClicks",
   perf_synced_at: "perfSyncedAt",
   audit_report: "auditReport",
+  optimize_report: "optimizeReport",
   elementor_snapshot: "elementorSnapshot",
   gate_enabled: "gateEnabled",
   gate_mode: "gateMode",
@@ -154,6 +155,7 @@ export async function upsertExistingTool(data: {
   aioseo_score_before?: number | null;
   audit_report?: unknown;
   target_keyword?: string | null;
+  category?: string | null;
 }): Promise<ApiTool> {
   const existing =
     (await getToolByWpPostId(data.wp_post_id)) ||
@@ -167,6 +169,7 @@ export async function upsertExistingTool(data: {
       aioseo_score_before: data.aioseo_score_before ?? existing.aioseo_score_before,
       audit_report: data.audit_report ?? existing.audit_report,
     };
+    if (data.category) patch.category = data.category;
     if (data.target_keyword && !existing.target_keyword) patch.target_keyword = data.target_keyword;
     const updated = await updateTool(existing.id, patch);
     return updated ?? existing;
@@ -179,6 +182,7 @@ export async function upsertExistingTool(data: {
     aioseo_score_before: data.aioseo_score_before ?? null,
     audit_report: data.audit_report ?? null,
     target_keyword: data.target_keyword ?? null,
+    category: data.category ?? "Developer Tools",
     origin: "existing",
     status: "published",
   });
