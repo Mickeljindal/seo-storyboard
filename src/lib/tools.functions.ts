@@ -476,10 +476,44 @@ export async function syncExistingToolsInternal(data: {
   avgAioseoScore: number | null;
   lowScorers: number;
   categoryFound: boolean;
+  pluginStale?: boolean;
+  error?: string;
 }> {
   const { hasPluginConfigured, listToolPages } = await import("./wp-plugin-client");
   if (!hasPluginConfigured()) throw new Error("WordPress plugin not configured.");
   const toolsRepo = await import("@/server/db/repos/tools");
+
+  // 0. Guard: make sure the WordPress plugin is actually running v1.7.1+ code.
+  // The site can serve DIFFERENT plugin versions from different PHP workers
+  // (OPcache with load balancing), so a single request can look fine while
+  // others return the old buggy /tools/list that ignores the category filter.
+  // If the response is missing the v1.7.1 fields (category_found, taxonomy),
+  // refuse to import — stamping "Developer Tools" on random pages is worse
+  // than doing nothing.
+  const probe = await listToolPages({
+    category: data.category,
+    perPage: 1,
+    page: 1,
+    status: "any",
+  });
+  const pluginStale =
+    probe.ok && (probe.category_found === undefined || probe.taxonomy === undefined);
+  if (pluginStale) {
+    return {
+      ok: false,
+      imported: 0,
+      skipped: 0,
+      removedStale: 0,
+      totalPages: 0,
+      totalOnWp: 0,
+      avgAioseoScore: null,
+      lowScorers: 0,
+      categoryFound: false,
+      pluginStale: true,
+      error:
+        "WordPress plugin is serving an old version and cannot filter pages by category (its response is missing 'category_found' and 'taxonomy'). Fully delete + reinstall the plugin on WordPress (and clear PHP OPcache) — see the amber banner on the Tools page.",
+    };
+  }
 
   let imported = 0;
   let skipped = 0;
@@ -497,6 +531,24 @@ export async function syncExistingToolsInternal(data: {
       status: "any",
     });
     if (!list.ok) throw new Error(list.error ?? "Failed to list tool pages");
+    // Belt-and-suspenders: some requests may hit a stale worker mid-sync. If
+    // the fresh-code fields disappear on a later page, stop the sync.
+    if (list.category_found === undefined || list.taxonomy === undefined) {
+      return {
+        ok: false,
+        imported,
+        skipped,
+        removedStale: 0,
+        totalPages,
+        totalOnWp,
+        avgAioseoScore: null,
+        lowScorers: 0,
+        categoryFound: false,
+        pluginStale: true,
+        error:
+          "WordPress served an inconsistent plugin response mid-sync — the filter broke. Aborting to avoid stamping wrong pages as this category.",
+      };
+    }
     totalPages = list.total_pages;
     totalOnWp = list.total;
     if (list.category_found === false) categoryFound = false;
@@ -1291,3 +1343,43 @@ export const toolsStatusFn = createServerFn({ method: "GET" }).handler(async () 
     aiReady: hasAiCredentials(),
   };
 });
+
+/**
+ * Diagnostic: hit the WordPress plugin's key endpoints twice each and report
+ * what came back — so the user can SEE when different PHP workers serve
+ * different plugin versions (OPcache / load-balancing).
+ */
+export const pluginDiagnosticFn = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ category: z.string().default("Developer Tools") }).parse)
+  .handler(async ({ data }) => {
+    const { loadProjectEnv } = await import("./load-env");
+    loadProjectEnv();
+    const { pingPlugin, listToolPages, listToolCategories } = await import("./wp-plugin-client");
+
+    const pings = await Promise.all([pingPlugin(), pingPlugin()]);
+    const cats = await listToolCategories();
+    const listChecks = await Promise.all([
+      listToolPages({ category: data.category, perPage: 1, page: 1, status: "any" }),
+      listToolPages({ category: data.category, perPage: 1, page: 1, status: "any" }),
+    ]);
+
+    const versions = new Set(pings.map((p) => p.version ?? "unknown"));
+    const totals = new Set(listChecks.map((r) => r.total));
+    const hasFreshFields = listChecks.every(
+      (r) => r.category_found !== undefined && r.taxonomy !== undefined,
+    );
+
+    return {
+      pings: pings.map((p) => ({ ok: p.ok, version: p.version ?? null, error: p.error })),
+      categories: cats.slice(0, 12),
+      listChecks: listChecks.map((r) => ({
+        total: r.total,
+        category_found: r.category_found ?? null,
+        taxonomy: r.taxonomy ?? null,
+        first_slug: r.items?.[0]?.slug ?? null,
+      })),
+      inconsistent: versions.size > 1 || totals.size > 1 || !hasFreshFields,
+      versionsSeen: [...versions],
+      totalsSeen: [...totals],
+    };
+  });

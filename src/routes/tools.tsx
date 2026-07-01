@@ -37,6 +37,7 @@ import {
   listToolCategoriesFn,
   getToolsCategoryFn,
   setToolsCategoryFn,
+  pluginDiagnosticFn,
 } from "@/lib/tools.functions";
 import { enqueueToolJobsFn, drainJobsFn, jobsSummaryFn } from "@/lib/jobs.functions";
 
@@ -266,7 +267,11 @@ function ToolsPage() {
   const syncMut = useMutation({
     mutationFn: () => syncFn({ data: { category: selectedCategory, maxPages: 40, perPage: 50 } }),
     onSuccess: (r) => {
-      if (r.categoryFound === false) {
+      if ((r as { pluginStale?: boolean }).pluginStale) {
+        toast.error(
+          "WordPress plugin is serving stale code (multiple PHP workers, mixed versions). Sync aborted so wrong pages aren't imported. Delete + reinstall the plugin and clear PHP OPcache — details on the amber banner above.",
+        );
+      } else if (r.categoryFound === false) {
         toast.error(
           `Category "${selectedCategory}" not found in WordPress — pick another category or check the spelling.`,
         );
@@ -445,27 +450,10 @@ function ToolsPage() {
           </div>
         </header>
 
-        {!isPluginAtLeast(status?.pluginVersion, "1.7.0") && status?.pluginConfigured && (
-          <div className="mb-6 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-100">
-            <div className="mb-1 font-semibold">
-              Upload the latest WordPress plugin to fix category sync
-            </div>
-            <p className="mb-2 text-xs text-amber-200/90">
-              Your WordPress plugin is <b>v{status?.pluginVersion ?? "unknown"}</b> — accurate
-              category filtering needs <b>v1.7.0+</b>. Until you update, the “Sync from WordPress”
-              button will return whatever pages the old plugin decides (often the wrong ones), and
-              you may see stale rows from previous syncs.
-            </p>
-            <ol className="ml-4 list-decimal space-y-0.5 text-xs text-amber-200/90">
-              <li>
-                In your project, upload <code>wordpress-plugin/kloudbean-seo-engine.zip</code> to
-                WordPress → <b>Plugins → Add New → Upload Plugin</b>. Choose “Replace current with
-                uploaded”.
-              </li>
-              <li>Confirm it says v1.7.0, then click “Sync from WordPress” below.</li>
-            </ol>
-          </div>
-        )}
+        <PluginHealthBanner
+          pluginVersion={status?.pluginVersion}
+          pluginConfigured={!!status?.pluginConfigured}
+        />
 
         {/* PIPELINE OVERVIEW */}
         <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-7">
@@ -1305,6 +1293,108 @@ function Badge({ children }: { children: React.ReactNode }) {
     <span className="rounded bg-secondary px-2 py-0.5 font-mono text-[10px] uppercase">
       {children}
     </span>
+  );
+}
+
+function PluginHealthBanner({
+  pluginVersion,
+  pluginConfigured,
+}: {
+  pluginVersion?: string;
+  pluginConfigured: boolean;
+}) {
+  const diagFn = useServerFn(pluginDiagnosticFn);
+  const [result, setResult] = useState<Awaited<ReturnType<typeof diagFn>> | null>(null);
+  const [busy, setBusy] = useState(false);
+  const outdated = pluginConfigured && !isPluginAtLeast(pluginVersion, "1.7.1");
+  if (!pluginConfigured) return null;
+
+  const run = async () => {
+    setBusy(true);
+    try {
+      setResult(await diagFn({ data: { category: "Developer Tools" } }));
+    } catch (e) {
+      toast.error(String((e as Error)?.message ?? e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const inconsistent = !!result?.inconsistent;
+  const banner = outdated || inconsistent;
+  if (!banner && !result) return null;
+
+  return (
+    <div className="mb-6 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-100">
+      <div className="mb-1 font-semibold">
+        WordPress plugin needs a clean reinstall to sync categories correctly
+      </div>
+      <p className="mb-2 text-xs text-amber-200/90">
+        Reported plugin version: <b>v{pluginVersion ?? "unknown"}</b>
+        {inconsistent && result && (
+          <>
+            . Two probes of your WordPress returned <b>different plugin versions</b> (
+            {result.versionsSeen.join(", ")}) and <b>different totals</b> (
+            {result.totalsSeen.join(", ")}). This means multiple PHP worker processes are serving
+            different plugin versions from OPcache — a "deactivate → activate" doesn't fix it.
+          </>
+        )}
+      </p>
+      <div className="mb-2 text-xs font-medium text-amber-200/90">
+        Do this on WordPress (one time, ~2 min):
+      </div>
+      <ol className="ml-4 list-decimal space-y-0.5 text-xs text-amber-200/90">
+        <li>
+          <b>Plugins → Kloudbean SEO Engine → Deactivate → Delete</b> (fully removes the files).
+        </li>
+        <li>
+          <b>Plugins → Add New → Upload Plugin</b> → pick{" "}
+          <code>wordpress-plugin/kloudbean-seo-engine.zip</code> from your project → Install →
+          Activate.
+        </li>
+        <li>
+          If your host has a "Purge PHP OPcache" button (or LiteSpeed/Nginx cache), click it. If
+          not, wait ~2 min for OPcache to refresh across all workers.
+        </li>
+        <li>
+          Click <b>Diagnose plugin</b> below — the two probes should now agree on the same version
+          and total.
+        </li>
+      </ol>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={run}
+          disabled={busy}
+          title="Hit the WordPress plugin twice and show what each request returned, so you can see whether workers agree."
+        >
+          {busy ? (
+            <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+          ) : (
+            <Search className="mr-1.5 h-3 w-3" />
+          )}
+          Diagnose plugin
+        </Button>
+      </div>
+
+      {result && (
+        <pre className="mt-3 max-h-72 overflow-auto rounded bg-black/30 p-3 text-[10px] leading-tight text-amber-100/90">
+          {JSON.stringify(
+            {
+              pings: result.pings,
+              probes: result.listChecks,
+              inconsistent: result.inconsistent,
+              versionsSeen: result.versionsSeen,
+              totalsSeen: result.totalsSeen,
+            },
+            null,
+            2,
+          )}
+        </pre>
+      )}
+    </div>
   );
 }
 
