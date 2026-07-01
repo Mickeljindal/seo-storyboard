@@ -470,9 +470,12 @@ export async function syncExistingToolsInternal(data: {
   ok: boolean;
   imported: number;
   skipped: number;
+  removedStale: number;
   totalPages: number;
+  totalOnWp: number;
   avgAioseoScore: number | null;
   lowScorers: number;
+  categoryFound: boolean;
 }> {
   const { hasPluginConfigured, listToolPages } = await import("./wp-plugin-client");
   if (!hasPluginConfigured()) throw new Error("WordPress plugin not configured.");
@@ -481,7 +484,11 @@ export async function syncExistingToolsInternal(data: {
   let imported = 0;
   let skipped = 0;
   let totalPages = 1;
+  let totalOnWp = 0;
+  let categoryFound = true;
   const scores: number[] = [];
+  const seenWpIds = new Set<number>();
+
   for (let page = 1; page <= data.maxPages; page++) {
     const list = await listToolPages({
       category: data.category,
@@ -491,9 +498,11 @@ export async function syncExistingToolsInternal(data: {
     });
     if (!list.ok) throw new Error(list.error ?? "Failed to list tool pages");
     totalPages = list.total_pages;
+    totalOnWp = list.total;
+    if (list.category_found === false) categoryFound = false;
+
     for (const p of list.items) {
-      // Per-row isolation: one bad page (e.g. a duplicate slug) must never abort
-      // the whole sync — skip it and keep importing the rest.
+      // Per-row isolation: one bad page must never abort the whole sync.
       try {
         await toolsRepo.upsertExistingTool({
           wp_post_id: p.id,
@@ -504,6 +513,7 @@ export async function syncExistingToolsInternal(data: {
           target_keyword: p.focus_keyword || keywordFromTitle(p.title),
           category: data.category,
         });
+        seenWpIds.add(p.id);
         imported++;
         if (typeof p.aioseo_score === "number") scores.push(p.aioseo_score);
       } catch (e) {
@@ -516,9 +526,37 @@ export async function syncExistingToolsInternal(data: {
     if (page >= totalPages) break;
   }
 
+  // Self-heal: any row we've stamped as "existing" in THIS category, but that
+  // isn't in the fresh sync result, is stale (moved out of the category or
+  // deleted on WP). Remove it so the dashboard mirrors reality. Only runs when
+  // the category was actually found — otherwise we'd wipe good data.
+  let removedStale = 0;
+  if (categoryFound && imported > 0) {
+    try {
+      const existing = await toolsRepo.listExistingToolsByCategory(data.category);
+      for (const t of existing) {
+        if (!t.wp_post_id || seenWpIds.has(t.wp_post_id)) continue;
+        await toolsRepo.deleteToolById(t.id);
+        removedStale++;
+      }
+    } catch {
+      /* cleanup best-effort */
+    }
+  }
+
   const avg = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
   const lowScorers = scores.filter((s) => s < 70).length;
-  return { ok: true, imported, skipped, totalPages, avgAioseoScore: avg, lowScorers };
+  return {
+    ok: true,
+    imported,
+    skipped,
+    removedStale,
+    totalPages,
+    totalOnWp,
+    avgAioseoScore: avg,
+    lowScorers,
+    categoryFound,
+  };
 }
 
 // ============================================================================
@@ -1235,10 +1273,21 @@ export const toolsStatusFn = createServerFn({ method: "GET" }).handler(async () 
   const pluginConfigured = hasPluginConfigured();
   let pluginOk = false;
   let aioseo = false;
+  let pluginVersion: string | undefined;
+  let pluginError: string | undefined;
   if (pluginConfigured) {
     const ping = await pingPlugin();
     pluginOk = ping.ok;
     aioseo = !!ping.aioseo;
+    pluginVersion = ping.version;
+    pluginError = ping.error;
   }
-  return { pluginConfigured, pluginOk, aioseo, aiReady: hasAiCredentials() };
+  return {
+    pluginConfigured,
+    pluginOk,
+    aioseo,
+    pluginVersion,
+    pluginError,
+    aiReady: hasAiCredentials(),
+  };
 });

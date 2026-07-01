@@ -265,9 +265,21 @@ function ToolsPage() {
   const syncMut = useMutation({
     mutationFn: () => syncFn({ data: { category: selectedCategory, maxPages: 40, perPage: 50 } }),
     onSuccess: (r) => {
-      toast.success(
-        `Synced ${r.imported} pages${r.skipped ? ` · skipped ${r.skipped}` : ""} · avg AIOSEO ${r.avgAioseoScore ?? "?"} · ${r.lowScorers} below 70`,
-      );
+      if (r.categoryFound === false) {
+        toast.error(
+          `Category "${selectedCategory}" not found in WordPress — pick another category or check the spelling.`,
+        );
+      } else if (r.imported === 0 && (r.totalOnWp ?? 0) === 0) {
+        toast.info(
+          `WordPress has 0 pages in "${selectedCategory}". If you expect pages here, they may not be assigned to this category on WP.`,
+        );
+      } else {
+        toast.success(
+          `Synced ${r.imported}/${r.totalOnWp ?? r.imported} pages in "${selectedCategory}"${
+            r.removedStale ? ` · removed ${r.removedStale} stale` : ""
+          }${r.skipped ? ` · skipped ${r.skipped}` : ""} · avg AIOSEO ${r.avgAioseoScore ?? "?"}`,
+        );
+      }
       invalidate();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -410,6 +422,10 @@ function ToolsPage() {
             <StatusPill ok={!!status?.pluginConfigured} label="WP Plugin" />
             <StatusPill ok={!!status?.pluginOk} label="Plugin reachable" />
             <StatusPill ok={!!status?.aioseo} label="AIOSEO" />
+            <StatusPill
+              ok={isPluginAtLeast(status?.pluginVersion, "1.7.0")}
+              label={`Plugin v${status?.pluginVersion ?? "?"}`}
+            />
             <Button
               size="sm"
               className="ml-auto"
@@ -427,6 +443,28 @@ function ToolsPage() {
             </Button>
           </div>
         </header>
+
+        {!isPluginAtLeast(status?.pluginVersion, "1.7.0") && status?.pluginConfigured && (
+          <div className="mb-6 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-100">
+            <div className="mb-1 font-semibold">
+              Upload the latest WordPress plugin to fix category sync
+            </div>
+            <p className="mb-2 text-xs text-amber-200/90">
+              Your WordPress plugin is <b>v{status?.pluginVersion ?? "unknown"}</b> — accurate
+              category filtering needs <b>v1.7.0+</b>. Until you update, the “Sync from WordPress”
+              button will return whatever pages the old plugin decides (often the wrong ones), and
+              you may see stale rows from previous syncs.
+            </p>
+            <ol className="ml-4 list-decimal space-y-0.5 text-xs text-amber-200/90">
+              <li>
+                In your project, upload <code>wordpress-plugin/kloudbean-seo-engine.zip</code> to
+                WordPress → <b>Plugins → Add New → Upload Plugin</b>. Choose “Replace current with
+                uploaded”.
+              </li>
+              <li>Confirm it says v1.7.0, then click “Sync from WordPress” below.</li>
+            </ol>
+          </div>
+        )}
 
         {/* PIPELINE OVERVIEW */}
         <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-7">
@@ -1267,6 +1305,16 @@ function Badge({ children }: { children: React.ReactNode }) {
       {children}
     </span>
   );
+}
+
+function isPluginAtLeast(current: string | undefined, minimum: string): boolean {
+  if (!current) return false;
+  const parts = (s: string) => s.split(".").map((n) => parseInt(n, 10) || 0);
+  const [a, b, c] = parts(current);
+  const [x, y, z] = parts(minimum);
+  if (a !== x) return a > x;
+  if (b !== y) return b > y;
+  return c >= z;
 }
 
 function StatusPill({ ok, label }: { ok: boolean; label: string }) {

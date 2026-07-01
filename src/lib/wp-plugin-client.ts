@@ -59,14 +59,19 @@ export function hasPluginConfigured(): boolean {
 }
 
 /** Check if the plugin is reachable and active. */
-export async function pingPlugin(): Promise<{ ok: boolean; aioseo?: boolean; error?: string }> {
+export async function pingPlugin(): Promise<{
+  ok: boolean;
+  aioseo?: boolean;
+  version?: string;
+  error?: string;
+}> {
   const cfg = getPluginConfig();
   if (!cfg) return { ok: false, error: "WP_PLUGIN_URL and WP_PLUGIN_API_KEY not set in .env" };
   try {
     const res = await fetch(`${cfg.url}/health`, { signal: AbortSignal.timeout(10_000) });
     if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
-    const json = (await res.json()) as { ok?: boolean; aioseo?: boolean };
-    return { ok: !!json.ok, aioseo: json.aioseo };
+    const json = (await res.json()) as { ok?: boolean; aioseo?: boolean; version?: string };
+    return { ok: !!json.ok, aioseo: json.aioseo, version: json.version };
   } catch (e) {
     return { ok: false, error: String((e as Error)?.message ?? e) };
   }

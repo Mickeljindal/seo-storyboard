@@ -203,6 +203,16 @@ export async function listOptimizationCandidates(limit = 5): Promise<ApiTool[]> 
   return rows.map(toApiTool);
 }
 
+/** All origin=existing rows currently stamped with the given category. */
+export async function listExistingToolsByCategory(category: string): Promise<ApiTool[]> {
+  const db = await getDb();
+  const rows = await db
+    .select()
+    .from(tools)
+    .where(and(eq(tools.origin, "existing"), eq(tools.category, category)));
+  return rows.map(toApiTool);
+}
+
 export async function deleteToolById(id: string) {
   const db = await getDb();
   await db.delete(tools).where(eq(tools.id, id));
