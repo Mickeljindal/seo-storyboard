@@ -157,14 +157,17 @@ export async function upsertExistingTool(data: {
   target_keyword?: string | null;
   category?: string | null;
 }): Promise<ApiTool> {
+  // Pages without a real WordPress slug (drafts, ?page_id URLs) can't share
+  // the empty-string slug — the unique index would collide. Store NULL so the
+  // partial unique index (WHERE url_slug IS NOT NULL) ignores them.
+  const slug = data.url_slug?.trim() ? data.url_slug.trim() : null;
   const existing =
-    (await getToolByWpPostId(data.wp_post_id)) ||
-    (data.url_slug ? await getToolBySlug(data.url_slug) : null);
+    (await getToolByWpPostId(data.wp_post_id)) || (slug ? await getToolBySlug(slug) : null);
   if (existing) {
     const patch: ToolPatch = {
       name: data.name,
-      // Adopt the latest WordPress post id for this slug (last-seen wins).
       wp_post_id: data.wp_post_id,
+      url_slug: slug ?? existing.url_slug,
       published_url: data.published_url ?? existing.published_url,
       aioseo_score_before: data.aioseo_score_before ?? existing.aioseo_score_before,
       audit_report: data.audit_report ?? existing.audit_report,
@@ -176,7 +179,7 @@ export async function upsertExistingTool(data: {
   }
   return insertTool({
     name: data.name,
-    url_slug: data.url_slug,
+    url_slug: slug,
     wp_post_id: data.wp_post_id,
     published_url: data.published_url ?? null,
     aioseo_score_before: data.aioseo_score_before ?? null,

@@ -1327,38 +1327,41 @@ function PluginHealthBanner({
   return (
     <div className="mb-6 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-100">
       <div className="mb-1 font-semibold">
-        WordPress plugin needs a clean reinstall to sync categories correctly
+        Multiple plugin folders on WordPress — clean up in the file manager
       </div>
       <p className="mb-2 text-xs text-amber-200/90">
-        Reported plugin version: <b>v{pluginVersion ?? "unknown"}</b>
-        {inconsistent && result && (
-          <>
-            . Two probes of your WordPress returned <b>different plugin versions</b> (
-            {result.versionsSeen.join(", ")}) and <b>different totals</b> (
-            {result.totalsSeen.join(", ")}). This means multiple PHP worker processes are serving
-            different plugin versions from OPcache — a "deactivate → activate" doesn't fix it.
-          </>
-        )}
+        Your WordPress is running <b>several copies of the plugin at once</b> from different folders
+        in <code>wp-content/plugins/</code>. WordPress loads all of them and they fight each other —
+        that's why `/health` reports v{pluginVersion ?? "?"} but different endpoints behave like
+        different versions. Deactivating and reinstalling in WP admin only removes the one folder WP
+        admin shows you; the others stay on disk and keep loading.
       </p>
       <div className="mb-2 text-xs font-medium text-amber-200/90">
-        Do this on WordPress (one time, ~2 min):
+        Do this on the WordPress server (5 minutes):
       </div>
       <ol className="ml-4 list-decimal space-y-0.5 text-xs text-amber-200/90">
         <li>
-          <b>Plugins → Kloudbean SEO Engine → Deactivate → Delete</b> (fully removes the files).
+          Open <b>Kloudbean panel → your WordPress app → File Manager</b> (or connect via SFTP).
         </li>
         <li>
-          <b>Plugins → Add New → Upload Plugin</b> → pick{" "}
+          Go to <code>wp-content/plugins/</code>.
+        </li>
+        <li>
+          Delete <b>every</b> folder whose name starts with <code>kloudbean-seo-engine</code> (there
+          may be <code>kloudbean-seo-engine</code>, <code>kloudbean-seo-engine-1</code>,{" "}
+          <code>kloudbean-seo-engine-2</code>, etc.). All of them.
+        </li>
+        <li>
+          Back in WordPress admin → <b>Plugins → Add New → Upload Plugin</b> → pick{" "}
           <code>wordpress-plugin/kloudbean-seo-engine.zip</code> from your project → Install →
           Activate.
         </li>
         <li>
-          If your host has a "Purge PHP OPcache" button (or LiteSpeed/Nginx cache), click it. If
-          not, wait ~2 min for OPcache to refresh across all workers.
+          If your host has a <b>"Purge OPcache"</b> or <b>"Restart PHP-FPM"</b> button, click it.
         </li>
         <li>
-          Click <b>Diagnose plugin</b> below — the two probes should now agree on the same version
-          and total.
+          Click <b>Diagnose plugin</b> below — both probes should agree on <b>v1.7.1</b> and the
+          same total.
         </li>
       </ol>
 

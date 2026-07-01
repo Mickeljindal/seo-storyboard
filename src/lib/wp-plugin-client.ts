@@ -260,6 +260,7 @@ export async function listToolPages(
     perPage?: number;
     page?: number;
     status?: string;
+    cacheBust?: string;
   } = {},
 ): Promise<ToolPageList> {
   const params = new URLSearchParams();
@@ -268,6 +269,7 @@ export async function listToolPages(
   params.set("per_page", String(opts.perPage ?? 50));
   params.set("page", String(opts.page ?? 1));
   if (opts.status) params.set("status", opts.status);
+  if (opts.cacheBust) params.set("_", opts.cacheBust);
   const r = await pluginGet<ToolPageList>(`/tools/list?${params.toString()}`);
   if (!("items" in r)) {
     return {

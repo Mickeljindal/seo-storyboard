@@ -484,21 +484,29 @@ export async function syncExistingToolsInternal(data: {
   const toolsRepo = await import("@/server/db/repos/tools");
 
   // 0. Guard: make sure the WordPress plugin is actually running v1.7.1+ code.
-  // The site can serve DIFFERENT plugin versions from different PHP workers
-  // (OPcache with load balancing), so a single request can look fine while
-  // others return the old buggy /tools/list that ignores the category filter.
-  // If the response is missing the v1.7.1 fields (category_found, taxonomy),
-  // refuse to import — stamping "Developer Tools" on random pages is worse
-  // than doing nothing.
-  const probe = await listToolPages({
-    category: data.category,
-    perPage: 1,
-    page: 1,
-    status: "any",
-  });
-  const pluginStale =
-    probe.ok && (probe.category_found === undefined || probe.taxonomy === undefined);
-  if (pluginStale) {
+  // Kloudbean load-balances across multiple PHP workers, and each has its own
+  // OPcache. Some workers may still be serving an older plugin version. We
+  // probe repeatedly with a cache-busting param so we don't get the same
+  // cached response, until we hit a fresh worker OR give up.
+  let probe: Awaited<ReturnType<typeof listToolPages>> | null = null;
+  const PROBE_RETRIES = 20;
+  for (let attempt = 0; attempt < PROBE_RETRIES; attempt++) {
+    const p = await listToolPages({
+      category: data.category,
+      perPage: 1,
+      page: 1,
+      status: "any",
+      cacheBust: `probe-${Date.now()}-${attempt}`,
+    });
+    if (p.ok && p.category_found !== undefined && p.taxonomy !== undefined) {
+      probe = p;
+      break;
+    }
+    // Longer wait to give the request pool time to route us to a different
+    // worker (Kloudbean's load balancer usually rotates within ~1s).
+    await new Promise((r) => setTimeout(r, 750));
+  }
+  if (!probe) {
     return {
       ok: false,
       imported: 0,
@@ -510,8 +518,7 @@ export async function syncExistingToolsInternal(data: {
       lowScorers: 0,
       categoryFound: false,
       pluginStale: true,
-      error:
-        "WordPress plugin is serving an old version and cannot filter pages by category (its response is missing 'category_found' and 'taxonomy'). Fully delete + reinstall the plugin on WordPress (and clear PHP OPcache) — see the amber banner on the Tools page.",
+      error: `WordPress returned an old plugin response on all ${PROBE_RETRIES} attempts. Almost certainly there are multiple kloudbean-seo-engine* folders in wp-content/plugins on the server — WordPress loads them all and the old ones win. Delete every kloudbean-seo-engine* folder via Kloudbean's File Manager and reinstall (see banner).`,
     };
   }
 
@@ -524,18 +531,30 @@ export async function syncExistingToolsInternal(data: {
   const seenWpIds = new Set<number>();
 
   for (let page = 1; page <= data.maxPages; page++) {
-    const list = await listToolPages({
-      category: data.category,
-      perPage: data.perPage,
-      page,
-      status: "any",
-    });
-    if (!list.ok) throw new Error(list.error ?? "Failed to list tool pages");
-    // Belt-and-suspenders: some requests may hit a stale worker mid-sync. If
-    // the fresh-code fields disappear on a later page, stop the sync.
-    if (list.category_found === undefined || list.taxonomy === undefined) {
+    // Retry each page fetch until it comes back from a v1.7.1 worker. Uses a
+    // cache-buster to force fresh routing to a (potentially different) worker.
+    let list: Awaited<ReturnType<typeof listToolPages>> | null = null;
+    const PAGE_RETRIES = 20;
+    for (let attempt = 0; attempt < PAGE_RETRIES; attempt++) {
+      const l = await listToolPages({
+        category: data.category,
+        perPage: data.perPage,
+        page,
+        status: "any",
+        cacheBust: `p${page}-${Date.now()}-${attempt}`,
+      });
+      if (l.ok && l.category_found !== undefined && l.taxonomy !== undefined) {
+        list = l;
+        break;
+      }
+      if (!l.ok) throw new Error(l.error ?? "Failed to list tool pages");
+      await new Promise((r) => setTimeout(r, 750));
+    }
+    if (!list) {
+      // Couldn't get a fresh-code response for this page — stop, keep what we
+      // imported so far. Report as stale so the UI shows the fix banner.
       return {
-        ok: false,
+        ok: imported > 0,
         imported,
         skipped,
         removedStale: 0,
@@ -543,10 +562,9 @@ export async function syncExistingToolsInternal(data: {
         totalOnWp,
         avgAioseoScore: null,
         lowScorers: 0,
-        categoryFound: false,
+        categoryFound: imported > 0,
         pluginStale: true,
-        error:
-          "WordPress served an inconsistent plugin response mid-sync — the filter broke. Aborting to avoid stamping wrong pages as this category.",
+        error: `WordPress kept returning old plugin responses on page ${page}. Multiple plugin folders on disk — see the amber banner.`,
       };
     }
     totalPages = list.total_pages;
