@@ -173,6 +173,7 @@ function ToolsPage() {
     id: number;
     name: string;
     slug: string;
+    taxonomy?: string;
     page_count: number;
   }[];
   const setCatMut = useMutation({

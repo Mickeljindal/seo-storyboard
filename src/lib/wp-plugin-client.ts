@@ -172,10 +172,17 @@ export type ToolPageList = {
   items: ToolPageListItem[];
   category?: string;
   category_found?: boolean;
+  taxonomy?: string | null;
   error?: string;
 };
 
-export type WpCategory = { id: number; name: string; slug: string; page_count: number };
+export type WpCategory = {
+  id: number;
+  name: string;
+  slug: string;
+  taxonomy?: string;
+  page_count: number;
+};
 
 export type ToolPageDetail = {
   ok: boolean;

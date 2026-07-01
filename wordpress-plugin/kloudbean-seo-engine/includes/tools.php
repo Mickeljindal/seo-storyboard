@@ -197,43 +197,54 @@ function kbseo_tool_rate_ok($bucket, $max = 120) {
 }
 
 /**
- * GET /categories — every category that has pages, so the dashboard can let the
- * user choose which category to sync/optimize. Returns counts of PAGES per
- * category (not posts), since tool/landing pages live in the page post type.
+ * GET /categories — every taxonomy term attached to PAGES that we can filter by.
+ * WP sites often organise pages using a CUSTOM taxonomy (e.g. `page_category`,
+ * `elementor_library_category`, etc.) rather than the default `category`. This
+ * endpoint walks every taxonomy registered for the `page` post type, so the
+ * dashboard always shows the same categories the WP admin filter shows.
  */
 function kbseo_list_categories($request) {
-    $terms = get_terms([
-        'taxonomy' => 'category',
-        'hide_empty' => false,
-        'orderby' => 'name',
-        'order' => 'ASC',
-    ]);
-    if (is_wp_error($terms)) {
-        return ['ok' => false, 'error' => $terms->get_error_message(), 'categories' => []];
+    $taxonomies = get_object_taxonomies('page', 'objects');
+    if (empty($taxonomies)) {
+        // Fallback: include the default category taxonomy even if it's not
+        // registered for pages (some sites attach it via plugin/theme code).
+        $cat = get_taxonomy('category');
+        if ($cat) $taxonomies = ['category' => $cat];
     }
     $out = [];
-    foreach ($terms as $t) {
-        // Count published+draft PAGES in this category.
-        $q = new WP_Query([
-            'post_type' => 'page',
-            'post_status' => ['publish', 'draft', 'pending', 'private'],
-            'posts_per_page' => 1,
-            'fields' => 'ids',
-            'no_found_rows' => false,
-            'tax_query' => [[
-                'taxonomy' => 'category',
-                'field' => 'term_id',
-                'terms' => $t->term_id,
-            ]],
+    foreach ($taxonomies as $tax_name => $tax_obj) {
+        // Skip system taxonomies that don't hold user categories.
+        if (in_array($tax_name, ['nav_menu', 'link_category', 'post_format'], true)) continue;
+        $terms = get_terms([
+            'taxonomy' => $tax_name,
+            'hide_empty' => false,
+            'orderby' => 'name',
+            'order' => 'ASC',
         ]);
-        $page_count = intval($q->found_posts);
-        if ($page_count === 0) continue; // only show categories that have pages
-        $out[] = [
-            'id' => $t->term_id,
-            'name' => $t->name,
-            'slug' => $t->slug,
-            'page_count' => $page_count,
-        ];
+        if (is_wp_error($terms) || empty($terms)) continue;
+        foreach ($terms as $t) {
+            $q = new WP_Query([
+                'post_type' => 'page',
+                'post_status' => ['publish', 'draft', 'pending', 'private'],
+                'posts_per_page' => 1,
+                'fields' => 'ids',
+                'no_found_rows' => false,
+                'tax_query' => [[
+                    'taxonomy' => $tax_name,
+                    'field' => 'term_id',
+                    'terms' => $t->term_id,
+                ]],
+            ]);
+            $page_count = intval($q->found_posts);
+            if ($page_count === 0) continue;
+            $out[] = [
+                'id' => $t->term_id,
+                'name' => $t->name,
+                'slug' => $t->slug,
+                'taxonomy' => $tax_name,
+                'page_count' => $page_count,
+            ];
+        }
     }
     // Sort by page_count desc so the biggest categories surface first.
     usort($out, function ($a, $b) { return $b['page_count'] - $a['page_count']; });
@@ -241,10 +252,43 @@ function kbseo_list_categories($request) {
 }
 
 /**
+ * Try to find a term in ANY taxonomy attached to `page` (or `category` as
+ * a fallback) matching the given name/slug/id. Returns [taxonomy, term] or null.
+ * This is what fixes the "wrong pages" bug on sites that use a custom taxonomy
+ * (e.g. `page_category`) instead of the default `category` to organise pages.
+ */
+function kbseo_find_page_term($category, $category_id) {
+    $taxonomies = get_object_taxonomies('page', 'names');
+    if (empty($taxonomies)) $taxonomies = ['category'];
+
+    // Try each taxonomy: by id, then by slug, then by name.
+    if ($category_id > 0) {
+        foreach ($taxonomies as $tax) {
+            $t = get_term($category_id, $tax);
+            if ($t && !is_wp_error($t)) return [$tax, $t];
+        }
+    }
+    if ($category) {
+        $slug = sanitize_title($category);
+        foreach ($taxonomies as $tax) {
+            $t = get_term_by('slug', $slug, $tax);
+            if ($t && !is_wp_error($t)) return [$tax, $t];
+        }
+        foreach ($taxonomies as $tax) {
+            $t = get_term_by('name', $category, $tax);
+            if ($t && !is_wp_error($t)) return [$tax, $t];
+        }
+    }
+    return null;
+}
+
+/**
  * GET /tools/list — pages in a category with AIOSEO + Elementor info.
  * Query: category (slug or name) OR category_id, per_page, page, status.
- * When a category is requested but cannot be resolved, returns an EMPTY result
- * (never silently falls back to all pages).
+ * Auto-detects which taxonomy the category lives in (default `category` OR any
+ * custom taxonomy attached to pages, e.g. `page_category`). When a category is
+ * requested but cannot be resolved, returns an EMPTY result (never silently
+ * falls back to all pages).
  */
 function kbseo_tools_list($request) {
     $category = $request->get_param('category');
@@ -265,18 +309,17 @@ function kbseo_tools_list($request) {
     ];
 
     $resolved_category = $all_categories ? 'All categories' : $category;
+    $resolved_taxonomy = null;
     if (!$all_categories) {
-        // Resolve the term by id, then slug, then name.
-        $term = null;
-        if ($category_id > 0) $term = get_term($category_id, 'category');
-        if ((!$term || is_wp_error($term))) $term = get_term_by('slug', sanitize_title($category), 'category');
-        if (!$term) $term = get_term_by('name', $category, 'category');
-        if (!$term || is_wp_error($term)) {
-            // Category requested but not found — return empty, do NOT list all pages.
+        $found = kbseo_find_page_term($category, $category_id);
+        if (!$found) {
+            // Category requested but not found in ANY page-attached taxonomy —
+            // return empty, do NOT list all pages.
             return [
                 'ok' => true,
                 'category' => $category,
                 'category_found' => false,
+                'taxonomy' => null,
                 'total' => 0,
                 'page' => $page,
                 'per_page' => $per_page,
@@ -284,10 +327,10 @@ function kbseo_tools_list($request) {
                 'items' => [],
             ];
         }
+        [$resolved_taxonomy, $term] = $found;
         $resolved_category = $term->name;
-        // tax_query is more reliable than 'cat' for the page post type.
         $args['tax_query'] = [[
-            'taxonomy' => 'category',
+            'taxonomy' => $resolved_taxonomy,
             'field' => 'term_id',
             'terms' => $term->term_id,
         ]];
@@ -316,6 +359,7 @@ function kbseo_tools_list($request) {
         'ok' => true,
         'category' => $resolved_category,
         'category_found' => true,
+        'taxonomy' => $resolved_taxonomy,
         'total' => intval($query->found_posts),
         'page' => $page,
         'per_page' => $per_page,
