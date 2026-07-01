@@ -111,3 +111,70 @@ export const getAnalyticsDashboardFn = createServerFn({ method: "GET" }).handler
   const topPages = await getLatestPerformance(25);
   return { configured: hasGscCredentials(), totals, topPages };
 });
+
+/** Save Bing Webmaster credentials from the dashboard. */
+export const saveBingSettingsFn = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      apiKey: z.string().optional(),
+      siteUrl: z.string().optional(),
+    }).parse,
+  )
+  .handler(async ({ data }) => {
+    const { loadProjectEnv } = await import("./load-env");
+    loadProjectEnv();
+    const { saveBingSettings } = await import("./app-settings");
+    const res = await saveBingSettings(data);
+    if (!res.ok) return res;
+    const { testBingConnection } = await import("./bing-client");
+    const test = await testBingConnection();
+    return { ok: true as const, test };
+  });
+
+export const bingSettingsStatusFn = createServerFn({ method: "GET" }).handler(async () => {
+  const { loadProjectEnv } = await import("./load-env");
+  loadProjectEnv();
+  const { hydrateEnvFromSettings, getBingStatus } = await import("./app-settings");
+  await hydrateEnvFromSettings();
+  return getBingStatus();
+});
+
+export const testBingConnectionFn = createServerFn({ method: "GET" }).handler(async () => {
+  const { loadProjectEnv } = await import("./load-env");
+  loadProjectEnv();
+  const { hydrateEnvFromSettings } = await import("./app-settings");
+  await hydrateEnvFromSettings();
+  const { testBingConnection } = await import("./bing-client");
+  return testBingConnection();
+});
+
+/**
+ * Pull top queries + pages from Bing Webmaster (a proxy for AI-search
+ * visibility since ChatGPT Search / Copilot use Bing's index).
+ */
+export const getBingInsightsFn = createServerFn({ method: "GET" }).handler(async () => {
+  const { loadProjectEnv } = await import("./load-env");
+  loadProjectEnv();
+  const { hydrateEnvFromSettings } = await import("./app-settings");
+  await hydrateEnvFromSettings();
+  const { hasBingCredentials, getBingQueryStats, getBingPageStats } = await import("./bing-client");
+  if (!hasBingCredentials()) return { ok: false as const, configured: false };
+  try {
+    const [queries, pages] = await Promise.all([getBingQueryStats(), getBingPageStats()]);
+    const totals = {
+      queries: queries.length,
+      pages: pages.length,
+      clicks: pages.reduce((s, p) => s + (p.Clicks ?? 0), 0),
+      impressions: pages.reduce((s, p) => s + (p.Impressions ?? 0), 0),
+    };
+    return {
+      ok: true as const,
+      configured: true,
+      totals,
+      queries: queries.slice(0, 25),
+      pages: pages.slice(0, 25),
+    };
+  } catch (e) {
+    return { ok: false as const, configured: true, error: String((e as Error)?.message ?? e) };
+  }
+});

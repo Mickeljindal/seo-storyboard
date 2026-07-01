@@ -23,6 +23,9 @@ import {
   testGscConnectionFn,
   saveGscSettingsFn,
   gscSettingsStatusFn,
+  testBingConnectionFn,
+  saveBingSettingsFn,
+  bingSettingsStatusFn,
 } from "@/lib/analytics.functions";
 import {
   KLOUDBEAN_CAPABILITY_GUARD,
@@ -87,6 +90,7 @@ function Settings() {
         </p>
 
         <GscCard />
+        <BingCard />
 
         <Section
           icon={Search}
@@ -404,6 +408,137 @@ WP_APP_PASSWORD=xxxx-xxxx-xxxx-xxxx
         </Section>
       </div>
     </AppLayout>
+  );
+}
+
+function BingCard() {
+  const statusFn = useServerFn(bingSettingsStatusFn);
+  const saveFn = useServerFn(saveBingSettingsFn);
+  const testFn = useServerFn(testBingConnectionFn);
+
+  const status = useQuery({ queryKey: ["bing-status"], queryFn: () => statusFn({}) });
+  const test = useQuery({ queryKey: ["bing-test"], queryFn: () => testFn({}) });
+
+  const [apiKey, setApiKey] = useState("");
+  const [siteUrl, setSiteUrl] = useState("");
+
+  const save = useMutation({
+    mutationFn: () =>
+      saveFn({
+        data: {
+          apiKey: apiKey.trim() || undefined,
+          siteUrl: siteUrl.trim() || undefined,
+        },
+      }),
+    onSuccess: (r) => {
+      if (!r.ok) {
+        toast.error(r.error ?? "Could not save");
+        return;
+      }
+      setApiKey("");
+      toast.success(
+        r.test?.ok ? `Saved & connected — ${r.test.message}` : "Saved. " + (r.test?.message ?? ""),
+      );
+      status.refetch();
+      test.refetch();
+    },
+    onError: (e) => toast.error(String((e as Error)?.message ?? e)),
+  });
+
+  const s = status.data;
+
+  return (
+    <div className="mb-4 rounded-lg border border-primary/30 bg-card p-5">
+      <div className="mb-3 flex items-center gap-2">
+        <Search className="h-4 w-4 text-primary" />
+        <h3 className="font-medium">Bing Webmaster Tools (ChatGPT Search & Copilot visibility)</h3>
+      </div>
+      <p className="mb-3 text-xs text-muted-foreground">
+        ChatGPT Search and Microsoft Copilot use <b>Bing's index</b>. Adding this makes rankings +
+        impressions on Bing a direct proxy for AI-answer visibility, filling the gap Google can't
+        show.
+      </p>
+
+      <StatusLine
+        loading={test.isLoading}
+        ok={test.data?.ok}
+        message={test.data?.message ?? "Not tested"}
+      />
+
+      {s?.configured && (
+        <div className="mb-3 rounded-md border border-emerald-500/30 bg-emerald-500/5 p-2.5 text-xs text-muted-foreground">
+          Saved via <b>{s.source === "dashboard" ? "dashboard" : ".env"}</b>
+          {s.siteUrl ? (
+            <>
+              {" "}
+              · site <code>{s.siteUrl}</code>
+            </>
+          ) : null}
+        </div>
+      )}
+
+      <ol className="mb-3 ml-4 list-decimal space-y-1.5 text-xs text-muted-foreground">
+        <li>
+          Sign in at{" "}
+          <a
+            href="https://www.bing.com/webmasters/"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-0.5 text-primary hover:underline"
+          >
+            bing.com/webmasters <ExternalLink className="h-3 w-3" />
+          </a>{" "}
+          — use <b>Sign in with Google</b> and import your site from GSC (one click).
+        </li>
+        <li>
+          Top-right gear → <b>API Access → API Key → Generate</b>. Copy the key.
+        </li>
+        <li>Paste it below with your site URL, then Save. That's it.</li>
+      </ol>
+
+      <div className="space-y-2">
+        <div>
+          <Label className="text-xs">Bing API key</Label>
+          <Input
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder="e.g. 0c556b0a9caf4312ac9447b87f59e63d"
+            className="font-mono text-[11px]"
+          />
+        </div>
+        <div>
+          <Label className="text-xs">Site URL (exactly as verified in Bing Webmaster)</Label>
+          <Input
+            value={siteUrl}
+            onChange={(e) => setSiteUrl(e.target.value)}
+            placeholder={s?.siteUrl ?? "https://www.kloudbean.com/"}
+          />
+        </div>
+        <div className="flex flex-wrap gap-2 pt-1">
+          <Button
+            size="sm"
+            disabled={save.isPending || (!apiKey.trim() && !siteUrl.trim())}
+            onClick={() => save.mutate()}
+            title="Save the Bing Webmaster credentials and connect."
+          >
+            {save.isPending ? (
+              <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+            ) : (
+              <Search className="mr-1.5 h-3 w-3" />
+            )}
+            Save & connect
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => test.refetch()}
+            title="Re-check the Bing Webmaster connection."
+          >
+            <Search className="mr-1.5 h-3 w-3" /> Test connection
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }
 

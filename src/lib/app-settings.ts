@@ -11,7 +11,13 @@ import "@tanstack/react-start/server-only";
  */
 
 /** Integration keys that can be managed from the dashboard. */
-export const MANAGED_ENV_KEYS = ["GSC_CLIENT_EMAIL", "GSC_PRIVATE_KEY", "GSC_SITE_URL"] as const;
+export const MANAGED_ENV_KEYS = [
+  "GSC_CLIENT_EMAIL",
+  "GSC_PRIVATE_KEY",
+  "GSC_SITE_URL",
+  "BING_API_KEY",
+  "BING_SITE_URL",
+] as const;
 
 let lastHydrated = 0;
 const HYDRATE_TTL_MS = 15_000;
@@ -106,5 +112,40 @@ export async function getGscStatus(): Promise<{
     siteUrl,
     hasPrivateKey,
     source: fromDb ? "dashboard" : clientEmail || hasPrivateKey ? "env" : "none",
+  };
+}
+
+/** Save Bing Webmaster credentials from the dashboard (stored in DB). */
+export async function saveBingSettings(input: {
+  apiKey?: string;
+  siteUrl?: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const patch: Record<string, string | null> = {};
+  if (input.apiKey !== undefined) patch.BING_API_KEY = input.apiKey.trim() || null;
+  if (input.siteUrl !== undefined) patch.BING_SITE_URL = input.siteUrl.trim() || null;
+  if (!Object.keys(patch).length) return { ok: false, error: "Nothing to save." };
+  const { setSettings } = await import("@/server/db/repos/app-settings");
+  await setSettings(patch);
+  await hydrateEnvFromSettings(true);
+  return { ok: true };
+}
+
+/** Current Bing config status for the dashboard (never returns the key). */
+export async function getBingStatus(): Promise<{
+  configured: boolean;
+  siteUrl: string | null;
+  hasApiKey: boolean;
+  source: "dashboard" | "env" | "none";
+}> {
+  const { getSettings } = await import("@/server/db/repos/app-settings");
+  const db = await getSettings(["BING_API_KEY", "BING_SITE_URL"]);
+  const siteUrl = db.BING_SITE_URL || process.env.BING_SITE_URL || null;
+  const hasApiKey = !!(db.BING_API_KEY || process.env.BING_API_KEY);
+  const fromDb = !!(db.BING_API_KEY || db.BING_SITE_URL);
+  return {
+    configured: !!(siteUrl && hasApiKey),
+    siteUrl,
+    hasApiKey,
+    source: fromDb ? "dashboard" : siteUrl || hasApiKey ? "env" : "none",
   };
 }
