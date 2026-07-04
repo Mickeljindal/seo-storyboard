@@ -19,14 +19,8 @@ import {
   Quote,
   Globe,
   DollarSign,
-  LogOut,
-  User,
 } from "lucide-react";
 import { ReactNode } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
-import { authStatusFn, logoutFn } from "@/lib/auth.functions";
-import { toast } from "sonner";
 import { SystemHealthBanner, SystemHealthOkBadge } from "./SystemHealthBanner";
 import { AssistantWidget } from "./AssistantWidget";
 
@@ -116,7 +110,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="border-t border-sidebar-border p-4">
-          <SignedInFooter />
+          <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+            <span>WordPress</span>
+            <span className="rounded-sm bg-amber-500/15 px-1.5 py-0.5 text-amber-400">
+              Not linked
+            </span>
+          </div>
+          <div className="mt-1 text-[11px] text-foreground/70">Connect to enable auto-publish.</div>
         </div>
       </aside>
       <main className="flex-1 overflow-auto">
@@ -133,38 +133,3 @@ export function AppLayout({ children }: { children: ReactNode }) {
   );
 }
 
-function SignedInFooter() {
-  const statusFn = useServerFn(authStatusFn);
-  const logout = useServerFn(logoutFn);
-  const { data } = useQuery({ queryKey: ["auth-status"], queryFn: () => statusFn({}) });
-
-  const logoutMut = useMutation({
-    mutationFn: () => logout({}),
-    onSuccess: () => {
-      toast.success("Signed out.");
-      // Full reload so cached auth queries / server-state are cleared.
-      window.location.href = "/login";
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const username = data?.username || "admin";
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2 text-[11px] text-foreground/80">
-        <User className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="truncate">Signed in as {username}</span>
-      </div>
-      <button
-        onClick={() => logoutMut.mutate()}
-        disabled={logoutMut.isPending}
-        title="Sign out of the dashboard."
-        className="flex w-full items-center gap-2 rounded-md border border-border/60 bg-card/40 px-2 py-1.5 text-[11px] text-foreground/80 hover:border-primary/40 hover:text-foreground disabled:opacity-60"
-      >
-        <LogOut className="h-3.5 w-3.5" />
-        <span>Sign out</span>
-      </button>
-    </div>
-  );
-}
