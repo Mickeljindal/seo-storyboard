@@ -17,6 +17,7 @@ import { Route as ScopeRouteImport } from './routes/scope'
 import { Route as ReelsRouteImport } from './routes/reels'
 import { Route as RaffleRouteImport } from './routes/raffle'
 import { Route as PerformanceRouteImport } from './routes/performance'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as LearningRouteImport } from './routes/learning'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as KeywordsRouteImport } from './routes/keywords'
@@ -68,6 +69,11 @@ const RaffleRoute = RaffleRouteImport.update({
 const PerformanceRoute = PerformanceRouteImport.update({
   id: '/performance',
   path: '/performance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LearningRoute = LearningRouteImport.update({
@@ -144,6 +150,7 @@ export interface FileRoutesByFullPath {
   '/keywords': typeof KeywordsRoute
   '/knowledge': typeof KnowledgeRoute
   '/learning': typeof LearningRoute
+  '/login': typeof LoginRoute
   '/performance': typeof PerformanceRoute
   '/raffle': typeof RaffleRoute
   '/reels': typeof ReelsRoute
@@ -166,6 +173,7 @@ export interface FileRoutesByTo {
   '/keywords': typeof KeywordsRoute
   '/knowledge': typeof KnowledgeRoute
   '/learning': typeof LearningRoute
+  '/login': typeof LoginRoute
   '/performance': typeof PerformanceRoute
   '/raffle': typeof RaffleRoute
   '/reels': typeof ReelsRoute
@@ -189,6 +197,7 @@ export interface FileRoutesById {
   '/keywords': typeof KeywordsRoute
   '/knowledge': typeof KnowledgeRoute
   '/learning': typeof LearningRoute
+  '/login': typeof LoginRoute
   '/performance': typeof PerformanceRoute
   '/raffle': typeof RaffleRoute
   '/reels': typeof ReelsRoute
@@ -213,6 +222,7 @@ export interface FileRouteTypes {
     | '/keywords'
     | '/knowledge'
     | '/learning'
+    | '/login'
     | '/performance'
     | '/raffle'
     | '/reels'
@@ -235,6 +245,7 @@ export interface FileRouteTypes {
     | '/keywords'
     | '/knowledge'
     | '/learning'
+    | '/login'
     | '/performance'
     | '/raffle'
     | '/reels'
@@ -257,6 +268,7 @@ export interface FileRouteTypes {
     | '/keywords'
     | '/knowledge'
     | '/learning'
+    | '/login'
     | '/performance'
     | '/raffle'
     | '/reels'
@@ -280,6 +292,7 @@ export interface RootRouteChildren {
   KeywordsRoute: typeof KeywordsRoute
   KnowledgeRoute: typeof KnowledgeRoute
   LearningRoute: typeof LearningRoute
+  LoginRoute: typeof LoginRoute
   PerformanceRoute: typeof PerformanceRoute
   RaffleRoute: typeof RaffleRoute
   ReelsRoute: typeof ReelsRoute
@@ -346,6 +359,13 @@ declare module '@tanstack/react-router' {
       path: '/performance'
       fullPath: '/performance'
       preLoaderRoute: typeof PerformanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/learning': {
@@ -448,6 +468,7 @@ const rootRouteChildren: RootRouteChildren = {
   KeywordsRoute: KeywordsRoute,
   KnowledgeRoute: KnowledgeRoute,
   LearningRoute: LearningRoute,
+  LoginRoute: LoginRoute,
   PerformanceRoute: PerformanceRoute,
   RaffleRoute: RaffleRoute,
   ReelsRoute: ReelsRoute,
