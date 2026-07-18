@@ -420,6 +420,133 @@ export async function getLinkBuildingTargets(limit = 100): Promise<LinkTarget[]>
 }
 
 // ---------------------------------------------------------------------------
+// Live grounding for the content engine — real per-keyword competitor facts
+// ---------------------------------------------------------------------------
+
+export type TopicIntel = {
+  keyword: string;
+  rankers: { domain: string; position: number; url: string | null }[];
+  gapRow: { competitorDomain: string; competitorPosition: number; volume: number | null } | null;
+};
+
+/**
+ * Pull real, current competitor facts for a topic keyword straight from the
+ * KLOUDGRAPH warehouse: who ranks for it (and where), and gap-data proof that
+ * the niche has demand. This replaces guesswork with actual Semrush-derived
+ * numbers at write time, so articles cite real positions instead of vague
+ * "competitors offer X" claims.
+ */
+export async function getTopicIntel(keywordOrTitle: string, limit = 6): Promise<TopicIntel[]> {
+  const { getDb, schema } = await import("@/server/db/client");
+  const { sql } = await import("drizzle-orm");
+  const db = await getDb();
+
+  // Extract candidate keyword phrases (the raw text, lowercased, plus its
+  // significant words) and look for exact/near matches in the warehouse —
+  // keeps this fast without needing full-text search infra.
+  const norm = keywordOrTitle.toLowerCase().trim();
+  if (!norm) return [];
+
+  const likePattern = `%${norm.replace(/'/g, "''")}%`;
+  try {
+    // Prefer exact/close matches: exact keyword first, then keyword STARTING
+    // with the topic, then contains-anywhere — so "wordpress hosting" doesn't
+    // surface loosely-related noise ahead of the direct match.
+    const raw = await db.execute(
+      sql.raw(`
+        SELECT competitor_domain, keyword, position, url
+        FROM kg_organic_rankings
+        WHERE keyword ILIKE '${likePattern}'
+        ORDER BY
+          (lower(keyword) = '${norm.replace(/'/g, "''")}') DESC,
+          (lower(keyword) LIKE '${norm.replace(/'/g, "''")}%') DESC,
+          position ASC NULLS LAST
+        LIMIT 25
+      `),
+    );
+    const rows = ((raw as unknown as { rows?: unknown[] }).rows ?? (raw as unknown[])) as {
+      competitor_domain: string;
+      keyword: string;
+      position: number | null;
+      url: string | null;
+    }[];
+
+    const byKeyword = new Map<string, TopicIntel>();
+    for (const r of rows) {
+      if (r.position == null) continue;
+      const key = r.keyword.toLowerCase();
+      const entry = byKeyword.get(key) ?? { keyword: r.keyword, rankers: [], gapRow: null };
+      entry.rankers.push({ domain: r.competitor_domain, position: r.position, url: r.url });
+      byKeyword.set(key, entry);
+    }
+
+    const gapRaw = await db.execute(
+      sql.raw(`
+        SELECT competitor_domain, keyword, competitor_position, volume
+        FROM kg_keyword_gap
+        WHERE keyword ILIKE '${likePattern}'
+        AND (our_position IS NULL OR our_position = 0)
+        ORDER BY coalesce(volume, 0) DESC
+        LIMIT 20
+      `),
+    );
+    const gapRows = ((gapRaw as unknown as { rows?: unknown[] }).rows ?? (gapRaw as unknown[])) as {
+      competitor_domain: string;
+      keyword: string;
+      competitor_position: number;
+      volume: number | null;
+    }[];
+    for (const g of gapRows) {
+      const key = g.keyword.toLowerCase();
+      const entry = byKeyword.get(key) ?? { keyword: g.keyword, rankers: [], gapRow: null };
+      if (!entry.gapRow) {
+        entry.gapRow = {
+          competitorDomain: g.competitor_domain,
+          competitorPosition: g.competitor_position,
+          volume: g.volume,
+        };
+      }
+      byKeyword.set(key, entry);
+    }
+
+    void schema;
+    return [...byKeyword.values()]
+      .map((e) => ({
+        ...e,
+        rankers: e.rankers.sort((a, b) => a.position - b.position).slice(0, 5),
+      }))
+      .slice(0, limit);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Build a prompt-ready grounding block from live KLOUDGRAPH data for a topic.
+ * Returns "" when there's no matching data (never blocks generation).
+ */
+export async function kloudgraphPromptBlock(keywordOrTitle: string): Promise<string> {
+  const intel = await getTopicIntel(keywordOrTitle, 4);
+  if (!intel.length) return "";
+
+  const lines: string[] = [
+    "LIVE COMPETITOR DATA (from our own SEO intelligence warehouse, real ranking positions — cite these as current facts, not guesses; still phrase exact numbers as 'as of recent data'):",
+  ];
+  for (const t of intel) {
+    if (t.rankers.length) {
+      const ranks = t.rankers.map((r) => `${r.domain} (position ${r.position})`).join(", ");
+      lines.push(`- For "${t.keyword}": currently ranking — ${ranks}.`);
+    }
+    if (t.gapRow) {
+      lines.push(
+        `- "${t.keyword}" has real search demand (~${t.gapRow.volume ?? "some"} monthly volume) and ${t.gapRow.competitorDomain} ranks at position ${t.gapRow.competitorPosition} — Kloudbean currently does not rank here, which is the opportunity this article should close.`,
+      );
+    }
+  }
+  return lines.join("\n");
+}
+
+// ---------------------------------------------------------------------------
 // Competitor strength summary — feeds the knowledge graph + dashboard
 // ---------------------------------------------------------------------------
 

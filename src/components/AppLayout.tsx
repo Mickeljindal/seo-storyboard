@@ -85,7 +85,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
 
-        <nav className="flex-1 px-3 py-1">
+        <nav className="flex-1 overflow-y-auto px-3 py-1">
           {NAV.map((n) => {
             const active = n.to === "/" ? loc.pathname === "/" : loc.pathname.startsWith(n.to);
             const Icon = n.icon;

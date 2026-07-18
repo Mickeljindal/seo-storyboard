@@ -202,6 +202,18 @@ export async function runContentEngine(
     `${title} ${keyword}`,
     String(article.competitor_domain ?? ""),
   );
+  // Live competitor intelligence from KLOUDGRAPH (real Semrush-derived ranking
+  // positions + demand data) — supplements the hand-curated competitor blurbs
+  // above with actual current facts, when we have data for this topic.
+  let kloudgraphBlock = "";
+  try {
+    const { kloudgraphPromptBlock } = await import("./kloudgraph/opportunity-engine");
+    kloudgraphBlock = await kloudgraphPromptBlock(`${title} ${keyword}`);
+    if (kloudgraphBlock)
+      log.push("KLOUDGRAPH grounding: live competitor data found for this topic");
+  } catch {
+    /* KLOUDGRAPH data optional — never blocks generation */
+  }
   let ragBlock = "";
   let ragSources: { title: string; url: string }[] = [];
   if (useRag) {
@@ -215,7 +227,9 @@ export async function runContentEngine(
     }
   }
 
-  const grounding = [geoBlock, competitorBlock, ragBlock].filter(Boolean).join("\n\n");
+  const grounding = [geoBlock, competitorBlock, kloudgraphBlock, ragBlock]
+    .filter(Boolean)
+    .join("\n\n");
 
   // 2. Draft section-by-section
   const sectionCount = outline.length || 6;
