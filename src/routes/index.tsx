@@ -7,6 +7,11 @@ import { StatusBadge, PillarBadge, PriorityDot } from "@/components/Badges";
 import { ArticleSidePanel } from "@/components/ArticleSidePanel";
 import { Button } from "@/components/ui/button";
 import { seedArticles } from "@/lib/seed.functions";
+import {
+  listScoredOpportunitiesFn,
+  listCompetitorStrengthFn,
+  sendOpportunitiesToContentFn,
+} from "@/lib/kloudgraph.functions";
 import { useState, useMemo } from "react";
 import {
   Sparkles,
@@ -23,6 +28,9 @@ import {
   Plug,
   Bot,
   Rocket,
+  Swords,
+  Crown,
+  Link2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { pillarMeta, STATUSES } from "@/lib/pillars";
@@ -83,6 +91,37 @@ function Dashboard() {
   }, [articles]);
 
   const empty = !isLoading && (articles?.length ?? 0) === 0;
+
+  // KLOUDGRAPH — competitor intelligence surfaced right on the main dashboard.
+  const oppsFn = useServerFn(listScoredOpportunitiesFn);
+  const strengthFn = useServerFn(listCompetitorStrengthFn);
+  const sendFn = useServerFn(sendOpportunitiesToContentFn);
+
+  const { data: kgOpps, refetch: refetchOpps } = useQuery({
+    queryKey: ["dash-kg-opps"],
+    queryFn: () => oppsFn({ data: { limit: 5, minRelevance: 0.6 } }),
+  });
+  const { data: kgStrength } = useQuery({
+    queryKey: ["dash-kg-strength"],
+    queryFn: () => strengthFn({}),
+  });
+
+  const sendMut = useMutation({
+    mutationFn: () => sendFn({ data: { limit: 25, minRelevance: 0.6 } }),
+    onSuccess: (r) => {
+      toast.success(
+        r.created > 0
+          ? `Sent ${r.created} competitor-proven keyword(s) to your content pipeline`
+          : "Everything worth grabbing is already in your pipeline",
+      );
+      refetch();
+      refetchOpps();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const kgOpportunities = kgOpps?.opportunities ?? [];
+  const kgCompetitors = kgStrength?.competitors ?? [];
 
   return (
     <AppLayout>
@@ -256,11 +295,114 @@ function Dashboard() {
           </div>
         </section>
 
+        {/* KLOUDGRAPH — competitor intelligence */}
+        <section className="mb-12">
+          <SectionLabel
+            kicker="03"
+            title="Competitor intelligence"
+            desc="From your KLOUDGRAPH warehouse — real Semrush-derived data, not guesses."
+          />
+          <div className="mt-6 grid grid-cols-12 gap-6">
+            <div className="col-span-12 lg:col-span-7">
+              <div className="h-full rounded-xl border border-orange-500/20 bg-orange-500/[0.04] p-5">
+                <div className="mb-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm font-semibold">
+                    <Swords className="h-4 w-4 text-orange-400" />
+                    Top opportunities right now
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={sendMut.isPending || kgOpportunities.length === 0}
+                    onClick={() => sendMut.mutate()}
+                    title="Turn these competitor-proven keywords into article ideas in your pipeline."
+                  >
+                    <Rocket className="mr-1.5 h-3.5 w-3.5" /> Send to pipeline
+                  </Button>
+                </div>
+                {kgOpportunities.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    No KLOUDGRAPH data yet.{" "}
+                    <Link to="/kloudgraph" className="text-primary underline">
+                      Import your Semrush exports
+                    </Link>{" "}
+                    to unlock this.
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {kgOpportunities.map((o, i) => (
+                      <li
+                        key={`${o.keyword}-${i}`}
+                        className="flex items-center justify-between gap-3 rounded-md border border-border/60 bg-background/40 px-3 py-2 text-xs"
+                      >
+                        <div className="min-w-0">
+                          <div className="truncate font-medium text-foreground/90">{o.keyword}</div>
+                          <div className="truncate text-[10px] text-muted-foreground">
+                            {o.competitorCount} competitor(s) rank ·{" "}
+                            {o.clusterName ?? "unclustered"}
+                          </div>
+                        </div>
+                        <span className="num shrink-0 font-semibold text-orange-400">
+                          {o.volume ? o.volume.toLocaleString() : "—"}/mo
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <Link
+                  to="/kloudgraph"
+                  className="mt-3 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary"
+                >
+                  Open the full attack list <ArrowRight className="h-3 w-3" />
+                </Link>
+              </div>
+            </div>
+
+            <div className="col-span-12 lg:col-span-5">
+              <div className="h-full rounded-xl border border-border bg-card/60 p-5">
+                <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
+                  <Crown className="h-4 w-4 text-amber-400" />
+                  Who's winning the niche
+                </div>
+                {kgCompetitors.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    Seed competitors on the{" "}
+                    <Link to="/kloudgraph" className="text-primary underline">
+                      Competitor Graph
+                    </Link>{" "}
+                    page to see this.
+                  </p>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {kgCompetitors.slice(0, 5).map((c, i) => (
+                      <li key={c.domain} className="flex items-center justify-between text-xs">
+                        <span className="flex items-center gap-1.5 text-foreground/85">
+                          <span className="font-mono text-[10px] text-muted-foreground">
+                            {String(i + 1).padStart(2, "0")}
+                          </span>
+                          {c.domain}
+                        </span>
+                        <span className="num font-semibold text-primary">{c.strengthScore}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <Link
+                  to="/kloudgraph"
+                  className="mt-3 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary"
+                >
+                  <Link2 className="h-3 w-3" /> Find link-building targets
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* 12-week + status */}
         <section className="mb-12 grid grid-cols-12 gap-6">
           <div className="col-span-12 lg:col-span-8">
             <SectionLabel
-              kicker="03"
+              kicker="04"
               title="12-week sprint"
               desc="Click any article to open the brief & keyword panel."
             />
@@ -310,7 +452,7 @@ function Dashboard() {
 
           <div className="col-span-12 lg:col-span-4">
             <SectionLabel
-              kicker="04"
+              kicker="05"
               title="By status"
               desc="Where the roadmap stands right now."
             />
@@ -346,7 +488,7 @@ function Dashboard() {
 
         {/* Recent table */}
         <section>
-          <SectionLabel kicker="05" title="Recent activity" desc="Latest from the roadmap." />
+          <SectionLabel kicker="06" title="Recent activity" desc="Latest from the roadmap." />
           <div className="mt-6 overflow-hidden rounded-xl border border-border bg-card/60 backdrop-blur">
             <table className="w-full text-sm">
               <thead className="border-b border-border bg-foreground/[0.02] font-mono text-[10px] uppercase tracking-wider text-muted-foreground">

@@ -36,7 +36,9 @@ function opp(a: { quality_score?: number | null; keyword_data?: unknown }): numb
  * everything else becomes supporting pointing to that hub. Persists silo_role +
  * hub_article_id so links and the strategy view reflect the real topical map.
  */
-export async function rebuildSilo(geo?: string): Promise<{ clusters: number; hubs: number; supporting: number }> {
+export async function rebuildSilo(
+  geo?: string,
+): Promise<{ clusters: number; hubs: number; supporting: number }> {
   const all = await articlesRepo.listArticles({ geo, limit: 5000 });
   let hubs = 0;
   let supporting = 0;
@@ -77,6 +79,38 @@ export async function rebuildSilo(geo?: string): Promise<{ clusters: number; hub
   return { clusters: clusterIds.size, hubs, supporting };
 }
 
+/**
+ * KLOUDGRAPH gap coverage per cluster — how many real competitor-proven
+ * opportunities exist for each cluster and the single strongest one, so the
+ * topical map shows not just what's written but what's WORTH writing next,
+ * backed by actual Semrush-derived competitor data.
+ */
+async function kloudgraphGapByCluster(): Promise<
+  Record<number, { count: number; topKeyword: string; topVolume: number }>
+> {
+  try {
+    const { getAggregatedOpportunities } = await import("./kloudgraph/opportunity-engine");
+    const opps = await getAggregatedOpportunities({ limit: 500, minRelevance: 0.5 });
+    const byCluster: Record<number, { count: number; topKeyword: string; topVolume: number }> = {};
+    for (const o of opps) {
+      if (o.clusterId == null) continue;
+      const cur = byCluster[o.clusterId];
+      if (!cur) {
+        byCluster[o.clusterId] = { count: 1, topKeyword: o.keyword, topVolume: o.volume };
+      } else {
+        cur.count++;
+        if (o.volume > cur.topVolume) {
+          cur.topKeyword = o.keyword;
+          cur.topVolume = o.volume;
+        }
+      }
+    }
+    return byCluster;
+  } catch {
+    return {}; // KLOUDGRAPH data optional — map still works without it
+  }
+}
+
 /** Build the topical map for the strategy UI: clusters → hub + supporting nodes. */
 export async function getTopicalMap(geo?: string): Promise<{
   clusters: {
@@ -86,9 +120,11 @@ export async function getTopicalMap(geo?: string): Promise<{
     supporting: SiloNode[];
     article_count: number;
     published: number;
+    competitor_gap: { count: number; topKeyword: string; topVolume: number } | null;
   }[];
 }> {
   const all = await articlesRepo.listArticles({ geo, limit: 5000 });
+  const gapByCluster = await kloudgraphGapByCluster();
   const clusters = CLUSTERS.map((cluster) => {
     const inCluster = all.filter((a) => a.cluster_id === cluster.id);
     const nodes: SiloNode[] = inCluster.map((a) => ({
@@ -103,7 +139,9 @@ export async function getTopicalMap(geo?: string): Promise<{
       status: a.status,
     }));
     const hub = nodes.find((n) => n.role === "hub" || n.role === "pillar") ?? null;
-    const supporting = nodes.filter((n) => n.id !== hub?.id).sort((a, b) => b.opportunity - a.opportunity);
+    const supporting = nodes
+      .filter((n) => n.id !== hub?.id)
+      .sort((a, b) => b.opportunity - a.opportunity);
     return {
       cluster_id: cluster.id,
       cluster_name: cluster.name,
@@ -111,6 +149,7 @@ export async function getTopicalMap(geo?: string): Promise<{
       supporting,
       article_count: inCluster.length,
       published: inCluster.filter((a) => ["published", "promoted"].includes(a.status)).length,
+      competitor_gap: gapByCluster[cluster.id] ?? null,
     };
   });
   return { clusters };

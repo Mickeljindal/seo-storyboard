@@ -236,20 +236,31 @@ export async function listRafflePool(filters: {
       status: articles.status,
       priority: articles.priority,
       ideaIndex: articles.ideaIndex,
+      engineSource: articles.engineSource,
+      keywordData: articles.keywordData,
     })
     .from(articles)
     .where(conds.length ? and(...conds) : undefined)
     .limit(2000);
-  return rows.map((r) => ({
-    id: r.id,
-    title: r.title,
-    cluster_id: r.clusterId,
-    cluster_name: r.clusterName,
-    anchor: r.anchor,
-    status: r.status,
-    priority: r.priority,
-    idea_index: r.ideaIndex,
-  }));
+  return rows.map((r) => {
+    const kd = r.keywordData as { opportunityScore?: number; competitorCount?: number } | null;
+    return {
+      id: r.id,
+      title: r.title,
+      cluster_id: r.clusterId,
+      cluster_name: r.clusterName,
+      anchor: r.anchor,
+      status: r.status,
+      priority: r.priority,
+      idea_index: r.ideaIndex,
+      // Competitor-proven ideas (from KLOUDGRAPH) carry a real opportunity
+      // score + how many rivals rank for it — surfaced so the raffle can
+      // weight toward proven demand instead of pure chance.
+      is_competitor_proven: r.engineSource === "kloudgraph",
+      opportunity_score: kd?.opportunityScore ?? null,
+      competitor_count: kd?.competitorCount ?? null,
+    };
+  });
 }
 
 export async function listTargetKeywords(geo: string): Promise<Set<string>> {

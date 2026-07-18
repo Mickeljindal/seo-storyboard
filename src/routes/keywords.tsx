@@ -10,6 +10,7 @@ import {
   testDataForSeoConnection,
 } from "@/lib/dataforseo.functions";
 import { listKeywords } from "@/lib/keywords.functions";
+import { getStoredCompetitorRankingsFn } from "@/lib/kloudgraph.functions";
 import { AppLayout } from "@/components/AppLayout";
 import { IntentBadge, OpportunityBadge } from "@/components/seo/IntentBadge";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Search, Lightbulb, Globe, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, Search, Lightbulb, Globe, CheckCircle2, XCircle, Database } from "lucide-react";
 import { toast } from "sonner";
 import type { KeywordResearch } from "@/lib/seo-types";
 
@@ -42,6 +43,7 @@ function Keywords() {
   const ideasFn = useServerFn(getKeywordIdeas);
   const compFn = useServerFn(getCompetitorKeywords);
   const testFn = useServerFn(testDataForSeoConnection);
+  const storedFn = useServerFn(getStoredCompetitorRankingsFn);
 
   const { data: conn } = useQuery({ queryKey: ["dfs-conn"], queryFn: () => testFn({}) });
 
@@ -98,6 +100,20 @@ function Keywords() {
       compFn({
         data: { domain: competitor, geo: geo as "sa" | "in" | "ae" | "global", limit: 40 },
       }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  // Free alternative: read from the KLOUDGRAPH warehouse (already-imported
+  // Semrush data) instead of paying for a live DataForSEO lookup.
+  const storedM = useMutation({
+    mutationFn: () => storedFn({ data: { domain: competitor, limit: 60 } }),
+    onSuccess: (r) => {
+      if (r.keywords.length === 0) {
+        toast.info(`No stored KLOUDGRAPH data for ${competitor} — import it on Competitor Graph.`);
+      } else {
+        toast.success(`${r.keywords.length} keywords from your KLOUDGRAPH warehouse (free)`);
+      }
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -257,7 +273,7 @@ function Keywords() {
             <p className="text-sm text-muted-foreground">
               See what competitors rank for — find gaps Kloudbean should cover in topical clusters.
             </p>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Input
                 placeholder="competitor.com"
                 value={competitor}
@@ -265,18 +281,65 @@ function Keywords() {
               />
               <GeoSelect geo={geo} setGeo={setGeo} />
               <Button
+                variant="outline"
+                onClick={() => storedM.mutate()}
+                disabled={storedM.isPending || !competitor}
+                title="Free — reads from your already-imported KLOUDGRAPH warehouse (Semrush data), no API cost."
+              >
+                {storedM.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Database className="mr-2 h-4 w-4" />
+                )}
+                Stored data (free)
+              </Button>
+              <Button
                 onClick={() => compM.mutate()}
                 disabled={compM.isPending || !competitor}
-                title="See what this competitor ranks for, to find topic gaps Kloudbean should cover."
+                title="Live DataForSEO lookup — costs API credits, always up to date."
               >
                 {compM.isPending ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   <Globe className="mr-2 h-4 w-4" />
                 )}
-                Analyze
+                Live lookup
               </Button>
             </div>
+
+            {storedM.data && storedM.data.keywords.length > 0 && (
+              <div className="overflow-hidden rounded-lg border border-border">
+                <div className="flex items-center gap-1.5 border-b border-border bg-emerald-500/10 px-3 py-1.5 text-[11px] text-emerald-400">
+                  <Database className="h-3 w-3" /> From your KLOUDGRAPH warehouse (free, no API
+                  call)
+                </div>
+                <div className="max-h-96 overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <thead className="sticky top-0 bg-secondary/90 text-xs text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2 text-left">Keyword</th>
+                        <th className="px-3 py-2 text-right">Pos</th>
+                        <th className="px-3 py-2 text-right">Volume</th>
+                        <th className="px-3 py-2 text-right">KD</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {storedM.data.keywords.map((row) => (
+                        <tr key={row.keyword} className="border-t border-border">
+                          <td className="px-3 py-2 font-medium">{row.keyword}</td>
+                          <td className="px-3 py-2 text-right">{row.position ?? "—"}</td>
+                          <td className="px-3 py-2 text-right">
+                            {row.volume?.toLocaleString() ?? "—"}
+                          </td>
+                          <td className="px-3 py-2 text-right">{row.difficulty ?? "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
             {compM.data && (
               <div className="overflow-hidden rounded-lg border border-border max-h-96 overflow-y-auto">
                 <table className="w-full text-sm">

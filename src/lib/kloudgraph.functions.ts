@@ -263,6 +263,47 @@ export const listCompetitorStrengthFn = createServerFn({ method: "GET" }).handle
 });
 
 /**
+ * Stored competitor rankings for one domain — reads straight from the
+ * KLOUDGRAPH warehouse (already imported from Semrush), so it's instant and
+ * free to call, unlike the live DataForSEO lookup on the Keywords page.
+ */
+export const getStoredCompetitorRankingsFn = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      domain: z.string().min(3),
+      limit: z.number().min(1).max(200).default(60),
+    }).parse,
+  )
+  .handler(async ({ data }) => {
+    const { loadProjectEnv } = await import("./load-env");
+    loadProjectEnv();
+    const { getDb, schema } = await import("@/server/db/client");
+    const { eq, asc, sql } = await import("drizzle-orm");
+    const db = await getDb();
+
+    const domain = data.domain
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "");
+    const r = schema.kgOrganicRankings;
+    const rows = await db
+      .select({
+        keyword: r.keyword,
+        position: r.position,
+        volume: r.volume,
+        difficulty: r.difficulty,
+        url: r.url,
+      })
+      .from(r)
+      .where(eq(r.competitorDomain, domain))
+      .orderBy(asc(sql`coalesce(${r.position}, 999)`))
+      .limit(data.limit);
+
+    return { ok: true, domain, keywords: rows, stored: true };
+  });
+
+/**
  * Send the top-scored opportunities straight into the content pipeline as
  * article ideas — pre-filled with keyword, cluster, and competitor proof.
  * This is the bridge that turns competitor intelligence into content the

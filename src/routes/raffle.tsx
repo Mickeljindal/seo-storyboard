@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CLUSTERS, ANCHORS, clusterMeta } from "@/lib/pillars";
-import { Dices, Sparkles, RefreshCw, Lock } from "lucide-react";
+import { Dices, Sparkles, RefreshCw, Lock, Swords } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/raffle")({ component: Raffle });
@@ -31,6 +31,9 @@ type Article = {
   status: string;
   priority: string | null;
   idea_index: number | null;
+  is_competitor_proven?: boolean;
+  opportunity_score?: number | null;
+  competitor_count?: number | null;
 };
 
 function pickRandom<T>(arr: T[], n: number): T[] {
@@ -42,12 +45,40 @@ function pickRandom<T>(arr: T[], n: number): T[] {
   return a.slice(0, n);
 }
 
+/**
+ * Weighted draw that favors KLOUDGRAPH-proven ideas (real competitor demand)
+ * without making the raffle fully deterministic — each proven idea gets extra
+ * "tickets" proportional to its opportunity score, so it's more likely to be
+ * picked but plain ideas can still win.
+ */
+function pickWeighted(arr: Article[], n: number): Article[] {
+  const tickets: Article[] = [];
+  for (const a of arr) {
+    const extra = a.is_competitor_proven
+      ? Math.min(5, Math.round((a.opportunity_score ?? 1) * 2))
+      : 0;
+    for (let i = 0; i < 1 + extra; i++) tickets.push(a);
+  }
+  const picked: Article[] = [];
+  const seen = new Set<string>();
+  while (picked.length < n && tickets.length > 0) {
+    const idx = Math.floor(Math.random() * tickets.length);
+    const a = tickets[idx];
+    tickets.splice(idx, 1);
+    if (seen.has(a.id)) continue;
+    seen.add(a.id);
+    picked.push(a);
+  }
+  return picked;
+}
+
 function Raffle() {
   const [cluster, setCluster] = useState<string>("all");
   const [anchor, setAnchor] = useState<string>("all");
   const [count, setCount] = useState(10);
   const [picked, setPicked] = useState<Article[]>([]);
   const [excludeWritten, setExcludeWritten] = useState(true);
+  const [favorProven, setFavorProven] = useState(true);
   const [panelId, setPanelId] = useState<string | null>(null);
 
   const poolFn = useServerFn(getRafflePool);
@@ -80,10 +111,12 @@ function Raffle() {
 
   const stats = useMemo(() => {
     const byCluster: Record<number, number> = {};
+    let provenCount = 0;
     (pool ?? []).forEach((a) => {
       if (a.cluster_id != null) byCluster[a.cluster_id] = (byCluster[a.cluster_id] ?? 0) + 1;
+      if (a.is_competitor_proven) provenCount++;
     });
-    return { poolSize: pool?.length ?? 0, byCluster };
+    return { poolSize: pool?.length ?? 0, byCluster, provenCount };
   }, [pool]);
 
   const drawMut = useMutation({
@@ -91,12 +124,12 @@ function Raffle() {
       if (!pool || pool.length === 0)
         throw new Error("Pool is empty — relax filters or seed ideas.");
       const n = Math.min(count, pool.length);
-      const drawn = pickRandom(pool, n);
+      const drawn = favorProven ? pickWeighted(pool, n) : pickRandom(pool, n);
       // Log the draw
       await logDrawFn({
         data: {
           draw_count: n,
-          filters: { cluster, anchor, excludeWritten },
+          filters: { cluster, anchor, excludeWritten, favorProven },
           picked_ids: drawn.map((d) => d.id),
         },
       });
@@ -248,6 +281,28 @@ function Raffle() {
             </div>
           </div>
 
+          <div className="mt-3">
+            <label
+              className="flex w-full cursor-pointer items-center justify-between rounded-md border border-orange-500/30 bg-orange-500/5 px-3 py-2 text-sm"
+              title="Ideas proven by real competitor data (KLOUDGRAPH) get extra chances to be drawn, weighted by how strong the opportunity is. Plain ideas can still win."
+            >
+              <span className="flex items-center gap-1.5 text-orange-200">
+                <Swords className="h-3.5 w-3.5" /> Favor competitor-proven ideas
+                {stats.provenCount > 0 && (
+                  <span className="rounded-full bg-orange-500/20 px-1.5 py-0.5 text-[10px]">
+                    {stats.provenCount} in pool
+                  </span>
+                )}
+              </span>
+              <input
+                type="checkbox"
+                checked={favorProven}
+                onChange={(e) => setFavorProven(e.target.checked)}
+                className="h-4 w-4 accent-orange-500"
+              />
+            </label>
+          </div>
+
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
             <div className="text-xs text-muted-foreground">
               Pool:{" "}
@@ -366,11 +421,21 @@ function Raffle() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="line-clamp-2 text-foreground/90">{a.title}</div>
-                        {a.idea_index && (
-                          <div className="font-mono text-[10px] text-muted-foreground">
-                            idea #{a.idea_index}
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {a.idea_index && (
+                            <div className="font-mono text-[10px] text-muted-foreground">
+                              idea #{a.idea_index}
+                            </div>
+                          )}
+                          {a.is_competitor_proven && (
+                            <span
+                              className="inline-flex items-center gap-1 rounded-full bg-orange-500/15 px-1.5 py-0.5 text-[9px] text-orange-400"
+                              title={`${a.competitor_count ?? "?"} competitor(s) already rank for this — proven demand.`}
+                            >
+                              <Swords className="h-2.5 w-2.5" /> proven
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-xs text-muted-foreground">
                         {clusterMeta(a.cluster_id).short}
