@@ -533,6 +533,20 @@ export function scoreContent(input: ScoreInput): ScoreResult {
       : "no H2 sections",
   });
 
+  // --- 17b. GEO quick answer (extraction-friendly block for AI engines) ---
+  const ao = input.brief?.ai_overview as Record<string, unknown> | null | undefined;
+  const quickAnswer = String(input.brief?.quick_answer ?? ao?.quick_answer ?? "").trim();
+  const qaWords = quickAnswer ? (quickAnswer.match(/\b[\w'-]+\b/g) ?? []).length : 0;
+  const qaOk = qaWords >= 25 && qaWords <= 75;
+  checks.push({
+    id: "quick_answer",
+    label: "GEO quick-answer block (25–75 words)",
+    weight: 6,
+    earned: qaOk ? 6 : quickAnswer ? 3 : 0,
+    pass: qaOk,
+    detail: quickAnswer ? `${qaWords} words` : "missing",
+  });
+
   // --- 18. Data / comparison table (esp. for commercial intent) ---
   const tables = countDataTables(md);
   const commercial = isCommercialIntent(input);
@@ -696,6 +710,11 @@ export function buildRevisionInstructions(result: ScoreResult, input: ScoreInput
       case "data_table":
         fixes.push(
           `Add at least one genuine markdown comparison/data table (e.g. plans, specs, features, or before/after metrics) with a header row and a separator row (currently ${c.detail}).`,
+        );
+        break;
+      case "quick_answer":
+        fixes.push(
+          `Right after the TL;DR line, add or tighten a standalone 40-60 word paragraph that directly answers "${input.targetKeyword}" in one self-contained thought — no "as mentioned above", written so an AI engine could quote it verbatim (currently ${c.detail}).`,
         );
         break;
     }

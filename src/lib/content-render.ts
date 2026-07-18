@@ -339,6 +339,20 @@ function jsonLdScriptTags(blocks: object[]): string {
  * Includes JSON-LD structured data at the end of content (WP strips <head>,
  * so inlining in content is the reliable way to ship schema without a plugin).
  */
+/**
+ * GEO ANSWER BLOCK — a visually distinct, extraction-friendly paragraph placed
+ * right after the H1. AI engines (ChatGPT, Perplexity, Gemini, Google AI
+ * Overviews) preferentially lift short, self-contained, clearly-marked answer
+ * text like this when citing a source. Reads the brief's "quick_answer" field
+ * (see ai.functions.ts SYSTEM prompt) — additive, renders nothing if absent.
+ */
+function quickAnswerBlock(brief: Record<string, unknown> | null | undefined): string {
+  const ao = brief?.ai_overview as Record<string, unknown> | null | undefined;
+  const answer = String(brief?.quick_answer ?? ao?.quick_answer ?? "").trim();
+  if (!answer) return "";
+  return `<div class="kb-quick-answer" style="border-left:4px solid #4F1AF3;background:#f5f3ff;padding:16px 20px;margin:0 0 24px;border-radius:6px;"><strong style="display:block;margin-bottom:4px;color:#4F1AF3;font-size:0.8em;letter-spacing:0.04em;text-transform:uppercase;">Quick answer</strong><p style="margin:0;">${inlineMd(answer)}</p></div>`;
+}
+
 export function renderArticleHtml(
   markdown: string,
   brief: Record<string, unknown> | null | undefined,
@@ -352,6 +366,7 @@ export function renderArticleHtml(
 ): string {
   const body = markdownToHtml(markdown);
   const title = String(brief?.h1 ?? "");
+  const answerBlock = quickAnswerBlock(brief);
   const jsonLd = buildJsonLd(brief, {
     url: opts.url,
     clusterName: opts.clusterName,
@@ -363,5 +378,10 @@ export function renderArticleHtml(
     howTo: extractHowTo(markdown),
     includeService: briefIsCommercial(brief, title),
   });
-  return `${body}\n\n${jsonLdScriptTags(jsonLd)}`;
+  // Insert the quick-answer block right after the H1 (not before it) so it
+  // reads naturally: heading, then the direct answer, then the full article.
+  const bodyWithAnswer = answerBlock
+    ? body.replace(/(<h1[^>]*>.*?<\/h1>)/i, `$1\n${answerBlock}`)
+    : body;
+  return `${bodyWithAnswer}\n\n${jsonLdScriptTags(jsonLd)}`;
 }

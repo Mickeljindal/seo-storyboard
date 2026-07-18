@@ -19,6 +19,7 @@ import {
   Quote,
   Globe,
   DollarSign,
+  Lightbulb,
 } from "lucide-react";
 import { ReactNode } from "react";
 import { SystemHealthBanner, SystemHealthOkBadge } from "./SystemHealthBanner";
@@ -34,6 +35,7 @@ const NAV = [
   { to: "/tools", label: "Tool Pages", icon: Wrench, kbd: "T" },
   { to: "/kloudgraph", label: "Competitor Graph", icon: Network, kbd: "G" },
   { to: "/knowledge", label: "Knowledge", icon: BrainIcon, kbd: "K" },
+  { to: "/experience", label: "Experience Lessons", icon: Lightbulb, kbd: "X" },
   { to: "/reels", label: "Reels Studio", icon: Clapperboard, kbd: "R" },
   { to: "/raffle", label: "Idea Raffle", icon: Dices, kbd: "7" },
   { to: "/calendar", label: "Calendar", icon: CalendarDays, kbd: "8" },

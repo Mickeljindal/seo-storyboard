@@ -23,6 +23,7 @@ import { Route as KloudgraphRouteImport } from './routes/kloudgraph'
 import { Route as KeywordsRouteImport } from './routes/keywords'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as HelpRouteImport } from './routes/help'
+import { Route as ExperienceRouteImport } from './routes/experience'
 import { Route as EntityRouteImport } from './routes/entity'
 import { Route as EngineRouteImport } from './routes/engine'
 import { Route as ConversionsRouteImport } from './routes/conversions'
@@ -101,6 +102,11 @@ const HelpRoute = HelpRouteImport.update({
   path: '/help',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ExperienceRoute = ExperienceRouteImport.update({
+  id: '/experience',
+  path: '/experience',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EntityRoute = EntityRouteImport.update({
   id: '/entity',
   path: '/entity',
@@ -145,6 +151,7 @@ export interface FileRoutesByFullPath {
   '/conversions': typeof ConversionsRoute
   '/engine': typeof EngineRoute
   '/entity': typeof EntityRoute
+  '/experience': typeof ExperienceRoute
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
   '/keywords': typeof KeywordsRoute
@@ -168,6 +175,7 @@ export interface FileRoutesByTo {
   '/conversions': typeof ConversionsRoute
   '/engine': typeof EngineRoute
   '/entity': typeof EntityRoute
+  '/experience': typeof ExperienceRoute
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
   '/keywords': typeof KeywordsRoute
@@ -192,6 +200,7 @@ export interface FileRoutesById {
   '/conversions': typeof ConversionsRoute
   '/engine': typeof EngineRoute
   '/entity': typeof EntityRoute
+  '/experience': typeof ExperienceRoute
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
   '/keywords': typeof KeywordsRoute
@@ -217,6 +226,7 @@ export interface FileRouteTypes {
     | '/conversions'
     | '/engine'
     | '/entity'
+    | '/experience'
     | '/help'
     | '/how-it-works'
     | '/keywords'
@@ -240,6 +250,7 @@ export interface FileRouteTypes {
     | '/conversions'
     | '/engine'
     | '/entity'
+    | '/experience'
     | '/help'
     | '/how-it-works'
     | '/keywords'
@@ -263,6 +274,7 @@ export interface FileRouteTypes {
     | '/conversions'
     | '/engine'
     | '/entity'
+    | '/experience'
     | '/help'
     | '/how-it-works'
     | '/keywords'
@@ -287,6 +299,7 @@ export interface RootRouteChildren {
   ConversionsRoute: typeof ConversionsRoute
   EngineRoute: typeof EngineRoute
   EntityRoute: typeof EntityRoute
+  ExperienceRoute: typeof ExperienceRoute
   HelpRoute: typeof HelpRoute
   HowItWorksRoute: typeof HowItWorksRoute
   KeywordsRoute: typeof KeywordsRoute
@@ -403,6 +416,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HelpRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/experience': {
+      id: '/experience'
+      path: '/experience'
+      fullPath: '/experience'
+      preLoaderRoute: typeof ExperienceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/entity': {
       id: '/entity'
       path: '/entity'
@@ -463,6 +483,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConversionsRoute: ConversionsRoute,
   EngineRoute: EngineRoute,
   EntityRoute: EntityRoute,
+  ExperienceRoute: ExperienceRoute,
   HelpRoute: HelpRoute,
   HowItWorksRoute: HowItWorksRoute,
   KeywordsRoute: KeywordsRoute,

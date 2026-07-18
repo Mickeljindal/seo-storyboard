@@ -453,3 +453,46 @@ CREATE TABLE IF NOT EXISTS kg_import_log (
   imported_at timestamptz DEFAULT now() NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_kg_importlog_file ON kg_import_log(file_name);
+
+-- ============================================================================
+-- EXPERIENCE ENGINE (v15) — real operational lessons (E-E-A-T) that get woven
+-- into articles instead of generic AI explanation. Curated once, reused often.
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS experience_snippets (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  -- lesson | mistake | migration | incident | benchmark
+  kind text NOT NULL DEFAULT 'lesson',
+  body text NOT NULL,
+  -- topics/entities this snippet is relevant to (matched against article title/keyword)
+  tags text[] DEFAULT '{}',
+  cluster_id smallint,
+  -- how many times it's been used in an article (helps rotate variety)
+  usage_count integer DEFAULT 0,
+  source text DEFAULT 'manual', -- manual | support_ticket | postmortem
+  active boolean DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_experience_tags ON experience_snippets USING gin(tags);
+CREATE INDEX IF NOT EXISTS idx_experience_cluster ON experience_snippets(cluster_id);
+CREATE INDEX IF NOT EXISTS idx_experience_active ON experience_snippets(active);
+
+-- ============================================================================
+-- DISTRIBUTION ENGINE (v16) — auto-drafted social/newsletter posts per article
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS distributions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  article_id uuid NOT NULL,
+  -- linkedin | x_thread | newsletter
+  channel text NOT NULL,
+  content jsonb NOT NULL,       -- shape depends on channel (see distribution-engine.ts)
+  status text NOT NULL DEFAULT 'draft', -- draft | approved | posted
+  posted_url text,
+  posted_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_distributions_article ON distributions(article_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_distributions_article_channel
+  ON distributions(article_id, channel);

@@ -559,3 +559,41 @@ export type KgOrganicRankingRow = typeof kgOrganicRankings.$inferSelect;
 export type KgKeywordGapRow = typeof kgKeywordGap.$inferSelect;
 export type KgOrganicCompetitorRow = typeof kgOrganicCompetitors.$inferSelect;
 export type KgImportLogRow = typeof kgImportLog.$inferSelect;
+
+// ============================================================================
+// EXPERIENCE ENGINE — real operational lessons woven into content for E-E-A-T
+// ============================================================================
+export const experienceSnippets = pgTable("experience_snippets", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  kind: text("kind").notNull().default("lesson"), // lesson | mistake | migration | incident | benchmark
+  body: text("body").notNull(),
+  tags: text("tags").array().default([]),
+  clusterId: smallint("cluster_id"),
+  usageCount: integer("usage_count").default(0),
+  source: text("source").default("manual"), // manual | support_ticket | postmortem
+  active: boolean("active").default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type ExperienceSnippetRow = typeof experienceSnippets.$inferSelect;
+export type ExperienceSnippetInsert = typeof experienceSnippets.$inferInsert;
+
+// ============================================================================
+// DISTRIBUTION ENGINE — auto-drafted social/newsletter posts per article
+// ============================================================================
+export const distributions = pgTable("distributions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  articleId: uuid("article_id").notNull(),
+  channel: text("channel").notNull(), // linkedin | x_thread | newsletter
+  content: jsonb("content").notNull(),
+  status: text("status").notNull().default("draft"), // draft | approved | posted
+  postedUrl: text("posted_url"),
+  postedAt: timestamp("posted_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type DistributionRow = typeof distributions.$inferSelect;
+export type DistributionInsert = typeof distributions.$inferInsert;

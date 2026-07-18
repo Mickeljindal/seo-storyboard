@@ -45,14 +45,21 @@ function buildResearchContext(article: Record<string, unknown>): string {
     `- Opportunity score: ${kd.opportunity_score ?? "n/a"}/100`,
     `- Traffic priority: ${kd.traffic_score ?? semantic?.traffic_score ?? "n/a"}/100`,
     coreKw ? `- Semantic cluster hub (core_keyword): ${coreKw}` : null,
-    supporting.length ? `- Supporting keywords in cluster: ${supporting.slice(0, 10).join(", ")}` : null,
-    kd.cluster_total_volume ? `- Cluster total addressable volume: ${kd.cluster_total_volume}/mo` : null,
+    supporting.length
+      ? `- Supporting keywords in cluster: ${supporting.slice(0, 10).join(", ")}`
+      : null,
+    kd.cluster_total_volume
+      ? `- Cluster total addressable volume: ${kd.cluster_total_volume}/mo`
+      : null,
     `- Suggested meta title: ${kd.meta_title}`,
     `- Suggested meta description: ${kd.meta_description}`,
     `- Content angle: ${kd.content_angle}`,
     `- PAA to answer: ${(kd.paa_questions ?? []).slice(0, 6).join(" | ")}`,
     `- SERP competitors: ${(kd.top_10_urls ?? []).slice(0, 5).join(", ")}`,
-    `- Related keywords: ${(kd.related_keywords ?? []).slice(0, 8).map((r) => r.keyword).join(", ")}`,
+    `- Related keywords: ${(kd.related_keywords ?? [])
+      .slice(0, 8)
+      .map((r) => r.keyword)
+      .join(", ")}`,
     `- Topics to cover: ${(kd.topic_recommendations ?? []).join("; ")}`,
   ].filter(Boolean);
   return lines.join("\n");
@@ -80,6 +87,9 @@ GEO PROVIDER POLICY OVERRIDES THE GENERIC PROVIDER LIST:
 - For Saudi Arabia, the only in-Kingdom region is Google Cloud me-central2 (Dammam). Never recommend AWS/Linode/DigitalOcean/Vultr/UpCloud as a Saudi/KSA in-country hosting or data-residency option. Kloudbean does NOT offer Azure/Oracle/Alibaba/IBM Cloud or Hetzner at all.
 - When a COMPETITOR INTELLIGENCE block is supplied, build the comparison_table from it: acknowledge the competitor fairly, then show where Kloudbean wins for the reader's use case. Never fabricate competitor specs.
 
+GEO (GENERATIVE ENGINE OPTIMIZATION) — quick_answer:
+- Write "quick_answer" as the single best 40-60 word direct answer to the target keyword's implied question. This is what ChatGPT, Perplexity, Gemini, and Google AI Overviews will lift verbatim when they cite Kloudbean. It must stand alone (no "as mentioned above"), state the concrete answer immediately, name Kloudbean where relevant, and contain zero AI-tell phrases. Treat it as the sentence you'd want quoted in an AI answer.
+
 Return ONLY a strict JSON object — no prose, no markdown fences. Schema:
 {
   "h1": string,
@@ -91,6 +101,7 @@ Return ONLY a strict JSON object — no prose, no markdown fences. Schema:
   "meta_description": string (max 160 chars),
   "url_slug": string,
   "tldr": string,
+  "quick_answer": string (40-60 words, extraction-friendly direct answer for AI engines — see GEO rule above),
   "key_takeaways": string[],
   "entity_table": [{ "entity": string, "definition": string }],
   "comparison_table": { "columns": string[], "rows": [{ "label": string, "values": string[] }] } | null,
@@ -107,7 +118,11 @@ Return ONLY a strict JSON object — no prose, no markdown fences. Schema:
   "tone": string
 }`;
 
-async function applyBriefToArticle(articleId: string, article: Record<string, unknown>, briefData: Record<string, unknown>) {
+async function applyBriefToArticle(
+  articleId: string,
+  article: Record<string, unknown>,
+  briefData: Record<string, unknown>,
+) {
   const { articlesRepo, briefsRepo } = await repos();
   const version = (await briefsRepo.getLatestBriefVersion(articleId)) + 1;
   await briefsRepo.insertBrief(articleId, briefData, version, getAiModelName());
@@ -117,10 +132,13 @@ async function applyBriefToArticle(articleId: string, article: Record<string, un
     meta_title: briefData.meta_title,
     meta_description: briefData.meta_description,
     url_slug: briefData.url_slug ?? article.url_slug,
-    secondary_keywords: Array.isArray(briefData.secondary_keywords) ? briefData.secondary_keywords : article.secondary_keywords,
+    secondary_keywords: Array.isArray(briefData.secondary_keywords)
+      ? briefData.secondary_keywords
+      : article.secondary_keywords,
     faq: Array.isArray(briefData.faq) ? briefData.faq : null,
     ai_overview: {
       tldr: briefData.tldr ?? null,
+      quick_answer: briefData.quick_answer ?? null,
       key_takeaways: briefData.key_takeaways ?? [],
       entity_table: briefData.entity_table ?? [],
       comparison_table: briefData.comparison_table ?? null,
@@ -130,13 +148,17 @@ async function applyBriefToArticle(articleId: string, article: Record<string, un
       ? (briefData.entity_table as { entity?: string }[]).map((e) => e?.entity).filter(Boolean)
       : [],
     internal_link_targets: Array.isArray(briefData.internal_links)
-      ? (briefData.internal_links as { target_topic?: string }[]).map((l) => l?.target_topic).filter(Boolean)
+      ? (briefData.internal_links as { target_topic?: string }[])
+          .map((l) => l?.target_topic)
+          .filter(Boolean)
       : [],
   });
   return version;
 }
 
-export async function generateBriefInternal(articleId: string): Promise<{ ok: boolean; error?: string }> {
+export async function generateBriefInternal(
+  articleId: string,
+): Promise<{ ok: boolean; error?: string }> {
   await ensureAiEnv();
   const { articlesRepo } = await repos();
   const article = await articlesRepo.getArticleById(articleId);
@@ -156,6 +178,16 @@ export async function generateBriefInternal(articleId: string): Promise<{ ok: bo
   } catch {
     /* RAG optional */
   }
+  let experienceBlock = "";
+  try {
+    const { experiencePromptBlock } = await import("./experience-engine");
+    experienceBlock = await experiencePromptBlock(
+      `${article.title} ${article.target_keyword ?? ""}`,
+      (article.cluster_id as number) ?? null,
+    );
+  } catch {
+    /* optional */
+  }
   const prompt = `Create a complete SEO content brief grounded in live search data. The reader must finish understanding Kloudbean deeply — not generic cloud theory.
 Title: ${article.title}
 Target keyword: ${article.target_keyword ?? ""}
@@ -166,13 +198,18 @@ Required outcome: Explain how Kloudbean hosts, secures, prices, or migrates this
 
 ${geoBlock}
 ${competitorBlock ? `\n${competitorBlock}\n` : ""}
+${experienceBlock ? `\n${experienceBlock}\n` : ""}
 ${ragBlock ? `\n${ragBlock}\n` : ""}
 ${kb ? `${kb}\n\n` : ""}${buildResearchContext(article as Record<string, unknown>)}`;
   try {
     const response = await generateText({ model, system: SYSTEM, prompt });
     let briefData: Record<string, unknown>;
     try {
-      const text = response.text.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+      const text = response.text
+        .trim()
+        .replace(/^```(?:json)?/i, "")
+        .replace(/```$/, "")
+        .trim();
       briefData = JSON.parse(text);
     } catch {
       briefData = { raw: response.text };
@@ -184,7 +221,9 @@ ${kb ? `${kb}\n\n` : ""}${buildResearchContext(article as Record<string, unknown
   }
 }
 
-export async function generateContentInternal(articleId: string): Promise<{ ok: boolean; error?: string }> {
+export async function generateContentInternal(
+  articleId: string,
+): Promise<{ ok: boolean; error?: string }> {
   await ensureAiEnv();
   const { articlesRepo } = await repos();
   const article = await articlesRepo.getArticleById(articleId);
@@ -236,7 +275,10 @@ export const generateBrief = createServerFn({ method: "POST" })
     if (!r.ok) throw new Error(r.error ?? "Brief generation failed");
     const { articlesRepo, briefsRepo } = await repos();
     const article = await articlesRepo.getArticleById(data.articleId);
-    return { brief: article?.brief, version: await briefsRepo.getLatestBriefVersion(data.articleId) };
+    return {
+      brief: article?.brief,
+      version: await briefsRepo.getLatestBriefVersion(data.articleId),
+    };
   });
 
 export const generateContent = createServerFn({ method: "POST" })

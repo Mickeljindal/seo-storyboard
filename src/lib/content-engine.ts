@@ -214,6 +214,20 @@ export async function runContentEngine(
   } catch {
     /* KLOUDGRAPH data optional — never blocks generation */
   }
+  // Experience Engine (E-E-A-T) — real operational lessons matched to this
+  // topic, so the article carries lived-in detail instead of generic AI
+  // explanation. Additive: silently empty if no matching snippet exists.
+  let experienceBlock = "";
+  try {
+    const { experiencePromptBlock } = await import("./experience-engine");
+    experienceBlock = await experiencePromptBlock(
+      `${title} ${keyword}`,
+      (article.cluster_id as number) ?? null,
+    );
+    if (experienceBlock) log.push("Experience Engine: injected real operational lesson(s)");
+  } catch {
+    /* optional — never blocks generation */
+  }
   let ragBlock = "";
   let ragSources: { title: string; url: string }[] = [];
   if (useRag) {
@@ -227,7 +241,7 @@ export async function runContentEngine(
     }
   }
 
-  const grounding = [geoBlock, competitorBlock, kloudgraphBlock, ragBlock]
+  const grounding = [geoBlock, competitorBlock, kloudgraphBlock, experienceBlock, ragBlock]
     .filter(Boolean)
     .join("\n\n");
 
