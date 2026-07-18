@@ -15,8 +15,13 @@ import {
 } from "@/components/ui/select";
 import { runAutonomousEngine, getEngineRuns } from "@/lib/authority-engine.functions";
 import { runContentAutomation } from "@/lib/automation.functions";
+import {
+  getAutopilotStatusFn,
+  saveAutopilotSettingsFn,
+  runAutopilotOnceFn,
+} from "@/lib/autopilot.functions";
 import { CLUSTERS } from "@/lib/pillars";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Bot,
   Loader2,
@@ -27,6 +32,9 @@ import {
   PenLine,
   CheckCircle2,
   Wand2,
+  Power,
+  Swords,
+  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -161,6 +169,8 @@ function EnginePage() {
             Kloudbean topical authority.
           </p>
         </header>
+
+        <AutopilotPanel />
 
         <section className="mb-8 rounded-xl border border-border bg-card/60 p-6 backdrop-blur">
           <h2 className="mb-4 text-sm font-semibold">Pipeline steps</h2>
@@ -410,5 +420,307 @@ function EnginePage() {
         )}
       </div>
     </AppLayout>
+  );
+}
+
+/**
+ * AUTOPILOT CONTROL PANEL — the "set and forget" switch. Turns on/off the
+ * fully autonomous cycle (discover → write → score → publish → refresh →
+ * learn) without touching .env or the terminal. Settings save to the DB and
+ * take effect immediately, including starting/stopping the live scheduler.
+ */
+function AutopilotPanel() {
+  const qc = useQueryClient();
+  const statusFn = useServerFn(getAutopilotStatusFn);
+  const saveFn = useServerFn(saveAutopilotSettingsFn);
+  const runOnceFn = useServerFn(runAutopilotOnceFn);
+
+  const { data: status, refetch } = useQuery({
+    queryKey: ["autopilot-status"],
+    queryFn: () => statusFn({}),
+    refetchInterval: 30_000,
+  });
+
+  const [intervalMinutes, setIntervalMinutes] = useState(360);
+  const [maxPerDay, setMaxPerDay] = useState(2);
+  const [minScore, setMinScore] = useState(85);
+  const [topicsPerRun, setTopicsPerRun] = useState(5);
+  const [kloudgraphPerRun, setKloudgraphPerRun] = useState(5);
+  const [autoPublish, setAutoPublish] = useState(true);
+  const [autoDiscover, setAutoDiscover] = useState(true);
+  const [kloudgraphEnabled, setKloudgraphEnabled] = useState(true);
+  const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    if (!status?.config || initialized) return;
+    setIntervalMinutes(Math.round(status.config.intervalMs / 60_000));
+    setMaxPerDay(status.config.maxPublishPerDay);
+    setMinScore(status.config.minPublishScore);
+    setTopicsPerRun(status.config.topicsPerRun);
+    setKloudgraphPerRun(status.config.kloudgraphPerRun);
+    setAutoPublish(status.config.autoPublish);
+    setAutoDiscover(status.config.autoDiscover);
+    setKloudgraphEnabled(status.config.kloudgraphEnabled);
+    setInitialized(true);
+  }, [status, initialized]);
+
+  const toggleMut = useMutation({
+    mutationFn: (enabled: boolean) => saveFn({ data: { enabled } }),
+    onSuccess: (r) => {
+      toast.success(r.running ? "Autopilot is now running" : "Autopilot stopped");
+      refetch();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const saveMut = useMutation({
+    mutationFn: () =>
+      saveFn({
+        data: {
+          intervalMinutes,
+          maxPublishPerDay: maxPerDay,
+          minPublishScore: minScore,
+          topicsPerRun,
+          kloudgraphEnabled,
+          kloudgraphPerRun,
+          autoPublish,
+          autoDiscover,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Autopilot settings saved");
+      refetch();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const runOnceMut = useMutation({
+    mutationFn: () => runOnceFn({}),
+    onSuccess: (r) => {
+      toast.success(
+        `Cycle done: ${r.kloudgraphSent} from KLOUDGRAPH, ${r.written} written, ${r.published} published`,
+      );
+      qc.invalidateQueries({ queryKey: ["articles"] });
+      refetch();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const running = status?.running ?? false;
+  const last = status?.lastRun;
+
+  return (
+    <section className="mb-8 overflow-hidden rounded-xl border border-primary/30 bg-card/60 backdrop-blur">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-primary/[0.04] px-6 py-4">
+        <div className="flex items-center gap-3">
+          <div
+            className={`flex h-9 w-9 items-center justify-center rounded-full ${running ? "bg-[var(--lime)]/15" : "bg-secondary"}`}
+          >
+            <Power
+              className={`h-4 w-4 ${running ? "text-[var(--lime)]" : "text-muted-foreground"}`}
+            />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold">Autopilot — full auto-gen system</h2>
+            <p className="text-xs text-muted-foreground">
+              {running
+                ? "Running on its own: finds topics, writes, scores, and publishes automatically."
+                : "Off. Turn on to let the engine run itself on a schedule."}
+            </p>
+          </div>
+        </div>
+        <Button
+          size="lg"
+          disabled={toggleMut.isPending}
+          onClick={() => toggleMut.mutate(!running)}
+          title={
+            running
+              ? "Stop the automatic cycle."
+              : "Start the automatic cycle — it will keep running on its own from now on, even after a restart."
+          }
+          style={
+            running ? {} : { background: "var(--gradient-brand)", color: "var(--brand-foreground)" }
+          }
+          variant={running ? "destructive" : "default"}
+        >
+          {toggleMut.isPending ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Power className="mr-2 h-4 w-4" />
+          )}
+          {running ? "Turn off" : "Turn on autopilot"}
+        </Button>
+      </div>
+
+      <div className="grid gap-6 p-6 lg:grid-cols-2">
+        <div>
+          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            How often & how much
+          </h3>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <Label className="text-xs">Run every (minutes)</Label>
+              <Input
+                type="number"
+                min={5}
+                max={1440}
+                value={intervalMinutes}
+                onChange={(e) => setIntervalMinutes(Number(e.target.value) || 360)}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Max publishes / day</Label>
+              <Input
+                type="number"
+                min={0}
+                max={20}
+                value={maxPerDay}
+                onChange={(e) => setMaxPerDay(Number(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Min quality score to publish</Label>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                value={minScore}
+                onChange={(e) => setMinScore(Number(e.target.value) || 85)}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">New topics / cycle</Label>
+              <Input
+                type="number"
+                min={0}
+                max={30}
+                value={topicsPerRun}
+                onChange={(e) => setTopicsPerRun(Number(e.target.value) || 0)}
+              />
+            </div>
+          </div>
+          <label className="mt-3 flex items-center gap-2 text-sm">
+            <Checkbox checked={autoDiscover} onCheckedChange={(v) => setAutoDiscover(!!v)} />
+            Auto-discover new generic topics each cycle (fills remaining quota after KLOUDGRAPH)
+          </label>
+          <label className="mt-2 flex items-center gap-2 text-sm">
+            <Checkbox checked={autoPublish} onCheckedChange={(v) => setAutoPublish(!!v)} />
+            Auto-publish to WordPress when quality passes (off = drafts only)
+          </label>
+        </div>
+
+        <div>
+          <h3 className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-orange-400">
+            <Swords className="h-3.5 w-3.5" /> KLOUDGRAPH — competitor-proven topics
+          </h3>
+          <label className="mb-3 flex items-center gap-2 text-sm">
+            <Checkbox
+              checked={kloudgraphEnabled}
+              onCheckedChange={(v) => setKloudgraphEnabled(!!v)}
+            />
+            Prioritize keywords real competitors already rank for (from your Semrush import)
+          </label>
+          <div className="max-w-[200px]">
+            <Label className="text-xs">Competitor-proven topics / cycle</Label>
+            <Input
+              type="number"
+              min={0}
+              max={30}
+              value={kloudgraphPerRun}
+              onChange={(e) => setKloudgraphPerRun(Number(e.target.value) || 0)}
+              disabled={!kloudgraphEnabled}
+            />
+          </div>
+          <p className="mt-3 text-[11px] text-muted-foreground">
+            These take priority over generic keyword research each cycle — they're backed by real
+            data, not a guess.{" "}
+            <Link to="/kloudgraph" className="text-primary underline">
+              See the attack list
+            </Link>
+          </p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 border-t border-border px-6 py-4">
+        <Button
+          size="sm"
+          disabled={saveMut.isPending}
+          onClick={() => saveMut.mutate()}
+          title="Save these settings — takes effect on the next cycle."
+        >
+          {saveMut.isPending ? (
+            <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <CheckCircle2 className="mr-2 h-3.5 w-3.5" />
+          )}
+          Save settings
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={runOnceMut.isPending}
+          onClick={() => runOnceMut.mutate()}
+          title="Run one cycle right now, without waiting for the schedule."
+        >
+          {runOnceMut.isPending ? (
+            <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Zap className="mr-2 h-3.5 w-3.5" />
+          )}
+          Run one cycle now
+        </Button>
+        {status?.lastRunAt && (
+          <span className="text-xs text-muted-foreground">
+            Last ran {new Date(status.lastRunAt).toLocaleString()}
+          </span>
+        )}
+      </div>
+
+      {last && (
+        <div className="border-t border-border bg-background/40 px-6 py-4">
+          <div className="mb-2 text-xs font-semibold text-muted-foreground">Last cycle result</div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
+            <MiniStat label="KLOUDGRAPH" value={last.kloudgraphSent} accent />
+            <MiniStat label="Discovered" value={last.discovered} />
+            <MiniStat label="Briefed" value={last.briefed} />
+            <MiniStat label="Written" value={last.written} />
+            <MiniStat label="Published" value={last.published} />
+            <MiniStat label="Refreshed" value={last.refreshed} />
+            <MiniStat label="Tools" value={last.toolsGenerated} />
+            <MiniStat label="Errors" value={last.errors.length} warn={last.errors.length > 0} />
+          </div>
+          {last.log.length > 0 && (
+            <ul className="mt-3 max-h-32 space-y-0.5 overflow-y-auto font-mono text-[11px] text-muted-foreground">
+              {last.log.slice(-10).map((l, i) => (
+                <li key={i}>{l}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function MiniStat({
+  label,
+  value,
+  accent,
+  warn,
+}: {
+  label: string;
+  value: number;
+  accent?: boolean;
+  warn?: boolean;
+}) {
+  return (
+    <div className="rounded-md border border-border bg-card/60 px-2.5 py-1.5 text-center">
+      <div
+        className={`num text-lg font-semibold ${warn ? "text-destructive" : accent ? "text-orange-400" : ""}`}
+      >
+        {value}
+      </div>
+      <div className="text-[9px] uppercase tracking-wider text-muted-foreground">{label}</div>
+    </div>
   );
 }

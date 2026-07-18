@@ -307,8 +307,65 @@ export const getStoredCompetitorRankingsFn = createServerFn({ method: "POST" })
  * Send the top-scored opportunities straight into the content pipeline as
  * article ideas — pre-filled with keyword, cluster, and competitor proof.
  * This is the bridge that turns competitor intelligence into content the
- * autopilot will actually write.
+ * autopilot will actually write. Exported as a plain function (not just a
+ * server fn) so Autopilot can call it directly during its discovery step.
  */
+export async function sendOpportunitiesToContentInternal(data: {
+  limit: number;
+  minRelevance: number;
+  maxDifficulty?: number;
+}): Promise<{ ok: boolean; created: number }> {
+  const { getAggregatedOpportunities, clusterToPillar } =
+    await import("./kloudgraph/opportunity-engine");
+  const { clusterMeta } = await import("./pillars");
+  const articlesRepo = await import("@/server/db/repos/articles");
+
+  const opps = await getAggregatedOpportunities(data);
+  if (!opps.length) return { ok: true, created: 0 };
+
+  // Dedupe against existing target keywords so re-running never duplicates.
+  const existing = await articlesRepo.listArticles({ limit: 5000 });
+  const existingKeywords = new Set(
+    existing.map((a) => (a.target_keyword ?? "").trim().toLowerCase()).filter(Boolean),
+  );
+
+  const toCreate = opps.filter((o) => !existingKeywords.has(o.keyword.trim().toLowerCase()));
+  if (!toCreate.length) return { ok: true, created: 0 };
+
+  const rows = toCreate.map((o) => {
+    const clusterInfo = o.clusterId != null ? clusterMeta(o.clusterId) : null;
+    return {
+      title: `${o.keyword[0].toUpperCase()}${o.keyword.slice(1)}`,
+      target_keyword: o.keyword,
+      pillar: clusterToPillar(o.clusterId),
+      cluster_id: o.clusterId ?? null,
+      cluster_name: clusterInfo?.name ?? null,
+      status: "idea",
+      priority: o.score >= 3 ? "high" : o.score >= 1.5 ? "medium" : "low",
+      engine_source: "kloudgraph",
+      notes: `KLOUDGRAPH opportunity — ranked by ${o.competitorCount} competitor(s) incl. ${o.competitors
+        .slice(0, 3)
+        .join(
+          ", ",
+        )} (best position ${o.bestCompetitorPosition ?? "?"}). Volume ${o.volume.toLocaleString()}, KD ${o.difficulty ?? "?"}, relevance ${o.relevance}.`,
+      keyword_data: {
+        source: "kloudgraph",
+        volume: o.volume,
+        difficulty: o.difficulty,
+        intents: o.intents,
+        competitors: o.competitors,
+        competitorCount: o.competitorCount,
+        bestCompetitorPosition: o.bestCompetitorPosition,
+        relevance: o.relevance,
+        opportunityScore: o.score,
+      },
+    };
+  });
+
+  const inserted = await articlesRepo.insertArticles(rows);
+  return { ok: true, created: inserted.length };
+}
+
 export const sendOpportunitiesToContentFn = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
@@ -320,53 +377,5 @@ export const sendOpportunitiesToContentFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { loadProjectEnv } = await import("./load-env");
     loadProjectEnv();
-    const { getAggregatedOpportunities, clusterToPillar } =
-      await import("./kloudgraph/opportunity-engine");
-    const { clusterMeta } = await import("./pillars");
-    const articlesRepo = await import("@/server/db/repos/articles");
-
-    const opps = await getAggregatedOpportunities(data);
-    if (!opps.length) return { ok: true, created: 0 };
-
-    // Dedupe against existing target keywords so re-running never duplicates.
-    const existing = await articlesRepo.listArticles({ limit: 5000 });
-    const existingKeywords = new Set(
-      existing.map((a) => (a.target_keyword ?? "").trim().toLowerCase()).filter(Boolean),
-    );
-
-    const toCreate = opps.filter((o) => !existingKeywords.has(o.keyword.trim().toLowerCase()));
-    if (!toCreate.length) return { ok: true, created: 0 };
-
-    const rows = toCreate.map((o) => {
-      const clusterInfo = o.clusterId != null ? clusterMeta(o.clusterId) : null;
-      return {
-        title: `${o.keyword[0].toUpperCase()}${o.keyword.slice(1)}`,
-        target_keyword: o.keyword,
-        pillar: clusterToPillar(o.clusterId),
-        cluster_id: o.clusterId ?? null,
-        cluster_name: clusterInfo?.name ?? null,
-        status: "idea",
-        priority: o.score >= 3 ? "high" : o.score >= 1.5 ? "medium" : "low",
-        engine_source: "kloudgraph",
-        notes: `KLOUDGRAPH opportunity — ranked by ${o.competitorCount} competitor(s) incl. ${o.competitors
-          .slice(0, 3)
-          .join(
-            ", ",
-          )} (best position ${o.bestCompetitorPosition ?? "?"}). Volume ${o.volume.toLocaleString()}, KD ${o.difficulty ?? "?"}, relevance ${o.relevance}.`,
-        keyword_data: {
-          source: "kloudgraph",
-          volume: o.volume,
-          difficulty: o.difficulty,
-          intents: o.intents,
-          competitors: o.competitors,
-          competitorCount: o.competitorCount,
-          bestCompetitorPosition: o.bestCompetitorPosition,
-          relevance: o.relevance,
-          opportunityScore: o.score,
-        },
-      };
-    });
-
-    const inserted = await articlesRepo.insertArticles(rows);
-    return { ok: true, created: inserted.length };
+    return sendOpportunitiesToContentInternal(data);
   });

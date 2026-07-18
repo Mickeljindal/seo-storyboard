@@ -17,6 +17,21 @@ export const MANAGED_ENV_KEYS = [
   "GSC_SITE_URL",
   "BING_API_KEY",
   "BING_SITE_URL",
+  // Autopilot — the full auto-gen system, configurable without touching .env.
+  "AUTOPILOT_ENABLED",
+  "AUTOPILOT_INTERVAL_MS",
+  "AUTOPILOT_MAX_PER_DAY",
+  "AUTOPILOT_MAX_PER_WEEK",
+  "AUTOPILOT_MIN_SCORE",
+  "AUTOPILOT_TOPICS_PER_RUN",
+  "AUTOPILOT_PROGRESS_PER_RUN",
+  "AUTOPILOT_GEO",
+  "AUTOPILOT_DISCOVER",
+  "AUTOPILOT_PUBLISH",
+  "AUTOPILOT_KLOUDGRAPH",
+  "AUTOPILOT_KLOUDGRAPH_PER_RUN",
+  "AUTOPILOT_KLOUDGRAPH_MIN_RELEVANCE",
+  "AUTOPILOT_TOOLS",
 ] as const;
 
 let lastHydrated = 0;
@@ -148,4 +163,72 @@ export async function getBingStatus(): Promise<{
     hasApiKey,
     source: fromDb ? "dashboard" : siteUrl || hasApiKey ? "env" : "none",
   };
+}
+
+/**
+ * Save Autopilot settings from the dashboard — no .env editing required. This
+ * is what turns the engine into a real "set and forget" system: toggling it
+ * here persists to the DB, hydrates process.env immediately, and starts/stops
+ * the live scheduler in the same request.
+ */
+export async function saveAutopilotSettings(input: {
+  enabled?: boolean;
+  intervalMinutes?: number;
+  maxPublishPerDay?: number;
+  maxPublishPerWeek?: number;
+  minPublishScore?: number;
+  topicsPerRun?: number;
+  progressPerRun?: number;
+  geo?: string;
+  autoDiscover?: boolean;
+  autoPublish?: boolean;
+  kloudgraphEnabled?: boolean;
+  kloudgraphPerRun?: number;
+  kloudgraphMinRelevance?: number;
+  toolsEnabled?: boolean;
+}): Promise<{ ok: boolean; running: boolean }> {
+  const patch: Record<string, string | null> = {};
+  if (input.enabled !== undefined) patch.AUTOPILOT_ENABLED = input.enabled ? "1" : "0";
+  if (input.intervalMinutes !== undefined)
+    patch.AUTOPILOT_INTERVAL_MS = String(Math.max(5, input.intervalMinutes) * 60_000);
+  if (input.maxPublishPerDay !== undefined)
+    patch.AUTOPILOT_MAX_PER_DAY = String(input.maxPublishPerDay);
+  if (input.maxPublishPerWeek !== undefined)
+    patch.AUTOPILOT_MAX_PER_WEEK = String(input.maxPublishPerWeek);
+  if (input.minPublishScore !== undefined)
+    patch.AUTOPILOT_MIN_SCORE = String(input.minPublishScore);
+  if (input.topicsPerRun !== undefined) patch.AUTOPILOT_TOPICS_PER_RUN = String(input.topicsPerRun);
+  if (input.progressPerRun !== undefined)
+    patch.AUTOPILOT_PROGRESS_PER_RUN = String(input.progressPerRun);
+  if (input.geo !== undefined) patch.AUTOPILOT_GEO = input.geo;
+  if (input.autoDiscover !== undefined) patch.AUTOPILOT_DISCOVER = input.autoDiscover ? "1" : "0";
+  if (input.autoPublish !== undefined) patch.AUTOPILOT_PUBLISH = input.autoPublish ? "1" : "0";
+  if (input.kloudgraphEnabled !== undefined)
+    patch.AUTOPILOT_KLOUDGRAPH = input.kloudgraphEnabled ? "1" : "0";
+  if (input.kloudgraphPerRun !== undefined)
+    patch.AUTOPILOT_KLOUDGRAPH_PER_RUN = String(input.kloudgraphPerRun);
+  if (input.kloudgraphMinRelevance !== undefined)
+    patch.AUTOPILOT_KLOUDGRAPH_MIN_RELEVANCE = String(input.kloudgraphMinRelevance);
+  if (input.toolsEnabled !== undefined) patch.AUTOPILOT_TOOLS = input.toolsEnabled ? "1" : "0";
+
+  const { setSettings } = await import("@/server/db/repos/app-settings");
+  await setSettings(patch);
+  await hydrateEnvFromSettings(true);
+
+  // Apply the on/off toggle to the live scheduler immediately.
+  const { startAutopilot, stopAutopilot, isAutopilotRunning } = await import("./autopilot");
+  if (input.enabled === true) startAutopilot();
+  else if (input.enabled === false) stopAutopilot();
+
+  return { ok: true, running: isAutopilotRunning() };
+}
+
+/** Read the current Autopilot settings + whether they came from the dashboard or .env. */
+export async function getAutopilotSettingsSource(): Promise<"dashboard" | "env" | "none"> {
+  const { getSettings } = await import("@/server/db/repos/app-settings");
+  const db = await getSettings(["AUTOPILOT_ENABLED", "AUTOPILOT_TOPICS_PER_RUN"]);
+  if (db.AUTOPILOT_ENABLED !== undefined || db.AUTOPILOT_TOPICS_PER_RUN !== undefined) {
+    return "dashboard";
+  }
+  return process.env.AUTOPILOT_ENABLED ? "env" : "none";
 }

@@ -53,6 +53,13 @@ export type AutopilotConfig = {
   toolsPublishStatus: "off" | "draft" | "publish";
   /** Optimize this many worst-scoring existing pages per run (additive, slug-safe) */
   toolsOptimizePerRun: number;
+  // --- KLOUDGRAPH (competitor intelligence) ---
+  /** Master switch — pull competitor-proven opportunities into discovery */
+  kloudgraphEnabled: boolean;
+  /** Send this many top-scored, competitor-proven keywords per run */
+  kloudgraphPerRun: number;
+  /** Minimum relevance (0-1) an opportunity must clear to be sent */
+  kloudgraphMinRelevance: number;
 };
 
 const DEFAULT_CONFIG: AutopilotConfig = {
@@ -73,12 +80,22 @@ const DEFAULT_CONFIG: AutopilotConfig = {
   toolsGeneratePerRun: 1,
   toolsPublishStatus: "draft",
   toolsOptimizePerRun: 3,
+  kloudgraphEnabled: true,
+  kloudgraphPerRun: 5,
+  kloudgraphMinRelevance: 0.6,
 };
 
 export function getAutopilotConfig(): AutopilotConfig {
   loadProjectEnv();
   return {
     enabled: process.env.AUTOPILOT_ENABLED === "1",
+    kloudgraphEnabled: process.env.AUTOPILOT_KLOUDGRAPH !== "0",
+    kloudgraphPerRun: Number(
+      process.env.AUTOPILOT_KLOUDGRAPH_PER_RUN || DEFAULT_CONFIG.kloudgraphPerRun,
+    ),
+    kloudgraphMinRelevance: Number(
+      process.env.AUTOPILOT_KLOUDGRAPH_MIN_RELEVANCE || DEFAULT_CONFIG.kloudgraphMinRelevance,
+    ),
     intervalMs: Number(process.env.AUTOPILOT_INTERVAL_MS || DEFAULT_CONFIG.intervalMs),
     maxPublishPerDay: Number(process.env.AUTOPILOT_MAX_PER_DAY || DEFAULT_CONFIG.maxPublishPerDay),
     maxPublishPerWeek: Number(
@@ -110,6 +127,7 @@ export function getAutopilotConfig(): AutopilotConfig {
 
 export type AutopilotRunResult = {
   discovered: number;
+  kloudgraphSent: number;
   researched: number;
   briefed: number;
   written: number;
@@ -149,6 +167,7 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
   const cfg = getAutopilotConfig();
   const result: AutopilotRunResult = {
     discovered: 0,
+    kloudgraphSent: 0,
     researched: 0,
     briefed: 0,
     written: 0,
@@ -177,13 +196,31 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
     `Published: ${counts.today} today, ${counts.week} this week (limits: ${cfg.maxPublishPerDay}/day, ${cfg.maxPublishPerWeek}/week)`,
   );
 
-  // 1. DISCOVER new topics
+  // 1a. KLOUDGRAPH — competitor-proven opportunities first. These are backed
+  // by real Semrush data (rivals already rank for them, we don't), so they're
+  // a stronger discovery signal than generic keyword research and get priority.
+  if (cfg.kloudgraphEnabled) {
+    try {
+      const { sendOpportunitiesToContentInternal } = await import("./kloudgraph.functions");
+      const r = await sendOpportunitiesToContentInternal({
+        limit: cfg.kloudgraphPerRun,
+        minRelevance: cfg.kloudgraphMinRelevance,
+      });
+      result.kloudgraphSent = r.created;
+      if (r.created) log(`KLOUDGRAPH: sent ${r.created} competitor-proven keyword(s) to pipeline`);
+    } catch (e) {
+      result.errors.push(`kloudgraph: ${String((e as Error)?.message ?? e)}`);
+    }
+  }
+
+  // 1b. DISCOVER new topics (generic keyword research — fills the rest of the quota)
   if (cfg.autoDiscover) {
     try {
       const { runAuthorityEngine } = await import("./authority-engine");
+      const remaining = Math.max(0, cfg.topicsPerRun - result.kloudgraphSent);
       const r = await runAuthorityEngine({
         geo: cfg.geo,
-        topicsPerCluster: Math.ceil(cfg.topicsPerRun / 10),
+        topicsPerCluster: Math.max(1, Math.ceil(remaining / 10)),
         includeCompetitorGap: false,
         competitorDomain: "cloudways.com",
         generateBriefs: false,
@@ -541,7 +578,7 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
   }
 
   log(
-    `Cycle complete: ${result.discovered} discovered, ${result.written} written, ${result.published} published`,
+    `Cycle complete: ${result.kloudgraphSent} from KLOUDGRAPH, ${result.discovered} discovered, ${result.written} written, ${result.published} published`,
   );
   return result;
 }
@@ -594,6 +631,7 @@ async function runCycleWrapped() {
     console.error("[autopilot] Cycle failed:", e);
     lastRunResult = {
       discovered: 0,
+      kloudgraphSent: 0,
       researched: 0,
       briefed: 0,
       written: 0,
