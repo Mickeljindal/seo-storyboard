@@ -43,6 +43,8 @@ export const saveAutopilotSettingsFn = createServerFn({ method: "POST" })
       kloudgraphPerRun: z.number().min(0).max(50).optional(),
       kloudgraphMinRelevance: z.number().min(0).max(1).optional(),
       toolsEnabled: z.boolean().optional(),
+      reviewHoldHours: z.number().min(1).max(168).optional(),
+      autoApproveAfterHold: z.boolean().optional(),
     }).parse,
   )
   .handler(async ({ data }) => {

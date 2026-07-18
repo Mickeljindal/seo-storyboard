@@ -56,6 +56,11 @@ export function toApiArticle(row: ArticleRow) {
     next_review_at: row.nextReviewAt?.toISOString() ?? null,
     review_count: row.reviewCount ?? 0,
     engine_source: row.engineSource,
+    approval_status: row.approvalStatus ?? "none",
+    queued_at: row.queuedAt?.toISOString() ?? null,
+    scheduled_publish_at: row.scheduledPublishAt?.toISOString() ?? null,
+    approved_at: row.approvedAt?.toISOString() ?? null,
+    rejected_reason: row.rejectedReason ?? null,
     created_at: row.createdAt?.toISOString(),
     updated_at: row.updatedAt?.toISOString(),
   };

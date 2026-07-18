@@ -59,6 +59,13 @@ export const articles = pgTable("articles", {
   nextReviewAt: timestamp("next_review_at", { withTimezone: true }),
   reviewCount: integer("review_count").default(0),
   engineSource: text("engine_source"),
+  // Pre-publish review queue — Autopilot queues here instead of publishing
+  // directly; a human (or an auto-approve timer) releases it to WordPress.
+  approvalStatus: text("approval_status").default("none"), // none | queued | approved | rejected | published
+  queuedAt: timestamp("queued_at", { withTimezone: true }),
+  scheduledPublishAt: timestamp("scheduled_publish_at", { withTimezone: true }),
+  approvedAt: timestamp("approved_at", { withTimezone: true }),
+  rejectedReason: text("rejected_reason"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });

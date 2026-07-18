@@ -34,6 +34,7 @@ import {
   Wand2,
   Power,
   Swords,
+  ShieldCheck,
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -449,6 +450,8 @@ function AutopilotPanel() {
   const [autoPublish, setAutoPublish] = useState(true);
   const [autoDiscover, setAutoDiscover] = useState(true);
   const [kloudgraphEnabled, setKloudgraphEnabled] = useState(true);
+  const [reviewHoldHours, setReviewHoldHours] = useState(24);
+  const [autoApproveAfterHold, setAutoApproveAfterHold] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
@@ -461,6 +464,8 @@ function AutopilotPanel() {
     setAutoPublish(status.config.autoPublish);
     setAutoDiscover(status.config.autoDiscover);
     setKloudgraphEnabled(status.config.kloudgraphEnabled);
+    setReviewHoldHours(status.config.reviewHoldHours ?? 24);
+    setAutoApproveAfterHold(status.config.autoApproveAfterHold ?? false);
     setInitialized(true);
   }, [status, initialized]);
 
@@ -485,6 +490,8 @@ function AutopilotPanel() {
           kloudgraphPerRun,
           autoPublish,
           autoDiscover,
+          reviewHoldHours,
+          autoApproveAfterHold,
         },
       }),
     onSuccess: () => {
@@ -605,7 +612,8 @@ function AutopilotPanel() {
           </label>
           <label className="mt-2 flex items-center gap-2 text-sm">
             <Checkbox checked={autoPublish} onCheckedChange={(v) => setAutoPublish(!!v)} />
-            Auto-publish to WordPress when quality passes (off = drafts only)
+            Queue finished articles for review when quality passes (off = drafts only, nothing
+            queued)
           </label>
         </div>
 
@@ -638,6 +646,41 @@ function AutopilotPanel() {
               See the attack list
             </Link>
           </p>
+        </div>
+
+        <div className="lg:col-span-2 rounded-lg border border-amber-500/25 bg-amber-500/[0.04] p-4">
+          <h3 className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-amber-400">
+            <ShieldCheck className="h-3.5 w-3.5" /> Pre-publish review queue
+          </h3>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Nothing goes straight to WordPress. Finished articles wait here for a hold window so you
+            can preview everything first.{" "}
+            <Link to="/publish-queue" className="text-primary underline">
+              Open the review queue
+            </Link>
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <Label className="text-xs">Hold window before publish (hours)</Label>
+              <Input
+                type="number"
+                min={1}
+                max={168}
+                value={reviewHoldHours}
+                onChange={(e) => setReviewHoldHours(Number(e.target.value) || 24)}
+              />
+            </div>
+            <label className="flex items-end gap-2 pb-1.5 text-sm">
+              <Checkbox
+                checked={autoApproveAfterHold}
+                onCheckedChange={(v) => setAutoApproveAfterHold(!!v)}
+              />
+              <span>
+                Auto-publish once the hold elapses (off = waits for you to approve, no matter how
+                long)
+              </span>
+            </label>
+          </div>
         </div>
       </div>
 
@@ -684,6 +727,7 @@ function AutopilotPanel() {
             <MiniStat label="Discovered" value={last.discovered} />
             <MiniStat label="Briefed" value={last.briefed} />
             <MiniStat label="Written" value={last.written} />
+            <MiniStat label="Queued" value={last.queued} />
             <MiniStat label="Published" value={last.published} />
             <MiniStat label="Refreshed" value={last.refreshed} />
             <MiniStat label="Tools" value={last.toolsGenerated} />

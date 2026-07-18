@@ -16,6 +16,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ScopeRouteImport } from './routes/scope'
 import { Route as ReelsRouteImport } from './routes/reels'
 import { Route as RaffleRouteImport } from './routes/raffle'
+import { Route as PublishQueueRouteImport } from './routes/publish-queue'
 import { Route as PerformanceRouteImport } from './routes/performance'
 import { Route as LearningRouteImport } from './routes/learning'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
@@ -65,6 +66,11 @@ const ReelsRoute = ReelsRouteImport.update({
 const RaffleRoute = RaffleRouteImport.update({
   id: '/raffle',
   path: '/raffle',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PublishQueueRoute = PublishQueueRouteImport.update({
+  id: '/publish-queue',
+  path: '/publish-queue',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PerformanceRoute = PerformanceRouteImport.update({
@@ -159,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/knowledge': typeof KnowledgeRoute
   '/learning': typeof LearningRoute
   '/performance': typeof PerformanceRoute
+  '/publish-queue': typeof PublishQueueRoute
   '/raffle': typeof RaffleRoute
   '/reels': typeof ReelsRoute
   '/scope': typeof ScopeRoute
@@ -183,6 +190,7 @@ export interface FileRoutesByTo {
   '/knowledge': typeof KnowledgeRoute
   '/learning': typeof LearningRoute
   '/performance': typeof PerformanceRoute
+  '/publish-queue': typeof PublishQueueRoute
   '/raffle': typeof RaffleRoute
   '/reels': typeof ReelsRoute
   '/scope': typeof ScopeRoute
@@ -208,6 +216,7 @@ export interface FileRoutesById {
   '/knowledge': typeof KnowledgeRoute
   '/learning': typeof LearningRoute
   '/performance': typeof PerformanceRoute
+  '/publish-queue': typeof PublishQueueRoute
   '/raffle': typeof RaffleRoute
   '/reels': typeof ReelsRoute
   '/scope': typeof ScopeRoute
@@ -234,6 +243,7 @@ export interface FileRouteTypes {
     | '/knowledge'
     | '/learning'
     | '/performance'
+    | '/publish-queue'
     | '/raffle'
     | '/reels'
     | '/scope'
@@ -258,6 +268,7 @@ export interface FileRouteTypes {
     | '/knowledge'
     | '/learning'
     | '/performance'
+    | '/publish-queue'
     | '/raffle'
     | '/reels'
     | '/scope'
@@ -282,6 +293,7 @@ export interface FileRouteTypes {
     | '/knowledge'
     | '/learning'
     | '/performance'
+    | '/publish-queue'
     | '/raffle'
     | '/reels'
     | '/scope'
@@ -307,6 +319,7 @@ export interface RootRouteChildren {
   KnowledgeRoute: typeof KnowledgeRoute
   LearningRoute: typeof LearningRoute
   PerformanceRoute: typeof PerformanceRoute
+  PublishQueueRoute: typeof PublishQueueRoute
   RaffleRoute: typeof RaffleRoute
   ReelsRoute: typeof ReelsRoute
   ScopeRoute: typeof ScopeRoute
@@ -365,6 +378,13 @@ declare module '@tanstack/react-router' {
       path: '/raffle'
       fullPath: '/raffle'
       preLoaderRoute: typeof RaffleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/publish-queue': {
+      id: '/publish-queue'
+      path: '/publish-queue'
+      fullPath: '/publish-queue'
+      preLoaderRoute: typeof PublishQueueRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/performance': {
@@ -491,6 +511,7 @@ const rootRouteChildren: RootRouteChildren = {
   KnowledgeRoute: KnowledgeRoute,
   LearningRoute: LearningRoute,
   PerformanceRoute: PerformanceRoute,
+  PublishQueueRoute: PublishQueueRoute,
   RaffleRoute: RaffleRoute,
   ReelsRoute: ReelsRoute,
   ScopeRoute: ScopeRoute,

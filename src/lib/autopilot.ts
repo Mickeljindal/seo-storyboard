@@ -42,6 +42,11 @@ export type AutopilotConfig = {
   usePlugin: boolean;
   /** Refresh articles older than N days */
   refreshAfterDays: number;
+  // --- Pre-publish review queue ---
+  /** Hours a finished article sits in the review queue before it's eligible for auto-publish */
+  reviewHoldHours: number;
+  /** If true, Autopilot itself approves+publishes anything whose hold has fully elapsed. If false, queued items wait for a human forever. */
+  autoApproveAfterHold: boolean;
   // --- Tool pages (Elementor) ---
   /** Master switch for the tool-pages phase */
   toolsEnabled: boolean;
@@ -75,6 +80,8 @@ const DEFAULT_CONFIG: AutopilotConfig = {
   autoPublish: true,
   usePlugin: true,
   refreshAfterDays: 90,
+  reviewHoldHours: 24,
+  autoApproveAfterHold: false,
   toolsEnabled: false,
   toolsDiscoverPerRun: 3,
   toolsGeneratePerRun: 1,
@@ -109,6 +116,10 @@ export function getAutopilotConfig(): AutopilotConfig {
     autoPublish: process.env.AUTOPILOT_PUBLISH !== "0",
     usePlugin: process.env.AUTOPILOT_USE_PLUGIN !== "0",
     refreshAfterDays: Number(process.env.AUTOPILOT_REFRESH_DAYS || DEFAULT_CONFIG.refreshAfterDays),
+    reviewHoldHours: Number(
+      process.env.AUTOPILOT_REVIEW_HOLD_HOURS || DEFAULT_CONFIG.reviewHoldHours,
+    ),
+    autoApproveAfterHold: process.env.AUTOPILOT_AUTO_APPROVE_AFTER_HOLD === "1",
     toolsEnabled: process.env.AUTOPILOT_TOOLS === "1",
     toolsDiscoverPerRun: Number(
       process.env.AUTOPILOT_TOOLS_DISCOVER || DEFAULT_CONFIG.toolsDiscoverPerRun,
@@ -131,6 +142,7 @@ export type AutopilotRunResult = {
   researched: number;
   briefed: number;
   written: number;
+  queued: number;
   published: number;
   refreshed: number;
   blocked: number;
@@ -171,6 +183,7 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
     researched: 0,
     briefed: 0,
     written: 0,
+    queued: 0,
     published: 0,
     refreshed: 0,
     blocked: 0,
@@ -291,7 +304,10 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
     );
   }
 
-  // 3. AUTO-PUBLISH passing articles (respecting cadence)
+  // 3. QUEUE FOR REVIEW — finished, passing articles no longer go straight to
+  // WordPress. They're queued with a scheduled_publish_at (now + hold hours)
+  // so everything is visible in the /publish-queue dashboard for a full day
+  // (by default) before anyone — human or Autopilot itself — publishes it.
   if (cfg.autoPublish) {
     const publishable = (await repo.listArticles({ geo: cfg.geo, limit: 500 }))
       .filter(
@@ -301,7 +317,10 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
           a.quality_score >= cfg.minPublishScore &&
           !(a.quality_report as { blocking?: boolean })?.blocking &&
           a.status !== "published" &&
-          a.status !== "promoted",
+          a.status !== "promoted" &&
+          a.approval_status !== "queued" &&
+          a.approval_status !== "approved" &&
+          a.approval_status !== "published",
       )
       .sort((a, b) => (b.quality_score ?? 0) - (a.quality_score ?? 0));
 
@@ -314,119 +333,45 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
         result.cadenceLimited++;
         break;
       }
-
       try {
-        if (cfg.usePlugin) {
-          const { hasPluginConfigured, publishViaPlugin } = await import("./wp-plugin-client");
-          const { generateHeroImage } = await import("./image-generator");
-          const { renderArticleHtml, buildJsonLd } = await import("./content-render");
-          const { CLUSTERS } = await import("./pillars");
-
-          if (hasPluginConfigured()) {
-            const brief = (article.brief ?? {}) as Record<string, unknown>;
-            const cluster = CLUSTERS.find((c) => c.id === article.cluster_id);
-            const image = await generateHeroImage(article.title, article.target_keyword ?? "");
-            const nowIso = new Date().toISOString();
-            const publishedIso = (article.published_at as Date | null)?.toISOString?.() ?? nowIso;
-            const html = renderArticleHtml(article.content_draft!, brief, {
-              clusterName: cluster?.name,
-              imageUrl: image.url,
-              datePublished: publishedIso,
-              dateModified: nowIso,
-            });
-            const schema = buildJsonLd(brief, {
-              title: article.title,
-              clusterName: cluster?.name,
-              imageUrl: image.url,
-              datePublished: publishedIso,
-              dateModified: nowIso,
-              howTo: null,
-              includeService: false,
-            });
-
-            const r = await publishViaPlugin({
-              title: String(brief.h1 ?? article.title),
-              content: html,
-              slug: article.url_slug ?? undefined,
-              status: "publish",
-              meta_title: article.meta_title ?? String(brief.meta_title ?? ""),
-              meta_description: article.meta_description ?? String(brief.meta_description ?? ""),
-              focus_keyword: article.target_keyword ?? "",
-              secondary_keywords: article.secondary_keywords ?? [],
-              featured_image_url: image.url,
-              og_image_url: image.url,
-              category: cluster?.name ?? "Managed Cloud",
-              tags: (article.secondary_keywords ?? []).slice(0, 5),
-              schema_jsonld: schema,
-              toc: true,
-              reading_time: Math.ceil((article.word_count_target ?? 2000) / 250),
-              excerpt: String(brief.meta_description ?? article.meta_description ?? ""),
-              existing_post_id:
-                (article.performance_data as { wordpress_post_id?: number })?.wordpress_post_id ??
-                null,
-            });
-
-            if (r.ok) {
-              await repo.updateArticle(article.id, {
-                status: "published",
-                published_url: r.link,
-                published_at: new Date(),
-                performance_data: {
-                  ...((article.performance_data as Record<string, unknown>) ?? {}),
-                  wordpress_post_id: r.post_id,
-                  wordpress_last_sync: new Date().toISOString(),
-                  featured_image: image.url,
-                },
-              });
-              result.published++;
-              counts.today++;
-              counts.week++;
-              log(`Published: "${article.title}" → ${r.link}`);
-
-              // Record learning signal
-              try {
-                const signals = await import("@/server/db/repos/signals");
-                const { computeReward } = await import("./learning-ranker");
-                await signals.recordSignal({
-                  articleId: article.id,
-                  keyword: article.target_keyword,
-                  clusterId: article.cluster_id,
-                  geo: article.geo_target,
-                  qualityScore: article.quality_score,
-                  event: "published",
-                  reward: computeReward({
-                    event: "published",
-                    qualityScore: article.quality_score,
-                  }),
-                });
-              } catch {
-                /* signal recording is optional */
-              }
-            } else {
-              result.errors.push(`plugin publish: ${r.error}`);
-            }
-            continue;
-          }
-        }
-
-        // Fallback: basic WP publish
-        const { publishArticleInternal } = await import("./wordpress.functions");
-        const r = await publishArticleInternal(article.id, "publish");
+        const { queueForReview } = await import("./publish-queue");
+        const r = await queueForReview(article.id, cfg.reviewHoldHours);
         if (r.ok) {
-          result.published++;
+          result.queued++;
+          // Reserve today's/week's cadence slot now so we don't over-queue
+          // more than the publish limit even though nothing is live yet.
           counts.today++;
           counts.week++;
-          log(`Published (basic WP): "${article.title}"`);
+          log(
+            `Queued for review: "${article.title}" — publishes ${r.scheduledPublishAt} unless reviewed sooner`,
+          );
         } else {
-          result.errors.push(`publish ${article.id}: ${r.error}`);
+          result.errors.push(`queue ${article.id}: ${r.error}`);
         }
       } catch (e) {
-        result.errors.push(`publish ${article.id}: ${String((e as Error)?.message ?? e)}`);
+        result.errors.push(`queue ${article.id}: ${String((e as Error)?.message ?? e)}`);
       }
     }
     log(
-      `Publishing: ${result.published} published, ${result.cadenceLimited} cadence-limited, ${result.blocked} blocked`,
+      `Review queue: ${result.queued} queued, ${result.cadenceLimited} cadence-limited, ${result.blocked} blocked`,
     );
+  }
+
+  // 3b. PROCESS REVIEW QUEUE — publish anything whose hold window has fully
+  // elapsed, but ONLY if auto-approve-after-hold is turned on. Otherwise
+  // queued articles wait for a human to approve/reject, no matter how long.
+  try {
+    const { processReviewQueue } = await import("./publish-queue");
+    const q = await processReviewQueue(cfg.autoApproveAfterHold);
+    result.published += q.autoPublished;
+    for (const e of q.errors) result.errors.push(`queue-release: ${e}`);
+    if (q.autoPublished) log(`Review queue: auto-published ${q.autoPublished} whose hold elapsed`);
+    if (q.stillQueued)
+      log(
+        `Review queue: ${q.stillQueued} still waiting (${cfg.autoApproveAfterHold ? "hold not yet elapsed" : "waiting for manual approval"})`,
+      );
+  } catch (e) {
+    result.errors.push(`queue processing: ${String((e as Error)?.message ?? e)}`);
   }
 
   // 4. REFRESH stale articles — prioritised review queue (freshness/decay).
@@ -578,7 +523,7 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
   }
 
   log(
-    `Cycle complete: ${result.kloudgraphSent} from KLOUDGRAPH, ${result.discovered} discovered, ${result.written} written, ${result.published} published`,
+    `Cycle complete: ${result.kloudgraphSent} from KLOUDGRAPH, ${result.discovered} discovered, ${result.written} written, ${result.queued} queued for review, ${result.published} published`,
   );
   return result;
 }
@@ -635,6 +580,7 @@ async function runCycleWrapped() {
       researched: 0,
       briefed: 0,
       written: 0,
+      queued: 0,
       published: 0,
       refreshed: 0,
       blocked: 0,

@@ -20,6 +20,7 @@ import {
   Globe,
   DollarSign,
   Lightbulb,
+  ShieldCheck,
 } from "lucide-react";
 import { ReactNode } from "react";
 import { SystemHealthBanner, SystemHealthOkBadge } from "./SystemHealthBanner";
@@ -32,6 +33,7 @@ const NAV = [
   { to: "/topical-map", label: "Topical Map", icon: Network, kbd: "4" },
   { to: "/scope", label: "Scope", icon: Lock, kbd: "5" },
   { to: "/engine", label: "Engine", icon: Cog, kbd: "6" },
+  { to: "/publish-queue", label: "Publish Queue", icon: ShieldCheck, kbd: "Q" },
   { to: "/tools", label: "Tool Pages", icon: Wrench, kbd: "T" },
   { to: "/kloudgraph", label: "Competitor Graph", icon: Network, kbd: "G" },
   { to: "/knowledge", label: "Knowledge", icon: BrainIcon, kbd: "K" },

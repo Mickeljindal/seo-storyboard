@@ -496,3 +496,18 @@ CREATE TABLE IF NOT EXISTS distributions (
 CREATE INDEX IF NOT EXISTS idx_distributions_article ON distributions(article_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_distributions_article_channel
   ON distributions(article_id, channel);
+
+-- ============================================================================
+-- PRE-PUBLISH REVIEW QUEUE (v17) — nothing goes to WordPress without a visible
+-- holding period in the dashboard first. Autopilot queues finished articles
+-- here instead of publishing immediately; a human (or an auto-approve timer)
+-- releases them.
+-- ============================================================================
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS approval_status text DEFAULT 'none';
+-- none | queued | approved | rejected | published
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS queued_at timestamptz;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS scheduled_publish_at timestamptz;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS approved_at timestamptz;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS rejected_reason text;
+CREATE INDEX IF NOT EXISTS idx_articles_approval_status ON articles(approval_status);
+CREATE INDEX IF NOT EXISTS idx_articles_scheduled_publish ON articles(scheduled_publish_at);

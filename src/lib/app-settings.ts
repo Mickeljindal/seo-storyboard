@@ -32,6 +32,8 @@ export const MANAGED_ENV_KEYS = [
   "AUTOPILOT_KLOUDGRAPH_PER_RUN",
   "AUTOPILOT_KLOUDGRAPH_MIN_RELEVANCE",
   "AUTOPILOT_TOOLS",
+  "AUTOPILOT_REVIEW_HOLD_HOURS",
+  "AUTOPILOT_AUTO_APPROVE_AFTER_HOLD",
 ] as const;
 
 let lastHydrated = 0;
@@ -186,6 +188,8 @@ export async function saveAutopilotSettings(input: {
   kloudgraphPerRun?: number;
   kloudgraphMinRelevance?: number;
   toolsEnabled?: boolean;
+  reviewHoldHours?: number;
+  autoApproveAfterHold?: boolean;
 }): Promise<{ ok: boolean; running: boolean }> {
   const patch: Record<string, string | null> = {};
   if (input.enabled !== undefined) patch.AUTOPILOT_ENABLED = input.enabled ? "1" : "0";
@@ -210,6 +214,10 @@ export async function saveAutopilotSettings(input: {
   if (input.kloudgraphMinRelevance !== undefined)
     patch.AUTOPILOT_KLOUDGRAPH_MIN_RELEVANCE = String(input.kloudgraphMinRelevance);
   if (input.toolsEnabled !== undefined) patch.AUTOPILOT_TOOLS = input.toolsEnabled ? "1" : "0";
+  if (input.reviewHoldHours !== undefined)
+    patch.AUTOPILOT_REVIEW_HOLD_HOURS = String(input.reviewHoldHours);
+  if (input.autoApproveAfterHold !== undefined)
+    patch.AUTOPILOT_AUTO_APPROVE_AFTER_HOLD = input.autoApproveAfterHold ? "1" : "0";
 
   const { setSettings } = await import("@/server/db/repos/app-settings");
   await setSettings(patch);

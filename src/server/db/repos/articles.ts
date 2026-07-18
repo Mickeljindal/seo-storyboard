@@ -149,6 +149,11 @@ export async function updateArticle(id: string, patch: Record<string, unknown>) 
     published_url: "publishedUrl",
     performance_data: "performanceData",
     word_count_target: "wordCountTarget",
+    approval_status: "approvalStatus",
+    queued_at: "queuedAt",
+    scheduled_publish_at: "scheduledPublishAt",
+    approved_at: "approvedAt",
+    rejected_reason: "rejectedReason",
   };
   for (const [k, v] of Object.entries(patch)) {
     const col = map[k];
