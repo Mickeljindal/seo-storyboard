@@ -19,6 +19,7 @@ import { Route as RaffleRouteImport } from './routes/raffle'
 import { Route as PerformanceRouteImport } from './routes/performance'
 import { Route as LearningRouteImport } from './routes/learning'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
+import { Route as KloudgraphRouteImport } from './routes/kloudgraph'
 import { Route as KeywordsRouteImport } from './routes/keywords'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as HelpRouteImport } from './routes/help'
@@ -78,6 +79,11 @@ const LearningRoute = LearningRouteImport.update({
 const KnowledgeRoute = KnowledgeRouteImport.update({
   id: '/knowledge',
   path: '/knowledge',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KloudgraphRoute = KloudgraphRouteImport.update({
+  id: '/kloudgraph',
+  path: '/kloudgraph',
   getParentRoute: () => rootRouteImport,
 } as any)
 const KeywordsRoute = KeywordsRouteImport.update({
@@ -142,6 +148,7 @@ export interface FileRoutesByFullPath {
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
   '/keywords': typeof KeywordsRoute
+  '/kloudgraph': typeof KloudgraphRoute
   '/knowledge': typeof KnowledgeRoute
   '/learning': typeof LearningRoute
   '/performance': typeof PerformanceRoute
@@ -164,6 +171,7 @@ export interface FileRoutesByTo {
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
   '/keywords': typeof KeywordsRoute
+  '/kloudgraph': typeof KloudgraphRoute
   '/knowledge': typeof KnowledgeRoute
   '/learning': typeof LearningRoute
   '/performance': typeof PerformanceRoute
@@ -187,6 +195,7 @@ export interface FileRoutesById {
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
   '/keywords': typeof KeywordsRoute
+  '/kloudgraph': typeof KloudgraphRoute
   '/knowledge': typeof KnowledgeRoute
   '/learning': typeof LearningRoute
   '/performance': typeof PerformanceRoute
@@ -211,6 +220,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/how-it-works'
     | '/keywords'
+    | '/kloudgraph'
     | '/knowledge'
     | '/learning'
     | '/performance'
@@ -233,6 +243,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/how-it-works'
     | '/keywords'
+    | '/kloudgraph'
     | '/knowledge'
     | '/learning'
     | '/performance'
@@ -255,6 +266,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/how-it-works'
     | '/keywords'
+    | '/kloudgraph'
     | '/knowledge'
     | '/learning'
     | '/performance'
@@ -278,6 +290,7 @@ export interface RootRouteChildren {
   HelpRoute: typeof HelpRoute
   HowItWorksRoute: typeof HowItWorksRoute
   KeywordsRoute: typeof KeywordsRoute
+  KloudgraphRoute: typeof KloudgraphRoute
   KnowledgeRoute: typeof KnowledgeRoute
   LearningRoute: typeof LearningRoute
   PerformanceRoute: typeof PerformanceRoute
@@ -360,6 +373,13 @@ declare module '@tanstack/react-router' {
       path: '/knowledge'
       fullPath: '/knowledge'
       preLoaderRoute: typeof KnowledgeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/kloudgraph': {
+      id: '/kloudgraph'
+      path: '/kloudgraph'
+      fullPath: '/kloudgraph'
+      preLoaderRoute: typeof KloudgraphRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/keywords': {
@@ -446,6 +466,7 @@ const rootRouteChildren: RootRouteChildren = {
   HelpRoute: HelpRoute,
   HowItWorksRoute: HowItWorksRoute,
   KeywordsRoute: KeywordsRoute,
+  KloudgraphRoute: KloudgraphRoute,
   KnowledgeRoute: KnowledgeRoute,
   LearningRoute: LearningRoute,
   PerformanceRoute: PerformanceRoute,

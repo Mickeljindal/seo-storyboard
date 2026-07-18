@@ -4,6 +4,7 @@ import {
   text,
   smallint,
   integer,
+  bigint,
   numeric,
   timestamp,
   jsonb,
@@ -385,3 +386,176 @@ export const appSettings = pgTable("app_settings", {
 });
 
 export type AppSettingRow = typeof appSettings.$inferSelect;
+
+// ============================================================================
+// KLOUDGRAPH — competitor SEO intelligence warehouse (Semrush import seed)
+// Standalone-ready module living inside the engine for now. Every fact table
+// carries snapshotDate so history accumulates over time.
+// ============================================================================
+
+/** Competitor registry — the domains we track, tiered by relevance. */
+export const kgCompetitors = pgTable("kg_competitors", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  domain: text("domain").notNull().unique(),
+  name: text("name"),
+  tier: smallint("tier").default(1),
+  category: text("category"),
+  tracked: boolean("tracked").default(true),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Organic rankings (Positions export) — every keyword a domain ranks for. */
+export const kgOrganicRankings = pgTable("kg_organic_rankings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  competitorDomain: text("competitor_domain").notNull(),
+  keyword: text("keyword").notNull(),
+  position: integer("position"),
+  previousPosition: integer("previous_position"),
+  volume: integer("volume"),
+  difficulty: smallint("difficulty"),
+  cpc: numeric("cpc", { precision: 10, scale: 2 }),
+  url: text("url"),
+  traffic: integer("traffic"),
+  trafficPct: numeric("traffic_pct", { precision: 8, scale: 4 }),
+  trafficCost: numeric("traffic_cost", { precision: 14, scale: 2 }),
+  intents: text("intents"),
+  serpFeatures: text("serp_features"),
+  results: numeric("results"),
+  snapshotDate: text("snapshot_date"),
+  raw: jsonb("raw"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Keyword gap (competitor vs kloudbean) — the opportunity engine. */
+export const kgKeywordGap = pgTable("kg_keyword_gap", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  competitorDomain: text("competitor_domain").notNull(),
+  keyword: text("keyword").notNull(),
+  intents: text("intents"),
+  volume: integer("volume"),
+  difficulty: smallint("difficulty"),
+  cpc: numeric("cpc", { precision: 10, scale: 2 }),
+  competitionDensity: numeric("competition_density", { precision: 6, scale: 4 }),
+  competitorPosition: integer("competitor_position"),
+  ourPosition: integer("our_position"),
+  competitorUrl: text("competitor_url"),
+  ourUrl: text("our_url"),
+  results: numeric("results"),
+  snapshotDate: text("snapshot_date"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Organic competitors (Competitors export) — feeds long-tail discovery. */
+export const kgOrganicCompetitors = pgTable("kg_organic_competitors", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  forDomain: text("for_domain").notNull(),
+  competitorDomain: text("competitor_domain").notNull(),
+  relevance: numeric("relevance", { precision: 6, scale: 4 }),
+  commonKeywords: bigint("common_keywords", { mode: "number" }),
+  organicKeywords: bigint("organic_keywords", { mode: "number" }),
+  organicTraffic: numeric("organic_traffic"),
+  organicCost: numeric("organic_cost", { precision: 16, scale: 2 }),
+  adwordsKeywords: bigint("adwords_keywords", { mode: "number" }),
+  snapshotDate: text("snapshot_date"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Subdomains (Subdomains export). */
+export const kgSubdomains = pgTable("kg_subdomains", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  competitorDomain: text("competitor_domain").notNull(),
+  subdomainUrl: text("subdomain_url").notNull(),
+  traffic: integer("traffic"),
+  trafficPct: numeric("traffic_pct", { precision: 8, scale: 4 }),
+  keywords: integer("keywords"),
+  snapshotDate: text("snapshot_date"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Backlinks (full link list). */
+export const kgBacklinks = pgTable("kg_backlinks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  competitorDomain: text("competitor_domain").notNull(),
+  pageAscore: smallint("page_ascore"),
+  sourceTitle: text("source_title"),
+  sourceUrl: text("source_url"),
+  targetUrl: text("target_url"),
+  anchor: text("anchor"),
+  externalLinks: integer("external_links"),
+  internalLinks: integer("internal_links"),
+  nofollow: boolean("nofollow"),
+  sponsored: boolean("sponsored"),
+  ugc: boolean("ugc"),
+  isText: boolean("is_text"),
+  isFrame: boolean("is_frame"),
+  isForm: boolean("is_form"),
+  isImage: boolean("is_image"),
+  sitewide: boolean("sitewide"),
+  firstSeen: text("first_seen"),
+  lastSeen: text("last_seen"),
+  newLink: boolean("new_link"),
+  lostLink: boolean("lost_link"),
+  snapshotDate: text("snapshot_date"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Backlink anchors (anchor-text profile). */
+export const kgBacklinkAnchors = pgTable("kg_backlink_anchors", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  competitorDomain: text("competitor_domain").notNull(),
+  anchor: text("anchor"),
+  domains: integer("domains"),
+  backlinks: numeric("backlinks"),
+  firstSeen: text("first_seen"),
+  lastSeen: text("last_seen"),
+  snapshotDate: text("snapshot_date"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Backlink pages (most-linked pages). */
+export const kgBacklinkPages = pgTable("kg_backlink_pages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  competitorDomain: text("competitor_domain").notNull(),
+  sourceUrl: text("source_url"),
+  sourceTitle: text("source_title"),
+  responseCode: integer("response_code"),
+  backlinks: numeric("backlinks"),
+  domains: integer("domains"),
+  externalLinks: integer("external_links"),
+  internalLinks: integer("internal_links"),
+  lastSeen: text("last_seen"),
+  snapshotDate: text("snapshot_date"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Referring domains. */
+export const kgReferringDomains = pgTable("kg_referring_domains", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  competitorDomain: text("competitor_domain").notNull(),
+  referringDomain: text("referring_domain"),
+  domainAscore: smallint("domain_ascore"),
+  backlinks: numeric("backlinks"),
+  firstSeen: text("first_seen"),
+  lastSeen: text("last_seen"),
+  snapshotDate: text("snapshot_date"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Import log — so re-running an import never duplicates rows. */
+export const kgImportLog = pgTable("kg_import_log", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  competitorDomain: text("competitor_domain"),
+  fileName: text("file_name").notNull(),
+  reportType: text("report_type"),
+  rowsImported: integer("rows_imported").default(0),
+  fileHash: text("file_hash"),
+  importedAt: timestamp("imported_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type KgCompetitorRow = typeof kgCompetitors.$inferSelect;
+export type KgOrganicRankingRow = typeof kgOrganicRankings.$inferSelect;
+export type KgKeywordGapRow = typeof kgKeywordGap.$inferSelect;
+export type KgOrganicCompetitorRow = typeof kgOrganicCompetitors.$inferSelect;
+export type KgImportLogRow = typeof kgImportLog.$inferSelect;

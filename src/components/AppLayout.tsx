@@ -32,6 +32,7 @@ const NAV = [
   { to: "/scope", label: "Scope", icon: Lock, kbd: "5" },
   { to: "/engine", label: "Engine", icon: Cog, kbd: "6" },
   { to: "/tools", label: "Tool Pages", icon: Wrench, kbd: "T" },
+  { to: "/kloudgraph", label: "Competitor Graph", icon: Network, kbd: "G" },
   { to: "/knowledge", label: "Knowledge", icon: BrainIcon, kbd: "K" },
   { to: "/reels", label: "Reels Studio", icon: Clapperboard, kbd: "R" },
   { to: "/raffle", label: "Idea Raffle", icon: Dices, kbd: "7" },
@@ -132,4 +133,3 @@ export function AppLayout({ children }: { children: ReactNode }) {
     </div>
   );
 }
-

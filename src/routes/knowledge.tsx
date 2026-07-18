@@ -21,6 +21,7 @@ const TYPE_COLORS: Record<string, string> = {
   runtime: "#64748b",
   topic: "#94a3b8",
   keyword: "#cbd5e1",
+  opportunity: "#f97316",
 };
 
 function KnowledgePage() {
@@ -38,7 +39,10 @@ function KnowledgePage() {
   const rebuildMut = useMutation({
     mutationFn: () => rebuildFn({}),
     onSuccess: (r) => {
-      toast.success(`Graph rebuilt: ${r.totals.nodes} nodes · ${r.totals.edges} links`);
+      const kgNote = r.kloudgraph?.competitors
+        ? ` · ${r.kloudgraph.competitors} competitors, ${r.kloudgraph.opportunities} opportunities from KLOUDGRAPH`
+        : "";
+      toast.success(`Graph rebuilt: ${r.totals.nodes} nodes · ${r.totals.edges} links${kgNote}`);
       qc.invalidateQueries({ queryKey: ["kg-graph"] });
       qc.invalidateQueries({ queryKey: ["kg-insights"] });
     },

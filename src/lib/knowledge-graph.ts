@@ -282,6 +282,90 @@ export async function ingestContentIntoGraph(): Promise<{ topics: number; links:
 }
 
 /**
+ * KLOUDGRAPH — fold real competitor intelligence into the graph. Competitor
+ * nodes gain weight from their ACTUAL measured strength (ranking keywords +
+ * backlinks + referring domains), not a static guess, and every keyword this
+ * niche has proven demand for (via keyword-gap data) becomes a topic node
+ * linked to its competitor(s) and cluster — so the graph's gap analysis and
+ * the competitor graph work off the same live picture.
+ */
+export async function ingestKloudgraphIntoGraph(): Promise<{
+  competitors: number;
+  opportunities: number;
+}> {
+  const kg = await import("@/server/db/repos/knowledge-graph");
+  let competitors = 0;
+  let opportunities = 0;
+
+  try {
+    const { getCompetitorStrength, getAggregatedOpportunities } =
+      await import("./kloudgraph/opportunity-engine");
+
+    // Competitor nodes — weight = real measured strength, not a guess.
+    const strengths = await getCompetitorStrength();
+    const competitorIds = new Map<string, string>();
+    for (const c of strengths) {
+      const id = await kg.upsertNode({
+        type: "competitor",
+        key: norm(c.domain),
+        label: c.domain,
+        description: `Tier ${c.tier ?? "?"} · ${c.rankingKeywords.toLocaleString()} ranking keywords · ${c.backlinkCount.toLocaleString()} backlinks`,
+        data: { ...c, kloudgraph: true },
+        source: "kloudgraph",
+        weightDelta: c.strengthScore,
+      });
+      competitorIds.set(c.domain, id);
+      competitors++;
+    }
+
+    // Opportunity keywords — proven demand this niche cares about, linked to
+    // whichever competitors rank for them and to their content cluster.
+    const opps = await getAggregatedOpportunities({ limit: 150, minRelevance: 0.55 });
+    const clusterIds = new Map<number, string>();
+    for (const c of CLUSTERS) {
+      const id = await kg.upsertNode({
+        type: "cluster",
+        key: `cluster-${c.id}`,
+        label: c.name,
+        clusterId: c.id,
+        source: "seed",
+        weightDelta: 0,
+      });
+      clusterIds.set(c.id, id);
+    }
+
+    for (const o of opps) {
+      const topicId = await kg.upsertNode({
+        type: "opportunity",
+        key: norm(o.keyword),
+        label: o.keyword,
+        clusterId: o.clusterId ?? null,
+        source: "kloudgraph",
+        data: {
+          volume: o.volume,
+          difficulty: o.difficulty,
+          score: o.score,
+          competitors: o.competitors,
+        },
+        weightDelta: o.score,
+      });
+      opportunities++;
+      for (const dom of o.competitors) {
+        const cid = competitorIds.get(dom);
+        if (cid) await kg.upsertEdge(cid, topicId, "ranks_for", 1);
+      }
+      if (o.clusterId != null && clusterIds.has(o.clusterId)) {
+        await kg.upsertEdge(topicId, clusterIds.get(o.clusterId)!, "belongs_to", 1);
+      }
+    }
+  } catch {
+    /* KLOUDGRAPH data optional — graph still works without it */
+  }
+
+  return { competitors, opportunities };
+}
+
+/**
  * LEARN — fold real outcomes into node rewards so the graph understands what
  * actually wins. Uses the same signals the discovery ranker uses.
  */
@@ -310,10 +394,11 @@ export async function learnIntoGraph(): Promise<{ clustersRewarded: number }> {
   return { clustersRewarded };
 }
 
-/** Full rebuild: seed → ingest → learn. Idempotent. */
+/** Full rebuild: seed → ingest → competitor intel → learn. Idempotent. */
 export async function rebuildKnowledgeGraph(): Promise<{
   seeded: { nodes: number; edges: number };
   ingested: { topics: number; links: number };
+  kloudgraph: { competitors: number; opportunities: number };
   learned: { clustersRewarded: number };
   totals: { nodes: number; edges: number };
 }> {
@@ -321,10 +406,11 @@ export async function rebuildKnowledgeGraph(): Promise<{
   loadProjectEnv();
   const seeded = await seedKnowledgeGraph();
   const ingested = await ingestContentIntoGraph();
+  const kloudgraph = await ingestKloudgraphIntoGraph();
   const learned = await learnIntoGraph();
   const kg = await import("@/server/db/repos/knowledge-graph");
   const totals = { nodes: await kg.countNodes(), edges: await kg.countEdges() };
-  return { seeded, ingested, learned, totals };
+  return { seeded, ingested, kloudgraph, learned, totals };
 }
 
 // --- queries: graph view, gaps, derived ideas -------------------------------

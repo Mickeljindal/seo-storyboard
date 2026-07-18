@@ -270,3 +270,186 @@ CREATE TABLE IF NOT EXISTS app_settings (
 
 -- Before/after optimization report per tool page (v14)
 ALTER TABLE tools ADD COLUMN IF NOT EXISTS optimize_report jsonb;
+
+-- ============================================================================
+-- KLOUDGRAPH — competitor SEO intelligence warehouse (Semrush import seed)
+-- All fact tables carry snapshot_date so history accumulates over time.
+-- ============================================================================
+
+-- Competitor registry (the domains we track, tiered)
+CREATE TABLE IF NOT EXISTS kg_competitors (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  domain text NOT NULL UNIQUE,
+  name text,
+  tier smallint DEFAULT 1,
+  category text,
+  tracked boolean DEFAULT true,
+  notes text,
+  created_at timestamptz DEFAULT now() NOT NULL,
+  updated_at timestamptz DEFAULT now() NOT NULL
+);
+
+-- Organic rankings (from the Positions export) — every keyword a domain ranks for
+CREATE TABLE IF NOT EXISTS kg_organic_rankings (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  competitor_domain text NOT NULL,
+  keyword text NOT NULL,
+  position integer,
+  previous_position integer,
+  volume integer,
+  difficulty smallint,
+  cpc numeric(10,2),
+  url text,
+  traffic integer,
+  traffic_pct numeric(8,4),
+  traffic_cost numeric(14,2),
+  intents text,
+  serp_features text,
+  results bigint,
+  snapshot_date date,
+  raw jsonb,
+  created_at timestamptz DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_kg_rankings_domain ON kg_organic_rankings(competitor_domain);
+CREATE INDEX IF NOT EXISTS idx_kg_rankings_keyword ON kg_organic_rankings(keyword);
+
+-- Keyword gap (competitor vs kloudbean) — the opportunity engine
+CREATE TABLE IF NOT EXISTS kg_keyword_gap (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  competitor_domain text NOT NULL,
+  keyword text NOT NULL,
+  intents text,
+  volume integer,
+  difficulty smallint,
+  cpc numeric(10,2),
+  competition_density numeric(6,4),
+  competitor_position integer,
+  our_position integer,
+  competitor_url text,
+  our_url text,
+  results bigint,
+  snapshot_date date,
+  created_at timestamptz DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_kg_gap_domain ON kg_keyword_gap(competitor_domain);
+CREATE INDEX IF NOT EXISTS idx_kg_gap_keyword ON kg_keyword_gap(keyword);
+
+-- Organic competitors (from the Competitors export) — feeds long-tail discovery
+CREATE TABLE IF NOT EXISTS kg_organic_competitors (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  for_domain text NOT NULL,
+  competitor_domain text NOT NULL,
+  relevance numeric(6,4),
+  common_keywords bigint,
+  organic_keywords bigint,
+  organic_traffic numeric,
+  organic_cost numeric(16,2),
+  adwords_keywords bigint,
+  snapshot_date date,
+  created_at timestamptz DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_kg_orgcomp_for ON kg_organic_competitors(for_domain);
+-- Widen count columns for giant domains (aggregate keyword counts exceed int32).
+ALTER TABLE kg_organic_competitors ALTER COLUMN common_keywords TYPE bigint;
+ALTER TABLE kg_organic_competitors ALTER COLUMN organic_keywords TYPE bigint;
+ALTER TABLE kg_organic_competitors ALTER COLUMN organic_traffic TYPE numeric;
+ALTER TABLE kg_organic_competitors ALTER COLUMN organic_cost TYPE numeric(16,2);
+ALTER TABLE kg_organic_competitors ALTER COLUMN adwords_keywords TYPE bigint;
+
+-- Subdomains (from the Subdomains export)
+CREATE TABLE IF NOT EXISTS kg_subdomains (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  competitor_domain text NOT NULL,
+  subdomain_url text NOT NULL,
+  traffic integer,
+  traffic_pct numeric(8,4),
+  keywords integer,
+  snapshot_date date,
+  created_at timestamptz DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_kg_subdomains_domain ON kg_subdomains(competitor_domain);
+
+-- Backlinks (full link list)
+CREATE TABLE IF NOT EXISTS kg_backlinks (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  competitor_domain text NOT NULL,
+  page_ascore smallint,
+  source_title text,
+  source_url text,
+  target_url text,
+  anchor text,
+  external_links integer,
+  internal_links integer,
+  nofollow boolean,
+  sponsored boolean,
+  ugc boolean,
+  is_text boolean,
+  is_frame boolean,
+  is_form boolean,
+  is_image boolean,
+  sitewide boolean,
+  first_seen date,
+  last_seen date,
+  new_link boolean,
+  lost_link boolean,
+  snapshot_date date,
+  created_at timestamptz DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_kg_backlinks_domain ON kg_backlinks(competitor_domain);
+
+-- Backlink anchors (anchor-text profile)
+CREATE TABLE IF NOT EXISTS kg_backlink_anchors (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  competitor_domain text NOT NULL,
+  anchor text,
+  domains integer,
+  backlinks bigint,
+  first_seen date,
+  last_seen date,
+  snapshot_date date,
+  created_at timestamptz DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_kg_anchors_domain ON kg_backlink_anchors(competitor_domain);
+
+-- Backlink pages (most-linked pages)
+CREATE TABLE IF NOT EXISTS kg_backlink_pages (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  competitor_domain text NOT NULL,
+  source_url text,
+  source_title text,
+  response_code integer,
+  backlinks bigint,
+  domains integer,
+  external_links integer,
+  internal_links integer,
+  last_seen date,
+  snapshot_date date,
+  created_at timestamptz DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_kg_blpages_domain ON kg_backlink_pages(competitor_domain);
+
+-- Referring domains (ready for the export you'll add next)
+CREATE TABLE IF NOT EXISTS kg_referring_domains (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  competitor_domain text NOT NULL,
+  referring_domain text,
+  domain_ascore smallint,
+  backlinks bigint,
+  first_seen date,
+  last_seen date,
+  snapshot_date date,
+  created_at timestamptz DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_kg_refdomains_domain ON kg_referring_domains(competitor_domain);
+
+-- Import log (so re-running an import never duplicates rows)
+CREATE TABLE IF NOT EXISTS kg_import_log (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  competitor_domain text,
+  file_name text NOT NULL,
+  report_type text,
+  rows_imported integer DEFAULT 0,
+  file_hash text,
+  imported_at timestamptz DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_kg_importlog_file ON kg_import_log(file_name);
