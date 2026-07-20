@@ -8,6 +8,8 @@ import type {
   CitationRow,
   EntityAssetRow,
   ConversionRow,
+  SitePageRow,
+  LinkSuggestionRow,
 } from "./schema";
 
 /** API shape (snake_case) — matches former Supabase client responses. */
@@ -253,3 +255,43 @@ export function toApiConversion(row: ConversionRow) {
   };
 }
 export type ApiConversion = ReturnType<typeof toApiConversion>;
+
+export function toApiSitePage(row: SitePageRow) {
+  return {
+    id: row.id,
+    wp_post_id: row.wpPostId,
+    post_type: row.postType,
+    title: row.title,
+    slug: row.slug,
+    published_url: row.publishedUrl,
+    status: row.status,
+    excerpt: row.excerpt,
+    content_text: row.contentText,
+    word_count: row.wordCount ?? 0,
+    cluster_id: row.clusterId,
+    outbound_link_count: row.outboundLinkCount ?? 0,
+    inbound_link_count: row.inboundLinkCount ?? 0,
+    modified_at: row.modifiedAt?.toISOString() ?? null,
+    last_scanned_at: row.lastScannedAt?.toISOString() ?? null,
+    created_at: row.createdAt?.toISOString(),
+    updated_at: row.updatedAt?.toISOString(),
+  };
+}
+export type ApiSitePage = ReturnType<typeof toApiSitePage>;
+
+export function toApiLinkSuggestion(row: LinkSuggestionRow) {
+  return {
+    id: row.id,
+    source_page_id: row.sourcePageId,
+    target_page_id: row.targetPageId,
+    anchor_text: row.anchorText,
+    score: row.score != null ? Number(row.score) : 0,
+    reason: row.reason,
+    status: row.status,
+    applied_at: row.appliedAt?.toISOString() ?? null,
+    error: row.error,
+    created_at: row.createdAt?.toISOString(),
+    updated_at: row.updatedAt?.toISOString(),
+  };
+}
+export type ApiLinkSuggestion = ReturnType<typeof toApiLinkSuggestion>;

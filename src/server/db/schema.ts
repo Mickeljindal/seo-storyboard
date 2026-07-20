@@ -604,3 +604,50 @@ export const distributions = pgTable("distributions", {
 
 export type DistributionRow = typeof distributions.$inferSelect;
 export type DistributionInsert = typeof distributions.$inferInsert;
+
+// ============================================================================
+// SITE-WIDE AUTO INTERNAL LINKING — mirrors the FULL live WordPress site (any
+// origin, not just content this engine authored) so link opportunities can be
+// found and applied across everything that exists on kloudbean.com.
+// ============================================================================
+
+/** One row per WordPress post/page, synced from the plugin's /site-content endpoint. */
+export const sitePages = pgTable("site_pages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  wpPostId: integer("wp_post_id").notNull(),
+  postType: text("post_type").notNull().default("post"), // post | page
+  title: text("title").notNull(),
+  slug: text("slug"),
+  publishedUrl: text("published_url"),
+  status: text("status").default("publish"),
+  excerpt: text("excerpt"),
+  contentText: text("content_text"), // plain-text extract (stripped tags), truncated
+  wordCount: integer("word_count").default(0),
+  clusterId: smallint("cluster_id"), // best-guess topical cluster (relevance-scored)
+  outboundLinkCount: integer("outbound_link_count").default(0),
+  inboundLinkCount: integer("inbound_link_count").default(0),
+  modifiedAt: timestamp("modified_at", { withTimezone: true }),
+  lastScannedAt: timestamp("last_scanned_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** A proposed (or applied) link from one site page to another. */
+export const linkSuggestions = pgTable("link_suggestions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  sourcePageId: uuid("source_page_id").notNull(),
+  targetPageId: uuid("target_page_id").notNull(),
+  anchorText: text("anchor_text").notNull(),
+  score: numeric("score", { precision: 6, scale: 3 }).default("0"),
+  reason: text("reason"), // human-readable "why this link makes sense"
+  status: text("status").notNull().default("pending"), // pending | applied | rejected | skipped
+  appliedAt: timestamp("applied_at", { withTimezone: true }),
+  error: text("error"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type SitePageRow = typeof sitePages.$inferSelect;
+export type SitePageInsert = typeof sitePages.$inferInsert;
+export type LinkSuggestionRow = typeof linkSuggestions.$inferSelect;
+export type LinkSuggestionInsert = typeof linkSuggestions.$inferInsert;

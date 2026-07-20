@@ -21,6 +21,7 @@ import {
   DollarSign,
   Lightbulb,
   ShieldCheck,
+  Link2,
 } from "lucide-react";
 import { ReactNode } from "react";
 import { SystemHealthBanner, SystemHealthOkBadge } from "./SystemHealthBanner";
@@ -36,6 +37,7 @@ const NAV = [
   { to: "/publish-queue", label: "Publish Queue", icon: ShieldCheck, kbd: "Q" },
   { to: "/tools", label: "Tool Pages", icon: Wrench, kbd: "T" },
   { to: "/kloudgraph", label: "Competitor Graph", icon: Network, kbd: "G" },
+  { to: "/internal-links", label: "Internal Links", icon: Link2, kbd: "I" },
   { to: "/knowledge", label: "Knowledge", icon: BrainIcon, kbd: "K" },
   { to: "/experience", label: "Experience Lessons", icon: Lightbulb, kbd: "X" },
   { to: "/reels", label: "Reels Studio", icon: Clapperboard, kbd: "R" },

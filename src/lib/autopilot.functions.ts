@@ -45,6 +45,9 @@ export const saveAutopilotSettingsFn = createServerFn({ method: "POST" })
       toolsEnabled: z.boolean().optional(),
       reviewHoldHours: z.number().min(1).max(168).optional(),
       autoApproveAfterHold: z.boolean().optional(),
+      siteLinksEnabled: z.boolean().optional(),
+      siteLinksScanPerRun: z.boolean().optional(),
+      siteLinksApplyPerRun: z.number().min(0).max(50).optional(),
     }).parse,
   )
   .handler(async ({ data }) => {

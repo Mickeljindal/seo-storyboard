@@ -2,67 +2,110 @@
 /**
  * AIOSEO (All in One SEO) integration.
  * Sets meta title, description, focus keyword, canonical, OG image, and schema
- * through AIOSEO's data model (aioseo_posts table).
+ * through AIOSEO's data model (aioseo_posts table), then asks AIOSEO itself to
+ * recalculate the TruSEO score (writing the raw DB row does NOT trigger that;
+ * AIOSEO only (re)computes seo_score through its own PHP analyzer/model layer).
  */
 
+/**
+ * Write SEO meta for a post through whichever AIOSEO API is actually available
+ * on THIS site (versions differ), then trigger a real analysis so seo_score is
+ * recalculated — not just the raw columns.
+ */
 function kbseo_set_aioseo_meta($post_id, $meta) {
-    // Try AIOSEO's native method first (v4+)
-    if (function_exists('aioseo') && method_exists(aioseo()->meta, 'savePost')) {
-        $aioseo_data = [
-            'title' => $meta['title'] ?? '',
-            'description' => $meta['description'] ?? '',
-            'keywords' => $meta['focus_keyword'] ?? '',
-            'canonical_url' => $meta['canonical'] ?? '',
-            'og_title' => $meta['title'] ?? '',
-            'og_description' => $meta['description'] ?? '',
-        ];
-        
-        if (!empty($meta['og_image'])) {
-            $aioseo_data['og_image_custom_url'] = $meta['og_image'];
-            $aioseo_data['og_image_type'] = 'custom';
+    $wrote_via_model = false;
+
+    if (function_exists('aioseo')) {
+        $ao = aioseo();
+
+        // Preferred path (AIOSEO 4.x): aioseo()->models->post($id) returns/creates
+        // the Models\Post row; setting properties + ->save() runs AIOSEO's own
+        // save pipeline (which is what recalculates seo_score correctly).
+        if (isset($ao->models) && method_exists($ao->models, 'post')) {
+            try {
+                $model = $ao->models->post($post_id);
+                if ($model) {
+                    if (isset($meta['title']) && $meta['title'] !== '') $model->title = $meta['title'];
+                    if (isset($meta['description']) && $meta['description'] !== '') $model->description = $meta['description'];
+                    if (!empty($meta['focus_keyword'])) {
+                        $model->keyphrases = json_encode([
+                            'focus' => ['keyphrase' => $meta['focus_keyword']],
+                            'additional' => [],
+                        ]);
+                    }
+                    if (!empty($meta['canonical'])) $model->canonical_url = $meta['canonical'];
+                    if (!empty($meta['og_image'])) {
+                        $model->og_image_custom_url = $meta['og_image'];
+                        $model->og_image_type = 'custom';
+                    }
+                    if (!empty($meta['schema'])) {
+                        $model->schema = json_encode(['blockGraphs' => [], 'graphs' => [], 'customGraphs' => $meta['schema']]);
+                    }
+                    $model->save();
+                    $wrote_via_model = true;
+                }
+            } catch (\Throwable $e) {
+                // fall through to raw SQL below
+                error_log('[kbseo] aioseo model save failed: ' . $e->getMessage());
+            }
         }
-        
-        // AIOSEO stores data in its own table
-        global $wpdb;
-        $table = $wpdb->prefix . 'aioseo_posts';
+    }
+
+    // Fallback / belt-and-suspenders: also write the raw row directly so the
+    // data is never lost even if the model API above isn't available on this
+    // AIOSEO version.
+    global $wpdb;
+    $table = $wpdb->prefix . 'aioseo_posts';
+    $table_exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table));
+    if ($table_exists) {
         $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$table} WHERE post_id = %d", $post_id));
-        
+
         $row = [
             'post_id' => $post_id,
-            'title' => $meta['title'] ?? null,
-            'description' => $meta['description'] ?? null,
-            'keyphrases' => json_encode(['focus' => ['keyphrase' => $meta['focus_keyword'] ?? '']]),
-            'canonical_url' => $meta['canonical'] ?? null,
-            'og_title' => $meta['title'] ?? null,
-            'og_description' => $meta['description'] ?? null,
-            'og_image_custom_url' => $meta['og_image'] ?? null,
-            'og_image_type' => !empty($meta['og_image']) ? 'custom' : 'default',
-            'twitter_title' => $meta['title'] ?? null,
-            'twitter_description' => $meta['description'] ?? null,
-            'twitter_image_custom_url' => $meta['og_image'] ?? null,
-            'twitter_image_type' => !empty($meta['og_image']) ? 'custom' : 'default',
-            'twitter_use_og' => 1,
         ];
-        
-        // Schema
+        if (isset($meta['title']) && $meta['title'] !== '') {
+            $row['title'] = $meta['title'];
+            $row['og_title'] = $meta['title'];
+            $row['twitter_title'] = $meta['title'];
+        }
+        if (isset($meta['description']) && $meta['description'] !== '') {
+            $row['description'] = $meta['description'];
+            $row['og_description'] = $meta['description'];
+            $row['twitter_description'] = $meta['description'];
+        }
+        if (!empty($meta['focus_keyword'])) {
+            $row['keyphrases'] = json_encode([
+                'focus' => ['keyphrase' => $meta['focus_keyword']],
+                'additional' => [],
+            ]);
+        }
+        if (!empty($meta['canonical'])) $row['canonical_url'] = $meta['canonical'];
+        if (!empty($meta['og_image'])) {
+            $row['og_image_custom_url'] = $meta['og_image'];
+            $row['og_image_type'] = 'custom';
+            $row['twitter_image_custom_url'] = $meta['og_image'];
+            $row['twitter_image_type'] = 'custom';
+        }
         if (!empty($meta['schema'])) {
-            $row['schema'] = json_encode($meta['schema']);
+            $row['schema'] = json_encode(['blockGraphs' => [], 'graphs' => [], 'customGraphs' => $meta['schema']]);
         }
-        
-        if ($exists) {
-            $wpdb->update($table, $row, ['post_id' => $post_id]);
-        } else {
-            $wpdb->insert($table, $row);
+
+        if (count($row) > 1) {
+            if ($exists) {
+                $wpdb->update($table, $row, ['post_id' => $post_id]);
+            } else {
+                $row['twitter_use_og'] = 1;
+                $wpdb->insert($table, $row);
+            }
         }
-        
-        return true;
     }
-    
-    // Fallback: set as post meta (works with basic WP SEO or if AIOSEO not installed)
+
+    // Also set post meta fallbacks (harmless, helps if a different SEO plugin
+    // is ever swapped in, and gives us a value even if AIOSEO writes fail).
     if (!empty($meta['title'])) {
         update_post_meta($post_id, '_aioseo_title', $meta['title']);
-        update_post_meta($post_id, '_yoast_wpseo_title', $meta['title']); // compat
-        update_post_meta($post_id, 'rank_math_title', $meta['title']); // compat
+        update_post_meta($post_id, '_yoast_wpseo_title', $meta['title']);
+        update_post_meta($post_id, 'rank_math_title', $meta['title']);
     }
     if (!empty($meta['description'])) {
         update_post_meta($post_id, '_aioseo_description', $meta['description']);
@@ -76,8 +119,113 @@ function kbseo_set_aioseo_meta($post_id, $meta) {
     if (!empty($meta['canonical'])) {
         update_post_meta($post_id, '_aioseo_canonical_url', $meta['canonical']);
     }
-    
+
+    // Finally: ask AIOSEO to actually (re)run its own TruSEO analysis for this
+    // post so `seo_score` gets recalculated. This is the step that was missing
+    // before — writing the row alone never triggers AIOSEO's own analyzer.
+    kbseo_trigger_aioseo_analysis($post_id);
+
     return true;
+}
+
+/**
+ * Force AIOSEO to recompute its TruSEO score for a post right now, using
+ * whichever mechanism is available on this AIOSEO install. Best-effort: never
+ * throws, since this is a "nice to have" — the meta itself is already saved.
+ */
+function kbseo_trigger_aioseo_analysis($post_id) {
+    if (!function_exists('aioseo')) return false;
+    $ao = aioseo();
+
+    // Path 1: internal REST controller used by AIOSEO's own admin UI
+    // (POST /wp-json/aioseo/v1/post/{id}/process-content) — calling the
+    // controller's method directly avoids an extra HTTP round-trip.
+    try {
+        if (class_exists('\AIOSEO\Plugin\Common\Api\Post') ) {
+            $controller = new \AIOSEO\Plugin\Common\Api\Post();
+            if (method_exists($controller, 'processContent')) {
+                $req = new \WP_REST_Request('POST', '/aioseo/v1/post/' . $post_id . '/process-content');
+                $req->set_param('postId', $post_id);
+                $controller->processContent($req);
+                return true;
+            }
+        }
+    } catch (\Throwable $e) {
+        error_log('[kbseo] aioseo processContent failed: ' . $e->getMessage());
+    }
+
+    // Path 2: some AIOSEO versions expose a Post model with a runAnalyzer()-
+    // style helper, or recompute on ->save(). Try common method names.
+    try {
+        if (isset($ao->models) && method_exists($ao->models, 'post')) {
+            $model = $ao->models->post($post_id);
+            foreach (['runAnalyzer', 'analyze', 'refreshScore', 'updateSeoScore'] as $m) {
+                if ($model && method_exists($model, $m)) {
+                    $model->$m();
+                    return true;
+                }
+            }
+        }
+    } catch (\Throwable $e) {
+        error_log('[kbseo] aioseo analyzer fallback failed: ' . $e->getMessage());
+    }
+
+    // Path 3: loopback REST call as a last resort (works even if the internal
+    // class names differ from what we guessed above, since it reuses AIOSEO's
+    // OWN route registration).
+    try {
+        $rest_url = rest_url('aioseo/v1/post/' . $post_id . '/process-content');
+        $resp = wp_remote_post($rest_url, [
+            'timeout' => 15,
+            'headers' => ['Content-Type' => 'application/json'],
+            'cookies' => $_COOKIE,
+            'body' => wp_json_encode([]),
+        ]);
+        return !is_wp_error($resp);
+    } catch (\Throwable $e) {
+        error_log('[kbseo] aioseo loopback analysis failed: ' . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * DIAGNOSTIC (temporary): dumps what's actually available for the AIOSEO
+ * integration on this specific site/version, so mismatches can be fixed from
+ * real data instead of guessing. Auth-gated like every other kbseo endpoint.
+ */
+function kbseo_aioseo_diagnose($post_id) {
+    $out = [
+        'aioseo_function_exists' => function_exists('aioseo'),
+        'aioseo_class_exists' => class_exists('\AIOSEO\Plugin\Common\Api\Post'),
+    ];
+    if (function_exists('aioseo')) {
+        $ao = aioseo();
+        $out['aioseo_top_level_props'] = array_keys(get_object_vars($ao));
+        if (isset($ao->models)) {
+            $out['models_methods'] = get_class_methods($ao->models);
+            try {
+                $model = method_exists($ao->models, 'post') ? $ao->models->post($post_id) : null;
+                if ($model) {
+                    $out['post_model_class'] = get_class($model);
+                    $out['post_model_props'] = array_keys(get_object_vars($model));
+                    $out['post_model_methods'] = get_class_methods($model);
+                }
+            } catch (\Throwable $e) {
+                $out['post_model_error'] = $e->getMessage();
+            }
+        }
+        if (isset($ao->meta)) {
+            $out['meta_methods'] = get_class_methods($ao->meta);
+        }
+    }
+    global $wpdb;
+    $table = $wpdb->prefix . 'aioseo_posts';
+    $out['table_exists'] = (bool) $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table));
+    if ($out['table_exists']) {
+        $out['table_columns'] = $wpdb->get_col("DESCRIBE {$table}", 0);
+        $out['row'] = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE post_id = %d", $post_id), ARRAY_A);
+    }
+    return $out;
 }
 
 /**

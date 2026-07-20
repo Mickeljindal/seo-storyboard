@@ -34,6 +34,9 @@ export const MANAGED_ENV_KEYS = [
   "AUTOPILOT_TOOLS",
   "AUTOPILOT_REVIEW_HOLD_HOURS",
   "AUTOPILOT_AUTO_APPROVE_AFTER_HOLD",
+  "AUTOPILOT_SITE_LINKS",
+  "AUTOPILOT_SITE_LINKS_SCAN",
+  "AUTOPILOT_SITE_LINKS_APPLY",
 ] as const;
 
 let lastHydrated = 0;
@@ -190,6 +193,9 @@ export async function saveAutopilotSettings(input: {
   toolsEnabled?: boolean;
   reviewHoldHours?: number;
   autoApproveAfterHold?: boolean;
+  siteLinksEnabled?: boolean;
+  siteLinksScanPerRun?: boolean;
+  siteLinksApplyPerRun?: number;
 }): Promise<{ ok: boolean; running: boolean }> {
   const patch: Record<string, string | null> = {};
   if (input.enabled !== undefined) patch.AUTOPILOT_ENABLED = input.enabled ? "1" : "0";
@@ -218,6 +224,12 @@ export async function saveAutopilotSettings(input: {
     patch.AUTOPILOT_REVIEW_HOLD_HOURS = String(input.reviewHoldHours);
   if (input.autoApproveAfterHold !== undefined)
     patch.AUTOPILOT_AUTO_APPROVE_AFTER_HOLD = input.autoApproveAfterHold ? "1" : "0";
+  if (input.siteLinksEnabled !== undefined)
+    patch.AUTOPILOT_SITE_LINKS = input.siteLinksEnabled ? "1" : "0";
+  if (input.siteLinksScanPerRun !== undefined)
+    patch.AUTOPILOT_SITE_LINKS_SCAN = input.siteLinksScanPerRun ? "1" : "0";
+  if (input.siteLinksApplyPerRun !== undefined)
+    patch.AUTOPILOT_SITE_LINKS_APPLY = String(input.siteLinksApplyPerRun);
 
   const { setSettings } = await import("@/server/db/repos/app-settings");
   await setSettings(patch);

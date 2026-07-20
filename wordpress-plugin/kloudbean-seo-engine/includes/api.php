@@ -42,6 +42,20 @@ function kbseo_register_routes() {
         'permission_callback' => 'kbseo_verify_request',
     ]);
 
+    // TEMPORARY diagnostic — inspect the real AIOSEO API/table shape on this
+    // site so the integration can be fixed from facts, not guesses. Safe to
+    // remove once the aioseo.php integration is confirmed working.
+    register_rest_route($namespace, '/diagnose-aioseo/(?P<id>\d+)', [
+        'methods' => 'GET',
+        'callback' => function ($request) {
+            if (!function_exists('kbseo_aioseo_diagnose')) {
+                return new WP_Error('not_available', 'diagnose function not loaded', ['status' => 500]);
+            }
+            return kbseo_aioseo_diagnose(intval($request['id']));
+        },
+        'permission_callback' => 'kbseo_verify_request',
+    ]);
+
     // Tool pages (Elementor-native publish + additive optimize)
     if (function_exists('kbseo_register_tool_routes')) {
         kbseo_register_tool_routes($namespace);
@@ -55,6 +69,11 @@ function kbseo_register_routes() {
     // Conversion attribution webhook + pull
     if (function_exists('kbseo_register_conversion_routes')) {
         kbseo_register_conversion_routes($namespace);
+    }
+
+    // Site-wide auto internal linking (scan whole site + apply links anywhere)
+    if (function_exists('kbseo_register_site_link_routes')) {
+        kbseo_register_site_link_routes($namespace);
     }
 }
 

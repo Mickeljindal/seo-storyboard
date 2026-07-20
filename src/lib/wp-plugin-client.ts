@@ -424,3 +424,81 @@ export async function getConversions(since?: string): Promise<PluginConversion[]
   const r = await pluginGet<{ ok?: boolean; conversions?: PluginConversion[] }>(`/conversions${q}`);
   return "conversions" in r && Array.isArray(r.conversions) ? r.conversions : [];
 }
+
+// ============================================================================
+// SITE-WIDE AUTO INTERNAL LINKING
+// ============================================================================
+
+export type SiteContentItem = {
+  id: number;
+  post_type: string;
+  title: string;
+  slug: string;
+  link: string;
+  status: string;
+  excerpt: string;
+  content_text: string;
+  word_count: number;
+  outbound_links: number;
+  modified: string;
+};
+
+export type SiteContentList = {
+  ok: boolean;
+  total: number;
+  page: number;
+  per_page: number;
+  total_pages: number;
+  items: SiteContentItem[];
+  error?: string;
+};
+
+/** List every post/page on the live site (any origin), with plain-text bodies for scoring. */
+export async function listSiteContent(
+  opts: {
+    postTypes?: string;
+    status?: string;
+    perPage?: number;
+    page?: number;
+    modifiedSince?: string;
+  } = {},
+): Promise<SiteContentList> {
+  const params = new URLSearchParams();
+  if (opts.postTypes) params.set("post_types", opts.postTypes);
+  if (opts.status) params.set("status", opts.status);
+  params.set("per_page", String(opts.perPage ?? 50));
+  params.set("page", String(opts.page ?? 1));
+  if (opts.modifiedSince) params.set("modified_since", opts.modifiedSince);
+  const r = await pluginGet<SiteContentList>(`/site-content?${params.toString()}`);
+  if (!("items" in r)) {
+    return {
+      ok: false,
+      total: 0,
+      page: 1,
+      per_page: 0,
+      total_pages: 0,
+      items: [],
+      error: (r as { error: string }).error,
+    };
+  }
+  return r;
+}
+
+export type ApplyLinkResult = {
+  ok: boolean;
+  applied?: boolean;
+  method?: string;
+  post_id?: number;
+  link?: string;
+  error?: string;
+};
+
+/** Insert one internal link into a live post/page (classic content or Elementor). */
+export async function applyLink(payload: {
+  source_post_id: number;
+  target_url: string;
+  anchor_text: string;
+}): Promise<ApplyLinkResult> {
+  const r = await pluginPost<ApplyLinkResult>("/apply-link", payload);
+  return "ok" in r ? (r as ApplyLinkResult) : { ok: false, error: (r as { error: string }).error };
+}

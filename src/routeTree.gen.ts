@@ -22,6 +22,7 @@ import { Route as LearningRouteImport } from './routes/learning'
 import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as KloudgraphRouteImport } from './routes/kloudgraph'
 import { Route as KeywordsRouteImport } from './routes/keywords'
+import { Route as InternalLinksRouteImport } from './routes/internal-links'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as ExperienceRouteImport } from './routes/experience'
@@ -98,6 +99,11 @@ const KeywordsRoute = KeywordsRouteImport.update({
   path: '/keywords',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InternalLinksRoute = InternalLinksRouteImport.update({
+  id: '/internal-links',
+  path: '/internal-links',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HowItWorksRoute = HowItWorksRouteImport.update({
   id: '/how-it-works',
   path: '/how-it-works',
@@ -160,6 +166,7 @@ export interface FileRoutesByFullPath {
   '/experience': typeof ExperienceRoute
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
+  '/internal-links': typeof InternalLinksRoute
   '/keywords': typeof KeywordsRoute
   '/kloudgraph': typeof KloudgraphRoute
   '/knowledge': typeof KnowledgeRoute
@@ -185,6 +192,7 @@ export interface FileRoutesByTo {
   '/experience': typeof ExperienceRoute
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
+  '/internal-links': typeof InternalLinksRoute
   '/keywords': typeof KeywordsRoute
   '/kloudgraph': typeof KloudgraphRoute
   '/knowledge': typeof KnowledgeRoute
@@ -211,6 +219,7 @@ export interface FileRoutesById {
   '/experience': typeof ExperienceRoute
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
+  '/internal-links': typeof InternalLinksRoute
   '/keywords': typeof KeywordsRoute
   '/kloudgraph': typeof KloudgraphRoute
   '/knowledge': typeof KnowledgeRoute
@@ -238,6 +247,7 @@ export interface FileRouteTypes {
     | '/experience'
     | '/help'
     | '/how-it-works'
+    | '/internal-links'
     | '/keywords'
     | '/kloudgraph'
     | '/knowledge'
@@ -263,6 +273,7 @@ export interface FileRouteTypes {
     | '/experience'
     | '/help'
     | '/how-it-works'
+    | '/internal-links'
     | '/keywords'
     | '/kloudgraph'
     | '/knowledge'
@@ -288,6 +299,7 @@ export interface FileRouteTypes {
     | '/experience'
     | '/help'
     | '/how-it-works'
+    | '/internal-links'
     | '/keywords'
     | '/kloudgraph'
     | '/knowledge'
@@ -314,6 +326,7 @@ export interface RootRouteChildren {
   ExperienceRoute: typeof ExperienceRoute
   HelpRoute: typeof HelpRoute
   HowItWorksRoute: typeof HowItWorksRoute
+  InternalLinksRoute: typeof InternalLinksRoute
   KeywordsRoute: typeof KeywordsRoute
   KloudgraphRoute: typeof KloudgraphRoute
   KnowledgeRoute: typeof KnowledgeRoute
@@ -422,6 +435,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KeywordsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/internal-links': {
+      id: '/internal-links'
+      path: '/internal-links'
+      fullPath: '/internal-links'
+      preLoaderRoute: typeof InternalLinksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/how-it-works': {
       id: '/how-it-works'
       path: '/how-it-works'
@@ -506,6 +526,7 @@ const rootRouteChildren: RootRouteChildren = {
   ExperienceRoute: ExperienceRoute,
   HelpRoute: HelpRoute,
   HowItWorksRoute: HowItWorksRoute,
+  InternalLinksRoute: InternalLinksRoute,
   KeywordsRoute: KeywordsRoute,
   KloudgraphRoute: KloudgraphRoute,
   KnowledgeRoute: KnowledgeRoute,

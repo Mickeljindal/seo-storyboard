@@ -511,3 +511,50 @@ ALTER TABLE articles ADD COLUMN IF NOT EXISTS approved_at timestamptz;
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS rejected_reason text;
 CREATE INDEX IF NOT EXISTS idx_articles_approval_status ON articles(approval_status);
 CREATE INDEX IF NOT EXISTS idx_articles_scheduled_publish ON articles(scheduled_publish_at);
+
+-- ============================================================================
+-- SITE-WIDE AUTO INTERNAL LINKING (v18) — the engine previously could only
+-- link content IT authored (the `articles` table). This mirrors the FULL
+-- live WordPress site (any origin — manually written pages included) so link
+-- opportunities can be found and applied across everything that exists.
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS site_pages (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  wp_post_id integer NOT NULL,
+  post_type text NOT NULL DEFAULT 'post', -- post | page
+  title text NOT NULL,
+  slug text,
+  published_url text,
+  status text DEFAULT 'publish',
+  excerpt text,
+  content_text text,          -- plain-text extract (stripped tags), truncated
+  word_count integer DEFAULT 0,
+  cluster_id smallint,         -- best-guess topical cluster (relevance-scored)
+  outbound_link_count integer DEFAULT 0,
+  inbound_link_count integer DEFAULT 0,
+  modified_at timestamptz,
+  last_scanned_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_site_pages_wp_post ON site_pages(wp_post_id);
+CREATE INDEX IF NOT EXISTS idx_site_pages_cluster ON site_pages(cluster_id);
+CREATE INDEX IF NOT EXISTS idx_site_pages_status ON site_pages(status);
+
+CREATE TABLE IF NOT EXISTS link_suggestions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_page_id uuid NOT NULL REFERENCES site_pages(id) ON DELETE CASCADE,
+  target_page_id uuid NOT NULL REFERENCES site_pages(id) ON DELETE CASCADE,
+  anchor_text text NOT NULL,
+  score numeric(6,3) NOT NULL DEFAULT 0,
+  reason text,                 -- human-readable "why this link makes sense"
+  status text NOT NULL DEFAULT 'pending', -- pending | applied | rejected | skipped
+  applied_at timestamptz,
+  error text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_link_suggestions_status ON link_suggestions(status);
+CREATE INDEX IF NOT EXISTS idx_link_suggestions_source ON link_suggestions(source_page_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_link_suggestions_pair
+  ON link_suggestions(source_page_id, target_page_id);

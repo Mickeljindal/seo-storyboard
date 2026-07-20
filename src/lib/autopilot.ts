@@ -65,6 +65,13 @@ export type AutopilotConfig = {
   kloudgraphPerRun: number;
   /** Minimum relevance (0-1) an opportunity must clear to be sent */
   kloudgraphMinRelevance: number;
+  // --- Site-wide auto internal linking ---
+  /** Master switch — off by default; scanning is safe, applying edits live is not */
+  siteLinksEnabled: boolean;
+  /** Re-sync + re-score the whole site this often (every run, since it's read-only) */
+  siteLinksScanPerRun: boolean;
+  /** Apply this many top-scoring pending suggestions live per run (0 = scan only, never write) */
+  siteLinksApplyPerRun: number;
 };
 
 const DEFAULT_CONFIG: AutopilotConfig = {
@@ -90,6 +97,9 @@ const DEFAULT_CONFIG: AutopilotConfig = {
   kloudgraphEnabled: true,
   kloudgraphPerRun: 5,
   kloudgraphMinRelevance: 0.6,
+  siteLinksEnabled: false,
+  siteLinksScanPerRun: true,
+  siteLinksApplyPerRun: 0,
 };
 
 export function getAutopilotConfig(): AutopilotConfig {
@@ -133,6 +143,11 @@ export function getAutopilotConfig(): AutopilotConfig {
     toolsOptimizePerRun: Number(
       process.env.AUTOPILOT_TOOLS_OPTIMIZE || DEFAULT_CONFIG.toolsOptimizePerRun,
     ),
+    siteLinksEnabled: process.env.AUTOPILOT_SITE_LINKS === "1",
+    siteLinksScanPerRun: process.env.AUTOPILOT_SITE_LINKS_SCAN !== "0",
+    siteLinksApplyPerRun: Number(
+      process.env.AUTOPILOT_SITE_LINKS_APPLY || DEFAULT_CONFIG.siteLinksApplyPerRun,
+    ),
   };
 }
 
@@ -152,6 +167,8 @@ export type AutopilotRunResult = {
   toolsGenerated: number;
   toolsPublished: number;
   toolsOptimized: number;
+  siteLinksFound: number;
+  siteLinksApplied: number;
   errors: string[];
   log: string[];
 };
@@ -193,6 +210,8 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
     toolsGenerated: 0,
     toolsPublished: 0,
     toolsOptimized: 0,
+    siteLinksFound: 0,
+    siteLinksApplied: 0,
     errors: [],
     log: [],
   };
@@ -471,6 +490,28 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
     }
   }
 
+  // 6a. SITE-WIDE AUTO INTERNAL LINKING — off by default. Scanning is
+  // read-only (safe); applying links live is gated separately since it
+  // edits existing WordPress content. Both require siteLinksEnabled=true.
+  if (cfg.siteLinksEnabled) {
+    try {
+      const { runSiteLinkScan, applyTopSuggestions } = await import("./site-link-graph");
+      if (cfg.siteLinksScanPerRun) {
+        const scan = await runSiteLinkScan({ maxPages: 30, minScore: 0.12, limit: 300 });
+        result.siteLinksFound = scan.saved;
+        if (scan.saved) log(`Site links: scanned site, found ${scan.saved} new opportunities`);
+      }
+      if (cfg.siteLinksApplyPerRun > 0) {
+        const applied = await applyTopSuggestions(cfg.siteLinksApplyPerRun);
+        result.siteLinksApplied = applied.applied;
+        for (const e of applied.errors) result.errors.push(`site-links: ${e}`);
+        if (applied.applied) log(`Site links: applied ${applied.applied} link(s) live`);
+      }
+    } catch (e) {
+      result.errors.push(`site links: ${String((e as Error)?.message ?? e)}`);
+    }
+  }
+
   // 6b. JOB QUEUE — drain durable bulk jobs (build/optimize/publish) server-side.
   try {
     const { drainJobs } = await import("./job-queue");
@@ -590,6 +631,8 @@ async function runCycleWrapped() {
       toolsGenerated: 0,
       toolsPublished: 0,
       toolsOptimized: 0,
+      siteLinksFound: 0,
+      siteLinksApplied: 0,
       errors: [String((e as Error)?.message ?? e)],
       log: ["Fatal error"],
     };

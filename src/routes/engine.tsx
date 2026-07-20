@@ -36,6 +36,7 @@ import {
   Swords,
   ShieldCheck,
   Zap,
+  Link2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -452,6 +453,8 @@ function AutopilotPanel() {
   const [kloudgraphEnabled, setKloudgraphEnabled] = useState(true);
   const [reviewHoldHours, setReviewHoldHours] = useState(24);
   const [autoApproveAfterHold, setAutoApproveAfterHold] = useState(false);
+  const [siteLinksEnabled, setSiteLinksEnabled] = useState(false);
+  const [siteLinksApplyPerRun, setSiteLinksApplyPerRun] = useState(0);
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
@@ -466,6 +469,8 @@ function AutopilotPanel() {
     setKloudgraphEnabled(status.config.kloudgraphEnabled);
     setReviewHoldHours(status.config.reviewHoldHours ?? 24);
     setAutoApproveAfterHold(status.config.autoApproveAfterHold ?? false);
+    setSiteLinksEnabled(status.config.siteLinksEnabled ?? false);
+    setSiteLinksApplyPerRun(status.config.siteLinksApplyPerRun ?? 0);
     setInitialized(true);
   }, [status, initialized]);
 
@@ -492,6 +497,8 @@ function AutopilotPanel() {
           autoDiscover,
           reviewHoldHours,
           autoApproveAfterHold,
+          siteLinksEnabled,
+          siteLinksApplyPerRun,
         },
       }),
     onSuccess: () => {
@@ -682,6 +689,39 @@ function AutopilotPanel() {
             </label>
           </div>
         </div>
+
+        <div className="lg:col-span-2 rounded-lg border border-border bg-card/40 p-4">
+          <h3 className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <Link2 className="h-3.5 w-3.5" /> Site-wide auto internal linking
+          </h3>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Scans the ENTIRE live WordPress site (any page, any origin) and proposes natural links
+            between related content. Scanning is read-only and safe; applying edits it.{" "}
+            <Link to="/internal-links" className="text-primary underline">
+              Review suggestions
+            </Link>
+          </p>
+          <label className="mb-3 flex items-center gap-2 text-sm">
+            <Checkbox
+              checked={siteLinksEnabled}
+              onCheckedChange={(v) => setSiteLinksEnabled(!!v)}
+            />
+            Enable this phase (off by default)
+          </label>
+          <div className="max-w-[240px]">
+            <Label className="text-xs">
+              Auto-apply links per cycle (0 = suggest only, never write)
+            </Label>
+            <Input
+              type="number"
+              min={0}
+              max={50}
+              value={siteLinksApplyPerRun}
+              onChange={(e) => setSiteLinksApplyPerRun(Number(e.target.value) || 0)}
+              disabled={!siteLinksEnabled}
+            />
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2 border-t border-border px-6 py-4">
@@ -731,6 +771,8 @@ function AutopilotPanel() {
             <MiniStat label="Published" value={last.published} />
             <MiniStat label="Refreshed" value={last.refreshed} />
             <MiniStat label="Tools" value={last.toolsGenerated} />
+            <MiniStat label="Links found" value={last.siteLinksFound} />
+            <MiniStat label="Links applied" value={last.siteLinksApplied} />
             <MiniStat label="Errors" value={last.errors.length} warn={last.errors.length > 0} />
           </div>
           {last.log.length > 0 && (
