@@ -344,6 +344,9 @@ export async function applyTopSuggestions(limit = 10): Promise<ApplySuggestionsR
       failed++;
       errors.push(`${s.source_title} -> ${s.target_title}: ${String((e as Error)?.message ?? e)}`);
     }
+    // Gentle pacing between live writes — avoids hammering the WordPress site
+    // with back-to-back requests on shared/limited hosting.
+    await new Promise((resolve) => setTimeout(resolve, 400));
   }
 
   return { ok: true, applied, failed, errors };

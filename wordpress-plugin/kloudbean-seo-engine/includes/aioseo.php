@@ -132,30 +132,22 @@ function kbseo_set_aioseo_meta($post_id, $meta) {
  * Force AIOSEO to recompute its TruSEO score for a post right now, using
  * whichever mechanism is available on this AIOSEO install. Best-effort: never
  * throws, since this is a "nice to have" — the meta itself is already saved.
+ *
+ * SAFETY: this MUST NOT make an HTTP request back to the same site (a
+ * wp_remote_post() loopback to the site's own REST API). On hosting with a
+ * limited number of PHP workers, that creates a self-deadlock — the request
+ * that's saving the post holds a worker open waiting on its own HTTP call,
+ * which needs a free worker to run, so the whole site can stop responding
+ * once enough of these stack up. In-process calls only, ever.
  */
 function kbseo_trigger_aioseo_analysis($post_id) {
     if (!function_exists('aioseo')) return false;
     $ao = aioseo();
 
-    // Path 1: internal REST controller used by AIOSEO's own admin UI
-    // (POST /wp-json/aioseo/v1/post/{id}/process-content) — calling the
-    // controller's method directly avoids an extra HTTP round-trip.
-    try {
-        if (class_exists('\AIOSEO\Plugin\Common\Api\Post') ) {
-            $controller = new \AIOSEO\Plugin\Common\Api\Post();
-            if (method_exists($controller, 'processContent')) {
-                $req = new \WP_REST_Request('POST', '/aioseo/v1/post/' . $post_id . '/process-content');
-                $req->set_param('postId', $post_id);
-                $controller->processContent($req);
-                return true;
-            }
-        }
-    } catch (\Throwable $e) {
-        error_log('[kbseo] aioseo processContent failed: ' . $e->getMessage());
-    }
-
-    // Path 2: some AIOSEO versions expose a Post model with a runAnalyzer()-
-    // style helper, or recompute on ->save(). Try common method names.
+    // Only path: call an in-process method on AIOSEO's own Post model, if one
+    // exists on this AIOSEO version. No HTTP, no new class instantiation of
+    // internal API controllers (those aren't public API and may have
+    // constructor/permission requirements we can't safely replicate).
     try {
         if (isset($ao->models) && method_exists($ao->models, 'post')) {
             $model = $ao->models->post($post_id);
@@ -170,22 +162,7 @@ function kbseo_trigger_aioseo_analysis($post_id) {
         error_log('[kbseo] aioseo analyzer fallback failed: ' . $e->getMessage());
     }
 
-    // Path 3: loopback REST call as a last resort (works even if the internal
-    // class names differ from what we guessed above, since it reuses AIOSEO's
-    // OWN route registration).
-    try {
-        $rest_url = rest_url('aioseo/v1/post/' . $post_id . '/process-content');
-        $resp = wp_remote_post($rest_url, [
-            'timeout' => 15,
-            'headers' => ['Content-Type' => 'application/json'],
-            'cookies' => $_COOKIE,
-            'body' => wp_json_encode([]),
-        ]);
-        return !is_wp_error($resp);
-    } catch (\Throwable $e) {
-        error_log('[kbseo] aioseo loopback analysis failed: ' . $e->getMessage());
-        return false;
-    }
+    return false;
 }
 
 /**
