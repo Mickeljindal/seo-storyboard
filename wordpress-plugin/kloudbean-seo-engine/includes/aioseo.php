@@ -178,21 +178,45 @@ function kbseo_aioseo_diagnose($post_id) {
     if (function_exists('aioseo')) {
         $ao = aioseo();
         $out['aioseo_top_level_props'] = array_keys(get_object_vars($ao));
-        if (isset($ao->models)) {
-            $out['models_methods'] = get_class_methods($ao->models);
-            try {
-                $model = method_exists($ao->models, 'post') ? $ao->models->post($post_id) : null;
-                if ($model) {
-                    $out['post_model_class'] = get_class($model);
-                    $out['post_model_props'] = array_keys(get_object_vars($model));
-                    $out['post_model_methods'] = get_class_methods($model);
-                }
-            } catch (\Throwable $e) {
-                $out['post_model_error'] = $e->getMessage();
+
+        // Inspect the objects that actually exist on THIS version, so we can
+        // find the real way to (a) fetch a Post object for $post_id and
+        // (b) trigger its analyzer, instead of guessing property names.
+        foreach (['postSettings', 'core', 'standalone', 'seoAnalysis', 'cache', 'main', 'helpers'] as $prop) {
+            if (isset($ao->$prop)) {
+                $out["{$prop}_class"] = get_class($ao->$prop);
+                $out["{$prop}_methods"] = get_class_methods($ao->$prop);
             }
         }
+
+        // Try postSettings->post($id) or similar accessor patterns.
+        foreach (['postSettings', 'core'] as $prop) {
+            if (!isset($ao->$prop)) continue;
+            foreach (['post', 'get', 'getPost'] as $m) {
+                if (method_exists($ao->$prop, $m)) {
+                    try {
+                        $obj = $ao->$prop->$m($post_id);
+                        if ($obj) {
+                            $out["{$prop}_{$m}_result_class"] = get_class($obj);
+                            $out["{$prop}_{$m}_result_methods"] = get_class_methods($obj);
+                            $out["{$prop}_{$m}_result_props"] = array_keys(get_object_vars($obj));
+                        }
+                    } catch (\Throwable $e) {
+                        $out["{$prop}_{$m}_error"] = $e->getMessage();
+                    }
+                }
+            }
+        }
+
+        if (isset($ao->core) && isset($ao->core->db)) {
+            $out['core_db_class'] = get_class($ao->core->db);
+        }
+
         if (isset($ao->meta)) {
             $out['meta_methods'] = get_class_methods($ao->meta);
+        }
+        if (isset($ao->seoAnalysis)) {
+            $out['seoAnalysis_methods'] = get_class_methods($ao->seoAnalysis);
         }
     }
     global $wpdb;
