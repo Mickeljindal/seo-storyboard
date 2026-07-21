@@ -1054,10 +1054,12 @@ function OptimizeReportModal({
           </div>
         )}
 
-        {!preview && after.aioseo_score == null && (
+        {!preview && (before.aioseo_score ?? 0) === 0 && (after.aioseo_score ?? 0) === 0 && (
           <p className="mt-3 text-[11px] text-amber-500">
-            The AIOSEO score updates a little after publishing — click “Sync from WordPress” in a
-            minute to see the new number.
+            The 0/100 number itself won&apos;t move — computing that score requires an AIOSEO Pro
+            license, which this site doesn&apos;t have (confirmed directly against AIOSEO&apos;s own
+            API). The real SEO fixes above (title, description, focus keyword, schema, content,
+            links) are genuinely applied and are what actually affects search rankings.
           </p>
         )}
       </div>
