@@ -379,6 +379,71 @@ export async function getGateStats(): Promise<Record<string, number>> {
   return "hits" in r && r.hits ? r.hits : {};
 }
 
+export type FixToolHtmlResult = {
+  ok: boolean;
+  post_id?: number;
+  slug?: string;
+  dry_run?: boolean;
+  fixed_widgets?: number;
+  details?: { widget_id: string | null; before_len: number; after_len: number }[];
+  link?: string;
+  error?: string;
+  reason?: string;
+};
+
+/**
+ * Fix a legacy bug: unwrap a full standalone HTML document (<!DOCTYPE>,
+ * <html>, nested <head>/<title>/<meta>) that was pasted whole into a tool
+ * page's Elementor HTML widget instead of just the inner body. Never touches
+ * the slug/title or any widget that doesn't have the defect.
+ */
+export async function fixToolHtml(payload: {
+  post_id: number;
+  dry_run?: boolean;
+}): Promise<FixToolHtmlResult> {
+  const r = await pluginPost<FixToolHtmlResult>("/fix-tool-html", payload);
+  return "ok" in r
+    ? (r as FixToolHtmlResult)
+    : { ok: false, error: (r as { error: string }).error };
+}
+
+export type ScanToolHtmlResult = {
+  ok: boolean;
+  category_found: boolean;
+  total: number;
+  page: number;
+  total_pages: number;
+  scanned?: number;
+  affected_on_this_page?: number;
+  items: { id: number; slug: string; title: string; affected_widgets: number }[];
+  error?: string;
+};
+
+/** Dry-run scan for how many pages in a category have the nested-HTML-document defect. */
+export async function scanToolHtml(opts: {
+  category?: string;
+  perPage?: number;
+  page?: number;
+}): Promise<ScanToolHtmlResult> {
+  const params = new URLSearchParams();
+  if (opts.category) params.set("category", opts.category);
+  params.set("per_page", String(opts.perPage ?? 50));
+  params.set("page", String(opts.page ?? 1));
+  const r = await pluginGet<ScanToolHtmlResult>(`/scan-tool-html?${params.toString()}`);
+  if (!("items" in r)) {
+    return {
+      ok: false,
+      category_found: false,
+      total: 0,
+      page: 1,
+      total_pages: 0,
+      items: [],
+      error: (r as { error: string }).error,
+    };
+  }
+  return r;
+}
+
 /** Restore a page's Elementor data to a snapshot (rollback an optimize). */
 export async function restoreTool(
   postId: number,

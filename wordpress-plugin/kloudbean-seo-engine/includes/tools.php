@@ -51,6 +51,17 @@ function kbseo_register_tool_routes($namespace) {
         'callback' => 'kbseo_restore_tool',
         'permission_callback' => 'kbseo_verify_request',
     ]);
+    // Legacy bug fix: unwrap a full HTML document nested inside a tool widget.
+    register_rest_route($namespace, '/fix-tool-html', [
+        'methods' => 'POST',
+        'callback' => 'kbseo_fix_tool_html',
+        'permission_callback' => 'kbseo_verify_request',
+    ]);
+    register_rest_route($namespace, '/scan-tool-html', [
+        'methods' => 'GET',
+        'callback' => 'kbseo_scan_tool_html',
+        'permission_callback' => 'kbseo_verify_request',
+    ]);
     // Gate conversion beacon (public, same-origin from the tool page) + stats read.
     register_rest_route($namespace, '/gate-hit', [
         'methods' => ['GET', 'POST'],
@@ -184,6 +195,199 @@ function kbseo_strip_widgets_by_marker($elements, $marker, &$removed) {
         $out[] = $el;
     }
     return $out;
+}
+
+/**
+ * Fix a legacy bug in tool pages built before this engine existed: the AI's
+ * FULL output (a complete standalone HTML document — <!DOCTYPE>, <html>,
+ * <head> with its own <title>/<meta description>, <body>) was pasted whole
+ * into a single Elementor HTML widget, instead of just the inner body markup
+ * a widget is supposed to contain. Browsers render a widget's HTML inline
+ * inside the page's OWN <head>/<body>, so a second nested <head>/<title> in
+ * the middle of the page breaks layout and confuses on-page SEO signals
+ * (duplicate/conflicting <meta description>, <title> mid-document, etc).
+ *
+ * This keeps everything that actually matters — <style> blocks (the tool's
+ * look), <script> tags NOT in head (the tool's logic), and the full <body>
+ * content — and drops only the redundant wrapper shell (<!DOCTYPE>, opening/
+ * closing <html>, the <head> tag itself and its <title>/<meta> children,
+ * opening/closing <body>). It does NOT touch anything else in the widget or
+ * any OTHER widget on the page.
+ *
+ * Returns [fixed_html, changed:boolean, before_len:int, after_len:int].
+ */
+function kbseo_unwrap_full_html_document($html) {
+    $original = (string) $html;
+    if ($original === '') return [$original, false, 0, 0];
+
+    // Only act if this widget genuinely contains a nested document — cheap
+    // guard so untouched widgets are never rewritten.
+    if (!preg_match('/<!doctype\s+html/i', $original) && !preg_match('/<html[\s>]/i', $original)) {
+        return [$original, false, strlen($original), strlen($original)];
+    }
+
+    $work = $original;
+
+    // 1. Pull out anything from <head> that's actually VALUABLE and must be
+    //    preserved: <style> (the tool's look) and <script type="application/
+    //    ld+json"> (real SEO schema — several existing pages have hand-authored
+    //    WebPage/SoftwareApplication/FAQPage/HowTo schema in <head> that we must
+    //    NOT delete). Everything else in <head> (title/meta/canonical/og/twitter)
+    //    is genuinely redundant once the page already has its own <head> with
+    //    AIOSEO-managed equivalents, so that part is safe to drop.
+    $head_keep = '';
+    if (preg_match('/<head[^>]*>(.*?)<\/head>/is', $work, $head_match)) {
+        if (preg_match_all('/<style\b[^>]*>.*?<\/style>/is', $head_match[1], $style_matches)) {
+            $head_keep .= implode("\n", $style_matches[0]) . "\n";
+        }
+        if (preg_match_all('/<script\b[^>]*type=["\']application\/ld\+json["\'][^>]*>.*?<\/script>/is', $head_match[1], $ldjson_matches)) {
+            $head_keep .= implode("\n", $ldjson_matches[0]) . "\n";
+        }
+    }
+
+    // 2. Drop <!DOCTYPE ...>
+    $work = preg_replace('/<!doctype[^>]*>/i', '', $work);
+    // 3. Drop opening/closing <html ...> and <html>
+    $work = preg_replace('/<\/?html[^>]*>/i', '', $work);
+    // 4. Drop the ENTIRE <head>...</head> block (title/meta/canonical/og/
+    //    twitter are all redundant duplicates once the page has its own head).
+    $work = preg_replace('/<head[^>]*>.*?<\/head>/is', '', $work);
+    // 5. Drop opening/closing <body ...> tags (keep their inner content).
+    $work = preg_replace('/<\/?body[^>]*>/i', '', $work);
+
+    // 6. Re-inject the preserved style/schema blocks at the top.
+    if ($head_keep !== '') {
+        $work = $head_keep . $work;
+    }
+
+    $work = trim($work);
+    $changed = ($work !== trim($original));
+    return [$work, $changed, strlen($original), strlen($work)];
+}
+
+/**
+ * Recursively apply kbseo_unwrap_full_html_document() to every HTML widget in
+ * an Elementor element tree. Returns the (possibly modified) tree plus a
+ * count of widgets actually changed.
+ */
+function kbseo_unwrap_elements($elements, &$fixed_count, &$details) {
+    if (!is_array($elements)) return $elements;
+    foreach ($elements as &$el) {
+        if (!is_array($el)) continue;
+        $is_widget = (($el['elType'] ?? '') === 'widget');
+        if ($is_widget && isset($el['settings']['html'])) {
+            [$new_html, $changed, $before_len, $after_len] = kbseo_unwrap_full_html_document($el['settings']['html']);
+            if ($changed) {
+                $el['settings']['html'] = $new_html;
+                $fixed_count++;
+                $details[] = ['widget_id' => $el['id'] ?? null, 'before_len' => $before_len, 'after_len' => $after_len];
+            }
+        }
+        if (!empty($el['elements']) && is_array($el['elements'])) {
+            $el['elements'] = kbseo_unwrap_elements($el['elements'], $fixed_count, $details);
+        }
+    }
+    return $elements;
+}
+
+/**
+ * POST /fix-tool-html — remove a nested full-HTML-document wrapper from a
+ * page's tool widget(s). Additive-safe: never touches the slug, title, or
+ * any widget that doesn't have the defect. Supports dry_run.
+ */
+function kbseo_fix_tool_html($request) {
+    if (!kbseo_tool_rate_ok('fix_html', 60)) {
+        return new WP_Error('rate_limited', 'Too many requests', ['status' => 429]);
+    }
+    $data = $request->get_json_params();
+    $post_id = intval($data['post_id'] ?? 0);
+    if ($post_id <= 0) return new WP_Error('invalid_body', 'post_id required', ['status' => 400]);
+    $post = get_post($post_id);
+    if (!$post) return new WP_Error('not_found', 'Page not found', ['status' => 404]);
+
+    $dry_run = !empty($data['dry_run']);
+
+    $raw = get_post_meta($post_id, '_elementor_data', true);
+    $elements = [];
+    if (is_string($raw) && $raw !== '') {
+        $decoded = json_decode($raw, true);
+        if (is_array($decoded)) $elements = $decoded;
+    }
+    if (!count($elements)) {
+        return ['ok' => true, 'post_id' => $post_id, 'fixed_widgets' => 0, 'reason' => 'not an Elementor page or no data'];
+    }
+
+    $fixed_count = 0;
+    $details = [];
+    $new_elements = kbseo_unwrap_elements($elements, $fixed_count, $details);
+
+    if ($fixed_count > 0 && !$dry_run) {
+        kbseo_set_elementor_data($post_id, $new_elements);
+    }
+
+    return [
+        'ok' => true,
+        'post_id' => $post_id,
+        'slug' => $post->post_name,
+        'dry_run' => $dry_run,
+        'fixed_widgets' => $fixed_count,
+        'details' => $details,
+        'link' => get_permalink($post_id),
+    ];
+}
+
+/**
+ * GET /scan-tool-html — dry-run scan across a category to count how many
+ * pages have the nested-full-HTML-document defect, WITHOUT writing anything.
+ * Paginated the same way as /tools/list.
+ */
+function kbseo_scan_tool_html($request) {
+    $category = $request->get_param('category') ?: 'Developer Tools';
+    $per_page = min(100, max(1, intval($request->get_param('per_page') ?: 50)));
+    $page = max(1, intval($request->get_param('page') ?: 1));
+
+    $found = kbseo_find_page_term($category, 0);
+    if (!$found) {
+        return ['ok' => true, 'category_found' => false, 'total' => 0, 'page' => $page, 'total_pages' => 0, 'items' => []];
+    }
+    [$taxonomy, $term] = $found;
+
+    $query = new WP_Query([
+        'post_type' => 'page',
+        'post_status' => 'publish',
+        'posts_per_page' => $per_page,
+        'paged' => $page,
+        'tax_query' => [[ 'taxonomy' => $taxonomy, 'field' => 'term_id', 'terms' => $term->term_id ]],
+    ]);
+
+    $items = [];
+    foreach ($query->posts as $post) {
+        $raw = get_post_meta($post->ID, '_elementor_data', true);
+        $affected = 0;
+        if (is_string($raw) && $raw !== '') {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                $fixed_count = 0;
+                $details = [];
+                kbseo_unwrap_elements($decoded, $fixed_count, $details);
+                $affected = $fixed_count;
+            }
+        }
+        if ($affected > 0) {
+            $items[] = ['id' => $post->ID, 'slug' => $post->post_name, 'title' => get_the_title($post), 'affected_widgets' => $affected];
+        }
+    }
+
+    return [
+        'ok' => true,
+        'category_found' => true,
+        'total' => intval($query->found_posts),
+        'page' => $page,
+        'total_pages' => intval($query->max_num_pages),
+        'scanned' => count($query->posts),
+        'affected_on_this_page' => count($items),
+        'items' => $items,
+    ];
 }
 
 /** Simple per-IP rate limit for write endpoints. */

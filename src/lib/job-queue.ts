@@ -8,7 +8,7 @@ import "@tanstack/react-start/server-only";
  * drainJobs() each cycle so bulk work runs server-side and survives a closed tab.
  */
 
-export type JobType = "generate_tool" | "optimize_tool" | "publish_tool";
+export type JobType = "generate_tool" | "optimize_tool" | "publish_tool" | "fix_tool_html";
 
 async function processJob(job: { id: string; type: string; payload: unknown }): Promise<unknown> {
   const p = (job.payload ?? {}) as { toolId?: string; status?: "draft" | "publish" };
@@ -30,6 +30,12 @@ async function processJob(job: { id: string; type: string; payload: unknown }): 
       if (!p.toolId) throw new Error("missing toolId");
       const r = await tools.publishToolInternal(p.toolId, p.status ?? "draft");
       if (!r.ok) throw new Error(r.error ?? "publish failed");
+      return r;
+    }
+    case "fix_tool_html": {
+      if (!p.toolId) throw new Error("missing toolId");
+      const r = await tools.fixToolHtmlInternal(p.toolId, false);
+      if (!r.ok) throw new Error(r.error ?? "fix failed");
       return r;
     }
     default:

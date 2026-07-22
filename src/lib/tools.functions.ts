@@ -988,6 +988,146 @@ export const revertToolFn = createServerFn({ method: "POST" })
   });
 
 // ============================================================================
+// 6a2. FIX LEGACY HTML WRAPPER BUG — pages built before this engine existed
+// had the AI's FULL output (a complete <!DOCTYPE html> document) pasted into
+// one Elementor HTML widget instead of just the inner body. This unwraps that,
+// snapshotting first so it's always one-click reversible (same guarantee as
+// the optimizer).
+// ============================================================================
+
+export async function fixToolHtmlInternal(
+  toolId: string,
+  dryRun: boolean,
+): Promise<{
+  ok: boolean;
+  fixedWidgets?: number;
+  error?: string;
+  link?: string;
+}> {
+  const toolsRepo = await import("@/server/db/repos/tools");
+  const tool = await toolsRepo.getToolById(toolId);
+  if (!tool) return { ok: false, error: "Tool not found" };
+  if (!tool.wp_post_id) return { ok: false, error: "Tool has no WordPress page." };
+
+  const { hasPluginConfigured, fixToolHtml, getToolPage } = await import("./wp-plugin-client");
+  if (!hasPluginConfigured()) return { ok: false, error: "WordPress plugin not configured." };
+
+  // Snapshot before the FIRST write to this page (never overwrite an existing
+  // snapshot — that would lose the true original if optimize ran first).
+  if (!dryRun && !tool.elementor_snapshot) {
+    try {
+      const detail = await getToolPage(tool.wp_post_id);
+      if ("elementor_data" in detail && Array.isArray(detail.elementor_data)) {
+        await toolsRepo.updateTool(toolId, { elementor_snapshot: detail.elementor_data });
+      }
+    } catch {
+      /* snapshot best-effort — don't block the fix */
+    }
+  }
+
+  const res = await fixToolHtml({ post_id: tool.wp_post_id, dry_run: dryRun });
+  if (!res.ok) return { ok: false, error: res.error ?? "Fix failed" };
+
+  if (!dryRun && (res.fixed_widgets ?? 0) > 0) {
+    await toolsRepo.updateTool(toolId, {
+      notes: `Fixed nested HTML document wrapper on ${res.fixed_widgets} widget(s) (slug unchanged).`,
+    });
+  }
+
+  return { ok: true, fixedWidgets: res.fixed_widgets, link: res.link };
+}
+
+export const fixToolHtmlFn = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ toolId: z.string().uuid(), dryRun: z.boolean().default(true) }).parse)
+  .handler(async ({ data }) => {
+    const { loadProjectEnv } = await import("./load-env");
+    loadProjectEnv();
+    const r = await fixToolHtmlInternal(data.toolId, data.dryRun);
+    if (!r.ok) throw new Error(r.error ?? "Fix failed");
+    return r;
+  });
+
+/** Dry-run scan of a whole category for the nested-HTML-document defect (no writes). */
+export const scanToolHtmlFn = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      category: z.string().default("Developer Tools"),
+      maxPages: z.number().min(1).max(40).default(20),
+    }).parse,
+  )
+  .handler(async ({ data }) => {
+    const { loadProjectEnv } = await import("./load-env");
+    loadProjectEnv();
+    const { hasPluginConfigured, scanToolHtml } = await import("./wp-plugin-client");
+    if (!hasPluginConfigured()) throw new Error("WordPress plugin not configured.");
+
+    let totalScanned = 0;
+    let totalAffected = 0;
+    const affectedSlugs: { slug: string; title: string; affected_widgets: number }[] = [];
+    let totalOnWp = 0;
+
+    for (let page = 1; page <= data.maxPages; page++) {
+      const r = await scanToolHtml({ category: data.category, perPage: 50, page });
+      if (!r.ok) throw new Error(r.error ?? "Scan failed");
+      if (!r.category_found) throw new Error(`Category "${data.category}" not found.`);
+      totalOnWp = r.total;
+      totalScanned += r.scanned ?? 0;
+      totalAffected += r.affected_on_this_page ?? 0;
+      for (const item of r.items) affectedSlugs.push(item);
+      if (page >= r.total_pages) break;
+    }
+
+    return {
+      ok: true,
+      totalOnWp,
+      totalScanned,
+      totalAffected,
+      affectedSlugs: affectedSlugs.slice(0, 500),
+    };
+  });
+
+/**
+ * Fix EVERY affected page in a category via the durable job queue (paced,
+ * survives closed tabs). Scans first, then enqueues only the affected pages.
+ */
+export const enqueueFixAllHtmlFn = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ category: z.string().default("Developer Tools") }).parse)
+  .handler(async ({ data }) => {
+    const { loadProjectEnv } = await import("./load-env");
+    loadProjectEnv();
+    const { hasPluginConfigured, scanToolHtml } = await import("./wp-plugin-client");
+    if (!hasPluginConfigured()) throw new Error("WordPress plugin not configured.");
+    const toolsRepo = await import("@/server/db/repos/tools");
+    const jobsRepo = await import("@/server/db/repos/jobs");
+
+    const affectedWpIds: number[] = [];
+    for (let page = 1; page <= 20; page++) {
+      const r = await scanToolHtml({ category: data.category, perPage: 50, page });
+      if (!r.ok || !r.category_found) break;
+      for (const item of r.items) affectedWpIds.push(item.id);
+      if (page >= r.total_pages) break;
+    }
+
+    // Map WP post IDs -> our tool row ids (adopting any not yet synced).
+    const toolIds: string[] = [];
+    for (const wpId of affectedWpIds) {
+      const existing = await toolsRepo.getToolByWpPostId(wpId);
+      if (existing) toolIds.push(existing.id);
+    }
+
+    if (!toolIds.length) return { ok: true, found: affectedWpIds.length, queued: 0 };
+
+    const queued = await jobsRepo.enqueueJobs(
+      toolIds.map((toolId) => ({
+        type: "fix_tool_html",
+        payload: { toolId },
+        label: "fix_tool_html",
+      })),
+    );
+    return { ok: true, found: affectedWpIds.length, queued };
+  });
+
+// ============================================================================
 // 6b. SIGNUP GATE — enable/disable the lead-gen gate on a tool's WP page
 // ============================================================================
 

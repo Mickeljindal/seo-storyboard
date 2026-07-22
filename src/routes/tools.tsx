@@ -38,6 +38,9 @@ import {
   getToolsCategoryFn,
   setToolsCategoryFn,
   pluginDiagnosticFn,
+  fixToolHtmlFn,
+  scanToolHtmlFn,
+  enqueueFixAllHtmlFn,
 } from "@/lib/tools.functions";
 import { enqueueToolJobsFn, drainJobsFn, jobsSummaryFn } from "@/lib/jobs.functions";
 
@@ -150,6 +153,13 @@ function ToolsPage() {
   const [reportView, setReportView] = useState<{ name: string; report: OptimizeReport } | null>(
     null,
   );
+  // Legacy "full HTML document pasted into a widget" bug scan result.
+  const [htmlScan, setHtmlScan] = useState<{
+    totalOnWp: number;
+    totalScanned: number;
+    totalAffected: number;
+    affectedSlugs: { slug: string; title: string; affected_widgets: number }[];
+  } | null>(null);
 
   const { data: status } = useQuery({ queryKey: ["tools-status"], queryFn: () => statusFn({}) });
   const { data: tools, isLoading } = useQuery({
@@ -418,6 +428,43 @@ function ToolsPage() {
       invalidate();
     },
     onError: (e: Error) => toast.error(e.message),
+  });
+
+  const scanHtmlFn = useServerFn(scanToolHtmlFn);
+  const fixHtmlFn = useServerFn(fixToolHtmlFn);
+  const enqueueFixAllFn = useServerFn(enqueueFixAllHtmlFn);
+
+  const scanHtmlMut = useMutation({
+    mutationFn: () => scanHtmlFn({ data: { category: selectedCategory, maxPages: 20 } }),
+    onSuccess: (r) => {
+      setHtmlScan(r);
+      toast[r.totalAffected > 0 ? "error" : "success"](
+        r.totalAffected > 0
+          ? `Found ${r.totalAffected} of ${r.totalScanned} pages with a broken nested-HTML-document bug`
+          : `No pages affected — scanned ${r.totalScanned} of ${r.totalOnWp}`,
+      );
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const fixAllHtmlMut = useMutation({
+    mutationFn: () => {
+      if (
+        !window.confirm(
+          `Fix the nested-HTML-document bug on all ${htmlScan?.totalAffected ?? 0} affected pages in "${selectedCategory}"? This only removes the redundant <!DOCTYPE>/<html>/<head> wrapper — the tool itself, its styling, and the slug are never touched. Runs in the background.`,
+        )
+      ) {
+        return Promise.reject(new Error("cancelled"));
+      }
+      return enqueueFixAllFn({ data: { category: selectedCategory } });
+    },
+    onSuccess: (r) => {
+      toast.success(`Queued ${r.queued} page(s) to fix — running in the background`);
+      qc.invalidateQueries({ queryKey: ["tool-jobs"] });
+    },
+    onError: (e: Error) => {
+      if (e.message !== "cancelled") toast.error(e.message);
+    },
   });
 
   return (
@@ -791,6 +838,20 @@ function ToolsPage() {
                 ))}
               </select>
               <Button
+                variant="outline"
+                size="sm"
+                onClick={() => scanHtmlMut.mutate()}
+                disabled={scanHtmlMut.isPending}
+                title="Check how many pages have a full HTML document (DOCTYPE/head/title) accidentally pasted inside the tool widget — a legacy bug from before this engine existed."
+              >
+                {scanHtmlMut.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="mr-2 h-4 w-4" />
+                )}
+                Scan for broken HTML
+              </Button>
+              <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => perfMut.mutate()}
@@ -820,6 +881,61 @@ function ToolsPage() {
             </div>
           }
         >
+          {htmlScan && (
+            <div
+              className={`mb-4 rounded-lg border p-4 text-sm ${
+                htmlScan.totalAffected > 0
+                  ? "border-red-500/40 bg-red-500/10"
+                  : "border-[var(--lime)]/30 bg-[var(--lime)]/10"
+              }`}
+            >
+              {htmlScan.totalAffected > 0 ? (
+                <>
+                  <div className="mb-1 font-semibold text-red-300">
+                    {htmlScan.totalAffected} page(s) have a broken nested-HTML-document bug
+                  </div>
+                  <p className="mb-3 text-xs text-red-200/80">
+                    These pages have the AI&apos;s full HTML output (with its own{" "}
+                    <code>&lt;!DOCTYPE&gt;</code>/<code>&lt;head&gt;</code>/
+                    <code>&lt;title&gt;</code>) pasted whole into the tool widget instead of just
+                    the inner content — this breaks page layout and confuses SEO meta. Fixing only
+                    removes that redundant wrapper; the tool itself, its styling, and the slug are
+                    never touched.
+                  </p>
+                  <Button
+                    size="sm"
+                    disabled={fixAllHtmlMut.isPending}
+                    onClick={() => fixAllHtmlMut.mutate()}
+                    style={{
+                      background: "var(--gradient-brand)",
+                      color: "var(--brand-foreground)",
+                    }}
+                  >
+                    {fixAllHtmlMut.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <ShieldCheck className="mr-2 h-4 w-4" />
+                    )}
+                    Fix all {htmlScan.totalAffected} affected page(s)
+                  </Button>
+                  <ul className="mt-3 max-h-32 space-y-0.5 overflow-y-auto font-mono text-[11px] text-red-200/70">
+                    {htmlScan.affectedSlugs.slice(0, 20).map((a) => (
+                      <li key={a.slug}>
+                        /{a.slug} — {a.affected_widgets} widget(s)
+                      </li>
+                    ))}
+                    {htmlScan.affectedSlugs.length > 20 && (
+                      <li>…and {htmlScan.affectedSlugs.length - 20} more</li>
+                    )}
+                  </ul>
+                </>
+              ) : (
+                <div className="text-[var(--lime)]">
+                  No broken pages found in this category ({htmlScan.totalScanned} scanned).
+                </div>
+              )}
+            </div>
+          )}
           {existingAll.length === 0 ? (
             <Empty>
               Pick a category above, then click “Sync from WordPress” to pull its pages.
@@ -936,6 +1052,21 @@ function ToolsPage() {
                       ) : (
                         <ShieldCheck className="h-4 w-4" />
                       )}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      disabled={busyId === t.id}
+                      title="Fix a legacy bug: remove a full HTML document (DOCTYPE/head/title) accidentally pasted inside this page's tool widget. Doesn't touch the tool itself or the slug."
+                      onClick={() =>
+                        run(
+                          t.id,
+                          () => fixHtmlFn({ data: { toolId: t.id, dryRun: false } }),
+                          "Checked/fixed HTML wrapper",
+                        )
+                      }
+                    >
+                      Fix HTML
                     </Button>
                     {t.optimize_report && (
                       <Button
