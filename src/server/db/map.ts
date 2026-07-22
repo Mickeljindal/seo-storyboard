@@ -86,6 +86,7 @@ export function toApiTool(row: ToolRow) {
     published_url: row.publishedUrl,
     meta_title: row.metaTitle,
     meta_description: row.metaDescription,
+    word_count: row.wordCount,
     tool_html: row.toolHtml,
     seo_content: row.seoContent,
     schema_jsonld: row.schemaJsonld,

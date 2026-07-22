@@ -161,6 +161,8 @@ export type ToolPageListItem = {
   aioseo_score: number | null;
   focus_keyword: string;
   meta_title: string;
+  meta_description: string;
+  word_count: number;
 };
 
 export type ToolPageList = {

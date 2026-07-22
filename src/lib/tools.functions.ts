@@ -582,6 +582,9 @@ export async function syncExistingToolsInternal(data: {
           aioseo_score_before: p.aioseo_score,
           target_keyword: p.focus_keyword || keywordFromTitle(p.title),
           category: data.category,
+          meta_title: p.meta_title || null,
+          meta_description: p.meta_description || null,
+          word_count: p.word_count ?? null,
         });
         seenWpIds.add(p.id);
         imported++;

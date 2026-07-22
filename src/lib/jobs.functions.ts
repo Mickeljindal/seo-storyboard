@@ -6,7 +6,7 @@ export const enqueueToolJobsFn = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
       type: z.enum(["generate_tool", "optimize_tool", "publish_tool"]),
-      toolIds: z.array(z.string().uuid()).min(1).max(500),
+      toolIds: z.array(z.string().uuid()).min(1).max(2000),
       status: z.enum(["draft", "publish"]).optional(),
     }).parse,
   )

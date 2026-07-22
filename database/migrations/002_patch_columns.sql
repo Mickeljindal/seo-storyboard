@@ -558,3 +558,7 @@ CREATE INDEX IF NOT EXISTS idx_link_suggestions_status ON link_suggestions(statu
 CREATE INDEX IF NOT EXISTS idx_link_suggestions_source ON link_suggestions(source_page_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_link_suggestions_pair
   ON link_suggestions(source_page_id, target_page_id);
+
+-- Tools: live word count synced from WordPress (v19) — lets the dashboard
+-- show what's actually in each page's content without opening it.
+ALTER TABLE tools ADD COLUMN IF NOT EXISTS word_count integer;

@@ -190,6 +190,9 @@ export const tools = pgTable("tools", {
   // SEO meta
   metaTitle: text("meta_title"),
   metaDescription: text("meta_description"),
+  // Live word count of the page's content (from WordPress, synced), so the
+  // dashboard can show what's actually inside the page without opening it.
+  wordCount: integer("word_count"),
   // Generated assets
   toolHtml: text("tool_html"), // the interactive tool (Elementor HTML widget body)
   seoContent: jsonb("seo_content"), // { h1, intro, how_to[], faq[], related[] }

@@ -19,6 +19,7 @@ const COL_MAP: Record<string, keyof typeof tools.$inferInsert> = {
   published_url: "publishedUrl",
   meta_title: "metaTitle",
   meta_description: "metaDescription",
+  word_count: "wordCount",
   tool_html: "toolHtml",
   seo_content: "seoContent",
   schema_jsonld: "schemaJsonld",
@@ -156,6 +157,9 @@ export async function upsertExistingTool(data: {
   audit_report?: unknown;
   target_keyword?: string | null;
   category?: string | null;
+  meta_title?: string | null;
+  meta_description?: string | null;
+  word_count?: number | null;
 }): Promise<ApiTool> {
   // Pages without a real WordPress slug (drafts, ?page_id URLs) can't share
   // the empty-string slug — the unique index would collide. Store NULL so the
@@ -171,6 +175,9 @@ export async function upsertExistingTool(data: {
       published_url: data.published_url ?? existing.published_url,
       aioseo_score_before: data.aioseo_score_before ?? existing.aioseo_score_before,
       audit_report: data.audit_report ?? existing.audit_report,
+      meta_title: data.meta_title ?? existing.meta_title,
+      meta_description: data.meta_description ?? existing.meta_description,
+      word_count: data.word_count ?? existing.word_count,
     };
     if (data.category) patch.category = data.category;
     if (data.target_keyword && !existing.target_keyword) patch.target_keyword = data.target_keyword;
@@ -186,6 +193,9 @@ export async function upsertExistingTool(data: {
     audit_report: data.audit_report ?? null,
     target_keyword: data.target_keyword ?? null,
     category: data.category ?? "Developer Tools",
+    meta_title: data.meta_title ?? null,
+    meta_description: data.meta_description ?? null,
+    word_count: data.word_count ?? null,
     origin: "existing",
     status: "published",
   });

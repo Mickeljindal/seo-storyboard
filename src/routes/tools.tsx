@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import {
   Loader2,
   Wrench,
@@ -52,6 +52,8 @@ type ToolRow = {
   category: string | null;
   target_keyword: string | null;
   meta_title: string | null;
+  meta_description: string | null;
+  word_count: number | null;
   published_url: string | null;
   demand_score: number | null;
   volume: number | null;
@@ -397,6 +399,16 @@ function ToolsPage() {
 
   const bulkBuild = () => enqueue("generate_tool", pool.slice(0, 200));
   const bulkOptimize = () => enqueue("optimize_tool", existing.slice(0, 500));
+  const bulkOptimizeAll = () => {
+    if (
+      !window.confirm(
+        `Optimize ALL ${existingAll.length} pages in "${selectedCategory}"? This adds SEO content (intro, FAQ, schema, meta) to every page — nothing is removed and slugs never change, but it does write to every live page. This runs in the background and can take a while for hundreds of pages.`,
+      )
+    ) {
+      return;
+    }
+    enqueue("optimize_tool", existingAll.slice(0, 2000));
+  };
 
   const drainMut = useMutation({
     mutationFn: () => drainFn({ data: { max: 10 } }),
@@ -846,20 +858,35 @@ function ToolsPage() {
                   variant="outline"
                   disabled={!!bulk || existing.length === 0}
                   onClick={bulkOptimize}
-                  title="Queue the filtered pages to optimize server-side (slug-safe)"
+                  title="Queue only the pages matching your current search/score filter"
                 >
                   {bulk?.label === "Queueing" ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
                     <ShieldCheck className="mr-2 h-4 w-4" />
                   )}
-                  Queue optimize ({Math.min(existing.length, 500)})
+                  Queue filtered ({Math.min(existing.length, 500)})
+                </Button>
+                <Button
+                  size="sm"
+                  disabled={!!bulk || existingAll.length === 0}
+                  onClick={bulkOptimizeAll}
+                  title="Queue EVERY page in this category, ignoring search/score filters — runs in the background."
+                  style={{ background: "var(--gradient-brand)", color: "var(--brand-foreground)" }}
+                >
+                  {bulk?.label === "Queueing" ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Zap className="mr-2 h-4 w-4" />
+                  )}
+                  Optimize ALL ({existingAll.length})
                 </Button>
               </div>
               <ToolTable
                 rows={existing.slice(0, 150)}
                 busyId={busyId}
                 showScore
+                showMeta
                 onGate={toggleGate}
                 onGateMode={toggleGateMode}
                 actions={(t) => (
@@ -1072,6 +1099,7 @@ function ToolTable({
   rows,
   busyId,
   showScore,
+  showMeta,
   onGate,
   onGateMode,
   actions,
@@ -1079,10 +1107,13 @@ function ToolTable({
   rows: ToolRow[];
   busyId: string | null;
   showScore?: boolean;
+  /** Show a "Meta & Content" column with current title/description/word count + an expand toggle. */
+  showMeta?: boolean;
   onGate: (t: ToolRow) => void;
   onGateMode: (t: ToolRow, mode: "soft" | "hard") => void;
   actions: (t: ToolRow) => React.ReactNode;
 }) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card/60">
       <table className="w-full text-sm">
@@ -1090,6 +1121,7 @@ function ToolTable({
           <tr>
             {showScore && <th className="px-4 py-2.5 text-left">AIOSEO</th>}
             <th className="px-4 py-2.5 text-left">Tool</th>
+            {showMeta && <th className="px-4 py-2.5 text-left">Meta &amp; content</th>}
             <th className="px-4 py-2.5 text-left">Status</th>
             <th className="px-4 py-2.5 text-right">Traffic</th>
             <th className="px-4 py-2.5 text-left">Gate</th>
@@ -1098,101 +1130,185 @@ function ToolTable({
         </thead>
         <tbody>
           {rows.map((t) => (
-            <tr key={t.id} className="border-t border-border/60">
-              {showScore && (
-                <td className="px-4 py-3">
-                  <ScoreBadge score={t.aioseo_score_before} />
-                </td>
-              )}
-              <td className="max-w-[240px] px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <span className="line-clamp-1 font-medium">{t.name}</span>
-                  {t.quality_score != null && (
-                    <span
-                      title={(t.quality_report?.issues ?? []).join(", ") || "quality score"}
-                      className={`rounded px-1 py-0.5 text-[9px] font-semibold ${
-                        t.quality_report?.blocking
-                          ? "bg-red-500/15 text-red-400"
-                          : t.quality_score >= 80
-                            ? "bg-[var(--lime)]/15 text-[var(--lime)]"
-                            : t.quality_score >= 70
-                              ? "bg-amber-500/15 text-amber-400"
-                              : "bg-red-500/15 text-red-400"
-                      }`}
-                    >
-                      {t.quality_report?.grade ?? t.quality_score}
-                    </span>
-                  )}
-                </div>
-                {t.published_url ? (
-                  <a
-                    href={t.published_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[11px] text-primary"
-                  >
-                    /{t.url_slug}
-                  </a>
-                ) : (
-                  <code className="text-[10px] text-muted-foreground">/{t.url_slug}</code>
+            <Fragment key={t.id}>
+              <tr className="border-t border-border/60">
+                {showScore && (
+                  <td className="px-4 py-3">
+                    <ScoreBadge score={t.aioseo_score_before} />
+                  </td>
                 )}
-              </td>
-              <td className="px-4 py-3">
-                <Badge>{t.status}</Badge>
-              </td>
-              <td
-                className="px-4 py-3 text-right"
-                title={t.gsc_position ? `avg position ${t.gsc_position}` : undefined}
-              >
-                {t.gsc_clicks != null ? (
-                  <span className="num">
-                    <span className="font-semibold text-[var(--lime)]">{t.gsc_clicks}</span>
-                    <span className="text-[10px] text-muted-foreground"> clk</span>
-                    {t.gate_clicks ? (
-                      <span className="ml-1 text-[10px] text-primary">· {t.gate_clicks}🔒</span>
-                    ) : null}
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground">—</span>
-                )}
-              </td>
-              <td className="px-4 py-3">
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    disabled={busyId === t.id || !t.published_url}
-                    onClick={() => onGate(t)}
-                    title={t.published_url ? "Toggle signup gate" : "Publish the tool first"}
-                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] transition-colors disabled:opacity-40 ${
-                      t.gate_enabled === "yes"
-                        ? "border-[var(--lime)]/40 text-[var(--lime)]"
-                        : "border-border text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {t.gate_enabled === "yes" ? (
-                      <Lock className="h-3 w-3" />
-                    ) : (
-                      <Unlock className="h-3 w-3" />
+                <td className="max-w-[240px] px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <span className="line-clamp-1 font-medium">{t.name}</span>
+                    {t.quality_score != null && (
+                      <span
+                        title={(t.quality_report?.issues ?? []).join(", ") || "quality score"}
+                        className={`rounded px-1 py-0.5 text-[9px] font-semibold ${
+                          t.quality_report?.blocking
+                            ? "bg-red-500/15 text-red-400"
+                            : t.quality_score >= 80
+                              ? "bg-[var(--lime)]/15 text-[var(--lime)]"
+                              : t.quality_score >= 70
+                                ? "bg-amber-500/15 text-amber-400"
+                                : "bg-red-500/15 text-red-400"
+                        }`}
+                      >
+                        {t.quality_report?.grade ?? t.quality_score}
+                      </span>
                     )}
-                    {t.gate_enabled === "yes" ? "Gated" : "Open"}
-                  </button>
-                  {t.gate_enabled === "yes" && (
+                  </div>
+                  {t.published_url ? (
+                    <a
+                      href={t.published_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[11px] text-primary"
+                    >
+                      /{t.url_slug}
+                    </a>
+                  ) : (
+                    <code className="text-[10px] text-muted-foreground">/{t.url_slug}</code>
+                  )}
+                </td>
+                {showMeta && (
+                  <td className="max-w-[280px] px-4 py-3">
                     <button
                       type="button"
-                      disabled={busyId === t.id}
-                      onClick={() => onGateMode(t, t.gate_mode === "hard" ? "soft" : "hard")}
-                      title="Switch gate mode — soft: 1 free use then sign up · hard: locked immediately"
-                      className="rounded-full border border-border px-2 py-1 text-[10px] uppercase text-muted-foreground hover:text-foreground disabled:opacity-40"
+                      onClick={() => setExpandedId(expandedId === t.id ? null : t.id)}
+                      className="text-left"
+                      title="Click to see the full meta title, description, and content stats"
                     >
-                      {t.gate_mode ?? "soft"}
+                      <div className="line-clamp-1 text-[11px] font-medium text-foreground/90">
+                        {t.meta_title || (
+                          <span className="text-muted-foreground">no title set</span>
+                        )}
+                      </div>
+                      <div className="line-clamp-1 text-[10px] text-muted-foreground">
+                        {t.meta_description || "no description set"}
+                      </div>
+                      <div className="mt-0.5 text-[10px] text-primary underline">
+                        {expandedId === t.id ? "hide" : "view"} · {t.word_count ?? "—"} words
+                      </div>
                     </button>
+                  </td>
+                )}
+                <td className="px-4 py-3">
+                  <Badge>{t.status}</Badge>
+                </td>
+                <td
+                  className="px-4 py-3 text-right"
+                  title={t.gsc_position ? `avg position ${t.gsc_position}` : undefined}
+                >
+                  {t.gsc_clicks != null ? (
+                    <span className="num">
+                      <span className="font-semibold text-[var(--lime)]">{t.gsc_clicks}</span>
+                      <span className="text-[10px] text-muted-foreground"> clk</span>
+                      {t.gate_clicks ? (
+                        <span className="ml-1 text-[10px] text-primary">· {t.gate_clicks}🔒</span>
+                      ) : null}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
                   )}
-                </div>
-              </td>
-              <td className="px-4 py-3">
-                <div className="flex justify-end gap-2">{actions(t)}</div>
-              </td>
-            </tr>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      disabled={busyId === t.id || !t.published_url}
+                      onClick={() => onGate(t)}
+                      title={t.published_url ? "Toggle signup gate" : "Publish the tool first"}
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] transition-colors disabled:opacity-40 ${
+                        t.gate_enabled === "yes"
+                          ? "border-[var(--lime)]/40 text-[var(--lime)]"
+                          : "border-border text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {t.gate_enabled === "yes" ? (
+                        <Lock className="h-3 w-3" />
+                      ) : (
+                        <Unlock className="h-3 w-3" />
+                      )}
+                      {t.gate_enabled === "yes" ? "Gated" : "Open"}
+                    </button>
+                    {t.gate_enabled === "yes" && (
+                      <button
+                        type="button"
+                        disabled={busyId === t.id}
+                        onClick={() => onGateMode(t, t.gate_mode === "hard" ? "soft" : "hard")}
+                        title="Switch gate mode — soft: 1 free use then sign up · hard: locked immediately"
+                        className="rounded-full border border-border px-2 py-1 text-[10px] uppercase text-muted-foreground hover:text-foreground disabled:opacity-40"
+                      >
+                        {t.gate_mode ?? "soft"}
+                      </button>
+                    )}
+                  </div>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex justify-end gap-2">{actions(t)}</div>
+                </td>
+              </tr>
+              {showMeta && expandedId === t.id && (
+                <tr key={`${t.id}-expanded`} className="border-t border-border/60 bg-background/40">
+                  <td colSpan={6} className="px-4 py-4">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Meta title
+                        </div>
+                        <div className="mt-0.5 text-sm">
+                          {t.meta_title || <span className="text-muted-foreground">not set</span>}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {t.meta_title?.length ?? 0} characters
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Meta description
+                        </div>
+                        <div className="mt-0.5 text-sm">
+                          {t.meta_description || (
+                            <span className="text-muted-foreground">not set</span>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {t.meta_description?.length ?? 0} characters
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Content
+                        </div>
+                        <div className="mt-0.5 text-sm">
+                          {t.word_count != null ? `${t.word_count} words` : "not synced yet"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Focus keyword
+                        </div>
+                        <div className="mt-0.5 text-sm">
+                          {t.target_keyword || (
+                            <span className="text-muted-foreground">not set</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    {t.published_url && (
+                      <a
+                        href={t.published_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-3 inline-block text-xs text-primary underline"
+                      >
+                        Open live page →
+                      </a>
+                    )}
+                  </td>
+                </tr>
+              )}
+            </Fragment>
           ))}
         </tbody>
       </table>

@@ -341,6 +341,16 @@ function kbseo_tools_list($request) {
     foreach ($query->posts as $post) {
         $aioseo = kbseo_aioseo_score($post->ID);
         $edit_mode = get_post_meta($post->ID, '_elementor_edit_mode', true);
+        $has_elementor = ($edit_mode === 'builder');
+        $word_count = 0;
+        if ($has_elementor) {
+            $raw = get_post_meta($post->ID, '_elementor_data', true);
+            if (is_string($raw) && $raw !== '') {
+                $word_count = str_word_count(wp_strip_all_tags($raw));
+            }
+        } else {
+            $word_count = str_word_count(wp_strip_all_tags($post->post_content));
+        }
         $items[] = [
             'id' => $post->ID,
             'title' => get_the_title($post),
@@ -348,10 +358,12 @@ function kbseo_tools_list($request) {
             'link' => get_permalink($post->ID),
             'status' => $post->post_status,
             'modified' => $post->post_modified_gmt,
-            'has_elementor' => ($edit_mode === 'builder'),
+            'has_elementor' => $has_elementor,
             'aioseo_score' => $aioseo['score'],
             'focus_keyword' => $aioseo['focus_keyword'],
             'meta_title' => $aioseo['title'],
+            'meta_description' => $aioseo['description'],
+            'word_count' => $word_count,
         ];
     }
 
