@@ -696,16 +696,95 @@ function kbseo_publish_tool($request) {
 }
 
 /**
+ * Read-only: does this element tree contain an HTML widget, and what's its
+ * current settings.html? (Used to build the spliced replacement before
+ * rewriting the tree — avoids fragile PHP by-reference recursion.)
+ */
+function kbseo_get_first_html_widget_content($elements) {
+    if (!is_array($elements)) return null;
+    foreach ($elements as $el) {
+        if (!is_array($el)) continue;
+        if (($el['elType'] ?? '') === 'widget' && ($el['widgetType'] ?? '') === 'html') {
+            return (string) ($el['settings']['html'] ?? '');
+        }
+        if (!empty($el['elements']) && is_array($el['elements'])) {
+            $found = kbseo_get_first_html_widget_content($el['elements']);
+            if ($found !== null) return $found;
+        }
+    }
+    return null;
+}
+
+/**
+ * Rebuild the element tree, replacing the FIRST html widget's settings.html
+ * with $new_html. Every other widget/section/column is returned unchanged.
+ * Rebuilding (rather than mutating in place) avoids PHP's fragile by-reference
+ * recursion for nested arrays.
+ */
+function kbseo_replace_first_html_widget($elements, $new_html, &$did_replace) {
+    if (!is_array($elements)) return $elements;
+    $out = [];
+    foreach ($elements as $el) {
+        if (!is_array($el)) { $out[] = $el; continue; }
+        if (!$did_replace && ($el['elType'] ?? '') === 'widget' && ($el['widgetType'] ?? '') === 'html') {
+            $el['settings']['html'] = $new_html;
+            $did_replace = true;
+            $out[] = $el;
+            continue;
+        }
+        if (!empty($el['elements']) && is_array($el['elements'])) {
+            $el['elements'] = kbseo_replace_first_html_widget($el['elements'], $new_html, $did_replace);
+        }
+        $out[] = $el;
+    }
+    return $out;
+}
+
+/**
+ * Splice marker-wrapped HTML directly into an existing HTML widget's content —
+ * the same widget the tool itself lives in. Idempotent: strips any
+ * previously-injected marker blocks first (identified by the given marker
+ * names), so re-running this replaces the old injected content instead of
+ * duplicating it. Never touches anything outside the marker blocks — the
+ * tool's own markup passes through completely untouched.
+ */
+function kbseo_splice_marker_html($existing_html, $prepend_html, $append_html, $markers) {
+    $cleaned = (string) $existing_html;
+    foreach ($markers as $m) {
+        $pattern = '/<!--\s*' . preg_quote($m, '/') . ':start\s*-->.*?<!--\s*' . preg_quote($m, '/') . ':end\s*-->/is';
+        $cleaned = preg_replace($pattern, '', $cleaned);
+    }
+    $cleaned = trim($cleaned);
+    $parts = array_filter([$prepend_html, $cleaned, $append_html], function ($p) {
+        return trim((string) $p) !== '';
+    });
+    return implode("\n\n", $parts);
+}
+
+const KBSEO_INJECTION_MARKERS = ['kbseo-intro', 'kbseo-howto', 'kbseo-faq', 'kbseo-related', 'kbseo-schema'];
+
+/**
  * POST /optimize-tool — ADDITIVE SEO injection into an existing page.
  *
- * Body: { post_id (required), prepend (array), append (array), meta_title,
- *   meta_description, focus_keyword, secondary_keywords[], canonical_url,
- *   schema_jsonld, dry_run (bool) }
+ * Body: { post_id (required), prepend_html (string), append_html (string),
+ *   append_elements (array of Elementor elements), strip_marker (string),
+ *   meta_title, meta_description, focus_keyword, secondary_keywords[],
+ *   canonical_url, schema_jsonld, dry_run (bool) }
  *
  * Guarantees:
  *   - post_name (slug) is NEVER changed.
- *   - post_title and existing widgets are NEVER changed.
- *   - Only prepends/appends new Elementor sections + updates AIOSEO meta.
+ *   - post_title is NEVER changed.
+ *   - The tool's own markup is NEVER touched — prepend_html/append_html are
+ *     spliced directly into the SAME HTML widget's existing content (marker-
+ *     wrapped, idempotent), never inserted as separate native Elementor
+ *     widgets/sections. This matches how these pages are actually built: one
+ *     HTML widget per page holding everything as raw HTML.
+ *   - append_elements is a SEPARATE, independent mechanism from prepend_html/
+ *     append_html: it appends whole native Elementor elements as new
+ *     top-level sections (used ONLY by the signup gate, which genuinely needs
+ *     its own isolated widget/script scope — not part of the SEO content
+ *     splicing above). strip_marker removes any previous widget matching the
+ *     marker first, so add/update/remove of the gate stays idempotent.
  */
 function kbseo_optimize_tool($request) {
     if (!kbseo_tool_rate_ok('optimize')) {
@@ -721,9 +800,10 @@ function kbseo_optimize_tool($request) {
     if (!$post) return new WP_Error('not_found', 'Page not found', ['status' => 404]);
 
     $dry_run = !empty($data['dry_run']);
-    $prepend = (isset($data['prepend']) && is_array($data['prepend'])) ? $data['prepend'] : [];
-    $append = (isset($data['append']) && is_array($data['append'])) ? $data['append'] : [];
+    $prepend_html = isset($data['prepend_html']) ? (string) $data['prepend_html'] : '';
+    $append_html = isset($data['append_html']) ? (string) $data['append_html'] : '';
     $strip_marker = isset($data['strip_marker']) ? (string) $data['strip_marker'] : '';
+    $append_elements = (isset($data['append_elements']) && is_array($data['append_elements'])) ? $data['append_elements'] : [];
 
     $raw = get_post_meta($post_id, '_elementor_data', true);
     $existing = [];
@@ -733,21 +813,27 @@ function kbseo_optimize_tool($request) {
     }
     $has_elementor = (get_post_meta($post_id, '_elementor_edit_mode', true) === 'builder') && count($existing) > 0;
 
-    // Strip widgets matching the marker (e.g. an old signup gate) before merging,
-    // so add/update/remove of the gate is idempotent.
+    // Strip widgets matching the marker (e.g. an old signup gate lives in its
+    // OWN separate widget, unlike the SEO content) before we look for the tool
+    // widget, so add/update/remove of the gate stays idempotent.
     $stripped = 0;
     if ($strip_marker !== '' && $has_elementor) {
         $existing = kbseo_strip_widgets_by_marker($existing, $strip_marker, $stripped);
     }
 
+    $current_widget_html = $has_elementor ? kbseo_get_first_html_widget_content($existing) : null;
+    $has_html_widget = $current_widget_html !== null;
+
     $report = [
         'post_id' => $post_id,
         'slug' => $post->post_name, // echoed back so callers can confirm it's unchanged
         'has_elementor' => $has_elementor,
+        'has_html_widget' => $has_html_widget,
         'existing_sections' => count($existing),
         'stripped_widgets' => $stripped,
-        'will_prepend' => count($prepend),
-        'will_append' => count($append),
+        'will_prepend' => $prepend_html !== '',
+        'will_append' => $append_html !== '',
+        'will_append_elements' => count($append_elements),
         'injected_elementor' => false,
         'updated_meta' => false,
         'dry_run' => $dry_run,
@@ -758,12 +844,32 @@ function kbseo_optimize_tool($request) {
         return $report;
     }
 
-    // 1. Additive Elementor injection (only when the page is Elementor-built).
-    if ($has_elementor && (count($prepend) || count($append) || $stripped > 0)) {
-        $merged = array_merge($prepend, $existing, $append);
-        kbseo_set_elementor_data($post_id, $merged);
+    // 1. Splice the SEO content directly into the existing HTML widget (only
+    //    when the page is Elementor-built AND has a widget to inject into).
+    $did_splice = false;
+    if ($has_elementor && $has_html_widget && ($prepend_html !== '' || $append_html !== '' || $stripped > 0)) {
+        $new_html = kbseo_splice_marker_html(
+            $current_widget_html,
+            $prepend_html,
+            $append_html,
+            KBSEO_INJECTION_MARKERS
+        );
+        $did_replace = false;
+        $existing = kbseo_replace_first_html_widget($existing, $new_html, $did_replace);
+        $did_splice = true;
+    }
+
+    // 1b. append_elements — a SEPARATE mechanism: append whole native
+    //     Elementor elements as new top-level sections (used only by the
+    //     signup gate, which needs its own isolated widget/script scope).
+    if ($has_elementor && !empty($append_elements)) {
+        $existing = array_merge($existing, $append_elements);
+        $did_splice = true;
+    }
+
+    if ($did_splice || ($has_elementor && $stripped > 0)) {
+        kbseo_set_elementor_data($post_id, $existing);
         $report['injected_elementor'] = true;
-        $report['existing_sections_after'] = count($merged);
     }
 
     // 2. AIOSEO meta + schema — the biggest score lift, safe on any page.
@@ -780,9 +886,10 @@ function kbseo_optimize_tool($request) {
         $report['updated_meta'] = true;
     }
 
-    // 3. If NOT Elementor-built, append schema into post_content as a safe fallback
-    //    (does not disturb existing layout/builders).
-    if (!$has_elementor && !empty($data['schema_jsonld'])) {
+    // 3. If NOT Elementor-built (or no HTML widget was found), append schema
+    //    into post_content as a safe fallback (does not disturb existing
+    //    layout/builders).
+    if ((!$has_elementor || !$has_html_widget) && !empty($data['schema_jsonld'])) {
         $schema = $data['schema_jsonld'];
         $blocks = isset($schema[0]) ? $schema : [$schema];
         $tags = '';

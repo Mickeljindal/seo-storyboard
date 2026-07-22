@@ -864,8 +864,8 @@ export async function optimizeToolInternal(
 
   const res = await optimizeTool({
     post_id: tool.wp_post_id,
-    prepend: plan.prepend,
-    append: plan.append,
+    prepend_html: plan.prependHtml,
+    append_html: plan.appendHtml,
     meta_title: seoRes.meta_title,
     meta_description: seoRes.meta_description,
     focus_keyword: keyword,
@@ -1151,11 +1151,11 @@ export async function setToolGateInternal(
   // when enabling. Slug + tool widget are untouched.
   const cfg = gateConfig(tool.url_slug ?? "");
   cfg.mode = mode;
-  const append = enable ? [buildGateSection(cfg)] : [];
+  const appendElements = enable ? [buildGateSection(cfg)] : [];
 
   const res = await optimizeTool({
     post_id: tool.wp_post_id,
-    append,
+    append_elements: appendElements,
     strip_marker: GATE_MARKER,
     dry_run: false,
   });

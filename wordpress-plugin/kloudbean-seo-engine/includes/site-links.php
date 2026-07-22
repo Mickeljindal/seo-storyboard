@@ -128,7 +128,11 @@ function kbseo_site_content($request) {
     ];
 }
 
-const KBSEO_RELATED_MARKER = '<!-- kbseo-related-links -->';
+// Bare marker name (no comment syntax) — kbseo_splice_marker_html() wraps this
+// itself into `<!-- {marker}:start -->...<!-- {marker}:end -->` when stripping.
+// Deliberately distinct from tools.php's `kbseo-related` (the optimizer's own
+// "Related free tools" block) so the two features never strip each other's content.
+const KBSEO_RELATED_MARKER = 'kbseo-related-links';
 
 /**
  * Insert one contextual link into classic post_content. Wraps the FIRST
@@ -173,10 +177,12 @@ function kbseo_insert_classic_link($post, $anchor, $target_url) {
 }
 
 /**
- * Insert (or update) a "Related reading" Elementor section at the END of the
- * page, idempotent via KBSEO_RELATED_MARKER so repeated calls accumulate links
- * into ONE section instead of stacking duplicates. Never touches existing
- * widgets — additive only, same guarantee as tools.php's optimize-tool.
+ * Insert (or update) a "Related reading" block, idempotent via
+ * KBSEO_RELATED_MARKER so repeated calls accumulate links into ONE block
+ * instead of stacking duplicates. Spliced directly into the page's EXISTING
+ * HTML widget content (same pattern as tools.php's optimize-tool) — never as
+ * a new, separate native Elementor container/widget. Never touches anything
+ * else in the widget or any other widget on the page.
  */
 function kbseo_insert_elementor_link($post_id, $anchor, $target_url) {
     $raw = get_post_meta($post_id, '_elementor_data', true);
@@ -185,13 +191,13 @@ function kbseo_insert_elementor_link($post_id, $anchor, $target_url) {
         $decoded = json_decode($raw, true);
         if (is_array($decoded)) $existing = $decoded;
     }
-    if (!count($existing)) return false; // not an Elementor page, nothing to append to
+    if (!count($existing)) return false; // not an Elementor page, nothing to splice into
 
-    $removed = 0;
-    $existing = kbseo_strip_widgets_by_marker($existing, KBSEO_RELATED_MARKER, $removed);
+    $current_widget_html = kbseo_get_first_html_widget_content($existing);
+    if ($current_widget_html === null) return false; // no HTML widget to splice into
 
     // Accumulate: read links already offered before (from post meta), add
-    // the new one, dedupe by URL, cap at 6 so the section doesn't grow forever.
+    // the new one, dedupe by URL, cap at 6 so the block doesn't grow forever.
     $links = get_post_meta($post_id, '_kbseo_related_links', true);
     if (!is_array($links)) $links = [];
     $links[$target_url] = $anchor; // keyed by URL so re-suggesting updates the anchor only
@@ -204,28 +210,32 @@ function kbseo_insert_elementor_link($post_id, $anchor, $target_url) {
     foreach ($links as $url => $text) {
         $items_html .= '<li><a href="' . esc_url($url) . '">' . esc_html($text) . '</a></li>';
     }
-    $html = KBSEO_RELATED_MARKER
-        . '<div class="kbseo-related-links" style="margin-top:32px;padding-top:20px;border-top:1px solid rgba(0,0,0,0.08);">'
+    $block_html = '<div class="kbseo-related-links" style="margin-top:32px;padding-top:20px;border-top:1px solid rgba(0,0,0,0.08);">'
         . '<h3 style="font-size:1.1rem;margin-bottom:10px;">Related reading</h3>'
         . '<ul style="margin:0;padding-left:20px;">' . $items_html . '</ul>'
         . '</div>';
 
-    $section = [
-        'id' => substr(md5($post_id . 'kbseo-related'), 0, 7),
-        'elType' => 'container',
-        'settings' => [],
-        'elements' => [[
-            'id' => substr(md5($post_id . 'kbseo-related-w'), 0, 7),
-            'elType' => 'widget',
-            'widgetType' => 'html',
-            'settings' => ['html' => $html],
-            'elements' => [],
-        ]],
-    ];
+    // Reuse the same marker-stripping splice helper the main optimizer uses
+    // (defined in tools.php, loaded before this file), so re-running this
+    // replaces the previous "Related reading" block instead of duplicating it.
+    $new_html = kbseo_splice_marker_html(
+        $current_widget_html,
+        '',
+        kbseo_wrap_marker(KBSEO_RELATED_MARKER, $block_html),
+        [KBSEO_RELATED_MARKER]
+    );
 
-    $merged = array_merge($existing, [$section]);
-    kbseo_set_elementor_data($post_id, $merged);
+    $did_replace = false;
+    $existing = kbseo_replace_first_html_widget($existing, $new_html, $did_replace);
+    if (!$did_replace) return false;
+
+    kbseo_set_elementor_data($post_id, $existing);
     return true;
+}
+
+/** Wrap a fragment in a start/end marker comment pair (mirrors the JS `marked()` helper). */
+function kbseo_wrap_marker($marker, $html) {
+    return '<!-- ' . $marker . ':start -->' . "\n" . $html . "\n" . '<!-- ' . $marker . ':end -->';
 }
 
 /**
@@ -257,7 +267,7 @@ function kbseo_apply_link($request) {
 
     if ($is_elementor) {
         $applied = kbseo_insert_elementor_link($post_id, $anchor, $target_url);
-        $method = 'elementor_related_section';
+        $method = 'elementor_html_splice';
     } else {
         $applied = kbseo_insert_classic_link($post, $anchor, $target_url);
         $method = 'classic_inline';

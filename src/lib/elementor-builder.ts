@@ -7,11 +7,14 @@
  *  1. buildToolElementorData() — full page for a NEW tool: H1 + intro, the
  *     interactive tool (HTML widget), how-to, FAQ, related links, JSON-LD.
  *
- *  2. buildInjectionPlan() — for EXISTING pages, an ADDITIVE plan: extra sections
- *     to prepend (intro) and append (how-to, FAQ, related, JSON-LD). It NEVER
- *     contains the tool itself and NEVER touches the existing widgets or slug.
- *     Injected section titles use H2/H3 only — we never add a second H1 to a page
- *     that may already rank.
+ *  2. buildInjectionPlan() — for EXISTING pages, ADDITIVE raw HTML to inject
+ *     directly INTO the page's existing HTML widget (the same single widget
+ *     that already holds the tool) — never as separate native Elementor
+ *     blocks (heading/text-editor widgets). This matches how these pages are
+ *     actually built: one HTML widget per page, everything as raw HTML inside
+ *     it. Content is wrapped in marker comments so re-optimizing a page is
+ *     idempotent (old injected content is replaced, never duplicated), and it
+ *     NEVER touches the tool's own markup or the page's slug/title.
  *
  * Pure functions, no I/O — safe to unit-test and run anywhere.
  */
@@ -60,10 +63,6 @@ function headingWidget(title: string, size: "h1" | "h2" | "h3" = "h2"): Elemento
   return widget("heading", { title, header_size: size });
 }
 
-function textWidget(html: string): ElementorElement {
-  return widget("text-editor", { editor: html });
-}
-
 function htmlWidget(html: string): ElementorElement {
   return widget("html", { html });
 }
@@ -110,6 +109,19 @@ function relatedHtml(related: { anchor: string; url: string }[]): string {
   return `<ul>${items}</ul>`;
 }
 
+// --- markers so re-optimizing is idempotent (replace, never duplicate) -----
+
+export const INTRO_MARKER = "kbseo-intro";
+export const HOWTO_MARKER = "kbseo-howto";
+export const FAQ_MARKER = "kbseo-faq";
+export const RELATED_MARKER = "kbseo-related";
+export const SCHEMA_MARKER = "kbseo-schema";
+
+/** Wrap a fragment in a marker comment pair, so it can be found/replaced later. */
+function marked(marker: string, html: string): string {
+  return `<!-- ${marker}:start -->\n${html}\n<!-- ${marker}:end -->`;
+}
+
 // --- 1. NEW tool page -------------------------------------------------------
 
 /**
@@ -149,6 +161,14 @@ export function buildGateSection(config: GateConfig): ElementorElement {
 }
 
 // --- 2. EXISTING page additive injection ------------------------------------
+//
+// IMPORTANT: these pages are built with ONE Elementor HTML widget holding all
+// the tool's markup as raw HTML (never as separate native heading/text-editor
+// widgets/sections). To stay consistent with that structure — and to avoid
+// creating a second, disconnected content block that looks out of place next
+// to the tool — the additive SEO content below is also raw HTML, meant to be
+// spliced directly into the SAME widget's existing HTML string (prepended
+// before it / appended after it), not inserted as new Elementor elements.
 
 export type InjectionFlags = {
   /** Skip the intro section (page already has indexable intro text). */
@@ -160,17 +180,21 @@ export type InjectionFlags = {
 };
 
 export type InjectionPlan = {
-  prepend: ElementorElement[];
-  append: ElementorElement[];
+  /** Raw HTML to splice in BEFORE the existing widget content (the intro block). */
+  prependHtml: string;
+  /** Raw HTML to splice in AFTER the existing widget content (how-to/FAQ/related/schema). */
+  appendHtml: string;
   added: string[];
 };
 
 /**
- * Build an ADDITIVE injection plan for an existing tool page.
- * - `prepend` goes BEFORE existing content (the intro/answer block).
- * - `append` goes AFTER existing content (how-to, FAQ, related, schema).
- * Section titles use H2/H3 — never H1 — so we never create a duplicate H1 on a
- * page that may already rank. The existing tool widget is left untouched.
+ * Build an ADDITIVE injection plan for an existing tool page, as raw HTML
+ * meant to be spliced into the SAME HTML widget the tool already lives in —
+ * never as new native Elementor widgets. Headings inside use H2/H3 — never
+ * H1 — so we never create a duplicate H1 on a page that may already rank.
+ * The existing tool markup itself is never touched; this is pure addition
+ * before/after it, wrapped in marker comments so re-running replaces the
+ * previous injection instead of duplicating it.
  */
 export function buildInjectionPlan(params: {
   seo: ToolSeoContent;
@@ -178,51 +202,72 @@ export function buildInjectionPlan(params: {
   schemaJsonld?: object[];
   flags?: InjectionFlags;
 }): InjectionPlan {
-  _idCounter = 0;
   const { seo } = params;
   const related = params.related ?? [];
   const flags = params.flags ?? {};
-  const prepend: ElementorElement[] = [];
-  const append: ElementorElement[] = [];
+  const prependParts: string[] = [];
+  const appendParts: string[] = [];
   const added: string[] = [];
 
   // Intro (answer-first) — visible heading is H2, NOT H1.
   if (!flags.hasIntro && seo.intro_html) {
-    prepend.push(section([headingWidget(seo.h1, "h2"), textWidget(seo.intro_html)]));
+    prependParts.push(marked(INTRO_MARKER, `<h2>${escapeHtml(seo.h1)}</h2>\n${seo.intro_html}`));
     added.push("intro");
   }
 
   if (!flags.hasHowTo && seo.how_to?.steps?.length) {
-    append.push(
-      section([
-        headingWidget(seo.how_to.title || "How to use this tool", "h2"),
-        textWidget(howToHtml(seo.how_to)),
-      ]),
+    appendParts.push(
+      marked(
+        HOWTO_MARKER,
+        `<h2>${escapeHtml(seo.how_to.title || "How to use this tool")}</h2>\n${howToHtml(seo.how_to)}`,
+      ),
     );
     added.push("how_to");
   }
 
   if (!flags.hasFaq && seo.faq?.length) {
-    append.push(
-      section([headingWidget("Frequently asked questions", "h2"), textWidget(faqHtml(seo.faq))]),
+    appendParts.push(
+      marked(FAQ_MARKER, `<h2>Frequently asked questions</h2>\n${faqHtml(seo.faq)}`),
     );
     added.push("faq");
   }
 
   if (related.length) {
-    append.push(
-      section([headingWidget("Related free tools", "h2"), textWidget(relatedHtml(related))]),
+    appendParts.push(
+      marked(RELATED_MARKER, `<h2>Related free tools</h2>\n${relatedHtml(related)}`),
     );
     added.push("related");
   }
 
   const schemaTags = jsonLdScriptTags(params.schemaJsonld ?? []);
   if (schemaTags) {
-    append.push(section([htmlWidget(schemaTags)]));
+    appendParts.push(marked(SCHEMA_MARKER, schemaTags));
     added.push("schema");
   }
 
-  return { prepend, append, added };
+  return {
+    prependHtml: prependParts.join("\n"),
+    appendHtml: appendParts.join("\n"),
+    added,
+  };
+}
+
+/**
+ * Splice an injection plan's HTML directly into a widget's existing HTML
+ * string. Idempotent: any previously-injected marker blocks (from an earlier
+ * optimize run) are stripped first, so re-running never duplicates content —
+ * it replaces the old injected version with the fresh one. The widget's own
+ * original markup (everything NOT inside a kbseo-* marker) is never touched.
+ */
+export function spliceInjectionIntoWidgetHtml(existingHtml: string, plan: InjectionPlan): string {
+  const markers = [INTRO_MARKER, HOWTO_MARKER, FAQ_MARKER, RELATED_MARKER, SCHEMA_MARKER];
+  let cleaned = existingHtml;
+  for (const m of markers) {
+    const re = new RegExp(`<!--\\s*${m}:start\\s*-->[\\s\\S]*?<!--\\s*${m}:end\\s*-->`, "g");
+    cleaned = cleaned.replace(re, "").trim();
+  }
+  const parts = [plan.prependHtml, cleaned, plan.appendHtml].filter((p) => p && p.trim());
+  return parts.join("\n\n");
 }
 
 // --- analysis of existing _elementor_data -----------------------------------
@@ -327,8 +372,17 @@ export function analyzeElementorData(raw: unknown): ElementorAnalysis {
   return analysis;
 }
 
-/** Apply an injection plan to existing data (used for preview/snapshot). */
-export function applyInjectionPlan(raw: unknown, plan: InjectionPlan): ElementorElement[] {
-  const data = parseElementorData(raw);
-  return [...plan.prepend, ...data, ...plan.append];
+/**
+ * Find the first HTML widget in an Elementor tree (that's where the tool
+ * lives — these pages use exactly one). Returns null if none found.
+ */
+export function findFirstHtmlWidget(elements: ElementorElement[]): ElementorElement | null {
+  for (const el of elements) {
+    if (el.elType === "widget" && el.widgetType === "html") return el;
+    if (el.elements?.length) {
+      const found = findFirstHtmlWidget(el.elements);
+      if (found) return found;
+    }
+  }
+  return null;
 }

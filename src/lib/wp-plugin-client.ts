@@ -335,8 +335,16 @@ export async function publishTool(payload: PublishToolPayload): Promise<PublishT
 
 export type OptimizeToolPayload = {
   post_id: number;
-  prepend?: unknown[];
-  append?: unknown[];
+  /** Raw HTML spliced directly into the existing HTML widget, BEFORE its current content (marker-wrapped, idempotent). */
+  prepend_html?: string;
+  /** Raw HTML spliced directly into the existing HTML widget, AFTER its current content (marker-wrapped, idempotent). */
+  append_html?: string;
+  /**
+   * Whole native Elementor elements appended as new top-level sections.
+   * SEPARATE from prepend_html/append_html — used only for widgets that
+   * genuinely need their own isolated scope (currently just the signup gate).
+   */
+  append_elements?: unknown[];
   meta_title?: string;
   meta_description?: string;
   focus_keyword?: string;
@@ -353,11 +361,13 @@ export type OptimizeToolResult = {
   slug?: string;
   link?: string;
   has_elementor?: boolean;
+  has_html_widget?: boolean;
   existing_sections?: number;
   existing_sections_after?: number;
   stripped_widgets?: number;
-  will_prepend?: number;
-  will_append?: number;
+  will_prepend?: boolean;
+  will_append?: boolean;
+  will_append_elements?: number;
   injected_elementor?: boolean;
   updated_meta?: boolean;
   appended_schema_to_content?: boolean;
