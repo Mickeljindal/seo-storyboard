@@ -215,6 +215,216 @@ export async function discoverToolIdeas(options: DiscoverToolIdeasOptions = {}):
 }
 
 // ===========================================================================
+// KLOUDGRAPH-SOURCED IDEAS — mine our own Semrush warehouse for tool-intent
+// keywords competitors already rank for that Kloudbean does not.
+// ===========================================================================
+
+/**
+ * Pull tool-intent keywords straight from the KLOUDGRAPH warehouse (the
+ * Semrush exports already imported for competitor SEO — see
+ * src/lib/kloudgraph/semrush-import.ts). Unlike discoverToolIdeaPool (which
+ * calls live Serper/DataForSEO APIs to GUESS at demand), this reads keywords
+ * competitors are ALREADY ranking for, right now, with REAL volume/difficulty
+ * numbers Semrush measured — the strongest possible evidence a tool page is
+ * worth building, because a rival is already getting traffic from it.
+ *
+ * Pipeline: kg_organic_rankings + kg_keyword_gap → filter to tool-intent
+ * queries (calculator/generator/converter/etc.) → require audience fit →
+ * dedupe against tools we already have → score by real volume + how many
+ * competitors rank for it → rank.
+ */
+export type KloudgraphToolIdea = ToolIdea & {
+  /** Competitor domains currently ranking for this keyword. */
+  competitors: string[];
+  /** Best (lowest) position any tracked competitor holds for this keyword. */
+  bestCompetitorPosition: number | null;
+};
+
+export type KloudgraphIdeaOptions = {
+  limit?: number;
+  existingNames?: Set<string>;
+  existingSlugs?: Set<string>;
+  minAudience?: number;
+  minVolume?: number;
+};
+
+function descriptionForKeyword(keyword: string, type: ToolCatalogEntry["toolType"]): string {
+  return `A free ${keyword} for developers, founders and teams — instant, browser-based results.`;
+}
+
+function specForKeyword(keyword: string, type: ToolCatalogEntry["toolType"]): string {
+  return `Build a ${type} for "${keyword}" with the standard inputs and outputs users expect; validate inputs and show results instantly, client-side.`;
+}
+
+/**
+ * Mine the KLOUDGRAPH warehouse (kg_organic_rankings + kg_keyword_gap) for
+ * tool-intent keywords, score them by real Semrush volume + competitor
+ * consensus + Kloudbean audience fit, and return ranked NEW tool ideas.
+ * Returns an empty list (never throws) if KLOUDGRAPH has no data imported yet.
+ */
+export async function discoverKloudgraphToolIdeas(options: KloudgraphIdeaOptions = {}): Promise<{
+  ideas: KloudgraphToolIdea[];
+  stats: { scanned: number; toolIntent: number; kept: number };
+}> {
+  const limit = options.limit ?? 40;
+  const minAudience = options.minAudience ?? 25;
+  const minVolume = options.minVolume ?? 10;
+  const existingNames = options.existingNames ?? new Set<string>();
+  const existingSlugs = options.existingSlugs ?? new Set<string>();
+
+  const { getDb } = await import("@/server/db/client");
+  const { sql } = await import("drizzle-orm");
+  let db;
+  try {
+    db = await getDb();
+  } catch {
+    return { ideas: [], stats: { scanned: 0, toolIntent: 0, kept: 0 } };
+  }
+
+  // Union both warehouse tables: rankings (what competitors rank for, any
+  // position) and keyword_gap (explicitly "competitor ranks, we don't").
+  // Keep the best (lowest) volume-weighted signal per keyword across both.
+  let rows: {
+    keyword: string;
+    volume: number | null;
+    difficulty: number | null;
+    competitors: string[];
+    best_position: number | null;
+  }[];
+  try {
+    const raw = await db.execute(
+      sql.raw(`
+        SELECT keyword, volume, difficulty, competitors, best_position FROM (
+          SELECT
+            keyword,
+            max(coalesce(volume, 0))::int AS volume,
+            min(difficulty)::int AS difficulty,
+            array_agg(DISTINCT competitor_domain) AS competitors,
+            min(position)::int AS best_position
+          FROM kg_organic_rankings
+          WHERE position > 0
+          GROUP BY keyword
+          UNION ALL
+          SELECT
+            keyword,
+            max(coalesce(volume, 0))::int AS volume,
+            min(difficulty)::int AS difficulty,
+            array_agg(DISTINCT competitor_domain) AS competitors,
+            min(competitor_position)::int AS best_position
+          FROM kg_keyword_gap
+          WHERE (our_position IS NULL OR our_position = 0) AND competitor_position > 0
+          GROUP BY keyword
+        ) combined
+        ORDER BY volume DESC
+        LIMIT 8000
+      `),
+    );
+    rows = ((raw as unknown as { rows?: unknown[] }).rows ?? (raw as unknown[])) as typeof rows;
+  } catch {
+    // KLOUDGRAPH tables not present / no import yet — not an error, just no data.
+    return { ideas: [], stats: { scanned: 0, toolIntent: 0, kept: 0 } };
+  }
+
+  const scanned = rows.length;
+
+  // Merge duplicate keywords produced by the UNION (same keyword can appear in
+  // both source queries) by keyword, keeping max volume + union of competitors.
+  const merged = new Map<
+    string,
+    { volume: number; difficulty: number | null; competitors: Set<string>; bestPos: number | null }
+  >();
+  for (const r of rows) {
+    const kw = r.keyword?.toLowerCase().trim();
+    if (!kw) continue;
+    const entry = merged.get(kw) ?? {
+      volume: 0,
+      difficulty: null,
+      competitors: new Set<string>(),
+      bestPos: null,
+    };
+    entry.volume = Math.max(entry.volume, r.volume ?? 0);
+    if (r.difficulty != null)
+      entry.difficulty =
+        entry.difficulty == null ? r.difficulty : Math.min(entry.difficulty, r.difficulty);
+    for (const c of r.competitors ?? []) entry.competitors.add(c);
+    if (r.best_position != null)
+      entry.bestPos =
+        entry.bestPos == null ? r.best_position : Math.min(entry.bestPos, r.best_position);
+    merged.set(kw, entry);
+  }
+
+  // Filter to tool-intent + audience-fit + not already built.
+  let toolIntent = 0;
+  const kept: {
+    keyword: string;
+    volume: number;
+    difficulty: number | null;
+    competitors: string[];
+    bestPos: number | null;
+    audience: number;
+  }[] = [];
+  for (const [kw, v] of merged) {
+    if (!hasToolIntent(kw)) continue;
+    toolIntent++;
+    if ((v.volume ?? 0) < minVolume) continue;
+    const audience = scoreToolAudience(kw);
+    if (audience < minAudience) continue;
+    const slug = slugify(kw);
+    if (!slug || existingSlugs.has(slug) || existingNames.has(kw)) continue;
+    kept.push({
+      keyword: kw,
+      volume: v.volume,
+      difficulty: v.difficulty,
+      competitors: [...v.competitors],
+      bestPos: v.bestPos,
+      audience,
+    });
+  }
+
+  const ideas: KloudgraphToolIdea[] = kept.map((k) => {
+    const type = toolTypeFromKeyword(k.keyword);
+    const scope = scoreKloudbeanRelevance(k.keyword);
+    const demand = demandScoreFromVolume(k.volume, k.difficulty);
+    const intent = inferIntentFromKeyword(k.keyword);
+    const opp = opportunityScore(k.volume, k.difficulty, intent);
+    // Consensus bonus: more competitors already ranking for this = stronger proof.
+    const consensusBonus = Math.min(20, (k.competitors.length - 1) * 6);
+    const combined = Math.round(
+      demand * 0.4 + k.audience * 0.3 + opp * 0.1 + Math.min(scope, 20) * 0.5 + consensusBonus,
+    );
+    return {
+      name: titleCase(k.keyword),
+      slug: slugify(k.keyword),
+      category: "Developer Tools",
+      tool_type: type,
+      target_keyword: k.keyword,
+      secondary_keywords: [],
+      description: descriptionForKeyword(k.keyword, type),
+      spec: specForKeyword(k.keyword, type),
+      kloudbean_angle:
+        "Competitors already rank for this keyword — the people searching it build/run apps, sites or AI SaaS that need hosting. Pitch Kloudbean.",
+      volume: k.volume,
+      cpc: null,
+      difficulty: k.difficulty,
+      demand_score: demand,
+      scope_score: scope,
+      audience_score: k.audience,
+      opportunity_score: combined,
+      demand_source: "curated",
+      competitors: k.competitors,
+      bestCompetitorPosition: k.bestPos,
+    };
+  });
+
+  ideas.sort((a, b) => b.opportunity_score - a.opportunity_score);
+
+  return {
+    ideas: ideas.slice(0, limit),
+    stats: { scanned, toolIntent, kept: kept.length },
+  };
+}
+
+// ===========================================================================
 // SEARCH-DRIVEN UNLIMITED IDEA POOL
 // ===========================================================================
 

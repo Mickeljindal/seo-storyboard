@@ -73,7 +73,11 @@ export type ToolPageParts = {
   toolJs: string;
   /** SEO content sections rendered after the tool. */
   contentSections: { h2: string; paragraphs?: string[]; bullets?: string[] }[];
+  /** How-to steps, rendered marker-wrapped so the optimizer can find/replace it later without duplicating. */
+  howTo?: { title: string; steps: string[] };
   faq: { q: string; a: string }[];
+  /** Related-tool links, rendered marker-wrapped (same as the optimizer's "Related free tools" block). */
+  related?: { anchor: string; url: string }[];
   /** Display name shown in the card header. */
   name: string;
   /** JSON-LD blocks to inline for GEO/rich results. */
@@ -122,6 +126,36 @@ function renderFaq(faq: ToolPageParts["faq"]): string {
   return `<div class="kbt-faq"><h3>Frequently asked questions</h3>\n${items}</div>`;
 }
 
+// Markers match elementor-builder.ts's kbseo-* markers exactly, so a page built
+// by THIS template and later run through the optimizer's marker-strip/replace
+// logic is handled identically — no special-casing needed between "new" and
+// "existing" pages. Wrapping these two blocks in markers at BUILD time (even
+// though there's nothing to strip yet) means the very first optimize run on a
+// freshly generated page replaces them in place instead of duplicating them.
+const HOWTO_MARKER = "kbseo-howto";
+const RELATED_MARKER = "kbseo-related";
+
+function marked(marker: string, html: string): string {
+  return `<!-- ${marker}:start -->\n${html}\n<!-- ${marker}:end -->`;
+}
+
+function renderHowTo(howTo?: ToolPageParts["howTo"]): string {
+  if (!howTo?.steps?.length) return "";
+  const items = howTo.steps.map((s) => `<li>${esc(s)}</li>`).join("\n");
+  return marked(
+    HOWTO_MARKER,
+    `<h2>${esc(howTo.title || "How to use this tool")}</h2>\n<ol>${items}</ol>`,
+  );
+}
+
+function renderRelated(related?: ToolPageParts["related"]): string {
+  if (!related?.length) return "";
+  const items = related
+    .map((r) => `<li><a href="${esc(r.url)}">${esc(r.anchor)}</a></li>`)
+    .join("\n");
+  return marked(RELATED_MARKER, `<h2>Related free tools</h2>\n<ul>${items}</ul>`);
+}
+
 function jsonLdTags(blocks?: object[]): string {
   if (!blocks?.length) return "";
   return blocks
@@ -154,7 +188,11 @@ export function assembleToolPage(parts: ToolPageParts): string {
 
   ${renderSections(parts.contentSections)}
 
+  ${renderHowTo(parts.howTo)}
+
   ${renderFaq(parts.faq)}
+
+  ${renderRelated(parts.related)}
 
   <div class="kbt-cta-row"><a class="kbt-btn" href="${esc(parts.ctaHref || DEFAULT_CTA_HREF)}" target="_blank" rel="noopener">${esc(parts.ctaLabel || "Host with Kloudbean — Start Free")}</a></div>
 </div>

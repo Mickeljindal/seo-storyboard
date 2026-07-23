@@ -237,6 +237,77 @@ export const discoverToolPoolFn = createServerFn({ method: "POST" })
     return { ok: true, saved, stats, found: ideas.length };
   });
 
+/**
+ * KLOUDGRAPH-sourced ideas: mine our own Semrush warehouse for tool-intent
+ * keywords competitors already rank for. Strongest possible evidence a tool
+ * page is worth building — a rival is already getting real traffic from it.
+ * Persists as status='pool' just like the search-driven pool, so it shows up
+ * in the same "Idea pool" UI and goes through the same generate/publish flow.
+ */
+export const discoverKloudgraphIdeasFn = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      limit: z.number().min(1).max(100).default(40),
+      minAudience: z.number().min(0).max(100).default(25),
+      minVolume: z.number().min(0).max(100000).default(10),
+    }).parse,
+  )
+  .handler(async ({ data }) => {
+    const { loadProjectEnv } = await import("./load-env");
+    loadProjectEnv();
+    const toolsRepo = await import("@/server/db/repos/tools");
+    const { discoverKloudgraphToolIdeas } = await import("./tool-ideas");
+
+    const { names, slugs } = await toolsRepo.listToolNamesAndSlugs();
+    try {
+      const { hasPluginConfigured, listToolPages } = await import("./wp-plugin-client");
+      if (hasPluginConfigured()) {
+        for (let page = 1; page <= 12; page++) {
+          const wp = await listToolPages({ perPage: 50, page, status: "any" });
+          for (const p of wp.items ?? []) {
+            if (p.title) names.add(p.title.trim().toLowerCase());
+            if (p.slug) slugs.add(p.slug.trim().toLowerCase());
+          }
+          if (!wp.ok || page >= wp.total_pages) break;
+        }
+      }
+    } catch {
+      /* dedupe vs WP is best-effort */
+    }
+
+    const { ideas, stats } = await discoverKloudgraphToolIdeas({
+      limit: data.limit,
+      minAudience: data.minAudience,
+      minVolume: data.minVolume,
+      existingNames: names,
+      existingSlugs: slugs,
+    });
+
+    let saved = 0;
+    if (ideas.length) {
+      const rows = await toolsRepo.insertTools(
+        ideas.map((i) => ({
+          name: i.name,
+          url_slug: i.slug,
+          target_keyword: i.target_keyword,
+          secondary_keywords: i.secondary_keywords,
+          category: i.category,
+          geo_target: "global",
+          status: "pool",
+          origin: "discovered",
+          volume: i.volume,
+          difficulty: i.difficulty,
+          demand_score: i.demand_score,
+          idea_data: i,
+          engine_source: "kloudgraph",
+        })),
+      );
+      saved = rows.length;
+    }
+
+    return { ok: true, saved, stats, found: ideas.length };
+  });
+
 /** Remove an idea from the pool (kept as 'dismissed' so it isn't re-proposed). */
 export const dismissToolFn = createServerFn({ method: "POST" })
   .inputValidator(z.object({ toolId: z.string().uuid() }).parse)
@@ -263,6 +334,7 @@ export async function generateToolInternal(
   }
 
   const idea = (tool.idea_data ?? {}) as Record<string, unknown>;
+  const related = await buildRelatedLinks(toolId);
   const { generateToolPage } = await import("./tool-engine");
   const result = await generateToolPage({
     name: tool.name,
@@ -276,6 +348,7 @@ export async function generateToolInternal(
     tool_type: (idea.tool_type as string) ?? undefined,
     category: tool.category ?? "Developer Tools",
     baseUrl: baseUrl(),
+    related,
   });
 
   if (!result.ok) {

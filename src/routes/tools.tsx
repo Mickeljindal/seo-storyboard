@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner";
 import {
   discoverToolPoolFn,
+  discoverKloudgraphIdeasFn,
   dismissToolFn,
   generateToolFn,
   publishToolFn,
@@ -86,7 +87,10 @@ type ToolRow = {
     opportunity_score?: number;
     difficulty?: number | null;
     volume?: number | null;
+    competitors?: string[];
+    bestCompetitorPosition?: number | null;
   } | null;
+  engine_source: string | null;
 };
 
 type PoolSort = "score" | "volume" | "audience" | "kd";
@@ -138,6 +142,7 @@ function ToolsPage() {
   const gateFn = useServerFn(setToolGateFn);
   const addFn = useServerFn(addToolFn);
   const poolFn = useServerFn(discoverToolPoolFn);
+  const kgIdeasFn = useServerFn(discoverKloudgraphIdeasFn);
   const dismissFn = useServerFn(dismissToolFn);
   const perfFn = useServerFn(syncToolPerformanceFn);
   const revertFn = useServerFn(revertToolFn);
@@ -271,6 +276,23 @@ function ToolsPage() {
     mutationFn: () => poolFn({ data: { geo: "global", limit: 60, minAudience: 25 } }),
     onSuccess: (r) => {
       toast.success(`Idea pool: ${r.saved} new ideas (${r.stats.withVolume} with search volume)`);
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const kgIdeasMut = useMutation({
+    mutationFn: () => kgIdeasFn({ data: { limit: 40, minAudience: 25, minVolume: 10 } }),
+    onSuccess: (r) => {
+      if (r.stats.scanned === 0) {
+        toast.info(
+          "No KLOUDGRAPH data found — import competitor Semrush exports on the KLOUDGRAPH page first.",
+        );
+      } else {
+        toast.success(
+          `Competitor keyword mining: ${r.saved} new tool ideas (from ${r.stats.toolIntent} tool-intent keywords competitors already rank for)`,
+        );
+      }
       invalidate();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -572,19 +594,34 @@ function ToolsPage() {
           title="Idea pool"
           desc="Real demand · audience-fit · you choose what to build"
           action={
-            <Button
-              onClick={() => discoverMut.mutate()}
-              disabled={discoverMut.isPending}
-              title="Find fresh developer-tool ideas people are actually searching for (live demand data)."
-              style={{ background: "var(--gradient-brand)", color: "var(--brand-foreground)" }}
-            >
-              {discoverMut.isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Sparkles className="mr-2 h-4 w-4" />
-              )}
-              Refresh idea pool
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                onClick={() => kgIdeasMut.mutate()}
+                disabled={kgIdeasMut.isPending}
+                title="Mine our own KLOUDGRAPH/Semrush warehouse for tool-intent keywords competitors already rank for — the strongest signal, since it's real traffic a rival is already getting."
+              >
+                {kgIdeasMut.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="mr-2 h-4 w-4" />
+                )}
+                Ideas from competitor data
+              </Button>
+              <Button
+                onClick={() => discoverMut.mutate()}
+                disabled={discoverMut.isPending}
+                title="Find fresh developer-tool ideas people are actually searching for (live demand data)."
+                style={{ background: "var(--gradient-brand)", color: "var(--brand-foreground)" }}
+              >
+                {discoverMut.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-2 h-4 w-4" />
+                )}
+                Refresh idea pool
+              </Button>
+            </div>
           }
         >
           {/* Add + filters */}
@@ -699,6 +736,18 @@ function ToolsPage() {
                           <code className="text-[10px] text-muted-foreground">
                             {t.target_keyword}
                           </code>
+                          {t.engine_source === "kloudgraph" && t.idea_data?.competitors?.length ? (
+                            <div
+                              className="mt-1 line-clamp-1 text-[10px] text-amber-600"
+                              title={`Competitors already ranking: ${t.idea_data.competitors.join(", ")}`}
+                            >
+                              {t.idea_data.competitors.length} competitor
+                              {t.idea_data.competitors.length > 1 ? "s" : ""} already rank
+                              {t.idea_data.bestCompetitorPosition
+                                ? ` (best #${t.idea_data.bestCompetitorPosition})`
+                                : ""}
+                            </div>
+                          ) : null}
                         </td>
                         <td className="num px-4 py-3 text-right">
                           {m.vol ? m.vol.toLocaleString() : "—"}

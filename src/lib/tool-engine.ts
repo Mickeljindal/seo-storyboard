@@ -48,6 +48,8 @@ export type ToolGenInput = {
   tool_type?: string;
   category?: string;
   baseUrl?: string;
+  /** Other tools already published, used for the "Related free tools" block. */
+  related?: { anchor: string; url: string }[];
 };
 
 function stripFences(s: string): string {
@@ -82,6 +84,7 @@ type ToolBuildJson = {
   tool_body_html?: string;
   tool_js?: string;
   content_sections?: { h2: string; paragraphs?: string[]; bullets?: string[] }[];
+  how_to?: { title?: string; steps?: string[] };
   faq?: { q: string; a: string }[];
 };
 
@@ -106,6 +109,7 @@ Return JSON with EXACTLY this shape:
   "tool_body_html": "the inner HTML: inputs in .kbt-grid/.kbt-field, a .kbt-controls button row, and a #... results area using .kbt-results (display:none initially)",
   "tool_js": "vanilla JS that wires the inputs, validates, calculates, fills the results area, toggles .kbt-results display, and updates #kbt-status. Runs inside an IIFE.",
   "content_sections": [ {"h2":"section title","paragraphs":["..."],"bullets":["..."]}, ... 3 to 4 sections of genuinely useful, keyword-aware content for SEO/AIO/GEO/topical authority ],
+  "how_to": { "title": "How to use this tool", "steps": ["step 1","step 2","step 3","step 4"] },
   "faq": [ {"q":"question","a":"concise answer"}, ... 4 to 6 items ]
 }
 
@@ -302,6 +306,10 @@ Kloudbean angle (work in naturally): ${input.kloudbean_angle}`,
             paragraphs: [escapeHtml(input.description)],
           },
         ];
+  const howTo =
+    build.how_to?.steps && build.how_to.steps.length
+      ? { title: build.how_to.title || "How to use this tool", steps: build.how_to.steps }
+      : { title: "How to use this tool", steps: [] as string[] };
 
   const schema = buildToolSchema(input, { title: metaTitle, description: metaDesc }, faq, pageUrl);
 
@@ -320,7 +328,9 @@ Kloudbean angle (work in naturally): ${input.kloudbean_angle}`,
     toolBodyHtml: build.tool_body_html,
     toolJs: build.tool_js,
     contentSections,
+    howTo: howTo.steps.length ? howTo : undefined,
     faq,
+    related: input.related?.length ? input.related : undefined,
     schemaJsonld: schema,
     pitch: pitch || undefined,
     ctaLabel: ctaLabel || undefined,
@@ -338,7 +348,7 @@ Kloudbean angle (work in naturally): ${input.kloudbean_angle}`,
     seo: {
       h1,
       intro_html: `<p>${escapeHtml(parts.tagline)}</p>`,
-      how_to: { title: "How to use this tool", steps: [] },
+      how_to: howTo,
       faq,
     },
     meta_title: metaTitle,
