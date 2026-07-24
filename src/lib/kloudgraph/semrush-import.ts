@@ -600,7 +600,14 @@ function domainFromFolder(folder: string): string {
   return `${f}.com`;
 }
 
-export async function importSemrushFolder(rootDir: string): Promise<FolderImportResult> {
+export async function importSemrushFolder(
+  rootDir: string,
+  onFile?: (
+    result: FileImportResult,
+    fileIndex: number,
+    totalFiles: number,
+  ) => void | Promise<void>,
+): Promise<FolderImportResult> {
   const abs = path.isAbsolute(rootDir) ? rootDir : path.join(process.cwd(), rootDir);
   if (!fs.existsSync(abs)) {
     return {
@@ -616,9 +623,21 @@ export async function importSemrushFolder(rootDir: string): Promise<FolderImport
   const files: FileImportResult[] = [];
   const competitors: string[] = [];
   const entries = fs.readdirSync(abs, { withFileTypes: true });
+  const competitorDirs = entries.filter((e) => e.isDirectory());
 
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
+  // Pre-count total files across all competitor folders so onFile can report
+  // an accurate "N of TOTAL" — without this the caller only learns the total
+  // after the whole import finishes.
+  let totalFiles = 0;
+  for (const entry of competitorDirs) {
+    const compDir = path.join(abs, entry.name);
+    totalFiles += fs
+      .readdirSync(compDir)
+      .filter((n) => n.toLowerCase().endsWith(".csv") || n.toLowerCase().endsWith(".xlsx")).length;
+  }
+  let fileIndex = 0;
+
+  for (const entry of competitorDirs) {
     const folderSld = sld(domainFromFolder(entry.name));
     const compDir = path.join(abs, entry.name);
     const compFiles = fs
@@ -640,32 +659,34 @@ export async function importSemrushFolder(rootDir: string): Promise<FolderImport
     await ensureCompetitor(domain);
 
     for (const name of compFiles) {
+      fileIndex++;
       const fd = extractFileDomain(name);
+      let result: FileImportResult;
       // Skip files that clearly belong to a DIFFERENT domain (misfiled here, or
       // kloudbean matrix files dropped into a competitor folder).
       if (fd && sld(fd) !== folderSld && sld(fd) !== sld(OUR_DOMAIN)) {
-        files.push({
+        result = {
           file: name,
           competitor: domain,
           reportType: detectReportType(name),
           rows: 0,
           skipped: true,
           reason: `belongs to ${fd}, not ${domain} — misfiled, skipped`,
-        });
-        continue;
-      }
-      if (fd && sld(fd) === sld(OUR_DOMAIN) && folderSld !== sld(OUR_DOMAIN)) {
-        files.push({
+        };
+      } else if (fd && sld(fd) === sld(OUR_DOMAIN) && folderSld !== sld(OUR_DOMAIN)) {
+        result = {
           file: name,
           competitor: domain,
           reportType: detectReportType(name),
           rows: 0,
           skipped: true,
           reason: `kloudbean file inside ${domain} folder — skipped`,
-        });
-        continue;
+        };
+      } else {
+        result = await importSemrushFile(path.join(compDir, name), domain);
       }
-      files.push(await importSemrushFile(path.join(compDir, name), domain));
+      files.push(result);
+      if (onFile) await onFile(result, fileIndex, totalFiles);
     }
   }
 

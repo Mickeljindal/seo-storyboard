@@ -325,6 +325,14 @@ export const jobs = pgTable("jobs", {
   result: jsonb("result"),
   error: text("error"),
   label: text("label"),
+  // Batch tracking (progress bar + per-item log in the dashboard): jobs
+  // enqueued together via the same bulk action share a batchId, so the UI can
+  // show "X of Y complete" and a scrollable log of exactly what happened to
+  // each item, instead of only an aggregate pending/running/done/error count.
+  batchId: uuid("batch_id"),
+  batchLabel: text("batch_label"), // human-readable name for the whole batch
+  startedAt: timestamp("started_at", { withTimezone: true }),
+  finishedAt: timestamp("finished_at", { withTimezone: true }),
   runAfter: timestamp("run_after", { withTimezone: true }).defaultNow(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
@@ -569,6 +577,33 @@ export type KgOrganicRankingRow = typeof kgOrganicRankings.$inferSelect;
 export type KgKeywordGapRow = typeof kgKeywordGap.$inferSelect;
 export type KgOrganicCompetitorRow = typeof kgOrganicCompetitors.$inferSelect;
 export type KgImportLogRow = typeof kgImportLog.$inferSelect;
+
+// ============================================================================
+// PROCESS RUNS — live progress bar + scrollable log for any long-running bulk
+// operation (Semrush import, WordPress sync, idea discovery, bulk optimize
+// batches, etc). Any such operation calls the process-tracker.ts helper to
+// create a row here and update it as it goes; the dashboard polls it to show
+// a progress bar ("42 of 417") and a timestamped log of what happened to each
+// item, instead of only a spinner + a single toast at the very end.
+// ============================================================================
+export const processRuns = pgTable("process_runs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  kind: text("kind").notNull(), // semrush_import | sync_tools | idea_discovery | bulk_optimize | bulk_generate | fix_html | kg_rebuild
+  label: text("label").notNull(), // human-readable title shown in the UI
+  status: text("status").notNull().default("running"), // running | done | error | cancelled
+  total: integer("total").default(0),
+  completed: integer("completed").default(0),
+  failed: integer("failed").default(0),
+  // Capped array of {at, level, message} — level: info | success | warn | error.
+  logs: jsonb("logs").default([]),
+  result: jsonb("result"),
+  error: text("error"),
+  startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
+  finishedAt: timestamp("finished_at", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type ProcessRunRow = typeof processRuns.$inferSelect;
 
 // ============================================================================
 // EXPERIENCE ENGINE — real operational lessons woven into content for E-E-A-T

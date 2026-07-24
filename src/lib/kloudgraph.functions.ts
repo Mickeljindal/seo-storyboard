@@ -35,14 +35,76 @@ export const seedCompetitorsFn = createServerFn({ method: "POST" }).handler(asyn
   return { ok: true, seeded: COMPETITOR_CATALOG.length };
 });
 
-/** Import every CSV in the export folder into the kg_* tables. */
+/**
+ * Import every CSV in the export folder into the kg_* tables. Starts the
+ * import in the background and returns the process_runs id IMMEDIATELY (does
+ * NOT await the import), so the dashboard can start polling a live progress
+ * bar ("file 12 of 87") and per-file log right away instead of only a
+ * spinner until the whole (potentially multi-minute) import finishes.
+ */
 export const importSemrushFn = createServerFn({ method: "POST" })
   .inputValidator(z.object({ root: z.string().optional() }).parse)
   .handler(async ({ data }) => {
     const { loadProjectEnv } = await import("./load-env");
     loadProjectEnv();
-    const { importSemrushFolder } = await import("./kloudgraph/semrush-import");
-    return importSemrushFolder(data.root || EXPORT_ROOT);
+    const runs = await import("@/server/db/repos/process-runs");
+    const root = data.root || EXPORT_ROOT;
+
+    const run = await runs.createProcessRun({
+      kind: "semrush_import",
+      label: `Importing Semrush exports from ${root}`,
+    });
+
+    // Fire-and-forget: the actual import runs after this handler returns the
+    // run id, writing progress to process_runs as it goes. PGlite/Postgres
+    // writes are visible to other reads immediately, so polling works even
+    // though this HTTP request has already completed.
+    void runSemrushImportInBackground(run.id, root);
+
+    return { ok: true, processRunId: run.id };
+  });
+
+async function runSemrushImportInBackground(runId: string, root: string): Promise<void> {
+  const runs = await import("@/server/db/repos/process-runs");
+  const { importSemrushFolder } = await import("./kloudgraph/semrush-import");
+  try {
+    const result = await importSemrushFolder(root, async (file, _idx, total) => {
+      await runs.appendProcessLog(
+        runId,
+        file.error
+          ? `${file.file} (${file.competitor}) — error: ${file.error.slice(0, 150)}`
+          : file.skipped
+            ? `${file.file} (${file.competitor}) — skipped: ${file.reason ?? "unrecognized"}`
+            : `${file.file} (${file.competitor}) — imported ${file.rows.toLocaleString()} rows`,
+        file.error ? "error" : file.skipped ? "warn" : "success",
+        { completed: 1, failed: file.error ? 1 : 0, total },
+      );
+    });
+
+    if (!result.ok) {
+      await runs.finishProcessRun(runId, { status: "error", error: result.error, result });
+      return;
+    }
+    await runs.appendProcessLog(
+      runId,
+      `Done — ${result.totalRows.toLocaleString()} total rows across ${result.competitors.length} competitor(s)`,
+      "success",
+    );
+    await runs.finishProcessRun(runId, { status: "done", result });
+  } catch (e) {
+    const error = String((e as Error)?.message ?? e);
+    await runs.appendProcessLog(runId, `Import crashed: ${error}`, "error");
+    await runs.finishProcessRun(runId, { status: "error", error });
+  }
+}
+
+/** Poll one process run's live progress + log (used by the dashboard's progress panel). */
+export const getProcessRunFn = createServerFn({ method: "GET" })
+  .inputValidator(z.object({ id: z.string().uuid() }).parse)
+  .handler(async ({ data }) => {
+    const runs = await import("@/server/db/repos/process-runs");
+    const run = await runs.getProcessRun(data.id);
+    return { ok: !!run, run };
   });
 
 /** Overall KLOUDGRAPH stats — row counts per table + tracked competitors. */

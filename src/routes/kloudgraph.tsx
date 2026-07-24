@@ -17,6 +17,7 @@ import {
   Crown,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useState, useEffect, useRef } from "react";
 import {
   seedCompetitorsFn,
   importSemrushFn,
@@ -27,7 +28,9 @@ import {
   listCompetitorStrengthFn,
   listMarketMapFn,
   sendOpportunitiesToContentFn,
+  getProcessRunFn,
 } from "@/lib/kloudgraph.functions";
+import { ProcessRunPanel } from "@/components/ProcessRunPanel";
 
 export const Route = createFileRoute("/kloudgraph")({ component: KloudgraphPage });
 
@@ -41,8 +44,11 @@ const TIER_LABEL: Record<number, string> = {
 
 function KloudgraphPage() {
   const qc = useQueryClient();
+  const [importRunId, setImportRunId] = useState<string | null>(null);
+  const [showImportLog, setShowImportLog] = useState(false);
   const seedFn = useServerFn(seedCompetitorsFn);
   const importFn = useServerFn(importSemrushFn);
+  const runFn = useServerFn(getProcessRunFn);
   const statsFn = useServerFn(kloudgraphStatsFn);
   const compsFn = useServerFn(listKgCompetitorsFn);
   const oppsFn = useServerFn(listScoredOpportunitiesFn);
@@ -63,6 +69,12 @@ function KloudgraphPage() {
   });
   const strength = useQuery({ queryKey: ["kg-strength"], queryFn: () => strengthFn({}) });
   const marketMap = useQuery({ queryKey: ["kg-market-map"], queryFn: () => marketMapFn({}) });
+  const { data: importRun } = useQuery({
+    queryKey: ["kg-import-run", importRunId],
+    queryFn: () => runFn({ data: { id: importRunId! } }),
+    enabled: !!importRunId,
+    refetchInterval: (query) => (query.state.data?.run?.status === "running" ? 1500 : false),
+  });
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["kg-stats"] });
@@ -86,21 +98,37 @@ function KloudgraphPage() {
     mutationFn: () => importFn({ data: {} }),
     onSuccess: (r) => {
       if (!r.ok) {
-        toast.error(r.error ?? "Import failed");
+        toast.error("Import failed to start");
         return;
       }
-      const imported = r.files.filter((f) => !f.skipped && !f.error);
-      const skipped = r.files.filter((f) => f.skipped);
-      const errored = r.files.filter((f) => f.error);
-      toast.success(
-        `Imported ${r.totalRows.toLocaleString()} rows from ${imported.length} file(s) across ${r.competitors.length} competitor(s)` +
-          (skipped.length ? ` · ${skipped.length} skipped` : "") +
-          (errored.length ? ` · ${errored.length} errored` : ""),
-      );
-      invalidate();
+      toast.success("Import started — watch the progress bar below.");
+      setImportRunId(r.processRunId);
+      setShowImportLog(true);
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  // Once the tracked import finishes, refresh all the KLOUDGRAPH data views
+  // (once — a ref guards against re-firing on every subsequent re-render).
+  const importFinished = importRun?.run?.status === "done" || importRun?.run?.status === "error";
+  const refreshedAfterImportRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!importFinished || !importRunId) return;
+    if (refreshedAfterImportRef.current === importRunId) return;
+    refreshedAfterImportRef.current = importRunId;
+    invalidate();
+    const res = importRun?.run?.result as
+      | { totalRows?: number; competitors?: string[] }
+      | undefined;
+    if (importRun?.run?.status === "done" && res) {
+      toast.success(
+        `Import finished — ${(res.totalRows ?? 0).toLocaleString()} rows across ${res.competitors?.length ?? 0} competitor(s)`,
+      );
+    } else if (importRun?.run?.status === "error") {
+      toast.error(importRun?.run?.error ?? "Import failed");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [importFinished, importRunId]);
 
   const sendMut = useMutation({
     mutationFn: () => sendFn({ data: { limit: 25, minRelevance: 0.6 } }),
@@ -154,11 +182,11 @@ function KloudgraphPage() {
             </Button>
             <Button
               onClick={() => importMut.mutate()}
-              disabled={importMut.isPending}
+              disabled={importMut.isPending || importRun?.run?.status === "running"}
               title="Read every CSV in the kloudgraph-semrush-export folder into the database."
               style={{ background: "var(--gradient-brand)", color: "var(--brand-foreground)" }}
             >
-              {importMut.isPending ? (
+              {importMut.isPending || importRun?.run?.status === "running" ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <Download className="mr-2 h-4 w-4" />
@@ -189,6 +217,16 @@ function KloudgraphPage() {
             </Button>
           </div>
         </header>
+
+        {/* IMPORT PROGRESS — live bar + log while a Semrush import is running */}
+        {importRunId && importRun?.run && (
+          <ProcessRunPanel
+            run={importRun.run}
+            showLog={showImportLog}
+            onToggleLog={() => setShowImportLog((v) => !v)}
+            onDismiss={() => setImportRunId(null)}
+          />
+        )}
 
         {/* STAT CARDS */}
         <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">

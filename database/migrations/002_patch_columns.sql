@@ -562,3 +562,34 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_link_suggestions_pair
 -- Tools: live word count synced from WordPress (v19) — lets the dashboard
 -- show what's actually in each page's content without opening it.
 ALTER TABLE tools ADD COLUMN IF NOT EXISTS word_count integer;
+
+-- Batch tracking on jobs (v20) — group jobs enqueued together so the
+-- dashboard can show "X of Y complete" for a bulk action, not just an
+-- aggregate pending/running/done/error count across everything.
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS batch_id uuid;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS batch_label text;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS started_at timestamptz;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS finished_at timestamptz;
+CREATE INDEX IF NOT EXISTS idx_jobs_batch ON jobs(batch_id);
+
+-- Process runs (v20) — live progress bar + scrollable log for any
+-- long-running bulk operation (Semrush import, WP sync, idea discovery,
+-- KG rebuild, etc).
+CREATE TABLE IF NOT EXISTS process_runs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  kind text NOT NULL,
+  label text NOT NULL,
+  status text NOT NULL DEFAULT 'running', -- running | done | error | cancelled
+  total integer DEFAULT 0,
+  completed integer DEFAULT 0,
+  failed integer DEFAULT 0,
+  logs jsonb DEFAULT '[]',
+  result jsonb,
+  error text,
+  started_at timestamptz NOT NULL DEFAULT now(),
+  finished_at timestamptz,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_process_runs_status ON process_runs(status);
+CREATE INDEX IF NOT EXISTS idx_process_runs_kind ON process_runs(kind);
+CREATE INDEX IF NOT EXISTS idx_process_runs_started ON process_runs(started_at);

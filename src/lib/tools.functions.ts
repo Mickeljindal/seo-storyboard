@@ -505,6 +505,56 @@ export const syncExistingToolsFn = createServerFn({ method: "POST" })
     return syncExistingToolsInternal(data);
   });
 
+/**
+ * Same sync, but tracked as a process_runs row and started in the background
+ * so the dashboard can show a live "page N of M" progress bar + per-page log
+ * instead of only a spinner for however long the sync (with retries) takes.
+ * Returns immediately with the run id; call getProcessRunFn to poll it.
+ */
+export const syncExistingToolsTrackedFn = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      category: z.string().default("Developer Tools"),
+      maxPages: z.number().min(1).max(40).default(20),
+      perPage: z.number().min(1).max(100).default(50),
+    }).parse,
+  )
+  .handler(async ({ data }) => {
+    const { loadProjectEnv } = await import("./load-env");
+    loadProjectEnv();
+    const runs = await import("@/server/db/repos/process-runs");
+    const run = await runs.createProcessRun({
+      kind: "sync_tools",
+      label: `Syncing "${data.category}" pages from WordPress`,
+    });
+
+    void (async () => {
+      try {
+        const result = await syncExistingToolsInternal(data, run.id);
+        await runs.finishProcessRun(run.id, {
+          status: result.ok ? "done" : "error",
+          error: result.error,
+          result,
+        });
+      } catch (e) {
+        const error = String((e as Error)?.message ?? e);
+        await runs.appendProcessLog(run.id, `Sync crashed: ${error}`, "error");
+        await runs.finishProcessRun(run.id, { status: "error", error });
+      }
+    })();
+
+    return { ok: true, processRunId: run.id };
+  });
+
+/** Poll one process run's live progress + log (drives the dashboard's progress panel). */
+export const getProcessRunFn = createServerFn({ method: "GET" })
+  .inputValidator(z.object({ id: z.string().uuid() }).parse)
+  .handler(async ({ data }) => {
+    const runs = await import("@/server/db/repos/process-runs");
+    const run = await runs.getProcessRun(data.id);
+    return { ok: !!run, run };
+  });
+
 /** List WordPress categories (with page counts) for the category picker. */
 export const listToolCategoriesFn = createServerFn({ method: "GET" }).handler(async () => {
   const { loadProjectEnv } = await import("./load-env");
@@ -538,11 +588,14 @@ export const setToolsCategoryFn = createServerFn({ method: "POST" })
     return { ok: true as const, category: data.category };
   });
 
-export async function syncExistingToolsInternal(data: {
-  category: string;
-  maxPages: number;
-  perPage: number;
-}): Promise<{
+export async function syncExistingToolsInternal(
+  data: {
+    category: string;
+    maxPages: number;
+    perPage: number;
+  },
+  processRunId?: string,
+): Promise<{
   ok: boolean;
   imported: number;
   skipped: number;
@@ -558,6 +611,23 @@ export async function syncExistingToolsInternal(data: {
   const { hasPluginConfigured, listToolPages } = await import("./wp-plugin-client");
   if (!hasPluginConfigured()) throw new Error("WordPress plugin not configured.");
   const toolsRepo = await import("@/server/db/repos/tools");
+  const runs = processRunId ? await import("@/server/db/repos/process-runs") : null;
+  const log = (
+    msg: string,
+    level: "info" | "success" | "warn" | "error" = "info",
+    completed?: number,
+    failed?: number,
+  ) => {
+    if (runs && processRunId) {
+      return runs.appendProcessLog(
+        processRunId,
+        msg,
+        level,
+        completed != null || failed != null ? { completed, failed } : undefined,
+      );
+    }
+    return Promise.resolve();
+  };
 
   // 0. Guard: make sure the WordPress plugin is actually running v1.7.1+ code.
   // Kloudbean load-balances across multiple PHP workers, and each has its own
@@ -583,6 +653,10 @@ export async function syncExistingToolsInternal(data: {
     await new Promise((r) => setTimeout(r, 750));
   }
   if (!probe) {
+    await log(
+      `WordPress kept serving stale plugin responses after ${PROBE_RETRIES} attempts — aborting.`,
+      "error",
+    );
     return {
       ok: false,
       imported: 0,
@@ -597,6 +671,8 @@ export async function syncExistingToolsInternal(data: {
       error: `WordPress returned an old plugin response on all ${PROBE_RETRIES} attempts. Almost certainly there are multiple kloudbean-seo-engine* folders in wp-content/plugins on the server — WordPress loads them all and the old ones win. Delete every kloudbean-seo-engine* folder via Kloudbean's File Manager and reinstall (see banner).`,
     };
   }
+  await log(`Connected to WordPress — found ${probe.total} page(s) in "${data.category}".`);
+  if (runs && processRunId) await runs.setProcessTotal(processRunId, probe.total);
 
   let imported = 0;
   let skipped = 0;
@@ -665,13 +741,15 @@ export async function syncExistingToolsInternal(data: {
         seenWpIds.add(p.id);
         imported++;
         if (typeof p.aioseo_score === "number") scores.push(p.aioseo_score);
+        await log(`Synced "${p.title}" (AIOSEO ${p.aioseo_score ?? "?"})`, "success", 1, 0);
       } catch (e) {
         skipped++;
-        console.warn(
-          `[tools] sync skipped "${p.title}" (${p.slug}): ${String((e as Error)?.message ?? e)}`,
-        );
+        const msg = String((e as Error)?.message ?? e);
+        console.warn(`[tools] sync skipped "${p.title}" (${p.slug}): ${msg}`);
+        await log(`Skipped "${p.title}": ${msg.slice(0, 150)}`, "warn", 1, 1);
       }
     }
+    await log(`Page ${page}/${totalPages} done (${list.items.length} pages fetched).`);
     if (page >= totalPages) break;
   }
 
@@ -695,6 +773,10 @@ export async function syncExistingToolsInternal(data: {
 
   const avg = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
   const lowScorers = scores.filter((s) => s < 70).length;
+  await log(
+    `Sync complete — ${imported} imported, ${skipped} skipped${removedStale ? `, ${removedStale} stale removed` : ""}.`,
+    "success",
+  );
   return {
     ok: true,
     imported,
@@ -1207,16 +1289,21 @@ export const enqueueFixAllHtmlFn = createServerFn({ method: "POST" })
       if (existing) toolIds.push(existing.id);
     }
 
-    if (!toolIds.length) return { ok: true, found: affectedWpIds.length, queued: 0 };
+    if (!toolIds.length) return { ok: true, found: affectedWpIds.length, queued: 0, batchId: null };
 
+    const names = await toolsRepo.getToolNamesByIds(toolIds).catch(() => new Map<string, string>());
+    const { randomUUID } = await import("node:crypto");
+    const batchId = randomUUID();
+    const batchLabel = `Fix HTML wrapper — ${toolIds.length} page(s) in "${data.category}"`;
     const queued = await jobsRepo.enqueueJobs(
       toolIds.map((toolId) => ({
         type: "fix_tool_html",
         payload: { toolId },
-        label: "fix_tool_html",
+        label: names.get(toolId) ?? toolId,
       })),
+      { batchId, batchLabel },
     );
-    return { ok: true, found: affectedWpIds.length, queued };
+    return { ok: true, found: affectedWpIds.length, queued, batchId, batchLabel };
   });
 
 // ============================================================================

@@ -10,6 +10,7 @@ import type {
   ConversionRow,
   SitePageRow,
   LinkSuggestionRow,
+  ProcessRunRow,
 } from "./schema";
 
 /** API shape (snake_case) — matches former Supabase client responses. */
@@ -190,12 +191,33 @@ export function toApiJob(row: JobRow) {
     result: row.result,
     error: row.error,
     label: row.label,
+    batch_id: row.batchId,
+    batch_label: row.batchLabel,
     run_after: row.runAfter?.toISOString() ?? null,
     created_at: row.createdAt?.toISOString(),
     updated_at: row.updatedAt?.toISOString(),
   };
 }
 export type ApiJob = ReturnType<typeof toApiJob>;
+
+export function toApiProcessRun(row: ProcessRunRow) {
+  return {
+    id: row.id,
+    kind: row.kind,
+    label: row.label,
+    status: row.status,
+    total: row.total ?? 0,
+    completed: row.completed ?? 0,
+    failed: row.failed ?? 0,
+    logs: (row.logs ?? []) as { at: string; level: string; message: string }[],
+    result: row.result,
+    error: row.error,
+    started_at: row.startedAt?.toISOString(),
+    finished_at: row.finishedAt?.toISOString() ?? null,
+    updated_at: row.updatedAt?.toISOString(),
+  };
+}
+export type ApiProcessRun = ReturnType<typeof toApiProcessRun>;
 
 export function toApiCitation(row: CitationRow) {
   return {

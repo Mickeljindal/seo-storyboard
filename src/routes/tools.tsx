@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import {
   Loader2,
   Wrench,
@@ -25,7 +25,7 @@ import {
   dismissToolFn,
   generateToolFn,
   publishToolFn,
-  syncExistingToolsFn,
+  syncExistingToolsTrackedFn,
   auditToolFn,
   optimizeToolFn,
   listToolsFn,
@@ -42,8 +42,16 @@ import {
   fixToolHtmlFn,
   scanToolHtmlFn,
   enqueueFixAllHtmlFn,
+  getProcessRunFn,
 } from "@/lib/tools.functions";
-import { enqueueToolJobsFn, drainJobsFn, jobsSummaryFn } from "@/lib/jobs.functions";
+import { ProcessRunPanel } from "@/components/ProcessRunPanel";
+import {
+  enqueueToolJobsFn,
+  drainJobsFn,
+  jobsSummaryFn,
+  batchProgressFn,
+  batchItemsFn,
+} from "@/lib/jobs.functions";
 
 export const Route = createFileRoute("/tools")({ component: ToolsPage });
 
@@ -135,7 +143,8 @@ function ToolsPage() {
   const listFn = useServerFn(listToolsFn);
   const genFn = useServerFn(generateToolFn);
   const pubFn = useServerFn(publishToolFn);
-  const syncFn = useServerFn(syncExistingToolsFn);
+  const syncFn = useServerFn(syncExistingToolsTrackedFn);
+  const runFn = useServerFn(getProcessRunFn);
   const auditFn = useServerFn(auditToolFn);
   const optFn = useServerFn(optimizeToolFn);
   const cycleFn = useServerFn(runToolsCycleFn);
@@ -149,11 +158,66 @@ function ToolsPage() {
   const enqueueFn = useServerFn(enqueueToolJobsFn);
   const drainFn = useServerFn(drainJobsFn);
   const jobsFn = useServerFn(jobsSummaryFn);
+  const batchProgressFn2 = useServerFn(batchProgressFn);
+  const batchItemsFn2 = useServerFn(batchItemsFn);
   const catsFn = useServerFn(listToolCategoriesFn);
   const getCatFn = useServerFn(getToolsCategoryFn);
   const setCatFn = useServerFn(setToolsCategoryFn);
-  // Bulk run progress: { done, total, label } while a batch is running.
+  // Bulk run progress: { done, total, label } while a batch is QUEUEING
+  // (the brief window between clicking the button and the jobs landing in
+  // the DB). Once queued, live progress comes from activeBatchId below.
   const [bulk, setBulk] = useState<{ done: number; total: number; label: string } | null>(null);
+  // The most recent batch this tab kicked off — drives the live progress bar
+  // + log panel until it finishes. Persisted to localStorage so a page
+  // refresh mid-run doesn't lose track of it.
+  const [activeBatchId, setActiveBatchId] = useState<string | null>(() =>
+    typeof window !== "undefined" ? window.localStorage.getItem("kbseo-active-batch") : null,
+  );
+  const [activeBatchLabel, setActiveBatchLabel] = useState<string | null>(() =>
+    typeof window !== "undefined" ? window.localStorage.getItem("kbseo-active-batch-label") : null,
+  );
+  const [showBatchLog, setShowBatchLog] = useState(false);
+
+  const setActiveBatch = (id: string | null, label: string | null) => {
+    setActiveBatchId(id);
+    setActiveBatchLabel(label);
+    if (typeof window !== "undefined") {
+      if (id) {
+        window.localStorage.setItem("kbseo-active-batch", id);
+        window.localStorage.setItem("kbseo-active-batch-label", label ?? "");
+      } else {
+        window.localStorage.removeItem("kbseo-active-batch");
+        window.localStorage.removeItem("kbseo-active-batch-label");
+      }
+    }
+  };
+
+  const { data: batchProgress } = useQuery({
+    queryKey: ["batch-progress", activeBatchId],
+    queryFn: () => batchProgressFn2({ data: { batchId: activeBatchId! } }),
+    enabled: !!activeBatchId,
+    refetchInterval: (query) => {
+      const p = query.state.data?.progress;
+      // Stop polling once nothing is pending/running for this batch.
+      if (p && p.pending === 0 && p.running === 0) return false;
+      return 2000;
+    },
+  });
+  const { data: batchLog } = useQuery({
+    queryKey: ["batch-items", activeBatchId],
+    queryFn: () => batchItemsFn2({ data: { batchId: activeBatchId! } }),
+    enabled: !!activeBatchId && showBatchLog,
+    refetchInterval: 2500,
+  });
+
+  const progress = batchProgress?.progress;
+  const batchFinished = progress && progress.pending === 0 && progress.running === 0;
+  // Auto-clear the tracked batch a short while after it finishes, but leave
+  // it visible long enough for the user to see the final state.
+  const dismissBatch = () => {
+    setActiveBatch(null, null);
+    setShowBatchLog(false);
+  };
   // Before/after optimization report being viewed in the modal.
   const [reportView, setReportView] = useState<{ name: string; report: OptimizeReport } | null>(
     null,
@@ -298,29 +362,62 @@ function ToolsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const [syncRunId, setSyncRunId] = useState<string | null>(null);
+  const [showSyncLog, setShowSyncLog] = useState(false);
+  const { data: syncRun } = useQuery({
+    queryKey: ["sync-run", syncRunId],
+    queryFn: () => runFn({ data: { id: syncRunId! } }),
+    enabled: !!syncRunId,
+    refetchInterval: (query) => (query.state.data?.run?.status === "running" ? 1500 : false),
+  });
+  const syncFinished = syncRun?.run?.status === "done" || syncRun?.run?.status === "error";
+  const syncRefreshedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!syncFinished || !syncRunId) return;
+    if (syncRefreshedRef.current === syncRunId) return;
+    syncRefreshedRef.current = syncRunId;
+    invalidate();
+    const r = syncRun?.run?.result as
+      | {
+          imported?: number;
+          totalOnWp?: number;
+          removedStale?: number;
+          skipped?: number;
+          avgAioseoScore?: number | null;
+          categoryFound?: boolean;
+          pluginStale?: boolean;
+        }
+      | undefined;
+    if (syncRun?.run?.status === "error") {
+      toast.error(syncRun?.run?.error ?? "Sync failed");
+    } else if (r?.pluginStale) {
+      toast.error(
+        "WordPress plugin is serving stale code (multiple PHP workers, mixed versions). Sync aborted so wrong pages aren't imported. Delete + reinstall the plugin and clear PHP OPcache — details on the amber banner above.",
+      );
+    } else if (r?.categoryFound === false) {
+      toast.error(
+        `Category "${selectedCategory}" not found in WordPress — pick another category or check the spelling.`,
+      );
+    } else if (r?.imported === 0 && (r?.totalOnWp ?? 0) === 0) {
+      toast.info(
+        `WordPress has 0 pages in "${selectedCategory}". If you expect pages here, they may not be assigned to this category on WP.`,
+      );
+    } else if (r) {
+      toast.success(
+        `Synced ${r.imported}/${r.totalOnWp ?? r.imported} pages in "${selectedCategory}"${
+          r.removedStale ? ` · removed ${r.removedStale} stale` : ""
+        }${r.skipped ? ` · skipped ${r.skipped}` : ""} · avg AIOSEO ${r.avgAioseoScore ?? "?"}`,
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncFinished, syncRunId]);
+
   const syncMut = useMutation({
     mutationFn: () => syncFn({ data: { category: selectedCategory, maxPages: 40, perPage: 50 } }),
     onSuccess: (r) => {
-      if ((r as { pluginStale?: boolean }).pluginStale) {
-        toast.error(
-          "WordPress plugin is serving stale code (multiple PHP workers, mixed versions). Sync aborted so wrong pages aren't imported. Delete + reinstall the plugin and clear PHP OPcache — details on the amber banner above.",
-        );
-      } else if (r.categoryFound === false) {
-        toast.error(
-          `Category "${selectedCategory}" not found in WordPress — pick another category or check the spelling.`,
-        );
-      } else if (r.imported === 0 && (r.totalOnWp ?? 0) === 0) {
-        toast.info(
-          `WordPress has 0 pages in "${selectedCategory}". If you expect pages here, they may not be assigned to this category on WP.`,
-        );
-      } else {
-        toast.success(
-          `Synced ${r.imported}/${r.totalOnWp ?? r.imported} pages in "${selectedCategory}"${
-            r.removedStale ? ` · removed ${r.removedStale} stale` : ""
-          }${r.skipped ? ` · skipped ${r.skipped}` : ""} · avg AIOSEO ${r.avgAioseoScore ?? "?"}`,
-        );
-      }
-      invalidate();
+      toast.success(`Sync started for "${selectedCategory}" — watch the progress bar below.`);
+      setSyncRunId(r.processRunId);
+      setShowSyncLog(true);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -415,12 +512,20 @@ function ToolsPage() {
     run(t.id, () => gateFn({ data: { toolId: t.id, enable: true, mode } }), `Gate set to ${mode}`);
 
   // Bulk actions enqueue durable server-side jobs (survive a closed tab).
-  const enqueue = async (type: "generate_tool" | "optimize_tool", rows: ToolRow[]) => {
+  const enqueue = async (
+    type: "generate_tool" | "optimize_tool",
+    rows: ToolRow[],
+    batchLabel?: string,
+  ) => {
     if (!rows.length) return;
     setBulk({ done: 0, total: rows.length, label: "Queueing" });
     try {
-      const r = await enqueueFn({ data: { type, toolIds: rows.map((t) => t.id) } });
+      const r = await enqueueFn({
+        data: { type, toolIds: rows.map((t) => t.id), batchLabel },
+      });
       toast.success(`Queued ${r.queued} jobs — running in the background`);
+      setActiveBatch(r.batchId, r.batchLabel);
+      setShowBatchLog(true);
       qc.invalidateQueries({ queryKey: ["tool-jobs"] });
     } catch (e) {
       toast.error((e as Error).message);
@@ -429,8 +534,14 @@ function ToolsPage() {
     }
   };
 
-  const bulkBuild = () => enqueue("generate_tool", pool.slice(0, 200));
-  const bulkOptimize = () => enqueue("optimize_tool", existing.slice(0, 500));
+  const bulkBuild = () =>
+    enqueue("generate_tool", pool.slice(0, 200), `Building ${Math.min(pool.length, 200)} tools`);
+  const bulkOptimize = () =>
+    enqueue(
+      "optimize_tool",
+      existing.slice(0, 500),
+      `Optimizing ${Math.min(existing.length, 500)} filtered pages`,
+    );
   const bulkOptimizeAll = () => {
     if (
       !window.confirm(
@@ -439,7 +550,11 @@ function ToolsPage() {
     ) {
       return;
     }
-    enqueue("optimize_tool", existingAll.slice(0, 2000));
+    enqueue(
+      "optimize_tool",
+      existingAll.slice(0, 2000),
+      `Optimize ALL — ${existingAll.length} pages in "${selectedCategory}"`,
+    );
   };
 
   const drainMut = useMutation({
@@ -482,6 +597,10 @@ function ToolsPage() {
     },
     onSuccess: (r) => {
       toast.success(`Queued ${r.queued} page(s) to fix — running in the background`);
+      if (r.batchId) {
+        setActiveBatch(r.batchId, r.batchLabel);
+        setShowBatchLog(true);
+      }
       qc.invalidateQueries({ queryKey: ["tool-jobs"] });
     },
     onError: (e: Error) => {
@@ -551,13 +670,27 @@ function ToolsPage() {
           <Stage label="Gated" value={gatedCount} hint="signup wall" />
         </div>
 
+        {/* ACTIVE BATCH — live progress bar + per-item log for the run this
+            tab most recently kicked off (bulk build/optimize/fix-html). */}
+        {activeBatchId && progress && progress.total > 0 && (
+          <BatchProgressPanel
+            label={activeBatchLabel ?? "Running…"}
+            progress={progress}
+            finished={!!batchFinished}
+            showLog={showBatchLog}
+            onToggleLog={() => setShowBatchLog((v) => !v)}
+            onDismiss={dismissBatch}
+            items={batchLog?.items ?? []}
+          />
+        )}
+
         {/* JOB QUEUE / ACTIVITY */}
         {jobs && (jobs.counts.pending > 0 || jobs.counts.running > 0 || jobs.recent.length > 0) && (
           <div className="mb-8 rounded-xl border border-border bg-card/50 p-4">
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center gap-3 text-xs">
                 <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                  Background queue
+                  Background queue (all runs)
                 </span>
                 <span className="text-amber-400">{jobs.counts.pending ?? 0} pending</span>
                 <span className="text-primary">{jobs.counts.running ?? 0} running</span>
@@ -917,10 +1050,10 @@ function ToolsPage() {
               <Button
                 variant="outline"
                 onClick={() => syncMut.mutate()}
-                disabled={syncMut.isPending}
+                disabled={syncMut.isPending || syncRun?.run?.status === "running"}
                 title={`Load all pages in the “${selectedCategory}” category from WordPress so you can optimize them.`}
               >
-                {syncMut.isPending ? (
+                {syncMut.isPending || syncRun?.run?.status === "running" ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   <RefreshCw className="mr-2 h-4 w-4" />
@@ -930,6 +1063,14 @@ function ToolsPage() {
             </div>
           }
         >
+          {syncRunId && syncRun?.run && (
+            <ProcessRunPanel
+              run={syncRun.run}
+              showLog={showSyncLog}
+              onToggleLog={() => setShowSyncLog((v) => !v)}
+              onDismiss={() => setSyncRunId(null)}
+            />
+          )}
           {htmlScan && (
             <div
               className={`mb-4 rounded-lg border p-4 text-sm ${
@@ -1168,6 +1309,126 @@ function ToolsPage() {
       )}
     </AppLayout>
   );
+}
+
+/**
+ * Live progress bar + scrollable per-item log for a running bulk batch
+ * (build/optimize/fix-html). Polls the server every couple seconds while
+ * anything is pending/running, and shows a clear done/error summary once
+ * finished — so the user can see exactly what completed and what didn't
+ * without guessing from a single end-of-run toast.
+ */
+function BatchProgressPanel({
+  label,
+  progress,
+  finished,
+  showLog,
+  onToggleLog,
+  onDismiss,
+  items,
+}: {
+  label: string;
+  progress: { total: number; pending: number; running: number; done: number; error: number };
+  finished: boolean;
+  showLog: boolean;
+  onToggleLog: () => void;
+  onDismiss: () => void;
+  items: { id: string; label: string | null; status: string; error: string | null }[];
+}) {
+  const { total, done, error, pending, running } = progress;
+  const settled = done + error;
+  const pct = total > 0 ? Math.min(100, Math.round((settled / total) * 100)) : 0;
+
+  return (
+    <div
+      className={`mb-8 rounded-xl border p-4 ${
+        finished
+          ? error > 0
+            ? "border-amber-500/40 bg-amber-500/5"
+            : "border-[var(--lime)]/30 bg-[var(--lime)]/5"
+          : "border-primary/40 bg-primary/5"
+      }`}
+    >
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          {!finished && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
+          <span className="text-sm font-medium">{label}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="ghost" onClick={onToggleLog}>
+            {showLog ? "Hide log" : "Show log"}
+          </Button>
+          {finished && (
+            <Button size="sm" variant="ghost" onClick={onDismiss}>
+              Dismiss
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="mb-2 h-2.5 w-full overflow-hidden rounded-full bg-border">
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{
+            width: `${pct}%`,
+            background: error > 0 ? "var(--gradient-brand)" : "var(--gradient-brand)",
+          }}
+        />
+      </div>
+      <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+        <span className="num font-medium text-foreground">
+          {settled} of {total} complete ({pct}%)
+        </span>
+        {pending > 0 && <span className="text-amber-400">{pending} pending</span>}
+        {running > 0 && <span className="text-primary">{running} running</span>}
+        <span className="text-[var(--lime)]">{done} done</span>
+        {error > 0 && <span className="text-red-400">{error} failed</span>}
+      </div>
+
+      {showLog && (
+        <div className="mt-3 max-h-64 overflow-y-auto rounded-lg border border-border bg-background/60 font-mono text-[11px]">
+          {items.length === 0 ? (
+            <div className="p-3 text-muted-foreground">Waiting for jobs to start…</div>
+          ) : (
+            <ul className="divide-y divide-border/60">
+              {items.map((it) => (
+                <li key={it.id} className="flex items-start gap-2 px-3 py-1.5">
+                  <StatusDot status={it.status} />
+                  <span className="flex-1 truncate text-foreground/90">{it.label ?? it.id}</span>
+                  {it.status === "error" && it.error && (
+                    <span className="max-w-[280px] truncate text-red-400" title={it.error}>
+                      {it.error}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatusDot({ status }: { status: string }) {
+  const color =
+    status === "done"
+      ? "bg-[var(--lime)]"
+      : status === "error"
+        ? "bg-red-400"
+        : status === "running"
+          ? "bg-primary animate-pulse"
+          : "bg-amber-400";
+  const label =
+    status === "done"
+      ? "done"
+      : status === "error"
+        ? "error"
+        : status === "running"
+          ? "running"
+          : "pending";
+  return <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${color}`} title={label} />;
 }
 
 function OptimizeReportModal({

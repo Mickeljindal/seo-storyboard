@@ -91,6 +91,18 @@ export async function getToolById(id: string): Promise<ApiTool | null> {
   return row ? toApiTool(row) : null;
 }
 
+/** Bulk name lookup (id -> name) — for labeling batch job logs without N queries. */
+export async function getToolNamesByIds(ids: string[]): Promise<Map<string, string>> {
+  if (!ids.length) return new Map();
+  const db = await getDb();
+  const { inArray } = await import("drizzle-orm");
+  const rows = await db
+    .select({ id: tools.id, name: tools.name })
+    .from(tools)
+    .where(inArray(tools.id, ids));
+  return new Map(rows.map((r) => [r.id, r.name]));
+}
+
 export async function getToolByWpPostId(wpPostId: number): Promise<ApiTool | null> {
   const db = await getDb();
   const [row] = await db.select().from(tools).where(eq(tools.wpPostId, wpPostId)).limit(1);
