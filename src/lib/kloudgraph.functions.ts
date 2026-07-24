@@ -14,53 +14,25 @@ import { z } from "zod";
 
 const EXPORT_ROOT = "kloudgraph-semrush-export";
 
-/** The tracked competitor set, tiered by how closely they compete with Kloudbean. */
-export const SEED_COMPETITORS: {
-  domain: string;
-  tier: number;
-  category: string;
-}[] = [
-  // Tier 1 — direct: managed cloud / premium managed WordPress
-  { domain: "cloudways.com", tier: 1, category: "Managed cloud / WordPress" },
-  { domain: "kinsta.com", tier: 1, category: "Managed cloud / WordPress" },
-  { domain: "wpengine.com", tier: 1, category: "Managed cloud / WordPress" },
-  { domain: "rocket.net", tier: 1, category: "Managed cloud / WordPress" },
-  { domain: "pressable.com", tier: 1, category: "Managed cloud / WordPress" },
-  { domain: "nexcess.net", tier: 1, category: "Managed cloud / WordPress" },
-  { domain: "convesio.com", tier: 1, category: "Managed cloud / WordPress" },
-  { domain: "servebolt.com", tier: 1, category: "Managed cloud / WordPress" },
-  { domain: "getflywheel.com", tier: 1, category: "Managed cloud / WordPress" },
-  // Tier 2 — control panels / managed VPS
-  { domain: "runcloud.io", tier: 2, category: "Control panel / managed VPS" },
-  { domain: "gridpane.com", tier: 2, category: "Control panel / managed VPS" },
-  { domain: "spinupwp.com", tier: 2, category: "Control panel / managed VPS" },
-  { domain: "ploi.io", tier: 2, category: "Control panel / managed VPS" },
-  { domain: "serveravatar.com", tier: 2, category: "Control panel / managed VPS" },
-  // Tier 3 — modern PaaS / app deploy
-  { domain: "vercel.com", tier: 3, category: "PaaS / app deploy" },
-  { domain: "netlify.com", tier: 3, category: "PaaS / app deploy" },
-  { domain: "render.com", tier: 3, category: "PaaS / app deploy" },
-  { domain: "railway.app", tier: 3, category: "PaaS / app deploy" },
-  { domain: "fly.io", tier: 3, category: "PaaS / app deploy" },
-  // Tier 4 — raw cloud infrastructure
-  { domain: "digitalocean.com", tier: 4, category: "Cloud infrastructure" },
-  { domain: "vultr.com", tier: 4, category: "Cloud infrastructure" },
-  { domain: "linode.com", tier: 4, category: "Cloud infrastructure" },
-  { domain: "kamatera.com", tier: 4, category: "Cloud infrastructure" },
-  // Tier 5 — big hosts with broad overlap
-  { domain: "hostinger.com", tier: 5, category: "Broad host" },
-  { domain: "siteground.com", tier: 5, category: "Broad host" },
-];
+/**
+ * The tracked competitor set, tiered by how closely they compete with
+ * Kloudbean. Kept in kloudgraph/competitor-catalog.ts (single source of
+ * truth, also used by the importer to auto-tag domains discovered from a
+ * folder name, and by the market-map to roll strength up by segment).
+ * Re-exported here for backward compatibility with any existing imports.
+ */
+export { COMPETITOR_CATALOG as SEED_COMPETITORS } from "./kloudgraph/competitor-catalog";
 
 /** Seed / refresh the competitor registry with the tracked set. */
 export const seedCompetitorsFn = createServerFn({ method: "POST" }).handler(async () => {
   const { loadProjectEnv } = await import("./load-env");
   loadProjectEnv();
   const { ensureCompetitor } = await import("./kloudgraph/semrush-import");
-  for (const c of SEED_COMPETITORS) {
+  const { COMPETITOR_CATALOG } = await import("./kloudgraph/competitor-catalog");
+  for (const c of COMPETITOR_CATALOG) {
     await ensureCompetitor(c.domain, { tier: c.tier, category: c.category });
   }
-  return { ok: true, seeded: SEED_COMPETITORS.length };
+  return { ok: true, seeded: COMPETITOR_CATALOG.length };
 });
 
 /** Import every CSV in the export folder into the kg_* tables. */
@@ -260,6 +232,21 @@ export const listCompetitorStrengthFn = createServerFn({ method: "GET" }).handle
   const { getCompetitorStrength } = await import("./kloudgraph/opportunity-engine");
   const competitors = await getCompetitorStrength();
   return { ok: true, competitors };
+});
+
+/**
+ * MARKET MAP — which competitor segment (Managed cloud/WordPress, PaaS, Cloud
+ * infra, etc.) is most winnable right now: real demand vs how strong the
+ * incumbents in that segment actually are. The "where is there opportunity in
+ * the market" view — feeds idea generation (content/tools/reels) a segment-
+ * level signal on top of the keyword-level attack list.
+ */
+export const listMarketMapFn = createServerFn({ method: "GET" }).handler(async () => {
+  const { loadProjectEnv } = await import("./load-env");
+  loadProjectEnv();
+  const { getMarketMap } = await import("./kloudgraph/market-map");
+  const segments = await getMarketMap();
+  return { ok: true, segments };
 });
 
 /**

@@ -65,10 +65,13 @@ async function buildRelatedLinks(
     const seen = new Set<string>();
     for (const t of all) {
       if (t.id === excludeId) continue;
+      const anchor = (t.name ?? "").trim();
       const url = t.published_url || (t.url_slug ? `${baseUrl()}/${t.url_slug}` : null);
-      if (!url || seen.has(url)) continue;
+      // Skip rows with no real name or URL — these produced empty <li><a></a></li>
+      // bullets in the "Related free tools" block (visible but blank on live pages).
+      if (!anchor || !url || seen.has(url)) continue;
       seen.add(url);
-      out.push({ anchor: t.name, url });
+      out.push({ anchor, url });
       if (out.length >= limit) break;
     }
     return out;
@@ -734,23 +737,29 @@ export async function auditToolInternal(
   if (!analysis.hasFaq) missing.push("no FAQ");
   if (!analysis.hasJsonLd && !detail.aioseo?.score) missing.push("no schema");
   if (!detail.aioseo?.focus_keyword) missing.push("no focus keyword");
+  if (analysis.needsRestyle)
+    missing.push("injected content unstyled (from an older version of the optimizer)");
 
   const audit = {
     post_id: tool.wp_post_id,
     slug: detail.slug,
     has_elementor: detail.has_elementor,
     word_count: analysis.wordCount,
+    non_injected_word_count: analysis.nonInjectedWordCount,
     h1_count: analysis.h1Count,
     h2_count: analysis.h2Count,
     has_faq: analysis.hasFaq,
     has_jsonld: analysis.hasJsonLd,
     html_widgets: analysis.htmlWidgetCount,
+    needs_restyle: analysis.needsRestyle,
     aioseo_score: detail.aioseo?.score ?? null,
     focus_keyword: detail.aioseo?.focus_keyword ?? "",
     missing,
-    recommendation: missing.length
-      ? `Add: ${missing.join(", ")}. Optimizer will inject intro + FAQ + schema and set the focus keyword (slug unchanged).`
-      : "Page looks healthy; optimizer would only refresh meta/schema.",
+    recommendation: analysis.needsRestyle
+      ? "This page's injected intro/how-to/FAQ/related content was added by an older, unstyled version of the optimizer — re-run Optimize to repair the styling in place."
+      : missing.length
+        ? `Add: ${missing.join(", ")}. Optimizer will inject intro + FAQ + schema and set the focus keyword (slug unchanged).`
+        : "Page looks healthy; optimizer would only refresh meta/schema.",
   };
 
   await toolsRepo.updateTool(toolId, {
@@ -886,6 +895,8 @@ export async function optimizeToolInternal(
     word_count: number;
     focus_keyword: string;
     slug: string;
+    non_injected_word_count?: number;
+    needs_restyle?: boolean;
   };
 
   const keyword = tool.target_keyword || audit.focus_keyword || keywordFromTitle(tool.name);
@@ -909,13 +920,21 @@ export async function optimizeToolInternal(
 
   // Schema: inject as an on-page widget only when Elementor-built AND not present.
   const injectSchema = audit.has_elementor && !audit.has_jsonld ? seoRes.schema_jsonld : undefined;
+  // If a prior (older, unstyled) optimize run already injected content here,
+  // always force a fresh re-injection — spliceInjectionIntoWidgetHtml strips
+  // the old marker blocks first, so this REPLACES the broken version with the
+  // correctly-styled one instead of leaving it in place. Otherwise fall back
+  // to the normal "already has real content" skip logic, using the
+  // non-injected word count so a prior injection can't itself count as
+  // padding that makes a thin page look done.
+  const forceRestyle = !!audit.needs_restyle;
   const plan = buildInjectionPlan({
     seo: seoRes.seo,
     related,
     schemaJsonld: injectSchema,
     flags: {
-      hasIntro: audit.word_count > 400,
-      hasFaq: audit.has_faq,
+      hasIntro: !forceRestyle && (audit.non_injected_word_count ?? audit.word_count) > 400,
+      hasFaq: !forceRestyle && audit.has_faq,
       hasHowTo: false,
     },
   });

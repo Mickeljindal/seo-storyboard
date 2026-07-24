@@ -358,6 +358,28 @@ export async function ingestKloudgraphIntoGraph(): Promise<{
         await kg.upsertEdge(topicId, clusterIds.get(o.clusterId)!, "belongs_to", 1);
       }
     }
+
+    // Market segments — one node per competitor category (Managed cloud/
+    // WordPress, PaaS, Cloud infra, etc.), weighted by winnability so the
+    // graph surfaces "which segment to attack" alongside "which keyword".
+    // Every competitor in that segment gets a "competes_in" edge to it.
+    const { getMarketMap } = await import("./kloudgraph/market-map");
+    const segments = await getMarketMap();
+    for (const seg of segments) {
+      const segId = await kg.upsertNode({
+        type: "market_segment",
+        key: norm(seg.category),
+        label: seg.category,
+        description: `${seg.competitorCount} competitors · ${seg.opportunityKeywords} unclaimed keyword(s) · winnability ${seg.winnabilityScore}`,
+        data: { ...seg, kloudgraph: true },
+        source: "kloudgraph",
+        weightDelta: seg.winnabilityScore,
+      });
+      for (const dom of seg.competitors) {
+        const cid = competitorIds.get(dom);
+        if (cid) await kg.upsertEdge(cid, segId, "competes_in", 1);
+      }
+    }
   } catch {
     /* KLOUDGRAPH data optional — graph still works without it */
   }

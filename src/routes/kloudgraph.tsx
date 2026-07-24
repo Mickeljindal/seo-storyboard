@@ -25,6 +25,7 @@ import {
   listScoredOpportunitiesFn,
   listLinkTargetsFn,
   listCompetitorStrengthFn,
+  listMarketMapFn,
   sendOpportunitiesToContentFn,
 } from "@/lib/kloudgraph.functions";
 
@@ -47,6 +48,7 @@ function KloudgraphPage() {
   const oppsFn = useServerFn(listScoredOpportunitiesFn);
   const linksFn = useServerFn(listLinkTargetsFn);
   const strengthFn = useServerFn(listCompetitorStrengthFn);
+  const marketMapFn = useServerFn(listMarketMapFn);
   const sendFn = useServerFn(sendOpportunitiesToContentFn);
 
   const stats = useQuery({ queryKey: ["kg-stats"], queryFn: () => statsFn({}) });
@@ -60,6 +62,7 @@ function KloudgraphPage() {
     queryFn: () => linksFn({ data: { limit: 60 } }),
   });
   const strength = useQuery({ queryKey: ["kg-strength"], queryFn: () => strengthFn({}) });
+  const marketMap = useQuery({ queryKey: ["kg-market-map"], queryFn: () => marketMapFn({}) });
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["kg-stats"] });
@@ -67,6 +70,7 @@ function KloudgraphPage() {
     qc.invalidateQueries({ queryKey: ["kg-opps"] });
     qc.invalidateQueries({ queryKey: ["kg-links"] });
     qc.invalidateQueries({ queryKey: ["kg-strength"] });
+    qc.invalidateQueries({ queryKey: ["kg-market-map"] });
   };
 
   const seedMut = useMutation({
@@ -117,6 +121,7 @@ function KloudgraphPage() {
   const opportunities = opps.data?.opportunities ?? [];
   const linkTargets = links.data?.targets ?? [];
   const competitorStrength = strength.data?.competitors ?? [];
+  const marketSegments = marketMap.data?.segments ?? [];
 
   return (
     <AppLayout>
@@ -218,6 +223,45 @@ function KloudgraphPage() {
                     </div>
                   </div>
                   <div className="num text-lg font-semibold text-primary">{c.strengthScore}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
+
+        {/* MARKET MAP — which segment is winnable right now */}
+        <Section
+          title="Market map"
+          desc="Competitor segments ranked by winnability — real unclaimed demand vs how strong the incumbents in that segment actually are"
+        >
+          {marketSegments.length === 0 ? (
+            <Empty>Import data to see which market segment is most winnable.</Empty>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {marketSegments.map((s, i) => (
+                <div key={s.category} className="rounded-lg border border-border bg-card/60 p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-1.5 font-medium">
+                      {i === 0 && <Crown className="h-3.5 w-3.5 text-amber-400" />}
+                      {s.category}
+                    </div>
+                    <div className="num text-lg font-semibold text-primary">
+                      {s.winnabilityScore}
+                    </div>
+                  </div>
+                  <div className="mt-1 text-[10px] text-muted-foreground">
+                    {s.competitorCount} competitor{s.competitorCount !== 1 ? "s" : ""} · avg
+                    strength {s.avgStrength}
+                  </div>
+                  <div className="mt-2 text-[11px] text-muted-foreground">
+                    {s.opportunityKeywords} unclaimed keyword(s) ·{" "}
+                    {s.opportunityVolume.toLocaleString()} combined volume
+                  </div>
+                  {s.topKeywords.length > 0 && (
+                    <div className="mt-2 line-clamp-2 text-[10px] text-muted-foreground">
+                      Top: {s.topKeywords.map((k) => k.keyword).join(", ")}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

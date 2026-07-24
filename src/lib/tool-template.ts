@@ -11,6 +11,8 @@
  * meant for a single Elementor HTML widget — matching how the live pages are built.
  */
 
+import { howToHtml, relatedHtml, styledBlock } from "./elementor-builder";
+
 /** Kloudbean design system (palette #4F1AF3 / #6D3EF7 / #B399FF), generic to any tool. */
 export const KLOUDBEAN_TOOL_CSS = `
 .kbt-wrap{font-family:'Poppins','Arial',sans-serif;line-height:1.6;color:#333;background:linear-gradient(135deg,#f9f9f9 0%,#f3f0ff 100%);padding:20px;border-radius:12px}
@@ -126,12 +128,16 @@ function renderFaq(faq: ToolPageParts["faq"]): string {
   return `<div class="kbt-faq"><h3>Frequently asked questions</h3>\n${items}</div>`;
 }
 
-// Markers match elementor-builder.ts's kbseo-* markers exactly, so a page built
-// by THIS template and later run through the optimizer's marker-strip/replace
-// logic is handled identically — no special-casing needed between "new" and
-// "existing" pages. Wrapping these two blocks in markers at BUILD time (even
-// though there's nothing to strip yet) means the very first optimize run on a
-// freshly generated page replaces them in place instead of duplicating them.
+// Markers + rendering match elementor-builder.ts's kbseo-* markers/styledBlock
+// exactly, so a page built by THIS template and later run through the
+// optimizer's marker-strip/replace logic is handled identically — no
+// special-casing between "new" and "existing" pages. Crucially, these two
+// blocks are wrapped in a SELF-CONTAINED styled block (own <style> tag) even
+// though they still sit inside .kbt-wrap right now — because the very first
+// "Optimize" run on this page will strip + re-splice them OUTSIDE the wrapper
+// (before/after the whole widget), where .kbt-wrap's CSS is no longer in
+// scope. Without self-contained styling, that first optimize run would make
+// a previously fine-looking section go unstyled.
 const HOWTO_MARKER = "kbseo-howto";
 const RELATED_MARKER = "kbseo-related";
 
@@ -141,19 +147,16 @@ function marked(marker: string, html: string): string {
 
 function renderHowTo(howTo?: ToolPageParts["howTo"]): string {
   if (!howTo?.steps?.length) return "";
-  const items = howTo.steps.map((s) => `<li>${esc(s)}</li>`).join("\n");
-  return marked(
-    HOWTO_MARKER,
-    `<h2>${esc(howTo.title || "How to use this tool")}</h2>\n<ol>${items}</ol>`,
-  );
+  const inner = `<h2>${esc(howTo.title || "How to use this tool")}</h2>\n${howToHtml(howTo)}`;
+  return marked(HOWTO_MARKER, styledBlock(inner));
 }
 
 function renderRelated(related?: ToolPageParts["related"]): string {
   if (!related?.length) return "";
-  const items = related
-    .map((r) => `<li><a href="${esc(r.url)}">${esc(r.anchor)}</a></li>`)
-    .join("\n");
-  return marked(RELATED_MARKER, `<h2>Related free tools</h2>\n<ul>${items}</ul>`);
+  const listHtml = relatedHtml(related);
+  if (!listHtml) return "";
+  const inner = `<h2>Related free tools</h2>\n${listHtml}`;
+  return marked(RELATED_MARKER, styledBlock(inner));
 }
 
 function jsonLdTags(blocks?: object[]): string {

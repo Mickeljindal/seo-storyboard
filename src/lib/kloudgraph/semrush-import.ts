@@ -673,22 +673,38 @@ export async function importSemrushFolder(rootDir: string): Promise<FolderImport
   return { ok: true, root: abs, competitors, files, totalRows };
 }
 
-/** Insert a competitor into the registry if not present (best-effort). */
+/**
+ * Insert (or backfill) a competitor into the registry. Explicit `meta` wins;
+ * otherwise falls back to the known-competitor catalog (tier + market
+ * segment) so every import — including domains auto-detected from a folder
+ * name that isn't in SEED_COMPETITORS — gets tagged with a real segment
+ * instead of sitting as "tier 1 / category null" forever. Existing rows with
+ * a missing category/name are backfilled (never overwrites a category that's
+ * already set, so hand-edited categories survive re-imports).
+ */
 export async function ensureCompetitor(
   domain: string,
   meta?: { name?: string; tier?: number; category?: string },
 ): Promise<void> {
   const db = await getDb();
   try {
-    await db
-      .insert(kgCompetitors)
-      .values({
-        domain,
-        name: meta?.name ?? domain.replace(/\.[a-z]+$/i, ""),
-        tier: meta?.tier ?? 1,
-        category: meta?.category ?? null,
-      })
-      .onConflictDoNothing();
+    const { metaForDomain } = await import("./competitor-catalog");
+    const catalog = metaForDomain(domain);
+    const tier = meta?.tier ?? catalog?.tier ?? 1;
+    const category = meta?.category ?? catalog?.category ?? null;
+    const name = meta?.name ?? domain.replace(/\.[a-z]+$/i, "");
+
+    await db.insert(kgCompetitors).values({ domain, name, tier, category }).onConflictDoNothing();
+
+    // Backfill category/tier on a row that already existed without one
+    // (e.g. auto-registered from a folder name before the catalog knew it).
+    if (category) {
+      const { eq, isNull, and, or } = await import("drizzle-orm");
+      await db
+        .update(kgCompetitors)
+        .set({ category, tier })
+        .where(and(eq(kgCompetitors.domain, domain), or(isNull(kgCompetitors.category))));
+    }
   } catch {
     /* registry insert best-effort */
   }

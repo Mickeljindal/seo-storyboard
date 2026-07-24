@@ -22,6 +22,7 @@ const TYPE_COLORS: Record<string, string> = {
   topic: "#94a3b8",
   keyword: "#cbd5e1",
   opportunity: "#f97316",
+  market_segment: "#ec4899",
 };
 
 function KnowledgePage() {

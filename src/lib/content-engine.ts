@@ -214,6 +214,16 @@ export async function runContentEngine(
   } catch {
     /* KLOUDGRAPH data optional — never blocks generation */
   }
+  // Market map — which competitor segment this topic falls in, and how
+  // winnable that segment is right now (demand vs incumbent strength).
+  let marketMapBlock = "";
+  try {
+    const { marketMapPromptBlock } = await import("./kloudgraph/market-map");
+    marketMapBlock = await marketMapPromptBlock(`${title} ${keyword}`);
+    if (marketMapBlock) log.push("Market map: segment context found for this topic");
+  } catch {
+    /* market map optional — never blocks generation */
+  }
   // Experience Engine (E-E-A-T) — real operational lessons matched to this
   // topic, so the article carries lived-in detail instead of generic AI
   // explanation. Additive: silently empty if no matching snippet exists.
@@ -241,7 +251,14 @@ export async function runContentEngine(
     }
   }
 
-  const grounding = [geoBlock, competitorBlock, kloudgraphBlock, experienceBlock, ragBlock]
+  const grounding = [
+    geoBlock,
+    competitorBlock,
+    kloudgraphBlock,
+    marketMapBlock,
+    experienceBlock,
+    ragBlock,
+  ]
     .filter(Boolean)
     .join("\n\n");
 

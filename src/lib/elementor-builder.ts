@@ -84,6 +84,38 @@ function section(widgets: ElementorElement[]): ElementorElement {
 }
 
 // --- shared content builders ------------------------------------------------
+//
+// IMPORTANT: this HTML gets spliced directly into an existing page's HTML
+// widget, sometimes BEFORE the tool's own <style>/wrapper (prepended) and
+// sometimes AFTER it closes (appended) — see spliceInjectionIntoWidgetHtml
+// below. It therefore CANNOT rely on any surrounding CSS class (like the
+// tool's own .kbt-wrap) to be in scope; a bare <h2>/<p>/<ul> renders in
+// whatever color/background happens to be active at that point on the page
+// (this is exactly why an injected intro rendered as invisible dark text on
+// the page's dark hero section). Every injected section is wrapped via
+// styledBlock(), which bundles its OWN scoped <style> tag (class-based, not
+// per-tag inline, so multi-paragraph AI-authored HTML like intro_html can be
+// dropped in unmodified) — self-contained no matter where it lands.
+
+const INJECTED_CSS = `.kbseo-injected{font-family:'Poppins','Arial',sans-serif;line-height:1.6;color:#333;background:linear-gradient(135deg,#f9f9f9 0%,#f3f0ff 100%);padding:22px;border-radius:12px;margin:20px 0}
+.kbseo-injected h2{font-size:1.5rem;color:#171717;font-weight:700;margin:0 0 14px}
+.kbseo-injected h3{font-size:1.15rem;color:#171717;font-weight:600;margin:18px 0 8px}
+.kbseo-injected p{font-size:1rem;color:#555;margin:0 0 16px}
+.kbseo-injected ul,.kbseo-injected ol{margin:0 0 16px;padding-left:22px}
+.kbseo-injected li{font-size:1rem;color:#333;margin-bottom:8px}
+.kbseo-injected a{color:#4F1AF3;font-weight:500;text-decoration:none}`;
+
+/**
+ * Wrap a block in a self-contained, explicitly-styled container (light
+ * gradient card matching the tool's own .kbt-wrap background) so it reads as
+ * an intentional branded section instead of bare unstyled text, no matter
+ * where in the page it ends up. Includes its own <style> tag every time
+ * (cheap, and guarantees the block is correct even if it's the ONLY injected
+ * section present — e.g. an intro-only prepend with no how-to/FAQ appended).
+ */
+export function styledBlock(innerHtml: string): string {
+  return `<style>${INJECTED_CSS}</style><div class="kbseo-injected">${innerHtml}</div>`;
+}
 
 function jsonLdScriptTags(blocks: object[]): string {
   if (!blocks?.length) return "";
@@ -92,7 +124,7 @@ function jsonLdScriptTags(blocks: object[]): string {
     .join("\n");
 }
 
-function howToHtml(howTo: { title: string; steps: string[] }): string {
+export function howToHtml(howTo: { title: string; steps: string[] }): string {
   const items = howTo.steps.map((s) => `<li>${escapeHtml(s)}</li>`).join("");
   return `<ol>${items}</ol>`;
 }
@@ -101,9 +133,16 @@ function faqHtml(faq: { q: string; a: string }[]): string {
   return faq.map((f) => `<h3>${escapeHtml(f.q)}</h3>\n<p>${escapeHtml(f.a)}</p>`).join("\n");
 }
 
-function relatedHtml(related: { anchor: string; url: string }[]): string {
-  if (!related.length) return "";
-  const items = related
+/**
+ * Exported so tool-template.ts (new-page assembly) renders "Related free
+ * tools" identically to how the optimizer injects it into existing pages —
+ * filters out any record with a blank anchor/url so a bad related-link
+ * record never produces an empty <li><a></a></li> bullet.
+ */
+export function relatedHtml(related: { anchor: string; url: string }[]): string {
+  const valid = related.filter((r) => r.anchor.trim() && r.url.trim());
+  if (!valid.length) return "";
+  const items = valid
     .map((r) => `<li><a href="${escapeHtml(r.url)}">${escapeHtml(r.anchor)}</a></li>`)
     .join("");
   return `<ul>${items}</ul>`;
@@ -117,8 +156,15 @@ export const FAQ_MARKER = "kbseo-faq";
 export const RELATED_MARKER = "kbseo-related";
 export const SCHEMA_MARKER = "kbseo-schema";
 
-/** Wrap a fragment in a marker comment pair, so it can be found/replaced later. */
-function marked(marker: string, html: string): string {
+/**
+ * Wrap a fragment in a marker comment pair, so it can be found/replaced later.
+ * Exported so tool-template.ts (new-page assembly) can wrap its how-to/related
+ * blocks with the SAME markers + styling this file uses for existing-page
+ * injection — otherwise a freshly generated page's how-to/related sections
+ * would render fine on first publish (still inside .kbt-wrap) but go unstyled
+ * the moment "Optimize" strips + re-splices them outside the wrapper.
+ */
+export function marked(marker: string, html: string): string {
   return `<!-- ${marker}:start -->\n${html}\n<!-- ${marker}:end -->`;
 }
 
@@ -209,34 +255,35 @@ export function buildInjectionPlan(params: {
   const appendParts: string[] = [];
   const added: string[] = [];
 
-  // Intro (answer-first) — visible heading is H2, NOT H1.
+  // Intro (answer-first) — visible heading is H2, NOT H1. Wrapped in a
+  // self-contained styled block (styledBlock) since this can land ANYWHERE
+  // on the page (see comment above jsonLdScriptTags) — without it, this is
+  // the exact block that rendered invisible on the page's dark hero section.
   if (!flags.hasIntro && seo.intro_html) {
-    prependParts.push(marked(INTRO_MARKER, `<h2>${escapeHtml(seo.h1)}</h2>\n${seo.intro_html}`));
+    const introInner = `<h2>${escapeHtml(seo.h1)}</h2>\n${seo.intro_html}`;
+    prependParts.push(marked(INTRO_MARKER, styledBlock(introInner)));
     added.push("intro");
   }
 
   if (!flags.hasHowTo && seo.how_to?.steps?.length) {
-    appendParts.push(
-      marked(
-        HOWTO_MARKER,
-        `<h2>${escapeHtml(seo.how_to.title || "How to use this tool")}</h2>\n${howToHtml(seo.how_to)}`,
-      ),
-    );
+    const howToInner = `<h2>${escapeHtml(seo.how_to.title || "How to use this tool")}</h2>\n${howToHtml(seo.how_to)}`;
+    appendParts.push(marked(HOWTO_MARKER, styledBlock(howToInner)));
     added.push("how_to");
   }
 
   if (!flags.hasFaq && seo.faq?.length) {
-    appendParts.push(
-      marked(FAQ_MARKER, `<h2>Frequently asked questions</h2>\n${faqHtml(seo.faq)}`),
-    );
+    const faqInner = `<h2>Frequently asked questions</h2>\n${faqHtml(seo.faq)}`;
+    appendParts.push(marked(FAQ_MARKER, styledBlock(faqInner)));
     added.push("faq");
   }
 
   if (related.length) {
-    appendParts.push(
-      marked(RELATED_MARKER, `<h2>Related free tools</h2>\n${relatedHtml(related)}`),
-    );
-    added.push("related");
+    const relatedInnerHtml = relatedHtml(related);
+    if (relatedInnerHtml) {
+      const relatedInner = `<h2>Related free tools</h2>\n${relatedInnerHtml}`;
+      appendParts.push(marked(RELATED_MARKER, styledBlock(relatedInner)));
+      added.push("related");
+    }
   }
 
   const schemaTags = jsonLdScriptTags(params.schemaJsonld ?? []);
@@ -280,10 +327,26 @@ export type ElementorAnalysis = {
   h2Count: number;
   headings: string[];
   htmlWidgetCount: number;
+  /** True only when GENUINELY pre-existing FAQ content is present (i.e. NOT
+   *  from our own kbseo-faq marker) — see comment on stripOwnMarkers below. */
   hasFaq: boolean;
   hasJsonLd: boolean;
   hasGate: boolean;
   widgetTypes: string[];
+  /** Word count of the HTML widget with our own kbseo-* injected blocks
+   *  excluded — the number to compare "is this page thin" against, so a
+   *  prior (possibly broken) injection never makes a thin page look padded
+   *  enough to skip re-injecting the intro. */
+  nonInjectedWordCount: number;
+  /** Which of our own markers are already present (from a prior optimize/
+   *  generate run) — always safe to re-splice/replace regardless of the
+   *  hasFaq/hasIntro signals above, since marker-wrapped content is ours. */
+  ownMarkers: { intro: boolean; howTo: boolean; faq: boolean; related: boolean; schema: boolean };
+  /** True when a kbseo-* marker is present WITHOUT the self-contained
+   *  "kbseo-injected" style wrapper — i.e. this page was injected before the
+   *  styling fix shipped and needs re-optimizing to pick it up (its intro/
+   *  how-to/FAQ/related content currently renders unstyled or invisible). */
+  needsRestyle: boolean;
 };
 
 /** Accept a JSON string or an already-parsed array. */
@@ -307,6 +370,25 @@ function stripTags(html: string): string {
     .replace(/<[^>]+>/g, " ");
 }
 
+/**
+ * Strip our OWN kbseo-* marker blocks out of an HTML widget's content before
+ * it's used to detect "does this page already have an intro/FAQ/etc". This
+ * matters because our own injected content matches the SAME text patterns
+ * (e.g. "Frequently asked questions") the detector looks for — without this,
+ * a page whose only "FAQ" is a previous (possibly broken/unstyled) injection
+ * from THIS engine would be misread as "already has a hand-authored FAQ,
+ * skip re-injecting", permanently locking in whatever bug shipped it.
+ */
+function stripOwnMarkers(html: string): string {
+  const markers = [INTRO_MARKER, HOWTO_MARKER, FAQ_MARKER, RELATED_MARKER, SCHEMA_MARKER];
+  let cleaned = html;
+  for (const m of markers) {
+    const re = new RegExp(`<!--\\s*${m}:start\\s*-->[\\s\\S]*?<!--\\s*${m}:end\\s*-->`, "g");
+    cleaned = cleaned.replace(re, "");
+  }
+  return cleaned;
+}
+
 /** Walk the tree and summarize what's already on the page (read-only). */
 export function analyzeElementorData(raw: unknown): ElementorAnalysis {
   const data = parseElementorData(raw);
@@ -322,9 +404,13 @@ export function analyzeElementorData(raw: unknown): ElementorAnalysis {
     hasJsonLd: false,
     hasGate: false,
     widgetTypes: [],
+    nonInjectedWordCount: 0,
+    ownMarkers: { intro: false, howTo: false, faq: false, related: false, schema: false },
+    needsRestyle: false,
   };
 
   const textParts: string[] = [];
+  const nonInjectedTextParts: string[] = [];
 
   const walk = (el: ElementorElement) => {
     if (el.elType === "widget" && el.widgetType) {
@@ -336,25 +422,41 @@ export function analyzeElementorData(raw: unknown): ElementorAnalysis {
         if (title) {
           analysis.headings.push(title);
           textParts.push(title);
+          nonInjectedTextParts.push(title);
           if (size === "h1") analysis.h1Count++;
           if (size === "h2") analysis.h2Count++;
         }
       } else if (el.widgetType === "text-editor" || el.widgetType === "theme-post-content") {
-        textParts.push(stripTags(String(s.editor ?? "")));
+        const t = stripTags(String(s.editor ?? ""));
+        textParts.push(t);
+        nonInjectedTextParts.push(t);
       } else if (el.widgetType === "html") {
         analysis.htmlWidgetCount++;
         const html = String(s.html ?? "");
         if (/application\/ld\+json/i.test(html)) analysis.hasJsonLd = true;
         if (html.includes(GATE_MARKER)) analysis.hasGate = true;
-        // HTML-widget text counts toward content, minus scripts/styles
+        if (html.includes(`${INTRO_MARKER}:start`)) analysis.ownMarkers.intro = true;
+        if (html.includes(`${HOWTO_MARKER}:start`)) analysis.ownMarkers.howTo = true;
+        if (html.includes(`${FAQ_MARKER}:start`)) analysis.ownMarkers.faq = true;
+        if (html.includes(`${RELATED_MARKER}:start`)) analysis.ownMarkers.related = true;
+        if (html.includes(`${SCHEMA_MARKER}:start`)) analysis.ownMarkers.schema = true;
+        // A content marker (intro/how-to/faq/related) present WITHOUT the
+        // self-contained style wrapper means it was injected by the OLD,
+        // unstyled version of this engine — flag it for re-optimizing.
+        const hasContentMarker = [INTRO_MARKER, HOWTO_MARKER, FAQ_MARKER, RELATED_MARKER].some(
+          (m) => html.includes(`${m}:start`),
+        );
+        if (hasContentMarker && !html.includes("kbseo-injected")) analysis.needsRestyle = true;
+        // HTML-widget text counts toward content, minus scripts/styles.
         textParts.push(stripTags(html));
+        nonInjectedTextParts.push(stripTags(stripOwnMarkers(html)));
       } else if (el.widgetType === "accordion" || el.widgetType === "toggle") {
         const tabs = Array.isArray(s.tabs) ? (s.tabs as Record<string, unknown>[]) : [];
         for (const t of tabs) {
-          textParts.push(
-            stripTags(String(t.tab_title ?? "")),
-            stripTags(String(t.tab_content ?? "")),
-          );
+          const title = stripTags(String(t.tab_title ?? ""));
+          const content = stripTags(String(t.tab_content ?? ""));
+          textParts.push(title, content);
+          nonInjectedTextParts.push(title, content);
         }
       }
     }
@@ -366,8 +468,16 @@ export function analyzeElementorData(raw: unknown): ElementorAnalysis {
   const text = textParts.join(" ").replace(/\s+/g, " ").trim();
   analysis.textLength = text.length;
   analysis.wordCount = text ? text.split(/\s+/).length : 0;
+
+  const nonInjectedText = nonInjectedTextParts.join(" ").replace(/\s+/g, " ").trim();
+  analysis.nonInjectedWordCount = nonInjectedText ? nonInjectedText.split(/\s+/).length : 0;
+
+  // hasFaq must reflect GENUINE pre-existing FAQ content, not our own prior
+  // (possibly broken) kbseo-faq injection — otherwise a page would never get
+  // re-optimized past whatever bug shipped its first injection.
   analysis.hasFaq =
-    /frequently asked|faq\b/i.test(text) || analysis.widgetTypes.includes("accordion");
+    !analysis.ownMarkers.faq &&
+    (/frequently asked|faq\b/i.test(nonInjectedText) || analysis.widgetTypes.includes("accordion"));
 
   return analysis;
 }

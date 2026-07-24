@@ -258,9 +258,48 @@ function formatForEntity(type: string): ReelFormat {
 }
 
 /**
+ * KLOUDGRAPH-sourced reel ideas: turn the top relevance-filtered competitor
+ * keyword opportunities into "comparison" / "myth-bust" reel angles. Unlike
+ * the knowledge-graph-derived ideas below (which reflect entities the system
+ * has generically decided matter), these are grounded in REAL Semrush demand
+ * — a keyword multiple competitors already rank for is proof people are
+ * actually searching for this, which makes for a stronger hook than a guess.
+ */
+async function discoverKloudgraphReelIdeas(limit: number): Promise<ReelIdea[]> {
+  const ideas: ReelIdea[] = [];
+  try {
+    const { getAggregatedOpportunities } = await import("./kloudgraph/opportunity-engine");
+    const opps = await getAggregatedOpportunities({ limit: limit * 3, minRelevance: 0.6 });
+    for (const o of opps) {
+      if (ideas.length >= limit) break;
+      const isComparison = o.competitors.length >= 2;
+      const format: ReelFormat = isComparison ? "comparison" : "educational";
+      const title = isComparison
+        ? `${o.competitors.slice(0, 2).join(" vs ")}: which wins for "${o.keyword}"?`
+        : `${o.keyword[0].toUpperCase()}${o.keyword.slice(1)}, explained in 45s`;
+      ideas.push({
+        title,
+        topic: o.keyword,
+        format,
+        angle: isComparison
+          ? `Fair comparison of ${o.competitors.slice(0, 3).join(", ")} on "${o.keyword}" (${o.competitorCount} competitors rank for this — real proven demand), then show Kloudbean as the alternative.`
+          : `Explain "${o.keyword}" clearly — real search demand competitors already capture — then show Kloudbean's angle.`,
+        cluster_id: o.clusterId,
+        source: "kloudgraph",
+        demand_score: o.score,
+      });
+    }
+  } catch {
+    /* KLOUDGRAPH data optional — never blocks discovery */
+  }
+  return ideas;
+}
+
+/**
  * Derive reel ideas from the knowledge graph (top entities + gaps) and clusters,
  * deduped against existing reels. The graph's learned weights mean the ideas
- * lean toward what's working.
+ * lean toward what's working. KLOUDGRAPH-sourced ideas (real competitor
+ * demand) are folded in first since they're the strongest-grounded signal.
  */
 export async function discoverReelIdeas(limit = 8): Promise<ReelIdea[]> {
   const ideas: ReelIdea[] = [];
@@ -272,6 +311,8 @@ export async function discoverReelIdeas(limit = 8): Promise<ReelIdea[]> {
     seen.add(key);
     ideas.push(idea);
   };
+
+  for (const idea of await discoverKloudgraphReelIdeas(Math.ceil(limit / 2))) push(idea);
 
   try {
     const kg = await import("@/server/db/repos/knowledge-graph");
