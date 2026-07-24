@@ -593,3 +593,10 @@ CREATE TABLE IF NOT EXISTS process_runs (
 CREATE INDEX IF NOT EXISTS idx_process_runs_status ON process_runs(status);
 CREATE INDEX IF NOT EXISTS idx_process_runs_kind ON process_runs(kind);
 CREATE INDEX IF NOT EXISTS idx_process_runs_started ON process_runs(started_at);
+
+
+-- Activity Center (v21) — retry support for process_runs: remember the exact
+-- input a run was started with (e.g. {root} for a Semrush import, {category,
+-- maxPages,perPage} for a WP sync) so a failed/stuck run can be re-launched
+-- with one click instead of asking the user to re-enter parameters.
+ALTER TABLE process_runs ADD COLUMN IF NOT EXISTS input jsonb;

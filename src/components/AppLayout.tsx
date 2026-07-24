@@ -22,6 +22,7 @@ import {
   Lightbulb,
   ShieldCheck,
   Link2,
+  Activity,
 } from "lucide-react";
 import { ReactNode } from "react";
 import { SystemHealthBanner, SystemHealthOkBadge } from "./SystemHealthBanner";
@@ -29,6 +30,7 @@ import { AssistantWidget } from "./AssistantWidget";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, kbd: "1" },
+  { to: "/activity", label: "Activity", icon: Activity, kbd: "A" },
   { to: "/how-it-works", label: "How it works", icon: Sparkles, kbd: "2" },
   { to: "/strategy", label: "Strategy", icon: Brain, kbd: "3" },
   { to: "/topical-map", label: "Topical Map", icon: Network, kbd: "4" },

@@ -1,4 +1,4 @@
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, lt, sql } from "drizzle-orm";
 import { getDb, schema } from "../client";
 import { toApiProcessRun, type ApiProcessRun } from "../map";
 
@@ -13,6 +13,8 @@ export async function createProcessRun(data: {
   kind: string;
   label: string;
   total?: number;
+  /** Parameters this run was started with — stored so it can be retried later with the same input. */
+  input?: unknown;
 }): Promise<ApiProcessRun> {
   const db = await getDb();
   const [row] = await db
@@ -25,6 +27,7 @@ export async function createProcessRun(data: {
       completed: 0,
       failed: 0,
       logs: [],
+      input: data.input ?? null,
     })
     .returning();
   return toApiProcessRun(row);
@@ -86,14 +89,18 @@ export async function getProcessRun(id: string): Promise<ApiProcessRun | null> {
   return row ? toApiProcessRun(row) : null;
 }
 
-/** Recent runs (any kind), newest first — for the "activity" panel. */
-export async function listRecentProcessRuns(limit = 20): Promise<ApiProcessRun[]> {
+/** Recent runs (any kind), newest first — for the "activity" panel. Optionally filtered to specific kinds. */
+export async function listRecentProcessRuns(
+  limit = 20,
+  kinds?: string[],
+): Promise<ApiProcessRun[]> {
   const db = await getDb();
-  const rows = await db
-    .select()
-    .from(processRuns)
-    .orderBy(desc(processRuns.startedAt))
-    .limit(limit);
+  let q = db.select().from(processRuns).$dynamic();
+  if (kinds?.length) {
+    const { inArray } = await import("drizzle-orm");
+    q = q.where(inArray(processRuns.kind, kinds));
+  }
+  const rows = await q.orderBy(desc(processRuns.startedAt)).limit(limit);
   return rows.map(toApiProcessRun);
 }
 
@@ -107,6 +114,61 @@ export async function listActiveProcessRuns(): Promise<ApiProcessRun[]> {
     .where(eq(processRuns.status, "running"))
     .orderBy(desc(processRuns.startedAt));
   return rows.map(toApiProcessRun);
+}
+
+/**
+ * A run counts as STUCK when it's still "running" but hasn't appended a log
+ * line or moved its counters in `staleMinutes` — almost always means the dev
+ * server restarted, crashed, or the background task threw somewhere that
+ * skipped finishProcessRun. Surfacing these (instead of a forever spinner) is
+ * what lets the Activity Center offer a "Fix stuck" / retry action.
+ */
+export async function listStuckProcessRuns(staleMinutes = 10): Promise<ApiProcessRun[]> {
+  const db = await getDb();
+  const cutoff = new Date(Date.now() - staleMinutes * 60_000);
+  const rows = await db
+    .select()
+    .from(processRuns)
+    .where(and(eq(processRuns.status, "running"), lt(processRuns.updatedAt, cutoff)))
+    .orderBy(desc(processRuns.startedAt));
+  return rows.map(toApiProcessRun);
+}
+
+/**
+ * Sweep stuck runs and mark them "error" so they stop showing a live spinner
+ * and become retryable. Returns the runs that were flipped. Safe to call
+ * repeatedly (idempotent — only touches rows still "running" past the cutoff).
+ */
+export async function markStuckRunsAsError(staleMinutes = 10): Promise<ApiProcessRun[]> {
+  const db = await getDb();
+  const cutoff = new Date(Date.now() - staleMinutes * 60_000);
+  const rows = await db
+    .update(processRuns)
+    .set({
+      status: "error",
+      error: `No activity for ${staleMinutes}+ minutes — the process likely crashed or the server restarted. Use Retry to run it again.`,
+      finishedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(and(eq(processRuns.status, "running"), lt(processRuns.updatedAt, cutoff)))
+    .returning();
+  return rows.map(toApiProcessRun);
+}
+
+/** Explicit user cancel — distinct from "error" so the log reads clearly. */
+export async function cancelProcessRun(id: string): Promise<ApiProcessRun | null> {
+  const db = await getDb();
+  const [row] = await db
+    .update(processRuns)
+    .set({
+      status: "cancelled",
+      error: "Cancelled by user.",
+      finishedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(processRuns.id, id))
+    .returning();
+  return row ? toApiProcessRun(row) : null;
 }
 
 /** Housekeeping: drop finished runs older than 7 days. */

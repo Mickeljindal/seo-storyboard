@@ -588,7 +588,7 @@ export type KgImportLogRow = typeof kgImportLog.$inferSelect;
 // ============================================================================
 export const processRuns = pgTable("process_runs", {
   id: uuid("id").primaryKey().defaultRandom(),
-  kind: text("kind").notNull(), // semrush_import | sync_tools | idea_discovery | bulk_optimize | bulk_generate | fix_html | kg_rebuild
+  kind: text("kind").notNull(), // semrush_import | sync_tools | idea_discovery | bulk_optimize | bulk_generate | fix_html | kg_rebuild | autopilot_cycle
   label: text("label").notNull(), // human-readable title shown in the UI
   status: text("status").notNull().default("running"), // running | done | error | cancelled
   total: integer("total").default(0),
@@ -596,6 +596,11 @@ export const processRuns = pgTable("process_runs", {
   failed: integer("failed").default(0),
   // Capped array of {at, level, message} — level: info | success | warn | error.
   logs: jsonb("logs").default([]),
+  // The parameters this run was started with (e.g. {root} for a Semrush
+  // import, {category,maxPages,perPage} for a WP sync). Lets the Activity
+  // Center retry a failed/stuck run with the exact same input instead of
+  // asking the user to re-enter it.
+  input: jsonb("input"),
   result: jsonb("result"),
   error: text("error"),
   startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),

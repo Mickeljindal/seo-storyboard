@@ -41,6 +41,10 @@ export const seedCompetitorsFn = createServerFn({ method: "POST" }).handler(asyn
  * NOT await the import), so the dashboard can start polling a live progress
  * bar ("file 12 of 87") and per-file log right away instead of only a
  * spinner until the whole (potentially multi-minute) import finishes.
+ *
+ * Also serves as the RETRY path: the Activity Center re-calls this exact
+ * server fn with the same `root` it reads back from the failed run's stored
+ * `input`, so retrying a stuck/failed import needs no separate code path.
  */
 export const importSemrushFn = createServerFn({ method: "POST" })
   .inputValidator(z.object({ root: z.string().optional() }).parse)
@@ -53,6 +57,7 @@ export const importSemrushFn = createServerFn({ method: "POST" })
     const run = await runs.createProcessRun({
       kind: "semrush_import",
       label: `Importing Semrush exports from ${root}`,
+      input: { root },
     });
 
     // Fire-and-forget: the actual import runs after this handler returns the

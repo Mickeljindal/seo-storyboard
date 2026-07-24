@@ -190,10 +190,26 @@ async function getPublishCounts(): Promise<{ today: number; week: number }> {
   return { today, week };
 }
 
-/** Run one full autopilot cycle. */
+/**
+ * Run one full autopilot cycle. Tracked as a process_runs row (kind =
+ * "autopilot_cycle") for the Activity Center: every log() call mirrors into
+ * that run in real time, and the run persists across a page reload or even a
+ * server restart — unlike the old in-memory-only lastRunResult, which vanished
+ * completely if the process crashed mid-cycle, leaving no trace anything had
+ * even started. A cycle that throws still finishes the run as "error" (with
+ * the crash message) before re-throwing, so callers keep seeing identical
+ * error behavior to before this change.
+ */
 export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
   loadProjectEnv();
   const cfg = getAutopilotConfig();
+  const runs = await import("@/server/db/repos/process-runs");
+  const run = await runs.createProcessRun({
+    kind: "autopilot_cycle",
+    label: `Autopilot cycle — geo=${cfg.geo}`,
+    total: 1,
+    input: { geo: cfg.geo },
+  });
   const result: AutopilotRunResult = {
     discovered: 0,
     kloudgraphSent: 0,
@@ -216,357 +232,385 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
     log: [],
   };
 
-  const log = (msg: string) =>
+  const log = (msg: string) => {
     result.log.push(`[${new Date().toISOString().slice(11, 19)}] ${msg}`);
-  log(
-    `Autopilot cycle started (geo=${cfg.geo}, discover=${cfg.autoDiscover}, publish=${cfg.autoPublish})`,
-  );
+    // Fire-and-forget mirror into the tracked run — never let a DB hiccup on
+    // the log line itself derail the actual cycle.
+    void runs.appendProcessLog(run.id, msg, "info").catch(() => {});
+  };
 
-  const repo = await import("@/server/db/repos/articles");
-  const counts = await getPublishCounts();
-  log(
-    `Published: ${counts.today} today, ${counts.week} this week (limits: ${cfg.maxPublishPerDay}/day, ${cfg.maxPublishPerWeek}/week)`,
-  );
-
-  // 1a. KLOUDGRAPH — competitor-proven opportunities first. These are backed
-  // by real Semrush data (rivals already rank for them, we don't), so they're
-  // a stronger discovery signal than generic keyword research and get priority.
-  if (cfg.kloudgraphEnabled) {
-    try {
-      const { sendOpportunitiesToContentInternal } = await import("./kloudgraph.functions");
-      const r = await sendOpportunitiesToContentInternal({
-        limit: cfg.kloudgraphPerRun,
-        minRelevance: cfg.kloudgraphMinRelevance,
-      });
-      result.kloudgraphSent = r.created;
-      if (r.created) log(`KLOUDGRAPH: sent ${r.created} competitor-proven keyword(s) to pipeline`);
-    } catch (e) {
-      result.errors.push(`kloudgraph: ${String((e as Error)?.message ?? e)}`);
-    }
-  }
-
-  // 1b. DISCOVER new topics (generic keyword research — fills the rest of the quota)
-  if (cfg.autoDiscover) {
-    try {
-      const { runAuthorityEngine } = await import("./authority-engine");
-      const remaining = Math.max(0, cfg.topicsPerRun - result.kloudgraphSent);
-      const r = await runAuthorityEngine({
-        geo: cfg.geo,
-        topicsPerCluster: Math.max(1, Math.ceil(remaining / 10)),
-        includeCompetitorGap: false,
-        competitorDomain: "cloudways.com",
-        generateBriefs: false,
-        generateContent: false,
-        discoverySource: "serper",
-        validateDemand: true,
-        useLearning: true,
-      });
-      result.discovered = r.stats.articles_created;
-      log(`Discovery: ${r.stats.articles_created} new topics`);
-    } catch (e) {
-      result.errors.push(`discover: ${String((e as Error)?.message ?? e)}`);
-    }
-  }
-
-  // 2. PROGRESS articles through the pipeline
-  const { hasAiCredentials } = await import("./ai-provider");
-  if (!hasAiCredentials()) {
-    log("Skipping progression — no AI key configured");
-  } else {
-    const { generateBriefInternal, generateContentInternal } = await import("./ai.functions");
-    const { hasSerperCredentials } = await import("./serper-client");
-    const { applyResearchToArticleInternal } = await import("./dataforseo.functions");
-
-    const all = await repo.listArticles({ geo: cfg.geo, limit: 500 });
-    const needsWork = all
-      .filter((a) => !a.content_draft || !a.quality_score)
-      .sort((a, b) => {
-        const priorityOrder: Record<string, number> = { high: 0, medium: 1, low: 2 };
-        return (
-          (priorityOrder[a.priority ?? "medium"] ?? 1) -
-          (priorityOrder[b.priority ?? "medium"] ?? 1)
-        );
-      })
-      .slice(0, cfg.progressPerRun);
-
-    for (const article of needsWork) {
-      try {
-        // Research if missing
-        if (!article.keyword_data && article.target_keyword) {
-          if (hasSerperCredentials()) {
-            await applyResearchToArticleInternal(article.id, cfg.geo);
-            result.researched++;
-          }
-        }
-
-        // Brief if missing
-        const fresh1 = await repo.getArticleById(article.id);
-        if (!fresh1?.brief) {
-          const r = await generateBriefInternal(article.id);
-          if (r.ok) result.briefed++;
-          else result.errors.push(`brief ${article.id}: ${r.error}`);
-        }
-
-        // Write + score if no draft
-        const fresh2 = await repo.getArticleById(article.id);
-        if (fresh2?.brief && !fresh2.content_draft) {
-          const r = await generateContentInternal(article.id);
-          if (r.ok) result.written++;
-          else result.errors.push(`write ${article.id}: ${r.error}`);
-        }
-      } catch (e) {
-        result.errors.push(`progress ${article.id}: ${String((e as Error)?.message ?? e)}`);
-      }
-    }
+  try {
     log(
-      `Progressed: ${result.researched} researched, ${result.briefed} briefed, ${result.written} written`,
+      `Autopilot cycle started (geo=${cfg.geo}, discover=${cfg.autoDiscover}, publish=${cfg.autoPublish})`,
     );
-  }
 
-  // 3. QUEUE FOR REVIEW — finished, passing articles no longer go straight to
-  // WordPress. They're queued with a scheduled_publish_at (now + hold hours)
-  // so everything is visible in the /publish-queue dashboard for a full day
-  // (by default) before anyone — human or Autopilot itself — publishes it.
-  if (cfg.autoPublish) {
-    const publishable = (await repo.listArticles({ geo: cfg.geo, limit: 500 }))
-      .filter(
-        (a) =>
-          a.content_draft &&
-          a.quality_score &&
-          a.quality_score >= cfg.minPublishScore &&
-          !(a.quality_report as { blocking?: boolean })?.blocking &&
-          a.status !== "published" &&
-          a.status !== "promoted" &&
-          a.approval_status !== "queued" &&
-          a.approval_status !== "approved" &&
-          a.approval_status !== "published",
-      )
-      .sort((a, b) => (b.quality_score ?? 0) - (a.quality_score ?? 0));
+    const repo = await import("@/server/db/repos/articles");
+    const counts = await getPublishCounts();
+    log(
+      `Published: ${counts.today} today, ${counts.week} this week (limits: ${cfg.maxPublishPerDay}/day, ${cfg.maxPublishPerWeek}/week)`,
+    );
 
-    for (const article of publishable) {
-      if (counts.today >= cfg.maxPublishPerDay) {
-        result.cadenceLimited++;
-        break;
-      }
-      if (counts.week >= cfg.maxPublishPerWeek) {
-        result.cadenceLimited++;
-        break;
-      }
+    // 1a. KLOUDGRAPH — competitor-proven opportunities first. These are backed
+    // by real Semrush data (rivals already rank for them, we don't), so they're
+    // a stronger discovery signal than generic keyword research and get priority.
+    if (cfg.kloudgraphEnabled) {
       try {
-        const { queueForReview } = await import("./publish-queue");
-        const r = await queueForReview(article.id, cfg.reviewHoldHours);
-        if (r.ok) {
-          result.queued++;
-          // Reserve today's/week's cadence slot now so we don't over-queue
-          // more than the publish limit even though nothing is live yet.
-          counts.today++;
-          counts.week++;
-          log(
-            `Queued for review: "${article.title}" — publishes ${r.scheduledPublishAt} unless reviewed sooner`,
+        const { sendOpportunitiesToContentInternal } = await import("./kloudgraph.functions");
+        const r = await sendOpportunitiesToContentInternal({
+          limit: cfg.kloudgraphPerRun,
+          minRelevance: cfg.kloudgraphMinRelevance,
+        });
+        result.kloudgraphSent = r.created;
+        if (r.created)
+          log(`KLOUDGRAPH: sent ${r.created} competitor-proven keyword(s) to pipeline`);
+      } catch (e) {
+        result.errors.push(`kloudgraph: ${String((e as Error)?.message ?? e)}`);
+      }
+    }
+
+    // 1b. DISCOVER new topics (generic keyword research — fills the rest of the quota)
+    if (cfg.autoDiscover) {
+      try {
+        const { runAuthorityEngine } = await import("./authority-engine");
+        const remaining = Math.max(0, cfg.topicsPerRun - result.kloudgraphSent);
+        const r = await runAuthorityEngine({
+          geo: cfg.geo,
+          topicsPerCluster: Math.max(1, Math.ceil(remaining / 10)),
+          includeCompetitorGap: false,
+          competitorDomain: "cloudways.com",
+          generateBriefs: false,
+          generateContent: false,
+          discoverySource: "serper",
+          validateDemand: true,
+          useLearning: true,
+        });
+        result.discovered = r.stats.articles_created;
+        log(`Discovery: ${r.stats.articles_created} new topics`);
+      } catch (e) {
+        result.errors.push(`discover: ${String((e as Error)?.message ?? e)}`);
+      }
+    }
+
+    // 2. PROGRESS articles through the pipeline
+    const { hasAiCredentials } = await import("./ai-provider");
+    if (!hasAiCredentials()) {
+      log("Skipping progression — no AI key configured");
+    } else {
+      const { generateBriefInternal, generateContentInternal } = await import("./ai.functions");
+      const { hasSerperCredentials } = await import("./serper-client");
+      const { applyResearchToArticleInternal } = await import("./dataforseo.functions");
+
+      const all = await repo.listArticles({ geo: cfg.geo, limit: 500 });
+      const needsWork = all
+        .filter((a) => !a.content_draft || !a.quality_score)
+        .sort((a, b) => {
+          const priorityOrder: Record<string, number> = { high: 0, medium: 1, low: 2 };
+          return (
+            (priorityOrder[a.priority ?? "medium"] ?? 1) -
+            (priorityOrder[b.priority ?? "medium"] ?? 1)
           );
-        } else {
-          result.errors.push(`queue ${article.id}: ${r.error}`);
+        })
+        .slice(0, cfg.progressPerRun);
+
+      for (const article of needsWork) {
+        try {
+          // Research if missing
+          if (!article.keyword_data && article.target_keyword) {
+            if (hasSerperCredentials()) {
+              await applyResearchToArticleInternal(article.id, cfg.geo);
+              result.researched++;
+            }
+          }
+
+          // Brief if missing
+          const fresh1 = await repo.getArticleById(article.id);
+          if (!fresh1?.brief) {
+            const r = await generateBriefInternal(article.id);
+            if (r.ok) result.briefed++;
+            else result.errors.push(`brief ${article.id}: ${r.error}`);
+          }
+
+          // Write + score if no draft
+          const fresh2 = await repo.getArticleById(article.id);
+          if (fresh2?.brief && !fresh2.content_draft) {
+            const r = await generateContentInternal(article.id);
+            if (r.ok) result.written++;
+            else result.errors.push(`write ${article.id}: ${r.error}`);
+          }
+        } catch (e) {
+          result.errors.push(`progress ${article.id}: ${String((e as Error)?.message ?? e)}`);
+        }
+      }
+      log(
+        `Progressed: ${result.researched} researched, ${result.briefed} briefed, ${result.written} written`,
+      );
+    }
+
+    // 3. QUEUE FOR REVIEW — finished, passing articles no longer go straight to
+    // WordPress. They're queued with a scheduled_publish_at (now + hold hours)
+    // so everything is visible in the /publish-queue dashboard for a full day
+    // (by default) before anyone — human or Autopilot itself — publishes it.
+    if (cfg.autoPublish) {
+      const publishable = (await repo.listArticles({ geo: cfg.geo, limit: 500 }))
+        .filter(
+          (a) =>
+            a.content_draft &&
+            a.quality_score &&
+            a.quality_score >= cfg.minPublishScore &&
+            !(a.quality_report as { blocking?: boolean })?.blocking &&
+            a.status !== "published" &&
+            a.status !== "promoted" &&
+            a.approval_status !== "queued" &&
+            a.approval_status !== "approved" &&
+            a.approval_status !== "published",
+        )
+        .sort((a, b) => (b.quality_score ?? 0) - (a.quality_score ?? 0));
+
+      for (const article of publishable) {
+        if (counts.today >= cfg.maxPublishPerDay) {
+          result.cadenceLimited++;
+          break;
+        }
+        if (counts.week >= cfg.maxPublishPerWeek) {
+          result.cadenceLimited++;
+          break;
+        }
+        try {
+          const { queueForReview } = await import("./publish-queue");
+          const r = await queueForReview(article.id, cfg.reviewHoldHours);
+          if (r.ok) {
+            result.queued++;
+            // Reserve today's/week's cadence slot now so we don't over-queue
+            // more than the publish limit even though nothing is live yet.
+            counts.today++;
+            counts.week++;
+            log(
+              `Queued for review: "${article.title}" — publishes ${r.scheduledPublishAt} unless reviewed sooner`,
+            );
+          } else {
+            result.errors.push(`queue ${article.id}: ${r.error}`);
+          }
+        } catch (e) {
+          result.errors.push(`queue ${article.id}: ${String((e as Error)?.message ?? e)}`);
+        }
+      }
+      log(
+        `Review queue: ${result.queued} queued, ${result.cadenceLimited} cadence-limited, ${result.blocked} blocked`,
+      );
+    }
+
+    // 3b. PROCESS REVIEW QUEUE — publish anything whose hold window has fully
+    // elapsed, but ONLY if auto-approve-after-hold is turned on. Otherwise
+    // queued articles wait for a human to approve/reject, no matter how long.
+    try {
+      const { processReviewQueue } = await import("./publish-queue");
+      const q = await processReviewQueue(cfg.autoApproveAfterHold);
+      result.published += q.autoPublished;
+      for (const e of q.errors) result.errors.push(`queue-release: ${e}`);
+      if (q.autoPublished)
+        log(`Review queue: auto-published ${q.autoPublished} whose hold elapsed`);
+      if (q.stillQueued)
+        log(
+          `Review queue: ${q.stillQueued} still waiting (${cfg.autoApproveAfterHold ? "hold not yet elapsed" : "waiting for manual approval"})`,
+        );
+    } catch (e) {
+      result.errors.push(`queue processing: ${String((e as Error)?.message ?? e)}`);
+    }
+
+    // 4. REFRESH stale articles — prioritised review queue (freshness/decay).
+    if (cfg.refreshAfterDays > 0) {
+      try {
+        const { listStaleArticles, markArticleReviewed } = await import("./freshness");
+        const stale = await listStaleArticles(10);
+        // Refresh the highest-priority few; stamp review so we don't re-flag them
+        // next cycle (and they regenerate via the normal pipeline).
+        for (const a of stale.slice(0, 2)) {
+          await markArticleReviewed(a.id, { rewrite: true });
+          result.refreshed++;
+        }
+        if (result.refreshed)
+          log(
+            `Refresh: queued ${result.refreshed} stale articles for review (${stale.length} due, top: ${stale[0]?.reason ?? "n/a"})`,
+          );
+      } catch (e) {
+        result.errors.push(`refresh: ${String((e as Error)?.message ?? e)}`);
+      }
+    }
+
+    // 5. SYNC ANALYTICS — pull real Google Search Console data into the learning loop.
+    try {
+      const { hydrateEnvFromSettings } = await import("./app-settings");
+      await hydrateEnvFromSettings();
+      const { hasGscCredentials, querySearchAnalytics, isoDaysAgo } = await import("./gsc-client");
+      if (hasGscCredentials()) {
+        const startDate = isoDaysAgo(30);
+        const endDate = isoDaysAgo(2);
+        const rows = await querySearchAnalytics({
+          startDate,
+          endDate,
+          dimensions: ["page"],
+          rowLimit: 1000,
+        });
+        const { upsertSearchPerformance } = await import("@/server/db/repos/search-performance");
+        const { stored } = await upsertSearchPerformance(
+          rows.map((r) => ({
+            page: r.page,
+            clicks: r.clicks,
+            impressions: r.impressions,
+            ctr: r.ctr,
+            position: r.position,
+            dateStart: startDate,
+            dateEnd: endDate,
+          })),
+        );
+        result.syncedPages = stored;
+        if (stored)
+          log(
+            `Analytics: synced ${stored} pages from Search Console (real ranking data → learning loop)`,
+          );
+      }
+    } catch (e) {
+      result.errors.push(`analytics sync: ${String((e as Error)?.message ?? e)}`);
+    }
+
+    // 5b. SYNC CONVERSIONS — pull console signup/paid events + attribute to pages.
+    try {
+      const { hasPluginConfigured } = await import("./wp-plugin-client");
+      if (hasPluginConfigured()) {
+        const { syncConversionsInternal } = await import("./conversions.functions");
+        const cv = await syncConversionsInternal();
+        if (cv.stored)
+          log(
+            `Conversions: ingested ${cv.stored} (${cv.signups} signups, ${cv.paid} paid, ${cv.value} value)`,
+          );
+      }
+    } catch (e) {
+      result.errors.push(`conversion sync: ${String((e as Error)?.message ?? e)}`);
+    }
+
+    // 6. TOOL PAGES — discover/generate/publish new tools + optimize existing ones.
+    if (cfg.toolsEnabled) {
+      try {
+        const { runToolsCycleInternal } = await import("./tools.functions");
+        const t = await runToolsCycleInternal({
+          geo: cfg.geo,
+          sync: true,
+          discover: cfg.toolsDiscoverPerRun > 0,
+          discoverCount: cfg.toolsDiscoverPerRun,
+          generateCount: cfg.toolsGeneratePerRun,
+          publishStatus: cfg.toolsPublishStatus,
+          optimizeCount: cfg.toolsOptimizePerRun,
+        });
+        result.toolsDiscovered = t.discovered;
+        result.toolsGenerated = t.generated;
+        result.toolsPublished = t.published;
+        result.toolsOptimized = t.optimized;
+        for (const e of t.errors) result.errors.push(`tools: ${e}`);
+        log(
+          `Tools: ${t.discovered} ideas, ${t.generated} generated, ${t.published} published (${cfg.toolsPublishStatus}), ${t.optimized} pages optimized`,
+        );
+      } catch (e) {
+        result.errors.push(`tools phase: ${String((e as Error)?.message ?? e)}`);
+      }
+    }
+
+    // 6a. SITE-WIDE AUTO INTERNAL LINKING — off by default. Scanning is
+    // read-only (safe); applying links live is gated separately since it
+    // edits existing WordPress content. Both require siteLinksEnabled=true.
+    if (cfg.siteLinksEnabled) {
+      try {
+        const { runSiteLinkScan, applyTopSuggestions } = await import("./site-link-graph");
+        if (cfg.siteLinksScanPerRun) {
+          const scan = await runSiteLinkScan({ maxPages: 30, minScore: 0.12, limit: 300 });
+          result.siteLinksFound = scan.saved;
+          if (scan.saved) log(`Site links: scanned site, found ${scan.saved} new opportunities`);
+        }
+        if (cfg.siteLinksApplyPerRun > 0) {
+          const applied = await applyTopSuggestions(cfg.siteLinksApplyPerRun);
+          result.siteLinksApplied = applied.applied;
+          for (const e of applied.errors) result.errors.push(`site-links: ${e}`);
+          if (applied.applied) log(`Site links: applied ${applied.applied} link(s) live`);
         }
       } catch (e) {
-        result.errors.push(`queue ${article.id}: ${String((e as Error)?.message ?? e)}`);
+        result.errors.push(`site links: ${String((e as Error)?.message ?? e)}`);
       }
     }
-    log(
-      `Review queue: ${result.queued} queued, ${result.cadenceLimited} cadence-limited, ${result.blocked} blocked`,
-    );
-  }
 
-  // 3b. PROCESS REVIEW QUEUE — publish anything whose hold window has fully
-  // elapsed, but ONLY if auto-approve-after-hold is turned on. Otherwise
-  // queued articles wait for a human to approve/reject, no matter how long.
-  try {
-    const { processReviewQueue } = await import("./publish-queue");
-    const q = await processReviewQueue(cfg.autoApproveAfterHold);
-    result.published += q.autoPublished;
-    for (const e of q.errors) result.errors.push(`queue-release: ${e}`);
-    if (q.autoPublished) log(`Review queue: auto-published ${q.autoPublished} whose hold elapsed`);
-    if (q.stillQueued)
+    // 6b. JOB QUEUE — drain durable bulk jobs (build/optimize/publish) server-side.
+    try {
+      const { drainJobs } = await import("./job-queue");
+      const jq = await drainJobs(Number(process.env.AUTOPILOT_JOBS_PER_RUN || 10));
+      if (jq.processed)
+        log(`Jobs: processed ${jq.processed} (${jq.done} done, ${jq.failed} failed/retry)`);
+    } catch (e) {
+      result.errors.push(`job queue: ${String((e as Error)?.message ?? e)}`);
+    }
+
+    // 7. KNOWLEDGE GRAPH — keep the system's understanding fresh + learning.
+    try {
+      const { rebuildKnowledgeGraph } = await import("./knowledge-graph");
+      const kgRes = await rebuildKnowledgeGraph();
       log(
-        `Review queue: ${q.stillQueued} still waiting (${cfg.autoApproveAfterHold ? "hold not yet elapsed" : "waiting for manual approval"})`,
-      );
-  } catch (e) {
-    result.errors.push(`queue processing: ${String((e as Error)?.message ?? e)}`);
-  }
-
-  // 4. REFRESH stale articles — prioritised review queue (freshness/decay).
-  if (cfg.refreshAfterDays > 0) {
-    try {
-      const { listStaleArticles, markArticleReviewed } = await import("./freshness");
-      const stale = await listStaleArticles(10);
-      // Refresh the highest-priority few; stamp review so we don't re-flag them
-      // next cycle (and they regenerate via the normal pipeline).
-      for (const a of stale.slice(0, 2)) {
-        await markArticleReviewed(a.id, { rewrite: true });
-        result.refreshed++;
-      }
-      if (result.refreshed)
-        log(
-          `Refresh: queued ${result.refreshed} stale articles for review (${stale.length} due, top: ${stale[0]?.reason ?? "n/a"})`,
-        );
-    } catch (e) {
-      result.errors.push(`refresh: ${String((e as Error)?.message ?? e)}`);
-    }
-  }
-
-  // 5. SYNC ANALYTICS — pull real Google Search Console data into the learning loop.
-  try {
-    const { hydrateEnvFromSettings } = await import("./app-settings");
-    await hydrateEnvFromSettings();
-    const { hasGscCredentials, querySearchAnalytics, isoDaysAgo } = await import("./gsc-client");
-    if (hasGscCredentials()) {
-      const startDate = isoDaysAgo(30);
-      const endDate = isoDaysAgo(2);
-      const rows = await querySearchAnalytics({
-        startDate,
-        endDate,
-        dimensions: ["page"],
-        rowLimit: 1000,
-      });
-      const { upsertSearchPerformance } = await import("@/server/db/repos/search-performance");
-      const { stored } = await upsertSearchPerformance(
-        rows.map((r) => ({
-          page: r.page,
-          clicks: r.clicks,
-          impressions: r.impressions,
-          ctr: r.ctr,
-          position: r.position,
-          dateStart: startDate,
-          dateEnd: endDate,
-        })),
-      );
-      result.syncedPages = stored;
-      if (stored)
-        log(
-          `Analytics: synced ${stored} pages from Search Console (real ranking data → learning loop)`,
-        );
-    }
-  } catch (e) {
-    result.errors.push(`analytics sync: ${String((e as Error)?.message ?? e)}`);
-  }
-
-  // 5b. SYNC CONVERSIONS — pull console signup/paid events + attribute to pages.
-  try {
-    const { hasPluginConfigured } = await import("./wp-plugin-client");
-    if (hasPluginConfigured()) {
-      const { syncConversionsInternal } = await import("./conversions.functions");
-      const cv = await syncConversionsInternal();
-      if (cv.stored)
-        log(
-          `Conversions: ingested ${cv.stored} (${cv.signups} signups, ${cv.paid} paid, ${cv.value} value)`,
-        );
-    }
-  } catch (e) {
-    result.errors.push(`conversion sync: ${String((e as Error)?.message ?? e)}`);
-  }
-
-  // 6. TOOL PAGES — discover/generate/publish new tools + optimize existing ones.
-  if (cfg.toolsEnabled) {
-    try {
-      const { runToolsCycleInternal } = await import("./tools.functions");
-      const t = await runToolsCycleInternal({
-        geo: cfg.geo,
-        sync: true,
-        discover: cfg.toolsDiscoverPerRun > 0,
-        discoverCount: cfg.toolsDiscoverPerRun,
-        generateCount: cfg.toolsGeneratePerRun,
-        publishStatus: cfg.toolsPublishStatus,
-        optimizeCount: cfg.toolsOptimizePerRun,
-      });
-      result.toolsDiscovered = t.discovered;
-      result.toolsGenerated = t.generated;
-      result.toolsPublished = t.published;
-      result.toolsOptimized = t.optimized;
-      for (const e of t.errors) result.errors.push(`tools: ${e}`);
-      log(
-        `Tools: ${t.discovered} ideas, ${t.generated} generated, ${t.published} published (${cfg.toolsPublishStatus}), ${t.optimized} pages optimized`,
+        `Knowledge graph: ${kgRes.totals.nodes} entities, ${kgRes.totals.edges} links (learned ${kgRes.learned.clustersRewarded} clusters)`,
       );
     } catch (e) {
-      result.errors.push(`tools phase: ${String((e as Error)?.message ?? e)}`);
+      result.errors.push(`knowledge graph: ${String((e as Error)?.message ?? e)}`);
     }
-  }
 
-  // 6a. SITE-WIDE AUTO INTERNAL LINKING — off by default. Scanning is
-  // read-only (safe); applying links live is gated separately since it
-  // edits existing WordPress content. Both require siteLinksEnabled=true.
-  if (cfg.siteLinksEnabled) {
-    try {
-      const { runSiteLinkScan, applyTopSuggestions } = await import("./site-link-graph");
-      if (cfg.siteLinksScanPerRun) {
-        const scan = await runSiteLinkScan({ maxPages: 30, minScore: 0.12, limit: 300 });
-        result.siteLinksFound = scan.saved;
-        if (scan.saved) log(`Site links: scanned site, found ${scan.saved} new opportunities`);
-      }
-      if (cfg.siteLinksApplyPerRun > 0) {
-        const applied = await applyTopSuggestions(cfg.siteLinksApplyPerRun);
-        result.siteLinksApplied = applied.applied;
-        for (const e of applied.errors) result.errors.push(`site-links: ${e}`);
-        if (applied.applied) log(`Site links: applied ${applied.applied} link(s) live`);
-      }
-    } catch (e) {
-      result.errors.push(`site links: ${String((e as Error)?.message ?? e)}`);
-    }
-  }
-
-  // 6b. JOB QUEUE — drain durable bulk jobs (build/optimize/publish) server-side.
-  try {
-    const { drainJobs } = await import("./job-queue");
-    const jq = await drainJobs(Number(process.env.AUTOPILOT_JOBS_PER_RUN || 10));
-    if (jq.processed)
-      log(`Jobs: processed ${jq.processed} (${jq.done} done, ${jq.failed} failed/retry)`);
-  } catch (e) {
-    result.errors.push(`job queue: ${String((e as Error)?.message ?? e)}`);
-  }
-
-  // 7. KNOWLEDGE GRAPH — keep the system's understanding fresh + learning.
-  try {
-    const { rebuildKnowledgeGraph } = await import("./knowledge-graph");
-    const kgRes = await rebuildKnowledgeGraph();
-    log(
-      `Knowledge graph: ${kgRes.totals.nodes} entities, ${kgRes.totals.edges} links (learned ${kgRes.learned.clustersRewarded} clusters)`,
-    );
-  } catch (e) {
-    result.errors.push(`knowledge graph: ${String((e as Error)?.message ?? e)}`);
-  }
-
-  // 7b. AI CITATION TRACKING — measure whether we're cited in AI answers (GEO/AIO).
-  if (process.env.AUTOPILOT_CITATIONS === "1") {
-    try {
-      const { hasCitationTracking } = await import("./citation-tracker");
-      if (hasCitationTracking()) {
-        const { buildDefaultCitationQueries, runCitationCheckInternal } =
-          await import("./citations.functions");
-        const perRun = Number(process.env.AUTOPILOT_CITATIONS_PER_RUN || 5);
-        const queries = await buildDefaultCitationQueries(perRun);
-        let cited = 0;
-        let mentioned = 0;
-        let ran = 0;
-        for (const q of queries) {
-          const r = await runCitationCheckInternal({
-            queries: [q.query],
-            geo: q.geo,
-            clusterId: q.clusterId,
-          });
-          cited += r.cited;
-          mentioned += r.mentioned;
-          ran += r.ran;
+    // 7b. AI CITATION TRACKING — measure whether we're cited in AI answers (GEO/AIO).
+    if (process.env.AUTOPILOT_CITATIONS === "1") {
+      try {
+        const { hasCitationTracking } = await import("./citation-tracker");
+        if (hasCitationTracking()) {
+          const { buildDefaultCitationQueries, runCitationCheckInternal } =
+            await import("./citations.functions");
+          const perRun = Number(process.env.AUTOPILOT_CITATIONS_PER_RUN || 5);
+          const queries = await buildDefaultCitationQueries(perRun);
+          let cited = 0;
+          let mentioned = 0;
+          let ran = 0;
+          for (const q of queries) {
+            const r = await runCitationCheckInternal({
+              queries: [q.query],
+              geo: q.geo,
+              clusterId: q.clusterId,
+            });
+            cited += r.cited;
+            mentioned += r.mentioned;
+            ran += r.ran;
+          }
+          if (ran)
+            log(
+              `Citations: checked ${ran} engine-answers — cited ${cited}, mentioned ${mentioned}`,
+            );
         }
-        if (ran)
-          log(`Citations: checked ${ran} engine-answers — cited ${cited}, mentioned ${mentioned}`);
+      } catch (e) {
+        result.errors.push(`citation tracking: ${String((e as Error)?.message ?? e)}`);
       }
-    } catch (e) {
-      result.errors.push(`citation tracking: ${String((e as Error)?.message ?? e)}`);
     }
-  }
 
-  log(
-    `Cycle complete: ${result.kloudgraphSent} from KLOUDGRAPH, ${result.discovered} discovered, ${result.written} written, ${result.queued} queued for review, ${result.published} published`,
-  );
-  return result;
+    log(
+      `Cycle complete: ${result.kloudgraphSent} from KLOUDGRAPH, ${result.discovered} discovered, ${result.written} written, ${result.queued} queued for review, ${result.published} published`,
+    );
+    // A cycle that reaches here completed all its phases — individual phases
+    // can log a soft error (e.g. one API hiccup) without the whole cycle
+    // being "stuck" or "failed". Status is "done" either way; any soft errors
+    // stay visible in the log + the run's error field so nothing is hidden.
+    await runs.finishProcessRun(run.id, {
+      status: "done",
+      error: result.errors.length
+        ? `${result.errors.length} soft error(s): ${result.errors.slice(0, 3).join("; ")}`
+        : undefined,
+      result,
+    });
+    return result;
+  } catch (e) {
+    const error = String((e as Error)?.message ?? e);
+    result.errors.push(`fatal: ${error}`);
+    await runs.appendProcessLog(run.id, `Cycle crashed: ${error}`, "error").catch(() => {});
+    await runs.finishProcessRun(run.id, { status: "error", error, result }).catch(() => {});
+    throw e;
+  }
 }
 
 /* ====================== BUILT-IN SCHEDULER ====================== */

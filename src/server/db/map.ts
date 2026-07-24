@@ -210,6 +210,7 @@ export function toApiProcessRun(row: ProcessRunRow) {
     completed: row.completed ?? 0,
     failed: row.failed ?? 0,
     logs: (row.logs ?? []) as { at: string; level: string; message: string }[],
+    input: row.input,
     result: row.result,
     error: row.error,
     started_at: row.startedAt?.toISOString(),

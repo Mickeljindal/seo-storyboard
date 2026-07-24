@@ -510,6 +510,10 @@ export const syncExistingToolsFn = createServerFn({ method: "POST" })
  * so the dashboard can show a live "page N of M" progress bar + per-page log
  * instead of only a spinner for however long the sync (with retries) takes.
  * Returns immediately with the run id; call getProcessRunFn to poll it.
+ *
+ * Also serves as the RETRY path: the Activity Center re-calls this exact
+ * server fn with the same {category, maxPages, perPage} it reads back from
+ * the failed run's stored `input`.
  */
 export const syncExistingToolsTrackedFn = createServerFn({ method: "POST" })
   .inputValidator(
@@ -526,6 +530,7 @@ export const syncExistingToolsTrackedFn = createServerFn({ method: "POST" })
     const run = await runs.createProcessRun({
       kind: "sync_tools",
       label: `Syncing "${data.category}" pages from WordPress`,
+      input: data,
     });
 
     void (async () => {
