@@ -99,7 +99,12 @@ export function parseCsv(text: string): { headers: string[]; rows: Record<string
       headers = record.map((h) => h.trim());
     } else if (!(record.length === 1 && record[0].trim() === "")) {
       const obj: Record<string, string> = {};
-      for (let c = 0; c < headers.length; c++) obj[headers[c]] = (record[c] ?? "").trim();
+      for (let c = 0; c < headers.length; c++) {
+        // Strip NUL bytes: Postgres text columns reject them outright (some
+        // scraped/multilingual Semrush exports contain a stray NUL in an
+        // anchor/URL field), and they can't legitimately appear in real text.
+        obj[headers[c]] = (record[c] ?? "").split("\0").join("").trim();
+      }
       rows.push(obj);
     }
     record = [];
