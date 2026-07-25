@@ -21,8 +21,12 @@ import { assembleToolPage, type ToolPageParts } from "./tool-template";
 export type ToolSeo = {
   h1: string;
   intro_html: string;
+  /** Semantic body sections (h2 + html) that give the page topical depth. */
+  sections?: { h2: string; html: string }[];
   how_to: { title: string; steps: string[] };
   faq: { q: string; a: string }[];
+  /** Internal links to related Kloudbean guides in the same cluster (topical authority). */
+  related_guides?: { anchor: string; url: string }[];
 };
 
 export type GeneratedTool = {
@@ -138,20 +142,50 @@ Return JSON:
 }
 No banned AI-tell phrases. Return ONLY the JSON object.`;
 
-const SEO_SYSTEM = `You write the SEO wrapper content for an EXISTING Kloudbean free-tool page (used to optimize pages that already have the interactive tool). Return STRICT JSON only.
+const SEO_SYSTEM = `You write the SEO wrapper content for an EXISTING Kloudbean free-tool page (the interactive tool already exists — you are adding the surrounding content that earns rankings and AI citations). Return STRICT JSON only.
 
 ${KLOUDBEAN_PROMPT_CORE}
 
+WRITE FOR 2026 SEARCH — optimize for Google rankings, AI Overviews, and LLM citations (GEO/AIO) together. Follow ALL of these:
+
+1. ANSWER-FIRST: intro_html opens with a 40–60 word direct answer to the implied question, with the exact target keyword in the FIRST sentence. AI engines lift these blocks verbatim as citations.
+2. SEMANTIC DEPTH / TOPICAL AUTHORITY: use the SEMANTIC COVERAGE subtopics provided in the grounding to write 2–3 body sections that genuinely cover the topic (definitions, how it works, common errors, best practices, comparisons). This is what makes the page topically complete instead of thin.
+3. E-E-A-T: write like someone who has actually run this in production. If a REAL OPERATIONAL EXPERIENCE lesson is provided, weave it in naturally (as a pattern "we see repeatedly", never a fabricated named customer or invented statistic). Neutral expert tone. NO hype words ("seamless", "robust", "unlock", "leverage", "game-changer", "dive into", "in today's").
+4. EVIDENCE: where genuinely applicable, include ONE concrete, verifiable data point or a small comparison (e.g. a 2–3 row comparison rendered as an HTML <table>) inside a body section. Never invent statistics — only use facts you are confident are true and general.
+5. TOPICAL LINKS: if RELATED KLOUDBEAN GUIDES are provided, reference 1–2 by their exact title in a body section as internal links (the app converts them to real links).
+6. CONVERSION: end the LAST body section by tying the topic back to hosting/deploying the relevant workload on Kloudbean — naturally, one sentence, no hard sell.
+
 Return JSON with EXACTLY this shape:
 {
-  "h1": "string — includes the exact target keyword verbatim, human (max ~70 chars)",
-  "intro_html": "string — 2 short <p> paragraphs; the FIRST is a 40–60 word direct answer with the keyword in the first sentence; mention Kloudbean once",
+  "h1": "includes the exact target keyword verbatim, human (max ~70 chars)",
+  "intro_html": "2 short <p> paragraphs; FIRST is the 40–60 word answer-first block with the keyword in sentence 1; mention Kloudbean once",
+  "sections": [ { "h2": "section title (question- or topic-shaped, keyword-aware)", "html": "1–3 <p> paragraphs and/or a <ul>/<table>; genuinely useful, specific, covers a real subtopic" }, ... 2 to 3 sections ],
   "how_to": { "title": "How to use this tool", "steps": ["step 1","step 2","step 3","step 4"] },
-  "faq": [ {"q":"question","a":"concise answer"}, ... 4 to 6 items ],
+  "faq": [ {"q":"real question people ask (use the semantic subtopics)","a":"concise, direct answer (40–60 words, quotable)"}, ... 4 to 6 items ],
   "meta_title": "<= 60 chars, includes keyword, ends with | Kloudbean",
   "meta_description": "<= 155 chars, includes keyword, mentions it's free"
 }
-Plain, expert, no hype, no AI-tell phrases. Return ONLY the JSON object.`;
+section "html" may contain <p>, <ul>/<li>, <ol>/<li>, <table>/<tr>/<th>/<td>, <strong>, <a> only — never <h1>, <script>, <style>, or class attributes. Return ONLY the JSON object.`;
+
+/** Author/publisher entity for E-E-A-T. Uses a real person if configured, else
+ * the Kloudbean Editorial Team org — never a fabricated named author. */
+function authorEntity(): object {
+  const name = process.env.ARTICLE_AUTHOR_NAME?.trim();
+  const url = process.env.ARTICLE_AUTHOR_URL?.trim();
+  if (name) {
+    return {
+      "@type": "Person",
+      name,
+      ...(url ? { url } : {}),
+      worksFor: { "@type": "Organization", name: "Kloudbean", url: "https://kloudbean.com" },
+    };
+  }
+  return {
+    "@type": "Organization",
+    name: "Kloudbean Editorial Team",
+    url: "https://kloudbean.com",
+  };
+}
 
 function buildToolSchema(
   input: ToolGenInput,
@@ -164,6 +198,16 @@ function buildToolSchema(
       ? "DeveloperApplication"
       : "BusinessApplication";
 
+  // E-E-A-T signals: a real author/reviewer entity + freshness dates + the
+  // keyword set the tool targets. dateModified = today (this page was just
+  // reviewed/optimized), which is exactly the freshness signal AI engines and
+  // Google reward. Never fabricates ratings/reviews (honesty policy).
+  const today = new Date().toISOString().slice(0, 10);
+  const author = authorEntity();
+  const keywords = [input.target_keyword, ...(input.secondary_keywords ?? [])]
+    .filter(Boolean)
+    .join(", ");
+
   const blocks: object[] = [
     {
       "@context": "https://schema.org",
@@ -173,8 +217,22 @@ function buildToolSchema(
       operatingSystem: "Any (web-based)",
       ...(pageUrl ? { url: pageUrl } : {}),
       description: meta.description,
+      ...(keywords ? { keywords } : {}),
+      isAccessibleForFree: true,
+      datePublished: today,
+      dateModified: today,
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-      publisher: { "@type": "Organization", name: "Kloudbean", url: "https://kloudbean.com" },
+      author,
+      creator: author,
+      publisher: {
+        "@type": "Organization",
+        name: "Kloudbean",
+        url: "https://kloudbean.com",
+        logo: {
+          "@type": "ImageObject",
+          url: "https://kloudbean.com/wp-content/uploads/kloudbean-logo.png",
+        },
+      },
     },
   ];
 
@@ -362,7 +420,15 @@ Kloudbean angle (work in naturally): ${input.kloudbean_angle}`,
 // SEO-ONLY generation — used to optimize EXISTING pages (tool already present).
 // ---------------------------------------------------------------------------
 
-type SeoJson = ToolSeo & { meta_title?: string; meta_description?: string };
+type SeoJson = {
+  h1?: string;
+  intro_html?: string;
+  sections?: { h2?: string; html?: string }[];
+  how_to?: { title?: string; steps?: string[] };
+  faq?: { q: string; a: string }[];
+  meta_title?: string;
+  meta_description?: string;
+};
 
 export type GeneratedToolSeo = {
   ok: boolean;
@@ -371,8 +437,20 @@ export type GeneratedToolSeo = {
   meta_description: string;
   schema_jsonld: object[];
   source: "ai" | "fallback";
+  /** Cluster the tool was classified into (for reporting/topical map). */
+  clusterId: number | null;
   log: string[];
 };
+
+/** Allowed inline tags in an AI-authored body section (defense-in-depth: strip
+ * anything that could break the page or inject script/style). */
+function sanitizeSectionHtml(html: string): string {
+  return html
+    .replace(/<\/?(?:script|style|h1|iframe|form|input|button)[^>]*>/gi, "")
+    .replace(/\son\w+="[^"]*"/gi, "") // strip inline event handlers
+    .replace(/\sclass="[^"]*"/gi, "") // no class attrs (injected block is self-styled)
+    .trim();
+}
 
 export async function generateToolSeo(input: ToolGenInput): Promise<GeneratedToolSeo> {
   const log: string[] = [];
@@ -385,7 +463,28 @@ export async function generateToolSeo(input: ToolGenInput): Promise<GeneratedToo
 
   const baseUrl = (input.baseUrl ?? "https://kloudbean.com").replace(/\/$/, "");
   const pageUrl = `${baseUrl}/${input.slug}`;
-  const secondary = (input.secondary_keywords ?? []).join(", ");
+
+  // Gather REAL grounding (semantic subtopics from the Semrush warehouse,
+  // competitor positions, topical cluster + related guides, an E-E-A-T lesson)
+  // so the content is specific and defensible, not generic filler.
+  const { gatherToolGrounding } = await import("./tool-seo-grounding");
+  const grounding = await gatherToolGrounding(input.target_keyword, input.name).catch(() => null);
+  if (grounding?.relatedKeywords.length)
+    log.push(`grounding: ${grounding.relatedKeywords.length} semantic subtopics`);
+
+  // Merge warehouse subtopics into secondary keywords (deduped) so the schema +
+  // prompt both reflect the real semantic space.
+  const secondaryList = [
+    ...new Set(
+      [...(input.secondary_keywords ?? []), ...(grounding?.relatedKeywords ?? [])].map((k) =>
+        k.trim(),
+      ),
+    ),
+  ]
+    .filter(Boolean)
+    .slice(0, 12);
+  const secondary = secondaryList.join(", ");
+  const enrichedInput: ToolGenInput = { ...input, secondary_keywords: secondaryList };
 
   let seoJson: SeoJson | null = null;
   try {
@@ -397,9 +496,12 @@ export async function generateToolSeo(input: ToolGenInput): Promise<GeneratedToo
 Target keyword (use verbatim): "${input.target_keyword}"
 Secondary keywords: ${secondary || "(none)"}
 What it does: ${input.description}
-Kloudbean angle (work in naturally, don't be salesy): ${input.kloudbean_angle}`,
-        temperature: 0.7,
-        maxOutputTokens: 1800,
+Kloudbean angle (work in naturally, don't be salesy): ${input.kloudbean_angle}
+
+GROUNDING (use this — it's real data, not a guess):
+${grounding?.promptBlock || "(no extra grounding available for this topic)"}`,
+        temperature: 0.6,
+        maxOutputTokens: 2600,
       })
     ).text;
     seoJson = extractJson<SeoJson>(raw);
@@ -407,14 +509,23 @@ Kloudbean angle (work in naturally, don't be salesy): ${input.kloudbean_angle}`,
     log.push(`seo generation error: ${String((e as Error)?.message ?? e)}`);
   }
 
+  const sections = Array.isArray(seoJson?.sections)
+    ? seoJson!.sections
+        .filter((s) => s?.h2 && s?.html)
+        .map((s) => ({ h2: s.h2!.trim(), html: sanitizeSectionHtml(s.html!) }))
+        .filter((s) => s.html.length > 0)
+        .slice(0, 3)
+    : [];
+
   const seo: ToolSeo = {
     h1: seoJson?.h1?.trim() || `${input.name} — Free ${input.tool_type ?? "Tool"}`,
     intro_html:
       seoJson?.intro_html?.trim() ||
       `<p>${escapeHtml(input.description)} This free ${escapeHtml(input.target_keyword)} runs in your browser, with no signup.</p>`,
+    sections,
     how_to:
       seoJson?.how_to && Array.isArray(seoJson.how_to.steps) && seoJson.how_to.steps.length
-        ? seoJson.how_to
+        ? { title: seoJson.how_to.title || "How to use this tool", steps: seoJson.how_to.steps }
         : {
             title: "How to use this tool",
             steps: [
@@ -424,6 +535,7 @@ Kloudbean angle (work in naturally, don't be salesy): ${input.kloudbean_angle}`,
             ],
           },
     faq: Array.isArray(seoJson?.faq) ? seoJson!.faq.filter((f) => f?.q && f?.a) : [],
+    related_guides: grounding?.relatedGuides ?? [],
   };
   const meta_title = trimTo(seoJson?.meta_title?.trim() || `${input.name} | Kloudbean`, 60);
   const meta_description = trimTo(
@@ -431,13 +543,16 @@ Kloudbean angle (work in naturally, don't be salesy): ${input.kloudbean_angle}`,
       `Free ${input.target_keyword} from Kloudbean. ${input.description}`.replace(/\s+/g, " "),
     155,
   );
+  // Schema uses the enriched (warehouse-merged) keyword set.
   const schema = buildToolSchema(
-    input,
+    enrichedInput,
     { title: meta_title, description: meta_description },
     seo.faq,
     pageUrl,
   );
-  log.push(`seo: h1="${seo.h1}", faq=${seo.faq.length}, source=${seoJson ? "ai" : "fallback"}`);
+  log.push(
+    `seo: h1="${seo.h1}", sections=${sections.length}, faq=${seo.faq.length}, guides=${seo.related_guides?.length ?? 0}, source=${seoJson ? "ai" : "fallback"}`,
+  );
 
   return {
     ok: true,
@@ -446,6 +561,7 @@ Kloudbean angle (work in naturally, don't be salesy): ${input.kloudbean_angle}`,
     meta_description,
     schema_jsonld: schema,
     source: seoJson ? "ai" : "fallback",
+    clusterId: grounding?.clusterId ?? null,
     log,
   };
 }
@@ -454,11 +570,13 @@ function seoFallback(input: ToolGenInput, error: string): GeneratedToolSeo {
   const seo: ToolSeo = {
     h1: `${input.name} — Free ${input.tool_type ?? "Tool"}`,
     intro_html: `<p>${escapeHtml(input.description)}</p>`,
+    sections: [],
     how_to: {
       title: "How to use this tool",
       steps: ["Enter your values.", "Review the result.", "Adjust inputs."],
     },
     faq: [],
+    related_guides: [],
   };
   const baseUrl = (input.baseUrl ?? "https://kloudbean.com").replace(/\/$/, "");
   const meta_title = trimTo(`${input.name} | Kloudbean`, 60);
@@ -478,6 +596,7 @@ function seoFallback(input: ToolGenInput, error: string): GeneratedToolSeo {
       `${baseUrl}/${input.slug}`,
     ),
     source: "fallback",
+    clusterId: null,
     log: [error],
   };
 }

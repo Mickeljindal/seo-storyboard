@@ -151,10 +151,40 @@ export function relatedHtml(related: { anchor: string; url: string }[]): string 
 // --- markers so re-optimizing is idempotent (replace, never duplicate) -----
 
 export const INTRO_MARKER = "kbseo-intro";
+export const BODY_MARKER = "kbseo-body";
 export const HOWTO_MARKER = "kbseo-howto";
 export const FAQ_MARKER = "kbseo-faq";
 export const RELATED_MARKER = "kbseo-related";
+export const GUIDES_MARKER = "kbseo-guides";
 export const SCHEMA_MARKER = "kbseo-schema";
+
+/** All markers this engine owns — the single source of truth for idempotent
+ * strip/replace so adding a new injected block can't be forgotten in one place. */
+const ALL_MARKERS = [
+  INTRO_MARKER,
+  BODY_MARKER,
+  HOWTO_MARKER,
+  FAQ_MARKER,
+  RELATED_MARKER,
+  GUIDES_MARKER,
+  SCHEMA_MARKER,
+];
+
+/** Sanitize AI-authored section HTML for safe injection (no script/style/h1/class). */
+function sanitizeInjectedHtml(html: string): string {
+  return html
+    .replace(/<\/?(?:script|style|h1|iframe|form|input|button)[^>]*>/gi, "")
+    .replace(/\son\w+="[^"]*"/gi, "")
+    .replace(/\sclass="[^"]*"/gi, "");
+}
+
+/** Render semantic body sections (h2 + pre-sanitized inner html) as one block. */
+function bodySectionsHtml(sections: { h2: string; html: string }[]): string {
+  return sections
+    .filter((s) => s.h2?.trim() && s.html?.trim())
+    .map((s) => `<h2>${escapeHtml(s.h2)}</h2>\n${sanitizeInjectedHtml(s.html)}`)
+    .join("\n");
+}
 
 /**
  * Wrap a fragment in a marker comment pair, so it can be found/replaced later.
@@ -244,12 +274,19 @@ export type InjectionPlan = {
  */
 export function buildInjectionPlan(params: {
   seo: ToolSeoContent;
+  /** Semantic body sections (h2 + inner html) — topical depth for the page. */
+  sections?: { h2: string; html: string }[];
+  /** Related OTHER TOOLS. */
   related?: { anchor: string; url: string }[];
+  /** Related Kloudbean GUIDES/articles in the same cluster — topical-authority internal links. */
+  relatedGuides?: { anchor: string; url: string }[];
   schemaJsonld?: object[];
   flags?: InjectionFlags;
 }): InjectionPlan {
   const { seo } = params;
+  const sections = params.sections ?? [];
   const related = params.related ?? [];
+  const relatedGuides = params.relatedGuides ?? [];
   const flags = params.flags ?? {};
   const prependParts: string[] = [];
   const appendParts: string[] = [];
@@ -263,6 +300,16 @@ export function buildInjectionPlan(params: {
     const introInner = `<h2>${escapeHtml(seo.h1)}</h2>\n${seo.intro_html}`;
     prependParts.push(marked(INTRO_MARKER, styledBlock(introInner)));
     added.push("intro");
+  }
+
+  // Semantic body sections — topical-depth content (definitions, how it works,
+  // common errors, comparisons) appended right after the tool, before how-to.
+  if (sections.length) {
+    const bodyInner = bodySectionsHtml(sections);
+    if (bodyInner.trim()) {
+      appendParts.push(marked(BODY_MARKER, styledBlock(bodyInner)));
+      added.push("body");
+    }
   }
 
   if (!flags.hasHowTo && seo.how_to?.steps?.length) {
@@ -283,6 +330,18 @@ export function buildInjectionPlan(params: {
       const relatedInner = `<h2>Related free tools</h2>\n${relatedInnerHtml}`;
       appendParts.push(marked(RELATED_MARKER, styledBlock(relatedInner)));
       added.push("related");
+    }
+  }
+
+  // Related GUIDES — internal links up into the topical silo (articles in the
+  // same content cluster). Distinct from "related tools" so the topical intent
+  // is explicit to readers and crawlers.
+  if (relatedGuides.length) {
+    const guidesInnerHtml = relatedHtml(relatedGuides);
+    if (guidesInnerHtml) {
+      const guidesInner = `<h2>Related guides</h2>\n${guidesInnerHtml}`;
+      appendParts.push(marked(GUIDES_MARKER, styledBlock(guidesInner)));
+      added.push("guides");
     }
   }
 
@@ -307,9 +366,8 @@ export function buildInjectionPlan(params: {
  * original markup (everything NOT inside a kbseo-* marker) is never touched.
  */
 export function spliceInjectionIntoWidgetHtml(existingHtml: string, plan: InjectionPlan): string {
-  const markers = [INTRO_MARKER, HOWTO_MARKER, FAQ_MARKER, RELATED_MARKER, SCHEMA_MARKER];
   let cleaned = existingHtml;
-  for (const m of markers) {
+  for (const m of ALL_MARKERS) {
     const re = new RegExp(`<!--\\s*${m}:start\\s*-->[\\s\\S]*?<!--\\s*${m}:end\\s*-->`, "g");
     cleaned = cleaned.replace(re, "").trim();
   }
@@ -341,7 +399,15 @@ export type ElementorAnalysis = {
   /** Which of our own markers are already present (from a prior optimize/
    *  generate run) — always safe to re-splice/replace regardless of the
    *  hasFaq/hasIntro signals above, since marker-wrapped content is ours. */
-  ownMarkers: { intro: boolean; howTo: boolean; faq: boolean; related: boolean; schema: boolean };
+  ownMarkers: {
+    intro: boolean;
+    body: boolean;
+    howTo: boolean;
+    faq: boolean;
+    related: boolean;
+    guides: boolean;
+    schema: boolean;
+  };
   /** True when a kbseo-* marker is present WITHOUT the self-contained
    *  "kbseo-injected" style wrapper — i.e. this page was injected before the
    *  styling fix shipped and needs re-optimizing to pick it up (its intro/
@@ -380,9 +446,8 @@ function stripTags(html: string): string {
  * skip re-injecting", permanently locking in whatever bug shipped it.
  */
 function stripOwnMarkers(html: string): string {
-  const markers = [INTRO_MARKER, HOWTO_MARKER, FAQ_MARKER, RELATED_MARKER, SCHEMA_MARKER];
   let cleaned = html;
-  for (const m of markers) {
+  for (const m of ALL_MARKERS) {
     const re = new RegExp(`<!--\\s*${m}:start\\s*-->[\\s\\S]*?<!--\\s*${m}:end\\s*-->`, "g");
     cleaned = cleaned.replace(re, "");
   }
@@ -405,7 +470,15 @@ export function analyzeElementorData(raw: unknown): ElementorAnalysis {
     hasGate: false,
     widgetTypes: [],
     nonInjectedWordCount: 0,
-    ownMarkers: { intro: false, howTo: false, faq: false, related: false, schema: false },
+    ownMarkers: {
+      intro: false,
+      body: false,
+      howTo: false,
+      faq: false,
+      related: false,
+      guides: false,
+      schema: false,
+    },
     needsRestyle: false,
   };
 
@@ -436,16 +509,23 @@ export function analyzeElementorData(raw: unknown): ElementorAnalysis {
         if (/application\/ld\+json/i.test(html)) analysis.hasJsonLd = true;
         if (html.includes(GATE_MARKER)) analysis.hasGate = true;
         if (html.includes(`${INTRO_MARKER}:start`)) analysis.ownMarkers.intro = true;
+        if (html.includes(`${BODY_MARKER}:start`)) analysis.ownMarkers.body = true;
         if (html.includes(`${HOWTO_MARKER}:start`)) analysis.ownMarkers.howTo = true;
         if (html.includes(`${FAQ_MARKER}:start`)) analysis.ownMarkers.faq = true;
         if (html.includes(`${RELATED_MARKER}:start`)) analysis.ownMarkers.related = true;
+        if (html.includes(`${GUIDES_MARKER}:start`)) analysis.ownMarkers.guides = true;
         if (html.includes(`${SCHEMA_MARKER}:start`)) analysis.ownMarkers.schema = true;
-        // A content marker (intro/how-to/faq/related) present WITHOUT the
-        // self-contained style wrapper means it was injected by the OLD,
-        // unstyled version of this engine — flag it for re-optimizing.
-        const hasContentMarker = [INTRO_MARKER, HOWTO_MARKER, FAQ_MARKER, RELATED_MARKER].some(
-          (m) => html.includes(`${m}:start`),
-        );
+        // A content marker present WITHOUT the self-contained style wrapper
+        // means it was injected by the OLD, unstyled version of this engine —
+        // flag it for re-optimizing.
+        const hasContentMarker = [
+          INTRO_MARKER,
+          BODY_MARKER,
+          HOWTO_MARKER,
+          FAQ_MARKER,
+          RELATED_MARKER,
+          GUIDES_MARKER,
+        ].some((m) => html.includes(`${m}:start`));
         if (hasContentMarker && !html.includes("kbseo-injected")) analysis.needsRestyle = true;
         // HTML-widget text counts toward content, minus scripts/styles.
         textParts.push(stripTags(html));

@@ -251,8 +251,8 @@ export const discoverKloudgraphIdeasFn = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
       limit: z.number().min(1).max(100).default(40),
-      minAudience: z.number().min(0).max(100).default(25),
-      minVolume: z.number().min(0).max(100000).default(10),
+      minAudience: z.number().min(0).max(100).default(12),
+      minVolume: z.number().min(0).max(100000).default(5),
     }).parse,
   )
   .handler(async ({ data }) => {
@@ -1017,7 +1017,11 @@ export async function optimizeToolInternal(
   const forceRestyle = !!audit.needs_restyle;
   const plan = buildInjectionPlan({
     seo: seoRes.seo,
+    // Semantic body sections + same-cluster guide links come from the grounded
+    // SEO generator — the topical-authority + semantic-depth content.
+    sections: seoRes.seo.sections ?? [],
     related,
+    relatedGuides: seoRes.seo.related_guides ?? [],
     schemaJsonld: injectSchema,
     flags: {
       hasIntro: !forceRestyle && (audit.non_injected_word_count ?? audit.word_count) > 400,
@@ -1064,10 +1068,13 @@ export async function optimizeToolInternal(
 
   // Human-readable change list (what was / will be implemented).
   const ADDED_LABELS: Record<string, string> = {
-    intro: "Added an SEO intro section",
+    intro: "Added an answer-first SEO intro (AI-citation-ready)",
+    body: "Added semantic topic sections (grounded in real competitor search data)",
     faq: "Added an FAQ section (FAQ schema-eligible)",
     how_to: "Added a How-to section",
-    schema: "Injected structured data (JSON-LD)",
+    related: "Added links to related free tools",
+    guides: "Added internal links to related Kloudbean guides (topical authority)",
+    schema: "Injected structured data (JSON-LD, E-E-A-T author + freshness dates)",
     internal_links: "Added internal links to related pages",
     content: "Added keyword-rich content sections",
     cta: "Added a Kloudbean call-to-action",

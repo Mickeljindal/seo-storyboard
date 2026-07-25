@@ -267,8 +267,13 @@ export async function discoverKloudgraphToolIdeas(options: KloudgraphIdeaOptions
   stats: { scanned: number; toolIntent: number; kept: number };
 }> {
   const limit = options.limit ?? 40;
-  const minAudience = options.minAudience ?? 25;
-  const minVolume = options.minVolume ?? 10;
+  // These keywords are COMPETITOR-PROVEN (a hosting rival already ranks for
+  // them and gets real traffic), so audience fit is inherently validated — the
+  // old default of 25 filtered out every pure dev-tool keyword (json formatter,
+  // dns checker, minifier, etc.) and returned nothing. 12 keeps the real dev
+  // tools while the AUDIENCE_NEGATIVE list still blocks off-topic junk.
+  const minAudience = options.minAudience ?? 12;
+  const minVolume = options.minVolume ?? 5;
   const existingNames = options.existingNames ?? new Set<string>();
   const existingSlugs = options.existingSlugs ?? new Set<string>();
 
@@ -364,6 +369,10 @@ export async function discoverKloudgraphToolIdeas(options: KloudgraphIdeaOptions
     audience: number;
   }[] = [];
   for (const [kw, v] of merged) {
+    // Drop competitor domains/URLs and junk — a rival ranking for its own brand
+    // "dnschecker.org" is not a tool WE should build (and makes a terrible tool
+    // name). Only keep clean, generic tool phrases.
+    if (!isCleanToolKeyword(kw)) continue;
     if (!hasToolIntent(kw)) continue;
     toolIntent++;
     if ((v.volume ?? 0) < minVolume) continue;
@@ -530,6 +539,24 @@ function toolTypeFromKeyword(kw: string): ToolCatalogEntry["toolType"] {
 function hasToolIntent(kw: string): boolean {
   const k = kw.toLowerCase();
   return TOOL_INTENT_TERMS.some((t) => k.includes(t));
+}
+
+const TOOL_KEYWORD_JUNK = ["xnxx", "porn", "xxx", "xvideos", " sex ", "nude", "casino", "gambling"];
+
+/**
+ * A competitor-warehouse keyword is only a good FREE-TOOL idea if it's a clean,
+ * generic phrase — not the competitor's own domain/brand ("dnschecker.org"), a
+ * pasted URL, an error-message dump, or adult/junk. Those rank for rivals but
+ * make terrible tool names and off-brand pages.
+ */
+function isCleanToolKeyword(kw: string): boolean {
+  const k = ` ${kw.toLowerCase()} `;
+  if (kw.length < 3 || kw.length > 60) return false;
+  if (kw.includes("http") || kw.includes("://") || kw.includes("www.")) return false;
+  // A domain TLD anywhere in the phrase => a specific-site/brand query.
+  if (/[a-z0-9-]+\.(com|net|org|io|co|app|dev|xyz|ai|ru|info)\b/.test(k)) return false;
+  if (TOOL_KEYWORD_JUNK.some((j) => k.includes(j))) return false;
+  return true;
 }
 
 function titleCase(kw: string): string {

@@ -346,7 +346,7 @@ function ToolsPage() {
   });
 
   const kgIdeasMut = useMutation({
-    mutationFn: () => kgIdeasFn({ data: { limit: 40, minAudience: 25, minVolume: 10 } }),
+    mutationFn: () => kgIdeasFn({ data: { limit: 40, minAudience: 12, minVolume: 5 } }),
     onSuccess: (r) => {
       if (r.stats.scanned === 0) {
         toast.info(
