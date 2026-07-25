@@ -26,19 +26,36 @@ export const enqueueToolJobsFn = createServerFn({ method: "POST" })
     const repo = await import("@/server/db/repos/jobs");
     const toolsRepo = await import("@/server/db/repos/tools");
     const { randomUUID } = await import("node:crypto");
+
+    // DEDUPE: never stack a second job for a page that already has one waiting
+    // or running. This is why clicking "Optimize ALL" three times created
+    // 3×416 = 1248 duplicate jobs — now the 2nd/3rd click queues nothing.
+    const active = await repo.activeToolIdsForType(data.type).catch(() => new Set<string>());
+    const toolIds = data.toolIds.filter((id) => !active.has(id));
+    const skipped = data.toolIds.length - toolIds.length;
+
+    if (!toolIds.length) {
+      return {
+        ok: true,
+        queued: 0,
+        skipped,
+        batchId: null as string | null,
+        batchLabel: "",
+        alreadyQueued: true,
+      };
+    }
+
     const batchId = randomUUID();
     const batchLabel =
-      data.batchLabel ?? `${TYPE_LABEL[data.type] ?? data.type} (${data.toolIds.length})`;
+      data.batchLabel ?? `${TYPE_LABEL[data.type] ?? data.type} (${toolIds.length})`;
 
     // Look up each tool's name so the per-item log reads "Fixed <Tool Name>"
     // instead of just the job type — the whole point of the log is knowing
     // exactly WHAT was worked on, not just how many jobs ran.
-    const names = await toolsRepo
-      .getToolNamesByIds(data.toolIds)
-      .catch(() => new Map<string, string>());
+    const names = await toolsRepo.getToolNamesByIds(toolIds).catch(() => new Map<string, string>());
 
     const queued = await repo.enqueueJobs(
-      data.toolIds.map((toolId) => ({
+      toolIds.map((toolId) => ({
         type: data.type,
         payload: { toolId, status: data.status },
         label: names.get(toolId) ?? toolId,
@@ -55,7 +72,7 @@ export const enqueueToolJobsFn = createServerFn({ method: "POST" })
       /* runner is best-effort — manual "Run now" still works */
     }
 
-    return { ok: true, queued, batchId, batchLabel };
+    return { ok: true, queued, skipped, batchId, batchLabel, alreadyQueued: false };
   });
 
 /** Progress for one batch of jobs — powers the bulk-action progress bar. */

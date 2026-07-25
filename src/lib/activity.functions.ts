@@ -422,17 +422,48 @@ export const cancelActivityRunFn = createServerFn({ method: "POST" })
     return { ok: !!run, run };
   });
 
-/** Manually drain the durable job queue now (also runs on each autopilot cycle). */
+/**
+ * Manually drain the durable job queue now — time-boxed until empty, so one
+ * click clears a large backlog instead of 10 at a time. Also keeps the
+ * background runner alive so draining continues after this request returns.
+ */
 export const drainQueueNowFn = createServerFn({ method: "POST" })
   .inputValidator(
     z
-      .object({ max: z.number().min(1).max(25).default(10) })
+      .object({ maxMs: z.number().min(1000).max(55_000).default(45_000) })
       .optional()
-      .transform((v) => v ?? { max: 10 }),
+      .transform((v) => v ?? { maxMs: 45_000 }),
   )
   .handler(async ({ data }) => {
     const { loadProjectEnv } = await import("./load-env");
     loadProjectEnv();
-    const { drainJobs } = await import("./job-queue");
-    return drainJobs(data.max);
+    try {
+      const { ensureJobRunner } = await import("./job-runner");
+      ensureJobRunner();
+    } catch {
+      /* best-effort */
+    }
+    const { drainUntilEmpty } = await import("./job-queue");
+    return drainUntilEmpty({ batch: 8, maxMs: data.maxMs });
+  });
+
+/**
+ * Clear jobs that haven't run yet (status = pending) — optionally just one
+ * batch. Lets the user wipe a runaway/duplicate backlog (e.g. the 1248
+ * duplicate optimize jobs) without waiting for it all to process. Running jobs
+ * finish; done/failed history is kept.
+ */
+export const clearPendingJobsFn = createServerFn({ method: "POST" })
+  .inputValidator(
+    z
+      .object({ batchId: z.string().uuid().optional() })
+      .optional()
+      .transform((v) => v ?? {}),
+  )
+  .handler(async ({ data }) => {
+    const { loadProjectEnv } = await import("./load-env");
+    loadProjectEnv();
+    const jobsRepo = await import("@/server/db/repos/jobs");
+    const cleared = await jobsRepo.deletePendingJobs(data.batchId);
+    return { ok: true as const, cleared };
   });

@@ -512,20 +512,43 @@ function ToolsPage() {
     run(t.id, () => gateFn({ data: { toolId: t.id, enable: true, mode } }), `Gate set to ${mode}`);
 
   // Bulk actions enqueue durable server-side jobs (survive a closed tab).
+  // The server dedupes against pages that already have a pending/running job,
+  // so clicking twice never stacks duplicate work.
   const enqueue = async (
     type: "generate_tool" | "optimize_tool",
     rows: ToolRow[],
     batchLabel?: string,
   ) => {
-    if (!rows.length) return;
+    if (!rows.length) {
+      toast.info("Nothing to queue — every matching page is already optimized or in the queue.");
+      return;
+    }
     setBulk({ done: 0, total: rows.length, label: "Queueing" });
     try {
-      const r = await enqueueFn({
+      const r = (await enqueueFn({
         data: { type, toolIds: rows.map((t) => t.id), batchLabel },
-      });
-      toast.success(`Queued ${r.queued} jobs — running in the background`);
-      setActiveBatch(r.batchId, r.batchLabel);
-      setShowBatchLog(true);
+      })) as {
+        queued: number;
+        skipped?: number;
+        batchId: string | null;
+        batchLabel: string;
+        alreadyQueued?: boolean;
+      };
+      if (!r.queued) {
+        toast.info(
+          `Already in the queue — skipped ${r.skipped ?? rows.length} page(s) that already have a pending or running job. Nothing new added.`,
+        );
+      } else {
+        toast.success(
+          `Queued ${r.queued} job(s) — running in the background${
+            r.skipped ? ` · skipped ${r.skipped} already queued` : ""
+          }`,
+        );
+        if (r.batchId) {
+          setActiveBatch(r.batchId, r.batchLabel);
+          setShowBatchLog(true);
+        }
+      }
       qc.invalidateQueries({ queryKey: ["tool-jobs"] });
     } catch (e) {
       toast.error((e as Error).message);
@@ -536,24 +559,38 @@ function ToolsPage() {
 
   const bulkBuild = () =>
     enqueue("generate_tool", pool.slice(0, 200), `Building ${Math.min(pool.length, 200)} tools`);
-  const bulkOptimize = () =>
-    enqueue(
-      "optimize_tool",
-      existing.slice(0, 500),
-      `Optimizing ${Math.min(existing.length, 500)} filtered pages`,
-    );
+
+  // Only queue pages that aren't already optimized — re-running the optimizer on
+  // a page that's already been optimized is redundant work. Use the per-row
+  // "Optimize" button to explicitly re-optimize a single page.
+  const optimizable = (rows: ToolRow[]) => rows.filter((t) => t.status !== "optimized");
+
+  const bulkOptimize = () => {
+    const targets = optimizable(existing).slice(0, 500);
+    enqueue("optimize_tool", targets, `Optimizing ${targets.length} filtered pages`);
+  };
   const bulkOptimizeAll = () => {
+    const targets = optimizable(existingAll).slice(0, 2000);
+    const alreadyOptimized = existingAll.length - optimizable(existingAll).length;
+    if (!targets.length) {
+      toast.info(
+        `All ${existingAll.length} pages in "${selectedCategory}" are already optimized — nothing to do.`,
+      );
+      return;
+    }
     if (
       !window.confirm(
-        `Optimize ALL ${existingAll.length} pages in "${selectedCategory}"? This adds SEO content (intro, FAQ, schema, meta) to every page — nothing is removed and slugs never change, but it does write to every live page. This runs in the background and can take a while for hundreds of pages.`,
+        `Optimize ${targets.length} page(s) in "${selectedCategory}"${
+          alreadyOptimized ? ` (skipping ${alreadyOptimized} already optimized)` : ""
+        }? This adds SEO content (intro, FAQ, schema, meta) to each page — nothing is removed and slugs never change, but it does write to every live page. Runs in the background; pages already in the queue are skipped automatically.`,
       )
     ) {
       return;
     }
     enqueue(
       "optimize_tool",
-      existingAll.slice(0, 2000),
-      `Optimize ALL — ${existingAll.length} pages in "${selectedCategory}"`,
+      targets,
+      `Optimize ALL — ${targets.length} pages in "${selectedCategory}"`,
     );
   };
 

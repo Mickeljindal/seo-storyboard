@@ -19,6 +19,7 @@ import {
   Bot,
   Database,
   Clock,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -29,6 +30,7 @@ import {
   fixStuckFn,
   cancelActivityRunFn,
   drainQueueNowFn,
+  clearPendingJobsFn,
 } from "@/lib/activity.functions";
 
 export const Route = createFileRoute("/activity")({ component: ActivityPage });
@@ -85,6 +87,7 @@ function ActivityPage() {
   const fixStuckFn2 = useServerFn(fixStuckFn);
   const cancelFn = useServerFn(cancelActivityRunFn);
   const drainFn = useServerFn(drainQueueNowFn);
+  const clearPendingFn = useServerFn(clearPendingJobsFn);
 
   const [expanded, setExpanded] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -123,12 +126,37 @@ function ActivityPage() {
   });
 
   const drainMut = useMutation({
-    mutationFn: () => drainFn({ data: { max: 10 } }),
+    mutationFn: () => drainFn({ data: { maxMs: 45000 } }),
     onSuccess: (r) => {
-      toast.success(`Ran ${r.processed} queued job(s) (${r.done} done, ${r.failed} failed/retry).`);
+      toast.success(
+        `Processed ${r.processed} queued job(s) (${r.done} done, ${r.failed} failed)${
+          r.timedOut ? " — more remain, click again or leave it to the background runner." : "."
+        }`,
+      );
       invalidate();
     },
     onError: (e: Error) => toast.error(e.message),
+  });
+
+  // Clear ALL pending jobs (wipe a runaway/duplicate backlog). Running jobs finish.
+  const clearAllMut = useMutation({
+    mutationFn: () => clearPendingFn({ data: {} }),
+    onSuccess: (r) => {
+      toast.success(`Cleared ${r.cleared} pending job(s) from the queue.`);
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  // Clear pending jobs for ONE batch.
+  const clearBatchMut = useMutation({
+    mutationFn: (batchId: string) => clearPendingFn({ data: { batchId } }),
+    onSuccess: (r) => {
+      toast.success(`Cleared ${r.cleared} pending job(s) from this batch.`);
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message),
+    onSettled: () => setBusy(null),
   });
 
   const cancelMut = useMutation({
@@ -149,6 +177,16 @@ function ActivityPage() {
     setBusy(`${op.source}:${op.id}`);
     cancelMut.mutate(op);
   };
+  const doClearBatch = (op: ActivityOp) => {
+    if (
+      !window.confirm(`Clear ${op.pending} pending job(s) in "${op.label}"? Running jobs finish.`)
+    )
+      return;
+    setBusy(`${op.source}:${op.id}`);
+    clearBatchMut.mutate(op.id);
+  };
+
+  const totalPending = summary?.pendingItems ?? 0;
 
   return (
     <AppLayout>
@@ -191,6 +229,30 @@ function ActivityPage() {
               )}
               Run queued now{summary?.pendingItems ? ` (${summary.pendingItems})` : ""}
             </Button>
+            {totalPending > 0 && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      `Clear all ${totalPending} pending job(s) from the queue? This cancels work that hasn't started yet (useful to wipe duplicates). Running jobs finish; history is kept.`,
+                    )
+                  )
+                    clearAllMut.mutate();
+                }}
+                disabled={clearAllMut.isPending}
+                title="Delete every job that hasn't started yet — clears a runaway or duplicate backlog."
+                className="text-red-400 hover:text-red-300"
+              >
+                {clearAllMut.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="mr-2 h-4 w-4" />
+                )}
+                Clear {totalPending} pending
+              </Button>
+            )}
             {summary && summary.stuck > 0 && (
               <Button
                 size="sm"
@@ -260,6 +322,7 @@ function ActivityPage() {
                   onToggle={() => setExpanded(expanded === key ? null : key)}
                   onRetry={() => doRetry(op)}
                   onCancel={() => doCancel(op)}
+                  onClearPending={() => doClearBatch(op)}
                 />
               );
             })}
@@ -277,6 +340,7 @@ function OperationCard({
   onToggle,
   onRetry,
   onCancel,
+  onClearPending,
 }: {
   op: ActivityOp;
   expanded: boolean;
@@ -284,6 +348,7 @@ function OperationCard({
   onToggle: () => void;
   onRetry: () => void;
   onCancel: () => void;
+  onClearPending: () => void;
 }) {
   const Icon = kindIcon(op.kind);
   const live = op.status === "running";
@@ -350,6 +415,23 @@ function OperationCard({
             >
               <Ban className="mr-1.5 h-3.5 w-3.5" />
               Cancel
+            </Button>
+          )}
+          {op.source === "batch" && op.pending > 0 && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={onClearPending}
+              disabled={busy}
+              title="Cancel the jobs in this batch that haven't started yet."
+              className="text-red-400 hover:text-red-300"
+            >
+              {busy ? (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+              )}
+              Clear {op.pending}
             </Button>
           )}
           <Button size="sm" variant="ghost" onClick={onToggle}>

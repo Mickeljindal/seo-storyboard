@@ -1,8 +1,43 @@
-import { and, asc, count, desc, eq, isNotNull, lt, lte, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNotNull, lt, lte, sql } from "drizzle-orm";
 import { getDb, schema } from "../client";
 import { toApiJob, type ApiJob } from "../map";
 
 const { jobs } = schema;
+
+/**
+ * Tool ids that ALREADY have a pending or running job of the given type.
+ * Used to dedupe re-queues: clicking "Optimize ALL" twice (or on pages already
+ * queued) must not stack a second job for the same page. payload is jsonb
+ * ({ toolId, ... }), so we read payload->>'toolId'.
+ */
+export async function activeToolIdsForType(type: string): Promise<Set<string>> {
+  const db = await getDb();
+  const set = new Set<string>();
+  try {
+    const rows = await db
+      .select({ toolId: sql<string | null>`${jobs.payload}->>'toolId'` })
+      .from(jobs)
+      .where(and(eq(jobs.type, type), inArray(jobs.status, ["pending", "running"])));
+    for (const r of rows) if (r.toolId) set.add(r.toolId);
+  } catch {
+    /* best-effort — worst case we don't dedupe */
+  }
+  return set;
+}
+
+/**
+ * Delete jobs that haven't run yet (status = pending). Optionally scoped to one
+ * batch. Running/done/error rows are left untouched. Returns how many were
+ * cleared — the "cancel / clear the backlog" action.
+ */
+export async function deletePendingJobs(batchId?: string): Promise<number> {
+  const db = await getDb();
+  const cond = batchId
+    ? and(eq(jobs.status, "pending"), eq(jobs.batchId, batchId))
+    : eq(jobs.status, "pending");
+  const rows = await db.delete(jobs).where(cond).returning({ id: jobs.id });
+  return rows.length;
+}
 
 export async function enqueueJobs(
   rows: { type: string; payload?: unknown; label?: string; maxAttempts?: number }[],
