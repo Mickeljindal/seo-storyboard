@@ -716,7 +716,12 @@ function ToolsPage() {
             </div>
             <p className="text-[11px] text-muted-foreground">
               Bulk build/optimize run here server-side — they keep going after you close this tab,
-              and autopilot drains the queue automatically.
+              and the queue drains itself automatically in the background (no need to enable
+              Autopilot). Watch progress on the{" "}
+              <a href="/activity" className="text-primary underline">
+                Activity
+              </a>{" "}
+              page; use “Run now” only if you want to nudge it immediately.
             </p>
           </div>
         )}

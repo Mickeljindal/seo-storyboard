@@ -45,6 +45,16 @@ export const enqueueToolJobsFn = createServerFn({ method: "POST" })
       })),
       { batchId, batchLabel },
     );
+
+    // Kick the background drainer so these start running immediately instead of
+    // sitting pending until Autopilot's next tick (or forever, if it's off).
+    try {
+      const { ensureJobRunner } = await import("./job-runner");
+      ensureJobRunner();
+    } catch {
+      /* runner is best-effort — manual "Run now" still works */
+    }
+
     return { ok: true, queued, batchId, batchLabel };
   });
 

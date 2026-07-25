@@ -1308,6 +1308,15 @@ export const enqueueFixAllHtmlFn = createServerFn({ method: "POST" })
       })),
       { batchId, batchLabel },
     );
+
+    // Kick the background drainer so these run without waiting on Autopilot.
+    try {
+      const { ensureJobRunner } = await import("./job-runner");
+      ensureJobRunner();
+    } catch {
+      /* best-effort */
+    }
+
     return { ok: true, found: affectedWpIds.length, queued, batchId, batchLabel };
   });
 

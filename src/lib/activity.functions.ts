@@ -242,11 +242,11 @@ export const retryOperationFn = createServerFn({ method: "POST" })
       const jobsRepo = await import("@/server/db/repos/jobs");
       const requeued = await jobsRepo.retryFailedJobs(data.id);
       if (requeued > 0) {
-        // Drain a slice now so the user sees progress without waiting for the
-        // autopilot's next queue-drain tick.
+        // Make sure the background drainer is running so the requeued items run
+        // to completion, not just one manual slice.
         try {
-          const { drainJobs } = await import("./job-queue");
-          void drainJobs(10);
+          const { ensureJobRunner } = await import("./job-runner");
+          ensureJobRunner();
         } catch {
           /* drain best-effort */
         }
@@ -396,11 +396,11 @@ export const fixStuckFn = createServerFn({ method: "POST" })
     const stuckRuns = await runsRepo.markStuckRunsAsError(data.staleMinutes);
     const requeuedJobs = await jobsRepo.requeueStuckRunningJobs(data.staleMinutes);
 
-    // Kick the queue so requeued jobs start moving right away.
+    // Make sure the background drainer is running so requeued jobs move again.
     if (requeuedJobs > 0) {
       try {
-        const { drainJobs } = await import("./job-queue");
-        void drainJobs(10);
+        const { ensureJobRunner } = await import("./job-runner");
+        ensureJobRunner();
       } catch {
         /* best-effort */
       }

@@ -25,6 +25,16 @@ async function bootAutopilotIfEnabled() {
   } catch (e) {
     console.warn("[autopilot] Boot check failed (non-fatal):", e);
   }
+  // Always start the background job-queue drainer (independent of Autopilot).
+  // Without this, bulk actions (Optimize ALL, Queue build) enqueue jobs that
+  // never run unless Autopilot is on — the whole point of a durable queue is
+  // that it drains itself. Idempotent; the runner idles when the queue is empty.
+  try {
+    const { ensureJobRunner } = await import("./lib/job-runner");
+    ensureJobRunner();
+  } catch (e) {
+    console.warn("[job-runner] Boot start failed (non-fatal):", e);
+  }
 }
 
 const envMiddleware = createMiddleware().server(async ({ next }) => {

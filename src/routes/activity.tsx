@@ -182,7 +182,7 @@ function ActivityPage() {
               variant="outline"
               onClick={() => drainMut.mutate()}
               disabled={drainMut.isPending || !(summary && summary.pendingItems > 0)}
-              title="Process waiting queue jobs right now instead of waiting for the next autopilot tick."
+              title="Nudge the queue to process waiting jobs immediately (it also drains itself automatically in the background)."
             >
               {drainMut.isPending ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
