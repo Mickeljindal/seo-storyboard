@@ -839,8 +839,10 @@ export async function auditToolInternal(
     has_jsonld: analysis.hasJsonLd,
     html_widgets: analysis.htmlWidgetCount,
     needs_restyle: analysis.needsRestyle,
-    aioseo_score: detail.aioseo?.score ?? null,
-    focus_keyword: detail.aioseo?.focus_keyword ?? "",
+    // Prefer OUR real computed score over AIOSEO's Pro-gated native score.
+    aioseo_score: detail.seo_analysis?.seo_score ?? detail.aioseo?.score ?? null,
+    readability_score: detail.seo_analysis?.readability_score ?? null,
+    focus_keyword: detail.aioseo?.focus_keyword ?? detail.seo_analysis?.focus_keyword ?? "",
     missing,
     recommendation: analysis.needsRestyle
       ? "This page's injected intro/how-to/FAQ/related content was added by an older, unstyled version of the optimizer — re-run Optimize to repair the styling in place."
@@ -851,7 +853,8 @@ export async function auditToolInternal(
 
   await toolsRepo.updateTool(toolId, {
     audit_report: audit,
-    aioseo_score_before: detail.aioseo?.score ?? tool.aioseo_score_before,
+    aioseo_score_before:
+      detail.seo_analysis?.seo_score ?? detail.aioseo?.score ?? tool.aioseo_score_before,
     target_keyword:
       tool.target_keyword || detail.aioseo?.focus_keyword || keywordFromTitle(tool.name),
   });
@@ -1088,14 +1091,28 @@ export async function optimizeToolInternal(
   if (keyword) changes.push(`Set focus keyword → “${keyword}”`);
   if (related.length) changes.push(`Linked ${related.length} related page(s)`);
 
-  // Best-effort: re-read the page's AIOSEO score after the write (may lag).
+  // Our real on-page score after the write. The plugin now recomputes it and
+  // returns it directly in the optimize response (freshest, no extra call);
+  // fall back to a re-fetch of the full analysis, then to AIOSEO's native score.
   let scoreAfter: number | null = null;
+  let readabilityAfter: number | null = null;
   if (!dryRun) {
-    try {
-      const detail = await getToolPage(tool.wp_post_id);
-      if ("aioseo" in detail && detail.aioseo) scoreAfter = detail.aioseo.score ?? null;
-    } catch {
-      /* score refresh best-effort */
+    const fromRes = (res as { seo_score?: number | null }).seo_score;
+    const readFromRes = (res as { readability_score?: number | null }).readability_score;
+    if (typeof fromRes === "number") scoreAfter = fromRes;
+    if (typeof readFromRes === "number") readabilityAfter = readFromRes;
+    if (scoreAfter == null) {
+      try {
+        const detail = await getToolPage(tool.wp_post_id);
+        if ("seo_analysis" in detail && detail.seo_analysis) {
+          scoreAfter = detail.seo_analysis.seo_score ?? null;
+          readabilityAfter = detail.seo_analysis.readability_score ?? readabilityAfter;
+        } else if ("aioseo" in detail && detail.aioseo) {
+          scoreAfter = detail.aioseo.score ?? null;
+        }
+      } catch {
+        /* score refresh best-effort */
+      }
     }
   }
 
@@ -1113,6 +1130,7 @@ export async function optimizeToolInternal(
     changes,
     after: {
       aioseo_score: scoreAfter,
+      readability_score: readabilityAfter,
       sections: (res as { existing_sections_after?: number }).existing_sections_after ?? null,
       schema_injected: !!(res as { injected_elementor?: boolean }).injected_elementor,
       meta_title: seoRes.meta_title,

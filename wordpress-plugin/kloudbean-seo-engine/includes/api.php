@@ -42,6 +42,11 @@ function kbseo_register_routes() {
         'permission_callback' => 'kbseo_verify_request',
     ]);
 
+    // Real on-page SEO + readability score (no AIOSEO Pro required)
+    if (function_exists('kbseo_register_score_routes')) {
+        kbseo_register_score_routes($namespace);
+    }
+
     // Tool pages (Elementor-native publish + additive optimize)
     if (function_exists('kbseo_register_tool_routes')) {
         kbseo_register_tool_routes($namespace);

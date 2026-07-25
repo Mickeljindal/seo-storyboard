@@ -150,6 +150,47 @@ export async function injectLinks(
 // TOOL PAGES (Elementor-native) — list / audit / publish / optimize
 // ============================================================================
 
+/**
+ * One item in the SEO/readability checklist the plugin computes (TruSEO-style).
+ * status: good (full credit) | ok (half) | bad (none). `rec` is the actionable fix.
+ */
+export type KbseoScoreCheck = {
+  id: string;
+  label: string;
+  weight: number;
+  status: "good" | "ok" | "bad";
+  detail: string;
+  rec: string;
+};
+
+/**
+ * Full on-page SEO + readability analysis computed by the plugin itself
+ * (no AIOSEO Pro required). Returned by /tools/get and /seo-score.
+ */
+export type KbseoSeoAnalysis = {
+  post_id: number;
+  title: string;
+  url: string;
+  focus_keyword: string;
+  seo_score: number;
+  readability_score: number;
+  word_count: number;
+  checks: KbseoScoreCheck[];
+  readability_checks: KbseoScoreCheck[];
+  stats: {
+    flesch: number;
+    internal_links: number;
+    external_links: number;
+    images: number;
+    images_missing_alt: number;
+    keyword_density: number;
+    subheadings: number;
+    has_schema: boolean;
+    meta_title_len: number;
+    meta_desc_len: number;
+  };
+};
+
 export type ToolPageListItem = {
   id: number;
   title: string;
@@ -158,7 +199,12 @@ export type ToolPageListItem = {
   status: string;
   modified: string;
   has_elementor: boolean;
+  /** Our REAL on-page score (computed by the plugin — no AIOSEO Pro needed). */
   aioseo_score: number | null;
+  /** Our readability score (0-100). */
+  kbseo_readability?: number | null;
+  /** AIOSEO's own stored score, kept for reference (Pro-gated; 0/null on Lite). */
+  aioseo_native_score?: number | null;
   focus_keyword: string;
   meta_title: string;
   meta_description: string;
@@ -198,6 +244,8 @@ export type ToolPageDetail = {
   elementor_data: unknown[] | null;
   post_content: string;
   aioseo: { score: number | null; focus_keyword: string; title: string; description: string };
+  /** Full real on-page + readability analysis (checks + recommendations). */
+  seo_analysis?: KbseoSeoAnalysis | null;
   error?: string;
 };
 
@@ -371,6 +419,9 @@ export type OptimizeToolResult = {
   injected_elementor?: boolean;
   updated_meta?: boolean;
   appended_schema_to_content?: boolean;
+  /** Our real on-page score, recomputed by the plugin right after the write. */
+  seo_score?: number | null;
+  readability_score?: number | null;
   dry_run?: boolean;
   error?: string;
 };

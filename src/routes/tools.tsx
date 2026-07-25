@@ -107,6 +107,7 @@ type OptimizeReport = {
   dry_run?: boolean;
   before?: {
     aioseo_score?: number | null;
+    readability_score?: number | null;
     has_faq?: boolean;
     has_schema?: boolean;
     word_count?: number;
@@ -114,6 +115,7 @@ type OptimizeReport = {
   };
   after?: {
     aioseo_score?: number | null;
+    readability_score?: number | null;
     sections?: number | null;
     meta_title?: string;
     meta_description?: string;
@@ -1507,28 +1509,33 @@ function OptimizeReportModal({
             : "Optimization applied. The page URL was not changed; changes are additive."}
         </p>
 
-        {/* Before / After scores */}
+        {/* Before / After scores — computed by our own engine (no AIOSEO Pro). */}
         <div className="mb-4 grid grid-cols-2 gap-3">
           <div className="rounded-lg border border-border p-3">
-            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Before</div>
+            <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+              Before · SEO score
+            </div>
             <div className="mt-1 text-2xl font-semibold">
               {before.aioseo_score ?? "—"}
               <span className="text-sm text-muted-foreground">/100</span>
             </div>
             <div className="mt-1 text-[11px] text-muted-foreground">
+              {before.readability_score != null ? `readability ${before.readability_score} · ` : ""}
               {before.has_faq ? "FAQ ✓" : "no FAQ"} · {before.has_schema ? "schema ✓" : "no schema"}{" "}
               · {before.word_count ?? 0} words
             </div>
           </div>
           <div className="rounded-lg border border-primary/40 bg-primary/5 p-3">
             <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-              After{preview ? " (expected)" : ""}
+              After{preview ? " (expected)" : ""} · SEO score
             </div>
             <div className="mt-1 text-2xl font-semibold text-primary">
               {after.aioseo_score ?? (preview ? "↑" : "—")}
               <span className="text-sm text-muted-foreground">/100</span>
             </div>
             <div className="mt-1 text-[11px] text-muted-foreground">
+              {after.readability_score != null ? `readability ${after.readability_score}` : ""}
+              {after.readability_score != null && after.focus_keyword ? " · " : ""}
               {after.focus_keyword ? `keyword: ${after.focus_keyword}` : ""}
             </div>
           </div>
@@ -1564,12 +1571,18 @@ function OptimizeReportModal({
           </div>
         )}
 
-        {!preview && (before.aioseo_score ?? 0) === 0 && (after.aioseo_score ?? 0) === 0 && (
-          <p className="mt-3 text-[11px] text-amber-500">
-            The 0/100 number itself won&apos;t move — computing that score requires an AIOSEO Pro
-            license, which this site doesn&apos;t have (confirmed directly against AIOSEO&apos;s own
-            API). The real SEO fixes above (title, description, focus keyword, schema, content,
-            links) are genuinely applied and are what actually affects search rankings.
+        <p className="mt-3 text-[11px] text-muted-foreground">
+          This SEO score is computed by the Kloudbean SEO Engine itself — a real weighted on-page +
+          readability analysis, no AIOSEO Pro license needed. It moves as the fixes above are
+          applied.
+        </p>
+
+        {!preview && (after.aioseo_score ?? 0) === 0 && (
+          <p className="mt-2 text-[11px] text-amber-500">
+            The score is still reading 0 after optimizing — this means the WordPress plugin is out
+            of date. Upload the latest <code>kloudbean-seo-engine.zip</code> (v1.13.0+) and activate
+            it, then re-sync. The SEO fixes above (title, description, focus keyword, schema,
+            content, links) were still applied regardless.
           </p>
         )}
       </div>
@@ -1602,7 +1615,14 @@ function ToolTable({
       <table className="w-full text-sm">
         <thead className="border-b border-border font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
           <tr>
-            {showScore && <th className="px-4 py-2.5 text-left">AIOSEO</th>}
+            {showScore && (
+              <th
+                className="px-4 py-2.5 text-left"
+                title="Real on-page SEO score computed by the Kloudbean SEO Engine — no AIOSEO Pro needed."
+              >
+                SEO
+              </th>
+            )}
             <th className="px-4 py-2.5 text-left">Tool</th>
             {showMeta && <th className="px-4 py-2.5 text-left">Meta &amp; content</th>}
             <th className="px-4 py-2.5 text-left">Status</th>

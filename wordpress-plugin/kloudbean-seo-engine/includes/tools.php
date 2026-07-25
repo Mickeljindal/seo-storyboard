@@ -555,6 +555,14 @@ function kbseo_tools_list($request) {
         } else {
             $word_count = str_word_count(wp_strip_all_tags($post->post_content));
         }
+        // REAL on-page score computed by THIS plugin — no AIOSEO Pro needed.
+        // We reuse the existing `aioseo_score` field so the dashboard shows a
+        // live, moving score even on AIOSEO Lite (where AIOSEO's own score is
+        // Pro-gated and returns 0/null). `aioseo_native_score` preserves
+        // AIOSEO's stored value for reference. Compute-if-stale keeps this fast.
+        $score = function_exists('kbseo_get_or_compute_score')
+            ? kbseo_get_or_compute_score($post)
+            : ['seo' => $aioseo['score'], 'readability' => null];
         $items[] = [
             'id' => $post->ID,
             'title' => get_the_title($post),
@@ -563,7 +571,9 @@ function kbseo_tools_list($request) {
             'status' => $post->post_status,
             'modified' => $post->post_modified_gmt,
             'has_elementor' => $has_elementor,
-            'aioseo_score' => $aioseo['score'],
+            'aioseo_score' => $score['seo'],
+            'kbseo_readability' => $score['readability'],
+            'aioseo_native_score' => $aioseo['score'],
             'focus_keyword' => $aioseo['focus_keyword'],
             'meta_title' => $aioseo['title'],
             'meta_description' => $aioseo['description'],
@@ -600,6 +610,13 @@ function kbseo_tools_get($request) {
     }
     $aioseo = kbseo_aioseo_score($post_id);
 
+    // Full real on-page + readability analysis (weighted checks with per-item
+    // recommendations) — this is what powers the audit/report view without
+    // needing AIOSEO Pro.
+    $seo_analysis = function_exists('kbseo_compute_seo_score')
+        ? kbseo_compute_seo_score($post, $aioseo['focus_keyword'] ?: null)
+        : null;
+
     return [
         'ok' => true,
         'id' => $post_id,
@@ -612,6 +629,7 @@ function kbseo_tools_get($request) {
         'elementor_data' => $elementor_data,
         'post_content' => $post->post_content,
         'aioseo' => $aioseo,
+        'seo_analysis' => $seo_analysis,
     ];
 }
 
@@ -902,6 +920,18 @@ function kbseo_optimize_tool($request) {
                 'post_content' => $post->post_content . "\n" . $tags,
             ]);
             $report['appended_schema_to_content'] = true;
+        }
+    }
+
+    // 4. Recompute OUR real on-page score now that content + meta changed, so
+    //    the dashboard/list reflects the optimization immediately instead of
+    //    waiting for the next compute-if-stale pass on /tools/list.
+    if (function_exists('kbseo_compute_seo_score')) {
+        $analysis = kbseo_compute_seo_score($post_id, $data['focus_keyword'] ?? null);
+        if ($analysis) {
+            kbseo_store_seo_score($post_id, $analysis);
+            $report['seo_score'] = $analysis['seo_score'];
+            $report['readability_score'] = $analysis['readability_score'];
         }
     }
 
