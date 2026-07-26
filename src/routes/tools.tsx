@@ -84,6 +84,11 @@ type ToolRow = {
   } | null;
   quality_score: number | null;
   quality_report: { grade?: string; blocking?: boolean; issues?: string[] } | null;
+  audit_report: {
+    has_html_defect?: boolean;
+    html_checked_at?: string;
+    html_fixed_widgets?: number;
+  } | null;
   gsc_clicks: number | null;
   gsc_impressions: number | null;
   gsc_position: number | null;
@@ -135,6 +140,60 @@ function friendlyToolError(msg: string): string {
     return "WordPress is rate-limiting requests (too many writes in a short window). Queued/bulk jobs pause and retry automatically — nothing is lost. It clears within an hour; updating the plugin to v1.13.1+ raises the limit so big runs finish fast.";
   }
   return msg;
+}
+
+/**
+ * Stateful "Fix HTML" control. Only pages that ACTUALLY have the legacy
+ * full-HTML-document defect show the urgent red "Fix HTML"; once a page has
+ * been checked/fixed it shows a muted "HTML OK" (so you're not prompted to
+ * re-fix what's already clean), and pages we haven't inspected yet show a
+ * neutral "Check HTML". State comes from audit_report.has_html_defect, set
+ * whenever the page is audited, optimized, or fixed.
+ */
+function HtmlFixButton({ t, busy, onFix }: { t: ToolRow; busy: boolean; onFix: () => void }) {
+  const defect = t.audit_report?.has_html_defect;
+  if (defect === true) {
+    return (
+      <Button
+        size="sm"
+        variant="destructive"
+        disabled={busy}
+        title="This page has a full HTML document (DOCTYPE/head/title) pasted inside its tool widget — click to remove that wrapper. The tool itself and the slug are untouched."
+        onClick={onFix}
+      >
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Fix HTML"}
+      </Button>
+    );
+  }
+  if (defect === false) {
+    return (
+      <button
+        type="button"
+        disabled={busy}
+        onClick={onFix}
+        title="HTML checked — no broken full-document wrapper on this page. Click to re-check."
+        className="inline-flex items-center gap-1 rounded-md border border-[var(--lime)]/30 px-2 py-1 text-[11px] text-[var(--lime)] transition-colors hover:bg-[var(--lime)]/10 disabled:opacity-40"
+      >
+        {busy ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <ShieldCheck className="h-3.5 w-3.5" />
+        )}
+        HTML OK
+      </button>
+    );
+  }
+  return (
+    <Button
+      size="sm"
+      variant="outline"
+      disabled={busy}
+      title="Check this page for a legacy full-HTML-document wrapper and fix it if found. Safe: never touches the tool or the slug."
+      onClick={onFix}
+    >
+      {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Check HTML"}
+    </Button>
+  );
 }
 
 function ToolsPage() {
@@ -1328,15 +1387,7 @@ function ToolsPage() {
                         <ShieldCheck className="h-4 w-4" />
                       )}
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      disabled={busyId === t.id}
-                      title="Fix a legacy bug: remove a full HTML document (DOCTYPE/head/title) accidentally pasted inside this page's tool widget. Doesn't touch the tool itself or the slug."
-                      onClick={() => fixHtml(t)}
-                    >
-                      Fix HTML
-                    </Button>
+                    <HtmlFixButton t={t} busy={busyId === t.id} onFix={() => fixHtml(t)} />
                     {t.optimize_report && (
                       <Button
                         size="sm"

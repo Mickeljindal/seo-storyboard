@@ -391,6 +391,10 @@ export type ElementorAnalysis = {
   /** True when the page ALREADY has a how-to / step-by-step section of its own
    *  (not our kbseo-howto marker), so we don't inject a duplicate. */
   hasHowTo: boolean;
+  /** True when an HTML widget contains a FULL HTML document (<!doctype>/<html>)
+   *  pasted whole into it — the legacy defect that "Fix HTML" repairs. Lets the
+   *  UI show "Fix HTML" only when a page actually needs it. */
+  hasFullHtmlDoc: boolean;
   hasJsonLd: boolean;
   hasGate: boolean;
   widgetTypes: string[];
@@ -470,6 +474,7 @@ export function analyzeElementorData(raw: unknown): ElementorAnalysis {
     htmlWidgetCount: 0,
     hasFaq: false,
     hasHowTo: false,
+    hasFullHtmlDoc: false,
     hasJsonLd: false,
     hasGate: false,
     widgetTypes: [],
@@ -511,6 +516,8 @@ export function analyzeElementorData(raw: unknown): ElementorAnalysis {
         analysis.htmlWidgetCount++;
         const html = String(s.html ?? "");
         if (/application\/ld\+json/i.test(html)) analysis.hasJsonLd = true;
+        // The legacy defect: a whole HTML document pasted into a widget.
+        if (/<!doctype\s+html|<html[\s>]/i.test(html)) analysis.hasFullHtmlDoc = true;
         if (html.includes(GATE_MARKER)) analysis.hasGate = true;
         if (html.includes(`${INTRO_MARKER}:start`)) analysis.ownMarkers.intro = true;
         if (html.includes(`${BODY_MARKER}:start`)) analysis.ownMarkers.body = true;

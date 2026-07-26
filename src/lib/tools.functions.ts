@@ -826,6 +826,7 @@ export async function auditToolInternal(
   if (!detail.aioseo?.focus_keyword) missing.push("no focus keyword");
   if (analysis.needsRestyle)
     missing.push("injected content unstyled (from an older version of the optimizer)");
+  if (analysis.hasFullHtmlDoc) missing.push("broken nested HTML document (run Fix HTML)");
 
   const audit = {
     post_id: tool.wp_post_id,
@@ -840,6 +841,10 @@ export async function auditToolInternal(
     has_jsonld: analysis.hasJsonLd,
     html_widgets: analysis.htmlWidgetCount,
     needs_restyle: analysis.needsRestyle,
+    // Legacy full-HTML-document defect present? Drives the stateful "Fix HTML"
+    // button — only pages where this is true actually need fixing.
+    has_html_defect: analysis.hasFullHtmlDoc,
+    html_checked_at: new Date().toISOString(),
     // Prefer OUR real computed score over AIOSEO's Pro-gated native score.
     aioseo_score: detail.seo_analysis?.seo_score ?? detail.aioseo?.score ?? null,
     readability_score: detail.seo_analysis?.readability_score ?? null,
@@ -1234,9 +1239,25 @@ export async function fixToolHtmlInternal(
   const res = await fixToolHtml({ post_id: tool.wp_post_id, dry_run: dryRun });
   if (!res.ok) return { ok: false, error: res.error ?? "Fix failed" };
 
-  if (!dryRun && (res.fixed_widgets ?? 0) > 0) {
+  // Persist the outcome so the UI stops prompting a re-fix: after a real run
+  // the page no longer has the full-HTML-document defect (fixed if widgets were
+  // repaired, or it was already clean). Merge into the existing audit_report.
+  if (!dryRun) {
+    const prevAudit =
+      (tool.audit_report && typeof tool.audit_report === "object"
+        ? (tool.audit_report as Record<string, unknown>)
+        : {}) ?? {};
+    const fixed = res.fixed_widgets ?? 0;
     await toolsRepo.updateTool(toolId, {
-      notes: `Fixed nested HTML document wrapper on ${res.fixed_widgets} widget(s) (slug unchanged).`,
+      audit_report: {
+        ...prevAudit,
+        has_html_defect: false,
+        html_checked_at: new Date().toISOString(),
+        html_fixed_widgets: fixed,
+      },
+      ...(fixed > 0
+        ? { notes: `Fixed nested HTML document wrapper on ${fixed} widget(s) (slug unchanged).` }
+        : {}),
     });
   }
 
