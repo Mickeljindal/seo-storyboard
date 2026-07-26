@@ -125,6 +125,18 @@ type OptimizeReport = {
   changes?: string[];
 };
 
+/**
+ * Turn a raw plugin error into something actionable. The most common one on
+ * bulk runs is WordPress's own rate limit (HTTP 429) — explain it instead of
+ * showing a scary raw error, since it clears on its own and queued jobs retry.
+ */
+function friendlyToolError(msg: string): string {
+  if (/\b429\b|too many requests|rate[\s-]?limit/i.test(msg)) {
+    return "WordPress is rate-limiting requests (too many writes in a short window). Queued/bulk jobs pause and retry automatically — nothing is lost. It clears within an hour; updating the plugin to v1.13.1+ raises the limit so big runs finish fast.";
+  }
+  return msg;
+}
+
 function ToolsPage() {
   const qc = useQueryClient();
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -476,7 +488,7 @@ function ToolsPage() {
       toast.success(okMsg);
       invalidate();
     } catch (e) {
-      toast.error((e as Error).message);
+      toast.error(friendlyToolError((e as Error).message));
     } finally {
       setBusyId(null);
     }
@@ -492,7 +504,7 @@ function ToolsPage() {
       if (r?.report) setReportView({ name, report: r.report });
       invalidate();
     } catch (e) {
-      toast.error((e as Error).message);
+      toast.error(friendlyToolError((e as Error).message));
     } finally {
       setBusyId(null);
     }
@@ -516,7 +528,7 @@ function ToolsPage() {
       }
       invalidate();
     } catch (e) {
-      toast.error(`Fix HTML failed: ${(e as Error).message}`);
+      toast.error(`Fix HTML: ${friendlyToolError((e as Error).message)}`);
     } finally {
       setBusyId(null);
     }
@@ -623,11 +635,16 @@ function ToolsPage() {
   const drainMut = useMutation({
     mutationFn: () => drainFn({ data: { max: 10 } }),
     onSuccess: (r) => {
-      toast.success(`Ran ${r.processed} jobs (${r.done} done, ${r.failed} failed/retry)`);
+      const deferred = (r as { deferred?: number }).deferred ?? 0;
+      toast.success(
+        `Ran ${r.processed} jobs (${r.done} done, ${r.failed} failed/retry${
+          deferred ? `, ${deferred} paused for WP rate limit` : ""
+        })`,
+      );
       qc.invalidateQueries({ queryKey: ["tool-jobs"] });
       invalidate();
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(friendlyToolError(e.message)),
   });
 
   const scanHtmlFn = useServerFn(scanToolHtmlFn);

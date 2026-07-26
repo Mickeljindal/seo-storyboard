@@ -183,6 +183,30 @@ export async function failJob(id: string, errorMsg: string): Promise<void> {
   }
 }
 
+/**
+ * Reschedule a job for later WITHOUT counting it as a failed attempt. Used when
+ * WordPress rate-limits us (HTTP 429): the plugin's per-IP window is hourly, so
+ * burning the 3 retry attempts on quick 1-minute backoffs would just error the
+ * job out. Instead we refund the attempt consumed at claim time and retry after
+ * a longer delay — so a big bulk run (e.g. 400+ pages) automatically paces
+ * itself across the rate-limit window and completes instead of failing.
+ */
+export async function deferJob(id: string, delayMs: number, note?: string): Promise<void> {
+  const db = await getDb();
+  const [j] = await db.select().from(jobs).where(eq(jobs.id, id)).limit(1);
+  if (!j) return;
+  await db
+    .update(jobs)
+    .set({
+      status: "pending",
+      attempts: Math.max(0, (j.attempts ?? 1) - 1), // refund the claim's increment
+      error: note ? note.slice(0, 500) : j.error,
+      runAfter: new Date(Date.now() + delayMs),
+      updatedAt: new Date(),
+    })
+    .where(eq(jobs.id, id));
+}
+
 export async function listJobs(limit = 50): Promise<ApiJob[]> {
   const db = await getDb();
   const rows = await db.select().from(jobs).orderBy(desc(jobs.updatedAt)).limit(limit);

@@ -296,7 +296,7 @@ function kbseo_unwrap_elements($elements, &$fixed_count, &$details) {
  * any widget that doesn't have the defect. Supports dry_run.
  */
 function kbseo_fix_tool_html($request) {
-    if (!kbseo_tool_rate_ok('fix_html', 60)) {
+    if (!kbseo_tool_rate_ok('fix_html', 2000)) {
         return new WP_Error('rate_limited', 'Too many requests', ['status' => 429]);
     }
     $data = $request->get_json_params();
@@ -390,8 +390,15 @@ function kbseo_scan_tool_html($request) {
     ];
 }
 
-/** Simple per-IP rate limit for write endpoints. */
-function kbseo_tool_rate_ok($bucket, $max = 120) {
+/**
+ * Per-IP hourly safety cap for write endpoints. These routes are ALL API-key
+ * authenticated (kbseo_verify_request), so this isn't abuse protection — it's
+ * only a runaway-loop backstop. The engine calls from a SINGLE server IP, so a
+ * legitimate bulk run (e.g. optimizing 400+ pages) shares one bucket; the caps
+ * are therefore set high enough for a full category run plus retries. The
+ * engine also backs off automatically on a 429 and retries after the window.
+ */
+function kbseo_tool_rate_ok($bucket, $max = 2000) {
     $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
     $key = 'kbseo_trate_' . $bucket . '_' . md5($ip);
     $count = (int) get_transient($key);
@@ -643,7 +650,7 @@ function kbseo_tools_get($request) {
  * On update: post_name (slug) is NEVER changed.
  */
 function kbseo_publish_tool($request) {
-    if (!kbseo_tool_rate_ok('publish')) {
+    if (!kbseo_tool_rate_ok('publish', 600)) {
         return new WP_Error('rate_limited', 'Too many requests', ['status' => 429]);
     }
     $data = $request->get_json_params();
@@ -805,7 +812,7 @@ const KBSEO_INJECTION_MARKERS = ['kbseo-intro', 'kbseo-howto', 'kbseo-faq', 'kbs
  *     marker first, so add/update/remove of the gate stays idempotent.
  */
 function kbseo_optimize_tool($request) {
-    if (!kbseo_tool_rate_ok('optimize')) {
+    if (!kbseo_tool_rate_ok('optimize', 2000)) {
         return new WP_Error('rate_limited', 'Too many requests', ['status' => 429]);
     }
     $data = $request->get_json_params();
