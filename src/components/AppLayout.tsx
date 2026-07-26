@@ -25,8 +25,11 @@ import {
   Activity,
 } from "lucide-react";
 import { ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { SystemHealthBanner, SystemHealthOkBadge } from "./SystemHealthBanner";
 import { AssistantWidget } from "./AssistantWidget";
+import { wpStatus } from "@/lib/wordpress.functions";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, kbd: "1" },
@@ -118,15 +121,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           })}
         </nav>
 
-        <div className="border-t border-sidebar-border p-4">
-          <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-            <span>WordPress</span>
-            <span className="rounded-sm bg-amber-500/15 px-1.5 py-0.5 text-amber-400">
-              Not linked
-            </span>
-          </div>
-          <div className="mt-1 text-[11px] text-foreground/70">Connect to enable auto-publish.</div>
-        </div>
+        <WordpressNavStatus />
       </aside>
       <main className="flex-1 overflow-auto">
         <SystemHealthBanner />
@@ -138,6 +133,54 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </main>
       <AssistantWidget />
+    </div>
+  );
+}
+
+/**
+ * Live WordPress connection badge for the sidebar footer. Reads the SAME
+ * status the Settings page uses (shared `wp-status` query key) so the two can
+ * never disagree — this used to be a hardcoded "Not linked" label, which is
+ * why it showed "Not linked" even when Settings said Connected.
+ *
+ * Note: this reflects the WordPress REST API connection (Application Password),
+ * which is what drives article auto-publish. The Tool Pages sync/optimize/Fix
+ * HTML use a SEPARATE connection (the Kloudbean SEO Engine plugin API key).
+ */
+function WordpressNavStatus() {
+  const fn = useServerFn(wpStatus);
+  const { data } = useQuery({
+    queryKey: ["wp-status"],
+    queryFn: () => fn({}),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  });
+  // wpStatus returns a union (site/user only exist on the configured branch).
+  const s = data as { connected?: boolean; site?: string; user?: string } | undefined;
+  const connected = !!s?.connected;
+  const site = s?.site?.replace(/^https?:\/\//, "").replace(/\/$/, "");
+  return (
+    <div className="border-t border-sidebar-border p-4">
+      <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+        <span>WordPress</span>
+        {connected ? (
+          <span className="rounded-sm bg-[var(--lime)]/15 px-1.5 py-0.5 text-[var(--lime)]">
+            Linked
+          </span>
+        ) : (
+          <span className="rounded-sm bg-amber-500/15 px-1.5 py-0.5 text-amber-400">Not linked</span>
+        )}
+      </div>
+      <div className="mt-1 text-[11px] text-foreground/70">
+        {connected ? (
+          <>
+            Publishing to <span className="font-mono">{site ?? "kloudbean.com"}</span>
+            {s?.user ? ` as ${s.user}` : ""}.
+          </>
+        ) : (
+          "Connect in Settings to enable auto-publish."
+        )}
+      </div>
     </div>
   );
 }

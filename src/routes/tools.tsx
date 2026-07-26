@@ -498,6 +498,30 @@ function ToolsPage() {
     }
   };
 
+  // Fix HTML gives explicit feedback: how many widgets were repaired, or a
+  // clear "nothing to fix" — otherwise a page with no defect looks like the
+  // button "did nothing". Real plugin errors (e.g. a stale plugin that 404s
+  // the /fix-tool-html route) surface as a red toast so they're not hidden.
+  const fixHtml = async (t: ToolRow) => {
+    setBusyId(t.id);
+    try {
+      const r = (await fixHtmlFn({ data: { toolId: t.id, dryRun: false } })) as {
+        fixedWidgets?: number;
+      };
+      const n = r?.fixedWidgets ?? 0;
+      if (n > 0) {
+        toast.success(`Removed the nested-HTML wrapper from ${n} widget(s) — tool + slug untouched.`);
+      } else {
+        toast.info("No broken HTML found on this page — nothing to change.");
+      }
+      invalidate();
+    } catch (e) {
+      toast.error(`Fix HTML failed: ${(e as Error).message}`);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const toggleGate = (t: ToolRow) => {
     const enable = t.gate_enabled !== "yes";
     return run(
@@ -1292,13 +1316,7 @@ function ToolsPage() {
                       variant="destructive"
                       disabled={busyId === t.id}
                       title="Fix a legacy bug: remove a full HTML document (DOCTYPE/head/title) accidentally pasted inside this page's tool widget. Doesn't touch the tool itself or the slug."
-                      onClick={() =>
-                        run(
-                          t.id,
-                          () => fixHtmlFn({ data: { toolId: t.id, dryRun: false } }),
-                          "Checked/fixed HTML wrapper",
-                        )
-                      }
+                      onClick={() => fixHtml(t)}
                     >
                       Fix HTML
                     </Button>
