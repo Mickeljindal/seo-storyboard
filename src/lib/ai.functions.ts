@@ -98,7 +98,7 @@ Return ONLY a strict JSON object — no prose, no markdown fences. Schema:
   "search_intent": "informational" | "commercial" | "transactional" | "navigational",
   "word_count": number (default 2000–2400 for a full blog post),
   "meta_title": string (max 60 chars),
-  "meta_description": string (max 160 chars),
+  "meta_description": string (120–160 chars: lead with the benefit/answer + a reason to click; include the keyword ONCE; do NOT repeat the title/H1 verbatim),
   "url_slug": string,
   "tldr": string,
   "quick_answer": string (40-60 words, extraction-friendly direct answer for AI engines — see GEO rule above),

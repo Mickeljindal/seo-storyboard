@@ -212,6 +212,19 @@ function kbseo_compute_seo_score($post, $focus_keyword = null) {
 
     $hasSchema = (bool) preg_match('/application\/ld\+json/i', $html) || !empty($meta['schema']);
 
+    // E-E-A-T signals: does the page's structured data name an author + a
+    // publisher? Check both our stored graph and any inline JSON-LD.
+    $eeatSource = '';
+    $schemaRaw = get_post_meta($post->ID, '_kbseo_schema', true);
+    if (!empty($schemaRaw)) {
+        $eeatSource .= is_string($schemaRaw) ? wp_unslash($schemaRaw) : wp_json_encode($schemaRaw);
+    }
+    if (preg_match_all('/<script[^>]*application\/ld\+json[^>]*>(.*?)<\/script>/is', $html, $ldm)) {
+        $eeatSource .= ' ' . implode(' ', $ldm[1]);
+    }
+    $hasAuthor = stripos($eeatSource, '"author"') !== false;
+    $hasPublisher = stripos($eeatSource, '"publisher"') !== false;
+
     // Keyword density.
     $density = 0.0;
     if ($focusLc !== '' && $words > 0) {
@@ -290,6 +303,11 @@ function kbseo_compute_seo_score($post, $focus_keyword = null) {
     $add('schema', 'Structured data (JSON-LD)', 6,
         $hasSchema ? 'good' : 'bad', $hasSchema ? 'present' : 'none',
         'Add JSON-LD schema (SoftwareApplication/FAQPage/Article) for rich results + AI citations.');
+
+    $add('eeat', 'Author + publisher (E-E-A-T)', 5,
+        ($hasAuthor && $hasPublisher) ? 'good' : (($hasAuthor || $hasPublisher) ? 'ok' : 'bad'),
+        trim(($hasAuthor ? 'author ' : '') . ($hasPublisher ? 'publisher' : '')) ?: 'none',
+        'Name an author and a publisher (Organization) in the page schema — re-optimize the page to inject these E-E-A-T signals.');
 
     // ---- Readability checks -------------------------------------------------
     $sentences = kbseo_sentences($text);

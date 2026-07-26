@@ -836,6 +836,7 @@ export async function auditToolInternal(
     h1_count: analysis.h1Count,
     h2_count: analysis.h2Count,
     has_faq: analysis.hasFaq,
+    has_how_to: analysis.hasHowTo,
     has_jsonld: analysis.hasJsonLd,
     html_widgets: analysis.htmlWidgetCount,
     needs_restyle: analysis.needsRestyle,
@@ -981,6 +982,7 @@ export async function optimizeToolInternal(
   const audit = auditRes.audit as {
     has_elementor: boolean;
     has_faq: boolean;
+    has_how_to?: boolean;
     has_jsonld: boolean;
     word_count: number;
     focus_keyword: string;
@@ -1029,7 +1031,7 @@ export async function optimizeToolInternal(
     flags: {
       hasIntro: !forceRestyle && (audit.non_injected_word_count ?? audit.word_count) > 400,
       hasFaq: !forceRestyle && audit.has_faq,
-      hasHowTo: false,
+      hasHowTo: !forceRestyle && !!audit.has_how_to,
     },
   });
 

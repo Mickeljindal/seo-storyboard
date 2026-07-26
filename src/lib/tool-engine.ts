@@ -135,7 +135,7 @@ Return JSON:
 {
   "h1": "page H1 — includes the exact target keyword verbatim, human, <= 70 chars (the hero title)",
   "meta_title": "<= 60 chars, includes the keyword, ends with | Kloudbean",
-  "meta_description": "<= 155 chars, includes the keyword, action-oriented, mentions it's free",
+  "meta_description": "120–155 chars. Lead with what the tool DOES and the benefit, plus a reason to click; include the keyword ONCE; say it's free/no-signup. Do NOT repeat the title/H1 verbatim or name the tool twice.",
   "audience": "1 short phrase naming who this tool's user is",
   "pitch": "1–2 sentences (<= 200 chars) pitching Kloudbean hosting tailored to that audience, ending with launching/hosting on Kloudbean",
   "cta_label": "a short button label tailored to the audience, e.g. 'Deploy your app on Kloudbean' (<= 40 chars)"
@@ -163,7 +163,7 @@ Return JSON with EXACTLY this shape:
   "how_to": { "title": "How to use this tool", "steps": ["step 1","step 2","step 3","step 4"] },
   "faq": [ {"q":"real question people ask (use the semantic subtopics)","a":"concise, direct answer (40–60 words, quotable)"}, ... 4 to 6 items ],
   "meta_title": "<= 60 chars, includes keyword, ends with | Kloudbean",
-  "meta_description": "<= 155 chars, includes keyword, mentions it's free"
+  "meta_description": "120–155 chars. Lead with the benefit and a concrete reason to click; include the keyword ONCE; mention it's free/instant. Never repeat the title/H1 verbatim or name the tool twice."
 }
 section "html" may contain <p>, <ul>/<li>, <ol>/<li>, <table>/<tr>/<th>/<td>, <strong>, <a> only — never <h1>, <script>, <style>, or class attributes. Return ONLY the JSON object.`;
 

@@ -77,7 +77,71 @@ function kbseo_set_aioseo_meta($post_id, $meta) {
         update_post_meta($post_id, '_aioseo_canonical_url', $meta['canonical']);
     }
 
+    // Store our JSON-LD in post meta so we can render it OURSELVES in wp_head
+    // (see kbseo_render_head_seo). AIOSEO Lite does not output custom schema
+    // graphs, so without this our SoftwareApplication/FAQ/Article schema —
+    // and the author/publisher E-E-A-T signals inside it — never reach the
+    // page. Stored slashed; wp_head unslashes before decoding.
+    if (!empty($meta['schema'])) {
+        update_post_meta($post_id, '_kbseo_schema', wp_slash(wp_json_encode($meta['schema'])));
+    }
+
     return true;
+}
+
+/**
+ * Render our on-page SEO signals directly into <head>, independent of AIOSEO's
+ * tier. This is what makes the structured data we generate ACTUALLY appear:
+ *   - the full JSON-LD graph (SoftwareApplication / FAQPage / BreadcrumbList /
+ *     Article) as <script type="application/ld+json">, and
+ *   - HTML <meta name="author">, article:publisher and keywords derived from
+ *     that graph — the exact tags on-page SEO auditors (and some AI crawlers)
+ *     read, which show as "missing" when only AIOSEO Lite is present.
+ * Works for both tool PAGES and blog POSTS (any singular with _kbseo_schema).
+ */
+add_action('wp_head', 'kbseo_render_head_seo', 5);
+function kbseo_render_head_seo() {
+    if (!is_singular()) return;
+    $post_id = get_queried_object_id();
+    if (!$post_id) return;
+
+    $raw = get_post_meta($post_id, '_kbseo_schema', true);
+    if (empty($raw)) return;
+    $schema = json_decode(is_string($raw) ? wp_unslash($raw) : $raw, true);
+    if (!is_array($schema) || empty($schema)) return;
+    // Normalize to a list of graph blocks.
+    $blocks = isset($schema['@type']) ? [$schema] : $schema;
+
+    // Derive author / publisher / keywords from the graph for HTML meta tags.
+    $author = '';
+    $publisher = '';
+    $keywords = '';
+    foreach ($blocks as $b) {
+        if (!is_array($b)) continue;
+        if ($author === '' && !empty($b['author']['name'])) $author = (string) $b['author']['name'];
+        if ($publisher === '' && !empty($b['publisher']['name'])) $publisher = (string) $b['publisher']['name'];
+        if ($keywords === '' && !empty($b['keywords'])) $keywords = is_array($b['keywords']) ? implode(', ', $b['keywords']) : (string) $b['keywords'];
+    }
+
+    echo "\n<!-- Kloudbean SEO Engine: on-page signals -->\n";
+    if ($author !== '') {
+        echo '<meta name="author" content="' . esc_attr($author) . '" />' . "\n";
+    }
+    if ($publisher !== '') {
+        echo '<meta property="article:publisher" content="' . esc_attr($publisher) . '" />' . "\n";
+    }
+    if ($keywords !== '') {
+        echo '<meta name="keywords" content="' . esc_attr($keywords) . '" />' . "\n";
+    }
+    foreach ($blocks as $b) {
+        if (!is_array($b)) continue;
+        $json = wp_json_encode($b, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        if (!$json) continue;
+        // Guard against an embedded </script> breaking out of the tag.
+        $json = str_replace('</', '<\/', $json);
+        echo '<script type="application/ld+json">' . $json . "</script>\n";
+    }
+    echo "<!-- /Kloudbean SEO Engine -->\n";
 }
 
 /**

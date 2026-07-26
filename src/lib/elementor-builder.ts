@@ -388,6 +388,9 @@ export type ElementorAnalysis = {
   /** True only when GENUINELY pre-existing FAQ content is present (i.e. NOT
    *  from our own kbseo-faq marker) — see comment on stripOwnMarkers below. */
   hasFaq: boolean;
+  /** True when the page ALREADY has a how-to / step-by-step section of its own
+   *  (not our kbseo-howto marker), so we don't inject a duplicate. */
+  hasHowTo: boolean;
   hasJsonLd: boolean;
   hasGate: boolean;
   widgetTypes: string[];
@@ -466,6 +469,7 @@ export function analyzeElementorData(raw: unknown): ElementorAnalysis {
     headings: [],
     htmlWidgetCount: 0,
     hasFaq: false,
+    hasHowTo: false,
     hasJsonLd: false,
     hasGate: false,
     widgetTypes: [],
@@ -558,6 +562,13 @@ export function analyzeElementorData(raw: unknown): ElementorAnalysis {
   analysis.hasFaq =
     !analysis.ownMarkers.faq &&
     (/frequently asked|faq\b/i.test(nonInjectedText) || analysis.widgetTypes.includes("accordion"));
+
+  // Same idea for a how-to section — detect a genuine pre-existing one (not our
+  // own kbseo-howto marker) so we don't inject a SECOND "how to use" block
+  // (the audit found two how-to H2s on a page from exactly this).
+  analysis.hasHowTo =
+    !analysis.ownMarkers.howTo &&
+    /\bhow[\s-]?to\s+use\b|\bstep[\s-]?by[\s-]?step\b/i.test(nonInjectedText);
 
   return analysis;
 }
