@@ -8,6 +8,7 @@
  *   node render-all.mjs --keep-frames   # keep PNG frames for inspection
  */
 import { readdir } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { exportVideo } from "./export.mjs";
@@ -22,6 +23,7 @@ async function main() {
   const fpsArg = args.indexOf("--fps");
   const fps = fpsArg >= 0 ? Number(args[fpsArg + 1]) : undefined;
   const keepFrames = args.includes("--keep-frames");
+  const skipExisting = args.includes("--skip-existing");
 
   const entries = (await readdir(OUT, { withFileTypes: true }))
     .filter((e) => e.isDirectory())
@@ -37,6 +39,11 @@ async function main() {
   console.log(`Rendering ${targets.length} video(s)…\n`);
   let ok = 0;
   for (const name of targets) {
+    if (skipExisting && existsSync(join(OUT, name, "video.mp4"))) {
+      console.log(`${name} — skip (already rendered)`);
+      ok++;
+      continue;
+    }
     console.log(name);
     try {
       await exportVideo(name, { fps, keepFrames });
