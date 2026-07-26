@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Clapperboard, Loader2, Sparkles, Film, Copy, Plus, Check } from "lucide-react";
+import { Clapperboard, Loader2, Sparkles, Film, Copy, Plus, Check, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   discoverReelIdeasFn,
@@ -13,6 +13,7 @@ import {
   reelsStatusFn,
   addReelFn,
 } from "@/lib/reels.functions";
+import { ReelStoryboard, ReelScenePoster } from "@/components/ReelStoryboard";
 
 export const Route = createFileRoute("/reels")({ component: ReelsPage });
 
@@ -40,6 +41,9 @@ const FORMAT_LABEL: Record<string, string> = {
   how_it_works: "How it works",
   viral: "Viral",
   comparison: "Comparison",
+  listicle: "Listicle",
+  myth_bust: "Myth-bust",
+  tutorial: "Tutorial",
 };
 
 function ReelsPage() {
@@ -47,6 +51,8 @@ function ReelsPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
+  // Progress of a "generate all scripts" run (n done of total pending ideas).
+  const [bulkGen, setBulkGen] = useState<{ done: number; total: number } | null>(null);
 
   const statusFn = useServerFn(reelsStatusFn);
   const listFn = useServerFn(listReelsFn);
@@ -66,13 +72,33 @@ function ReelsPage() {
   const invalidate = () => qc.invalidateQueries({ queryKey: ["reels"] });
 
   const discoverMut = useMutation({
-    mutationFn: () => discoverFn({ data: { limit: 8 } }),
+    mutationFn: () => discoverFn({ data: { limit: 12 } }),
     onSuccess: (r) => {
       toast.success(`Added ${r.saved} reel ideas`);
       invalidate();
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  // Generate scripts for every pending idea, one at a time (each is an AI call).
+  // Sequential keeps it gentle on rate limits and lets progress update live.
+  const generateAll = async (pending: Reel[]) => {
+    if (!pending.length || bulkGen) return;
+    setBulkGen({ done: 0, total: pending.length });
+    let ok = 0;
+    for (let i = 0; i < pending.length; i++) {
+      try {
+        await genFn({ data: { reelId: pending[i].id } });
+        ok++;
+      } catch {
+        /* skip failures, keep going */
+      }
+      setBulkGen({ done: i + 1, total: pending.length });
+      invalidate();
+    }
+    setBulkGen(null);
+    toast.success(`Generated ${ok}/${pending.length} scripts`);
+  };
 
   const addMut = useMutation({
     mutationFn: () => addFn({ data: { title: newTitle.trim() } }),
@@ -164,7 +190,28 @@ function ReelsPage() {
         </div>
 
         {/* Ideas */}
-        <SectionHead title="Ideas" desc={`${ideas.length} pending`} />
+        <SectionHead
+          title="Ideas"
+          desc={`${ideas.length} pending`}
+          action={
+            ideas.length > 0 ? (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!!bulkGen}
+                onClick={() => generateAll(ideas)}
+                title="Write full scripts + AI-video prompts for every pending idea (one AI call each)."
+              >
+                {bulkGen ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Wand2 className="mr-2 h-4 w-4" />
+                )}
+                {bulkGen ? `Generating ${bulkGen.done}/${bulkGen.total}` : `Generate all (${ideas.length})`}
+              </Button>
+            ) : null
+          }
+        />
         {ideas.length === 0 ? (
           <Empty>Discover ideas from the knowledge graph or add one above.</Empty>
         ) : (
@@ -205,25 +252,28 @@ function ReelsPage() {
               <button
                 key={r.id}
                 onClick={() => setOpenId(r.id)}
-                title="Open this reel to see the script, captions and AI-video prompts."
-                className={`rounded-lg border bg-card/60 p-4 text-left transition-colors hover:border-primary/50 ${
+                title="Open this reel to watch the animated preview + see the script and AI-video prompts."
+                className={`flex gap-3 rounded-lg border bg-card/60 p-3 text-left transition-colors hover:border-primary/50 ${
                   openId === r.id ? "border-primary" : "border-border"
                 }`}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[9px] uppercase">
-                    {FORMAT_LABEL[r.format] ?? r.format}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">
-                    {r.duration_seconds ?? 45}s · {r.script?.length ?? 0} beats
-                  </span>
-                </div>
-                <div className="mt-1 font-medium leading-snug">{r.title}</div>
-                {r.hook && (
-                  <div className="mt-1 line-clamp-2 text-[12px] text-muted-foreground">
-                    “{r.hook}”
+                <ReelScenePoster beats={r.script} className="h-24 w-[54px] shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[9px] uppercase">
+                      {FORMAT_LABEL[r.format] ?? r.format}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {r.duration_seconds ?? 45}s · {r.script?.length ?? 0} beats
+                    </span>
                   </div>
-                )}
+                  <div className="mt-1 font-medium leading-snug">{r.title}</div>
+                  {r.hook && (
+                    <div className="mt-1 line-clamp-2 text-[12px] text-muted-foreground">
+                      “{r.hook}”
+                    </div>
+                  )}
+                </div>
               </button>
             ))}
           </div>
@@ -256,6 +306,20 @@ function ReelDetail({ reel, onClose }: { reel: Reel; onClose: () => void }) {
             Close
           </Button>
         </div>
+
+        {reel.script?.length ? (
+          <Block title="Animated preview">
+            <p className="mb-3 text-[11px] text-muted-foreground">
+              A shot-by-shot animation of the reel — watch the flow, timing and message before you
+              send the prompts to Sora/Veo. Tap the left/right of the frame to step through beats.
+            </p>
+            <ReelStoryboard
+              beats={reel.script}
+              hook={reel.hook}
+              formatLabel={FORMAT_LABEL[reel.format] ?? reel.format}
+            />
+          </Block>
+        ) : null}
 
         {reel.hook && (
           <Block title="Hook">
@@ -386,11 +450,22 @@ function Pre({ children }: { children: React.ReactNode }) {
   );
 }
 
-function SectionHead({ title, desc }: { title: string; desc?: string }) {
+function SectionHead({
+  title,
+  desc,
+  action,
+}: {
+  title: string;
+  desc?: string;
+  action?: React.ReactNode;
+}) {
   return (
     <div className="mb-4 flex items-end justify-between gap-6 border-b border-border pb-3">
-      <h2 className="text-display text-2xl font-semibold tracking-tight">{title}</h2>
-      {desc && <span className="text-xs text-muted-foreground">{desc}</span>}
+      <div className="flex items-baseline gap-4">
+        <h2 className="text-display text-2xl font-semibold tracking-tight">{title}</h2>
+        {desc && <span className="text-xs text-muted-foreground">{desc}</span>}
+      </div>
+      {action}
     </div>
   );
 }

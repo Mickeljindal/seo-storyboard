@@ -10,7 +10,15 @@ import { KLOUDBEAN_PROMPT_CORE } from "./kloudbean-scope";
  * works" content that earns saves and shares, not hype.
  */
 
-export type ReelFormat = "explainer" | "educational" | "how_it_works" | "viral" | "comparison";
+export type ReelFormat =
+  | "explainer"
+  | "educational"
+  | "how_it_works"
+  | "viral"
+  | "comparison"
+  | "listicle"
+  | "myth_bust"
+  | "tutorial";
 
 export type ReelIdea = {
   title: string;
@@ -52,6 +60,12 @@ const FORMAT_GUIDE: Record<ReelFormat, string> = {
   viral: "Pattern-interrupt hook, fast pacing, a surprising fact or myth-bust, strong loop ending.",
   comparison:
     "Fair head-to-head (Kloudbean vs X) on real criteria with an on-screen table; no trash talk.",
+  listicle:
+    "A tight countdown (e.g. '5 ways to cut your cloud bill'). One punchy item per beat, on-screen numbers.",
+  myth_bust:
+    "State a common belief, then bust it with a fact. 'You think X… actually Y.' Satisfying reveal.",
+  tutorial:
+    "Do-it-with-me walkthrough of ONE real task, step by step, ending in a working result on Kloudbean.",
 };
 
 function stripFences(s: string): string {
@@ -359,35 +373,37 @@ export async function discoverReelIdeas(limit = 8): Promise<ReelIdea[]> {
     /* graph optional */
   }
 
-  // Fallback evergreen ideas if the graph is empty.
-  if (!ideas.length) {
-    const evergreen: { title: string; topic: string; format: ReelFormat }[] = [
-      {
-        title: "What is managed cloud hosting? (explained in 45s)",
-        topic: "managed cloud hosting",
-        format: "explainer",
-      },
-      {
-        title: "How a load balancer keeps your app online",
-        topic: "load balancer",
-        format: "how_it_works",
-      },
-      { title: "Deploy an AI app in 60 seconds", topic: "deploy ai app", format: "how_it_works" },
-      {
-        title: "Cloud egress fees, explained (why your bill exploded)",
-        topic: "cloud egress costs",
-        format: "educational",
-      },
-    ];
-    for (const e of evergreen) {
-      push({
-        title: e.title,
-        topic: e.topic,
-        format: e.format,
-        angle: "Educational explainer that resolves to hosting it on Kloudbean.",
-        source: "evergreen",
-      });
-    }
+  // Evergreen seeds — a broad, always-fresh bank across every format so
+  // "Discover" always returns a full batch even when the graph is sparse.
+  // These TOP UP the graph/competitor ideas (not just a last resort), which is
+  // what lets you keep making more and more reels.
+  const evergreen: { title: string; topic: string; format: ReelFormat }[] = [
+    { title: "What is managed cloud hosting? (in 45s)", topic: "managed cloud hosting", format: "explainer" },
+    { title: "How a load balancer keeps your app online", topic: "load balancer", format: "how_it_works" },
+    { title: "Deploy an AI app in 60 seconds", topic: "deploy ai app", format: "tutorial" },
+    { title: "Cloud egress fees, explained (why your bill exploded)", topic: "cloud egress costs", format: "educational" },
+    { title: "5 ways to cut your cloud bill this week", topic: "reduce cloud costs", format: "listicle" },
+    { title: "'The cloud is always expensive' — myth busted", topic: "cloud cost myths", format: "myth_bust" },
+    { title: "How a CDN makes your site load 5x faster", topic: "cdn caching", format: "how_it_works" },
+    { title: "What actually happens when you type a URL", topic: "how dns works", format: "explainer" },
+    { title: "VPS vs managed hosting: which do you need?", topic: "vps vs managed hosting", format: "comparison" },
+    { title: "Set up SSL the right way (step by step)", topic: "ssl certificate setup", format: "tutorial" },
+    { title: "3 database backup mistakes that kill startups", topic: "database backups", format: "listicle" },
+    { title: "How autoscaling survives a traffic spike", topic: "autoscaling", format: "how_it_works" },
+    { title: "'You need Kubernetes for everything' — myth busted", topic: "do you need kubernetes", format: "myth_bust" },
+    { title: "Staging environments, explained simply", topic: "staging environment", format: "explainer" },
+    { title: "Ship a WordPress site globally in minutes", topic: "wordpress cloud hosting", format: "tutorial" },
+    { title: "What a reverse proxy really does", topic: "reverse proxy", format: "explainer" },
+  ];
+  for (const e of evergreen) {
+    if (ideas.length >= limit * 2) break;
+    push({
+      title: e.title,
+      topic: e.topic,
+      format: e.format,
+      angle: "Educational, accurate, resolves to doing it the easy way on Kloudbean.",
+      source: "evergreen",
+    });
   }
 
   return ideas.slice(0, limit);

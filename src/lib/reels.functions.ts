@@ -7,7 +7,7 @@ import { z } from "zod";
  */
 
 export const discoverReelIdeasFn = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ limit: z.number().min(1).max(20).default(8) }).parse)
+  .inputValidator(z.object({ limit: z.number().min(1).max(40).default(12) }).parse)
   .handler(async ({ data }) => {
     const { loadProjectEnv } = await import("./load-env");
     loadProjectEnv();
@@ -93,7 +93,16 @@ export const addReelFn = createServerFn({ method: "POST" })
       title: z.string().min(3).max(160),
       topic: z.string().max(120).optional(),
       format: z
-        .enum(["explainer", "educational", "how_it_works", "viral", "comparison"])
+        .enum([
+          "explainer",
+          "educational",
+          "how_it_works",
+          "viral",
+          "comparison",
+          "listicle",
+          "myth_bust",
+          "tutorial",
+        ])
         .default("explainer"),
     }).parse,
   )
