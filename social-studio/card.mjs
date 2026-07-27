@@ -1,10 +1,10 @@
 /**
- * Builds a 1080x1080 branded social card (HTML) for one post, reusing the same
- * animated scene visuals as the video studio (../video-studio/scenes.mjs) so
- * the video + social look is one consistent system. Also builds the caption
- * text that goes with each post.
+ * Premium 1080x1080 social card for Kloudbean. Editorial, typography-forward,
+ * dark brand background — NO graphic sitting behind the headline (that was the
+ * problem). Visual interest comes from a refined layered background (brand glow
+ * + fine grid + vignette), a strong display typeface, an eyebrow label, and a
+ * large, faint line-glyph anchored in the corner so it never collides with text.
  */
-import { PALETTE, SCENE_KINDS, sceneMarkup, SCENE_CSS } from "../video-studio/scenes.mjs";
 import { ICP_NAMES } from "./content.mjs";
 
 const esc = (s) =>
@@ -22,7 +22,7 @@ export function slugify(s) {
     .slice(0, 48);
 }
 
-/** The ready-to-paste caption: post copy + a hashtag line. */
+/** Ready-to-paste caption: post copy + a hashtag line. */
 export function buildCaption(post) {
   const tags = (post.tags ?? []).map((t) => `#${t.replace(/^#/, "")}`).join(" ");
   const parts = [post.caption.trim()];
@@ -30,53 +30,139 @@ export function buildCaption(post) {
   return parts.join("\n") + "\n";
 }
 
+/** Refined per-ICP accent (used only for eyebrow, rule + glyph tint). */
+const ACCENT = {
+  vibecoder: "#a78bfa",
+  saas_founder: "#34d399",
+  ai_agency: "#f472b6",
+  freelance_dev: "#38bdf8",
+  wp_agency: "#60a5fa",
+  enterprise_gov: "#2dd4bf",
+  general: "#8b8cff",
+};
+
+function eyebrow(post) {
+  const byIcp = {
+    vibecoder: "For AI builders",
+    saas_founder: "For SaaS founders",
+    ai_agency: "For agencies",
+    freelance_dev: "For freelance devs",
+    wp_agency: "For WordPress teams",
+    enterprise_gov: "Enterprise · KSA",
+  };
+  if (byIcp[post.icp]) return byIcp[post.icp];
+  const byType = { feature: "The platform", myth: "Myth, busted", compare: "Comparison", tip: "Pro tip", hook: "Managed cloud", quote: "Kloudbean", usecase: "Use case", cta: "Managed cloud" };
+  return byType[post.type] || "Managed cloud";
+}
+
+/** First sentence of the caption, as a short supporting line under the headline. */
+function subline(post) {
+  const first = String(post.caption || "").split(/(?<=[.!?])\s/)[0].trim();
+  if (!first || first.length < 12) return "";
+  return first.length > 104 ? first.slice(0, 101).trim() + "…" : first;
+}
+
+/** Minimal single-stroke line glyphs (24x24), used large + faint as a corner anchor. */
+function glyph(scene) {
+  const g = {
+    deploy: '<path d="M12 3c3 2 4.5 6 4.5 9 0 2-1.5 4-4.5 6-3-2-4.5-4-4.5-6 0-3 1.5-7 4.5-9Z"/><circle cx="12" cy="9.5" r="1.8"/><path d="M8.5 17c-2 .8-3 2.4-3 4 1.6 0 3.2-1 4-3M15.5 17c2 .8 3 2.4 3 4-1.6 0-3.2-1-4-3"/>',
+    code: '<path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13 6l-2 12"/>',
+    database: '<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/>',
+    security: '<path d="M12 3l7 3v5c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6l7-3Z"/><path d="M9.5 12l1.8 1.8L15 10"/>',
+    cost: '<path d="M4 20V10M9 20V5M14 20v-7M19 20V8"/>',
+    compare: '<path d="M7 21V10M17 21V4"/><rect x="4" y="10" width="6" height="11" rx="1"/><rect x="14" y="4" width="6" height="17" rx="1"/>',
+    cdn: '<circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="9" ry="3.6"/><path d="M3 12h18M12 3v18"/>',
+    scale: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+    network: '<circle cx="12" cy="5" r="2.4"/><circle cx="5" cy="19" r="2.4"/><circle cx="19" cy="19" r="2.4"/><path d="M12 7.4 6.4 16.6M12 7.4l5.6 9.2M7.4 19h9.2"/>',
+    cloud: '<path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9.5 3.75 3.75 0 0 1 17.5 18Z"/>',
+    ai: '<circle cx="12" cy="12" r="3"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(-60 12 12)"/>',
+    speed: '<path d="M4 14a8 8 0 0 1 16 0"/><path d="M12 14l4-4"/><circle cx="12" cy="14" r="1.4"/>',
+    wordpress: '<circle cx="12" cy="12" r="9"/><path d="M4 9h5l2.2 7 2-6-1-1h3l2.4 7 2-7"/>',
+    generic: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/>',
+  };
+  return g[scene] || g.generic;
+}
+
 const DIMS = { square: [1080, 1080], portrait: [1080, 1350], wide: [1200, 630] };
 
 export function buildPostHtml(post, shape = "square") {
   const [w, h] = DIMS[shape] ?? DIMS.square;
-  const kind = SCENE_KINDS.includes(post.scene) ? post.scene : "generic";
-  const headline = esc(post.headline).replace(/\n/g, "<br>");
+  const accent = ACCENT[post.icp] ?? ACCENT.general;
   const badge = esc(ICP_NAMES[post.icp] ?? "Kloudbean");
-  const hlSize = post.headline.length > 42 ? 66 : 84;
+  const headline = esc(post.headline).replace(/\n/g, "<br>");
+  const flat = post.headline.replace(/\n/g, " ");
+  const hlSize = flat.length > 46 ? 74 : flat.length > 30 ? 88 : 100;
+  const sub = esc(subline(post));
 
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"/>
-<title>${esc(post.headline).replace(/<br>/g, " ")} — Kloudbean</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<title>${esc(flat)} — Kloudbean</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  html,body{background:#05060f}
-  #card{position:relative;width:${w}px;height:${h}px;overflow:hidden;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
-  ${SCENE_CSS}
-  .scrim{position:absolute;inset:0;background:
-    linear-gradient(180deg, rgba(5,6,15,.35), rgba(5,6,15,.15) 32%, rgba(5,6,15,.35) 60%, rgba(5,6,15,.82))}
-  .top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:16px;padding:48px 56px;z-index:5}
-  .brand{display:flex;align-items:center;gap:14px;color:#fff;font-weight:800;font-size:34px;letter-spacing:-.01em}
-  .brand .dot{width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,#4F1AF3,#6c47ff);box-shadow:0 0 22px #6c47ff}
-  .badge{margin-left:auto;color:#fff;font-size:24px;font-weight:600;background:rgba(255,255,255,.14);
-    padding:9px 20px;border-radius:999px}
-  .headline{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);
-    padding:0 64px;z-index:5;color:#fff;font-weight:800;line-height:1.06;letter-spacing:-.02em;
-    font-size:${hlSize}px;text-shadow:0 6px 34px rgba(0,0,0,.5);text-wrap:balance}
-  .bottom{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;
-    padding:44px 56px;z-index:5;color:#fff}
-  .handle{font-size:28px;font-weight:600;opacity:.92}
-  .cta{margin-left:auto;font-size:26px;font-weight:700;color:#fff;
-    background:linear-gradient(135deg,#4F1AF3,#6c47ff);padding:12px 26px;border-radius:999px;
-    box-shadow:0 16px 40px -12px rgba(79,26,243,.7)}
+  html,body{background:#04050c}
+  #card{position:relative;width:${w}px;height:${h}px;overflow:hidden;background:#05060f;
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#fff}
+  /* Layered background: deep navy base + two soft glows + fine grid + vignette */
+  .bg{position:absolute;inset:0}
+  .g1{position:absolute;width:820px;height:820px;right:-160px;top:-220px;border-radius:50%;
+    background:radial-gradient(closest-side, ${accent}44, transparent 70%);filter:blur(20px)}
+  .g2{position:absolute;width:720px;height:720px;left:-200px;bottom:-260px;border-radius:50%;
+    background:radial-gradient(closest-side, #4F1AF340, transparent 70%);filter:blur(20px)}
+  .grid{position:absolute;inset:0;opacity:.5;
+    background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+    background-size:60px 60px;
+    -webkit-mask-image:radial-gradient(120% 90% at 70% 15%, #000 20%, transparent 78%);
+    mask-image:radial-gradient(120% 90% at 70% 15%, #000 20%, transparent 78%)}
+  .vign{position:absolute;inset:0;box-shadow:inset 0 0 240px 60px rgba(0,0,0,.55)}
+  .glyph{position:absolute;right:-70px;bottom:-90px;width:520px;height:520px;color:#fff;opacity:.06}
+  .glyph svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.1;stroke-linecap:round;stroke-linejoin:round}
+
+  .pad{position:absolute;inset:0;padding:84px 88px;display:flex;flex-direction:column}
+  .top{display:flex;align-items:center;gap:16px}
+  .brand{display:flex;align-items:center;gap:14px;font-weight:700;font-size:32px;letter-spacing:-.01em}
+  .mark{width:40px;height:40px;border-radius:11px;background:linear-gradient(140deg,#6c47ff,#4F1AF3);
+    position:relative;box-shadow:0 8px 26px -6px #4F1AF3aa}
+  .mark::after{content:"";position:absolute;inset:11px 11px auto 11px;height:6px;border-radius:3px;background:#fff9;box-shadow:0 10px 0 #ffffff66}
+  .pill{margin-left:auto;font-size:22px;font-weight:500;color:#c7c9e6;
+    border:1px solid #ffffff26;background:#ffffff0d;padding:9px 20px;border-radius:999px}
+
+  .body{margin-top:auto;margin-bottom:auto;max-width:840px}
+  .eyebrow{display:flex;align-items:center;gap:16px;color:${accent};font-weight:600;font-size:23px;
+    letter-spacing:.16em;text-transform:uppercase;margin-bottom:26px}
+  .eyebrow .rule{width:46px;height:2px;background:${accent};border-radius:2px}
+  h1{font-family:"Space Grotesk","Inter",sans-serif;font-weight:700;font-size:${hlSize}px;
+    line-height:1.04;letter-spacing:-.025em;color:#fff;text-wrap:balance}
+  .sub{margin-top:28px;font-size:30px;line-height:1.4;color:#a6a9c8;font-weight:400;max-width:760px}
+
+  .foot{display:flex;align-items:center;gap:16px;padding-top:26px;border-top:1px solid #ffffff18}
+  .handle{font-size:26px;font-weight:500;color:#c7c9e6}
+  .url{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:26px;font-weight:600;color:#fff}
+  .url .arw{color:${accent}}
 </style></head>
 <body>
   <div id="card">
-    ${sceneMarkup(kind)}
-    <div class="scrim"></div>
-    <div class="top">
-      <div class="brand"><span class="dot"></span>Kloudbean</div>
-      <div class="badge">${badge}</div>
+    <div class="bg">
+      <div class="g1"></div><div class="g2"></div>
+      <div class="grid"></div><div class="vign"></div>
     </div>
-    <div class="headline">${headline}</div>
-    <div class="bottom">
-      <div class="handle">@kloudbean</div>
-      <div class="cta">kloudbean.com</div>
+    <div class="glyph"><svg viewBox="0 0 24 24">${glyph(post.scene)}</svg></div>
+    <div class="pad">
+      <div class="top">
+        <div class="brand"><span class="mark"></span>Kloudbean</div>
+        <div class="pill">${badge}</div>
+      </div>
+      <div class="body">
+        <div class="eyebrow"><span class="rule"></span>${esc(eyebrow(post))}</div>
+        <h1>${headline}</h1>
+        ${sub ? `<div class="sub">${sub}</div>` : ""}
+      </div>
+      <div class="foot">
+        <div class="handle">@kloudbean</div>
+        <div class="url"><span class="arw">→</span> kloudbean.com</div>
+      </div>
     </div>
   </div>
 </body></html>`;
