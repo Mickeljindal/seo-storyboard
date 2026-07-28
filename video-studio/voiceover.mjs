@@ -1,37 +1,28 @@
 /**
- * ElevenLabs voiceover for the videos. For each beat we synthesize the
- * narration to speech, pad it with a short trailing silence, and concatenate
- * the clips into one voiceover.mp3. It also returns the per-beat audio
- * durations so the exporter can time each on-screen beat to its narration —
- * i.e. the visuals stay in sync with the voice.
+ * MANUAL voiceover — no API calls. You generate the narration audio yourself
+ * (e.g. in ElevenLabs), drop the file into the video's output folder, and the
+ * exporter times the on-screen beats to it and muxes it into the MP4.
  *
- * Config (env, e.g. project root .env):
- *   ELEVENLABS_API_KEY   (required to enable voiceover)
- *   ELEVENLABS_VOICE_ID  (optional; default a standard ElevenLabs voice)
- *   ELEVENLABS_MODEL_ID  (optional; default eleven_multilingual_v2)
- *   VO_PAD_SECONDS       (optional; trailing pause per beat, default 0.6)
- *   VO_MIN_BEAT          (optional; min seconds a beat stays on screen, default 2.4)
+ * Two ways to supply audio (checked in this order):
+ *   1. Per-beat  — output/<folder>/vo/1.mp3, 2.mp3, … one clip per beat
+ *      (also .m4a/.wav/.aac/.ogg). Each beat stays on screen for the length of
+ *      its clip → tightest sync.
+ *   2. Whole video — output/<folder>/voiceover.mp3 (or narration.* / voice.*)
+ *      the full narration in one file. Beats are timed proportionally to each
+ *      beat's narration length so the visuals track the voice.
+ *
+ * The `script.md` in each folder has the exact voiceover text to paste in.
+ * Tuning (env): VO_PAD_SECONDS (pause after each per-beat clip, default 0.6),
+ * VO_MIN_BEAT (min seconds a per-beat stays up, default 2.4).
  */
 import { spawn } from "node:child_process";
 import { writeFile, mkdir, rm } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { loadEnv } from "./loadenv.mjs";
 
-loadEnv();
-
-function cfg() {
-  return {
-    key: process.env.ELEVENLABS_API_KEY,
-    voice: process.env.ELEVENLABS_VOICE_ID || "JBFqnCBsd6RMkjVDRZzb", // "George" (common default)
-    model: process.env.ELEVENLABS_MODEL_ID || "eleven_multilingual_v2",
-    pad: Number(process.env.VO_PAD_SECONDS || 0.6),
-    minBeat: Number(process.env.VO_MIN_BEAT || 2.4),
-  };
-}
-
-export function hasVoiceover() {
-  return !!cfg().key;
-}
+const PAD = Number(process.env.VO_PAD_SECONDS || 0.6);
+const MIN_BEAT = Number(process.env.VO_MIN_BEAT || 2.4);
+const AUDIO_EXT = ["mp3", "m4a", "wav", "aac", "ogg"];
 
 function run(cmd, args) {
   return new Promise((res, rej) => {
@@ -52,54 +43,71 @@ function ffprobeDur(file) {
   });
 }
 
-async function synth(text, outMp3) {
-  const { key, voice, model } = cfg();
-  const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}`, {
-    method: "POST",
-    headers: { "xi-api-key": key, "Content-Type": "application/json", Accept: "audio/mpeg" },
-    body: JSON.stringify({
-      text,
-      model_id: model,
-      voice_settings: { stability: 0.45, similarity_boost: 0.75, style: 0, use_speaker_boost: true },
-    }),
-  });
-  if (!res.ok) {
-    throw new Error(`ElevenLabs HTTP ${res.status}: ${(await res.text()).slice(0, 180)}`);
+const words = (s) => (String(s).trim().match(/\S+/g) || []).length;
+
+function findFile(dir, base) {
+  for (const e of AUDIO_EXT) {
+    const p = join(dir, `${base}.${e}`);
+    if (existsSync(p)) return p;
   }
-  await writeFile(outMp3, Buffer.from(await res.arrayBuffer()));
+  return null;
 }
 
 /**
- * Synthesize the whole video's voiceover.
- * Returns { beatDurs:[seconds per beat], audioPath, totalSeconds } or null if
- * voiceover isn't configured.
+ * Find manual voiceover audio for a video and return timing + a track to mux.
+ * Returns { beatDurs, audioPath, cleanup, mode } or null if none supplied.
+ * `cleanup` = whether audioPath is a generated temp file safe to delete
+ * (never true for a file you dropped in).
  */
-export async function generateVoiceover(video, dir) {
-  if (!hasVoiceover()) return null;
-  const { pad, minBeat } = cfg();
-  const voDir = join(dir, "vo");
-  await rm(voDir, { recursive: true, force: true });
-  await mkdir(voDir, { recursive: true });
+export async function resolveVoiceover(video, dir) {
+  const n = video.beats.length;
 
-  const padded = [];
-  const beatDurs = [];
-  for (let i = 0; i < video.beats.length; i++) {
-    const raw = join(voDir, `b${i}.mp3`);
-    await synth(video.beats[i].narration, raw);
-    const d = await ffprobeDur(raw);
-    const target = Math.max(minBeat, d + pad);
-    const padFile = join(voDir, `b${i}_pad.mp3`);
-    // Re-encode with trailing silence so this clip is exactly `target` long.
-    await run("ffmpeg", ["-y", "-i", raw, "-af", `apad=pad_dur=${(target - d).toFixed(3)}`, "-t", target.toFixed(3), "-c:a", "libmp3lame", "-q:a", "3", padFile]);
-    padded.push(padFile);
-    beatDurs.push(Number(target.toFixed(3)));
+  // 1. Per-beat clips: vo/1.mp3 .. vo/N.mp3
+  const voDir = join(dir, "vo");
+  if (existsSync(voDir)) {
+    const perBeat = [];
+    for (let i = 1; i <= n; i++) {
+      const f = findFile(voDir, String(i));
+      if (!f) {
+        perBeat.length = 0;
+        break;
+      }
+      perBeat.push(f);
+    }
+    if (perBeat.length === n && n > 0) {
+      const tmp = join(dir, ".vo-mix");
+      await rm(tmp, { recursive: true, force: true });
+      await mkdir(tmp, { recursive: true });
+      const padded = [];
+      const beatDurs = [];
+      for (let i = 0; i < n; i++) {
+        const dsec = await ffprobeDur(perBeat[i]);
+        const target = Math.max(MIN_BEAT, dsec + PAD);
+        const pf = join(tmp, `p${i}.mp3`);
+        await run("ffmpeg", ["-y", "-i", perBeat[i], "-af", `apad=pad_dur=${(target - dsec).toFixed(3)}`, "-t", target.toFixed(3), "-c:a", "libmp3lame", "-q:a", "3", pf]);
+        padded.push(pf);
+        beatDurs.push(Number(target.toFixed(3)));
+      }
+      const list = join(tmp, "list.txt");
+      await writeFile(list, padded.map((p) => `file '${p.replace(/'/g, "'\\''")}'`).join("\n"));
+      const mixed = join(dir, ".voiceover-mixed.mp3");
+      await run("ffmpeg", ["-y", "-f", "concat", "-safe", "0", "-i", list, "-c:a", "libmp3lame", "-q:a", "3", mixed]);
+      await rm(tmp, { recursive: true, force: true });
+      return { beatDurs, audioPath: mixed, cleanup: true, mode: "per-beat" };
+    }
   }
 
-  const listFile = join(voDir, "list.txt");
-  await writeFile(listFile, padded.map((p) => `file '${p.replace(/'/g, "'\\''")}'`).join("\n"));
-  const audioPath = join(dir, "voiceover.mp3");
-  await run("ffmpeg", ["-y", "-f", "concat", "-safe", "0", "-i", listFile, "-c:a", "libmp3lame", "-q:a", "3", audioPath]);
+  // 2. One full-length file for the whole video.
+  const full = findFile(dir, "voiceover") || findFile(dir, "narration") || findFile(dir, "voice");
+  if (full) {
+    const total = await ffprobeDur(full);
+    if (total > 0) {
+      const w = video.beats.map((b) => Math.max(1, words(b.narration)));
+      const tw = w.reduce((a, b) => a + b, 0);
+      const beatDurs = w.map((x) => Number(((x / tw) * total).toFixed(3)));
+      return { beatDurs, audioPath: full, cleanup: false, mode: "full" };
+    }
+  }
 
-  await rm(voDir, { recursive: true, force: true });
-  return { beatDurs, audioPath, totalSeconds: beatDurs.reduce((a, b) => a + b, 0) };
+  return null;
 }

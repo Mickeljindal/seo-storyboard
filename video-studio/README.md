@@ -40,21 +40,28 @@ Two aspect ratios: **YouTube (16:9)** → `video.mp4`, **Reel (9:16)** → `vide
 
 Prefer to just **watch** without rendering? Open any `output/*/storyboard.html` in a browser — it autoplays. (That preview is always 16:9; `--format` rebuilds the exact ratio at render time.)
 
-## Voiceover (ElevenLabs)
+## Voiceover (manual — bring your own audio)
 
-Add your key (copy `.env.example` → `.env`, or use the project-root `.env`):
+No API calls. You make the narration audio yourself (ElevenLabs, or anywhere),
+drop it into the video's folder, and render with `--voiceover` — the exporter
+times the on-screen beats to your audio and muxes it into the MP4. Two options:
 
+1. **Whole video (simplest):** open the folder's `script.md`, copy the
+   **Voiceover** block, generate one audio file, and save it as
+   `output/<folder>/voiceover.mp3`. Beats are timed proportionally to each
+   line so the visuals track the voice.
+2. **Per-beat (tightest sync):** save one clip per beat as
+   `output/<folder>/vo/1.mp3`, `2.mp3`, … Each beat stays on screen exactly as
+   long as its clip (plus a short pause).
+
+```bash
+node export.mjs 01-deploy-lovable-app --voiceover                 # 16:9 with your voiceover
+node render-all.mjs --format both --voiceover                     # everything, both ratios
 ```
-ELEVENLABS_API_KEY=sk_...
-ELEVENLABS_VOICE_ID=<a voice from your account>   # optional
-```
 
-Then render with `--voiceover`. For each beat we synthesize the narration to
-speech, **time that beat's on-screen duration to the audio** (so the visuals
-stay in sync with the voice), and mux the combined track into the MP4. Without
-a key, `--voiceover` is skipped and the video renders silent. Tuning:
-`VO_PAD_SECONDS` (pause after each line, default 0.6) and `VO_MIN_BEAT`
-(min seconds a beat stays up, default 2.4).
+If no audio is found the video just renders silent. Per-beat tuning:
+`VO_PAD_SECONDS` (pause after each clip, default 0.6), `VO_MIN_BEAT`
+(min seconds a beat stays up, default 2.4). Audio files stay local (gitignored).
 
 ## How the HTML → MP4 export works
 

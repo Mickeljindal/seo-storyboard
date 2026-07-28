@@ -2,14 +2,14 @@
  * Renders a storyboard to MP4 via deterministic frame capture (Playwright) +
  * ffmpeg. Supports:
  *   --format youtube|reel|both   16:9 (video.mp4) and/or 9:16 (video-reel.mp4)
- *   --voiceover                  ElevenLabs TTS per beat, synced + muxed in
+ *   --voiceover                  mux your MANUAL narration audio + sync beats to it
  *   --fps N   --keep-frames
  *
- * With --voiceover, each on-screen beat is timed to the length of its narration
- * audio, so the visuals stay in sync with the voice.
+ * With --voiceover, we look for audio you dropped in the video's folder
+ * (voiceover.mp3, or per-beat vo/1.mp3…), time each on-screen beat to it, and
+ * mux it into the MP4. No TTS API is called — see voiceover.mjs.
  *
- * Requires: playwright (+ chromium), ffmpeg on PATH. Voiceover requires
- * ELEVENLABS_API_KEY (see voiceover.mjs).
+ * Requires: playwright (+ chromium) and ffmpeg on PATH.
  */
 import { spawn } from "node:child_process";
 import { mkdir, rm, stat, writeFile } from "node:fs/promises";
@@ -18,7 +18,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { VIDEOS } from "./ideas.mjs";
 import { buildStoryboardHtml } from "./template.mjs";
-import { generateVoiceover, hasVoiceover } from "./voiceover.mjs";
+import { resolveVoiceover } from "./voiceover.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT = join(__dirname, "output");
@@ -106,15 +106,14 @@ export async function exportVideo(arg, { fps, keepFrames = false, format = "yout
   }
   await mkdir(dir, { recursive: true });
 
-  // Voiceover: synth per beat, then time beats to the audio.
+  // Voiceover: use manual audio you dropped in the folder, timing beats to it.
   let vo = null;
   if (voiceover) {
-    if (!hasVoiceover()) {
-      console.log("  (voiceover skipped — set ELEVENLABS_API_KEY in .env)");
+    vo = await resolveVoiceover(video, dir);
+    if (vo) {
+      console.log(`  voiceover: ${vo.mode} track — timing beats to audio`);
     } else {
-      process.stdout.write("  generating ElevenLabs voiceover… ");
-      vo = await generateVoiceover(video, dir);
-      process.stdout.write(`done (${vo.totalSeconds.toFixed(1)}s)\n`);
+      console.log(`  (no voiceover audio found — drop "voiceover.mp3" in output/${arg}/, or per-beat clips in output/${arg}/vo/1.mp3…; rendering silent)`);
     }
   }
 
@@ -127,7 +126,8 @@ export async function exportVideo(arg, { fps, keepFrames = false, format = "yout
     return await captureAndEncode(dir, tmpHtml, { fps, keepFrames, outName, audioPath: vo?.audioPath ?? null });
   } finally {
     await rm(tmpHtml, { force: true });
-    if (vo?.audioPath) await rm(vo.audioPath, { force: true }); // audio is now baked into the mp4
+    // Only remove the generated temp mix — never a file you dropped in.
+    if (vo?.cleanup && vo.audioPath) await rm(vo.audioPath, { force: true });
   }
 }
 
