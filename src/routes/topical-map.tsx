@@ -52,6 +52,14 @@ function TopicalMap() {
   const qc = useQueryClient();
   const [panelId, setPanelId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const toggleExpanded = (id: number) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   const mapFn = useServerFn(getTopicalMapFn);
   const rebuildFn = useServerFn(rebuildSiloFn);
@@ -289,7 +297,7 @@ function TopicalMap() {
                         Supporting ({c.supporting.length}) → link up to hub
                       </div>
                       <div className="grid gap-2 sm:grid-cols-2">
-                        {c.supporting.slice(0, 8).map((s) => (
+                        {(expanded.has(c.cluster_id) ? c.supporting : c.supporting.slice(0, 8)).map((s) => (
                           <button
                             key={s.id}
                             onClick={() => {
@@ -306,9 +314,14 @@ function TopicalMap() {
                           </button>
                         ))}
                         {c.supporting.length > 8 && (
-                          <div className="flex items-center justify-center rounded-md border border-dashed border-border p-2.5 text-xs text-muted-foreground">
-                            +{c.supporting.length - 8} more
-                          </div>
+                          <button
+                            onClick={() => toggleExpanded(c.cluster_id)}
+                            className="flex items-center justify-center gap-1 rounded-md border border-dashed border-border p-2.5 text-xs text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
+                          >
+                            {expanded.has(c.cluster_id)
+                              ? "Show less"
+                              : `+${c.supporting.length - 8} more`}
+                          </button>
                         )}
                       </div>
                     </div>
