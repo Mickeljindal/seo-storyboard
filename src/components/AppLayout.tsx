@@ -31,6 +31,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { SystemHealthBanner, SystemHealthOkBadge } from "./SystemHealthBanner";
 import { AssistantWidget } from "./AssistantWidget";
 import { wpStatus } from "@/lib/wordpress.functions";
+import { getAutopilotStatusFn } from "@/lib/autopilot.functions";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, kbd: "1" },
@@ -85,18 +86,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </Link>
         </div>
 
-        <div className="mx-3 mb-3 rounded-md border border-sidebar-border bg-card/40 px-3 py-2.5">
-          <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--lime)] opacity-75" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--lime)]" />
-            </span>
-            Engine running · <SystemHealthOkBadge />
-          </div>
-          <div className="mt-1 text-[11px] text-foreground/85">
-            Autonomous SEO pipeline for <span className="font-mono">kloudbean.com</span>
-          </div>
-        </div>
+        <EngineNavStatus />
 
         <nav className="flex-1 overflow-y-auto px-3 py-1">
           {NAV.map((n) => {
@@ -136,6 +126,60 @@ export function AppLayout({ children }: { children: ReactNode }) {
       </main>
       <AssistantWidget />
     </div>
+  );
+}
+
+/**
+ * Live Autopilot ("engine") status for the sidebar. Replaces the old HARDCODED
+ * "Engine running" badge, which always showed green even when autopilot was
+ * OFF — making it look like the engine was working when nothing was scheduled.
+ * Reads the real scheduler state (getAutopilotStatusFn: config.enabled +
+ * running) and links to /engine to manage it. DB readiness stays separate via
+ * SystemHealthOkBadge.
+ */
+function EngineNavStatus() {
+  const fn = useServerFn(getAutopilotStatusFn);
+  const { data } = useQuery({
+    queryKey: ["autopilot-status"],
+    queryFn: () => fn({}),
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: false,
+  });
+  const running = !!data?.running;
+  const enabled = !!data?.config?.enabled;
+  const state: "running" | "waking" | "off" = running ? "running" : enabled ? "waking" : "off";
+  const dot =
+    state === "running"
+      ? "bg-[var(--lime)]"
+      : state === "waking"
+        ? "bg-amber-400"
+        : "bg-muted-foreground/50";
+  const label =
+    state === "running" ? "Engine running" : state === "waking" ? "Autopilot on" : "Autopilot off";
+  const sub =
+    state === "running"
+      ? "Autonomous SEO pipeline for kloudbean.com"
+      : state === "waking"
+        ? "Enabled — first cycle starts shortly"
+        : "Off — click to turn on in Engine →";
+  return (
+    <Link
+      to="/engine"
+      className="mx-3 mb-3 block rounded-md border border-sidebar-border bg-card/40 px-3 py-2.5 transition-colors hover:border-primary/40"
+      title="Manage autopilot on the Engine page"
+    >
+      <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+        <span className="relative flex h-1.5 w-1.5">
+          {state === "running" && (
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--lime)] opacity-75" />
+          )}
+          <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${dot}`} />
+        </span>
+        {label} · <SystemHealthOkBadge />
+      </div>
+      <div className="mt-1 text-[11px] text-foreground/85">{sub}</div>
+    </Link>
   );
 }
 

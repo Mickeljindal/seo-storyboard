@@ -1,9 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { AppLayout } from "@/components/AppLayout";
-import { Clapperboard, Image as ImageIcon, Film, Copy, X } from "lucide-react";
+import { Clapperboard, Image as ImageIcon, Film, Copy, X, Sparkles, Loader2, Database } from "lucide-react";
 import { toast } from "sonner";
-import { SOCIAL_POSTS, VIDEO_SCRIPTS, ICP_NAMES, type IcpId } from "@/lib/studio-content";
+import {
+  SOCIAL_POSTS,
+  VIDEO_SCRIPTS,
+  ICP_NAMES,
+  type IcpId,
+  type SocialPost,
+  type VideoScript,
+} from "@/lib/studio-content";
+import { generateStudioContentFn, studioSourcesStatusFn } from "@/lib/studio.functions";
 import { BrandCard } from "@/components/studio/BrandCard";
 import { BrandStoryboard } from "@/components/studio/BrandStoryboard";
 
@@ -22,18 +32,77 @@ function copy(text: string, label: string) {
   );
 }
 
+const isDynamic = (id: string) => id.startsWith("gs-");
+
+function dedupeById<T extends { id: string }>(list: T[]): T[] {
+  const seen = new Set<string>();
+  return list.filter((x) => (seen.has(x.id) ? false : (seen.add(x.id), true)));
+}
+
+/** Ready-to-post caption for a video: the generated one, else derived from beats. */
+function videoCaption(v: VideoScript): string {
+  if (v.caption && v.caption.trim()) return v.caption.trim();
+  const first = v.beats[0]?.narration ?? "";
+  const last = v.beats[v.beats.length - 1]?.narration ?? "";
+  return [first, last].filter(Boolean).join(" ") || v.cta;
+}
+function videoTags(v: VideoScript): string[] {
+  return v.tags && v.tags.length ? v.tags : ["ManagedCloud", "KloudBean"];
+}
+
 function StudioPage() {
   const [tab, setTab] = useState<Tab>("social");
   const [icp, setIcp] = useState<IcpId | "all">("all");
   const [openSocial, setOpenSocial] = useState<string | null>(null);
   const [openVideo, setOpenVideo] = useState<string | null>(null);
+  const [dynSocial, setDynSocial] = useState<SocialPost[]>([]);
+  const [dynVideos, setDynVideos] = useState<VideoScript[]>([]);
 
-  const posts = useMemo(() => SOCIAL_POSTS.filter((p) => icp === "all" || p.icp === icp), [icp]);
-  const videos = useMemo(() => VIDEO_SCRIPTS.filter((v) => icp === "all" || v.icp === icp), [icp]);
+  const sourcesFn = useServerFn(studioSourcesStatusFn);
+  const { data: sourcesData } = useQuery({
+    queryKey: ["studio-sources"],
+    queryFn: () => sourcesFn({}),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  });
+  const sources = sourcesData?.sources;
 
-  const selPost = SOCIAL_POSTS.find((p) => p.id === openSocial) ?? null;
-  const selVideo = VIDEO_SCRIPTS.find((v) => v.id === openVideo) ?? null;
+  const genFn = useServerFn(generateStudioContentFn);
+  const gen = useMutation({
+    mutationFn: (vars: { kind: "social" | "video"; exclude: string[] }) =>
+      genFn({ data: { kind: vars.kind, count: 8, exclude: vars.exclude } }),
+    onSuccess: (res) => {
+      if (!res?.ok) {
+        toast.error("No source data yet — import SEMrush or run discovery, then try again.");
+        return;
+      }
+      if (res.posts?.length) setDynSocial((prev) => dedupeById([...res.posts!, ...prev]));
+      if (res.videos?.length) setDynVideos((prev) => dedupeById([...res.videos!, ...prev]));
+      const n = res.posts?.length ?? res.videos?.length ?? 0;
+      toast.success(`Generated ${n} ${res.usedAi ? "AI" : "template"} ${n === 1 ? "item" : "items"} from your data`);
+    },
+    onError: (e: Error) => toast.error(`Generation failed: ${e.message}`),
+  });
+
+  const allPosts = useMemo(() => [...dynSocial, ...SOCIAL_POSTS], [dynSocial]);
+  const allVideos = useMemo(() => [...dynVideos, ...VIDEO_SCRIPTS], [dynVideos]);
+
+  const posts = useMemo(() => allPosts.filter((p) => icp === "all" || p.icp === icp), [allPosts, icp]);
+  const videos = useMemo(() => allVideos.filter((v) => icp === "all" || v.icp === icp), [allVideos, icp]);
+
+  const selPost = allPosts.find((p) => p.id === openSocial) ?? null;
+  const selVideo = allVideos.find((v) => v.id === openVideo) ?? null;
   const fmt = tab === "reel" ? "reel" : "youtube";
+
+  const kind: "social" | "video" = tab === "social" ? "social" : "video";
+  const generatedCount = kind === "social" ? dynSocial.length : dynVideos.length;
+  const onGenerate = () => {
+    const exclude =
+      kind === "social"
+        ? allPosts.map((p) => p.headline.replace(/\n/g, " "))
+        : allVideos.map((v) => v.title);
+    gen.mutate({ kind, exclude });
+  };
 
   return (
     <AppLayout>
@@ -46,8 +115,9 @@ function StudioPage() {
           <h1 className="text-display text-4xl font-semibold tracking-tight">Brand social & video studio</h1>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
             On-brand social posts and videos — reels (9:16) and YouTube (16:9) — built from the same
-            Kloudbean brand system. Preview them live (with voiceover), copy the caption or
-            voiceover script, and export finished files from the local studios.
+            Kloudbean brand system. Generate fresh content from your live SEO data (competitor
+            keywords, topics and the knowledge graph), preview it with voiceover, and copy the
+            caption, hashtags or voiceover script.
           </p>
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -77,21 +147,70 @@ function StudioPage() {
               </button>
             ))}
           </div>
+
+          {/* Dynamic generation toolbar — draws from the engine's real data. */}
+          <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card/40 px-4 py-3">
+            <Database className="h-4 w-4 shrink-0 text-primary" />
+            <div className="text-xs text-muted-foreground">
+              {sources ? (
+                <span>
+                  Drawing from <b className="text-foreground">{sources.opportunities}</b> competitor keywords ·{" "}
+                  <b className="text-foreground">{sources.articleIdeas}</b> topic ideas ·{" "}
+                  <b className="text-foreground">{sources.keywords}</b> keywords ·{" "}
+                  <b className="text-foreground">{sources.kgEntities}</b> graph entities
+                  {" · "}
+                  {sources.aiReady ? (
+                    <span className="text-[var(--lime)]">AI ready</span>
+                  ) : (
+                    <span className="text-amber-400">AI off — using templates</span>
+                  )}
+                </span>
+              ) : (
+                <span>Checking your data sources…</span>
+              )}
+            </div>
+            <button
+              onClick={onGenerate}
+              disabled={gen.isPending}
+              className="ml-auto inline-flex items-center gap-2 rounded-md px-3.5 py-2 text-sm font-semibold text-white disabled:opacity-60"
+              style={{ background: "var(--gradient-brand)" }}
+              title="Generate on-brand content from your live SEO data"
+            >
+              {gen.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {gen.isPending
+                ? "Generating…"
+                : generatedCount > 0
+                  ? `Generate more ${kind === "social" ? "posts" : "videos"}`
+                  : `Generate ${kind === "social" ? "posts" : "videos"} from your data`}
+            </button>
+          </div>
         </header>
 
         {tab === "social" ? (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {posts.map((p) => (
-              <button key={p.id} onClick={() => setOpenSocial(p.id)} className="group overflow-hidden rounded-xl border border-border transition-colors hover:border-primary/50" title="Open preview">
+              <button
+                key={p.id}
+                onClick={() => setOpenSocial(p.id)}
+                className="group relative overflow-hidden rounded-xl border border-border transition-colors hover:border-primary/50"
+                title="Open preview"
+              >
                 <BrandCard post={p} radius={0} />
+                {isDynamic(p.id) && <NewBadge />}
               </button>
             ))}
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
             {videos.map((v) => (
-              <button key={v.id} onClick={() => setOpenVideo(v.id)} className="group rounded-xl border border-border p-2 text-left transition-colors hover:border-primary/50" title="Open animated preview">
+              <button
+                key={v.id}
+                onClick={() => setOpenVideo(v.id)}
+                className="group relative rounded-xl border border-border p-2 text-left transition-colors hover:border-primary/50"
+                title="Open animated preview"
+              >
                 <BrandStoryboard script={v} format={fmt} poster />
+                {isDynamic(v.id) && <NewBadge />}
                 <div className="px-1 pt-2">
                   <div className="line-clamp-1 text-sm font-medium">{v.title}</div>
                   <div className="text-[11px] text-muted-foreground">{ICP_NAMES[v.icp]} · {v.beats.length} beats</div>
@@ -127,7 +246,16 @@ function StudioPage() {
             <BrandStoryboard script={selVideo} format={fmt} />
           </div>
           <div className="mt-4 space-y-3">
+            <Field label="Caption" value={videoCaption(selVideo)} onCopy={() => copy(videoCaption(selVideo), "Caption")} multiline />
+            <Field label="Hashtags" value={videoTags(selVideo).map((t) => `#${t}`).join(" ")} onCopy={() => copy(videoTags(selVideo).map((t) => `#${t}`).join(" "), "Hashtags")} />
             <Field label="Voiceover script" value={selVideo.beats.map((b) => b.narration).join(" ")} onCopy={() => copy(selVideo.beats.map((b) => b.narration).join(" "), "Voiceover")} multiline />
+            <button
+              onClick={() => copy(`${videoCaption(selVideo)}\n\n${videoTags(selVideo).map((t) => `#${t}`).join(" ")}`, "Post")}
+              className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-white"
+              style={{ background: "var(--gradient-brand)" }}
+            >
+              <Copy className="h-4 w-4" /> Copy caption + hashtags
+            </button>
             <div className="rounded-lg border border-border bg-card/50 p-3">
               <div className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Beats</div>
               <ol className="space-y-1 text-xs">
@@ -143,6 +271,14 @@ function StudioPage() {
         </Modal>
       )}
     </AppLayout>
+  );
+}
+
+function NewBadge() {
+  return (
+    <span className="absolute right-2 top-2 z-10 rounded-full bg-primary px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white shadow">
+      New
+    </span>
   );
 }
 

@@ -38,6 +38,10 @@ export type VideoScript = {
   title: string;
   hook?: string;
   cta: string;
+  /** Ready-to-paste post caption (dynamic/AI items set this; static ones derive it). */
+  caption?: string;
+  /** Hashtags without the # symbol. */
+  tags?: string[];
   beats: VideoBeat[];
 };
 
