@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TopicalMapRouteImport } from './routes/topical-map'
 import { Route as ToolsRouteImport } from './routes/tools'
+import { Route as StudioRouteImport } from './routes/studio'
 import { Route as StrategyRouteImport } from './routes/strategy'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ScopeRouteImport } from './routes/scope'
@@ -43,6 +44,11 @@ const TopicalMapRoute = TopicalMapRouteImport.update({
 const ToolsRoute = ToolsRouteImport.update({
   id: '/tools',
   path: '/tools',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StudioRoute = StudioRouteImport.update({
+  id: '/studio',
+  path: '/studio',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StrategyRoute = StrategyRouteImport.update({
@@ -185,6 +191,7 @@ export interface FileRoutesByFullPath {
   '/scope': typeof ScopeRoute
   '/settings': typeof SettingsRoute
   '/strategy': typeof StrategyRoute
+  '/studio': typeof StudioRoute
   '/tools': typeof ToolsRoute
   '/topical-map': typeof TopicalMapRoute
 }
@@ -212,6 +219,7 @@ export interface FileRoutesByTo {
   '/scope': typeof ScopeRoute
   '/settings': typeof SettingsRoute
   '/strategy': typeof StrategyRoute
+  '/studio': typeof StudioRoute
   '/tools': typeof ToolsRoute
   '/topical-map': typeof TopicalMapRoute
 }
@@ -240,6 +248,7 @@ export interface FileRoutesById {
   '/scope': typeof ScopeRoute
   '/settings': typeof SettingsRoute
   '/strategy': typeof StrategyRoute
+  '/studio': typeof StudioRoute
   '/tools': typeof ToolsRoute
   '/topical-map': typeof TopicalMapRoute
 }
@@ -269,6 +278,7 @@ export interface FileRouteTypes {
     | '/scope'
     | '/settings'
     | '/strategy'
+    | '/studio'
     | '/tools'
     | '/topical-map'
   fileRoutesByTo: FileRoutesByTo
@@ -296,6 +306,7 @@ export interface FileRouteTypes {
     | '/scope'
     | '/settings'
     | '/strategy'
+    | '/studio'
     | '/tools'
     | '/topical-map'
   id:
@@ -323,6 +334,7 @@ export interface FileRouteTypes {
     | '/scope'
     | '/settings'
     | '/strategy'
+    | '/studio'
     | '/tools'
     | '/topical-map'
   fileRoutesById: FileRoutesById
@@ -351,6 +363,7 @@ export interface RootRouteChildren {
   ScopeRoute: typeof ScopeRoute
   SettingsRoute: typeof SettingsRoute
   StrategyRoute: typeof StrategyRoute
+  StudioRoute: typeof StudioRoute
   ToolsRoute: typeof ToolsRoute
   TopicalMapRoute: typeof TopicalMapRoute
 }
@@ -369,6 +382,13 @@ declare module '@tanstack/react-router' {
       path: '/tools'
       fullPath: '/tools'
       preLoaderRoute: typeof ToolsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/studio': {
+      id: '/studio'
+      path: '/studio'
+      fullPath: '/studio'
+      preLoaderRoute: typeof StudioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/strategy': {
@@ -559,6 +579,7 @@ const rootRouteChildren: RootRouteChildren = {
   ScopeRoute: ScopeRoute,
   SettingsRoute: SettingsRoute,
   StrategyRoute: StrategyRoute,
+  StudioRoute: StudioRoute,
   ToolsRoute: ToolsRoute,
   TopicalMapRoute: TopicalMapRoute,
 }
