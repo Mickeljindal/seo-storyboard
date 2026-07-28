@@ -33,6 +33,23 @@ function resolveModelId(kind: AiProviderKind, explicit?: string): string {
 
 /** Resolve AI credentials — DeepSeek first, then OpenAI-compatible fallback. */
 export function getResolvedAiConfig(): ResolvedAiConfig | null {
+  // Explicit OpenRouter provider (official key + model) — takes priority when set.
+  const openrouterKey = process.env.OPENROUTER_API_KEY?.trim();
+  if (openrouterKey) {
+    const modelId = (
+      process.env.OPENROUTER_MODEL ||
+      process.env.AI_MODEL ||
+      "nvidia/nemotron-3-ultra-550b-a55b:free"
+    ).trim();
+    return {
+      kind: "openrouter",
+      apiKey: openrouterKey,
+      baseURL: "https://openrouter.ai/api/v1",
+      modelId,
+      label: `OpenRouter · ${modelId}`,
+    };
+  }
+
   const deepseekKey = process.env.DEEPSEEK_API_KEY?.trim();
   if (deepseekKey) {
     const baseURL = (process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com/v1").replace(/\/$/, "");
@@ -111,7 +128,10 @@ export function createAiProvider() {
     baseURL: cfg.baseURL,
     headers: providerHeaders(cfg.kind),
   });
-  return openai(cfg.modelId);
+  // Use the OpenAI-compatible /chat/completions endpoint. OpenRouter (incl. free
+  // models) and DeepSeek support this; it also avoids the Responses-API
+  // compatibility mode that returned empty text on some OpenRouter models.
+  return openai.chat(cfg.modelId);
 }
 
 export function getAiModelName() {
