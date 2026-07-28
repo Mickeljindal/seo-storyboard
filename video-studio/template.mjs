@@ -115,18 +115,18 @@ export function buildStoryboardHtml(video) {
   .logo svg{height:${vertical ? "40px" : "46px"};width:auto;display:block}
   .badge{margin-left:auto;font-size:${vertical ? "22px" : "24px"};font-weight:500;color:#cdd6f4;border:1px solid #ffffff26;background:#ffffff0d;padding:9px 22px;border-radius:999px}
 
-  .beat{position:absolute;inset:0;z-index:10;display:flex;flex-direction:${vertical ? "column-reverse" : "row"};align-items:center;
-    padding:${vertical ? "150px 64px 150px" : "0 64px 0 88px"};opacity:0}
+  .beat{position:absolute;inset:0;z-index:10;display:flex;flex-direction:${vertical ? "column-reverse" : "row"};align-items:center;justify-content:center;
+    padding:${vertical ? "170px 72px" : "0 64px 0 88px"};gap:${vertical ? "40px" : "0"};opacity:0}
   .beat.active{opacity:1}
   .left{flex:${vertical ? "0 0 auto" : "1.12"};display:flex;flex-direction:column;justify-content:center;${vertical ? "text-align:center;align-items:center;" : ""}}
-  .right{flex:${vertical ? "0 0 auto" : ".88"};display:flex;align-items:center;justify-content:center;${vertical ? "margin-bottom:40px;" : ""}}
+  .right{flex:${vertical ? "0 0 auto" : ".88"};display:flex;align-items:center;justify-content:center}
   .eyebrow{display:flex;align-items:center;gap:16px;color:var(--acc);font-weight:600;font-size:${vertical ? "22px" : "24px"};letter-spacing:.15em;text-transform:uppercase;margin-bottom:26px}
   .eyebrow .rule{width:46px;height:3px;background:var(--acc);border-radius:3px}
   h1{font-weight:700;line-height:1.06;letter-spacing:-.02em;color:#fff;text-wrap:balance;max-width:${vertical ? "100%" : "980px"}}
   .sub{margin-top:${vertical ? "24px" : "30px"};font-size:${vertical ? "28px" : "30px"};line-height:1.45;color:#aeb6d4;font-weight:400;max-width:${vertical ? "100%" : "820px"}}
   .cta{margin-top:38px;align-self:${vertical ? "center" : "flex-start"};background:linear-gradient(135deg,#4F1AF3,#6c47ff);color:#fff;font-weight:700;font-size:30px;padding:16px 32px;border-radius:999px;box-shadow:0 20px 50px -12px rgba(79,26,243,.7)}
 
-  .viz{position:relative;width:${vertical ? "440px" : "520px"};height:${vertical ? "440px" : "520px"};display:flex;align-items:center;justify-content:center}
+  .viz{position:relative;width:${vertical ? "540px" : "520px"};height:${vertical ? "540px" : "520px"};display:flex;align-items:center;justify-content:center}
   .viz::before{content:"";position:absolute;width:78%;height:78%;border-radius:50%;background:radial-gradient(closest-side,var(--glow)3d,transparent 72%);filter:blur(10px)}
   .viz svg{position:relative;width:88%;height:88%;overflow:visible}
 

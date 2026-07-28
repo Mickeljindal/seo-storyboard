@@ -28,13 +28,33 @@ node build.mjs
 npm run setup            # = npm install && npx playwright install chromium
 
 # 3. Render MP4s (needs ffmpeg on PATH — you already have it).
-npm run render-all                 # all 34
-node render-all.mjs --only 01,08   # just a few (by number)
-node render-all.mjs --fps 24       # faster / smaller
-node export.mjs 27-what-is-managed-cloud-hosting   # a single one
+npm run render-all                       # all 34, 16:9 YouTube, silent
+node render-all.mjs --format both        # 16:9 (video.mp4) + 9:16 reel (video-reel.mp4)
+node render-all.mjs --format reel        # reels only (9:16)
+node render-all.mjs --voiceover          # bake in ElevenLabs voiceover (see below)
+node render-all.mjs --only 01,08 --fps 24
+node export.mjs 27-what-is-managed-cloud-hosting --format both --voiceover  # a single one
 ```
 
-Prefer to just **watch** without rendering? Open any `output/*/storyboard.html` in a browser — it autoplays the animation full-screen. The MP4 is the same thing, frame-captured.
+Two aspect ratios: **YouTube (16:9)** → `video.mp4`, **Reel (9:16)** → `video-reel.mp4`.
+
+Prefer to just **watch** without rendering? Open any `output/*/storyboard.html` in a browser — it autoplays. (That preview is always 16:9; `--format` rebuilds the exact ratio at render time.)
+
+## Voiceover (ElevenLabs)
+
+Add your key (copy `.env.example` → `.env`, or use the project-root `.env`):
+
+```
+ELEVENLABS_API_KEY=sk_...
+ELEVENLABS_VOICE_ID=<a voice from your account>   # optional
+```
+
+Then render with `--voiceover`. For each beat we synthesize the narration to
+speech, **time that beat's on-screen duration to the audio** (so the visuals
+stay in sync with the voice), and mux the combined track into the MP4. Without
+a key, `--voiceover` is skipped and the video renders silent. Tuning:
+`VO_PAD_SECONDS` (pause after each line, default 0.6) and `VO_MIN_BEAT`
+(min seconds a beat stays up, default 2.4).
 
 ## How the HTML → MP4 export works
 

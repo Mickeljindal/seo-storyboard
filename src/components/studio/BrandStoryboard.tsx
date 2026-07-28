@@ -92,7 +92,8 @@ export function BrandStoryboard({ script, format, poster = false }: { script: Vi
             style={{
               position: "absolute", inset: 0, zIndex: 10, display: "flex",
               flexDirection: vertical ? "column-reverse" : "row",
-              alignItems: "center", padding: vertical ? "150px 64px" : "0 64px 0 88px",
+              alignItems: "center", justifyContent: "center", gap: vertical ? 40 : 0,
+              padding: vertical ? "170px 72px" : "0 64px 0 88px",
             }}
           >
             <div style={{ flex: vertical ? "0 0 auto" : "1.12", display: "flex", flexDirection: "column", justifyContent: "center", textAlign: vertical ? "center" : "left", alignItems: vertical ? "center" : "flex-start" }}>
@@ -112,8 +113,8 @@ export function BrandStoryboard({ script, format, poster = false }: { script: Vi
                 </div>
               )}
             </div>
-            <div style={{ flex: vertical ? "0 0 auto" : ".88", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: vertical ? 40 : 0 }}>
-              <div style={{ position: "relative", width: vertical ? 440 : 520, height: vertical ? 440 : 520, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ flex: vertical ? "0 0 auto" : ".88", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ position: "relative", width: vertical ? 540 : 520, height: vertical ? 540 : 520, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <div style={{ position: "absolute", width: "78%", height: "78%", borderRadius: "50%", background: `radial-gradient(closest-side, ${a.glow}3d, transparent 72%)`, filter: "blur(10px)" }} />
                 <svg viewBox="0 0 100 100" style={{ position: "relative", width: "88%", height: "88%", overflow: "visible" }}>
                   <SceneMotif kind={b?.scene ?? "generic"} />
