@@ -202,6 +202,8 @@ export type WpPostPayload = {
   content: string;
   excerpt: string;
   meta?: Record<string, string>;
+  /** WordPress media ID to set as the post's featured image (optional). */
+  featured_media?: number;
 };
 
 export function buildPostPayload(article: {
@@ -280,6 +282,7 @@ export async function createOrUpdateWpPost(
   payload: WpPostPayload,
   existingPostId?: number | null,
 ): Promise<{ id: number; link: string; status: string }> {
+  const featured = payload.featured_media ? { featured_media: payload.featured_media } : {};
   const bodyWithMeta = {
     title: payload.title,
     slug: payload.slug,
@@ -287,6 +290,7 @@ export async function createOrUpdateWpPost(
     content: payload.content,
     excerpt: payload.excerpt,
     meta: payload.meta,
+    ...featured,
   };
 
   const attempt = async (includeMeta: boolean) => {
@@ -298,6 +302,7 @@ export async function createOrUpdateWpPost(
           status: payload.status,
           content: payload.content,
           excerpt: payload.excerpt,
+          ...featured,
         };
     if (existingPostId) {
       return wpRequest<{ id: number; link: string; status: string }>(

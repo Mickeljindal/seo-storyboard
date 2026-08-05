@@ -4,13 +4,18 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { addDays, format } from "date-fns";
 import { listArticles, updateArticle } from "@/lib/articles.functions";
-import { syncContentStudioFn } from "@/lib/content-studio.functions";
+import {
+  syncContentStudioFn,
+  publishContentStudioFn,
+  readContentStudioArticleFn,
+} from "@/lib/content-studio.functions";
+import { wpStatus } from "@/lib/wordpress.functions";
 import { AppLayout } from "@/components/AppLayout";
 import { ArticleSidePanel } from "@/components/ArticleSidePanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { ListChecks, RefreshCw, ExternalLink, Loader2 } from "lucide-react";
+import { ListChecks, RefreshCw, ExternalLink, Loader2, Rocket, BookOpen } from "lucide-react";
 
 export const Route = createFileRoute("/content-tracker")({ component: ContentTracker });
 
@@ -34,8 +39,12 @@ function ContentTracker() {
   const listFn = useServerFn(listArticles);
   const updateFn = useServerFn(updateArticle);
   const syncFn = useServerFn(syncContentStudioFn);
+  const publishFn = useServerFn(publishContentStudioFn);
+  const wpFn = useServerFn(wpStatus);
+  const readerFn = useServerFn(readContentStudioArticleFn);
 
   const [panelId, setPanelId] = useState<string | null>(null);
+  const [readerId, setReaderId] = useState<string | null>(null);
   const [perDay, setPerDay] = useState(5);
   const [startDate, setStartDate] = useState(todayISO());
   const [hidePublished, setHidePublished] = useState(false);
@@ -43,6 +52,16 @@ function ContentTracker() {
   const { data, isLoading } = useQuery({
     queryKey: ["articles"],
     queryFn: () => listFn({ data: {} }),
+  });
+
+  const wp = useQuery({ queryKey: ["wp-status"], queryFn: () => wpFn({}) });
+  const wpInfo = (wp.data ?? {}) as { connected?: boolean; site?: string; user?: string };
+  const wpConnected = !!wpInfo.connected;
+
+  const reader = useQuery({
+    enabled: !!readerId,
+    queryKey: ["reader", readerId],
+    queryFn: () => readerFn({ data: { articleId: readerId! } }),
   });
 
   const cs = useMemo(
@@ -111,6 +130,18 @@ function ContentTracker() {
     mutationFn: () => syncFn({ data: { mode: "upsert" } }),
     onSuccess: (r) => {
       toast.success(`Synced content-studio — ${r.inserted} new, ${r.updated} updated`);
+      qc.invalidateQueries({ queryKey: ["articles"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const publishMut = useMutation({
+    mutationFn: (articleId: string) => publishFn({ data: { articleId, status: "publish" } }),
+    onSuccess: (r: { link?: string; images?: number }) => {
+      toast.success(
+        `Published to WordPress${r.images ? ` (${r.images} images uploaded)` : ""}` +
+          (r.link ? `: ${r.link}` : ""),
+      );
       qc.invalidateQueries({ queryKey: ["articles"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -186,6 +217,25 @@ function ContentTracker() {
           </p>
         </div>
 
+        {/* WordPress connection status */}
+        {wp.data && !wpConnected && (
+          <div className="mb-5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm">
+            <span className="font-medium text-amber-300">WordPress not connected.</span>{" "}
+            <span className="text-muted-foreground">
+              To publish straight from here, add WP_SITE_URL, WP_USERNAME and WP_APP_PASSWORD, then restart the
+              server. Full steps are on the{" "}
+              <a href="/settings" className="underline hover:text-foreground">Settings → WordPress</a> page.
+            </span>
+          </div>
+        )}
+        {wpConnected && (
+          <div className="mb-5 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-4 py-2.5 text-xs text-muted-foreground">
+            Publishing to <span className="font-medium text-foreground">{wpInfo.site}</span>
+            {wpInfo.user ? <> as {wpInfo.user}</> : null}. Use “Publish to WP” on any card to send it live,
+            images and all.
+          </div>
+        )}
+
         {isLoading ? (
           <div className="py-16 text-center text-sm text-muted-foreground">Loading articles…</div>
         ) : cs.length === 0 ? (
@@ -246,6 +296,39 @@ function ContentTracker() {
                                   /{a.url_slug}/ <ExternalLink className="h-3 w-3" />
                                 </a>
                               </div>
+                              <div className="mt-2 flex items-center gap-2">
+                                <button
+                                  onClick={() => setReaderId(a.id)}
+                                  className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium hover:bg-foreground/5"
+                                  title="Read the full article inside the engine"
+                                >
+                                  <BookOpen className="h-3 w-3" /> Read
+                                </button>
+                                {published && a.published_url ? (
+                                  <a
+                                    href={a.published_url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1 text-[11px] text-emerald-500 hover:underline"
+                                  >
+                                    View live <ExternalLink className="h-3 w-3" />
+                                  </a>
+                                ) : wpConnected ? (
+                                  <button
+                                    onClick={() => publishMut.mutate(a.id)}
+                                    disabled={publishMut.isPending && publishMut.variables === a.id}
+                                    className="inline-flex items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-2 py-1 text-[11px] font-medium text-foreground hover:bg-primary/20 disabled:opacity-60"
+                                    title="Upload this article's images to WordPress and publish it live."
+                                  >
+                                    {publishMut.isPending && publishMut.variables === a.id ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <Rocket className="h-3 w-3" />
+                                    )}
+                                    Publish to WP
+                                  </button>
+                                ) : null}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -258,6 +341,43 @@ function ContentTracker() {
           </div>
         )}
       </div>
+
+      {/* In-engine reader — the exact article, styled, with images */}
+      {readerId && (
+        <div
+          className="fixed inset-0 z-[120] bg-black/70 p-3 md:p-8"
+          onClick={() => setReaderId(null)}
+        >
+          <div
+            className="mx-auto flex h-full max-w-4xl flex-col overflow-hidden rounded-lg bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-border bg-card px-4 py-2">
+              <span className="truncate text-sm font-medium text-foreground">
+                {reader.data?.title ?? "Reading article…"}
+              </span>
+              <button
+                onClick={() => setReaderId(null)}
+                className="shrink-0 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground hover:bg-foreground/5"
+              >
+                Close
+              </button>
+            </div>
+            {reader.isLoading || !reader.data ? (
+              <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+                Loading article…
+              </div>
+            ) : (
+              <iframe
+                title="Article preview"
+                srcDoc={reader.data.html}
+                className="h-full w-full flex-1 border-0 bg-white"
+              />
+            )}
+          </div>
+        </div>
+      )}
+
       <ArticleSidePanel articleId={panelId} open={!!panelId} onOpenChange={(o) => !o && setPanelId(null)} />
     </AppLayout>
   );
