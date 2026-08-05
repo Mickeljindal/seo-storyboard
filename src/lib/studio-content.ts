@@ -4,7 +4,7 @@
  * Regenerate: npm run gen:studio  (node scripts/gen-studio-content.mjs)
  *
  * Full in-app mirror of the local studios so the Media Studio (/studio) shows the
- * ENTIRE library: 103 social posts + 34 video scripts.
+ * ENTIRE library: 103 social posts + 44 video scripts.
  * Grounded in Kloudbean's real capabilities + ICPs. No invented figures.
  */
 
@@ -2872,6 +2872,396 @@ export const VIDEO_SCRIPTS: VideoScript[] = [
         "on_screen": "Modernize the stack",
         "narration": "Migrate to modern managed cloud. Start free at kloudbean.com.",
         "scene": "cloud"
+      }
+    ]
+  },
+  {
+    "id": "v35",
+    "icp": "general",
+    "title": "Your whole stack, one dashboard",
+    "hook": "Stop stitching five tools together.",
+    "cta": "Start free at kloudbean.com",
+    "beats": [
+      {
+        "dur": 4,
+        "on_screen": "Your stack is scattered",
+        "narration": "Servers on one tool, database on another, storage somewhere else.",
+        "scene": "generic"
+      },
+      {
+        "dur": 5,
+        "on_screen": "One dashboard for all of it",
+        "narration": "Kloudbean runs your servers, apps and databases from a single console.",
+        "scene": "cloud"
+      },
+      {
+        "dur": 5,
+        "on_screen": "Storage, static sites, balancer",
+        "narration": "Add object storage, static sites and a load balancer in the same place.",
+        "scene": "network"
+      },
+      {
+        "dur": 5,
+        "on_screen": "One login, whole stack",
+        "narration": "No juggling providers. Your whole stack lives behind one login.",
+        "scene": "compare"
+      },
+      {
+        "dur": 4,
+        "on_screen": "See it all at once",
+        "narration": "One dashboard for everything. Start free at kloudbean.com.",
+        "scene": "cloud"
+      }
+    ]
+  },
+  {
+    "id": "v36",
+    "icp": "saas_founder",
+    "title": "A load balancer, already built in",
+    "hook": "It's in every account. Just flip it on.",
+    "cta": "Start free at kloudbean.com",
+    "beats": [
+      {
+        "dur": 4,
+        "on_screen": "Outgrowing one server?",
+        "narration": "When one server isn't enough, you need to spread the load.",
+        "scene": "scale"
+      },
+      {
+        "dur": 5,
+        "on_screen": "The FLB is built in",
+        "narration": "Kloudbean's Flexible Load Balancer ships with every account.",
+        "scene": "network"
+      },
+      {
+        "dur": 5,
+        "on_screen": "Pools, SSL, access logs",
+        "narration": "Route traffic across app pools, manage SSL, and read access logs.",
+        "scene": "security"
+      },
+      {
+        "dur": 5,
+        "on_screen": "Off until you need it",
+        "narration": "It's there the moment you switch it on. No separate product to buy.",
+        "scene": "compare"
+      },
+      {
+        "dur": 4,
+        "on_screen": "Balance the load",
+        "narration": "Scale out cleanly. Start free at kloudbean.com.",
+        "scene": "cloud"
+      }
+    ]
+  },
+  {
+    "id": "v37",
+    "icp": "saas_founder",
+    "title": "S3-compatible storage, included",
+    "hook": "Buckets in the same dashboard as your app.",
+    "cta": "Start free at kloudbean.com",
+    "beats": [
+      {
+        "dur": 4,
+        "on_screen": "Files, uploads, backups",
+        "narration": "Every app needs somewhere to put uploads and static assets.",
+        "scene": "generic"
+      },
+      {
+        "dur": 5,
+        "on_screen": "S3-compatible buckets",
+        "narration": "Kloudbean gives you S3-compatible object storage right in the console.",
+        "scene": "database"
+      },
+      {
+        "dur": 5,
+        "on_screen": "Works with the AWS SDK",
+        "narration": "Point your existing S3 SDK or CLI at it and it just works.",
+        "scene": "code"
+      },
+      {
+        "dur": 5,
+        "on_screen": "Public or private",
+        "narration": "Set buckets public or private and manage objects from the dashboard.",
+        "scene": "security"
+      },
+      {
+        "dur": 4,
+        "on_screen": "Store it on Kloudbean",
+        "narration": "Object storage, included. Start free at kloudbean.com.",
+        "scene": "cloud"
+      }
+    ]
+  },
+  {
+    "id": "v38",
+    "icp": "general",
+    "title": "Six managed databases, one click",
+    "hook": "SQL, document, cache, search. Covered.",
+    "cta": "Start free at kloudbean.com",
+    "beats": [
+      {
+        "dur": 4,
+        "on_screen": "Which database fits?",
+        "narration": "Different apps need different databases. Picking is half the battle.",
+        "scene": "database"
+      },
+      {
+        "dur": 5,
+        "on_screen": "Six managed engines",
+        "narration": "Managed MySQL, MariaDB, PostgreSQL, MongoDB, Redis and Elasticsearch.",
+        "scene": "database"
+      },
+      {
+        "dur": 5,
+        "on_screen": "One click, backed up",
+        "narration": "Launch one in a click, with automatic backups and controlled access.",
+        "scene": "security"
+      },
+      {
+        "dur": 5,
+        "on_screen": "Right beside your app",
+        "narration": "They run next to your app for low latency and simple wiring.",
+        "scene": "speed"
+      },
+      {
+        "dur": 4,
+        "on_screen": "Pick your engine",
+        "narration": "Managed data, your way. Start free at kloudbean.com.",
+        "scene": "cloud"
+      }
+    ]
+  },
+  {
+    "id": "v39",
+    "icp": "vibecoder",
+    "title": "Private AI chat you actually own",
+    "hook": "OpenWebUI + DeepSeek, one click.",
+    "cta": "Start free at kloudbean.com",
+    "beats": [
+      {
+        "dur": 4,
+        "on_screen": "Want private AI chat?",
+        "narration": "Sending everything to a third-party AI isn't always an option.",
+        "scene": "ai"
+      },
+      {
+        "dur": 5,
+        "on_screen": "OpenWebUI + DeepSeek",
+        "narration": "Kloudbean deploys OpenWebUI with DeepSeek in a single click.",
+        "scene": "deploy"
+      },
+      {
+        "dur": 5,
+        "on_screen": "On a server you own",
+        "narration": "Your prompts and your data stay on infrastructure you control.",
+        "scene": "security"
+      },
+      {
+        "dur": 5,
+        "on_screen": "Still fully managed",
+        "narration": "It's managed for you, with backups and hardening handled.",
+        "scene": "cloud"
+      },
+      {
+        "dur": 4,
+        "on_screen": "Own your AI",
+        "narration": "Private AI chat, self-hosted. Start free at kloudbean.com.",
+        "scene": "ai"
+      }
+    ]
+  },
+  {
+    "id": "v40",
+    "icp": "freelance_dev",
+    "title": "Free static site hosting",
+    "hook": "Custom domain, SSL and analytics. Free.",
+    "cta": "Start free at kloudbean.com",
+    "beats": [
+      {
+        "dur": 4,
+        "on_screen": "Just need to ship a site?",
+        "narration": "Landing pages and docs shouldn't cost a monthly platform fee.",
+        "scene": "generic"
+      },
+      {
+        "dur": 5,
+        "on_screen": "Static hosting, free",
+        "narration": "Kloudbean hosts static sites for free, on your own custom domain.",
+        "scene": "cdn"
+      },
+      {
+        "dur": 5,
+        "on_screen": "SSL + visit analytics",
+        "narration": "Free SSL and built-in visit analytics come with it.",
+        "scene": "security"
+      },
+      {
+        "dur": 5,
+        "on_screen": "Push and it's live",
+        "narration": "Deploy your built site and it's online in moments.",
+        "scene": "deploy"
+      },
+      {
+        "dur": 4,
+        "on_screen": "Ship it free",
+        "narration": "Static hosting on the house. Start free at kloudbean.com.",
+        "scene": "cloud"
+      }
+    ]
+  },
+  {
+    "id": "v41",
+    "icp": "vibecoder",
+    "title": "Watch your deploy happen live",
+    "hook": "Push to GitHub. See the build stream.",
+    "cta": "Start free at kloudbean.com",
+    "beats": [
+      {
+        "dur": 4,
+        "on_screen": "Deploys shouldn't be a mystery",
+        "narration": "When a deploy fails, you need to see why, fast.",
+        "scene": "generic"
+      },
+      {
+        "dur": 5,
+        "on_screen": "Live build logs",
+        "narration": "Kloudbean streams the build log as your code deploys.",
+        "scene": "code"
+      },
+      {
+        "dur": 5,
+        "on_screen": "Push to GitHub, it ships",
+        "narration": "Connect GitHub and every push builds and deploys automatically.",
+        "scene": "deploy"
+      },
+      {
+        "dur": 5,
+        "on_screen": "History and rollback",
+        "narration": "Browse deployment history and roll back if something looks off.",
+        "scene": "security"
+      },
+      {
+        "dur": 4,
+        "on_screen": "See every deploy",
+        "narration": "CI/CD you can watch. Start free at kloudbean.com.",
+        "scene": "cloud"
+      }
+    ]
+  },
+  {
+    "id": "v42",
+    "icp": "wp_agency",
+    "title": "One-click staging for WordPress and Laravel",
+    "hook": "Never test on the live site again.",
+    "cta": "Start free at kloudbean.com",
+    "beats": [
+      {
+        "dur": 4,
+        "on_screen": "Never test on production",
+        "narration": "Editing a live site and hoping for the best is how sites break.",
+        "scene": "generic"
+      },
+      {
+        "dur": 5,
+        "on_screen": "One-click staging",
+        "narration": "Kloudbean spins up staging for WordPress and Laravel in a click.",
+        "scene": "code"
+      },
+      {
+        "dur": 5,
+        "on_screen": "Test safely",
+        "narration": "Try changes, plugins and updates away from real traffic.",
+        "scene": "security"
+      },
+      {
+        "dur": 5,
+        "on_screen": "Push when ready",
+        "narration": "Happy with it? Take it live with confidence.",
+        "scene": "deploy"
+      },
+      {
+        "dur": 4,
+        "on_screen": "Stage, then ship",
+        "narration": "Test before you launch. Start free at kloudbean.com.",
+        "scene": "cloud"
+      }
+    ]
+  },
+  {
+    "id": "v43",
+    "icp": "enterprise_gov",
+    "title": "An audit trail built for compliance",
+    "hook": "Who changed what, and when. All of it.",
+    "cta": "Talk to us at kloudbean.com",
+    "beats": [
+      {
+        "dur": 4,
+        "on_screen": "Who changed what, when?",
+        "narration": "Compliance means knowing every action taken on your infrastructure.",
+        "scene": "security"
+      },
+      {
+        "dur": 5,
+        "on_screen": "Immutable activity log",
+        "narration": "Kloudbean keeps an account-wide, immutable audit trail.",
+        "scene": "security"
+      },
+      {
+        "dur": 5,
+        "on_screen": "Searchable, exportable",
+        "narration": "Search it, then export to CSV for your auditors.",
+        "scene": "database"
+      },
+      {
+        "dur": 5,
+        "on_screen": "Built for regulators",
+        "narration": "It's made for teams that answer to compliance requirements.",
+        "scene": "cloud"
+      },
+      {
+        "dur": 4,
+        "on_screen": "Audit-ready by default",
+        "narration": "Prove control. Talk to us at kloudbean.com.",
+        "scene": "security"
+      }
+    ]
+  },
+  {
+    "id": "v44",
+    "icp": "enterprise_gov",
+    "title": "Lock down who can touch what",
+    "hook": "Least privilege, by design.",
+    "cta": "Talk to us at kloudbean.com",
+    "beats": [
+      {
+        "dur": 4,
+        "on_screen": "Not everyone needs the keys",
+        "narration": "Handing every teammate full access is a real security risk.",
+        "scene": "security"
+      },
+      {
+        "dur": 5,
+        "on_screen": "Granular access control",
+        "narration": "User Access Control sets per-resource, per-action rights for subusers.",
+        "scene": "security"
+      },
+      {
+        "dur": 5,
+        "on_screen": "Lock it to an IP",
+        "narration": "Add IP access rules with CIDR, plus a Basic Auth gate on apps.",
+        "scene": "network"
+      },
+      {
+        "dur": 5,
+        "on_screen": "Least privilege by design",
+        "narration": "Give people exactly the access they need and nothing more.",
+        "scene": "compare"
+      },
+      {
+        "dur": 4,
+        "on_screen": "Control the keys",
+        "narration": "Least-privilege access. Talk to us at kloudbean.com.",
+        "scene": "security"
       }
     ]
   }

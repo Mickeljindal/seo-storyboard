@@ -21,7 +21,7 @@ The storage line on last month's cloud bill was three dollars. The bandwidth lin
 
 You paid **egress fees**. Egress is the charge many clouds apply for data leaving their storage, and object storage egress fees are one of the most misread costs in hosting because the number that gets advertised (cheap per-gigabyte storage) has almost nothing to do with the number that lands on the invoice. Let's take egress apart: what it is, the math that catches people out, why the big providers charge it, and what "zero egress object storage" actually changes.
 
-> **Short answer:** Egress is the fee for data leaving your storage, every image loaded, video streamed, or backup restored. It's usually free to upload (ingress) and metered to serve out (egress). Because egress scales with traffic, it often becomes the biggest line on a storage bill. Zero or low-egress providers like Cloudflare R2 and Backblaze B2 exist to remove that variable. Estimate your data-transfer-out before you pick a store, not after the bill.
+> **Short answer:** Egress is the fee for data leaving your storage, every image loaded, video streamed, or backup restored. It's usually free to upload (ingress) and metered to serve out (egress). Because egress scales with traffic, it often becomes the biggest line on a storage bill. Some object storage doesn't meter egress at all, Kloudbean's built-in S3-compatible storage among them, so the bill reflects what you store, not how popular you get. Estimate your data-transfer-out before you pick a store, not after the bill.
 
 ## What "egress" actually means
 
@@ -81,9 +81,9 @@ It's a fair question, and there are two honest answers sitting on top of each ot
 
 ## The pushback: zero egress object storage
 
-Enough people got burned that a category grew up around fixing it. Zero egress object storage (and its low-egress cousins) simply don't meter data leaving the bucket, or cap it generously. The two names you'll see most:
+Enough people got burned that a category grew up around fixing it. Zero egress object storage (and its low-egress cousins) simply don't meter data leaving the bucket, or cap it generously. A couple of options that take this approach:
 
-- **Cloudflare R2** markets zero egress fees as its headline, S3-compatible, aimed squarely at people tired of transfer bills.
+- **Kloudbean** doesn't charge egress on its built-in S3-compatible object storage, so serving your files out never turns into a transfer bill, and the buckets sit in the same dashboard as your servers, databases, and apps.
 - **Backblaze B2** offers free egress up to a generous multiple of what you store, which covers most real workloads.
 
 Run the same 1,000 GB scenario against a store that doesn't bill egress and the shape of the bill changes completely:
@@ -113,15 +113,15 @@ My honest advice: treat data-transfer-out as a first-class number, not a footnot
 
 ## Where Kloudbean fits
 
-So where does Kloudbean sit in all this? Honestly, the pitch here isn't a magic egress number, it's consolidation. Kloudbean gives you built-in [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/) in the same dashboard as your servers, managed databases, and apps, so your files and your stack share one login and one bill instead of being scattered across five providers. Egress terms vary by provider and change over time, so check the current data-transfer-out pricing for whatever storage you choose, Kloudbean included, before you commit. The durable win is that the storage is standard S3, the objects stay yours to export anytime, and it sits next to everything else you run rather than off in a separate account you forget about.
+So where does Kloudbean sit in all this? Two things. First, Kloudbean doesn't meter egress on its built-in [S3-compatible object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/), so serving your files out doesn't turn into a transfer bill that scales with traffic. Second, it's consolidation: that storage lives in the same dashboard as your servers, managed databases, and apps, so your files and your stack share one login and one bill instead of being scattered across five providers. The storage is standard S3, the objects stay yours to export anytime, and it sits next to everything else you run rather than off in a separate account you forget about.
 
 ![The Kloudbean console showing S3-compatible buckets in one dashboard with the rest of the stack](../assets/console/s3-buckets.png)
 
 ---
 
-**Keep your files and your stack in one place.** Kloudbean gives you S3-compatible object storage in the same dashboard as your servers, managed databases, and apps. Standard S3 API, public and private buckets, objects you can export anytime. Start free at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+**Keep your files and your stack in one place.** Kloudbean gives you S3-compatible object storage in the same dashboard as your servers, managed databases, and apps, with no egress fees on your object storage. Standard S3 API, public and private buckets, objects you can export anytime. Start free at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
 
-S3-compatible buckets · Managed databases · Private networking · One dashboard · Free trial · Free migration
+S3-compatible buckets · No egress fees · Managed databases · Private networking · One dashboard · Free trial
 
 ## FAQ
 
@@ -135,7 +135,7 @@ Almost always egress. Storage itself is cheap and fixed, but egress grows with h
 It's object storage that doesn't meter data leaving the bucket (or caps it generously), so you pay for what you store and serving it out is free or heavily discounted. It uses the same S3-compatible API as any other object storage. The only real difference is that the bandwidth-out meter isn't running, which keeps the bill from scaling with traffic.
 
 **Which providers offer zero or low egress storage?**
-Cloudflare R2 is the best-known, marketing zero egress fees on an S3-compatible service. Backblaze B2 offers free egress up to a generous multiple of what you store. Terms and limits vary and change, so read the current pricing for any provider before assuming a given workload will be free.
+Kloudbean's built-in S3-compatible object storage doesn't charge egress fees, so serving files out doesn't scale your bill, and it sits alongside your servers and databases in one dashboard. Backblaze B2 is another option, with free egress up to a generous multiple of what you store. Terms and limits vary and change, so read the current pricing for any provider before assuming a given workload will be free.
 
 **How much are S3 egress fees?**
 It depends on the provider and region, and it changes over time, so treat any figure as illustrative. As a common ballpark, big-cloud egress runs somewhere around $0.09 per GB for typical tiers while storage is a couple of cents per GB. The point isn't the exact number, it's that serving data out usually costs far more than storing it.
@@ -150,7 +150,7 @@ Put a CDN in front of the bucket so files are cached at the edge and the origin 
 No. Egress pricing varies significantly between providers and can change, so always check the specific data-transfer-out rate rather than assuming. The pattern holds wherever it's charged: egress scales with traffic and is easy to overlook. Zero and low-egress options remove that variable and make the bill predictable.
 
 **Does Kloudbean charge egress fees?**
-Kloudbean provides built-in S3-compatible object storage in one dashboard alongside your servers, apps, and managed databases. Egress pricing varies by provider and changes over time, so check the current data-transfer-out terms for any storage you're comparing, including Kloudbean, rather than assuming. The consolidation and S3 compatibility are the wins to focus on; confirm the transfer pricing that applies to your plan.
+No. Kloudbean's built-in S3-compatible object storage doesn't charge egress fees, so serving your files out doesn't add a data-transfer line that grows with traffic. You get it in one dashboard alongside your servers, apps, and managed databases, with the standard S3 API and objects you can export anytime.
 
 ---
 

@@ -30,6 +30,7 @@ import { Route as ExperienceRouteImport } from './routes/experience'
 import { Route as EntityRouteImport } from './routes/entity'
 import { Route as EngineRouteImport } from './routes/engine'
 import { Route as ConversionsRouteImport } from './routes/conversions'
+import { Route as ContentTrackerRouteImport } from './routes/content-tracker'
 import { Route as CitationsRouteImport } from './routes/citations'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as BriefsRouteImport } from './routes/briefs'
@@ -141,6 +142,11 @@ const ConversionsRoute = ConversionsRouteImport.update({
   path: '/conversions',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContentTrackerRoute = ContentTrackerRouteImport.update({
+  id: '/content-tracker',
+  path: '/content-tracker',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CitationsRoute = CitationsRouteImport.update({
   id: '/citations',
   path: '/citations',
@@ -173,6 +179,7 @@ export interface FileRoutesByFullPath {
   '/briefs': typeof BriefsRoute
   '/calendar': typeof CalendarRoute
   '/citations': typeof CitationsRoute
+  '/content-tracker': typeof ContentTrackerRoute
   '/conversions': typeof ConversionsRoute
   '/engine': typeof EngineRoute
   '/entity': typeof EntityRoute
@@ -201,6 +208,7 @@ export interface FileRoutesByTo {
   '/briefs': typeof BriefsRoute
   '/calendar': typeof CalendarRoute
   '/citations': typeof CitationsRoute
+  '/content-tracker': typeof ContentTrackerRoute
   '/conversions': typeof ConversionsRoute
   '/engine': typeof EngineRoute
   '/entity': typeof EntityRoute
@@ -230,6 +238,7 @@ export interface FileRoutesById {
   '/briefs': typeof BriefsRoute
   '/calendar': typeof CalendarRoute
   '/citations': typeof CitationsRoute
+  '/content-tracker': typeof ContentTrackerRoute
   '/conversions': typeof ConversionsRoute
   '/engine': typeof EngineRoute
   '/entity': typeof EntityRoute
@@ -260,6 +269,7 @@ export interface FileRouteTypes {
     | '/briefs'
     | '/calendar'
     | '/citations'
+    | '/content-tracker'
     | '/conversions'
     | '/engine'
     | '/entity'
@@ -288,6 +298,7 @@ export interface FileRouteTypes {
     | '/briefs'
     | '/calendar'
     | '/citations'
+    | '/content-tracker'
     | '/conversions'
     | '/engine'
     | '/entity'
@@ -316,6 +327,7 @@ export interface FileRouteTypes {
     | '/briefs'
     | '/calendar'
     | '/citations'
+    | '/content-tracker'
     | '/conversions'
     | '/engine'
     | '/entity'
@@ -345,6 +357,7 @@ export interface RootRouteChildren {
   BriefsRoute: typeof BriefsRoute
   CalendarRoute: typeof CalendarRoute
   CitationsRoute: typeof CitationsRoute
+  ContentTrackerRoute: typeof ContentTrackerRoute
   ConversionsRoute: typeof ConversionsRoute
   EngineRoute: typeof EngineRoute
   EntityRoute: typeof EntityRoute
@@ -517,6 +530,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConversionsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/content-tracker': {
+      id: '/content-tracker'
+      path: '/content-tracker'
+      fullPath: '/content-tracker'
+      preLoaderRoute: typeof ContentTrackerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/citations': {
       id: '/citations'
       path: '/citations'
@@ -561,6 +581,7 @@ const rootRouteChildren: RootRouteChildren = {
   BriefsRoute: BriefsRoute,
   CalendarRoute: CalendarRoute,
   CitationsRoute: CitationsRoute,
+  ContentTrackerRoute: ContentTrackerRoute,
   ConversionsRoute: ConversionsRoute,
   EngineRoute: EngineRoute,
   EntityRoute: EntityRoute,

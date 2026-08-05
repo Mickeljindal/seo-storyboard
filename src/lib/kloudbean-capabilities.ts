@@ -68,6 +68,7 @@ export const SUPPORTED_CAPABILITIES: Capability[] = [
   { id: "mongodb", label: "MongoDB", group: "database", terms: ["mongodb", "mongo"] },
   { id: "redis", label: "Redis", group: "database", terms: ["redis"] },
   { id: "elasticsearch", label: "Elasticsearch", group: "database", terms: ["elasticsearch", "elastic search"] },
+  { id: "memcached", label: "Memcached", group: "database", terms: ["memcached"] },
   // App types
   { id: "spa", label: "SPA / web app", group: "app_type", terms: ["single page app", "web app", "spa"] },
   { id: "api", label: "API / backend", group: "app_type", terms: ["rest api", "graphql", "backend api"] },
@@ -83,7 +84,7 @@ export const UNSUPPORTED_CAPABILITIES: { label: string; terms: string[]; why: st
   { label: "Windows Server", terms: ["windows server", "windows hosting", "windows vps"], why: "Kloudbean is Linux-only managed hosting; no Windows Server." },
   { label: "IIS", terms: ["iis server", " iis ", "internet information services"], why: "IIS is a Windows-only web server; Kloudbean runs Nginx/Apache/LiteSpeed on Linux." },
   { label: ".NET Framework (Windows)", terms: [".net framework", "asp.net web forms", "vb.net"], why: "The classic Windows .NET Framework needs Windows/IIS, which Kloudbean does not provide. (Cross-platform .NET on Linux is a separate question — do not assume support.)" },
-  { label: "MSSQL / SQL Server", terms: ["sql server", "mssql", "microsoft sql"], why: "Kloudbean's managed databases are MySQL, MariaDB, PostgreSQL, MongoDB, Redis, Elasticsearch — not Microsoft SQL Server." },
+  { label: "MSSQL / SQL Server", terms: ["sql server", "mssql", "microsoft sql"], why: "Kloudbean's managed databases are MySQL, MariaDB, PostgreSQL, MongoDB, Redis, Elasticsearch and Memcached — not Microsoft SQL Server." },
   { label: "MS Access", terms: ["ms access", "microsoft access"], why: "Desktop/Windows database, not a Kloudbean managed database." },
   { label: "ColdFusion", terms: ["coldfusion"], why: "Not part of Kloudbean's supported runtimes." },
   { label: "Windows desktop apps", terms: ["windows desktop app", ".exe app", "wpf", "winforms"], why: "Kloudbean hosts web/server workloads on Linux, not Windows desktop software." },

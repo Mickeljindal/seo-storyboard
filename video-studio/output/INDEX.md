@@ -1,6 +1,6 @@
-# Kloudbean Video Studio — 34 explainer videos
+# Kloudbean Video Studio — 44 explainer reels
 
-Each folder has `script.md` + `storyboard.html`. Render MP4s with `npm run render-all`.
+Each folder has `script.md` + `storyboard.html` (open it and use **Download video** / **Download slides** to export). Render MP4s with `npm run render-all`.
 
 | # | Video | Audience | Length | Folder |
 |---|-------|----------|--------|--------|
@@ -38,3 +38,13 @@ Each folder has `script.md` + `storyboard.html`. Render MP4s with `npm run rende
 | 32 | Survive traffic spikes | Everyone | ~23s | `32-autoscaling-load-balancing` |
 | 33 | 7 cloud providers, one console | Everyone | ~23s | `33-seven-cloud-providers-one-console` |
 | 34 | Move off Windows and IIS to a Linux stack | Everyone | ~23s | `34-migrate-off-windows-iis` |
+| 35 | Your whole stack, one dashboard | Everyone | ~23s | `35-one-dashboard-whole-stack` |
+| 36 | A load balancer, already built in | SaaS founders | ~23s | `36-built-in-load-balancer` |
+| 37 | S3-compatible storage, included | SaaS founders | ~23s | `37-object-storage-built-in` |
+| 38 | Six managed databases, one click | Everyone | ~23s | `38-six-managed-databases` |
+| 39 | Private AI chat you actually own | Vibecoders / AI builders | ~23s | `39-private-ai-chat-openwebui` |
+| 40 | Free static site hosting | Freelance developers | ~23s | `40-free-static-site-hosting` |
+| 41 | Watch your deploy happen live | Vibecoders / AI builders | ~23s | `41-live-build-logs` |
+| 42 | One-click staging for WordPress and Laravel | WordPress / agencies | ~23s | `42-staging-sites-wp-laravel` |
+| 43 | An audit trail built for compliance | Enterprise / gov (KSA) | ~23s | `43-audit-trail-enterprise` |
+| 44 | Lock down who can touch what | Enterprise / gov (KSA) | ~23s | `44-lock-down-access-uac` |

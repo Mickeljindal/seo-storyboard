@@ -8,7 +8,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { VIDEOS } from "./ideas.mjs";
+import { VIDEOS, LONGFORM } from "./ideas.mjs";
 import { buildStoryboardHtml, videoDurationMs } from "./template.mjs";
 import { buildScriptMarkdown } from "./script-md.mjs";
 
@@ -34,9 +34,9 @@ async function main() {
 
   // A top-level index for humans + for the future in-app pipeline to read.
   const md = [
-    "# Kloudbean Video Studio — 34 explainer videos",
+    `# Kloudbean Video Studio — ${VIDEOS.length} explainer reels`,
     "",
-    "Each folder has `script.md` + `storyboard.html`. Render MP4s with `npm run render-all`.",
+    "Each folder has `script.md` + `storyboard.html` (open it and use **Download video** / **Download slides** to export). Render MP4s with `npm run render-all`.",
     "",
     "| # | Video | Audience | Length | Folder |",
     "|---|-------|----------|--------|--------|",
@@ -45,6 +45,38 @@ async function main() {
   ].join("\n");
   await writeFile(join(OUT, "INDEX.md"), md, "utf8");
   await writeFile(join(OUT, "index.json"), JSON.stringify(index, null, 2), "utf8");
+
+  // Long-form YouTube episode outlines for the founder channel (not rendered — planning doc).
+  if (Array.isArray(LONGFORM) && LONGFORM.length) {
+    const lf = [
+      `# Kloudbean Video Studio — ${LONGFORM.length} long-form YouTube episodes`,
+      "",
+      "Founder-channel concepts: tutorials, tours, comparisons and deep-dives. Grounded in Kloudbean's real capabilities — no invented figures. Each has a segment outline, the wow factor, and the CTA.",
+      "",
+      ...LONGFORM.flatMap((e, i) => [
+        `## ${i + 1}. ${e.title}`,
+        "",
+        `- **Slug:** \`${e.slug}\``,
+        `- **Audience:** ${e.audience}`,
+        `- **Length:** ~${e.lengthMin} min`,
+        `- **Hook:** ${e.hook}`,
+        "",
+        "**Segment outline**",
+        "",
+        ...e.segments.map((s) => `- \`${s.at}\` **${s.title}** — ${s.detail}`),
+        "",
+        `**Wow factor:** ${e.wow}`,
+        "",
+        `**CTA:** ${e.cta}`,
+        "",
+        `**Grounded in:** ${e.grounding.join("; ")}`,
+        "",
+      ]),
+    ].join("\n");
+    await writeFile(join(OUT, "LONGFORM.md"), lf, "utf8");
+    console.log(`✓ LONGFORM.md  (${LONGFORM.length} long-form YouTube episode outlines)`);
+  }
+
   console.log(`\nGenerated ${VIDEOS.length} videos → ${OUT}`);
   console.log(`Next: open any output/*/storyboard.html, or run "npm run setup" then "npm run render-all" to export MP4s.`);
 }

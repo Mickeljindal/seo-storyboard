@@ -34,6 +34,10 @@ function ScopePage() {
 
   const [disabled, setDisabled] = useState<Set<string>>(new Set());
   const [allowed, setAllowed] = useState<Set<string>>(new Set());
+  const [extra, setExtra] = useState<{ label: string; terms: string[]; why: string }[]>([]);
+  const [newLabel, setNewLabel] = useState("");
+  const [newTerms, setNewTerms] = useState("");
+  const [newWhy, setNewWhy] = useState("");
   const [testKw, setTestKw] = useState("");
   const [testResult, setTestResult] = useState<Record<string, unknown> | null>(null);
 
@@ -41,11 +45,12 @@ function ScopePage() {
     if (data?.config) {
       setDisabled(new Set(data.config.disabledSupported ?? []));
       setAllowed(new Set(data.config.allowedUnsupported ?? []));
+      setExtra(data.config.extraUnsupported ?? []);
     }
   }, [data?.config?.updatedAt]);
 
   const save = useMutation({
-    mutationFn: () => saveFn({ data: { disabledSupported: [...disabled], allowedUnsupported: [...allowed] } }),
+    mutationFn: () => saveFn({ data: { disabledSupported: [...disabled], allowedUnsupported: [...allowed], extraUnsupported: extra } }),
     onSuccess: () => {
       toast.success("Scope saved — applies to all new content");
       qc.invalidateQueries({ queryKey: ["scope"] });
@@ -177,6 +182,55 @@ function ScopePage() {
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
                 Only click "Allow" if Kloudbean genuinely adds support later. By default these stay blocked.
+              </p>
+            </section>
+
+            {/* Custom exclusions — user-defined banned tech/topics */}
+            <section className="mb-8">
+              <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+                <ShieldX className="h-4 w-4 text-destructive" /> Your custom exclusions — always blocked
+              </h2>
+              {extra.length > 0 && (
+                <div className="mb-3 space-y-2">
+                  {extra.map((c, i) => (
+                    <div key={`${c.label}-${i}`} className="flex items-start justify-between gap-3 rounded-lg border border-border bg-card/40 px-3 py-2.5">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium">{c.label}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {c.why || "Excluded by you"} · terms: {c.terms.join(", ")}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setExtra(extra.filter((_, j) => j !== i))}
+                        className="shrink-0 rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground hover:bg-foreground/5"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto]">
+                <Input value={newLabel} onChange={(e) => setNewLabel(e.target.value)} placeholder="Label (e.g. Kafka)" />
+                <Input value={newTerms} onChange={(e) => setNewTerms(e.target.value)} placeholder="Match terms, comma-separated" />
+                <Input value={newWhy} onChange={(e) => setNewWhy(e.target.value)} placeholder="Why (optional)" />
+                <Button
+                  variant="outline"
+                  disabled={!newLabel.trim() || !newTerms.trim()}
+                  onClick={() => {
+                    const terms = newTerms.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
+                    if (!newLabel.trim() || !terms.length) return;
+                    setExtra([...extra, { label: newLabel.trim(), terms, why: newWhy.trim() || "Excluded by scope settings." }]);
+                    setNewLabel("");
+                    setNewTerms("");
+                    setNewWhy("");
+                  }}
+                >
+                  Add
+                </Button>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Add any tech, product, or topic you never want written about. Matching keywords get rejected by topic discovery and the writer. Click "Save scope" to apply.
               </p>
             </section>
 

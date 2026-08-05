@@ -24,6 +24,7 @@ import {
   ShieldCheck,
   Link2,
   Activity,
+  ListChecks,
 } from "lucide-react";
 import { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -42,6 +43,7 @@ const NAV = [
   { to: "/scope", label: "Scope", icon: Lock, kbd: "5" },
   { to: "/engine", label: "Engine", icon: Cog, kbd: "6" },
   { to: "/publish-queue", label: "Publish Queue", icon: ShieldCheck, kbd: "Q" },
+  { to: "/content-tracker", label: "Publish Tracker", icon: ListChecks, kbd: "B" },
   { to: "/tools", label: "Tool Pages", icon: Wrench, kbd: "T" },
   { to: "/kloudgraph", label: "Competitor Graph", icon: Network, kbd: "G" },
   { to: "/internal-links", label: "Internal Links", icon: Link2, kbd: "I" },

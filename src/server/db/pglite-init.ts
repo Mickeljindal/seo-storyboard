@@ -39,4 +39,17 @@ async function initPglite(client: PGlite): Promise<void> {
   if (seeded > 0) {
     console.log(`[pglite] Seeded ${seeded} articles`);
   }
+
+  // Auto-sync locally-authored content-studio articles (new slugs only) so
+  // articles you commit + push show up in the engine on the next app start.
+  // Set INGEST_CONTENT_STUDIO=0 to disable. Never breaks boot.
+  if (process.env.INGEST_CONTENT_STUDIO !== "0") {
+    try {
+      const { ingestContentStudio } = await import("./ingest-content-studio");
+      const r = await ingestContentStudio(client, { mode: "new-only" });
+      if (r.inserted > 0) console.log(`[pglite] Synced ${r.inserted} new content-studio article(s)`);
+    } catch (e) {
+      console.warn("[pglite] content-studio sync skipped:", (e as Error).message);
+    }
+  }
 }

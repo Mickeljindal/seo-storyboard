@@ -87,4 +87,17 @@ export async function getDb(): Promise<AppDb> {
   return g.__seoDbPromise;
 }
 
+/**
+ * The underlying PGlite client (pglite mode only) — used by the content-studio
+ * ingest so it writes through the app's single connection (no second instance).
+ */
+export async function getPgliteClient() {
+  if (!isPgliteMode()) {
+    throw new Error("content-studio sync requires DATABASE_MODE=pglite");
+  }
+  await getDb(); // ensures schema + g.__seoPglite are ready
+  if (!g.__seoPglite) throw new Error("PGlite client is not initialized");
+  return g.__seoPglite;
+}
+
 export { schema };
