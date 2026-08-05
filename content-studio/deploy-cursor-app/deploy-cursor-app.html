@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deploy a Cursor App to Production: the Localhost Trap</title>
+<meta name="description" content="How to deploy a Cursor app to production on a server you own, plus the localhost assumptions in AI-generated code (hard-coded ports, SQLite, baked-in secrets) you need to fix before it goes live.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/deploy-cursor-app/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Deploy a Cursor App to Production: the Localhost Trap">
+<meta property="og:description" content="Cursor writes real code you own. It also bakes in localhost assumptions that break in production. Here's what to fix before you push, and how the deploy itself goes.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{ --navy:#000f27; --ink:#1c2536; --muted:#5b6a86; --purple:#4F1AF3; --green:#40b75f; --line:#e6e9f2; --bg-soft:#f6f7fb; }
+  *{box-sizing:border-box}
+  body{ margin:0; background:#fff; color:var(--ink); font-family:"Poppins","Segoe UI",system-ui,-apple-system,Arial,sans-serif; line-height:1.72; font-size:18px; -webkit-font-smoothing:antialiased; }
+  .wrap{max-width:760px; margin:0 auto; padding:40px 22px 80px}
+  .eyebrow{ display:inline-block; font-size:12px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:var(--purple); border:1px solid var(--line); background:var(--bg-soft); padding:5px 12px; border-radius:999px; margin-bottom:18px; }
+  h1{ font-size:clamp(30px,5vw,44px); line-height:1.12; font-weight:700; letter-spacing:-.02em; color:var(--navy); margin:.1em 0 .5em; }
+  h2{ font-size:clamp(23px,3.4vw,29px); font-weight:700; letter-spacing:-.01em; color:var(--navy); margin:2.2em 0 .6em; padding-left:14px; border-left:4px solid var(--purple); }
+  h3{ font-size:20px; font-weight:600; color:var(--navy); margin:1.5em 0 .3em }
+  p{margin:0 0 1.15em}
+  a{color:var(--purple); text-decoration:none; border-bottom:1px solid rgba(79,26,243,.35)}
+  a:hover{border-bottom-color:var(--purple)}
+  strong{color:var(--navy)}
+  ul{margin:0 0 1.3em; padding-left:0; list-style:none}
+  ul li{position:relative; padding-left:26px; margin:0 0 .7em}
+  ul li::before{content:""; position:absolute; left:2px; top:.62em; width:8px; height:8px; border-radius:2px; background:var(--purple); transform:rotate(45deg)}
+  figure{margin:2em 0}
+  figure img{width:100%; height:auto; display:block; border-radius:16px; border:1px solid var(--line)}
+  figcaption{font-size:14px; color:var(--muted); text-align:center; margin-top:10px}
+  .lead{font-size:20px; color:#2a3550}
+  .tldr{background:var(--bg-soft); border:1px solid var(--line); border-left:4px solid var(--green); border-radius:12px; padding:16px 20px; margin:1.8em 0}
+  .tldr strong{color:var(--navy)}
+  .note{background:#faf8ff; border:1px solid #e7dfff; border-radius:12px; padding:14px 18px; margin:1.6em 0; font-size:16.5px}
+  code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace; font-size:.88em; background:var(--bg-soft); border:1px solid var(--line); border-radius:6px; padding:1px 6px}
+  pre{background:var(--navy); color:#e8ecfb; border-radius:12px; padding:18px 20px; overflow:auto; font-size:14.5px; line-height:1.6}
+  pre code{background:none;border:none;padding:0;color:inherit;font-size:inherit}
+  table.cmp{width:100%; border-collapse:collapse; margin:1.6em 0; font-size:15.5px}
+  table.cmp th,table.cmp td{border:1px solid var(--line); padding:10px 12px; text-align:left; vertical-align:top}
+  table.cmp th{background:var(--navy); color:#fff; font-weight:600}
+  table.cmp tr:nth-child(even) td{background:var(--bg-soft)}
+  .faq h3{font-size:18px; font-weight:700; color:var(--navy); margin:1.4em 0 .2em}
+  .cta{ margin:2.4em 0 0; padding:22px 24px; border-radius:16px; color:#fff; background:linear-gradient(135deg,var(--navy),#0a1f45); }
+  .cta a{color:#c9b8ff; border-bottom-color:rgba(201,184,255,.4)}
+  .byline{font-size:14px; color:var(--muted); border-top:1px solid var(--line); margin-top:2em; padding-top:14px}
+  /* image spacer: replace the whole <figure class="img-slot"> with a real <figure><img ...><figcaption>...</figcaption></figure> */
+  .img-slot{display:flex;align-items:center;justify-content:center;text-align:center;min-height:210px;margin:2em 0;padding:30px 24px;border:2px dashed #c9d0e3;border-radius:16px;background:repeating-linear-gradient(45deg,var(--bg-soft),var(--bg-soft) 14px,#eef1f8 14px,#eef1f8 28px);color:var(--muted)}
+  .img-slot > span{display:block;max-width:80%}
+  .img-slot b{display:block;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--purple);margin-bottom:8px}
+  .img-slot em{font-style:normal;font-size:15.5px;color:var(--ink);line-height:1.5}
+  .img-slot small{display:block;margin-top:8px;font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Shipping a Cursor app</span>
+  <h1>Deploy a Cursor App to Production: the Localhost Trap</h1>
+
+  <figure><img src="images/hero.png" alt="From Cursor to production: deploying a Cursor-built app on a server you own"></figure>
+
+  <p class="lead">Cursor wrote most of your app, and it's real code. Normal files, a Git history you can read, dependencies you chose. That's the good part, and it's a real edge over the closed AI builders. To deploy a Cursor app you're just moving standard code onto a standard server.</p>
+
+  <p>The catch is quieter. Cursor is very good at one thing: getting the app working on your machine, right now. And your machine hands it a pile of free services it silently assumes will always be there. A port it can grab. A file that never disappears. Your secrets, sitting in a folder. They won't be there on a server. Almost every failed first deploy of an AI-built app traces back to one of those assumptions, not to anything hard about hosting. So this splits in two: the handful of things localhost was faking, and then the deploy, which honestly takes about five minutes.</p>
+
+  <div class="tldr">
+    <strong>Short version:</strong> Push your repo to GitHub, launch a Node server, connect the repo, and set your port, build, and start commands. Before that, fix what localhost was covering for: a hard-coded port, a SQLite file, secrets read from a <code>.env</code>, and uploads written to local disk. The deploy is quick. The cleanup is the actual work, and it's maybe twenty minutes.
+  </div>
+
+  <h2>What localhost was quietly doing for you</h2>
+  <p>When Cursor writes <code>app.listen(3000)</code> and points the database at <code>./dev.db</code>, that isn't a bug. On your laptop it's the fastest thing that works, so that's what the model reaches for. The trouble is that a production server doesn't offer the same conveniences, and it shouldn't. A server that let any process keep a file forever and grab any port would be a server you couldn't trust.</p>
+  <p>So the job before you deploy is small and specific. Find the places your app leaned on the laptop, and point them at something durable instead. Here's the whole map on one screen.</p>
+
+  <figure>
+    <svg viewBox="0 0 700 384" width="100%" role="img" aria-label="Diagram mapping what localhost fakes to what a production server provides: port, database file, .env, uploads folder, and a single hand-restarted process.">
+      <rect x="1" y="1" width="698" height="382" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="350" y="34" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="16" font-weight="700" fill="#000f27">Localhost fakes it. Production makes it real.</text>
+      <text x="176" y="66" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="600" fill="#4F1AF3">ON YOUR LAPTOP</text>
+      <text x="524" y="66" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="600" fill="#40b75f">IN PRODUCTION</text>
+      <g font-family="Poppins,Arial,sans-serif" font-size="13" fill="#1c2536">
+        <rect x="24" y="86" width="300" height="42" rx="8" fill="#f6f7fb" stroke="#e6e9f2"/><text x="40" y="112">A port you picked (3000)</text>
+        <line x1="332" y1="107" x2="366" y2="107" stroke="#4F1AF3" stroke-width="2"/><polygon points="366,101 378,107 366,113" fill="#4F1AF3"/>
+        <rect x="376" y="86" width="300" height="42" rx="8" fill="#eaf7ef" stroke="#cdebd6"/><text x="392" y="112">process.env.PORT (assigned)</text>
+
+        <rect x="24" y="140" width="300" height="42" rx="8" fill="#f6f7fb" stroke="#e6e9f2"/><text x="40" y="166">dev.db, a file on disk</text>
+        <line x1="332" y1="161" x2="366" y2="161" stroke="#4F1AF3" stroke-width="2"/><polygon points="366,155 378,161 366,167" fill="#4F1AF3"/>
+        <rect x="376" y="140" width="300" height="42" rx="8" fill="#eaf7ef" stroke="#cdebd6"/><text x="392" y="166">A managed Postgres or MySQL</text>
+
+        <rect x="24" y="194" width="300" height="42" rx="8" fill="#f6f7fb" stroke="#e6e9f2"/><text x="40" y="220">.env sitting in the folder</text>
+        <line x1="332" y1="215" x2="366" y2="215" stroke="#4F1AF3" stroke-width="2"/><polygon points="366,209 378,215 366,221" fill="#4F1AF3"/>
+        <rect x="376" y="194" width="300" height="42" rx="8" fill="#eaf7ef" stroke="#cdebd6"/><text x="392" y="220">Env vars stored in the console</text>
+
+        <rect x="24" y="248" width="300" height="42" rx="8" fill="#f6f7fb" stroke="#e6e9f2"/><text x="40" y="274">./uploads on local disk</text>
+        <line x1="332" y1="269" x2="366" y2="269" stroke="#4F1AF3" stroke-width="2"/><polygon points="366,263 378,269 366,275" fill="#4F1AF3"/>
+        <rect x="376" y="248" width="300" height="42" rx="8" fill="#eaf7ef" stroke="#cdebd6"/><text x="392" y="274">S3-compatible object storage</text>
+
+        <rect x="24" y="302" width="300" height="42" rx="8" fill="#f6f7fb" stroke="#e6e9f2"/><text x="40" y="328">One process, restarted by hand</text>
+        <line x1="332" y1="323" x2="366" y2="323" stroke="#4F1AF3" stroke-width="2"/><polygon points="366,317 378,323 366,329" fill="#4F1AF3"/>
+        <rect x="376" y="302" width="300" height="42" rx="8" fill="#eaf7ef" stroke="#cdebd6"/><text x="392" y="328">Managed process that auto-restarts</text>
+      </g>
+    </svg>
+    <figcaption>Localhost gives your app a free port, a file that persists, your secrets, and a disk. A server gives you the durable version of each. Most first-deploy bugs are one of these five.</figcaption>
+  </figure>
+
+  <p>Split them by how you fix them. Three are edits in your own code. Three are a matter of using a real service instead of the laptop. Do the code ones first, because they're the ones that stop the app booting at all.</p>
+
+  <table class="cmp">
+    <thead><tr><th>What Cursor tends to scaffold</th><th>Why it breaks in production</th><th>The fix</th></tr></thead>
+    <tbody>
+      <tr><td><code>app.listen(3000)</code></td><td>The platform assigns the port. Nothing is listening where it expects.</td><td>Listen on <code>process.env.PORT</code></td></tr>
+      <tr><td>Frontend calls <code>http://localhost:3000</code></td><td>There is no localhost on a user's browser. Requests fail silently.</td><td>Relative <code>/api</code> path or a build-time URL</td></tr>
+      <tr><td><code>VITE_</code>/<code>NEXT_PUBLIC_</code> vars</td><td>They're frozen into the bundle at build time, not read live.</td><td>Set them before the build runs</td></tr>
+      <tr><td>SQLite <code>file:./dev.db</code></td><td>The filesystem resets on redeploy. Your data vanishes.</td><td>A managed Postgres or MySQL</td></tr>
+      <tr><td>File uploads to <code>./uploads</code></td><td>Same reset. Uploaded files disappear on the next deploy.</td><td>S3-compatible object storage</td></tr>
+      <tr><td>Sessions in a JS object</td><td>Gone on restart, and not shared across processes.</td><td>Managed Redis</td></tr>
+    </tbody>
+  </table>
+
+  <h2>The three you fix in your code</h2>
+  <p>These live in your repo, so fix them, commit, and push before you touch the console.</p>
+
+  <h3>1. Read the port from the environment</h3>
+  <p>This one denies you a green deploy more than anything else. Your server has to listen on the port it's handed, not a number Cursor liked.</p>
+  <pre><code>// Cursor tends to write this
+app.listen(3000, () =&gt; console.log("listening on 3000"));
+
+// production needs the assigned port
+const port = process.env.PORT || 3000;
+app.listen(port, () =&gt; console.log(`listening on ${port}`));</code></pre>
+
+  <h3>2. Stop the frontend from calling localhost</h3>
+  <p>If Cursor hard-coded your API base URL to <code>http://localhost:3000</code>, every request from a real browser goes nowhere. The user's machine has no localhost server. Use a relative path when the same app serves the API, or an environment-driven URL when it doesn't.</p>
+  <pre><code>// baked into the built bundle, dead in production
+const api = axios.create({ baseURL: "http://localhost:3000/api" });
+
+// relative path (same-origin API), or an env var
+const api = axios.create({ baseURL: import.meta.env.VITE_API_URL ?? "/api" });</code></pre>
+
+  <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>Browser DevTools, Network tab: the failed request to http://localhost:3000 from the deployed site.</em><small>Shows the symptom readers recognize. Optional.</small></span></figure>
+
+  <h3>3. Know that frontend env vars bake in at build time</h3>
+  <p>This one costs people an afternoon. Anything prefixed <code>VITE_</code> or <code>NEXT_PUBLIC_</code> is not read when your app runs. It's stamped into the JavaScript when the build runs, then it's frozen. So if you deploy, then add <code>VITE_API_URL</code> in the console afterward, nothing changes. The old value is already inside the bundle. Set those variables first, then build. If you added one late, just redeploy so the build picks it up. Backend secrets like <code>DATABASE_URL</code> behave the opposite way. They're read live at runtime, which is why they belong in the console and never in the repo. If you want the full mental model, we wrote it up in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a>.</p>
+
+  <h2>The three you fix with a real service, not code</h2>
+
+  <h3>Move off SQLite before you have users</h3>
+  <p>SQLite is a joy in development. It's also the wrong production database the moment you have real traffic or more than one process, and Cursor loves to default to it. The deeper problem on most platforms is that the disk resets when you redeploy, so <code>dev.db</code> and everything in it is gone on your next <code>git push</code>. People discover this the worst possible way: a customer signs up, the deploy goes out an hour later, the account is gone.</p>
+  <p>Launch a managed Postgres or MySQL instead and point your app at it with a connection string. With Prisma it's a two-line schema change plus a migration in your build step.</p>
+  <pre><code>// prisma/schema.prisma, the dev default Cursor leaves behind
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// what production wants
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}</code></pre>
+  <p>The migration part is the step people skip, and then they hit "relation does not exist" on first load because the tables were never created. Run migrations as part of the build, not by hand:</p>
+  <pre><code>npm ci &amp;&amp; npx prisma generate &amp;&amp; npx prisma migrate deploy &amp;&amp; npm run build</code></pre>
+  <p>Use <code>migrate deploy</code>, not <code>migrate dev</code>. The <code>dev</code> variant is interactive and can try to reset the database, which is not what you want anywhere near production. Kloudbean runs six managed engines (Postgres, MySQL, MariaDB, Redis, MongoDB, Elasticsearch), so if your app already speaks Mongo or MySQL you're not forced to rewrite it. More on the setup in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a> and the <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a> guide.</p>
+
+  <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>Terminal: <code>npx prisma migrate deploy</code> applying migrations and creating tables on the managed database.</em><small>A real terminal screenshot here is worth a paragraph.</small></span></figure>
+
+  <h3>Send uploads to object storage, not the disk</h3>
+  <p>If your app lets people upload anything, an avatar, a PDF, a CSV, and Cursor wired <code>multer</code> to write into <code>./uploads</code>, those files live on the same disk that resets on redeploy. Same disappearing act as SQLite. Point uploads at an S3-compatible bucket instead. Kloudbean has object storage built in with full AWS S3 SDK compatibility, so the standard <code>@aws-sdk/client-s3</code> code works unchanged. Here's the <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">object storage walkthrough</a>.</p>
+
+  <h3>Keep session and cache state in Redis</h3>
+  <p>A pattern the AI reaches for a lot: <code>const sessions = {}</code>, or an in-memory rate limiter, or a cache that's just a Map. Fine for one process on your laptop. On a server it evaporates every time the app restarts, and if you run Node across multiple processes with PM2, each process has its own copy, so a user's login works one request and fails the next. Managed Redis fixes both. It's shared, and it survives restarts.</p>
+
+  <h2>The deploy, which really is the boring part</h2>
+  <p>Repo cleaned up? Good. The rest is a short path through the console, and there's genuinely no Nginx to configure or runtime to install by hand.</p>
+
+  <p>Sign in to the <a href="https://www.kloudbean.com/">Kloudbean</a> console and click <strong>Add Server</strong>. Pick your <strong>Cloud Provider</strong> (AWS, DigitalOcean, Linode, Vultr, GCP, UpCloud, or Lightsail), choose <strong>Node.js</strong> as the application, pick the datacenter closest to your users, and give a Node build a couple of gigs of headroom on the server size. <strong>Launch Now</strong> provisions it in a few minutes with the stack ready.</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="Kloudbean Add Server screen: choosing cloud provider, Node.js application, datacenter, and server size">
+    <figcaption>Add Server: pick a provider, choose Node.js, size it, and launch. The stack comes ready.</figcaption>
+  </figure>
+
+  <p>Open the app, go to <strong>Application Administration → Deploy Code</strong>, and you're on the Git Deployment screen. This is where the whole thing happens.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="Kloudbean console Deploy Code / Git Deployment screen: connect a repo, then set App Directory, port, and build and start commands">
+    <figcaption>Deploy Code, then Git Deployment: connect the repo up top, set the runtime fields below, on one screen.</figcaption>
+  </figure>
+
+  <p>Connect GitHub over OAuth (or drop in the SSH key it shows you), paste the repository URL, pick the branch, and hit <strong>Clone Repository</strong>. Then the runtime fields, which are the part that matters:</p>
+  <ul>
+    <li><strong>App Directory</strong>: the folder holding your <code>package.json</code>. Monorepo with the server in <code>/apps/server</code>? Put that here.</li>
+    <li><strong>Port</strong>: the port the platform assigned. Your app reads it from <code>process.env.PORT</code>, which you already fixed.</li>
+    <li><strong>Node Version</strong>: match what you built on.</li>
+    <li><strong>Install / Build / Start</strong>: <code>npm ci</code>, your build command (including the Prisma line above if you use it), then <code>npm start</code> or <code>node server.js</code>.</li>
+  </ul>
+  <p>Click <strong>Pull &amp; Deploy</strong>. Kloudbean pulls the code, pins your Node version, installs, builds, and puts it on the web. Then wire up the database and secrets:</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="Kloudbean Launch Database screen for creating a managed Postgres or MySQL instance">
+    <figcaption>Launch a managed database from the console, then copy its connection details into your environment variables.</figcaption>
+  </figure>
+
+  <p>In <strong>Runtime Configuration → Environment Variables</strong> there's a <strong>Paste .env Content</strong> tab. Drop your local <code>.env</code> in, <strong>Convert to Key/Value</strong>, and swap the dev values for the real ones, especially the database connection string pointing at the instance you just launched.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="Kloudbean environment variables editor with a paste .env content tab and key value list">
+    <figcaption>Environment variables live in the console, not the repo. Paste your .env, then replace the local values.</figcaption>
+  </figure>
+
+  <pre><code>DATABASE_URL=postgres://kb_user:generated-pass@127.0.0.1:5432/kb_appdb
+APP_URL=https://yourapp.com
+VITE_API_URL=https://yourapp.com/api
+OPENAI_API_KEY=sk-...
+SESSION_SECRET=a-long-random-string</code></pre>
+
+  <p>Last, add your custom domain under <strong>Domain Aliases</strong>, point its DNS at the server, and install a free <strong>Let's Encrypt</strong> certificate so it's HTTPS and renews itself. Turn on <strong>automated deployment</strong> and every push to your branch builds and ships on its own, with the build log streaming live in the console. From then on, shipping is just <code>git push</code>. That's the same auto-deploy loop the per-app platforms rent you, except it's <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">running on a server you own</a>.</p>
+
+  <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your Cursor app live on its custom domain, with the SSL padlock in the address bar.</em><small>The payoff shot. Nothing sells "it works" like the real thing.</small></span></figure>
+
+  <h2>One app, or two?</h2>
+  <p>Cursor projects land in one of two shapes, and each has a clean answer.</p>
+  <p>Built a <strong>single full-stack app</strong>, like a Next.js project where the pages and API routes share a repo? It's one application. The App Directory is your project root, one process serves everything, done.</p>
+  <p>Built a <strong>separate frontend and backend</strong>, say a Vite React SPA and a standalone Express API? You've got two good options. Simplest: build the frontend and let your Node server serve those static files, so it stays one app on one domain. Or run them as two applications on the same server, the API on <code>api.yourapp.com</code> and the client on <code>app.yourapp.com</code>, which you add from <strong>Applications → Add Application</strong>. Same box, same bill. Mirror whatever you already do locally: one dev server means one app, two dev servers means two. The mechanics of stacking apps are in <a href="https://www.kloudbean.com/blog/host-multiple-apps-one-server/">hosting multiple apps on one server</a>.</p>
+
+  <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Applications list on one server: the API on api.yourapp.com and the client on app.yourapp.com, side by side.</em></span></figure>
+
+  <h2>Do you actually need Docker for this?</h2>
+  <p>No. Not for a single Cursor app. A Dockerfile and a Kubernetes cluster solve problems you don't have yet: fleets of services, teams shipping in parallel, orchestration across many machines. Your app is a Node process. A managed server runs it directly, restarts it if it falls over, and gets out of the way. If you're ever running dozens of services and need real orchestration, that's an enterprise conversation and a different article. For getting your Cursor build in front of users this week, containers are ceremony you can skip.</p>
+
+  <h2>When it still won't go green</h2>
+  <p>First deploy shows a <strong>503</strong>? The process didn't start. Nine times out of ten it's a missing environment variable or a wrong start command. Read the app's own log, which is where the real reason sits:</p>
+  <pre><code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/app.error.log</code></pre>
+  <p>Open it in the File Manager or over SSH. One less obvious cause with AI-built TypeScript projects: the build fails because the tools it needs (the TypeScript compiler, Vite, Tailwind) are in <code>devDependencies</code>, and something set <code>NODE_ENV=production</code> before install, so <code>npm</code> skipped them. Either move the build-time tools where they belong or make sure install runs before that variable is set. There's also <code>sudo adm</code>, the deploy utility, which runs the whole build-and-ship in one command over SSH. The full 503 playbook is <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">here</a>.</p>
+
+  <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>app.error.log open in the File Manager, with the missing-variable line that explains the 503.</em></span></figure>
+
+  <h2>What you own, and what you don't</h2>
+  <p>Kloudbean runs Linux stacks: Node, plus PHP, Python, Ruby, and Java, with the frameworks on top (React, Next.js, Vue, Laravel, Django, WordPress). That's essentially everything Cursor builds for the web. If you had Cursor write a classic Windows or .NET app that expects IIS and SQL Server, that's a port, not a deploy, and this isn't the platform for it. "Managed" means the server, the stack, SSL, backups, and patching are handled. Your code and your data stay yours. You can move hosts whenever you like, because underneath it's a normal Linux box running normal code. No slot to rent, no per-app tax as you grow.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">You did the hard part in the editor.</p>
+    <p style="margin:0">Get your Cursor app live at <a href="https://www.kloudbean.com/">kloudbean.com</a>, with a free trial and your first migration done for you. Want the tool-agnostic version that covers Lovable, Bolt, v0, and Replit too? That's the <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploy an AI-built app</a> guide. Server sizes and plans are on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Why does my Cursor app work locally but break in production?</h3>
+    <p>Because localhost provides things a server doesn't: any port you want, a disk that persists, and your <code>.env</code> file sitting right there. Cursor writes code that assumes those. The fixes are reading the port from <code>process.env.PORT</code>, moving off a local SQLite file to a managed database, storing secrets as environment variables, and sending uploads to object storage.</p>
+
+    <h3>Can I deploy a Cursor app without DevOps experience?</h3>
+    <p>Yes. The server-level work (stack, process manager, SSL, backups) is handled for you. You launch a Node server, connect your Git repo in Deploy Code, set the App Directory, port, and start command, add your environment variables, and click Pull and Deploy.</p>
+
+    <h3>My Cursor app uses SQLite. What database should I use in production?</h3>
+    <p>A managed Postgres or MySQL. SQLite is great for development, but on most hosts the disk resets on redeploy, so the file and its data disappear. Launch a managed instance, point your connection string at it, and run your migrations as part of the build so the tables exist on first boot.</p>
+
+    <h3>My Cursor project is a monorepo. Does that work?</h3>
+    <p>Yes. Point the App Directory field at the folder holding your server's package.json, for example /apps/server, set the matching build and start commands, and deploy. If you also host a separate frontend, add it as its own application on the same server.</p>
+
+    <h3>Where do my API keys and database credentials go?</h3>
+    <p>Into environment variables, never the code. Use Runtime Configuration, Environment Variables, where there's a Paste .env tab. Add your database connection details and API keys and save. Launch the database itself from the Managed Database section first.</p>
+
+    <h3>Why is my deployed frontend blank or still calling localhost?</h3>
+    <p>Frontend variables prefixed VITE_ or NEXT_PUBLIC_ are baked into the bundle at build time, not read at runtime. If you set them after building, redeploy so the build picks up the new values. A blank page is often the frontend calling a hard-coded localhost API that doesn't exist for the visitor's browser.</p>
+
+    <h3>Do I need Docker to deploy a Cursor app?</h3>
+    <p>No. A single Cursor app is a Node process, and a managed server runs it directly. Docker and Kubernetes solve orchestration problems that show up at much larger scale. For getting your app in front of users, you can skip them.</p>
+
+    <h3>Do I keep full ownership of the app?</h3>
+    <p>Yes. The code, the data, and the server are yours, with no per-app pricing and no lock-in. Because it's a standard Linux server running standard code, you can move hosts whenever you want.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.</p>
+</article>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Article",
+      "headline": "Deploy a Cursor App to Production: the Localhost Trap",
+      "description": "How to deploy a Cursor app to production on a server you own, plus the localhost assumptions in AI-generated code you need to fix before it goes live.",
+      "image": "https://www.kloudbean.com/blog/deploy-cursor-app/images/hero.png",
+      "author": { "@type": "Organization", "name": "Kloudbean", "url": "https://www.kloudbean.com/" },
+      "publisher": { "@type": "Organization", "name": "Kloudbean", "logo": { "@type": "ImageObject", "url": "https://www.kloudbean.com/logo.png" } },
+      "mainEntityOfPage": "https://www.kloudbean.com/blog/deploy-cursor-app/"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "Why does my Cursor app work locally but break in production?", "acceptedAnswer": { "@type": "Answer", "text": "Because localhost provides things a server does not: any port you want, a disk that persists, and your .env file sitting right there. Cursor writes code that assumes those. The fixes are reading the port from process.env.PORT, moving off a local SQLite file to a managed database, storing secrets as environment variables, and sending uploads to object storage." } },
+        { "@type": "Question", "name": "Can I deploy a Cursor app without DevOps experience?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. The server-level work (stack, process manager, SSL, backups) is handled for you. You launch a Node server, connect your Git repo in Deploy Code, set the App Directory, port and start command, add your environment variables, and click Pull and Deploy." } },
+        { "@type": "Question", "name": "My Cursor app uses SQLite. What database should I use in production?", "acceptedAnswer": { "@type": "Answer", "text": "A managed Postgres or MySQL. SQLite is great for development, but on most hosts the disk resets on redeploy, so the file and its data disappear. Launch a managed instance, point your connection string at it, and run your migrations as part of the build so the tables exist on first boot." } },
+        { "@type": "Question", "name": "My Cursor project is a monorepo. Does that work?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Point the App Directory field at the folder holding your server's package.json, for example /apps/server, set the matching build and start commands, and deploy. If you also host a separate frontend, add it as its own application on the same server." } },
+        { "@type": "Question", "name": "Where do my API keys and database credentials go?", "acceptedAnswer": { "@type": "Answer", "text": "Into environment variables, never the code. Use Runtime Configuration, Environment Variables, where there is a Paste .env tab. Add your database connection details and API keys and save. Launch the database itself from the Managed Database section first." } },
+        { "@type": "Question", "name": "Why is my deployed frontend blank or still calling localhost?", "acceptedAnswer": { "@type": "Answer", "text": "Frontend variables prefixed VITE_ or NEXT_PUBLIC_ are baked into the bundle at build time, not read at runtime. If you set them after building, redeploy so the build picks up the new values. A blank page is often the frontend calling a hard-coded localhost API that does not exist for the visitor's browser." } },
+        { "@type": "Question", "name": "Do I need Docker to deploy a Cursor app?", "acceptedAnswer": { "@type": "Answer", "text": "No. A single Cursor app is a Node process, and a managed server runs it directly. Docker and Kubernetes solve orchestration problems that show up at much larger scale. For getting your app in front of users, you can skip them." } },
+        { "@type": "Question", "name": "Do I keep full ownership of the app?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. The code, the data, and the server are yours, with no per-app pricing and no lock-in. Because it is a standard Linux server running standard code, you can move hosts whenever you want." } }
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>

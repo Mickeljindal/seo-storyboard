@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connect Prisma to a Managed Database (Postgres or MySQL)</title>
+<meta name="description" content="Connect Prisma to a managed database in production: set DATABASE_URL, run prisma migrate deploy, handle Prisma connection pooling with connection_limit, and choose Postgres or MySQL.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/connect-prisma-to-a-managed-database/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Connect Prisma to a Managed Database (Postgres or MySQL)">
+<meta property="og:description" content="The production wiring for Prisma: DATABASE_URL in the environment, prisma migrate deploy, prisma generate on build, and the connection pooling reality that trips people up.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Prisma &amp; managed databases</span>
+  <h1>How to Connect Prisma to a Managed Database in Production</h1>
+
+  <figure><img src="images/hero.png" alt="Connect Prisma to a managed PostgreSQL or MySQL database in production"></figure>
+
+  <p class="lead">Prisma makes local development feel effortless. Then you ship, and the questions start. Where does <code>DATABASE_URL</code> live? Which migrate command is safe to run against real data? Why is the database suddenly refusing connections?</p>
+
+  <p>This guide shows how to connect Prisma to a managed database, Postgres or MySQL, for production: the datasource block, the Prisma <code>DATABASE_URL</code>, <code>prisma migrate deploy</code> versus <code>migrate dev</code>, running <code>prisma generate</code> on build, and the Prisma connection pooling reality that trips up almost everyone. Real code you can paste, no hand-waving.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>Point Prisma's datasource <code>url</code> at <code>env("DATABASE_URL")</code>, set <code>DATABASE_URL</code> as an environment variable (never in code) to your managed Postgres or MySQL connection string, then run <code>prisma generate</code> followed by <code>prisma migrate deploy</code> on every deploy. Cap connections with <code>connection_limit</code> in the URL so many app instances don't exhaust the database. Connect, migrate, and survive production.</p>
+  </div>
+
+  <h2>The datasource block: where Prisma finds your database</h2>
+  <p>Prisma's whole connection lives in one place, the <code>datasource</code> block in <code>schema.prisma</code>. You set the <code>provider</code> to match your engine and point <code>url</code> at an environment variable.</p>
+
+<pre><code>// schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"   // or "mysql"
+  url      = env("DATABASE_URL")
+}</code></pre>
+
+  <p>That's it. The <code>provider</code> tells Prisma which SQL dialect to speak. The <code>url</code> reads from the environment at runtime. That indirection is the whole point: the schema gets committed to Git, the secret does not. So a Prisma PostgreSQL connection is really just a connection string handed to Prisma through an env var. Nothing exotic underneath.</p>
+
+  <div class="note"><b>Using Drizzle instead?</b> The wiring idea is the same, just a different config file. See <a href="https://www.kloudbean.com/blog/connect-drizzle-to-postgres/">connect Drizzle to Postgres</a> for that flavor.</div>
+
+  <h2>Set the Prisma DATABASE_URL in the environment, not in code</h2>
+  <p>Your app reads its connection from the environment. Not from a value typed into a file, and definitely not from something committed to the repo. On Kloudbean you open <strong>Runtime Configuration &rarr; Environment Variables</strong> and set it there.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console setting the Prisma DATABASE_URL as an environment variable, not in code">
+    <figcaption>Runtime Configuration &rarr; Environment Variables: the Prisma DATABASE_URL lives here, out of your source and easy to rotate.</figcaption>
+  </figure>
+
+  <p>Here's the shape for each engine. Note the query params after the database name:</p>
+
+<pre><code># PostgreSQL
+DATABASE_URL="postgresql://appuser:s3cret@10.0.0.5:5432/appdb?schema=public&amp;sslmode=require&amp;connection_limit=10"
+
+# MySQL
+DATABASE_URL="mysql://appuser:s3cret@10.0.0.5:3306/appdb?connection_limit=10"</code></pre>
+
+  <p>Read left to right: the user, the password, the host (a private IP on Kloudbean, not a public one), the port (<code>5432</code> for Postgres, <code>3306</code> for MySQL), the database name, then options. <code>connection_limit</code> caps the pool size, and we'll come back to why that number matters more than it looks.</p>
+
+  <p><strong>On SSL:</strong> if the database is ever reachable over a public network, add <code>sslmode=require</code> so Postgres encrypts the connection (MySQL has its own SSL params like <code>sslaccept</code>). On a private network the database isn't exposed to the internet at all, which is the safer default and one less thing to configure. Keep <code>.env</code> out of Git either way. More on that in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>.</p>
+
+  <!-- ADD IMAGE: schema.prisma open in an editor beside the .env file with DATABASE_URL. Swap for a real screenshot: src -> images/schema-and-env.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>schema.prisma next to the .env file, showing url = env("DATABASE_URL") and the matching variable.</em><small>Makes the code-to-env link concrete.</small></span></figure>
+
+  <h2>How Prisma actually connects: one pool per instance</h2>
+  <p>Here's the part that surprises people. Prisma Client doesn't open a single connection. When it starts, it opens a <strong>connection pool</strong>, and it does that once per process. Run three copies of your app and you have three pools, all pointing at the same database.</p>
+
+  <p>The default pool size is <code>(number of physical CPUs &times; 2) + 1</code> per instance. So a 4-core box defaults to nine connections. Two instances, eighteen. A serverless setup with ten warm functions, each holding its own client, can quietly reach for far more. The database has a hard ceiling on total connections, and those pools all draw from it.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 340" role="img" aria-label="Three app instances, each with its own Prisma connection pool, drawing from one managed Postgres connection ceiling" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="28" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Every instance opens its own pool. They all share one ceiling.</text>
+      <!-- instances -->
+      <rect x="28" y="72" width="196" height="56" rx="12" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="126" y="98" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="14" font-weight="600">App instance 1</text>
+      <text x="126" y="116" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="12">Prisma pool &middot; 5 conns</text>
+      <rect x="28" y="142" width="196" height="56" rx="12" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="126" y="168" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="14" font-weight="600">App instance 2</text>
+      <text x="126" y="186" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="12">Prisma pool &middot; 5 conns</text>
+      <rect x="28" y="212" width="196" height="56" rx="12" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="126" y="238" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="14" font-weight="600">App instance 3</text>
+      <text x="126" y="256" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="12">Prisma pool &middot; 5 conns</text>
+      <!-- arrows converging -->
+      <line x1="224" y1="100" x2="516" y2="150" stroke="#4F1AF3" stroke-width="2"/>
+      <path d="M516 150 l-11 -1 4 -8 z" fill="#4F1AF3"/>
+      <line x1="224" y1="170" x2="516" y2="170" stroke="#4F1AF3" stroke-width="2"/>
+      <path d="M516 170 l-10 -4 v8 z" fill="#4F1AF3"/>
+      <line x1="224" y1="240" x2="516" y2="190" stroke="#4F1AF3" stroke-width="2"/>
+      <path d="M516 190 l-4 -10 8 -1 z" fill="#4F1AF3"/>
+      <!-- db cylinder -->
+      <ellipse cx="600" cy="118" rx="72" ry="15" fill="#6b3cff"/>
+      <path d="M528 118 v104 a72 15 0 0 0 144 0 v-104" fill="#4F1AF3"/>
+      <ellipse cx="600" cy="118" rx="72" ry="15" fill="#6b3cff"/>
+      <text x="600" y="168" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="14" font-weight="600">Managed</text>
+      <text x="600" y="188" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="14" font-weight="600">Postgres</text>
+      <text x="600" y="212" text-anchor="middle" fill="#d8ccff" font-family="Poppins,sans-serif" font-size="11">max_connections: 100</text>
+      <rect x="512" y="250" width="176" height="30" rx="8" fill="#eaf7ef" stroke="#40b75f" stroke-width="1.2"/>
+      <text x="600" y="270" text-anchor="middle" fill="#1c7a3f" font-family="Poppins,sans-serif" font-size="12" font-weight="600">15 of 100 used</text>
+      <text x="28" y="312" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="13">instances &times; connection_limit must stay under the database's max_connections</text>
+    </svg>
+    <figcaption>Three instances, each with a five-connection pool, sit at 15 of the database's 100 connections. Add instances without capping the pool and that number climbs fast.</figcaption>
+  </figure>
+
+  <p>Keep that picture in mind. It's the reason <code>connection_limit</code> exists, and the reason the pooling section below matters more than any other part of this guide.</p>
+
+  <h2>prisma migrate dev vs prisma migrate deploy</h2>
+  <p>This is the single most important distinction for a Prisma production database, and getting it wrong is how people lose data. The two commands do genuinely different jobs.</p>
+
+  <p><strong><code>prisma migrate dev</code></strong> is a local development tool. It compares your schema to the migration history, generates a fresh SQL migration file, applies it, and regenerates the client. It spins up a temporary shadow database to check the migration is sound. It can prompt you. And if it detects that the database has drifted from the migration history, it can offer to reset, which drops your data. Useful on your laptop. A disaster in production.</p>
+
+<pre><code># local dev only, never against production
+npx prisma migrate dev --name add_orders_table</code></pre>
+
+  <p><strong><code>prisma migrate deploy</code></strong> is the production and CI command. It applies migration files that already exist, in order, and stops there. No prompts. No shadow database. No schema diffing, no reset, no interactive anything. It's idempotent, so running it on every deploy is safe: already-applied migrations are skipped.</p>
+
+<pre><code># production / CI
+npx prisma migrate deploy</code></pre>
+
+  <figure>
+    <svg viewBox="0 0 760 360" role="img" aria-label="Migration flow: create migrations locally with prisma migrate dev, commit them, apply them in production with prisma migrate deploy" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="28" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Two migrate commands, two very different jobs</text>
+      <!-- left column: local dev -->
+      <text x="40" y="72" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.5">LOCAL DEV</text>
+      <rect x="40" y="82" width="196" height="52" rx="12" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="138" y="113" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="14" font-weight="600">Your machine</text>
+      <line x1="138" y1="134" x2="138" y2="162" stroke="#5b6a86" stroke-width="2"/>
+      <path d="M138 162 l-4 -9 8 0 z" fill="#5b6a86"/>
+      <rect x="40" y="164" width="196" height="44" rx="22" fill="#4F1AF3"/>
+      <text x="138" y="191" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13.5" font-weight="600">prisma migrate dev</text>
+      <g fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12.5">
+        <text x="44" y="236">creates a new SQL migration</text>
+        <text x="44" y="257">applies it, regenerates client</text>
+        <text x="44" y="278">uses a shadow database</text>
+        <text x="44" y="299" fill="#b23b3b">dev only &middot; can reset data</text>
+      </g>
+      <!-- center: migrations folder -->
+      <rect x="300" y="150" width="160" height="82" rx="12" fill="#40b75f"/>
+      <text x="380" y="184" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="14.5" font-weight="600">migrations/</text>
+      <text x="380" y="206" text-anchor="middle" fill="#eafaef" font-family="Poppins,sans-serif" font-size="11.5">committed to Git</text>
+      <line x1="236" y1="186" x2="298" y2="186" stroke="#40b75f" stroke-width="2"/>
+      <path d="M298 186 l-10 -4 v8 z" fill="#40b75f"/>
+      <text x="248" y="178" fill="#1c7a3f" font-family="Poppins,sans-serif" font-size="11">write</text>
+      <line x1="462" y1="186" x2="524" y2="186" stroke="#40b75f" stroke-width="2"/>
+      <path d="M524 186 l-10 -4 v8 z" fill="#40b75f"/>
+      <text x="486" y="178" fill="#1c7a3f" font-family="Poppins,sans-serif" font-size="11">read</text>
+      <!-- right column: production -->
+      <text x="524" y="72" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.5">PRODUCTION / CI</text>
+      <rect x="524" y="82" width="200" height="52" rx="12" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="624" y="113" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="14" font-weight="600">Deploy / CI job</text>
+      <line x1="624" y1="134" x2="624" y2="162" stroke="#5b6a86" stroke-width="2"/>
+      <path d="M624 162 l-4 -9 8 0 z" fill="#5b6a86"/>
+      <rect x="514" y="164" width="210" height="44" rx="22" fill="#000f27"/>
+      <text x="619" y="191" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13.5" font-weight="600">prisma migrate deploy</text>
+      <g fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12.5">
+        <text x="524" y="236">applies pending migrations</text>
+        <text x="524" y="257">no prompts, no shadow DB</text>
+        <text x="524" y="278">won't reset your data</text>
+        <text x="524" y="299" fill="#1c7a3f">safe on every deploy</text>
+      </g>
+    </svg>
+    <figcaption>Create migrations locally with <code>migrate dev</code>, commit the <code>migrations/</code> folder, and apply them in production with <code>migrate deploy</code>.</figcaption>
+  </figure>
+
+  <p>The workflow follows from that: create migrations locally, commit the <code>migrations/</code> folder to Git, and let production apply them with <code>migrate deploy</code>. One more warning while we're here. <code>prisma db push</code> is a prototyping shortcut that syncs your schema without creating migration files. Handy for a quick spike, wrong for production, because you lose the migration history that makes changes reviewable and repeatable.</p>
+
+  <h2>Run prisma generate on every build</h2>
+  <p>Prisma Client is generated code. It gets written into <code>node_modules</code> from your schema, and it usually isn't committed to Git. So if your build doesn't generate it, the app starts and immediately throws:</p>
+
+<pre><code>@prisma/client did not initialize yet. Please run "prisma generate"</code></pre>
+
+  <p>A <code>postinstall</code> script covers local installs, and Prisma adds one for you in many setups. But don't rely on that in CI. Make it explicit in your build step so a clean environment always regenerates the client. Regenerate after every schema change too, otherwise your types drift from your tables and TypeScript starts lying to you.</p>
+
+<pre><code>// package.json
+{
+  "scripts": {
+    "postinstall": "prisma generate",
+    "build": "prisma generate &amp;&amp; next build"
+  }
+}</code></pre>
+
+  <h2>A real deploy workflow</h2>
+  <p>Put the steps in the right order and this stops being fiddly. Install, generate the client, apply migrations, build, start:</p>
+
+<pre><code># runs on every deploy
+npm ci
+npx prisma generate
+npx prisma migrate deploy
+npm run build        # if your app has a build step
+npm run start</code></pre>
+
+  <p>On Kloudbean's managed CI/CD you connect the Git repo and drop <code>prisma generate</code> and <code>prisma migrate deploy</code> into the build or deploy step. A schema change then ships with the code that needs it, and the live build logs show each command running. The full setup is in <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD auto-deploy from GitHub</a>.</p>
+
+  <!-- ADD IMAGE: build logs showing prisma generate then prisma migrate deploy running on deploy. Swap for a real screenshot: src -> images/deploy-logs.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Deploy build logs with prisma generate and prisma migrate deploy running in sequence.</em><small>Shows migrations applying automatically on deploy.</small></span></figure>
+
+  <h2>Prisma connection pooling: the number one production issue</h2>
+  <p>Here's an opinion, and I'll stand behind it: the thing that takes Prisma apps down in production usually isn't Prisma. It's the connection count. The ORM is fine. The database ran out of room to accept new connections, and every query started timing out at once.</p>
+
+  <p>You saw the math in the diagram. Each instance opens a pool of <code>(CPUs &times; 2) + 1</code> by default, and they all draw from the database's <code>max_connections</code>. Cross that ceiling and Postgres says:</p>
+
+<pre><code>FATAL: sorry, too many clients already</code></pre>
+
+  <p>Or Prisma itself gives up waiting for a free connection from its own pool:</p>
+
+<pre><code>Timed out fetching a new connection from the connection pool.
+(Current connection pool timeout: 10, connection limit: 5)</code></pre>
+
+  <p>Three real ways to keep this from happening, roughly in the order most people should try them:</p>
+  <ul>
+    <li><strong>Cap the pool deliberately.</strong> Set <code>connection_limit</code> in <code>DATABASE_URL</code> to a number you chose, then multiply by your instance count and confirm it stays under the database's <code>max_connections</code>. Five connections across four instances is twenty. Predictable beats default.</li>
+    <li><strong>Keep instances long-lived.</strong> A persistent Node server reuses one pool for its whole life, which is gentle on the database. Serverless is the hard case: many short-lived functions each open their own pool, and the count spikes with traffic. If you're serverless, cap hard and consider a pooler.</li>
+    <li><strong>Put a pooler in front.</strong> Run <a href="https://www.kloudbean.com/blog/database-connection-pooling/">PgBouncer</a> in transaction mode on your server, point <code>DATABASE_URL</code> at it with <code>pgbouncer=true</code>, and give Prisma a <code>directUrl</code> to the real port so migrations bypass the pooler.</li>
+  </ul>
+
+<pre><code>// schema.prisma, when a pooler sits in front
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")   // pooler port, ?pgbouncer=true
+  directUrl = env("DIRECT_URL")     // direct 5432, for migrations
+}</code></pre>
+
+<pre><code># env
+DATABASE_URL="postgresql://appuser:s3cret@10.0.0.5:6432/appdb?pgbouncer=true"
+DIRECT_URL="postgresql://appuser:s3cret@10.0.0.5:5432/appdb"</code></pre>
+
+  <p>One honest note on what's yours versus what's the platform's. A managed database on Kloudbean gives you a real Postgres or MySQL with a connection ceiling, backups, and a private address. The pooling strategy is yours to set: you choose <code>connection_limit</code>, or you run PgBouncer on your own server when you need it. There's no separate pooler product to buy, and no magic that hides the connection math from you. Understanding it is the job. The deeper mechanics live in <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>, and the engine-side view is in <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a>.</p>
+
+  <!-- ADD IMAGE: a server metrics view showing active database connections over time. Swap for a real screenshot: src -> images/db-connections.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A metrics graph of active database connections climbing under load.</em><small>Illustrates why connection_limit matters.</small></span></figure>
+
+  <h2>Does Prisma care whether it's PostgreSQL or MySQL?</h2>
+  <p>Mostly no. The client API you write against is identical, so your queries don't change. The <code>provider</code> value changes, and a handful of native behaviors differ underneath.</p>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>PostgreSQL</th><th>MySQL</th></tr></thead>
+    <tbody>
+      <tr><td><strong>provider</strong></td><td><code>postgresql</code></td><td><code>mysql</code></td></tr>
+      <tr><td><strong>Default port</strong></td><td>5432</td><td>3306</td></tr>
+      <tr><td><strong>Enums</strong></td><td>Native enum type</td><td>Emulated</td></tr>
+      <tr><td><strong>Rich types</strong></td><td>Arrays, JSONB, native</td><td>JSON, fewer native types</td></tr>
+      <tr><td><strong>Migrations</strong></td><td colspan="2">Same commands: <code>migrate dev</code> locally, <code>migrate deploy</code> in prod</td></tr>
+    </tbody>
+  </table>
+
+  <p>Both are fully managed engines on Kloudbean, so the choice is about your app, not about what's supported. For a new project I'd lean Postgres, mostly for JSONB and the extension ecosystem. If your stack already expects MySQL, stay there. The engine guides are <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a> and <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">managed MySQL hosting</a>.</p>
+
+  <h2>Where Prisma-in-prod usually breaks</h2>
+  <p>Almost every Prisma production incident I've seen traces back to config, not code. The usual suspects:</p>
+  <ul>
+    <li><strong>Running <code>migrate dev</code> against production.</strong> It can detect drift and offer a reset, and someone tired says yes. Use <code>migrate deploy</code> in prod, always.</li>
+    <li><strong>Forgetting <code>prisma generate</code> in the build.</strong> The app boots straight into "did not initialize yet". Add it to the build step, not just <code>postinstall</code>.</li>
+    <li><strong>No <code>connection_limit</code> with several instances.</strong> Pools stack up, the ceiling arrives, and every query times out together.</li>
+    <li><strong>Committing <code>.env</code>.</strong> The real <code>DATABASE_URL</code> ends up in Git history, where it lives forever. Keep it in the environment.</li>
+    <li><strong>Using <code>db push</code> instead of migrations.</strong> Quick today, no history tomorrow, and nothing to review or roll back.</li>
+    <li><strong>Migrating through a transaction pooler without <code>directUrl</code>.</strong> Migrations need a direct connection. Route them past PgBouncer or they misbehave.</li>
+  </ul>
+
+  <h2>How to connect Prisma to a managed database on Kloudbean</h2>
+  <p>Prisma wants a specific thing from production: a real, always-on Postgres or MySQL with a stable connection string, automatic backups, and an address that isn't sitting open on the internet. That description is a managed database, more or less exactly.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="Launching a managed PostgreSQL or MySQL database in the Kloudbean console for a Prisma app">
+    <figcaption>DBS &rarr; Launch Database. Pick Postgres or MySQL, and it arrives provisioned, patched, and backed up.</figcaption>
+  </figure>
+
+  <p>The flow is short. Launch the database, copy the connection details into <code>DATABASE_URL</code>, and deploy your Node app on the same server so the app and the database share a private network. No public exposure, low latency, one dashboard for both. The broader walkthrough, including framework examples beyond Prisma, is the pillar guide: <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">add a managed database to your app</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Give Prisma a production database it can trust.</p>
+    <p style="margin:0 0 .6em">Launch managed PostgreSQL or MySQL, set one <code>DATABASE_URL</code>, and deploy your Node app beside it on a private network with automatic backups. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">One-click databases &middot; Automatic backups &middot; Private networking &middot; Free migration &middot; Free trial &middot; Simple Git deploy</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I connect Prisma to a managed database in production?</h3>
+    <p>Set the datasource provider to postgresql or mysql, point its url at env of DATABASE_URL, and store the real connection string as an environment variable on the server rather than in code. Then run prisma generate and prisma migrate deploy on every deploy. The database should be on a private network, so Prisma reaches it internally with no public exposure.</p>
+    <h3>What is the difference between prisma migrate dev and prisma migrate deploy?</h3>
+    <p>prisma migrate dev is for local development. It generates new migration files, applies them, uses a shadow database, and can reset data if it detects drift. prisma migrate deploy is for production and CI. It only applies migration files that already exist, with no prompts and no reset, and it is safe to run on every deploy. Never run migrate dev against production.</p>
+    <h3>Do I need to run prisma generate on deploy?</h3>
+    <p>Yes. Prisma Client is generated code that lives in node_modules and is usually not committed. If the build does not run prisma generate, the app throws an error saying the client did not initialize yet. Add prisma generate to your build step, and regenerate after any schema change so your types match your tables.</p>
+    <h3>How do I set the Prisma DATABASE_URL?</h3>
+    <p>Put it in the environment, not in your source. On Kloudbean you set DATABASE_URL under Runtime Configuration and Environment Variables. The value is your managed database connection string, for example a postgresql or mysql URL with the host, port, database name, and options like connection_limit. Keeping it in the environment means credentials stay out of Git and are easy to rotate.</p>
+    <h3>Why does Prisma open so many database connections?</h3>
+    <p>Prisma Client opens a connection pool when it starts, once per process. The default pool size is the number of physical CPUs times two, plus one, for each instance. Run several instances, or a serverless setup with many warm functions, and those pools add up against the database connection ceiling. This is why capping connection_limit matters.</p>
+    <h3>How do I fix too many clients or a Prisma pool timeout?</h3>
+    <p>Both errors mean the connection count is too high. Set connection_limit in DATABASE_URL to a deliberate number and multiply it by your instance count to confirm it stays under the database max_connections. Keep app instances long-lived so they reuse one pool. For serverless or high concurrency, run a pooler like PgBouncer in front and route migrations around it with directUrl.</p>
+    <h3>Do I need PgBouncer with Prisma?</h3>
+    <p>Not always. A single long-lived Node server with a sensible connection_limit often does not need one. You want a pooler when you run many instances or a serverless platform that opens fresh connections per request. If you use PgBouncer in transaction mode, add pgbouncer=true to the pooled URL and set directUrl to the direct port so migrations use a direct connection.</p>
+    <h3>Does Prisma work with both PostgreSQL and MySQL?</h3>
+    <p>Yes. You change the provider to postgresql or mysql and the connection string, and the client API you write stays the same. A few native behaviors differ, such as how enums and some rich types are handled, but your queries and migrate commands do not change. Both are available as managed engines on Kloudbean.</p>
+    <h3>Should I use migrate deploy or db push in production?</h3>
+    <p>Use migrate deploy. It applies committed migration files in order and keeps a history you can review and roll back. prisma db push syncs the schema without creating migration files, which is fine for quick prototyping but leaves you with no migration history, so it is the wrong choice for production.</p>
+    <h3>How do I connect Prisma to the database over SSL?</h3>
+    <p>For Postgres, add sslmode=require to the connection string so the connection is encrypted. MySQL uses its own SSL parameters such as sslaccept. On Kloudbean the database sits on a private network and is not exposed to the public internet, so the app connects internally, which removes most of the need to expose it over SSL in the first place.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Engineering &middot; Prisma in production, minus the connection storms.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Connect Prisma to a Managed Database in Production","description":"Connect Prisma to a managed database in production: set DATABASE_URL, run prisma migrate deploy, handle Prisma connection pooling with connection_limit, and choose Postgres or MySQL.","image":"https://www.kloudbean.com/blog/connect-prisma-to-a-managed-database/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/connect-prisma-to-a-managed-database/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I connect Prisma to a managed database in production?","acceptedAnswer":{"@type":"Answer","text":"Set the datasource provider to postgresql or mysql, point its url at env of DATABASE_URL, and store the real connection string as an environment variable on the server rather than in code. Then run prisma generate and prisma migrate deploy on every deploy. The database should be on a private network, so Prisma reaches it internally with no public exposure."}},
+{"@type":"Question","name":"What is the difference between prisma migrate dev and prisma migrate deploy?","acceptedAnswer":{"@type":"Answer","text":"prisma migrate dev is for local development. It generates new migration files, applies them, uses a shadow database, and can reset data if it detects drift. prisma migrate deploy is for production and CI. It only applies migration files that already exist, with no prompts and no reset, and it is safe to run on every deploy. Never run migrate dev against production."}},
+{"@type":"Question","name":"Do I need to run prisma generate on deploy?","acceptedAnswer":{"@type":"Answer","text":"Yes. Prisma Client is generated code that lives in node_modules and is usually not committed. If the build does not run prisma generate, the app throws an error saying the client did not initialize yet. Add prisma generate to your build step, and regenerate after any schema change so your types match your tables."}},
+{"@type":"Question","name":"How do I set the Prisma DATABASE_URL?","acceptedAnswer":{"@type":"Answer","text":"Put it in the environment, not in your source. On Kloudbean you set DATABASE_URL under Runtime Configuration and Environment Variables. The value is your managed database connection string, for example a postgresql or mysql URL with the host, port, database name, and options like connection_limit. Keeping it in the environment means credentials stay out of Git and are easy to rotate."}},
+{"@type":"Question","name":"Why does Prisma open so many database connections?","acceptedAnswer":{"@type":"Answer","text":"Prisma Client opens a connection pool when it starts, once per process. The default pool size is the number of physical CPUs times two, plus one, for each instance. Run several instances, or a serverless setup with many warm functions, and those pools add up against the database connection ceiling. This is why capping connection_limit matters."}},
+{"@type":"Question","name":"How do I fix too many clients or a Prisma pool timeout?","acceptedAnswer":{"@type":"Answer","text":"Both errors mean the connection count is too high. Set connection_limit in DATABASE_URL to a deliberate number and multiply it by your instance count to confirm it stays under the database max_connections. Keep app instances long-lived so they reuse one pool. For serverless or high concurrency, run a pooler like PgBouncer in front and route migrations around it with directUrl."}},
+{"@type":"Question","name":"Do I need PgBouncer with Prisma?","acceptedAnswer":{"@type":"Answer","text":"Not always. A single long-lived Node server with a sensible connection_limit often does not need one. You want a pooler when you run many instances or a serverless platform that opens fresh connections per request. If you use PgBouncer in transaction mode, add pgbouncer=true to the pooled URL and set directUrl to the direct port so migrations use a direct connection."}},
+{"@type":"Question","name":"Does Prisma work with both PostgreSQL and MySQL?","acceptedAnswer":{"@type":"Answer","text":"Yes. You change the provider to postgresql or mysql and the connection string, and the client API you write stays the same. A few native behaviors differ, such as how enums and some rich types are handled, but your queries and migrate commands do not change. Both are available as managed engines on Kloudbean."}},
+{"@type":"Question","name":"Should I use migrate deploy or db push in production?","acceptedAnswer":{"@type":"Answer","text":"Use migrate deploy. It applies committed migration files in order and keeps a history you can review and roll back. prisma db push syncs the schema without creating migration files, which is fine for quick prototyping but leaves you with no migration history, so it is the wrong choice for production."}},
+{"@type":"Question","name":"How do I connect Prisma to the database over SSL?","acceptedAnswer":{"@type":"Answer","text":"For Postgres, add sslmode=require to the connection string so the connection is encrypted. MySQL uses its own SSL parameters such as sslaccept. On Kloudbean the database sits on a private network and is not exposed to the public internet, so the app connects internally, which removes most of the need to expose it over SSL in the first place."}}
+]}
+]}
+</script>
+</body>
+</html>

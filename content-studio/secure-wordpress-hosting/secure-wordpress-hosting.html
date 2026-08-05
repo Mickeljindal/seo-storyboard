@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Secure WordPress Hosting: Close the Doors Attackers Actually Use</title>
+<meta name="description" content="Most WordPress hacks are boring: outdated plugins, weak passwords, login brute-force, open XML-RPC. Secure WordPress hosting means closing those doors and splitting the work between you and your host. Here is the field guide.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/secure-wordpress-hosting/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Secure WordPress Hosting: Close the Doors Attackers Actually Use">
+<meta property="og:description" content="A practical WordPress security field guide: how sites really get hacked, and the layered defense split between what you own and what your host handles.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">WordPress &amp; frontend</span>
+  <h1>Secure WordPress Hosting: Close the Doors Attackers Actually Use</h1>
+
+  <figure><img src="images/hero.png" alt="Secure WordPress hosting: a layered defense split between the app layer you own and the server layer your host handles"></figure>
+
+  <p class="lead">Most WordPress sites don't get hacked by geniuses. They get hacked by scripts. A bot finds a plugin three versions out of date, or guesses a password that leaked in some unrelated breach, and that's the whole story.</p>
+  <p>Secure WordPress hosting is mostly about closing the handful of doors those scripts actually try, then keeping a tested backup for the day one slips through. This is a field guide to those doors: which you own, which your host should, and how to tell whether yours does.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>The common WordPress hacks are dull: outdated plugins or themes, weak or reused admin passwords, login brute-force, and open XML-RPC. Split the defense in two. Your host owns the server layer (firewall, patching, SSL, isolation, backups). You own the app layer (updates, strong logins, least privilege, a locked-down wp-admin). Neither half secures a site on its own.</p>
+  </div>
+
+  <h2>How WordPress sites actually get hacked</h2>
+  <p>Before you buy a single security product, look at what the attacks are. They're depressingly repetitive, and that repetition is good news, because a short list of fixes covers most of it.</p>
+  <ul>
+    <li><strong>Outdated plugins, themes, and core.</strong> This is number one, and it isn't close. A plugin ships a security fix, the changelog quietly names the hole, and bots start scanning for sites still running the old version. Automated tools probe thousands of sites an hour looking for exactly that gap. The scariest breach we help clean up is almost never a clever zero-day. It's a plugin that was months behind.</li>
+    <li><strong>Weak or reused admin passwords.</strong> If your admin password also protects an old forum account that leaked, it's effectively public. Attackers feed those leaked lists straight at your login. This is called credential stuffing, and it's cheap to run at scale.</li>
+    <li><strong>Login brute-force.</strong> Bots hammer <code>/wp-login.php</code> with guesses, thousands per hour, hoping for a weak one. No skill involved. Just volume.</li>
+    <li><strong>XML-RPC abuse.</strong> The old <code>xmlrpc.php</code> endpoint lets a single request try many passwords at once (the <code>system.multicall</code> trick), which turns slow brute-force into fast brute-force. It can also be abused to bounce junk traffic at other sites. If you don't use it, it's pure liability.</li>
+    <li><strong>Nulled or abandoned plugins.</strong> A pirated "pro" plugin often ships with a backdoor baked in. An abandoned one stops getting fixes while the holes keep getting found. Both are slow-motion breaches.</li>
+  </ul>
+  <p>Notice what's missing from that list: exotic anything. Nearly every one is neglect, not wizardry, which is why the fixes are cheap.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 452" width="100%" role="img" aria-label="Diagram: attacks on the left pass through a platform defense layer and an app defense layer before reaching WordPress core, with off-site backups as the safety net">
+      <defs>
+        <marker id="arrowS" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5b6a86"></path></marker>
+      </defs>
+      <rect x="0" y="0" width="760" height="452" fill="#ffffff"></rect>
+
+      <text x="72" y="34" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="700" fill="#5b6a86" letter-spacing="1.5">ATTACKS</text>
+      <g font-family="Poppins,sans-serif" font-size="12.5" fill="#000f27">
+        <rect x="12" y="52" width="128" height="42" rx="9" fill="#f0f2f8" stroke="#c9d0e3"></rect><text x="76" y="78" text-anchor="middle">Login brute-force</text>
+        <rect x="12" y="126" width="128" height="42" rx="9" fill="#f0f2f8" stroke="#c9d0e3"></rect><text x="76" y="152" text-anchor="middle">Outdated plugin</text>
+        <rect x="12" y="200" width="128" height="42" rx="9" fill="#f0f2f8" stroke="#c9d0e3"></rect><text x="76" y="226" text-anchor="middle">XML-RPC abuse</text>
+        <rect x="12" y="274" width="128" height="42" rx="9" fill="#f0f2f8" stroke="#c9d0e3"></rect><text x="76" y="300" text-anchor="middle">Reused password</text>
+      </g>
+      <line x1="144" y1="184" x2="184" y2="184" stroke="#5b6a86" stroke-width="2" marker-end="url(#arrowS)"></line>
+
+      <rect x="190" y="46" width="176" height="290" rx="14" fill="#f3f0ff" stroke="#4F1AF3" stroke-width="1.5"></rect>
+      <text x="278" y="72" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13.5" font-weight="700" fill="#4F1AF3">Platform's job</text>
+      <g font-family="Poppins,sans-serif" font-size="12" fill="#1c2536">
+        <rect x="204" y="86" width="148" height="42" rx="8" fill="#ffffff" stroke="#d8cffb"></rect><text x="278" y="104" text-anchor="middle">Edge / Cloudflare</text><text x="278" y="120" text-anchor="middle" fill="#5b6a86">(optional, DDoS)</text>
+        <rect x="204" y="136" width="148" height="42" rx="8" fill="#ffffff" stroke="#d8cffb"></rect><text x="278" y="154" text-anchor="middle">Shorewall + Fail2ban</text><text x="278" y="170" text-anchor="middle" fill="#5b6a86">(auto)</text>
+        <rect x="204" y="186" width="148" height="40" rx="8" fill="#ffffff" stroke="#d8cffb"></rect><text x="278" y="211" text-anchor="middle">HTTPS + patching</text>
+        <rect x="204" y="234" width="148" height="42" rx="8" fill="#ffffff" stroke="#d8cffb"></rect><text x="278" y="252" text-anchor="middle">Isolation + private</text><text x="278" y="268" text-anchor="middle" fill="#5b6a86">network (VPC)</text>
+        <rect x="204" y="284" width="148" height="40" rx="8" fill="#ffffff" stroke="#d8cffb"></rect><text x="278" y="309" text-anchor="middle">Off-site backups</text>
+      </g>
+      <line x1="366" y1="184" x2="398" y2="184" stroke="#5b6a86" stroke-width="2" marker-end="url(#arrowS)"></line>
+
+      <rect x="404" y="46" width="176" height="290" rx="14" fill="#eefaf1" stroke="#40b75f" stroke-width="1.5"></rect>
+      <text x="492" y="72" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13.5" font-weight="700" fill="#2f8f49">Your job</text>
+      <g font-family="Poppins,sans-serif" font-size="12" fill="#1c2536">
+        <rect x="418" y="86" width="148" height="52" rx="8" fill="#ffffff" stroke="#bfe6cb"></rect><text x="492" y="108" text-anchor="middle">Update core /</text><text x="492" y="124" text-anchor="middle">plugins / themes</text>
+        <rect x="418" y="146" width="148" height="52" rx="8" fill="#ffffff" stroke="#bfe6cb"></rect><text x="492" y="168" text-anchor="middle">Strong admin</text><text x="492" y="184" text-anchor="middle">+ 2FA + roles</text>
+        <rect x="418" y="206" width="148" height="52" rx="8" fill="#ffffff" stroke="#bfe6cb"></rect><text x="492" y="228" text-anchor="middle">Lock wp-admin</text><text x="492" y="244" text-anchor="middle">(IP + Basic Auth)</text>
+        <rect x="418" y="266" width="148" height="52" rx="8" fill="#ffffff" stroke="#bfe6cb"></rect><text x="492" y="288" text-anchor="middle">Remove unused,</text><text x="492" y="304" text-anchor="middle">disable XML-RPC</text>
+      </g>
+      <line x1="580" y1="184" x2="612" y2="184" stroke="#5b6a86" stroke-width="2" marker-end="url(#arrowS)"></line>
+
+      <rect x="618" y="128" width="128" height="112" rx="12" fill="#000f27"></rect>
+      <text x="682" y="176" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="700" fill="#ffffff">WordPress</text>
+      <text x="682" y="196" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="700" fill="#ffffff">core</text>
+      <text x="682" y="216" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11.5" fill="#c9b8ff">+ your data</text>
+
+      <rect x="190" y="360" width="556" height="52" rx="12" fill="#f6f7fb" stroke="#4F1AF3" stroke-dasharray="5 4"></rect>
+      <text x="468" y="383" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">Off-site automatic backups</text>
+      <text x="468" y="401" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11.5" fill="#5b6a86">the layer that saves you when one above fails</text>
+      <line x1="682" y1="360" x2="682" y2="242" stroke="#40b75f" stroke-width="2" marker-end="url(#arrowS)"></line>
+    </svg>
+    <figcaption>Two layers stand between an attack and your data. The purple layer is your host's job; the green layer is yours. Backups are the net for when something gets through.</figcaption>
+  </figure>
+
+  <h2>Secure WordPress hosting is a shared responsibility</h2>
+  <p>Here's where "secure WordPress" and "secure WordPress hosting" pull apart, and it trips up almost everyone. Securing WordPress is the app work: updates, logins, roles, config. Secure hosting is the server work underneath: patching, firewall, SSL, isolation, backups. A brilliantly tended WordPress site on an unpatched server is still exposed. A hardened server running a plugin from 2021 is still exposed. You need both halves, and they belong to different owners.</p>
+  <p>So ask any host bluntly: which half are you doing, and can you show it? A confident answer names where their job stops and yours starts. A vague one is a red flag.</p>
+
+  <h2>What a good host handles: the server layer</h2>
+  <p>This is the half people forget while installing security plugins. On managed hosting it mostly happens without you thinking about it.</p>
+  <ul>
+    <li><strong>OS and stack patching.</strong> The server's operating system and web stack get security fixes constantly. Miss them and you're running a known hole no plugin can patch over. On managed hosting this is handled for you.</li>
+    <li><strong>A firewall and brute-force banning.</strong> Every Kloudbean server ships with a <strong>Shorewall</strong> firewall and <strong>Fail2ban</strong> configured automatically. Fail2ban watches for repeated failed logins and connection abuse, then bans the offending IP for a while. That quietly kills a lot of brute-force before it ever reaches WordPress.</li>
+    <li><strong>Enforced, free SSL.</strong> Auto-renewing certificates so traffic is encrypted and you're not shipping login credentials in plain text. If you want the mechanics, see <a href="https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/">custom domains and SSL</a>.</li>
+    <li><strong>Isolation and a private network.</strong> One site's problem shouldn't reach another, and your database shouldn't sit on the public internet where scanners find it. A <a href="https://www.kloudbean.com/blog/fix-error-establishing-database-connection-wordpress/">database exposed to the open web</a> is an invitation. Keep it on a private network.</li>
+    <li><strong>Off-site automatic backups.</strong> A backup on the same box that just got ransomed is not a backup. Off-site, automatic, restorable. The full story is in the <a href="https://www.kloudbean.com/blog/server-backups-guide/">backups guide</a>.</li>
+    <li><strong>An optional edge layer.</strong> Cloudflare (including its Enterprise edge caching) is a paid add-on, included for Enterprise accounts. At the edge it soaks up floods and filters junk before it reaches your origin. See <a href="https://www.kloudbean.com/blog/ddos-protection-explained/">DDoS protection</a> and <a href="https://www.kloudbean.com/blog/what-a-waf-does/">what a WAF does</a>.</li>
+  </ul>
+  <p>Let me be straight, because the industry oversells this. A firewall plus Fail2ban plus an edge network is a strong baseline, not a magic shield. It's layers doing their jobs, with the app layer you own sitting on top.</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="The Kloudbean console: provisioning a server that ships with a Shorewall firewall and Fail2ban configured automatically">
+    <figcaption>Every server comes hardened on provision: Shorewall, Fail2ban, and free SSL, before you install a thing.</figcaption>
+  </figure>
+
+  <h2>What only you can do: the app layer</h2>
+  <p>No host can do these for you, because they live inside your WordPress. None are hard. Skipping them is what fills the "how they got in" section of an incident report.</p>
+  <ul>
+    <li><strong>Update everything, promptly.</strong> Core, plugins, themes. Test on <strong>staging</strong> first, then push. Kloudbean gives you one-click staging for WordPress, and the rule that saves weekends is simple: if it's touching the live site, it goes through staging first.</li>
+    <li><strong>Delete what you don't use.</strong> An inactive plugin is still code on disk, and still attackable. Fewer plugins, smaller attack surface. Cut what you're not running.</li>
+    <li><strong>Strong, unique admin password plus 2FA.</strong> This one step defeats the overwhelming majority of automated login attacks, because a guessed or stolen password alone stops being enough. Never use <code>admin</code> as the username. Turning on two-factor is the highest-value five minutes on this whole page.</li>
+    <li><strong>Least privilege for every account.</strong> An editor should be an editor, not an administrator. Fewer admins means fewer keys to the kingdom. On the hosting side, <strong>subusers with User Access Control</strong> scope who can touch the server and deploys, so a freelancer gets exactly the access their job needs and nothing more.</li>
+    <li><strong>Lock down your config and secrets.</strong> Set unique authentication keys and salts in <code>wp-config.php</code> (never the defaults), and keep credentials in environment configuration rather than committed to a repo.</li>
+  </ul>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console: storing WordPress keys, salts, and database credentials as environment variables instead of hard-coding them">
+    <figcaption>Keys, salts, and credentials belong in environment configuration, not pasted into files you might commit.</figcaption>
+  </figure>
+
+  <p>Two one-line hardening moves worth pasting into <code>wp-config.php</code>:</p>
+  <pre><code>// Block editing plugin and theme code from the dashboard
+define( 'DISALLOW_FILE_EDIT', true );
+
+// Go further: block dashboard-driven plugin/theme installs and updates
+define( 'DISALLOW_FILE_MODS', true );</code></pre>
+  <p>Why the first one matters: by default an admin can edit live theme and plugin code from the dashboard, so a single compromised account can inject code instantly. Turning it off removes a favourite foothold.</p>
+
+  <h2>Lock down the login, because it's the front door</h2>
+  <p>The login page is where most of the noise lands, so give it extra walls. A few options, roughly in order of impact:</p>
+  <ul>
+    <li><strong>IP Access Control.</strong> Allow or deny by address or CIDR range. Fence <code>/wp-admin</code> and <code>/wp-login.php</code> to your office and VPN, and the bots simply can't reach the form. This is the single cleanest lockdown if your team logs in from known networks.</li>
+    <li><strong>A Basic Auth gate.</strong> Put a server-level password prompt in front of the app (or a staging site) so nothing unauthenticated even loads WordPress. Great for previews and internal environments you don't want crawled.</li>
+    <li><strong>Rate-limit or move the login.</strong> Limiting attempts slows guessing; Fail2ban already bans repeat offenders at the server. Moving the login URL is minor obscurity, not real security, but it does cut the log noise.</li>
+    <li><strong>HttpOnly cookie sessions.</strong> On the platform side, session cookies are HttpOnly, which hardens against common XSS and CSRF session-theft tricks. Pair that with sensible <a href="https://www.kloudbean.com/blog/security-headers-guide/">security headers</a> on your site.</li>
+  </ul>
+
+  <!-- Author: replace this slot with a real screenshot. src -> images/ip-access-control-wp-admin.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The IP Access Control screen locking wp-admin and wp-login to your office CIDR range.</em><small>Shows allow/deny rules restricting the login to known networks.</small></span></figure>
+
+  <h2>Threat to fix, at a glance</h2>
+  <p>The whole thing on one screen. The middle column matters most.</p>
+  <table class="cmp">
+    <thead><tr><th>Threat</th><th>What actually stops it</th><th>Whose job</th></tr></thead>
+    <tbody>
+      <tr><td>Login brute-force</td><td>Fail2ban bans, limit attempts, 2FA, IP allow-list</td><td>Shared</td></tr>
+      <tr><td>Outdated plugin or theme</td><td>Prompt updates, remove unused, test on staging</td><td>You</td></tr>
+      <tr><td>Open XML-RPC</td><td>Disable it if unused; edge and Fail2ban dampen abuse</td><td>You + platform</td></tr>
+      <tr><td>Stolen or reused password</td><td>Unique password, 2FA, least-privilege roles</td><td>You</td></tr>
+      <tr><td>Server or OS exploit</td><td>Automatic patching, firewall, site isolation</td><td>Platform</td></tr>
+      <tr><td>Traffic flood (DDoS)</td><td>Edge network plus tier-1 cloud infrastructure</td><td>Platform</td></tr>
+      <tr><td>Exposed database</td><td>Private network (VPC), database off the public internet</td><td>Platform</td></tr>
+      <tr><td>Defacement or ransom</td><td>A tested off-site backup and a fast restore</td><td>Shared</td></tr>
+    </tbody>
+  </table>
+
+  <h2>If you're already hacked: the recovery order</h2>
+  <p>Landed here because a site is <em>already</em> compromised? Do these in order, and don't delete files in a panic.</p>
+  <ol>
+    <li><strong>Take it offline or into maintenance.</strong> Stop it harming visitors and spreading before you do anything else.</li>
+    <li><strong>Rotate every password.</strong> Admin users, the database, hosting, SFTP. You don't yet know which one was the way in, so assume all of them.</li>
+    <li><strong>Restore from a clean backup</strong> taken before the compromise. Almost always faster and safer than hand-cleaning an infected install, and exactly why off-site backups matter.</li>
+    <li><strong>Update everything and remove anything you can't account for.</strong> Any plugin or theme you don't recognise is a suspect. That's usually the entry point.</li>
+    <li><strong>Bring it back, then harden</strong> using the app-layer list above so it doesn't happen twice.</li>
+  </ol>
+  <p>A calm, ordered recovery beats frantic clicking. And if step three failed because your only backup lived on the same box, that's the lesson for next time.</p>
+
+  <!-- Author: replace this slot with a real screenshot. src -> images/restore-from-backup.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The one-click restore screen, picking a clean restore point.</em></span></figure>
+
+  <h2>The opinion I'll defend</h2>
+  <p>A backup you've actually test-restored, plus plugins that are current, beats any "magic" security plugin. Security plugins help with parts of the app layer: 2FA, login limits, malware scanning. But a plugin can't patch the OS, isolate you from a noisy neighbour, or be your only backup. The sites that get hurt almost always installed a security plugin and called it done, while the server sat unpatched. Do the boring list. It works.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">You mind the site. We keep the stack hardened.</p>
+    <p style="margin:0">Run WordPress on hosting that owns the server layer for you at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.7em 0 0; font-size:15px; color:#c9b8ff">Auto firewall + Fail2ban · Free SSL · Off-site backups · Private networking · Staging · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is secure WordPress hosting?</h3>
+    <p>It's hosting where the provider owns the server-layer security so you can focus on the app layer. The host handles patching, a firewall and brute-force banning, SSL, isolation, a private network, and off-site backups. You still handle updates, strong logins, roles, and config. It's both halves working together, not one.</p>
+    <h3>How do WordPress sites usually get hacked?</h3>
+    <p>Almost always through boring, automated attacks: an outdated plugin, theme, or core with a known hole; a weak or reused admin password; brute-force on the login; or an open XML-RPC endpoint. Novel attacks are rare, which is why keeping software current, using strong logins with 2FA, and locking the login covers most of the risk.</p>
+    <h3>How do I lock down wp-admin and wp-login?</h3>
+    <p>The cleanest option is IP Access Control: allow only your office and VPN addresses or CIDR ranges to reach wp-admin and wp-login, so bots can't touch the form. Add a Basic Auth gate in front of the app for another wall, enable two-factor, and limit login attempts. Fail2ban on the server also bans IPs that repeatedly fail.</p>
+    <h3>Is a security plugin enough to protect WordPress?</h3>
+    <p>No. A security plugin helps with app-layer tasks like 2FA, login limiting, and malware scanning, but it can't patch the operating system, isolate your site from others, or replace real backups. Treat it as one tool in the checklist. The server layer has to be handled too, and a tested backup matters more than any single plugin.</p>
+    <h3>Does 2FA really help WordPress security?</h3>
+    <p>Yes, a lot. Two-factor authentication defeats the overwhelming majority of automated login attacks, because a guessed or stolen password alone is no longer enough to get in. Combined with a strong, unique admin password and login rate-limiting, it closes the single most common route attackers take. It's five minutes well spent.</p>
+    <h3>Should I disable XML-RPC?</h3>
+    <p>If nothing you run needs it, yes. The xmlrpc.php endpoint can be abused to try many passwords in one request and to bounce traffic at other sites. Some older apps and a few plugins still use it, so check first. If you're unsure and your site is a normal website, disabling it removes a real attack vector with no downside.</p>
+    <h3>What does the host handle versus what do I handle?</h3>
+    <p>The host owns the server layer: patching, firewall, SSL, isolation, private networking, and off-site backups. You own the app layer: updating core, plugins, and themes, using strong logins with 2FA, assigning least-privilege roles, locking down wp-config, and removing unused code. Security is shared, and a site is only as safe as the weaker of the two halves.</p>
+    <h3>How often should I update plugins and core?</h3>
+    <p>As soon as practical after an update lands, especially anything flagged as a security release. The window between a fix being published and bots scanning for the old version is short. Test updates on staging first so nothing breaks the live site, then push. Delete plugins and themes you no longer use rather than leaving them to rot.</p>
+    <h3>My WordPress site is already hacked. What do I do first?</h3>
+    <p>Take it offline, rotate every password (admin, database, hosting, SFTP), then restore from a clean backup taken before the compromise. Restoring is usually faster and safer than cleaning an infected install by hand. After that, update everything, remove anything you don't recognise, and harden the app layer so it doesn't recur.</p>
+    <h3>Does an SSL certificate make my site secure?</h3>
+    <p>SSL encrypts traffic between the visitor and the server, which is essential and non-negotiable, but it's one layer, not the whole thing. A site with valid SSL can still be broken into through an outdated plugin or a weak password. Treat SSL as table stakes, then do the updates, logins, and server hardening that actually stop the common attacks.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Most hacks are boring. So is stopping them.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Secure WordPress Hosting: Close the Doors Attackers Actually Use","description":"A practical WordPress security field guide: how sites really get hacked, and the layered defense split between the app layer you own and the server layer your host handles.","image":"https://www.kloudbean.com/blog/secure-wordpress-hosting/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/secure-wordpress-hosting/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is secure WordPress hosting?","acceptedAnswer":{"@type":"Answer","text":"It's hosting where the provider owns the server-layer security so you can focus on the app layer. The host handles patching, a firewall and brute-force banning, SSL, isolation, a private network, and off-site backups. You still handle updates, strong logins, roles, and config. It's both halves working together, not one."}},
+{"@type":"Question","name":"How do WordPress sites usually get hacked?","acceptedAnswer":{"@type":"Answer","text":"Almost always through boring, automated attacks: an outdated plugin, theme, or core with a known hole; a weak or reused admin password; brute-force on the login; or an open XML-RPC endpoint. Novel attacks are rare, which is why keeping software current, using strong logins with 2FA, and locking the login covers most of the risk."}},
+{"@type":"Question","name":"How do I lock down wp-admin and wp-login?","acceptedAnswer":{"@type":"Answer","text":"The cleanest option is IP Access Control: allow only your office and VPN addresses or CIDR ranges to reach wp-admin and wp-login, so bots can't touch the form. Add a Basic Auth gate in front of the app for another wall, enable two-factor, and limit login attempts. Fail2ban on the server also bans IPs that repeatedly fail."}},
+{"@type":"Question","name":"Is a security plugin enough to protect WordPress?","acceptedAnswer":{"@type":"Answer","text":"No. A security plugin helps with app-layer tasks like 2FA, login limiting, and malware scanning, but it can't patch the operating system, isolate your site from others, or replace real backups. Treat it as one tool in the checklist. The server layer has to be handled too, and a tested backup matters more than any single plugin."}},
+{"@type":"Question","name":"Does 2FA really help WordPress security?","acceptedAnswer":{"@type":"Answer","text":"Yes, a lot. Two-factor authentication defeats the overwhelming majority of automated login attacks, because a guessed or stolen password alone is no longer enough to get in. Combined with a strong, unique admin password and login rate-limiting, it closes the single most common route attackers take. It's five minutes well spent."}},
+{"@type":"Question","name":"Should I disable XML-RPC?","acceptedAnswer":{"@type":"Answer","text":"If nothing you run needs it, yes. The xmlrpc.php endpoint can be abused to try many passwords in one request and to bounce traffic at other sites. Some older apps and a few plugins still use it, so check first. If you're unsure and your site is a normal website, disabling it removes a real attack vector with no downside."}},
+{"@type":"Question","name":"What does the host handle versus what do I handle?","acceptedAnswer":{"@type":"Answer","text":"The host owns the server layer: patching, firewall, SSL, isolation, private networking, and off-site backups. You own the app layer: updating core, plugins, and themes, using strong logins with 2FA, assigning least-privilege roles, locking down wp-config, and removing unused code. Security is shared, and a site is only as safe as the weaker of the two halves."}},
+{"@type":"Question","name":"How often should I update plugins and core?","acceptedAnswer":{"@type":"Answer","text":"As soon as practical after an update lands, especially anything flagged as a security release. The window between a fix being published and bots scanning for the old version is short. Test updates on staging first so nothing breaks the live site, then push. Delete plugins and themes you no longer use rather than leaving them to rot."}},
+{"@type":"Question","name":"My WordPress site is already hacked. What do I do first?","acceptedAnswer":{"@type":"Answer","text":"Take it offline, rotate every password (admin, database, hosting, SFTP), then restore from a clean backup taken before the compromise. Restoring is usually faster and safer than cleaning an infected install by hand. After that, update everything, remove anything you don't recognise, and harden the app layer so it doesn't recur."}},
+{"@type":"Question","name":"Does an SSL certificate make my site secure?","acceptedAnswer":{"@type":"Answer","text":"SSL encrypts traffic between the visitor and the server, which is essential and non-negotiable, but it's one layer, not the whole thing. A site with valid SSL can still be broken into through an outdated plugin or a weak password. Treat SSL as table stakes, then do the updates, logins, and server hardening that actually stop the common attacks."}}
+]}
+]}
+</script>
+</body>
+</html>

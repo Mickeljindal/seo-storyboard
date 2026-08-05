@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GCS Object Storage Buckets: What They Are and When to Use Them</title>
+<meta name="description" content="Managed GCS object storage buckets keep files off the app server and serve them over HTTP. What Google Cloud Storage buckets are, when to pick GCS vs S3-compatible, and how to use them.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/gcs-object-storage-buckets/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="GCS Object Storage Buckets: What They Are and When to Use Them">
+<meta property="og:description" content="What Google Cloud Storage buckets are, how managed GCS works on Kloudbean, when to choose GCS over S3-compatible storage, and how to work with buckets using gcloud and gsutil.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Databases &amp; storage</span>
+  <h1>GCS Object Storage Buckets: What They Are and When to Use Them</h1>
+
+  <figure><img src="images/hero.png" alt="GCS object storage buckets: files stored as objects in a Google Cloud Storage bucket, served over HTTP"></figure>
+
+  <p class="lead">You're building on Google Cloud, or you're about to. Your app writes files. User uploads, product images, a nightly CSV export. Right now they land on the app server's disk, which is fine until the first redeploy wipes them or a second server can't find them. <strong>GCS object storage buckets</strong> fix that. This is a plain-English guide to Google Cloud Storage buckets: what object storage on Google Cloud actually is, how managed GCS works on Kloudbean, when to pick GCS over the S3-compatible buckets you can also run here, and how to store files in a bucket without shooting yourself in the foot.</p>
+
+  <div class="tldr">
+    <strong>Short answer</strong>
+    <p>Managed GCS object storage buckets are Google Cloud Storage buckets you create and control from one dashboard: files live as objects, named by a key and served over HTTP, never pinned to your app server's disk. Reach for GCS when your workload already sits on Google Cloud, or when you want your files next to a GCP region like Dammam. Prefer the S3-compatible buckets Kloudbean also offers if your tooling is built around the <code>aws</code> CLI and S3 SDKs. Either kind keeps uploads, media, and backups off the box.</p>
+  </div>
+
+  <h2>What GCS object storage buckets actually are</h2>
+  <p>Start with the file you already understand. On a disk, a file has a path like <code>/var/www/uploads/avatar.png</code> and lives on one machine. Object storage drops the folder tree. You get a <strong>bucket</strong>, and inside it you store <strong>objects</strong> (Google calls each one a <strong>blob</strong>). An object is your bytes plus a little metadata and a <strong>key</strong>, its name. The key can read like a path, <code>uploads/2025/avatar.png</code>, but there's no real directory underneath. It's a flat namespace that allows slashes.</p>
+  <p>You don't mount a bucket, you talk to it over HTTP: store, fetch, delete. That's what makes object storage cheap and elastic. Google replicates your objects, so one dead disk loses nothing, there's no volume to fill, and you can rebuild the server anytime without the files noticing. For the deeper filesystem-versus-object walkthrough, the sibling guide on <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage</a> takes it apart slowly. GCS is the same idea in Google's tooling.</p>
+
+  <!-- ADD IMAGE: a GCS bucket's object list with a few keys like uploads/ and exports/, showing size and last-modified. Swap for a real screenshot: src -> images/gcs-object-list.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A GCS bucket object list: keys like uploads/ and exports/ with size and last-modified.</em><small>Optional: swap for your own console screenshot.</small></span></figure>
+
+  <h2>Managed Google Cloud Storage buckets on Kloudbean</h2>
+  <p>Kloudbean added managed GCS buckets in December 2025. You create a Google Cloud Storage bucket from the same dashboard that runs your servers, managed databases, and apps, set it public or private, and manage the objects inside without leaving the console. No separate Google Cloud project to wire up, no second bill to babysit. Managed GCS bucket hosting, in the same place as everything else you run.</p>
+  <p>It sits beside the built-in S3-compatible object storage Kloudbean has offered since November 2024, with full AWS S3 SDK and CLI compatibility since March 2025. The real win isn't one bucket type over another. It's that both live in one account, so your files, servers, databases, and apps share a single login instead of scattering across consoles you forget to check.</p>
+
+  <figure>
+    <img src="../assets/console/s3-buckets.png" alt="The Kloudbean console showing object storage buckets in the same dashboard as servers and databases">
+    <figcaption>Object storage buckets sitting in the same dashboard as the servers, databases, and apps they support. Public or private, objects managed from the console.</figcaption>
+  </figure>
+
+  <h2>GCS or S3-compatible buckets: which should you pick?</h2>
+  <p>Both keep files off the app server disk, both are managed for you, and you won't regret either for most workloads. The deciding factor is your ecosystem and your tooling, not raw capability.</p>
+  <p>Pick <strong>managed GCS</strong> when you already live in Google Cloud, or when you want objects sitting next to a GCP workload. If your compute runs in a Google region (say Dammam, GCP's in-Kingdom region for Saudi Arabia), the bucket sits close to the app that reads it. You also get Google's native toolchain, <code>gcloud storage</code> and the <code>google-cloud-storage</code> client libraries, which your team may already use.</p>
+  <p>Pick the <strong>S3-compatible buckets</strong> instead when your code and your habits are built on the S3 API. The <code>aws</code> CLI, boto3, the JavaScript v3 client, Laravel's <code>s3</code> disk, <code>django-storages</code>, an offload plugin. All of it speaks S3 and points at a bucket by changing an endpoint. That portability is why teams standardize on S3 even when they never touch Amazon.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 372" role="img" aria-label="A chooser: pick managed GCS buckets when you are on Google Cloud, pick S3-compatible buckets when your tooling is built on the S3 API, and either way the files leave the app server disk" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <title>GCS versus S3-compatible bucket chooser</title>
+      <text x="30" y="40" fill="#000f27" font-family="Poppins,sans-serif" font-size="17" font-weight="700">Two ways to keep files off the app server</text>
+      <!-- left card: GCS -->
+      <rect x="34" y="66" width="336" height="176" rx="16" fill="#ffffff" stroke="#4F1AF3" stroke-width="2"/>
+      <text x="58" y="102" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Pick managed GCS</text>
+      <text x="58" y="134" fill="#1c2536" font-family="Poppins,sans-serif" font-size="13">You already run on Google Cloud</text>
+      <text x="58" y="162" fill="#1c2536" font-family="Poppins,sans-serif" font-size="13">Objects beside a GCP workload (Dammam)</text>
+      <text x="58" y="190" fill="#1c2536" font-family="Poppins,sans-serif" font-size="13">Google tooling: gcloud storage, gsutil</text>
+      <text x="58" y="218" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12.5">gs://your-bucket/key</text>
+      <!-- right card: S3 -->
+      <rect x="390" y="66" width="336" height="176" rx="16" fill="#ffffff" stroke="#000f27" stroke-width="2"/>
+      <text x="414" y="102" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Pick S3-compatible</text>
+      <text x="414" y="134" fill="#1c2536" font-family="Poppins,sans-serif" font-size="13">Your tooling is built on the S3 API</text>
+      <text x="414" y="162" fill="#1c2536" font-family="Poppins,sans-serif" font-size="13">aws CLI, boto3, JS v3, Laravel disk</text>
+      <text x="414" y="190" fill="#1c2536" font-family="Poppins,sans-serif" font-size="13">Portable across S3-compatible clouds</text>
+      <text x="414" y="218" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12.5">s3://your-bucket/key</text>
+      <!-- arrows down -->
+      <line x1="202" y1="242" x2="202" y2="286" stroke="#4F1AF3" stroke-width="2.5"/>
+      <path d="M202 286 l-5 -10 h10 z" fill="#4F1AF3"/>
+      <line x1="558" y1="242" x2="558" y2="286" stroke="#000f27" stroke-width="2.5"/>
+      <path d="M558 286 l-5 -10 h10 z" fill="#000f27"/>
+      <!-- bottom bar -->
+      <rect x="34" y="290" width="692" height="58" rx="14" fill="#eaf7ee" stroke="#40b75f" stroke-width="2"/>
+      <text x="380" y="317" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="14.5" font-weight="700">Either way, the files live off the app server disk</text>
+      <text x="380" y="337" text-anchor="middle" fill="#2f9d4e" font-family="Poppins,sans-serif" font-size="12.5">durable, served over HTTP, and the server stays disposable</text>
+    </svg>
+    <figcaption>The choice is ecosystem and tooling, not capability. Both bucket types get files off the box and keep the server replaceable.</figcaption>
+  </figure>
+
+  <p>Here's the same decision as a table you can scan:</p>
+  <table class="cmp">
+    <thead><tr><th></th><th>Managed GCS buckets</th><th>S3-compatible buckets</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Pick when</strong></td><td>You're in the Google Cloud ecosystem; objects beside a GCP workload</td><td>Your code and tools are built on the S3 API</td></tr>
+      <tr><td><strong>Native tools</strong></td><td><code>gcloud storage</code>, <code>gsutil</code>, google-cloud SDKs</td><td><code>aws</code> CLI, boto3, JS v3 client</td></tr>
+      <tr><td><strong>URL scheme</strong></td><td><code>gs://bucket/key</code></td><td><code>s3://bucket/key</code></td></tr>
+      <tr><td><strong>Portability</strong></td><td>Google Cloud native</td><td>Works across S3-compatible providers</td></tr>
+      <tr><td><strong>On Kloudbean since</strong></td><td>Dec 2025</td><td>Nov 2024 (S3 API Mar 2025)</td></tr>
+      <tr><td><strong>Keeps files off the server</strong></td><td>Yes</td><td>Yes</td></tr>
+    </tbody>
+  </table>
+
+  <figure>
+    <img src="../assets/console/add-server-region.png" alt="Choosing a cloud and region in Kloudbean, with Google Cloud regions including Dammam available">
+    <figcaption>Kloudbean runs seven clouds, Google Cloud among them, with regions including Dammam. Keeping objects on GCS puts them near a GCP-hosted app.</figcaption>
+  </figure>
+
+  <h2>Public vs private buckets, and why the default matters</h2>
+  <p>A bucket is private by default, and that default is usually correct. Objects in a private bucket aren't reachable by a raw URL. When your app needs to hand a user a file, it generates a <strong>signed URL</strong>, a temporary link that grants access to one object for a set number of minutes, then expires. Right for invoices, private documents, or paid downloads.</p>
+  <p>A public bucket serves objects to anyone with the URL, which is what you want for a site's images, CSS, and other visible assets. Default to private, and go public only when the content is genuinely meant for the open web. Flipping a bucket public to fix a broken link is how private files land in Google's index. Set access on purpose.</p>
+
+  <h2>What actually belongs in a GCS bucket</h2>
+  <p>A useful test: if it's a file your app reads or writes, and it isn't code, it probably belongs in a bucket. The regulars:</p>
+  <ul>
+    <li><strong>User uploads.</strong> Avatars, documents, anything people send you. The first thing to move off the local disk, because uploads on a server disk vanish on a rebuild and can't be shared between two app instances.</li>
+    <li><strong>Product media.</strong> A store's photos, a gallery, a video library. Usually the bulk of your storage and the heaviest thing you serve. Put a CDN in front and visitors pull files from a nearby edge.</li>
+    <li><strong>Static assets.</strong> The hashed JS and CSS from a build, plus generated CSV reports and PDF invoices. Write them to a bucket, serve a link, stop piling temp files on the server.</li>
+    <li><strong>Backups and exports.</strong> A backup on the same server it protects isn't really a backup. Dumps and snapshots want to sit off-box, and a bucket is the durable home. The <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a> goes deeper.</li>
+  </ul>
+  <p>Two things stay out. Your <em>live</em> database, which needs fast random-access storage a bucket can't give it, so run a <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">managed database</a> and only park its <em>backups</em> in a bucket. And your running app code, which gets deployed to the server, not fetched from storage.</p>
+
+  <!-- ADD IMAGE: the public/private access control on a bucket, showing it set to private with signed-URL access. Swap for a real screenshot: src -> images/gcs-access-control.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A bucket's access control set to private, with the signed-URL option visible.</em><small>Optional: swap for your own screenshot.</small></span></figure>
+
+  <h2>Working with GCS buckets: gcloud and gsutil basics</h2>
+  <p>Google Cloud Storage speaks Google's tooling. The modern command is <code>gcloud storage</code>; the older <code>gsutil</code> still works. GCS bucket paths use the <code>gs://</code> scheme. The fastest way to prove a bucket works is from the terminal:</p>
+<pre><code># upload a file into a bucket (modern gcloud)
+gcloud storage cp report.pdf gs://my-bucket/exports/report.pdf
+
+# list what's in a bucket
+gcloud storage ls gs://my-bucket
+
+# copy an existing uploads folder into the bucket, recursively
+gcloud storage rsync ./public/uploads gs://my-bucket/uploads --recursive
+
+# the older gsutil syntax does the same thing
+gsutil cp report.pdf gs://my-bucket/exports/report.pdf
+gsutil rsync -r ./public/uploads gs://my-bucket/uploads</code></pre>
+  <p>In code the shape is just as short. A small Python example with the official client, credentials pulled from the environment rather than hard-coded:</p>
+<pre><code>from google.cloud import storage
+
+client = storage.Client()
+bucket = client.bucket("my-bucket")
+blob = bucket.blob("uploads/avatar.png")
+
+blob.upload_from_filename("avatar.png")
+
+# a temporary link that works for one hour, then expires
+url = blob.generate_signed_url(expiration=3600)</code></pre>
+  <p>And the Node version:</p>
+<pre><code>import { Storage } from "@google-cloud/storage";
+
+const storage = new Storage();
+
+await storage.bucket("my-bucket").upload("avatar.png", {
+  destination: "uploads/avatar.png",
+});</code></pre>
+  <p>The credentials never appear in the source. Storage keys are as sensitive as a database password, so keep them in environment variables and out of Git. If you want the S3 toolchain instead of Google's, that's the signal you belong on Kloudbean's <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible buckets</a>, where the same <code>aws</code> CLI and SDK calls work by pointing at an endpoint.</p>
+
+  <!-- ADD IMAGE: a terminal running gcloud storage cp uploading a file to a gs:// bucket. Swap for a real screenshot: src -> images/gcloud-storage-cp.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal running gcloud storage cp, uploading a file to a gs:// bucket.</em><small>Optional: swap for your own screenshot.</small></span></figure>
+
+  <h2>The one storage habit worth burning in</h2>
+  <p>The single highest-value storage habit I know is boring: never write user uploads to the app server's disk. Not to <code>/uploads</code>, not to <code>/tmp</code>, not "just for now." The moment a file exists only on one box, that box stops being disposable. You can't rebuild it without a careful copy-off, you can't add a second server behind a load balancer without half the uploads 404ing, and a disk failure turns into data loss.</p>
+  <p>It's the anti-pattern we see most, and it always looks the same. An app runs fine on one server for a year. The team adds a second for capacity. Now images uploaded to server A are missing on server B, because they only lived on A's disk. Buckets from day one skip that whole class of incident. Send the file to a bucket, store the key in your database, serve it back with a signed or public URL. The server holds code, nothing else.</p>
+
+  <h2>A word on egress and cost</h2>
+  <p>One cost is worth understanding before you commit to any bucket: <strong>egress</strong>, the charge many clouds apply to data leaving storage. Uploading in is usually free; serving out is metered, and on a media-heavy site it can dwarf the storage cost. This isn't a GCS-specific quirk, and I won't promise you a magic number. Egress terms vary by provider and change over time, so check the current data-transfer-out pricing for whatever you pick, GCS or S3-compatible. We pulled the math apart in <a href="https://www.kloudbean.com/blog/zero-egress-object-storage/">the egress fees breakdown</a>. The first lever is usually a CDN in front of the bucket, so cached files serve from the edge.</p>
+
+  <h2>How it fits the rest of your stack</h2>
+  <p>A bucket is one piece of owning your whole stack instead of renting slices from five vendors. The bucket holds files. A managed database holds the structured data. The stateless app server runs the code and scales out when traffic climbs. If you're weighing where to run the whole thing, we put the tradeoffs side by side in <a href="https://www.kloudbean.com/blog/digitalocean-vs-kloudbean/">DigitalOcean vs Kloudbean</a>.</p>
+
+  <h2>The honest limits</h2>
+  <p>Managed GCS buckets run alongside the S3-compatible buckets, and both are for files: uploads, media, static assets, backups, exports. They're not a database, so keep live data in a <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">managed database</a> and store only its backups in a bucket. Kloudbean runs Linux stacks, and "managed" means the platform provisions the bucket and handles access controls while the objects stay yours to export. Standard plans start from $8/mo, Enterprise is custom, and storage terms change, so confirm the current numbers on the pricing page.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Keep the files in a bucket and the server disposable.</p>
+    <p style="margin:0 0 .6em">Kloudbean gives you managed Google Cloud Storage buckets and S3-compatible object storage in the same dashboard as your servers, managed databases, and apps. Public and private access, objects you can export anytime, one login and one bill. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed GCS buckets · S3-compatible storage · Public &amp; private access · Automatic backups · One dashboard · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What are managed GCS object storage buckets?</h3>
+    <p>Google Cloud Storage buckets you create and control from one dashboard. Files are stored as objects (Google calls them blobs), named by a key and served over HTTP instead of sitting on your app server's disk. On Kloudbean they've been available since December 2025, with public or private access and objects you can export anytime.</p>
+    <h3>When should I use GCS instead of S3-compatible storage?</h3>
+    <p>Use GCS when your workload already runs on Google Cloud, or you want objects next to a GCP region like Dammam, and your team prefers Google tooling like gcloud storage. Choose S3-compatible buckets when your code is built on the S3 API (the aws CLI, boto3, a Laravel s3 disk). Both keep files off the server, so it comes down to ecosystem, not capability.</p>
+    <h3>How do I upload files to a Google Cloud Storage bucket?</h3>
+    <p>From the terminal, use gcloud storage cp for one file or gcloud storage rsync for a whole folder; the older gsutil cp and gsutil rsync do the same. In code, use the google-cloud-storage client for your language and load credentials from environment variables rather than hard-coding them.</p>
+    <h3>What is the difference between a public and a private GCS bucket?</h3>
+    <p>A private bucket keeps objects unreachable by a raw URL; your app grants access with a temporary signed URL that expires. A public bucket serves objects to anyone with the link, which suits site images. Default to private and make a bucket public only when the content is genuinely public.</p>
+    <h3>Can I store my database in a GCS bucket?</h3>
+    <p>No. A live database needs fast, random-access storage that object storage isn't built for. Run a managed database engine for the live data, and store the database backups in a bucket so they sit off the machine the database runs on.</p>
+    <h3>Does GCS charge egress fees?</h3>
+    <p>Serving data out of any object storage can carry an egress charge, and terms vary by provider and change over time, so check the current data-transfer-out pricing for whatever you choose. Uploading in is usually free. On a media-heavy site, egress can beat the storage cost, and a CDN in front of the bucket is the usual way to cut it.</p>
+    <h3>Can I manage GCS buckets from the Kloudbean dashboard?</h3>
+    <p>Yes. Since December 2025 you can create managed Google Cloud Storage buckets in the console, set them public or private, and manage the objects inside, in the same dashboard as your servers, databases, and apps. It sits beside the S3-compatible object storage available since November 2024.</p>
+    <h3>Do I have to use Google tooling to work with GCS?</h3>
+    <p>For a native GCS bucket, yes: gcloud storage, gsutil, and the google-cloud-storage client libraries. If you'd rather keep the S3 toolchain you already know, that's the signal to use Kloudbean's S3-compatible buckets instead, where the aws CLI and S3 SDKs work by pointing at an endpoint.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Storage Team · Managed GCS buckets, one dashboard.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"GCS Object Storage Buckets: What They Are and When to Use Them","description":"What Google Cloud Storage buckets are, how managed GCS works on Kloudbean, when to choose GCS over S3-compatible storage, and how to work with buckets using gcloud and gsutil.","image":"https://www.kloudbean.com/blog/gcs-object-storage-buckets/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/gcs-object-storage-buckets/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What are managed GCS object storage buckets?","acceptedAnswer":{"@type":"Answer","text":"Google Cloud Storage buckets you create and control from one dashboard. Files are stored as objects (Google calls them blobs), named by a key and served over HTTP instead of sitting on your app server disk. On Kloudbean they have been available since December 2025, with public or private access and objects you can export anytime."}},
+{"@type":"Question","name":"When should I use GCS instead of S3-compatible storage?","acceptedAnswer":{"@type":"Answer","text":"Use GCS when your workload already runs on Google Cloud, or you want objects next to a GCP region like Dammam, and your team prefers Google tooling like gcloud storage. Choose S3-compatible buckets when your code is built on the S3 API (the aws CLI, boto3, a Laravel s3 disk). Both keep files off the server, so it comes down to ecosystem, not capability."}},
+{"@type":"Question","name":"How do I upload files to a Google Cloud Storage bucket?","acceptedAnswer":{"@type":"Answer","text":"From the terminal, use gcloud storage cp for one file or gcloud storage rsync for a whole folder; the older gsutil cp and gsutil rsync do the same. In code, use the google-cloud-storage client for your language and load credentials from environment variables rather than hard-coding them."}},
+{"@type":"Question","name":"What is the difference between a public and a private GCS bucket?","acceptedAnswer":{"@type":"Answer","text":"A private bucket keeps objects unreachable by a raw URL; your app grants access with a temporary signed URL that expires. A public bucket serves objects to anyone with the link, which suits site images. Default to private and make a bucket public only when the content is genuinely public."}},
+{"@type":"Question","name":"Can I store my database in a GCS bucket?","acceptedAnswer":{"@type":"Answer","text":"No. A live database needs fast, random-access storage that object storage is not built for. Run a managed database engine for the live data, and store the database backups in a bucket so they sit off the machine the database runs on."}},
+{"@type":"Question","name":"Does GCS charge egress fees?","acceptedAnswer":{"@type":"Answer","text":"Serving data out of any object storage can carry an egress charge, and terms vary by provider and change over time, so check the current data-transfer-out pricing for whatever you choose. Uploading in is usually free. On a media-heavy site, egress can beat the storage cost, and a CDN in front of the bucket is the usual way to cut it."}},
+{"@type":"Question","name":"Can I manage GCS buckets from the Kloudbean dashboard?","acceptedAnswer":{"@type":"Answer","text":"Yes. Since December 2025 you can create managed Google Cloud Storage buckets in the console, set them public or private, and manage the objects inside, in the same dashboard as your servers, databases, and apps. It sits beside the S3-compatible object storage available since November 2024."}},
+{"@type":"Question","name":"Do I have to use Google tooling to work with GCS?","acceptedAnswer":{"@type":"Answer","text":"For a native GCS bucket, yes: gcloud storage, gsutil, and the google-cloud-storage client libraries. If you would rather keep the S3 toolchain you already know, that is the signal to use Kloudbean S3-compatible buckets instead, where the aws CLI and S3 SDKs work by pointing at an endpoint."}}
+]}
+]}
+</script>
+</body>
+</html>

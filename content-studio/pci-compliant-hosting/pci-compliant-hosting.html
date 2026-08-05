@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PCI-Compliant Hosting: Why Scope Reduction Beats Everything Else</title>
+<meta name="description" content="PCI compliant hosting starts with one move: never touch a raw card number. Use a processor with tokenization to shrink your PCI scope, then secure the rest with a firewall, private networking, encryption, and access control. Here is how it actually works.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/pci-compliant-hosting/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="PCI-Compliant Hosting: Why Scope Reduction Beats Everything Else">
+<meta property="og:description" content="The cheapest path to PCI is to never see a raw card number. How tokenization shrinks your scope, the infrastructure controls for the scope you keep, and who actually signs off.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Enterprise &amp; compliance</span>
+  <h1>PCI-Compliant Hosting: Why Scope Reduction Beats Everything Else</h1>
+
+  <figure><img src="images/hero.png" alt="PCI-compliant hosting: shrink your scope by letting a processor handle card data"></figure>
+
+  <p class="lead">You want to take card payments. Then a client, a bank, or your payment provider asks the question that stops you cold: is your hosting PCI compliant? PCI DSS is the card industry's security standard for anyone who touches cardholder data, and it can look like a wall of requirements. So people go shopping for "PCI compliant hosting" expecting the server to solve it. The server helps. But it's not where the biggest win is.</p>
+  <p>Here's the win, and it's a little counterintuitive: the cheapest, safest path to PCI is to <strong>never see a raw card number in the first place</strong>. Get the card data off your systems and most of PCI simply stops applying to you. Do that before you touch a single firewall rule.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>Reduce your scope first. Use a payment processor (Stripe, Adyen, PayPal) with tokenization or hosted fields so card numbers go straight to them and never land on your server. That can drop you to the shortest self-assessment, SAQ A. Then secure the scope you keep with encryption in transit, a firewall, private networking, access control, logging, and backups. PCI is a process you complete and your bank signs off, not a badge your host wears.</p>
+  </div>
+
+  <h2>Start here: shrink the scope, not the server</h2>
+  <p>PCI "scope" is everything that stores, processes, or transmits cardholder data, plus everything connected to it. The bigger that footprint, the more of PCI applies and the more you have to prove. So the smartest engineering move is to make the footprint tiny.</p>
+  <p>The way you do that is tokenization. Instead of a card number (the PAN, or primary account number) flowing through your app, you drop the payment provider's hosted fields or redirect into your checkout. The customer types their card into an iframe that belongs to the processor, not to you. The processor takes the card, hands you back a token, and you store the token. You can charge that token later, refund it, save it for repeat billing, all without the real number ever touching your server or database.</p>
+  <p>When card data never lands on your infrastructure, huge sections of PCI stop being your problem. Concretely, fully outsourcing payments this way is what qualifies most small and mid-size merchants for <strong>SAQ A</strong>, the shortest self-assessment, with a fraction of the controls to attest to. Start handling raw card data yourself and you climb to longer, stricter questionnaires like SAQ D, ASV scans, and possibly a full assessment. Same business, wildly different amount of work.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 415" role="img" aria-labelledby="pci-svg-title pci-svg-desc" xmlns="http://www.w3.org/2000/svg">
+      <title id="pci-svg-title">Scope reduction with a payment processor</title>
+      <desc id="pci-svg-desc">Recommended flow: card data goes to a payment processor through hosted fields, your server keeps only a token, and your PCI scope stays small at SAQ A. Avoid flow: raw card numbers hit your server and database, and your PCI scope becomes huge at SAQ D with scans and possibly an audit.</desc>
+      <defs>
+        <marker id="pci-arw" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#5b6a86"/>
+        </marker>
+      </defs>
+      <rect x="0" y="0" width="720" height="415" fill="#ffffff"/>
+      <text x="360" y="30" text-anchor="middle" fill="#000f27" font-size="20" font-weight="700" font-family="Poppins,sans-serif">Two ways card data can flow</text>
+
+      <text x="30" y="62" fill="#2e9e57" font-size="13" font-weight="700" font-family="Poppins,sans-serif">RECOMMENDED</text>
+      <rect x="486" y="74" width="190" height="74" rx="12" fill="none" stroke="#40b75f" stroke-width="2.5" stroke-dasharray="7 5"/>
+      <rect x="30" y="88" width="110" height="48" rx="10" fill="#000f27"/>
+      <text x="85" y="117" text-anchor="middle" fill="#ffffff" font-size="14" font-family="Poppins,sans-serif">Card data</text>
+      <line x1="140" y1="112" x2="214" y2="112" stroke="#5b6a86" stroke-width="2.5" marker-end="url(#pci-arw)"/>
+      <text x="178" y="102" text-anchor="middle" fill="#4F1AF3" font-size="11" font-family="Poppins,sans-serif">hosted fields</text>
+      <rect x="222" y="80" width="180" height="66" rx="12" fill="#4F1AF3"/>
+      <text x="312" y="110" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="700" font-family="Poppins,sans-serif">Payment processor</text>
+      <text x="312" y="130" text-anchor="middle" fill="#d7ccff" font-size="11" font-family="Poppins,sans-serif">Stripe · Adyen · PayPal</text>
+      <line x1="402" y1="112" x2="496" y2="112" stroke="#5b6a86" stroke-width="2.5" marker-end="url(#pci-arw)"/>
+      <text x="449" y="102" text-anchor="middle" fill="#4F1AF3" font-size="11" font-family="Poppins,sans-serif">token only</text>
+      <rect x="506" y="88" width="150" height="48" rx="10" fill="#000f27"/>
+      <text x="581" y="110" text-anchor="middle" fill="#ffffff" font-size="13" font-family="Poppins,sans-serif">Your server</text>
+      <text x="581" y="127" text-anchor="middle" fill="#8fa0c4" font-size="10" font-family="Poppins,sans-serif">keeps a token</text>
+      <text x="581" y="167" text-anchor="middle" fill="#2e9e57" font-size="12" font-weight="700" font-family="Poppins,sans-serif">PCI scope: small (SAQ A)</text>
+
+      <text x="30" y="250" fill="#5b6a86" font-size="13" font-weight="700" font-family="Poppins,sans-serif">AVOID IF YOU CAN</text>
+      <rect x="22" y="262" width="520" height="104" rx="12" fill="#f4f2ff" stroke="#4F1AF3" stroke-width="2.5" stroke-dasharray="7 5"/>
+      <rect x="40" y="286" width="110" height="48" rx="10" fill="#000f27"/>
+      <text x="95" y="315" text-anchor="middle" fill="#ffffff" font-size="14" font-family="Poppins,sans-serif">Card data</text>
+      <line x1="150" y1="310" x2="300" y2="310" stroke="#5b6a86" stroke-width="2.5" marker-end="url(#pci-arw)"/>
+      <text x="225" y="300" text-anchor="middle" fill="#4F1AF3" font-size="11" font-family="Poppins,sans-serif">raw card numbers (PAN)</text>
+      <rect x="308" y="276" width="214" height="72" rx="12" fill="#000f27"/>
+      <text x="415" y="306" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="700" font-family="Poppins,sans-serif">Your server + database</text>
+      <text x="415" y="326" text-anchor="middle" fill="#8fa0c4" font-size="11" font-family="Poppins,sans-serif">stores and handles PAN</text>
+      <text x="282" y="390" text-anchor="middle" fill="#4F1AF3" font-size="12" font-weight="700" font-family="Poppins,sans-serif">PCI scope: huge (SAQ D, ASV scans, maybe an audit)</text>
+    </svg>
+    <figcaption>Same store, two architectures. Let the processor hold the card and you keep a token in a small scope. Store the card yourself and your whole stack falls into a much bigger one.</figcaption>
+  </figure>
+
+  <h2>Two ways to take a payment, side by side</h2>
+  <table class="cmp">
+    <thead><tr><th></th><th>Processor holds the card</th><th>You store the card</th></tr></thead>
+    <tbody>
+      <tr><td>What touches your server</td><td>A token</td><td>Raw card numbers (PAN)</td></tr>
+      <tr><td>Typical self-assessment</td><td>SAQ A (shortest)</td><td>SAQ D (longest)</td></tr>
+      <tr><td>Requirements to attest</td><td>A handful</td><td>Dozens, plus scans</td></tr>
+      <tr><td>Breach blast radius</td><td>Tokens, not usable cards</td><td>Real card data</td></tr>
+      <tr><td>Who builds the card form</td><td>The processor (hosted fields)</td><td>You do</td></tr>
+      <tr><td>Good fit for</td><td>Almost everyone</td><td>Rare, high-volume, specific needs</td></tr>
+    </tbody>
+  </table>
+  <p>My blunt opinion: unless you have a very specific reason and a compliance budget to match, put yourself in the left column and stay there. The teams that get into trouble are usually the ones who decided to "just handle the card ourselves" and underestimated what that pulls in.</p>
+
+  <!-- Author: replace with your own screenshot. src -> images/stripe-hosted-checkout.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your payment provider's hosted checkout or embedded card fields, so it's clear the card is typed into the processor, not your app.</em><small>Visual proof that raw card data never reaches your server.</small></span></figure>
+
+  <h2>The scope you keep still needs a secure foundation</h2>
+  <p>Reducing scope shrinks the problem. It doesn't erase it. You still run a server that processes payment intents, stores tokens, holds customer records, and connects to the processor. That footprint has to be secured, and this is where hosting earns its keep.</p>
+  <p><strong>Encrypt everything in transit.</strong> Every page and API call that touches payment or personal data runs over HTTPS/TLS, no mixed content. This is non-negotiable under PCI and it's the easiest box to tick, because a managed host issues and auto-renews a free SSL certificate for you.</p>
+  <p><strong>Segment the network.</strong> Your database and any sensitive service belong on a private network with no public address, behind a firewall that closes every port you don't need. An exposed database is found by automated scanners within hours, not weeks. If the term is new to you, here's <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">what a VPC is</a> and why it matters.</p>
+  <p><strong>Control access tightly.</strong> Unique logins for every person, no shared accounts, and least privilege so people can reach only what their job needs. Restrict where admins can even connect from with IP allow-lists. The goal is to be able to say exactly who can reach what.</p>
+  <p><strong>Patch and harden.</strong> Unpatched software is how a lot of breaches start. The OS and stack need regular updates, and baseline protections like a firewall plus brute-force blocking should be running by default rather than being a task you remember to do.</p>
+  <p><strong>Protect the public-facing app.</strong> PCI wants public web apps defended against common attacks, whether through regular code review or a web application firewall. Worth reading: <a href="https://www.kloudbean.com/blog/what-a-waf-does/">what a WAF does</a>, <a href="https://www.kloudbean.com/blog/ddos-protection-explained/">DDoS protection</a>, and sensible <a href="https://www.kloudbean.com/blog/security-headers-guide/">security headers</a>.</p>
+  <p><strong>Log who did what, and keep the logs safe.</strong> PCI requires a record of access to systems and data so an incident can be investigated. On enterprise accounts an immutable audit trail records every significant action across the account, which is exactly the evidence an assessor asks for. Keep logs in access-controlled storage, private by default.</p>
+
+  <figure>
+    <img src="../assets/console/s3-buckets.png" alt="The Kloudbean console showing object storage with public and private access controls for logs and stored data">
+    <figcaption>Logs and any stored data belong in access-controlled storage, private by default, not open to the world.</figcaption>
+  </figure>
+
+  <p><strong>Back up, then test the restore.</strong> PCI is about resilience as much as secrecy. Automatic <a href="https://www.kloudbean.com/blog/server-backups-guide/">backups</a> stored off the main server mean an incident doesn't erase your records. Testing that they actually restore is the step people skip until the day it matters.</p>
+
+  <div class="note">
+    <b>The classic own-goal.</b> A team turns on verbose logging "just for debugging" and starts writing full HTTP request bodies to disk. Those bodies include the card numbers customers typed. Now the logs contain PAN, the log server is in scope, and a nice small SAQ A footprint just quietly became a big one. Scrub payment fields before anything gets logged, and never log a full card number, ever.
+  </div>
+
+  <h2>What "PCI compliant hosting" can and can't do for you</h2>
+  <p>PCI compliance is a process <em>you</em> complete. For most merchants that means a Self-Assessment Questionnaire, sometimes quarterly ASV scans, and for larger volumes a formal assessment by a QSA that produces a Report on Compliance. Your acquiring bank and payment provider define which applies and are the ones who ultimately sign off. No host does that for you.</p>
+  <p>What a host provides is the infrastructure the standard leans on. Kloudbean, for its part, gives you the controls that support the scope you keep: free SSL for encryption in transit, a configured Shorewall firewall with Fail2ban brute-force blocking, private networking to keep the database off the public internet, subusers and granular access control for least privilege, IP access control, automatic backups, and an immutable audit trail on enterprise accounts. It runs on tier-1 clouds whose data centers carry the major certifications. What it won't do, because no honest host can, is make you PCI compliant on its own or hand you a finished status. Reduce your scope, secure what's left on solid infrastructure, and complete the validation your bank requires. That's PCI done properly. If you're mapping several obligations at once, the siblings help: <a href="https://www.kloudbean.com/blog/soc2-compliant-hosting/">SOC 2 compliant hosting</a> and <a href="https://www.kloudbean.com/blog/gdpr-compliant-hosting/">GDPR compliant hosting</a>.</p>
+
+  <!-- Author: replace with your own screenshot. src -> images/saq-a-form.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The SAQ A questionnaire from your acquiring bank, or the compliance tab in your processor dashboard.</em><small>Shows readers what the actual validation step looks like.</small></span></figure>
+
+  <p>A last note on keys. The API keys and secrets your app uses to talk to the payment processor are themselves sensitive. Don't paste them into code or commit them to Git. Keep them in managed environment variables with controlled access, and rotate them when someone leaves.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console managing payment provider API keys as environment variables with controlled access">
+    <figcaption>Payment provider keys live in managed environment variables, never hard-coded and never in your repository.</figcaption>
+  </figure>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">A smaller thing to secure, on a stronger foundation.</p>
+    <p style="margin:0 0 .6em">Run payments on managed infrastructure with the controls that support your PCI work, all on one dashboard. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> and see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Free SSL · Firewall + brute-force blocking · Private networking · Access control · Automatic backups · Enterprise audit trail</p>
+  </div>
+
+  <h2>PCI hosting FAQ</h2>
+  <div class="faq">
+    <h3>Does PCI-compliant hosting make my business PCI compliant?</h3>
+    <p>No, it's one part. A host secures and documents the infrastructure: network controls, patching, access, logging, backups. You own the application layer, how your code handles card data, and the validation you complete with your bank and processor. A host provides controls that support PCI. It can't hand you finished compliance.</p>
+
+    <h3>What's the easiest way to reduce PCI scope?</h3>
+    <p>Never handle raw card numbers. Use a PCI-compliant processor like Stripe, Adyen, or PayPal so card details go straight to them through hosted fields, and you store only a token. If the card number never touches your server, large parts of PCI stop applying. It's the single biggest simplification available to most businesses.</p>
+
+    <h3>What is an SAQ, and which one applies to me?</h3>
+    <p>An SAQ is a Self-Assessment Questionnaire you complete to validate PCI compliance. The version depends on how you handle card data. Fully outsource payments and you typically use SAQ A, the shortest. Handle card data directly and you move to longer ones like SAQ D. Your acquiring bank or processor tells you which applies.</p>
+
+    <h3>Do I need HTTPS everywhere for PCI?</h3>
+    <p>Yes. Any page or API call involving payment or personal data must run over HTTPS/TLS with no mixed content. It's non-negotiable under PCI and easy to satisfy, because a managed host issues and auto-renews a free SSL certificate, so encryption in transit is on by default.</p>
+
+    <h3>Should my database be on the public internet for PCI?</h3>
+    <p>No. Sensitive components, especially your database, belong on a private network with no public address, behind a firewall that closes unused ports. Keeping the database off the public internet in a VPC removes it as a target for the constant scanning that finds exposed databases within hours.</p>
+
+    <h3>Can I store card numbers if I encrypt them?</h3>
+    <p>You can, but you probably shouldn't. Storing card data, even encrypted, pulls your systems into full PCI scope with far more requirements, scans, and cost. Encryption is required if you store it, but the cheaper and safer choice for most businesses is to not store it at all and let a processor hold it.</p>
+
+    <h3>What hosting controls actually help with PCI?</h3>
+    <p>Encryption in transit through free SSL, a configured firewall with brute-force protection, private networking to isolate the database, unique logins and least-privilege access, IP access control, automatic tested backups, and tamper-resistant logging through an audit trail on enterprise setups. These cover the infrastructure side. Reducing scope and securing your app cover the rest.</p>
+
+    <h3>Do I need a QSA audit or just an SAQ?</h3>
+    <p>Most smaller merchants complete an SAQ and, where required, quarterly ASV scans. Higher transaction volumes or storing card data can trigger a formal assessment by a Qualified Security Assessor that produces a Report on Compliance. Your acquiring bank sets the requirement based on your volume and how you handle data.</p>
+
+    <h3>Is a web application firewall required for PCI?</h3>
+    <p>For public-facing web apps, PCI expects you to address common attacks either through regular code review or a web application firewall. A WAF is a common way to meet it. Pair it with encryption, access control, and patching rather than treating it as the only defence.</p>
+  </div>
+
+  <p class="byline">Kloudbean · The safest card number is the one you never store.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"PCI-Compliant Hosting: Why Scope Reduction Beats Everything Else","description":"The cheapest path to PCI is to never see a raw card number. How tokenization shrinks your scope, the infrastructure controls for the scope you keep, and who actually signs off.","image":"https://www.kloudbean.com/blog/pci-compliant-hosting/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/pci-compliant-hosting/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Does PCI-compliant hosting make my business PCI compliant?","acceptedAnswer":{"@type":"Answer","text":"No, it is one part. A host secures and documents the infrastructure: network controls, patching, access, logging, backups. You own the application layer, how your code handles card data, and the validation you complete with your bank and processor. A host provides controls that support PCI. It cannot hand you finished compliance."}},
+{"@type":"Question","name":"What is the easiest way to reduce PCI scope?","acceptedAnswer":{"@type":"Answer","text":"Never handle raw card numbers. Use a PCI-compliant processor like Stripe, Adyen, or PayPal so card details go straight to them through hosted fields, and you store only a token. If the card number never touches your server, large parts of PCI stop applying. It is the single biggest simplification available to most businesses."}},
+{"@type":"Question","name":"What is an SAQ, and which one applies to me?","acceptedAnswer":{"@type":"Answer","text":"An SAQ is a Self-Assessment Questionnaire you complete to validate PCI compliance. The version depends on how you handle card data. Fully outsource payments and you typically use SAQ A, the shortest. Handle card data directly and you move to longer ones like SAQ D. Your acquiring bank or processor tells you which applies."}},
+{"@type":"Question","name":"Do I need HTTPS everywhere for PCI?","acceptedAnswer":{"@type":"Answer","text":"Yes. Any page or API call involving payment or personal data must run over HTTPS/TLS with no mixed content. It is non-negotiable under PCI and easy to satisfy, because a managed host issues and auto-renews a free SSL certificate, so encryption in transit is on by default."}},
+{"@type":"Question","name":"Should my database be on the public internet for PCI?","acceptedAnswer":{"@type":"Answer","text":"No. Sensitive components, especially your database, belong on a private network with no public address, behind a firewall that closes unused ports. Keeping the database off the public internet in a VPC removes it as a target for the constant scanning that finds exposed databases within hours."}},
+{"@type":"Question","name":"Can I store card numbers if I encrypt them?","acceptedAnswer":{"@type":"Answer","text":"You can, but you probably should not. Storing card data, even encrypted, pulls your systems into full PCI scope with far more requirements, scans, and cost. Encryption is required if you store it, but the cheaper and safer choice for most businesses is to not store it at all and let a processor hold it."}},
+{"@type":"Question","name":"What hosting controls actually help with PCI?","acceptedAnswer":{"@type":"Answer","text":"Encryption in transit through free SSL, a configured firewall with brute-force protection, private networking to isolate the database, unique logins and least-privilege access, IP access control, automatic tested backups, and tamper-resistant logging through an audit trail on enterprise setups. These cover the infrastructure side. Reducing scope and securing your app cover the rest."}},
+{"@type":"Question","name":"Do I need a QSA audit or just an SAQ?","acceptedAnswer":{"@type":"Answer","text":"Most smaller merchants complete an SAQ and, where required, quarterly ASV scans. Higher transaction volumes or storing card data can trigger a formal assessment by a Qualified Security Assessor that produces a Report on Compliance. Your acquiring bank sets the requirement based on your volume and how you handle data."}},
+{"@type":"Question","name":"Is a web application firewall required for PCI?","acceptedAnswer":{"@type":"Answer","text":"For public-facing web apps, PCI expects you to address common attacks either through regular code review or a web application firewall. A WAF is a common way to meet it. Pair it with encryption, access control, and patching rather than treating it as the only defence."}}
+]}
+]}
+</script>
+</body>
+</html>

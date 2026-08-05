@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Run Your Lovable App on Managed AWS with Kloudbean</title>
+<meta name="description" content="Deploy your Lovable app on AWS without wiring EC2, RDS, ELB, Route 53, ACM and IAM by hand. AWS is one of Kloudbean's seven clouds, so you get real AWS with a managed layer and Git deploy.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/lovable-on-managed-aws/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Run Your Lovable App on Managed AWS with Kloudbean">
+<meta property="og:description" content="Real AWS under your Lovable app without the EC2, RDS, ELB, Route 53, ACM and IAM maze. Pick AWS as your cloud, deploy from Git, and manage the whole stack in one dashboard.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Managed AWS</span>
+  <h1>How to Run Your Lovable App on Managed AWS with Kloudbean</h1>
+
+  <figure><img src="images/hero.png" alt="Run a Lovable app on managed AWS — raw AWS service sprawl collapsing into one Kloudbean dashboard on top of AWS"></figure>
+
+  <p class="lead">There's a specific moment when "host it anywhere" turns into "it should probably be on AWS." A customer expects it. Your company already lives there. You want the reliability and the region coverage. Then you open the AWS console and remember why people pay others to deal with it: instance types, VPCs, subnets, security groups, IAM roles, a load balancer, a certificate manager, and a dozen decisions before your app serves a single request. So here's the honest way to deploy your Lovable app on AWS without any of that. AWS is one of Kloudbean's seven cloud providers, so you pick AWS, and Kloudbean runs the server on it for you.</p>
+
+  <p>This isn't an abstraction that hides AWS from you. It's a real server on real AWS infrastructure, in the AWS region you choose, with a managed layer on top so you never touch EC2 or IAM. Same simple deploy flow, running on AWS underneath.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>You want AWS under your Lovable app, not a second career as an AWS admin. Because AWS is one of Kloudbean's seven clouds, you select AWS and a region when you add a server, and Kloudbean provisions and manages the instance: the OS, stack, networking, SSL, and backups. You deploy from Git, run a managed database next to the app, and manage the whole thing in one dashboard, never opening the EC2, RDS, ELB, Route 53, ACM, or IAM consoles.</p>
+  </div>
+
+  <h2>Raw AWS, or the same AWS with a managed layer</h2>
+  <p>Raw AWS is the most capable cloud there is, and the one most likely to eat a week of your time. The distance between "I have an AWS account" and "my app is running securely with backups, TLS, and a sane network" is enormous, and almost none of it is the work you set out to do. For someone who just shipped a Lovable app, that gap <em>is</em> the problem. Here's the shape of the choice.</p>
+
+  <figure>
+    <svg viewBox="0 0 700 348" width="100%" role="img" aria-label="On the left, raw AWS is a scatter of services to wire together: EC2, VPC, RDS, ELB, Route 53, ACM, IAM, plus security groups and monitoring, connected by tangled lines. An arrow labelled managed layer collapses all of it into one Kloudbean dashboard on the right, sitting on top of an AWS infrastructure base, described as one of Kloudbean's seven clouds.">
+      <rect x="1" y="1" width="698" height="346" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="350" y="28" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="16" font-weight="700" fill="#000f27">Raw AWS sprawl, or one managed dashboard on AWS</text>
+      <text x="175" y="58" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" font-weight="700" letter-spacing="1" fill="#4F1AF3">RAW AWS: wire it all yourself</text>
+      <text x="545" y="58" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" font-weight="700" letter-spacing="1" fill="#40b75f">MANAGED ON AWS: one dashboard</text>
+
+      <!-- connectors behind tiles -->
+      <g stroke="#cbd3e3" stroke-width="1" fill="none">
+        <line x1="84" y1="103" x2="190" y2="103"/>
+        <line x1="190" y1="103" x2="284" y2="103"/>
+        <line x1="84" y1="103" x2="88" y2="167"/>
+        <line x1="88" y1="167" x2="210" y2="167"/>
+        <line x1="84" y1="103" x2="96" y2="231"/>
+        <line x1="190" y1="103" x2="212" y2="231"/>
+        <line x1="88" y1="167" x2="212" y2="231"/>
+      </g>
+      <!-- tiles -->
+      <g font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="600" fill="#1c2536" text-anchor="middle">
+        <rect x="44" y="86" width="80" height="34" rx="7" fill="#f6f7fb" stroke="#e6e9f2"/><text x="84" y="107">EC2</text>
+        <rect x="150" y="86" width="80" height="34" rx="7" fill="#f6f7fb" stroke="#e6e9f2"/><text x="190" y="107">VPC</text>
+        <rect x="248" y="86" width="72" height="34" rx="7" fill="#f6f7fb" stroke="#e6e9f2"/><text x="284" y="107">RDS</text>
+        <rect x="40" y="150" width="96" height="34" rx="7" fill="#f6f7fb" stroke="#e6e9f2"/><text x="88" y="171">ELB / ALB</text>
+        <rect x="160" y="150" width="100" height="34" rx="7" fill="#f6f7fb" stroke="#e6e9f2"/><text x="210" y="171">Route 53</text>
+        <rect x="44" y="214" width="104" height="34" rx="7" fill="#f6f7fb" stroke="#e6e9f2"/><text x="96" y="235">ACM (TLS)</text>
+        <rect x="172" y="214" width="80" height="34" rx="7" fill="#f6f7fb" stroke="#e6e9f2"/><text x="212" y="235">IAM</text>
+      </g>
+      <text x="175" y="278" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#5b6a86">+ security groups, key pairs, params, CloudWatch...</text>
+
+      <!-- arrow -->
+      <g>
+        <line x1="332" y1="170" x2="398" y2="170" stroke="#4F1AF3" stroke-width="3"/>
+        <polygon points="398,161 416,170 398,179" fill="#4F1AF3"/>
+        <text x="374" y="152" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="10.5" font-weight="600" fill="#4F1AF3">managed layer</text>
+      </g>
+
+      <!-- right: dashboard on AWS base -->
+      <rect x="428" y="88" width="234" height="118" rx="12" fill="#000f27"/>
+      <text x="545" y="122" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="15" font-weight="700" fill="#fff">Kloudbean</text>
+      <text x="545" y="145" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#c9b8ff">one dashboard</text>
+      <text x="545" y="165" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#c9b8ff">app · database · SSL · backups</text>
+      <text x="545" y="185" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#c9b8ff">deploy from Git</text>
+      <line x1="500" y1="206" x2="500" y2="236" stroke="#cbd3e3" stroke-width="1.5"/>
+      <line x1="590" y1="206" x2="590" y2="236" stroke="#cbd3e3" stroke-width="1.5"/>
+      <rect x="428" y="236" width="234" height="52" rx="10" fill="#eef1f7" stroke="#d5dcea"/>
+      <text x="545" y="258" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#1c2536">AWS infrastructure</text>
+      <text x="545" y="276" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#5b6a86">real EC2, in the region you pick</text>
+      <text x="545" y="308" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" font-style="italic" fill="#40b75f">one of Kloudbean's seven clouds</text>
+    </svg>
+    <figcaption>Left: raw AWS, where each service is a console you wire and then have to remember. Right: the same AWS underneath, with one dashboard on top handling the app, the database, TLS, and backups.</figcaption>
+  </figure>
+
+  <h2>What raw AWS actually asks of you</h2>
+  <p>It helps to see exactly what "managed" is covering, because that's the pile of work you're handing off. Each row here is a real AWS service you'd otherwise set up and maintain yourself, and it's a small project on its own.</p>
+
+  <table class="cmp">
+    <thead><tr><th>AWS piece</th><th>What you'd wire by hand</th><th>What the managed layer does</th></tr></thead>
+    <tbody>
+      <tr><td>EC2</td><td>Instance type, AMI, key pair, SSH hardening, a process manager so the app restarts on crash</td><td>Provisions the instance and configures Node with a supervisor that keeps the app running.</td></tr>
+      <tr><td>VPC, subnets, security groups</td><td>The whole network, plus which ports are open to the world</td><td>Sets up networking so the box is reachable without you editing security groups by hand.</td></tr>
+      <tr><td>RDS</td><td>A managed database instance, parameter groups, backups, access rules</td><td>One-click managed Postgres or MySQL next to the app, backed up and secured.</td></tr>
+      <tr><td>ELB / ALB</td><td>Load balancer, target groups, health checks</td><td>Kloudbean's built-in Flexible Load Balancer when you need to scale out.</td></tr>
+      <tr><td>Route 53</td><td>Hosted zone and DNS records</td><td>Point your domain and add it under Domain Aliases.</td></tr>
+      <tr><td>ACM</td><td>Certificate request, validation, renewal wiring</td><td>A free Let's Encrypt certificate that installs and auto-renews.</td></tr>
+      <tr><td>IAM</td><td>Roles, policies, least-privilege access</td><td>Handled as part of provisioning, so you don't hand-craft policies to get started.</td></tr>
+      <tr><td>CloudWatch</td><td>Metrics, log wiring, alarms</td><td>Server health and live build and app logs in the console.</td></tr>
+    </tbody>
+  </table>
+
+  <p>My honest opinion after watching a lot of these: most Lovable apps don't need ninety percent of AWS. They need one right-sized instance, a database sitting next to it, TLS, and backups. The rest of that list solves problems you don't have yet. Raw AWS is the right call when you have a cloud team, or you genuinely need a specific AWS-only service. If you're the whole team, managed-on-AWS is the honest pick, and you can always go deeper later.</p>
+
+  <h2>The same-AWS-managed flow, start to finish</h2>
+  <p>Get your Lovable code into GitHub first (connect and push if you haven't), then in the <a href="https://www.kloudbean.com/">Kloudbean</a> console click <strong>Add Server</strong>. Set the <strong>Cloud Provider</strong> to <strong>AWS</strong>, choose your AWS <strong>region</strong>, pick <strong>Node.js</strong>, and choose a size with 2 to 4 GB of headroom for the build.</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="Kloudbean Add Server screen: choose AWS as the cloud provider, pick a region, select Node.js and a server size">
+    <figcaption>Add Server: set the cloud to AWS and pick your region. Kloudbean provisions the AWS instance and configures the full stack, about five minutes to ready. You never open the EC2 console.</figcaption>
+  </figure>
+
+  <p>Open the app and go to <strong>Application Administration, Deploy Code</strong>. Connect GitHub, paste the repo URL, pick the branch, and set the runtime fields: app directory, the assigned <code>process.env.PORT</code>, Node version, and your install, build, and start commands. Then <strong>Pull &amp; Deploy</strong>. The build runs on your AWS server exactly as it would anywhere, because the platform abstracts the cloud, not the code.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="Kloudbean Deploy Code / Git Deployment on the AWS server: connect the repo, set the runtime, and Pull and Deploy">
+    <figcaption>Deploy Code, then Git Deployment, running on your AWS instance: connect the repo, set the runtime, Pull and Deploy, with the build log streaming live.</figcaption>
+  </figure>
+
+  <p>Launch a managed database from <strong>DBS, Launch Database</strong>. It runs on your AWS infrastructure alongside the app, and you wire the credentials in as environment variables rather than hard-coding them. If your Lovable app uses Supabase, you can point at your existing project or run <a href="https://www.kloudbean.com/blog/self-host-supabase/">managed Supabase</a> here too.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="Kloudbean Launch Database screen for creating a managed Postgres or MySQL instance on the AWS server">
+    <figcaption>A managed Postgres or MySQL on your AWS server, in place of hand-configuring RDS. Backed up and secured, wired in through environment variables.</figcaption>
+  </figure>
+
+  <p>Add your variables under <strong>Runtime Configuration, Environment Variables</strong> (the <strong>Paste .env Content</strong> tab is quickest), attach your domain under <strong>Domain Aliases</strong> with a free Let's Encrypt certificate, and turn on <strong>automated deployment</strong> so every push builds and ships on your AWS server. A missing variable is the most common reason a first deploy 503s, so if that happens, read the app log and see <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a>.</p>
+
+  <!-- ADD IMAGE: swap for a real <figure><img><figcaption> (src -> images/aws-region.png) -->
+  <figure class="img-slot"><span><b>Add image</b><em>The AWS region picker on the Add Server screen, with a region selected close to the app's users.</em><small>Shows this is a real AWS region choice. Author supplies.</small></span></figure>
+
+  <h2>Choosing an AWS region</h2>
+  <p>If you do go AWS, the one decision worth a real moment is the region. Pick the AWS region physically closest to the bulk of your users, because latency is mostly a function of distance, and a user in Frankfurt hitting a server in Frankfurt feels the app snap. If you have a data-residency requirement (a lot of EU work does), the region is also where that's satisfied, so choose one that keeps data in the right jurisdiction. Users spread evenly across the world? Pick the region nearest your largest cluster and don't agonize. A single well-placed server serves a global audience fine until you're big enough to need several regions, and by then you'll have the traffic to justify the work. You set this once when you add the server, so get it roughly right, but it isn't a decision you can never revisit.</p>
+
+  <h2>Where people get AWS wrong: the surprise bill</h2>
+  <p>AWS has a reputation for shock invoices, and it's earned. But the shocks almost always come from sprawl, not from the compute itself. A forgotten load balancer still running. Data-transfer charges nobody modeled. A dozen services each metering separately, with no single place showing the total. That's the failure mode we see scare people off AWS entirely, and it's worth naming, because a single managed server is a completely different shape of bill.</p>
+  <p>When you run one AWS instance through Kloudbean, you pay for that instance sized to your app, plus the plan that manages it. That's a number you can predict at the start of the month and recognize at the end of it. It usually won't be the cheapest way to run a small app (a budget provider can undercut AWS), so you're paying a little for the AWS name and footprint. Choose it when that's worth it, and reach for a cheaper cloud when it isn't. The point of managed AWS is a predictable bill on reliable infrastructure, not the lowest line item on the market.</p>
+
+  <h2>You picked AWS, but you're not locked into it</h2>
+  <p>This is the part that makes managed AWS a comfortable choice rather than a trap. AWS is one of seven clouds Kloudbean runs on: AWS, AWS Lightsail, Google Cloud, DigitalOcean, Linode, Vultr, and UpCloud. You chose AWS deliberately, and if the reason for AWS ever goes away, you can run the same app on a cheaper provider without changing a line of code. And because it's a standard Linux box running standard code, you can move off Kloudbean entirely if you want. AWS is a choice here, not a cage. If you want to see the same raw-versus-managed reasoning applied to a cheaper cloud, the <a href="https://www.kloudbean.com/blog/digitalocean-vs-kloudbean/">DigitalOcean comparison</a> runs it for DO.</p>
+
+  <h2>Scaling on AWS when you grow</h2>
+  <p>One reason to be on AWS at all is the ceiling, and there's a lot of room above you. When the app outgrows its instance, you resize to a larger AWS instance, more CPU and memory, which is a straightforward change rather than a re-architecture, because your code doesn't move. When one box isn't enough, put a <a href="https://www.kloudbean.com/blog/cloud-load-balancer-explained/">load balancer</a> in front and run more than one instance, or split the database onto its own server so app and data stop competing. None of that rewrites the Lovable app. And because you can host several apps on one server, growth sometimes just means you had the headroom to add the next project without spending another cent.</p>
+
+  <h2>The honest limits</h2>
+  <p>Two straight facts. Kloudbean runs Linux web stacks on AWS: Node and the modern frameworks (React, Next.js, Vue) that Lovable produces, plus PHP, Python, Ruby, and Java. This isn't a bare-metal AWS tutorial, and it isn't for Windows, .NET, or IIS. It's managed Linux hosting that happens to run on AWS. And "managed" means Kloudbean runs the server, the stack, SSL, patching, and automatic backups; you still own your application and its data. That division is the whole value: AWS underneath, your app on top, and the ops in between handled. For the Lovable-specific side of things, the <a href="https://www.kloudbean.com/blog/deploy-lovable-app-to-your-own-server/">deploy-a-Lovable-app guide</a> covers the frontend and Supabase details.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">AWS underneath, without the console maze.</p>
+    <p style="margin:0">Run your app on managed AWS at <a href="https://www.kloudbean.com/">kloudbean.com</a>. One-click databases, automatic backups, private networking, free migration, free trial, and simple Git deploy. Tool-agnostic deploy walkthrough <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">here</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Can I deploy a Lovable app on AWS without learning AWS?</h3>
+    <p>Yes. Choose AWS as the cloud provider when you add a server on Kloudbean, and the platform provisions and manages the AWS instance, the stack, networking, SSL, and backups. You deploy from Git and never open the EC2, RDS, ELB, Route 53, ACM, or IAM consoles.</p>
+
+    <h3>Is this real AWS, or an abstraction on top of it?</h3>
+    <p>It's a real server on AWS infrastructure, in the AWS region you pick, managed for you by Kloudbean. AWS is one of Kloudbean's seven clouds. You get AWS's reliability and footprint with one-click deploy and managed ops on top, not a simulated version of it.</p>
+
+    <h3>Do I have to use AWS to use Kloudbean?</h3>
+    <p>No. AWS is one of seven providers, alongside AWS Lightsail, Google Cloud, DigitalOcean, Linode, Vultr, and UpCloud. For a single app, a cheaper provider is often just as good, so pick AWS only when there's a concrete reason like a customer requirement or an existing AWS standard.</p>
+
+    <h3>Can my app and database both run on the AWS server?</h3>
+    <p>Yes. Launch a managed database from the DBS section and it runs alongside your app on the same AWS infrastructure, backed up and secured, wired in through environment variables. If the app uses Supabase, you can keep your existing project or run managed Supabase too.</p>
+
+    <h3>Will running on AWS give me a surprise bill?</h3>
+    <p>The AWS shocks people fear come from sprawl: forgotten resources and data-transfer across many separately metered services. A single managed instance is a different shape. You pay for one right-sized server plus the plan that manages it, a number you can predict at the start of the month and recognize at the end.</p>
+
+    <h3>How do I scale a Lovable app on AWS later?</h3>
+    <p>Resize to a larger AWS instance for more CPU and memory, which doesn't change your code. When one box isn't enough, put a load balancer in front and run more instances, or move the database to its own server. You can also host several apps on one server, so growth doesn't always mean a bigger bill.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Run Your Lovable App on Managed AWS with Kloudbean","description":"Deploy your Lovable app on AWS without wiring EC2, RDS, ELB, Route 53, ACM and IAM by hand. AWS is one of Kloudbean's seven clouds, so you get real AWS with a managed layer and Git deploy.","image":"https://www.kloudbean.com/blog/lovable-on-managed-aws/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/lovable-on-managed-aws/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Can I deploy a Lovable app on AWS without learning AWS?","acceptedAnswer":{"@type":"Answer","text":"Yes. Choose AWS as the cloud provider when you add a server on Kloudbean, and the platform provisions and manages the AWS instance, the stack, networking, SSL, and backups. You deploy from Git and never open the EC2, RDS, ELB, Route 53, ACM, or IAM consoles."}},
+{"@type":"Question","name":"Is this real AWS, or an abstraction on top of it?","acceptedAnswer":{"@type":"Answer","text":"It's a real server on AWS infrastructure, in the AWS region you pick, managed for you by Kloudbean. AWS is one of Kloudbean's seven clouds. You get AWS's reliability and footprint with one-click deploy and managed ops on top, not a simulated version of it."}},
+{"@type":"Question","name":"Do I have to use AWS to use Kloudbean?","acceptedAnswer":{"@type":"Answer","text":"No. AWS is one of seven providers, alongside AWS Lightsail, Google Cloud, DigitalOcean, Linode, Vultr, and UpCloud. For a single app, a cheaper provider is often just as good, so pick AWS only when there's a concrete reason like a customer requirement or an existing AWS standard."}},
+{"@type":"Question","name":"Can my app and database both run on the AWS server?","acceptedAnswer":{"@type":"Answer","text":"Yes. Launch a managed database from the DBS section and it runs alongside your app on the same AWS infrastructure, backed up and secured, wired in through environment variables. If the app uses Supabase, you can keep your existing project or run managed Supabase too."}},
+{"@type":"Question","name":"Will running on AWS give me a surprise bill?","acceptedAnswer":{"@type":"Answer","text":"The AWS shocks people fear come from sprawl: forgotten resources and data-transfer across many separately metered services. A single managed instance is a different shape. You pay for one right-sized server plus the plan that manages it, a number you can predict at the start of the month and recognize at the end."}},
+{"@type":"Question","name":"How do I scale a Lovable app on AWS later?","acceptedAnswer":{"@type":"Answer","text":"Resize to a larger AWS instance for more CPU and memory, which doesn't change your code. When one box isn't enough, put a load balancer in front and run more instances, or move the database to its own server. You can also host several apps on one server, so growth doesn't always mean a bigger bill."}}
+]}
+]}
+</script>
+</body>
+</html>

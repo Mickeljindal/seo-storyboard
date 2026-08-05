@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WordPress Multisite Hosting: What It Is and Whether You Actually Want It</title>
+<meta name="description" content="WordPress multisite hosting runs many sites from one install and one database. Sometimes that's brilliant, sometimes it's a trap. Here's how to decide, plus subdomain vs subdirectory and the theme question everyone asks.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/wordpress-multisite-hosting/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="WordPress Multisite Hosting: What It Is and Whether You Actually Want It">
+<meta property="og:description" content="When WordPress multisite is the right tool and when it's a trap, subdomain vs subdirectory, the theme question, and what a network needs from hosting.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Agency &amp; multi-app</span>
+  <h1>WordPress Multisite Hosting: What It Is and Whether You Actually Want It</h1>
+
+  <figure><img src="images/hero.png" alt="WordPress multisite hosting: one install and one database fanning out to many sites, versus separate isolated installs"></figure>
+
+  <p class="lead">Someone in the room says "let's just put them all on one WordPress multisite." It sounds tidy. One login, one place to update, one set of plugins for twenty sites. And sometimes that's exactly right.</p>
+  <p>But WordPress multisite hosting quietly welds those sites together, and people flip it on because it sounds efficient, then spend a weekend trying to pull one site back out. So I'm not going to sell you on multisite. I'm going to help you decide. What it is, the subdomain-or-subdirectory fork you pick before you enable it, the theme question everyone types into Google, and when the whole idea is a trap.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>WordPress Multisite turns one install into a network of many sites that share one codebase and one database, run from a single Network Admin. Use it when the sites genuinely belong together and one team owns them (a university's departments, a chain's locations, a brand's regions). Avoid it for unrelated sites, especially an agency's separate clients, where separate installs are far saner. The rule: if the sites should share a fate, network them. If they should live and die on their own, keep them apart.</p>
+  </div>
+
+  <h2>What WordPress Multisite actually is</h2>
+  <p>A normal WordPress install runs one site. <strong>Multisite</strong> flips a switch in <code>wp-config.php</code> and turns that single install into a <em>network</em> of many sites, all running on the same WordPress core files, the same pool of themes and plugins, and (this is the part that decides everything) <strong>the same database</strong>. You run the whole thing from one extra dashboard called the <strong>Network Admin</strong>, and each site inside the network is a "subsite."</p>
+  <p>So a subsite isn't a separate WordPress. It's a set of extra tables (<code>wp_2_posts</code>, <code>wp_3_posts</code>, and so on) inside one shared database, served by one shared codebase. That single fact is where all the upside and all the risk come from. Update once, and it's updated everywhere. Break once, and you've broken everywhere. Hold that thought.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 384" width="100%" role="img" aria-label="Diagram comparing WordPress Multisite, where one install and one database fan out to several subsites that share a fate, against separate installs where each site has its own WordPress and database and stays isolated">
+      <defs>
+        <marker id="arrM" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto"><path d="M0,0 L6.5,3 L0,6 Z" fill="#5b6a86"></path></marker>
+      </defs>
+      <rect x="0" y="0" width="760" height="384" fill="#ffffff"></rect>
+
+      <text x="24" y="30" font-family="Poppins,sans-serif" font-size="14.5" font-weight="700" fill="#000f27">Multisite: one install, one database</text>
+      <text x="410" y="30" font-family="Poppins,sans-serif" font-size="14.5" font-weight="700" fill="#000f27">Separate installs: isolated</text>
+      <line x1="388" y1="46" x2="388" y2="330" stroke="#c9d0e3" stroke-width="1.5" stroke-dasharray="5 5"></line>
+
+      <!-- LEFT: multisite -->
+      <rect x="94" y="54" width="200" height="58" rx="12" fill="#f3f0ff" stroke="#4F1AF3" stroke-width="1.5"></rect>
+      <text x="194" y="80" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="700" fill="#4F1AF3">One WordPress install</text>
+      <text x="194" y="99" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11.5" fill="#1c2536">one shared MySQL database</text>
+
+      <line x1="194" y1="112" x2="82" y2="180" stroke="#5b6a86" stroke-width="1.5" marker-end="url(#arrM)"></line>
+      <line x1="194" y1="112" x2="194" y2="180" stroke="#5b6a86" stroke-width="1.5" marker-end="url(#arrM)"></line>
+      <line x1="194" y1="112" x2="306" y2="180" stroke="#5b6a86" stroke-width="1.5" marker-end="url(#arrM)"></line>
+
+      <rect x="18" y="168" width="352" height="106" rx="12" fill="none" stroke="#4F1AF3" stroke-width="1.3" stroke-dasharray="5 4"></rect>
+      <rect x="32" y="184" width="98" height="46" rx="8" fill="#ffffff" stroke="#c9d0e3"></rect>
+      <text x="81" y="212" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11.5" fill="#1c2536">Dept A</text>
+      <rect x="145" y="184" width="98" height="46" rx="8" fill="#ffffff" stroke="#c9d0e3"></rect>
+      <text x="194" y="212" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11.5" fill="#1c2536">Dept B</text>
+      <rect x="258" y="184" width="98" height="46" rx="8" fill="#ffffff" stroke="#c9d0e3"></rect>
+      <text x="307" y="212" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11.5" fill="#1c2536">Dept C</text>
+      <text x="194" y="258" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="700" fill="#4F1AF3">shared fate</text>
+      <text x="194" y="298" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" fill="#5b6a86">a bad update or a breach can hit every subsite</text>
+
+      <!-- RIGHT: separate installs -->
+      <rect x="410" y="66" width="150" height="64" rx="12" fill="#eefaf1" stroke="#40b75f" stroke-width="1.5"></rect>
+      <text x="485" y="92" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="700" fill="#2f8f49">Client A</text>
+      <text x="485" y="112" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" fill="#1c2536">WP + its own DB</text>
+      <rect x="578" y="66" width="150" height="64" rx="12" fill="#eefaf1" stroke="#40b75f" stroke-width="1.5"></rect>
+      <text x="653" y="92" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="700" fill="#2f8f49">Client B</text>
+      <text x="653" y="112" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" fill="#1c2536">WP + its own DB</text>
+      <rect x="494" y="150" width="150" height="64" rx="12" fill="#eefaf1" stroke="#40b75f" stroke-width="1.5"></rect>
+      <text x="569" y="176" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="700" fill="#2f8f49">Client C</text>
+      <text x="569" y="196" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" fill="#1c2536">WP + its own DB</text>
+      <text x="569" y="298" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" fill="#5b6a86">independent backups, updates, scaling, exit</text>
+
+      <rect x="30" y="344" width="12" height="12" rx="2" fill="#4F1AF3"></rect>
+      <text x="50" y="354" font-family="Poppins,sans-serif" font-size="11.5" fill="#1c2536">Networked: one install, shared fate</text>
+      <rect x="410" y="344" width="12" height="12" rx="2" fill="#40b75f"></rect>
+      <text x="430" y="354" font-family="Poppins,sans-serif" font-size="11.5" fill="#1c2536">Separate installs: isolated by design</text>
+    </svg>
+    <figcaption>The whole decision in one picture: multisite fans many subsites off one shared install and database, so they share a fate. Separate installs stay isolated.</figcaption>
+  </figure>
+
+  <h2>Subdomain or subdirectory? Choose before you enable it</h2>
+  <p>The first real fork in multisite comes before you've added a single site, and you can't casually change it later. Your subsites get URLs in one of two shapes:</p>
+  <ul>
+    <li><strong>Subdomains:</strong> <code>dept-a.example.com</code>, <code>dept-b.example.com</code>. Cleaner separation, but the server needs a <strong>wildcard DNS record</strong> (<code>*.example.com</code>) and a <strong>wildcard SSL certificate</strong> so every subsite is covered.</li>
+    <li><strong>Subdirectories:</strong> <code>example.com/dept-a</code>, <code>example.com/dept-b</code>. Simpler DNS and SSL (it's all one domain), but every site lives under one hostname.</li>
+  </ul>
+  <p>You set this up by adding a line to <code>wp-config.php</code>, then finishing setup in the Network Admin:</p>
+  <pre><code>/* Turn a normal install into a network */
+define( 'WP_ALLOW_MULTISITE', true );
+
+/* Then, after Tools &gt; Network Setup writes it:
+   true  = subdomains   (needs wildcard DNS + wildcard SSL)
+   false = subdirectories */
+define( 'SUBDOMAIN_INSTALL', true );</code></pre>
+  <p>My honest steer: pick <strong>subdirectories</strong> unless you have a reason not to. It sidesteps wildcard DNS and wildcard SSL entirely, and free SSL from your host just covers the one domain. Go subdomains when each site really needs to feel like its own hostname, or you're mapping custom domains per site anyway. Either way, decide now, because flipping it after you've got live subsites means URL surgery you don't want.</p>
+
+  <!-- Author: replace this slot with a real screenshot. src -> images/multisite-network-setup.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Tools then Network Setup screen where you choose subdomains or subdirectories before creating the network.</em><small>Author-supplied screenshot from your own WordPress admin.</small></span></figure>
+
+  <h2>The question everyone asks: one theme or multiple?</h2>
+  <p>This one comes up constantly, so here's the plain answer. A multisite network can absolutely use <strong>multiple themes, and each subsite can run its own</strong>. You install a theme once and "network-enable" it, which just makes it <em>available</em>; then each subsite picks which of the available themes it actually wears. Dept A can look nothing like Dept B.</p>
+  <p>What's shared is the <em>library</em> of installed themes and plugins. What's per-site is the <em>choice</em>, the settings, and the content. Plugins work the same way: network-activate one so it runs everywhere, or leave it available for individual sites to switch on themselves. The "you're stuck with one identical theme across the whole network" idea is just a myth. Different look per subsite is the normal case.</p>
+
+  <h2>Multisite vs separate installs, side by side</h2>
+  <p>The tradeoff lives in this table. Read it as "shared is a feature" on the left and "shared is a liability" on the right, and notice which column your situation keeps landing in.</p>
+  <table class="cmp">
+    <thead><tr><th></th><th>WordPress Multisite</th><th>Separate installs</th></tr></thead>
+    <tbody>
+      <tr><td>Central updates</td><td>Update core, themes, plugins once for all</td><td>Update each site (automatable, but N times)</td></tr>
+      <tr><td>Per-site isolation</td><td>None: shared code and database</td><td>Full: nothing bleeds between sites</td></tr>
+      <tr><td>Plugin flexibility</td><td>Shared pool; wildly different needs clash</td><td>Each site runs whatever it wants</td></tr>
+      <tr><td>Backups &amp; restore</td><td>Whole network at once; one subsite is fiddly</td><td>Per site, restore one without touching others</td></tr>
+      <tr><td>Move or sell one site</td><td>Painful extraction project</td><td>Hand over one install, done</td></tr>
+      <tr><td>Scale one busy site</td><td>Can't isolate it from the rest</td><td>Give that one site more resources</td></tr>
+      <tr><td>Best for</td><td>Related sites, one owner, shared design</td><td>Unrelated sites, separate clients or futures</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Use multisite when the sites share a fate</h2>
+  <p>Multisite shines when the sites genuinely belong together and one team owns them. In these cases the shared foundation is the point, not a compromise:</p>
+  <ul>
+    <li><strong>They're variations of one thing.</strong> A university with a site per department, a franchise with a site per location, a company with a site per region. Same broad design, same plugin needs, same owner.</li>
+    <li><strong>One team runs all of them.</strong> You want to patch a plugin once and have every site get it, manage users centrally, and keep the whole network consistent without repeating yourself.</li>
+    <li><strong>Users span the network.</strong> The same people work across several subsites, so a shared user table is a convenience rather than a leak.</li>
+  </ul>
+  <p>When that describes you, multisite saves real, repetitive work, and the fact that the sites move together is a feature you're choosing on purpose. A big network like this isn't small, though, so size the hosting for the whole thing. The <a href="https://www.kloudbean.com/blog/scalable-wordpress-hosting/">scalable WordPress hosting</a> ladder applies to a busy network just as it does to one busy site.</p>
+
+  <h2>Skip multisite when the sites are really separate</h2>
+  <p>Same shared foundation, flipped into a liability. If the sites shouldn't be joined at the hip, joining them is a mistake you'll pay for later:</p>
+  <ul>
+    <li><strong>They're independent clients.</strong> Different owners, different billing, one might churn next quarter. Pulling a client's site out of a network is a genuine project, not a click.</li>
+    <li><strong>They need clashing plugins.</strong> A plugin one site depends on and another can't tolerate fights the shared model. Someone always loses.</li>
+    <li><strong>One site dwarfs the rest.</strong> A single high-traffic subsite drags on shared resources, and you can't give just that one more room.</li>
+    <li><strong>A single site might be sold or moved.</strong> If independence is even on the table, start independent. It's far cheaper than retrofitting it.</li>
+  </ul>
+  <div class="note"><b>Running client sites?</b> This is the big one. A pattern we see is an agency stuffing 20 unrelated clients into one network because it looked efficient, then a single bad plugin update takes all 20 down at once, or one client asks to leave and extraction eats a weekend. For that job, look at the <a href="https://www.kloudbean.com/blog/agency-wordpress-hosting/">agency WordPress hosting</a> playbook and how <a href="https://www.kloudbean.com/blog/reseller-hosting-vs-managed-cloud/">reseller hosting compares to managed cloud</a>. Separate installs, or a server per client, usually wins.</div>
+
+  <h2>Managing subsites from the command line</h2>
+  <p>Once a network gets past a handful of sites, the browser stops being the fast way to run it. WP-CLI treats the network as scriptable, which is where multisite management actually gets pleasant. A few of the ones you'll reach for:</p>
+  <pre><code># List every subsite in the network
+wp site list
+
+# Create a new subsite
+wp site create --slug=dept-d --title="Department D"
+
+# Run a command against ONE subsite
+wp plugin update --all --url=dept-a.example.com
+
+# Update plugins across the WHOLE network
+wp plugin update --all --network
+
+# Export one subsite's tables (start of an extraction)
+wp db export --tables=$(wp db tables --url=dept-a.example.com --format=csv)</code></pre>
+  <p>That last one hints at the truth about "just pull one site out": it's an export, a URL search-and-replace, and a rebuild of that site's uploads, not a button. The full command set is in the <a href="https://www.kloudbean.com/blog/wordpress-cli-guide/">WordPress CLI guide</a>, and you drive all of it over SSH on a managed server.</p>
+
+  <!-- Author: replace this slot with a real screenshot. src -> images/multisite-sites-list.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Network Admin Sites list showing several subsites, or a terminal running wp site list.</em><small>Author-supplied screenshot.</small></span></figure>
+
+  <h2>What a WordPress multisite network needs from hosting</h2>
+  <p>Here's where WordPress multisite hosting stops being a WordPress topic and becomes an infrastructure one. Because every subsite lives in the <em>same</em> database and runs on the <em>same</em> codebase, your entire network is, from the server's point of view, a single WordPress application. That has three consequences worth planning around.</p>
+  <p>First, <strong>backups cover the whole network at once</strong>. Great for consistency, less great when you want to roll back just one subsite, so know that going in. Second, <strong>the database grows with every site you add</strong>, so a large network wants a <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">managed MySQL database</a> sized for the network, not for one blog. Third, <strong>every subsite shares the server's CPU, RAM, and PHP workers</strong>, so a spike on one is felt by all.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed MySQL database sized for a whole WordPress multisite network">
+    <figcaption>A whole multisite network runs on one shared managed database. Size it for the network, not for a single site.</figcaption>
+  </figure>
+
+  <p>On Kloudbean the network runs as one managed WordPress application on the cloud you pick, with <a href="https://www.kloudbean.com/blog/server-backups-guide/">automatic backups</a>, free SSL, staging, and Shorewall plus Fail2ban hardening handled for you. You add the managed MySQL database beside it and give the server room to breathe. It's a Linux and PHP stack, and "managed" here means the server, WordPress, SSL, backups, and patching are handled while your sites and their content stay yours. If a client ever does need to move out, the content is yours to export, and <a href="https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/">migrating a site</a> is a known, supported path rather than a hostage situation.</p>
+
+  <!-- Author: replace this slot with a real screenshot. src -> images/multisite-app-dashboard.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The managed WordPress multisite application in the hosting dashboard, showing it running as one app on one server.</em><small>Author-supplied screenshot.</small></span></figure>
+
+  <h2>Where multisite quietly bites</h2>
+  <p>Be clear-eyed about the flip side of "update once." Because the sites share core, plugins, and a database, they share risk too. A security hole in a network-active plugin exposes every site at the same time. A bad update breaks the network, not one page. If the install goes down, all the sites go down together. You update once, but you also <em>fail</em> once, across everything.</p>
+  <p>And extraction is the one that catches people. Getting a single subsite out of a network is a real migration: export its tables, rewrite URLs, move its uploads, and stand it up as a fresh install. For a network of related sites you control, that risk is a fine trade for the convenience. For a pile of unrelated client sites, it's a bad one, and separate installs would have kept you free. That's the whole decision, really. Not "is multisite good" but "should these particular sites share a fate?"</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Network them, or keep them separate. On purpose, either way.</p>
+    <p style="margin:0 0 .6em">Run a WordPress multisite network or a set of independent installs on hosting sized for the whole picture at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Managed WordPress · Managed MySQL · Staging · Automatic backups · Free SSL · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is WordPress Multisite?</h3>
+    <p>It's a mode that turns one WordPress installation into a network of many sites, all sharing the same core files, the same theme and plugin library, and the same database. You run it from an extra dashboard called the Network Admin, and each site is a "subsite." That shared foundation is what makes it efficient and what ties the sites together.</p>
+    <h3>Is WordPress Multisite one theme or multiple themes?</h3>
+    <p>Multiple. Each subsite can run its own theme. You network-enable themes to make them available across the network, then each site chooses which one it uses. The library of installed themes is shared, but the choice and settings are per site, so subsites can look completely different from one another.</p>
+    <h3>Should I use subdomains or subdirectories for multisite?</h3>
+    <p>Subdirectories (example.com/site) are simpler because DNS and SSL cover one domain. Subdomains (site.example.com) need a wildcard DNS record and a wildcard SSL certificate. Pick subdirectories unless each site truly needs its own hostname or you're mapping custom domains per site. You choose this at setup and it's hard to change once you have live subsites.</p>
+    <h3>When should I use WordPress Multisite?</h3>
+    <p>When you have many related sites, run by one team, that should be managed and updated together: a franchise with a site per location, an organization with a site per department, or regional variants of one brand. It saves repetitive work when the sites genuinely share design, plugins, and ownership.</p>
+    <h3>When should I avoid Multisite?</h3>
+    <p>When the sites are really independent: different clients, clashing plugin needs, one much bigger than the rest, or any chance you'll sell or move one. Because subsites share a database and core, separating one later is a real project, and a network-wide plugin flaw or bad update hits every site at once.</p>
+    <h3>Can I move a single site out of a multisite network?</h3>
+    <p>Yes, but it's a migration, not a click. You export that subsite's tables, rewrite its URLs, move its uploads, and stand it up as its own WordPress install. It's very doable, which is why it's a supported path, but the effort is exactly why unrelated sites are better kept separate from the start.</p>
+    <h3>Should an agency use multisite for client sites?</h3>
+    <p>Usually not. Unrelated clients don't share a fate, so a shared codebase and database work against you: one bad update can affect everyone, and a client who leaves triggers an extraction. Separate installs or a server per client keep clients isolated and easy to hand over. See the agency hosting playbook for the pattern that scales.</p>
+    <h3>What hosting does a WordPress multisite network need?</h3>
+    <p>The whole network runs as one WordPress application on one database, so backups and resources cover the entire network at once and the database grows with every subsite. Size the server and a managed MySQL database for the network rather than a single site, since all subsites share the same CPU, memory, and PHP workers.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Network by choice, not by accident.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"WordPress Multisite Hosting: What It Is and Whether You Actually Want It","description":"When WordPress multisite is the right tool and when it's a trap, subdomain vs subdirectory, the theme question, and what a network needs from hosting.","image":"https://www.kloudbean.com/blog/wordpress-multisite-hosting/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/wordpress-multisite-hosting/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is WordPress Multisite?","acceptedAnswer":{"@type":"Answer","text":"It's a mode that turns one WordPress installation into a network of many sites, all sharing the same core files, the same theme and plugin library, and the same database. You run it from an extra dashboard called the Network Admin, and each site is a subsite. That shared foundation is what makes it efficient and what ties the sites together."}},
+{"@type":"Question","name":"Is WordPress Multisite one theme or multiple themes?","acceptedAnswer":{"@type":"Answer","text":"Multiple. Each subsite can run its own theme. You network-enable themes to make them available across the network, then each site chooses which one it uses. The library of installed themes is shared, but the choice and settings are per site, so subsites can look completely different from one another."}},
+{"@type":"Question","name":"Should I use subdomains or subdirectories for multisite?","acceptedAnswer":{"@type":"Answer","text":"Subdirectories (example.com/site) are simpler because DNS and SSL cover one domain. Subdomains (site.example.com) need a wildcard DNS record and a wildcard SSL certificate. Pick subdirectories unless each site truly needs its own hostname or you're mapping custom domains per site. You choose this at setup and it's hard to change once you have live subsites."}},
+{"@type":"Question","name":"When should I use WordPress Multisite?","acceptedAnswer":{"@type":"Answer","text":"When you have many related sites, run by one team, that should be managed and updated together: a franchise with a site per location, an organization with a site per department, or regional variants of one brand. It saves repetitive work when the sites genuinely share design, plugins, and ownership."}},
+{"@type":"Question","name":"When should I avoid Multisite?","acceptedAnswer":{"@type":"Answer","text":"When the sites are really independent: different clients, clashing plugin needs, one much bigger than the rest, or any chance you'll sell or move one. Because subsites share a database and core, separating one later is a real project, and a network-wide plugin flaw or bad update hits every site at once."}},
+{"@type":"Question","name":"Can I move a single site out of a multisite network?","acceptedAnswer":{"@type":"Answer","text":"Yes, but it's a migration, not a click. You export that subsite's tables, rewrite its URLs, move its uploads, and stand it up as its own WordPress install. It's very doable, which is why it's a supported path, but the effort is exactly why unrelated sites are better kept separate from the start."}},
+{"@type":"Question","name":"Should an agency use multisite for client sites?","acceptedAnswer":{"@type":"Answer","text":"Usually not. Unrelated clients don't share a fate, so a shared codebase and database work against you: one bad update can affect everyone, and a client who leaves triggers an extraction. Separate installs or a server per client keep clients isolated and easy to hand over. See the agency hosting playbook for the pattern that scales."}},
+{"@type":"Question","name":"What hosting does a WordPress multisite network need?","acceptedAnswer":{"@type":"Answer","text":"The whole network runs as one WordPress application on one database, so backups and resources cover the entire network at once and the database grows with every subsite. Size the server and a managed MySQL database for the network rather than a single site, since all subsites share the same CPU, memory, and PHP workers."}}
+]}
+]}
+</script>
+</body>
+</html>

@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nginx Reverse Proxy for Node.js: A Real Production Config</title>
+<meta name="description" content="Set up an nginx reverse proxy for Node the right way: a real proxy_pass config with the headers that matter, WebSocket upgrade, static files, SSL, and the 502 fix.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Nginx Reverse Proxy for Node.js: A Real Production Config">
+<meta property="og:description" content="A copy-paste nginx reverse proxy for Node: proxy_pass to localhost:3000, the X-Forwarded headers that matter, WebSocket upgrade, static files, and safe reloads.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Node.js · Reverse proxy</span>
+  <h1>Nginx Reverse Proxy for Node: A Real, Production-Shaped Config</h1>
+  <p class="byline">By Kloudbean Platform Engineering · The Proxy Out Front: what nginx does for your Node app, and what you'd otherwise maintain by hand.</p>
+
+  <figure><img src="images/hero.png" alt="Nginx reverse proxy for Node: nginx on port 443 terminates SSL and proxies to a Node app on localhost 3000"></figure>
+
+  <p class="lead">Your Node app boots, binds to <code>localhost:3000</code>, and answers every route. Then it's time to face real traffic, and pointing the public internet straight at port 3000 turns out to be a bad idea.</p>
+
+  <p>The fix nearly everyone reaches for is an nginx reverse proxy for Node. nginx sits on ports 80 and 443, terminates SSL, and forwards each request to your app on <code>127.0.0.1:3000</code>. This guide hands you a real, copy-paste nginx config for a Node.js app, explains why every single line is there, and covers the WebSocket gotcha that 400s <code>socket.io</code> when you forget it. Then it shows what a managed platform does with all of this so you don't have to.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>Run Node on <code>localhost:3000</code> and put nginx in front on 443. nginx terminates TLS, serves your static files, and proxies everything else with <code>proxy_pass</code> to <code>127.0.0.1:3000</code>, forwarding <code>Host</code>, <code>X-Real-IP</code>, <code>X-Forwarded-For</code>, and <code>X-Forwarded-Proto</code> so your app sees the real client. Add the <code>Upgrade</code> and <code>Connection</code> headers and WebSockets work too. On managed hosting the platform runs this proxy and the SSL for you.</p>
+  </div>
+
+  <h2>Why not just expose Node on port 3000?</h2>
+  <p>Node is genuinely good at running your application logic. It's less good at being the public face of a server. The core <code>http</code> library will happily bind a port and speak HTTP, but it was never meant to be the hardened front door to the open internet, and you feel that the moment real traffic shows up.</p>
+  <p>So you put nginx in front. Here's what nginx takes off your plate, and why each one earns its keep.</p>
+  <ul>
+    <li><strong>TLS termination.</strong> nginx holds the certificate and speaks HTTPS to the world, so your Node process speaks plain HTTP on localhost and never touches a <code>.pem</code> file. One place to renew, one place to configure ciphers.</li>
+    <li><strong>A stable public port.</strong> Browsers expect 80 and 443. Node dev servers love 3000, 3001, 5173. nginx listens on the ports the world uses and forwards to whatever port your app happens to run on, so you can restart or move the app without the public URL ever changing.</li>
+    <li><strong>Static files.</strong> A built React bundle, images, fonts. nginx reads those off disk far faster than waking a Node event loop to stream a file, and it frees your app to do actual work.</li>
+    <li><strong>Buffering slow clients.</strong> Someone on hotel wifi shouldn't be able to pin a Node worker for thirty seconds. nginx buffers the response, releases your app the moment it has the bytes, and drip-feeds the slow client itself.</li>
+    <li><strong>Compression.</strong> gzip or brotli at the edge, configured once, applied to every response, without a line of app code.</li>
+    <li><strong>Many apps on one server.</strong> A single nginx can front a dozen Node apps and domains on the same box, each on its own private port. Only one process can bind 443, so without a proxy your apps would fight over it.</li>
+  </ul>
+  <p>None of this replaces Node. It wraps it. If the whole idea is new, we unpack it from scratch in <a href="https://www.kloudbean.com/blog/reverse-proxy-explained/">reverse proxy explained</a>.</p>
+
+  <figure>
+    <svg viewBox="0 0 840 400" role="img" aria-label="A single request flows left to right. The Internet connects on port 443 over HTTPS to nginx, the public edge listening on ports 80 and 443. nginx then uses proxy_pass to forward over plain HTTP to a Node app on 127.0.0.1 port 3000. Below, two columns split the work: nginx handles TLS termination, static files, gzip and brotli compression, buffering slow clients, setting X-Forwarded headers, and routing many apps and domains. Node handles your routes and logic, template and JSON responses, sessions and auth, talking to the database, reading PORT from the environment, and staying on a private port." xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <defs>
+        <marker id="np" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4F1AF3"/></marker>
+        <marker id="ng" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#40b75f"/></marker>
+      </defs>
+
+      <text x="28" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="17" font-weight="700">One request, from the internet to your Node app</text>
+
+      <rect x="28" y="72" width="150" height="64" rx="12" fill="#000f27"/>
+      <text x="103" y="100" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="14" font-weight="600">Internet</text>
+      <text x="103" y="119" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="10.5">browsers and sockets</text>
+
+      <line x1="178" y1="104" x2="298" y2="104" stroke="#4F1AF3" stroke-width="2.4" marker-end="url(#np)"/>
+      <text x="238" y="96" text-anchor="middle" fill="#4F1AF3" font-family="JetBrains Mono,monospace" font-size="10">:443 HTTPS</text>
+
+      <rect x="300" y="64" width="190" height="80" rx="12" fill="#ffffff" stroke="#4F1AF3" stroke-width="2"/>
+      <text x="395" y="94" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="15" font-weight="700">nginx</text>
+      <text x="395" y="112" text-anchor="middle" fill="#5b6a86" font-family="JetBrains Mono,monospace" font-size="10">listens :80 and :443</text>
+      <text x="395" y="129" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">the public edge</text>
+
+      <line x1="490" y1="104" x2="610" y2="104" stroke="#40b75f" stroke-width="2.4" marker-end="url(#ng)"/>
+      <text x="550" y="96" text-anchor="middle" fill="#2f7d45" font-family="JetBrains Mono,monospace" font-size="10">proxy_pass</text>
+      <text x="550" y="122" text-anchor="middle" fill="#5b6a86" font-family="JetBrains Mono,monospace" font-size="9.5">plain HTTP</text>
+
+      <rect x="612" y="64" width="200" height="80" rx="12" fill="#ffffff" stroke="#40b75f" stroke-width="2"/>
+      <text x="712" y="94" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="15" font-weight="700">Node app</text>
+      <text x="712" y="112" text-anchor="middle" fill="#5b6a86" font-family="JetBrains Mono,monospace" font-size="10">127.0.0.1:3000</text>
+      <text x="712" y="129" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">private, plain HTTP</text>
+
+      <line x1="28" y1="172" x2="812" y2="172" stroke="#e6e9f2" stroke-width="1.4"/>
+
+      <text x="300" y="200" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="12" font-weight="700" letter-spacing="0.6">nginx handles the edge</text>
+      <circle cx="307" cy="222" r="3" fill="#4F1AF3"/><text x="318" y="226" fill="#33405c" font-family="Poppins,sans-serif" font-size="11.5">TLS termination (holds the cert)</text>
+      <circle cx="307" cy="246" r="3" fill="#4F1AF3"/><text x="318" y="250" fill="#33405c" font-family="Poppins,sans-serif" font-size="11.5">Static files off disk</text>
+      <circle cx="307" cy="270" r="3" fill="#4F1AF3"/><text x="318" y="274" fill="#33405c" font-family="Poppins,sans-serif" font-size="11.5">gzip / brotli compression</text>
+      <circle cx="307" cy="294" r="3" fill="#4F1AF3"/><text x="318" y="298" fill="#33405c" font-family="Poppins,sans-serif" font-size="11.5">Buffer slow clients</text>
+      <circle cx="307" cy="318" r="3" fill="#4F1AF3"/><text x="318" y="322" fill="#33405c" font-family="Poppins,sans-serif" font-size="11.5">Set X-Forwarded headers</text>
+      <circle cx="307" cy="342" r="3" fill="#4F1AF3"/><text x="318" y="346" fill="#33405c" font-family="Poppins,sans-serif" font-size="11.5">Route many apps and domains</text>
+
+      <text x="612" y="200" fill="#2f7d45" font-family="Poppins,sans-serif" font-size="12" font-weight="700" letter-spacing="0.6">Node handles the app</text>
+      <circle cx="619" cy="222" r="3" fill="#40b75f"/><text x="630" y="226" fill="#33405c" font-family="Poppins,sans-serif" font-size="11.5">Your routes and logic</text>
+      <circle cx="619" cy="246" r="3" fill="#40b75f"/><text x="630" y="250" fill="#33405c" font-family="Poppins,sans-serif" font-size="11.5">JSON and template responses</text>
+      <circle cx="619" cy="270" r="3" fill="#40b75f"/><text x="630" y="274" fill="#33405c" font-family="Poppins,sans-serif" font-size="11.5">Sessions and auth</text>
+      <circle cx="619" cy="294" r="3" fill="#40b75f"/><text x="630" y="298" fill="#33405c" font-family="Poppins,sans-serif" font-size="11.5">Talks to the database</text>
+      <circle cx="619" cy="318" r="3" fill="#40b75f"/><text x="630" y="322" fill="#33405c" font-family="Poppins,sans-serif" font-size="11.5">Reads PORT from env</text>
+      <circle cx="619" cy="342" r="3" fill="#40b75f"/><text x="630" y="346" fill="#33405c" font-family="Poppins,sans-serif" font-size="11.5">Stays on a private port</text>
+
+      <text x="420" y="384" text-anchor="middle" fill="#8a94a6" font-family="Poppins,sans-serif" font-size="11">Public ports 80 and 443 stay stable. Your Node port stays private.</text>
+    </svg>
+    <figcaption>nginx owns the edge (TLS, static files, compression, headers). Node owns the app. The proxy is the line between them.</figcaption>
+  </figure>
+
+  <h2>The nginx reverse proxy for Node config, line by line</h2>
+  <p>Enough theory. This is a complete server block you can adapt today. It fronts a Node app on <code>127.0.0.1:3000</code>, redirects HTTP to HTTPS, serves static files, and handles WebSockets. Read it once, then we'll walk the parts that trip people up.</p>
+<pre><code># /etc/nginx/sites-available/myapp
+# nginx reverse proxy for a Node app on 127.0.0.1:3000
+
+# runs once per request: sets Connection correctly for WebSocket upgrades
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+upstream node_app {
+    server 127.0.0.1:3000;
+    keepalive 32;             # reuse connections to Node instead of reopening
+}
+
+# send all plain HTTP straight to HTTPS
+server {
+    listen 80;
+    server_name example.com www.example.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name example.com www.example.com;
+
+    ssl_certificate     /etc/letsencrypt/live/example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
+
+    client_max_body_size 25m;         # allow real uploads, not just tiny forms
+
+    # let nginx serve static files straight off disk
+    location /public/ {
+        alias   /var/www/myapp/public/;
+        expires 30d;
+        access_log off;
+    }
+
+    # everything else goes to Node
+    location / {
+        proxy_pass http://node_app;
+
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # the two lines that make WebSockets work
+        proxy_set_header Upgrade    $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+
+        proxy_read_timeout 60s;
+    }
+}</code></pre>
+  <p>That's the whole thing. Now the parts worth understanding, because pasting config you don't understand is how you end up debugging at midnight.</p>
+
+  <h3>Why each proxy header is there</h3>
+  <p>The <code>proxy_pass</code> line does the forwarding. The <code>proxy_set_header</code> lines are what keep your app sane once it's behind nginx. Skip them and you get subtle bugs that only surface in production.</p>
+  <ul>
+    <li><strong>Host <code>$host</code>.</strong> Passes the original hostname through, so your app and its router see <code>example.com</code>, not the internal <code>127.0.0.1</code>. Virtual hosts, canonical URLs, and any link your app generates depend on this.</li>
+    <li><strong>X-Real-IP and X-Forwarded-For.</strong> Without these, every request looks like it came from <code>127.0.0.1</code>, because that's literally who connected to Node: nginx. These headers carry the real visitor IP so your logs, rate limiters, and geo logic actually work. <code>X-Forwarded-For</code> appends the client through each hop; <code>X-Real-IP</code> is the single immediate client.</li>
+    <li><strong>X-Forwarded-Proto <code>$scheme</code>.</strong> Tells your app the original request was <code>https</code>, even though nginx talks to it over plain <code>http</code>. Get this wrong and secure-cookie logic and any http to https redirect breaks, sometimes into an infinite loop. More on that in the errors section.</li>
+    <li><strong>proxy_http_version 1.1 plus Upgrade and Connection.</strong> This is the WebSocket handshake. It gets its own section below, because leaving it out is the single most common mistake here.</li>
+  </ul>
+
+  <h3>Tell Express or NestJS to trust the proxy</h3>
+  <p>Setting the headers in nginx is only half the deal. Your app has to be told to believe them. In Express, and anything built on it like NestJS, that's one line:</p>
+<pre><code>app.set('trust proxy', 1);
+// now req.ip is the real client, and req.protocol reports 'https'</code></pre>
+  <p>With <code>trust proxy</code> on, <code>req.ip</code> reads the real client from <code>X-Forwarded-For</code> and <code>req.protocol</code> reports <code>https</code>. Leave it off and <code>express-rate-limit</code> counts every request as one IP, secure cookies quietly refuse to set, and a redirect-to-HTTPS check can loop forever. The full Express path is in <a href="https://www.kloudbean.com/blog/deploy-express-app/">deploy an Express app to production</a>, and NestJS follows the same rule in <a href="https://www.kloudbean.com/blog/deploy-nestjs-app/">deploy a NestJS app</a>. Keep the values these settings depend on in real config, not as literals in code. We cover that in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a>.</p>
+
+  <!-- ADD IMAGE: a terminal running nginx -t showing "syntax is ok" and "test is successful". Swap for a real screenshot: src -> images/nginx-test-ok.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal running nginx -t, showing syntax is ok and test is successful before a reload.</em><small>The habit that saves you from a self-inflicted outage.</small></span></figure>
+
+  <h2>Can nginx serve static files for my Node app?</h2>
+  <p>Yes, and it should. Your Node app can serve <code>/public</code> itself with <code>express.static</code>. It just shouldn't in production. Every static request that reaches Node wakes the event loop to do work the operating system already does better. Hand it to nginx instead:</p>
+<pre><code>location /public/ {
+    alias   /var/www/myapp/public/;
+    expires 30d;
+    add_header Cache-Control "public";
+    access_log off;
+}</code></pre>
+  <p>Now a request for <code>/public/app.js</code> never touches Node. nginx reads it off disk, adds a 30-day <code>expires</code> header so browsers cache it, and skips the access log for that noise. Your app only sees the requests that genuinely need application code. On a busy site that's the difference between an event loop free for API calls and one clogged serving your logo.</p>
+
+  <h2>How do I proxy WebSockets through nginx?</h2>
+  <p>This is the number one thing people get wrong, so it gets its own section. Point <code>socket.io</code> or a raw <code>ws</code> server at a default nginx proxy and the connection fails, usually with an HTTP 400 or a handshake that just never upgrades. The reason: a WebSocket starts life as an ordinary HTTP request that asks to "upgrade" the connection, and nginx will not pass that <code>Upgrade</code> along unless you tell it to.</p>
+  <p>Two pieces make it work. First, this <code>map</code> block at the top of the file, outside any server block:</p>
+<pre><code>map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}</code></pre>
+  <p>Then, inside the location that proxies to Node, these three lines:</p>
+<pre><code>proxy_http_version 1.1;
+proxy_set_header Upgrade    $http_upgrade;
+proxy_set_header Connection $connection_upgrade;</code></pre>
+  <p><code>proxy_http_version 1.1</code> matters because connection upgrades don't exist in HTTP/1.0. The <code>map</code> is a small, elegant trick: it sets <code>Connection</code> to <code>upgrade</code> for a WebSocket handshake and to <code>close</code> otherwise, so normal HTTP requests aren't affected. Add these and your real-time features connect. Miss them and everything else keeps working, which is what makes it such a maddening bug: your pages load fine and only the sockets break, so you hunt through app code when the fix was in nginx all along.</p>
+
+  <!-- ADD IMAGE: browser devtools Network tab showing a WebSocket connection with status 101 Switching Protocols. Swap for a real screenshot: src -> images/ws-101.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Browser devtools Network tab showing a WebSocket at status 101 Switching Protocols, the sign the upgrade got through.</em><small>101 good, 400 means the Upgrade headers are missing.</small></span></figure>
+
+  <h2>Running multiple Node apps behind one nginx</h2>
+  <p>One server, several Node apps. nginx routes by hostname or by path, and honestly this is one of the best reasons to run a proxy at all. Each app keeps its own private port and its own process, and nginx is the single thing bound to 443, deciding who gets what.</p>
+  <p>By hostname, you write one server block per domain, each proxying to a different local port:</p>
+<pre><code>server {
+    listen 443 ssl;
+    server_name api.example.com;
+    location / { proxy_pass http://127.0.0.1:3000; }
+}
+
+server {
+    listen 443 ssl;
+    server_name app.example.com;
+    location / { proxy_pass http://127.0.0.1:4000; }
+}</code></pre>
+  <p>By path, you keep one hostname and send different URL prefixes to different apps. An <code>upstream</code> block names each backend so the config stays readable:</p>
+<pre><code>upstream api { server 127.0.0.1:3000; }
+upstream web { server 127.0.0.1:4000; }
+
+server {
+    listen 443 ssl;
+    server_name example.com;
+
+    location /api/ { proxy_pass http://api; }
+    location /     { proxy_pass http://web; }
+}</code></pre>
+  <p>Same box, two apps, zero port collisions. When one of those apps grows past a single instance, that upstream idea extends to a whole pool of backends with health checks, which is what a load balancer does. We cover the distribution side in the <a href="https://www.kloudbean.com/blog/cloud-load-balancer-explained/">cloud load balancer explainer</a>.</p>
+
+  <h2>Reload safely, and the errors you'll actually hit</h2>
+  <p>Changed the config? Don't restart nginx. Test it, then reload it, so live connections aren't dropped:</p>
+<pre><code>sudo nginx -t                 # parse and test the config; changes nothing
+sudo systemctl reload nginx   # apply it without dropping open connections</code></pre>
+  <p><code>nginx -t</code> catches the typo before it takes your site down. <code>reload</code> swaps the config in gracefully. <code>restart</code> drops every open connection, so save it for when you truly need it. Always run <code>-t</code> first. It's a two-second check that has saved more sites than any dashboard.</p>
+  <p>Three errors show up again and again. Learn to read them and you'll fix them in seconds instead of an hour.</p>
+  <ul>
+    <li><strong>502 Bad Gateway.</strong> nginx is up but can't reach Node. Almost always Node isn't running, crashed on boot, or is listening on a different port than the one in <code>proxy_pass</code>. Check the process is alive and the ports match. The proxy is fine here. Your app is the one not answering.</li>
+    <li><strong>413 Request Entity Too Large.</strong> Someone uploaded a file bigger than <code>client_max_body_size</code>, which defaults to a stingy 1 MB. Set <code>client_max_body_size 25m;</code> (or whatever your uploads actually need) in the server or location block, then reload.</li>
+    <li><strong>Redirect loop (ERR_TOO_MANY_REDIRECTS).</strong> Your app forces HTTP to HTTPS, but because <code>X-Forwarded-Proto</code> isn't set or isn't trusted, the app thinks every request is still plain HTTP and redirects forever. Set the header in nginx and turn on <code>trust proxy</code> in the app. Both, not one.</li>
+  </ul>
+  <p>Two of those three are really about your app, not nginx. A 502 usually means the Node process didn't stay up, which is a process-manager job, not a proxy one. If you're weighing how to keep Node alive across crashes and reboots, see <a href="https://www.kloudbean.com/blog/pm2-vs-systemd/">PM2 vs systemd</a>.</p>
+
+  <div class="note">
+    <p><strong>Founder note.</strong> Every line above is real work, and it's work you repeat for each app and then maintain forever. Certificates renew. Ciphers get deprecated. A new app needs a new server block, a new upstream, another <code>client_max_body_size</code> you'll forget until the first upload 413s. Hand-rolling and hardening nginx per app is exactly the kind of toil a managed platform should absorb, so your day goes to your product instead of your proxy.</p>
+  </div>
+
+  <h2>What this looks like on a managed Kloudbean server</h2>
+  <p>On Kloudbean you generally don't hand-edit nginx for a normal app, because the platform already runs the reverse proxy in front of your app and terminates SSL at that layer. You deploy the app, point a domain, and the proxy forwards to your app's port for you. The config above is what the platform is doing on your behalf, and what you'd otherwise be maintaining by hand on a bare server.</p>
+  <figure>
+    <img src="../assets/console/add-application.png" alt="Adding a Node application and its domain in the Kloudbean console, where the platform wires a reverse proxy to the app's port">
+    <figcaption>Add an app and attach a domain. The platform puts a web server in front of it and wires the proxy to your app's port. No server block to write.</figcaption>
+  </figure>
+  <p>SSL works the same hands-off way. You attach a domain and get a free auto-renewing certificate, so there's no <code>.pem</code> path to wire up and no renewal reminder sitting in your calendar. TLS terminates at the proxy, and your Node app speaks plain HTTP behind it, exactly like the config earlier.</p>
+  <figure>
+    <img src="../assets/console/ssl-certificate.png" alt="The Kloudbean SSL panel showing a free auto-renewing certificate terminating at the proxy layer for a Node app">
+    <figcaption>Free auto-renewing SSL, terminated at the proxy. The certificate lives at the edge so your app never handles it.</figcaption>
+  </figure>
+  <p>When one backend isn't enough, the built-in Flexible Load Balancer takes that <code>upstream</code> idea from earlier and runs it across a pool of app instances, with SSL management and access logs. It's on every account, off until you switch it on, so you enable it the day you need it and not before. And because servers, apps, managed databases, and the load balancer all live under one dashboard, the proxy layer isn't a separate product with its own bill. New to the managed model? <a href="https://www.kloudbean.com/blog/what-is-a-managed-server/">What is a managed server</a> lays out exactly what the platform runs for you.</p>
+  <!-- ADD IMAGE: the Kloudbean dashboard showing a server with multiple apps, each on its own domain behind the managed proxy. Swap for a real screenshot: src -> images/multi-app-dashboard.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The dashboard with one server hosting several apps, each on its own domain behind the managed proxy.</em><small>The multi-app setup from earlier, without a line of nginx.</small></span></figure>
+  <p>The split stays clear. The platform runs the proxy and the SSL. You own the Node app behind it, on Linux. Same division of labour as the config above, just without you editing it.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Let the platform be the proxy out front. You write the app.</p>
+    <p style="margin:0 0 .6em">Deploy your Node app on Kloudbean and a reverse proxy sits in front with free auto-renewing SSL, wired to the right port for you. Flip on the built-in load balancer the day one backend isn't enough. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>, and compare plans from $8/mo on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">One dashboard · Managed reverse proxy and SSL · Built-in load balancer · Git deploy · Private networking · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Why put nginx in front of Node?</h3>
+    <p>Because Node is built to run your application, not to be the hardened public edge of a server. nginx in front handles TLS termination, serves static files quickly, compresses responses, and buffers slow clients so they cannot tie up a Node worker. It also gives you a stable public port on 80 and 443 while Node stays private on something like 3000, and it lets one server host many apps and domains.</p>
+
+    <h3>What does proxy_pass do in nginx?</h3>
+    <p>proxy_pass tells nginx where to forward a matched request. In a Node setup you point it at your app on the loopback address, for example proxy_pass http://127.0.0.1:3000. nginx accepts the public HTTPS request, then opens its own internal connection to Node on that address and relays the response back to the client.</p>
+
+    <h3>How do I proxy WebSockets through nginx for a Node app?</h3>
+    <p>Set proxy_http_version to 1.1, then forward the Upgrade and Connection headers inside the location that proxies to Node. Use a map block that sets Connection to upgrade for WebSocket requests and to close otherwise. Without these, socket.io and raw ws connections fail with a 400 or never complete the handshake, even though normal HTTP requests keep working.</p>
+
+    <h3>How do I get the real client IP behind nginx in Node?</h3>
+    <p>Add proxy_set_header X-Real-IP and X-Forwarded-For in nginx so the visitor IP is passed through, because otherwise every request appears to come from 127.0.0.1, which is nginx itself. Then tell your app to trust those headers. In Express that is app.set('trust proxy', 1), after which req.ip returns the real client instead of the proxy.</p>
+
+    <h3>Why do I get a 502 Bad Gateway with nginx and Node?</h3>
+    <p>A 502 means nginx is running but could not reach your Node app. The usual causes are that Node is not running, crashed on startup, or is listening on a different port than the one in proxy_pass. Confirm the process is alive and that the port in your config matches the port Node actually binds. The proxy is fine, so look at the app.</p>
+
+    <h3>Do I need nginx on managed hosting?</h3>
+    <p>Usually not, because a managed platform runs the reverse proxy for you and terminates SSL at that layer. On Kloudbean you deploy the app, attach a domain, and the platform forwards traffic to your app's port with a free auto-renewing certificate. You mainly make sure your app reads its port from the environment and listens on all interfaces.</p>
+
+    <h3>Can nginx serve static files for my Node app?</h3>
+    <p>Yes, and it is faster than letting Node do it. Add a location block that maps a URL path to a folder on disk with an expires header, so requests for images, CSS, and your built JavaScript never wake the Node event loop. That frees your app to handle only the requests that need application code.</p>
+
+    <h3>Should Node listen on localhost or 0.0.0.0 behind nginx?</h3>
+    <p>On a single box where nginx runs locally, 127.0.0.1 often works, but 0.0.0.0 is safer because it also accepts health checks and probes from other interfaces. Bind to 0.0.0.0 and read the port from process.env.PORT so the same code works whether the proxy is local or on another host. There is rarely a good reason to restrict the bind address in a normal deploy.</p>
+
+    <h3>What is client_max_body_size and why did my upload fail?</h3>
+    <p>client_max_body_size is the largest request body nginx will accept, and it defaults to 1 MB. Upload a file bigger than that and nginx returns 413 Request Entity Too Large before the request ever reaches Node. Raise it in the server or location block, for example client_max_body_size 25m, then reload nginx.</p>
+
+    <h3>How do I run multiple Node apps behind one nginx?</h3>
+    <p>Give each app its own private port and process, then route to them in nginx. Use one server block per hostname for domain-based routing, or location blocks with upstream backends to split by URL path on a single hostname. nginx is the only process bound to 443, and it forwards each request to the right app.</p>
+  </div>
+
+  <p class="byline">Kloudbean · The proxy out front, so your Node app can stay on localhost and still face the world.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Nginx Reverse Proxy for Node: A Real, Production-Shaped Config","description":"A practical guide to setting up an nginx reverse proxy for Node: a complete proxy_pass config with the X-Forwarded headers that matter, WebSocket upgrade, static files, safe reloads, and the 502 fix, plus how a managed platform runs the proxy and SSL for you.","image":"https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Why put nginx in front of Node?","acceptedAnswer":{"@type":"Answer","text":"Because Node is built to run your application, not to be the hardened public edge of a server. nginx in front handles TLS termination, serves static files quickly, compresses responses, and buffers slow clients so they cannot tie up a Node worker. It also gives you a stable public port on 80 and 443 while Node stays private on something like 3000, and it lets one server host many apps and domains."}},
+{"@type":"Question","name":"What does proxy_pass do in nginx?","acceptedAnswer":{"@type":"Answer","text":"proxy_pass tells nginx where to forward a matched request. In a Node setup you point it at your app on the loopback address, for example proxy_pass http://127.0.0.1:3000. nginx accepts the public HTTPS request, then opens its own internal connection to Node on that address and relays the response back to the client."}},
+{"@type":"Question","name":"How do I proxy WebSockets through nginx for a Node app?","acceptedAnswer":{"@type":"Answer","text":"Set proxy_http_version to 1.1, then forward the Upgrade and Connection headers inside the location that proxies to Node. Use a map block that sets Connection to upgrade for WebSocket requests and to close otherwise. Without these, socket.io and raw ws connections fail with a 400 or never complete the handshake, even though normal HTTP requests keep working."}},
+{"@type":"Question","name":"How do I get the real client IP behind nginx in Node?","acceptedAnswer":{"@type":"Answer","text":"Add proxy_set_header X-Real-IP and X-Forwarded-For in nginx so the visitor IP is passed through, because otherwise every request appears to come from 127.0.0.1, which is nginx itself. Then tell your app to trust those headers. In Express that is app.set trust proxy set to 1, after which req.ip returns the real client instead of the proxy."}},
+{"@type":"Question","name":"Why do I get a 502 Bad Gateway with nginx and Node?","acceptedAnswer":{"@type":"Answer","text":"A 502 means nginx is running but could not reach your Node app. The usual causes are that Node is not running, crashed on startup, or is listening on a different port than the one in proxy_pass. Confirm the process is alive and that the port in your config matches the port Node actually binds. The proxy is fine, so look at the app."}},
+{"@type":"Question","name":"Do I need nginx on managed hosting?","acceptedAnswer":{"@type":"Answer","text":"Usually not, because a managed platform runs the reverse proxy for you and terminates SSL at that layer. On Kloudbean you deploy the app, attach a domain, and the platform forwards traffic to your app's port with a free auto-renewing certificate. You mainly make sure your app reads its port from the environment and listens on all interfaces."}},
+{"@type":"Question","name":"Can nginx serve static files for my Node app?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it is faster than letting Node do it. Add a location block that maps a URL path to a folder on disk with an expires header, so requests for images, CSS, and your built JavaScript never wake the Node event loop. That frees your app to handle only the requests that need application code."}},
+{"@type":"Question","name":"Should Node listen on localhost or 0.0.0.0 behind nginx?","acceptedAnswer":{"@type":"Answer","text":"On a single box where nginx runs locally, 127.0.0.1 often works, but 0.0.0.0 is safer because it also accepts health checks and probes from other interfaces. Bind to 0.0.0.0 and read the port from process.env.PORT so the same code works whether the proxy is local or on another host. There is rarely a good reason to restrict the bind address in a normal deploy."}},
+{"@type":"Question","name":"What is client_max_body_size and why did my upload fail?","acceptedAnswer":{"@type":"Answer","text":"client_max_body_size is the largest request body nginx will accept, and it defaults to 1 MB. Upload a file bigger than that and nginx returns 413 Request Entity Too Large before the request ever reaches Node. Raise it in the server or location block, for example client_max_body_size 25m, then reload nginx."}},
+{"@type":"Question","name":"How do I run multiple Node apps behind one nginx?","acceptedAnswer":{"@type":"Answer","text":"Give each app its own private port and process, then route to them in nginx. Use one server block per hostname for domain-based routing, or location blocks with upstream backends to split by URL path on a single hostname. nginx is the only process bound to 443, and it forwards each request to the right app."}}
+]}
+]}
+</script>
+</body>
+</html>

@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Deploy a Static Site: Hosting, Domains, and SSL</title>
+<meta name="description" content="Deploy a static site the right way: what static really means, how to build one with Vite or an SSG like Astro or Hugo, plus a custom domain and free SSL.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/deploy-static-site/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Deploy a Static Site: Hosting, Domains, and SSL">
+<meta property="og:description" content="A static site is just built files with no server-side code at request time. Here is what static really means, how to build one, and how to host it with a domain and SSL.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Deploy · Static Sites</span>
+  <h1>How to Deploy a Static Site (and What Static Really Means)</h1>
+  <p class="byline">By Kloudbean Engineering · Just Files, Served Fast.</p>
+
+  <figure><img src="images/hero.png" alt="How to deploy a static site: source to build to static files to CDN to browser, with a custom domain and free SSL"></figure>
+
+  <p class="lead">You can deploy a static site in about the time it takes to make coffee, and it'll be the cheapest, fastest, most secure thing you ever host. A static site is just built files: HTML, CSS, and usually a little JavaScript, with no server-side code running when someone visits. That's the whole trick. Whether you hand-wrote the HTML or ran <code>npm run build</code> on a React or Astro project, the output is a folder of plain files that a web server hands out as-is.</p>
+
+  <p>So why do people overthink it? Mostly because the word "static" gets muddy. A React app feels dynamic, it has buttons and state and fetches data, yet it ships as static files. Meanwhile a WordPress blog looks like plain pages but runs PHP on every request. This guide clears that up, shows you what actually produces a static site, and walks the real path to host a static website with a custom domain and SSL.</p>
+
+  <div class="tldr">
+    <strong>How do I deploy a static site?</strong>
+    <p>Build your project into a folder of static files. Run <code>npm run build</code> to get a <code>dist/</code> or <code>build/</code> folder, or use a static site generator like Astro, Hugo, Eleventy, or Jekyll that outputs one. Upload that folder to a static host, point your custom domain at it, and turn on free SSL. There's no server process to keep alive, so there's almost nothing to patch or crash. On Kloudbean, static site hosting is free and includes a custom domain, free SSL, and built-in visit analytics.</p>
+  </div>
+
+  <h2>What is a static site, really?</h2>
+  <p>A static site is a set of files that the server sends back exactly as they sit on disk. Request <code>/about</code>, get <code>about.html</code>. No database query, no template rendered on the fly, no code executed to build the response. The file was finished before anyone asked for it.</p>
+  <p>A dynamic site is the opposite. Code runs on every request. PHP, Node, Python, Ruby, whatever, it looks at who you are and what you asked for, maybe hits a database, and assembles the HTML right then. WordPress, a Laravel app, a Django backend: all dynamic. Powerful, and also a running process you have to secure, patch, keep alive, and scale.</p>
+  <p>Here's the part that trips people up. "Static" describes the server, not the page. A static page can be wildly interactive in the browser. The JavaScript still runs, it just runs on the visitor's machine, not yours. The server only ever handed over files. If you want the mental model that sits under every deploy, static or not, read <a href="https://www.kloudbean.com/blog/how-to-deploy-any-app/">how to deploy any app</a> first. Static hosting is the simplest instance of it.</p>
+
+  <figure>
+    <svg viewBox="0 0 880 320" role="img" aria-label="How a static site is built and served. Your source (Astro, Hugo, React, or hand-written HTML) goes through a build step, npm run build, that outputs a folder of static files (dist or public: HTML, CSS, JS). A web server with a CDN serves those files over SSL to the browser. Below, a contrast: a static site serves files as-is with no code running per request, while a dynamic site runs a server that executes code on every request." style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <defs>
+        <marker id="sa" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5b6a86"></path></marker>
+      </defs>
+      <text x="28" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="17" font-weight="700">From source to browser: what a static deploy actually is</text>
+      <text x="28" y="56" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12.5">A build turns your project into plain files. The server just hands those files out.</text>
+
+      <rect x="24" y="82" width="150" height="64" rx="12" fill="#000f27"></rect>
+      <text x="99" y="110" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Your source</text>
+      <text x="99" y="128" text-anchor="middle" fill="#c9b8ff" font-family="Poppins,sans-serif" font-size="9.5">Astro · Hugo · React · HTML</text>
+
+      <rect x="196" y="82" width="150" height="64" rx="12" fill="#4F1AF3"></rect>
+      <text x="271" y="112" text-anchor="middle" fill="#fff" font-family="JetBrains Mono,monospace" font-size="12" font-weight="600">npm run build</text>
+      <text x="271" y="130" text-anchor="middle" fill="#d8ccff" font-family="Poppins,sans-serif" font-size="10">the build step</text>
+
+      <rect x="368" y="82" width="150" height="64" rx="12" fill="#fff" stroke="#40b75f" stroke-width="1.7"></rect>
+      <text x="443" y="110" text-anchor="middle" fill="#000f27" font-family="JetBrains Mono,monospace" font-size="12" font-weight="600">dist/ or public/</text>
+      <text x="443" y="128" text-anchor="middle" fill="#2f7d45" font-family="Poppins,sans-serif" font-size="10">HTML · CSS · JS</text>
+
+      <rect x="540" y="82" width="150" height="64" rx="12" fill="#fff" stroke="#000f27" stroke-width="1.5"></rect>
+      <text x="615" y="110" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12" font-weight="600">Web server + CDN</text>
+      <text x="615" y="128" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10">cached at edge · SSL</text>
+
+      <rect x="712" y="82" width="150" height="64" rx="12" fill="#eafaef" stroke="#40b75f" stroke-width="1.7"></rect>
+      <text x="787" y="110" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Browser</text>
+      <text x="787" y="128" text-anchor="middle" fill="#2f7d45" font-family="Poppins,sans-serif" font-size="10">loads fast</text>
+
+      <line x1="176" y1="114" x2="194" y2="114" stroke="#5b6a86" stroke-width="2" marker-end="url(#sa)"></line>
+      <line x1="348" y1="114" x2="366" y2="114" stroke="#5b6a86" stroke-width="2" marker-end="url(#sa)"></line>
+      <line x1="520" y1="114" x2="538" y2="114" stroke="#5b6a86" stroke-width="2" marker-end="url(#sa)"></line>
+      <line x1="692" y1="114" x2="710" y2="114" stroke="#5b6a86" stroke-width="2" marker-end="url(#sa)"></line>
+
+      <rect x="24" y="182" width="404" height="112" rx="12" fill="#eafaef" stroke="#40b75f" stroke-width="1.4"></rect>
+      <text x="44" y="210" fill="#2f7d45" font-family="Poppins,sans-serif" font-size="13" font-weight="700">STATIC = files</text>
+      <text x="44" y="234" fill="#1c2536" font-family="Poppins,sans-serif" font-size="11.5">Served exactly as they are. No code runs</text>
+      <text x="44" y="252" fill="#1c2536" font-family="Poppins,sans-serif" font-size="11.5">per request. Little to attack, nothing</text>
+      <text x="44" y="270" fill="#1c2536" font-family="Poppins,sans-serif" font-size="11.5">to crash, and it is cheap to serve.</text>
+
+      <rect x="452" y="182" width="404" height="112" rx="12" fill="#fff" stroke="#000f27" stroke-width="1.4"></rect>
+      <text x="472" y="210" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="700">DYNAMIC = code runs</text>
+      <text x="472" y="234" fill="#1c2536" font-family="Poppins,sans-serif" font-size="11.5">A server runs your code on every</text>
+      <text x="472" y="252" fill="#1c2536" font-family="Poppins,sans-serif" font-size="11.5">request. More power, but more to</text>
+      <text x="472" y="270" fill="#1c2536" font-family="Poppins,sans-serif" font-size="11.5">secure, patch, keep alive, and scale.</text>
+    </svg>
+    <figcaption>The static pipeline. Source becomes a folder of files at build time, and the server's only job at request time is to hand those files back. Nothing executes per visit.</figcaption>
+  </figure>
+
+  <h2>What actually produces a static site?</h2>
+  <p>Three roads lead to the same place, a folder of plain files.</p>
+  <p><strong>Hand-written HTML.</strong> The original static site. You write <code>index.html</code>, a stylesheet, maybe one script, and that folder is your whole site. No build, no tooling. It's underrated for a landing page or a docs stub.</p>
+  <p><strong>A bundler build.</strong> This is where most confusion lives. A Vite project (React, Vue, Svelte) or an old Create React App runs a build and spits out a folder of static files. The framework is a development convenience. The thing you ship is plain HTML, CSS, and JS.</p>
+  <pre><code>npm install
+npm run build     # Vite output lands in dist/, CRA lands in build/</code></pre>
+  <p><strong>A static site generator (SSG).</strong> Tools like Astro, Hugo, Eleventy, and Jekyll take your content (Markdown, templates, data) and pre-render every page to HTML at build time. You get a folder of finished pages. Astro and Hugo are fast and popular right now, Jekyll is the old reliable behind a lot of GitHub Pages sites, and Eleventy is a favorite when you want zero framework baggage.</p>
+  <pre><code>npm run build                 # Astro   -> dist/
+hugo                          # Hugo    -> public/
+npx @11ty/eleventy            # Eleventy -> _site/
+bundle exec jekyll build      # Jekyll  -> _site/</code></pre>
+  <p>Even the big meta-frameworks can produce static output. Next.js has a static export (<code>output: 'export'</code>) that writes an <code>out/</code> folder, and Nuxt has <code>nuxt generate</code>. Whatever the tool, the deliverable is the same shape: a build output folder you can serve anywhere.</p>
+
+  <!-- ADD IMAGE: a terminal after npm run build, showing the dist/ folder contents (index.html, an assets/ dir with hashed .css and .js). Swap for a real screenshot: src -> images/build-output-terminal.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal right after npm run build, showing the dist folder with index.html and hashed CSS and JS assets.</em><small>Grounds the "the output is just files" point.</small></span></figure>
+
+  <h3>Common tools and the folder they build</h3>
+  <p>If you know your tool, you know your output folder. That folder is the only thing hosting cares about.</p>
+  <table class="cmp">
+    <thead><tr><th>Tool</th><th>Build command</th><th>Output folder</th></tr></thead>
+    <tbody>
+      <tr><td>Plain HTML/CSS/JS</td><td>none</td><td>your folder as-is</td></tr>
+      <tr><td>Vite (React, Vue, Svelte)</td><td><code>npm run build</code></td><td><code>dist/</code></td></tr>
+      <tr><td>Create React App</td><td><code>npm run build</code></td><td><code>build/</code></td></tr>
+      <tr><td>Astro</td><td><code>npm run build</code></td><td><code>dist/</code></td></tr>
+      <tr><td>Hugo</td><td><code>hugo</code></td><td><code>public/</code></td></tr>
+      <tr><td>Eleventy (11ty)</td><td><code>npx @11ty/eleventy</code></td><td><code>_site/</code></td></tr>
+      <tr><td>Jekyll</td><td><code>jekyll build</code></td><td><code>_site/</code></td></tr>
+      <tr><td>Next.js (static export)</td><td><code>next build</code></td><td><code>out/</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>Is a React app static or dynamic?</h2>
+  <p>Short answer: a plain React app (a single-page app built with Vite or CRA) is static. You build it, you get files, and those files run in the browser. The server never executes your React code. So yes, you host a React SPA exactly like any other static site.</p>
+  <p>The confusion comes from server-side rendering. If you run React through Next.js in its default server mode, or use any framework that renders pages per request on a Node process, that's not static anymore. Code runs on the server for each visit, which means you need a running app, not a file host. Same for a Remix or SvelteKit app in server mode.</p>
+  <p>So the test isn't the framework, it's whether anything runs on the server at request time. Prerender everything, ship files, it's static. Render per request, it's dynamic. If your React project has grown a real backend, the full path lives in <a href="https://www.kloudbean.com/blog/deploy-fullstack-react-app-to-production/">deploy a full-stack React app to production</a>.</p>
+
+  <div class="note"><b>Founder take:</b> most sites that call themselves "apps" are static front ends talking to an API. Don't reach for server rendering because it sounds serious. If your pages don't need per-request server logic, ship them as static files and enjoy the near-zero attack surface. Add a server for the parts that genuinely need one, not the whole site.</div>
+
+  <h2>How does static hosting actually work?</h2>
+  <p>It's refreshingly boring, and that's the point. A web server (Nginx, usually) sits on a machine with your files. A request comes in for <code>/pricing</code>, the server finds <code>pricing.html</code>, sends it back, done. Put a CDN in front and copies of those files get cached at edge locations near your users, so the round trip is short. Wrap the whole thing in TLS and it's served over HTTPS.</p>
+  <p>Because nothing executes per request, a static site is genuinely hard to break. No app process to crash at 2am. No runtime to patch when a CVE drops. No database connection to exhaust. The classic web attacks that target server code (SQL injection, a vulnerable dependency running server-side) mostly don't apply, because there is no server code. You still secure the pipeline and the headers, but the surface is tiny.</p>
+  <p>It's also why static sites feel instant. There's no work to do. The file is ready, the CDN already has it, the browser gets bytes. If the terms CDN and edge caching are fuzzy, <a href="https://www.kloudbean.com/blog/cdn-explained/">what a CDN is and how it works</a> breaks it down, and <a href="https://www.kloudbean.com/blog/ssl-tls-explained/">how SSL and TLS work</a> covers the HTTPS layer.</p>
+
+  <h2>Why does my SPA 404 when I refresh a deep link?</h2>
+  <p>This one bites almost everyone who deploys a single-page app, so learn it before it eats your afternoon. Your React or Vue SPA uses client-side routing. The router lives in JavaScript. When you click around inside the app, the URL changes to <code>/dashboard</code> but no request ever goes to the server. The router just swaps what's on screen.</p>
+  <p>Now hit refresh on <code>/dashboard</code>, or paste that link to a colleague. The browser asks the server for <code>/dashboard</code>. But there is no <code>dashboard.html</code> file. You only ever built <code>index.html</code>. The server shrugs and returns a 404.</p>
+  <p>The fix is a fallback rule: for any path the server can't find as a file, serve <code>index.html</code> anyway, and let the client router take over once the page loads. On Nginx that's one line:</p>
+  <pre><code>location / {
+    try_files $uri $uri/ /index.html;
+}</code></pre>
+  <p>On file-host style platforms the same idea is a redirect rule (a <code>_redirects</code> file with <code>/*  /index.html  200</code>, for example). Any static host worth using lets you set this. If deep links 404 in production but work locally, this rewrite is almost always what's missing. A fully prerendered SSG site (Astro, Hugo) doesn't hit this, because it built a real file for every route.</p>
+
+  <!-- ADD IMAGE: a browser showing a 404 on /dashboard after refresh, next to the same URL working after the index fallback is set. Swap for a real screenshot: src -> images/spa-404-fallback.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Split view: a browser 404 on a refreshed SPA deep link, then the same route loading after the rewrite-to-index rule is set.</em></span></figure>
+
+  <h2>What about the API? The static/backend boundary</h2>
+  <p>Here's where honesty matters. Static hosting covers your front end. It does not run your backend. If your site fetches data from an API, that API has to live somewhere: a running app process with a database behind it, hosted separately from the files.</p>
+  <p>So a typical setup is two pieces. The static front end (your built <code>dist/</code>) served fast and cheap, and a managed app plus database serving the API. Your front-end JavaScript calls the API over HTTPS. Two things you'll need to get right: point the front end at the API's real URL (usually through a build-time environment variable), and configure CORS on the API so the browser is allowed to call it from your domain. Skip the CORS step and you'll watch requests fail in the console with a cross-origin error while the API itself works fine in curl.</p>
+  <p>Don't put secrets in the static bundle. Anything you build into front-end JS is public, full stop. API keys, database credentials, tokens: those belong on the server side of that boundary, never in the files you ship to the browser.</p>
+
+  <h2>How do I deploy a static site with a custom domain and SSL?</h2>
+  <p>Now the concrete path. On Kloudbean, static site hosting is free, and the flow is short because there's no server to configure. Here's the shape of it.</p>
+
+  <h3>1. Build your files locally (or let the platform build them)</h3>
+  <p>Run your build once to confirm the output folder is what you expect. Open <code>dist/</code> (or <code>build/</code>, or <code>public/</code>) and check that <code>index.html</code> is there with your assets. That folder is your entire site. If you deploy from Git, you don't upload the folder yourself, you tell the platform the build command and the output directory and it builds for you on each push.</p>
+
+  <h3>2. Connect Git and set the build</h3>
+  <p>Point the static site at your GitHub repo, pick a branch, and set the build command (<code>npm run build</code>) and the publish directory (<code>dist/</code>). Every push then rebuilds and redeploys automatically, with live build logs streaming in the console so a failed build shows you the exact line instead of a spinner. That auto-deploy loop is the same one covered in <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD auto-deploy from GitHub</a>.</p>
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="Kloudbean Git Deployment screen: connect the repo, set the build command to npm run build and the publish directory to dist, then deploy">
+    <figcaption>Git Deployment: connect the repo, set Build to npm run build and the output to dist/, then deploy. Push to your branch and it rebuilds itself.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: the static site's dashboard with the built site live and the built-in visit analytics panel showing pageviews. Swap for a real screenshot: src -> images/static-site-analytics.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The static site overview with the built-in visit analytics panel showing pageviews over time.</em><small>Shows the free analytics that ship with static hosting.</small></span></figure>
+
+  <h3>3. Add your custom domain and turn on free SSL</h3>
+  <p>Add your domain, then create the DNS records your host shows you (usually an A record or a CNAME) at your registrar. Once DNS points at the site, issue a free auto-renewing SSL certificate so it loads over HTTPS. You don't buy or manually renew anything. It's one click and then it renews itself before it expires.</p>
+  <figure>
+    <img src="../assets/console/ssl-certificate.png" alt="Kloudbean SSL certificate screen: install a free auto-renewing certificate on the custom domain for a static site">
+    <figcaption>Free SSL on the custom domain. Issue the certificate once and it auto-renews, so your static site stays on HTTPS without a calendar reminder.</figcaption>
+  </figure>
+  <p>That's it. Files built, domain pointed, certificate live. Your static website is online, cached, and encrypted, at no hosting cost.</p>
+
+  <h2>When a static site isn't enough</h2>
+  <p>Static is perfect right up until you need something to run on the server: user logins, a database write, a checkout, a per-request API. At that point you don't throw away the static site, you add a backend beside it.</p>
+  <p>This is where staying on one platform pays off. Kloudbean gives you free static hosting for the front end, and the same dashboard runs managed application servers (Node, Python, PHP, Ruby, Java, and more), seven managed databases (MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, MongoDB), and built-in object storage for files and uploads. So you can launch a static landing page today and grow into a full app without switching hosts or learning a new console. When the backend arrives, <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a> and understanding <a href="https://www.kloudbean.com/blog/what-is-a-managed-server/">what a managed server handles for you</a> are the next two reads.</p>
+  <p>One honest note on speed. Free static hosting serves from a server with SSL, which is fast for most audiences. If you serve a truly global, latency-critical audience, Cloudflare edge caching is available as an add-on to push content to the edge. For a landing page or a docs site, you likely won't need it.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Ship your static site free, grow into a full app when you're ready.</p>
+    <p style="margin:0 0 .6em">Host your built files with a custom domain and free SSL on <a href="https://www.kloudbean.com/">kloudbean.com</a>, and when the site needs a backend, the same dashboard runs the app, the database, and the storage. Sizes and plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Free static site hosting · Custom domain · Free auto-renewing SSL · Built-in visit analytics · Managed databases when you need them · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is a static site?</h3>
+    <p>A static site is a set of files (HTML, CSS, and usually some JavaScript) that a web server sends back exactly as they are, with no server-side code running per request. The pages are finished at build time, not assembled when someone visits. That makes static sites fast, cheap to serve, and very hard to break.</p>
+
+    <h3>How do I deploy a static site?</h3>
+    <p>Build your project into a folder of static files, either by running <code>npm run build</code> or by using a static site generator like Astro or Hugo. Upload that output folder to a static host, or connect the Git repo and let the host build it. Then point your custom domain at the site and enable free SSL. There is no server process to run.</p>
+
+    <h3>Is a React app a static site?</h3>
+    <p>A plain React single-page app built with Vite or Create React App is static. You build it into files, and the JavaScript runs in the visitor's browser, not on your server. It stops being static only if you render pages on the server per request, for example Next.js in its default server mode.</p>
+
+    <h3>Do I need a server to host a static website?</h3>
+    <p>Not a running app server, no. A static website is just files, so a plain web server or a static host serves them directly. You only need a running server if part of your site executes code on each request, such as a login, a database write, or an API.</p>
+
+    <h3>How do I add a custom domain and SSL to a static site?</h3>
+    <p>Add the domain in your host, then create the DNS records it shows you (an A record or a CNAME) at your registrar. Once DNS resolves to the site, issue a free auto-renewing SSL certificate so it loads over HTTPS. On Kloudbean this is included with free static hosting and renews automatically.</p>
+
+    <h3>Why does my single-page app return a 404 when I refresh a deep link?</h3>
+    <p>Because your SPA routes in the browser, not on the server, so a path like <code>/dashboard</code> has no matching file. When you refresh, the server looks for that file, fails, and returns a 404. Fix it with a fallback rule that serves <code>index.html</code> for any unknown path, then the client router takes over.</p>
+
+    <h3>What is the difference between a static site and a dynamic site?</h3>
+    <p>A static site serves pre-built files as-is, with no code running per request. A dynamic site runs code on the server for every request, often querying a database to build the page. Static is faster and safer to host, dynamic is needed when content is personalized or changes per user.</p>
+
+    <h3>Can a static site talk to a database or an API?</h3>
+    <p>Yes, but the database and API must be hosted separately as a running backend. Your static front end calls that API from the browser over HTTPS, and you configure CORS on the API so the browser is allowed to. Never put database credentials or secrets in the static bundle, since anything you ship to the browser is public.</p>
+
+    <h3>Is static site hosting free on Kloudbean?</h3>
+    <p>Yes. Kloudbean offers free static site hosting that includes a custom domain, free auto-renewing SSL, and built-in visit analytics. When your project grows a backend, the same dashboard runs managed apps, seven managed databases, and object storage, so you can scale up without changing platforms.</p>
+  </div>
+
+  <p class="byline">Kloudbean · A static site is just files. Serve them fast, and add a server only for the parts that truly need one.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Deploy a Static Site (and What Static Really Means)","description":"Deploy a static site the right way. Learn what static really means versus dynamic, what produces a static site (Vite or CRA builds and static site generators like Astro, Hugo, Eleventy, and Jekyll), how static hosting works, the SPA 404 fallback rule, the static and backend boundary with CORS, and how to host it with a custom domain and free SSL.","image":"https://www.kloudbean.com/blog/deploy-static-site/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/deploy-static-site/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is a static site?","acceptedAnswer":{"@type":"Answer","text":"A static site is a set of files (HTML, CSS, and usually some JavaScript) that a web server sends back exactly as they are, with no server-side code running per request. The pages are finished at build time, not assembled when someone visits. That makes static sites fast, cheap to serve, and very hard to break."}},
+{"@type":"Question","name":"How do I deploy a static site?","acceptedAnswer":{"@type":"Answer","text":"Build your project into a folder of static files, either by running npm run build or by using a static site generator like Astro or Hugo. Upload that output folder to a static host, or connect the Git repo and let the host build it. Then point your custom domain at the site and enable free SSL. There is no server process to run."}},
+{"@type":"Question","name":"Is a React app a static site?","acceptedAnswer":{"@type":"Answer","text":"A plain React single-page app built with Vite or Create React App is static. You build it into files, and the JavaScript runs in the visitor's browser, not on your server. It stops being static only if you render pages on the server per request, for example Next.js in its default server mode."}},
+{"@type":"Question","name":"Do I need a server to host a static website?","acceptedAnswer":{"@type":"Answer","text":"Not a running app server, no. A static website is just files, so a plain web server or a static host serves them directly. You only need a running server if part of your site executes code on each request, such as a login, a database write, or an API."}},
+{"@type":"Question","name":"How do I add a custom domain and SSL to a static site?","acceptedAnswer":{"@type":"Answer","text":"Add the domain in your host, then create the DNS records it shows you (an A record or a CNAME) at your registrar. Once DNS resolves to the site, issue a free auto-renewing SSL certificate so it loads over HTTPS. On Kloudbean this is included with free static hosting and renews automatically."}},
+{"@type":"Question","name":"Why does my single-page app return a 404 when I refresh a deep link?","acceptedAnswer":{"@type":"Answer","text":"Because your SPA routes in the browser, not on the server, so a path like /dashboard has no matching file. When you refresh, the server looks for that file, fails, and returns a 404. Fix it with a fallback rule that serves index.html for any unknown path, then the client router takes over."}},
+{"@type":"Question","name":"What is the difference between a static site and a dynamic site?","acceptedAnswer":{"@type":"Answer","text":"A static site serves pre-built files as-is, with no code running per request. A dynamic site runs code on the server for every request, often querying a database to build the page. Static is faster and safer to host, dynamic is needed when content is personalized or changes per user."}},
+{"@type":"Question","name":"Can a static site talk to a database or an API?","acceptedAnswer":{"@type":"Answer","text":"Yes, but the database and API must be hosted separately as a running backend. Your static front end calls that API from the browser over HTTPS, and you configure CORS on the API so the browser is allowed to. Never put database credentials or secrets in the static bundle, since anything you ship to the browser is public."}},
+{"@type":"Question","name":"Is static site hosting free on Kloudbean?","acceptedAnswer":{"@type":"Answer","text":"Yes. Kloudbean offers free static site hosting that includes a custom domain, free auto-renewing SSL, and built-in visit analytics. When your project grows a backend, the same dashboard runs managed apps, seven managed databases, and object storage, so you can scale up without changing platforms."}}
+]}
+]}
+</script>
+</body>
+</html>

@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Move Your Lovable App Off Vercel to Kloudbean (Migration Guide)</title>
+<meta name="description" content="A zero-downtime cutover playbook to move your Lovable app off Vercel to a server you own. Inventory the project, lower DNS TTL early, test on a temp URL, then flip DNS last.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/move-lovable-app-off-vercel/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Move Your Lovable App Off Vercel to Kloudbean (Migration Guide)">
+<meta property="og:description" content="Move your Lovable app off Vercel with zero downtime: inventory, lower DNS TTL early, prove it on a temp URL, then flip DNS last.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{ --navy:#000f27; --ink:#1c2536; --muted:#5b6a86; --purple:#4F1AF3; --green:#40b75f; --line:#e6e9f2; --bg-soft:#f6f7fb; }
+  *{box-sizing:border-box}
+  body{ margin:0; background:#fff; color:var(--ink); font-family:"Poppins","Segoe UI",system-ui,-apple-system,Arial,sans-serif; line-height:1.72; font-size:18px; -webkit-font-smoothing:antialiased; }
+  .wrap{max-width:760px; margin:0 auto; padding:40px 22px 80px}
+  .eyebrow{ display:inline-block; font-size:12px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:var(--purple); border:1px solid var(--line); background:var(--bg-soft); padding:5px 12px; border-radius:999px; margin-bottom:18px; }
+  h1{ font-size:clamp(30px,5vw,44px); line-height:1.12; font-weight:700; letter-spacing:-.02em; color:var(--navy); margin:.1em 0 .5em; }
+  h2{ font-size:clamp(23px,3.4vw,29px); font-weight:700; letter-spacing:-.01em; color:var(--navy); margin:2.2em 0 .6em; padding-left:14px; border-left:4px solid var(--purple); }
+  h3{ font-size:20px; font-weight:700; color:var(--navy); margin:1.6em 0 .3em; }
+  p{margin:0 0 1.15em}
+  a{color:var(--purple); text-decoration:none; border-bottom:1px solid rgba(79,26,243,.35)}
+  a:hover{border-bottom-color:var(--purple)}
+  strong{color:var(--navy)}
+  ul{margin:0 0 1.3em; padding-left:0; list-style:none}
+  ul li{position:relative; padding-left:26px; margin:0 0 .7em}
+  ul li::before{content:""; position:absolute; left:2px; top:.62em; width:8px; height:8px; border-radius:2px; background:var(--purple); transform:rotate(45deg)}
+  ol{padding-left:1.2em} ol li{margin:0 0 .6em}
+  figure{margin:2em 0}
+  figure img{width:100%; height:auto; display:block; border-radius:16px; border:1px solid var(--line)}
+  figcaption{font-size:14px; color:var(--muted); text-align:center; margin-top:10px}
+  .lead{font-size:20px; color:#2a3550}
+  code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace; font-size:.88em; background:var(--bg-soft); border:1px solid var(--line); border-radius:6px; padding:1px 6px}
+  pre{background:var(--navy); color:#e8ecfb; border-radius:12px; padding:18px 20px; overflow:auto; font-size:14.5px; line-height:1.6}
+  pre code{background:none;border:none;padding:0;color:inherit;font-size:inherit}
+  .tldr{background:var(--bg-soft); border:1px solid var(--line); border-left:4px solid var(--green); border-radius:12px; padding:16px 20px; margin:1.8em 0}
+  .tldr strong{display:block;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--navy);margin-bottom:6px}
+  .tldr p{margin:0}
+  .note{background:#faf8ff; border:1px solid #e7dfff; border-radius:12px; padding:14px 18px; margin:1.6em 0; font-size:16.5px}
+  .note b{color:var(--navy)}
+  table.cmp{width:100%; border-collapse:collapse; margin:1.6em 0; font-size:15.5px}
+  table.cmp th,table.cmp td{border:1px solid var(--line); padding:10px 12px; text-align:left; vertical-align:top}
+  table.cmp th{background:var(--navy); color:#fff; font-weight:600}
+  table.cmp tr:nth-child(even) td{background:var(--bg-soft)}
+  .faq h3{font-size:18px; margin:1.4em 0 .2em}
+  .cta{ margin:2.4em 0 0; padding:22px 24px; border-radius:16px; color:#fff; background:linear-gradient(135deg,var(--navy),#0a1f45); }
+  .cta a{color:#c9b8ff; border-bottom-color:rgba(201,184,255,.4)}
+  .byline{font-size:14px; color:var(--muted); border-top:1px solid var(--line); margin-top:2em; padding-top:14px}
+  /* image spacer: replace the whole <figure class="img-slot"> with a real <figure><img ...><figcaption>...</figcaption></figure> */
+  .img-slot{display:flex;align-items:center;justify-content:center;text-align:center;min-height:210px;margin:2em 0;padding:30px 24px;border:2px dashed #c9d0e3;border-radius:16px;background:repeating-linear-gradient(45deg,var(--bg-soft),var(--bg-soft) 14px,#eef1f8 14px,#eef1f8 28px);color:var(--muted)}
+  .img-slot > span{display:block;max-width:80%}
+  .img-slot b{display:block;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--purple);margin-bottom:8px}
+  .img-slot em{font-style:normal;font-size:15.5px;color:var(--ink);line-height:1.5}
+  .img-slot small{display:block;margin-top:8px;font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Move off Vercel</span>
+  <h1>Move Your Lovable App Off Vercel to Kloudbean (Migration Guide)</h1>
+
+  <figure><img src="images/hero.png" alt="Move a Lovable app off Vercel to a managed server you own — a timed DNS cutover with no downtime"></figure>
+
+  <p class="lead">You want to move your Lovable app off Vercel and you want your users to notice nothing. That's the whole job. And here's the surprising part: the deploy isn't what makes it risky. A Lovable project is plain React and Node underneath, so getting it running on a server you own takes an afternoon. Whether anyone sees a blip comes down to DNS, and DNS is all about timing. So this isn't a "concepts" piece. It's the cutover runbook I'd actually follow, in order.</p>
+
+  <p>If you're still deciding whether to leave at all, the <a href="https://www.kloudbean.com/blog/vercel-alternative-for-full-stack-apps/">Vercel alternative breakdown</a> makes that case honestly. This guide assumes you've decided, and you want a clean, boring, zero-drama migration. Boring is the goal.</p>
+
+  <div class="tldr">
+    <strong>The runbook, in order</strong>
+    <p>1) Inventory the Vercel project: env vars, build settings, the domain, and its current DNS records. 2) Two days out, drop your DNS TTL so the switch propagates in minutes, not hours. 3) Deploy to the new server and test everything on the temporary URL. 4) Add your domain and SSL on the new box, then change the DNS record while Vercel stays live. 5) Confirm the domain is served by the new server, then retire Vercel. Lowering the TTL early is the single move that makes it zero-downtime.</p>
+  </div>
+
+  <h2>A zero-downtime plan to move your Lovable app off Vercel</h2>
+  <p>Most "migrations gone wrong" are really DNS gone wrong. The build succeeds, the app runs on the new server, and then traffic limps between the old host and the new one for hours because a cached DNS record won't let go. The fix isn't cleverness. It's sequence. You get the new box fully working and provable first, you make DNS able to switch fast, and you change the record dead last with the old deployment still up as a safety net.</p>
+  <p>Here's the shape of the window you're aiming for. Old and new run at the same time. Nobody hits a dead server.</p>
+
+  <figure>
+    <svg viewBox="0 0 700 264" width="100%" role="img" aria-label="A cutover timeline. Five stages left to right: 48 hours before, lower DNS TTL; cutover, deploy the new server; verify, test on the temp URL; the flip, point DNS at the new server; after, retire Vercel. Two parallel bands show Vercel and Kloudbean both serving during an overlap window labelled zero downtime.">
+      <rect x="1" y="1" width="698" height="262" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="350" y="30" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="16" font-weight="700" fill="#000f27">The zero-downtime cutover window</text>
+
+      <!-- stage labels -->
+      <g text-anchor="middle" font-family="Poppins,Arial,sans-serif">
+        <text x="100" y="54" font-size="10.5" font-weight="700" letter-spacing="1" fill="#4F1AF3">48H BEFORE</text>
+        <text x="100" y="72" font-size="12" fill="#1c2536">Lower DNS TTL</text>
+        <text x="250" y="54" font-size="10.5" font-weight="700" letter-spacing="1" fill="#4F1AF3">CUTOVER</text>
+        <text x="250" y="72" font-size="12" fill="#1c2536">Deploy new server</text>
+        <text x="370" y="54" font-size="10.5" font-weight="700" letter-spacing="1" fill="#4F1AF3">VERIFY</text>
+        <text x="370" y="72" font-size="12" fill="#1c2536">Test on temp URL</text>
+        <text x="480" y="54" font-size="10.5" font-weight="700" letter-spacing="1" fill="#40b75f">THE FLIP</text>
+        <text x="480" y="72" font-size="12" fill="#1c2536">Point DNS here</text>
+        <text x="600" y="54" font-size="10.5" font-weight="700" letter-spacing="1" fill="#4F1AF3">AFTER</text>
+        <text x="600" y="72" font-size="12" fill="#1c2536">Retire Vercel</text>
+      </g>
+
+      <!-- axis -->
+      <line x1="40" y1="92" x2="660" y2="92" stroke="#c9d0e3" stroke-width="1.5"/>
+      <polygon points="660,87 670,92 660,97" fill="#c9d0e3"/>
+      <g fill="#4F1AF3">
+        <circle cx="100" cy="92" r="4"/><circle cx="250" cy="92" r="4"/><circle cx="370" cy="92" r="4"/><circle cx="600" cy="92" r="4"/>
+      </g>
+      <circle cx="480" cy="92" r="5" fill="#40b75f"/>
+
+      <!-- overlap frame -->
+      <rect x="250" y="138" width="280" height="100" rx="10" fill="#f4f1ff" stroke="#c9c0f5" stroke-dasharray="5 4"/>
+      <text x="390" y="131" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" font-weight="600" fill="#4F1AF3">both live, zero downtime</text>
+
+      <!-- bands -->
+      <rect x="40" y="150" width="490" height="36" rx="8" fill="#000f27"/>
+      <text x="250" y="173" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#fff">Vercel serving your domain</text>
+      <rect x="250" y="196" width="410" height="36" rx="8" fill="#40b75f"/>
+      <text x="455" y="219" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#fff">Kloudbean serving your app</text>
+
+      <!-- flip line -->
+      <line x1="480" y1="86" x2="480" y2="244" stroke="#40b75f" stroke-width="2" stroke-dasharray="4 4"/>
+    </svg>
+    <figcaption>The old deployment stays up straight through the flip. Because the TTL is already low, the DNS change catches on in minutes, and the overlap window means there's never a moment with no server answering.</figcaption>
+  </figure>
+
+  <h2>Step 1: Inventory the Vercel project before you touch anything</h2>
+  <p>The migrations we see go sideways almost never fail on the build. They fail on something the old platform was quietly doing that nobody wrote down. So start by making the invisible visible. Open the Vercel project and copy out four things.</p>
+  <ul>
+    <li><strong>Environment variables.</strong> Every one, across every environment (Production, Preview, Development). This is the number-one cause of a broken first deploy, so grab them all, including the ones you forgot you set.</li>
+    <li><strong>Build settings.</strong> The install command, build command, output directory, root directory, and Node version. You'll set these by hand on the new server, so write down what Vercel was auto-detecting.</li>
+    <li><strong>Domains.</strong> Which domains and subdomains point here, and whether Vercel is your DNS or just the target of a record you manage elsewhere.</li>
+    <li><strong>The current DNS records and their TTL.</strong> The A or CNAME record for your domain, and its TTL value. You need this in Step 2.</li>
+  </ul>
+  <p>One thing that does <em>not</em> move in this cutover: your Supabase backend. It keeps running exactly where it is, and the new frontend talks to it the same way the old one did. If you also want to pull Supabase onto your own server, that's a separate decision, and the <a href="https://www.kloudbean.com/blog/deploy-lovable-app-to-your-own-server/">deploy-a-Lovable-app guide</a> maps that Supabase coupling in full. For a clean flip, leave it in place. One less variable in flight.</p>
+
+  <!-- ADD IMAGE: swap for a real <figure><img><figcaption> (src -> images/vercel-settings.png) -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Vercel project's Settings, with Environment Variables and Domains open side by side.</em><small>This is the screen you inventory from. Author supplies.</small></span></figure>
+
+  <h2>Step 2: Lower your DNS TTL, two days before the flip</h2>
+  <p>This is the step people skip, and it's the one that decides everything. TTL, time to live, is how long a DNS resolver is allowed to cache your record before checking again. If your domain's TTL is the common default of 3600 seconds, then after you change the record, resolvers around the world can keep sending users to the old Vercel deployment for up to an hour. Some longer.</p>
+  <p>So you lower it ahead of time. Two days out (comfortably longer than the old TTL), drop the record's TTL to something small like 300 seconds, or 60 if your provider allows it. Change nothing else. Just the TTL. By the time you actually flip, every resolver has picked up the short value, and the switch propagates in minutes.</p>
+  <p>Here's the anti-pattern, and it's common: someone flips DNS with a 3600s or even 24-hour TTL still set, watches half their traffic keep hitting Vercel for the rest of the day, and concludes the migration "half worked." It worked fine. The record just hadn't expired from caches yet. Lower the TTL first and that whole class of confusion disappears.</p>
+
+  <!-- ADD IMAGE: swap for a real <figure><img><figcaption> (src -> images/dns-ttl.png) -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your DNS provider's record editor with the TTL field lowered to 300 seconds ahead of the cutover.</em><small>Shows the one field that makes the flip fast. Author supplies.</small></span></figure>
+
+  <h2>Step 3: Stand up the new server and prove it on a temp URL</h2>
+  <p>Now the part that feels like the migration but is actually the easy half. In the <a href="https://www.kloudbean.com/">Kloudbean</a> console, click <strong>Add Server</strong>, pick a <strong>Cloud Provider</strong>, choose <strong>Node.js</strong>, select the datacenter closest to your users, and give the build a size with 2 to 4 GB of headroom.</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="Kloudbean Add Server screen: choose a cloud provider, Node.js, a datacenter region, and a server size">
+    <figcaption>Add Server: pick the cloud, choose Node.js, and select the region nearest your users. About five minutes to a ready stack.</figcaption>
+  </figure>
+
+  <p>Open the app, go to <strong>Application Administration, Deploy Code</strong>, connect the GitHub repo Lovable syncs to, and set the runtime fields you wrote down in Step 1: app directory, port (your app listens on the assigned <code>process.env.PORT</code>), Node version, and your install, build, and start commands. Then <strong>Pull &amp; Deploy</strong>.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="Kloudbean Deploy Code / Git Deployment tab: connect the repo, set the runtime, and Pull and Deploy">
+    <figcaption>Deploy Code, then Git Deployment: connect the repo, set the runtime, Pull and Deploy, with the build log streaming live.</figcaption>
+  </figure>
+
+  <p>Recreate your environment variables under <strong>Runtime Configuration, Environment Variables</strong> (the <strong>Paste .env Content</strong> tab makes this quick), and point them at the same Supabase project as before. If env vars are new territory, <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a> covers what's safe to expose and what isn't.</p>
+  <p>Now test on the app's temporary <code>*.kloudbeansite.com</code> URL, before you go anywhere near your domain. Click through every real flow: log in, read data, write data, hit each API route, submit any form. This is the whole point of the temp URL. It's where you catch the things that only worked because they were on Vercel, while the old site is still safely serving your users.</p>
+  <p>My honest opinion: the flip is the safe part. The scary part is discovering, an hour <em>after</em> cutover, that something depended on Vercel. That's exactly why you verify on the temp URL now, not later. If a route 503s, read the app's own log at <code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/app.error.log</code>. The full triage is in <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fixing a 503 after deploying</a>.</p>
+
+  <h2>The Vercel-only assumptions to hunt for on the temp URL</h2>
+  <p>A Lovable app is standard code, so most of it just runs. A few Vercel conveniences don't exist on a plain server, and each one is a quick fix once you know to look. This is your checklist while testing.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Vercel was doing this</th><th>What to change on your server</th></tr></thead>
+    <tbody>
+      <tr><td>Auto-detecting how to build and run</td><td>You set the build and start commands explicitly. For Next.js that's <code>next build</code> then <code>next start</code>, no adapter.</td></tr>
+      <tr><td>Serverless functions per request</td><td>They become normal routes in one always-on process. Usually less code, and no cold starts or timeouts.</td></tr>
+      <tr><td>A <code>VERCEL_URL</code> or hard-coded <code>*.vercel.app</code> base URL in the frontend</td><td>Point any <code>NEXT_PUBLIC_</code> or public base-URL variable at your new domain, or use relative <code>/api/...</code> paths.</td></tr>
+      <tr><td>Vercel Cron</td><td>A normal cron job from the console's Cron Jobs tab.</td></tr>
+      <tr><td>Edge functions</td><td>Regular routes in your server. You trade edge-locality for one place to reason about the code.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Step 4: Add the domain and SSL, then flip DNS last</h2>
+  <p>Everything checks out on the temp URL. Now, and only now, do you touch the domain. Do it in this order so HTTPS never breaks.</p>
+  <ol>
+    <li>On the new server, under <strong>Domain Aliases</strong>, add your custom domain and install a free <strong>Let's Encrypt</strong> certificate. Get the cert ready <em>before</em> traffic arrives so there's no window of certificate errors.</li>
+    <li>In your DNS provider, change the A or CNAME record to point at the new server's public address. Because you lowered the TTL in Step 2, this catches on in minutes.</li>
+    <li>Leave the Vercel deployment running. This is the overlap window from the diagram. Stragglers still on the cached record land on Vercel and see the working app; everyone else lands on the new box. Nobody hits a dead server.</li>
+  </ol>
+  <p>The <a href="https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/">zero-downtime migration guide</a> goes deeper on the DNS mechanics if you want the general version that isn't specific to Lovable.</p>
+
+  <h2>Step 5: Confirm it's really the new box, then decommission Vercel</h2>
+  <p>Don't tear down Vercel on faith. Confirm the flip landed. Two commands tell you almost everything.</p>
+  <pre><code># is the domain resolving to the new server's IP yet?
+dig +short yourdomain.com
+
+# who's actually answering, and is the certificate the new one?
+curl -sI https://yourdomain.com</code></pre>
+  <p>When <code>dig</code> shows the new IP and the site loads over HTTPS served by the new server, click through the live domain one more time. Then, and this is the part people rush, raise your TTL back up to something normal (3600s) now that the churn is over, and only <em>then</em> delete the Vercel deployment. The failure mode we see most is decommissioning too early, while a chunk of traffic is still riding the cached record. Give it a day. The old deployment is costing you nothing by sitting there idle for another 24 hours.</p>
+
+  <h2>Turn on auto-deploy, and remember the box isn't single-use</h2>
+  <p>Enable <strong>automated deployment</strong> so a push to your branch rebuilds and ships, the same <code>git push</code> loop you liked on Vercel, now on a server you own. If you want it wired to GitHub properly, <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">managed CI/CD from GitHub</a> walks through it.</p>
+  <p>And here's a benefit that shows up later: the server isn't a slot for one app. Your next Lovable, Bolt, or Cursor project can deploy right beside this one from <strong>Applications, Add Application</strong>, with its own domain and database. No new signup, no second per-project bill. For anyone shipping more than one thing, that's the quiet win of owning the box instead of renting a slot per app.</p>
+
+  <h2>A fair, honest note on cost</h2>
+  <p>Don't expect a smaller number in every case, because that's not always true. Vercel bills by usage and seats; a managed server is a flat monthly price for the box whatever the traffic. At genuinely tiny traffic, a hobby plan can undercut any always-on server. As usage and the team grow, the flat server tends to win, and it wins on predictability at any size, since a quiet month and a launch month cost the same. If a bill you can actually forecast is what you're after, that's the real prize here, not the lowest possible line item. Weighing the numbers for a smaller project? The <a href="https://www.kloudbean.com/blog/cost-of-running-a-side-project/">cost of running a side project</a> breaks it down.</p>
+
+  <h2>The honest limits</h2>
+  <p>Kloudbean runs Linux web stacks: Node and the modern web toolkit (React, Next.js, Vue) plus PHP, Python, Ruby, and Java when you need them. That's exactly what Lovable produces, so you're in the right place. It isn't for Windows, .NET, or IIS. "Managed" means Kloudbean runs the server, the stack, SSL, patching, and automatic backups; you own the application and its data. And because it's a standard Linux box running standard code, you can move it again later. This migration off Vercel is the same move in reverse whenever you want it.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">A rehoming, not a rebuild.</p>
+    <p style="margin:0">Move your app at <a href="https://www.kloudbean.com/">kloudbean.com</a>. One-click databases, automatic backups, private networking, free migration, free trial, and simple Git deploy. Fresh-deploy walkthrough <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">here</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I move a Lovable app off Vercel without downtime?</h3>
+    <p>Lower your DNS TTL a couple of days ahead, deploy the app to the new server, and test it fully on the temporary URL. Then add your domain and SSL on the new box and change the DNS record while Vercel is still live. The low TTL makes the switch propagate in minutes, and the overlap means no user hits a dead server.</p>
+
+    <h3>Why lower the DNS TTL before migrating?</h3>
+    <p>TTL is how long resolvers cache your DNS record. At a default of 3600 seconds, users can keep hitting the old Vercel deployment for up to an hour after you switch. Dropping the TTL to 300 or 60 seconds two days early means every resolver has the short value by cutover, so the flip takes effect almost immediately.</p>
+
+    <h3>Will my Vercel serverless functions still work on a server?</h3>
+    <p>They become normal routes in one always-on Node process, usually with little or no change to the code inside them. You also drop the cold starts and execution timeouts that come with the serverless model. Update the frontend to call the new route paths if any were hard-coded.</p>
+
+    <h3>Do I have to move Supabase when I leave Vercel?</h3>
+    <p>No. In this cutover Supabase keeps running exactly where it is, and the new frontend points at the same project. Moving Supabase onto your own server is a separate, optional decision covered in the deploy-a-Lovable-app guide. Leaving it in place keeps the migration to one variable.</p>
+
+    <h3>How do I confirm the domain is served by the new server?</h3>
+    <p>Run dig +short yourdomain.com to check it resolves to the new IP, and curl -sI https://yourdomain.com to see who answers and that the new certificate is live. Only after that resolves correctly and loads over HTTPS should you raise the TTL back up and retire the Vercel deployment.</p>
+
+    <h3>Is a managed server cheaper than Vercel?</h3>
+    <p>Not always, and it's fair to say so. At very low traffic a hobby plan can be cheaper than any always-on server. A flat server usually wins as traffic and team grow, and it's more predictable at any size, since the price is the same in a quiet month and a busy one, with several apps able to share one box.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Move Your Lovable App Off Vercel to Kloudbean (Migration Guide)","description":"A zero-downtime cutover playbook to move your Lovable app off Vercel to a server you own: inventory the project, lower DNS TTL early, test on a temp URL, then flip DNS last.","image":"https://www.kloudbean.com/blog/move-lovable-app-off-vercel/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/move-lovable-app-off-vercel/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I move a Lovable app off Vercel without downtime?","acceptedAnswer":{"@type":"Answer","text":"Lower your DNS TTL a couple of days ahead, deploy the app to the new server, and test it fully on the temporary URL. Then add your domain and SSL on the new box and change the DNS record while Vercel is still live. The low TTL makes the switch propagate in minutes, and the overlap means no user hits a dead server."}},
+{"@type":"Question","name":"Why lower the DNS TTL before migrating?","acceptedAnswer":{"@type":"Answer","text":"TTL is how long resolvers cache your DNS record. At a default of 3600 seconds, users can keep hitting the old Vercel deployment for up to an hour after you switch. Dropping the TTL to 300 or 60 seconds two days early means every resolver has the short value by cutover, so the flip takes effect almost immediately."}},
+{"@type":"Question","name":"Will my Vercel serverless functions still work on a server?","acceptedAnswer":{"@type":"Answer","text":"They become normal routes in one always-on Node process, usually with little or no change to the code inside them. You also drop the cold starts and execution timeouts that come with the serverless model. Update the frontend to call the new route paths if any were hard-coded."}},
+{"@type":"Question","name":"Do I have to move Supabase when I leave Vercel?","acceptedAnswer":{"@type":"Answer","text":"No. In this cutover Supabase keeps running exactly where it is, and the new frontend points at the same project. Moving Supabase onto your own server is a separate, optional decision covered in the deploy-a-Lovable-app guide. Leaving it in place keeps the migration to one variable."}},
+{"@type":"Question","name":"How do I confirm the domain is served by the new server?","acceptedAnswer":{"@type":"Answer","text":"Run dig +short yourdomain.com to check it resolves to the new IP, and curl -sI https://yourdomain.com to see who answers and that the new certificate is live. Only after that resolves correctly and loads over HTTPS should you raise the TTL back up and retire the Vercel deployment."}},
+{"@type":"Question","name":"Is a managed server cheaper than Vercel?","acceptedAnswer":{"@type":"Answer","text":"Not always, and it is fair to say so. At very low traffic a hobby plan can be cheaper than any always-on server. A flat server usually wins as traffic and team grow, and it is more predictable at any size, since the price is the same in a quiet month and a busy one, with several apps able to share one box."}}
+]}
+]}
+</script>
+</body>
+</html>

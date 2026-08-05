@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PlanetScale Alternative: A Managed MySQL You Actually Own</title>
+<meta name="description" content="Looking for a PlanetScale alternative? See how a plain managed MySQL you own, with a standard mysql:// connection and no proprietary workflow, compares, and when to switch.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/planetscale-alternative/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="PlanetScale Alternative: A Managed MySQL You Actually Own">
+<meta property="og:description" content="Why teams look for a managed MySQL alternative to PlanetScale, how owning your MySQL database compares to the serverless model, and how to migrate.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Alternatives &amp; comparisons</span>
+  <h1>PlanetScale Alternative: A Managed MySQL You Actually Own</h1>
+  <p class="byline">By Kloudbean Database Team · Own the MySQL, not someone else's workflow.</p>
+
+  <figure><img src="images/hero.png" alt="PlanetScale alternative: a managed MySQL you own, with a standard connection string and no proprietary layer"></figure>
+
+  <p class="lead">If you're hunting for a PlanetScale alternative, you probably don't hate PlanetScale. You want a plain managed MySQL you own, with a normal connection string, sitting next to your app, on a bill you can forecast.</p>
+
+  <p>PlanetScale is a clever product. But its serverless, Vitess-backed model is a whole workflow, and not every app wants that workflow. So this is the honest version: what PlanetScale is genuinely good at, why teams go looking for a managed MySQL alternative to PlanetScale, and how choosing to own your MySQL database changes the math.</p>
+
+  <div class="tldr">
+    <strong>The short answer</strong>
+    <p>Want a PlanetScale alternative that's just managed MySQL you control? Run a managed MySQL (or MariaDB) on infrastructure you own. You get a standard <code>mysql://</code> connection, full <code>mysqldump</code> portability, automatic backups, and a private network, with no proprietary branching layer to adopt. Kloudbean does this from $8/mo in one dashboard. Keep PlanetScale only if you truly need Vitess-scale horizontal sharding.</p>
+  </div>
+
+  <h2>What PlanetScale actually is (the fair part)</h2>
+  <p>Credit where it's due. PlanetScale is a MySQL-compatible serverless database platform built on Vitess, the open-source clustering system that grew out of scaling MySQL at YouTube. Two things it does really well. First, schema branching: you branch your database schema the way you branch code, open a deploy request, and merge the change with a safety net around it. Second, horizontal scale: once your data genuinely outgrows a single primary, Vitess shards it across many nodes, which is a hard problem it was purpose-built to solve.</p>
+  <p>If your actual problem is "MySQL at a size where one server won't hold it," that's exactly the ground PlanetScale was made for. The question isn't whether PlanetScale is good. It's whether your app needs what PlanetScale is good at.</p>
+
+  <h2>Why look for a PlanetScale alternative?</h2>
+  <p>Most apps that end up shopping for a PlanetScale alternative aren't fleeing a bad product. They've just noticed a mismatch between what they need and what the serverless model asks of them. A few reasons come up again and again.</p>
+  <p><strong>You want a database, not a platform.</strong> The branching workflow is powerful, and it's also a workflow. It's a new mental model your whole team has to learn and wire into CI. Plenty of teams just want a host, a port, a user, and a password. A database that behaves like the MySQL they already know.</p>
+  <p><strong>You want predictable cost.</strong> Usage-based serverless pricing reads fine on a quiet month and gets interesting on a busy one. If you're really after a PlanetScale pricing alternative, what you want is a flat plan you can put in a spreadsheet and forecast, not a meter that climbs with a traffic spike. I won't quote PlanetScale's current numbers here because they change; check their pricing page and compare it against a fixed monthly plan.</p>
+  <p><strong>You want the database beside your app.</strong> When your app server and your database live on the same private network, you drop a network hop and an external dependency in one move. Fewer moving parts, less latency, one less status page to watch.</p>
+  <p><strong>The serverless model has edges.</strong> Vitess sharding is the reason foreign key constraints were historically discouraged (and off by default) on PlanetScale, and the reason a few MySQL behaviors differ from the single-node <code>mysqld</code> you'd run yourself. For a sharded giant, that's a fair trade. For a normal app that leans on foreign keys and expects vanilla MySQL, it's friction you never asked for.</p>
+  <p><strong>You want to own the whole thing.</strong> Some teams simply want their database on infrastructure they control, exportable at any moment, with nothing proprietary between them and the engine. That instinct is exactly what this article is about.</p>
+
+  <h2>PlanetScale vs managed MySQL, side by side</h2>
+  <p>Here's the honest comparison. Not which is better in the abstract, but which shape fits which job.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Dimension</th><th>PlanetScale (serverless, Vitess)</th><th>Managed MySQL you own</th></tr></thead>
+    <tbody>
+      <tr><td>Model</td><td>Serverless platform; the database is the product</td><td>Standard MySQL on a server you control</td></tr>
+      <tr><td>Connecting</td><td>Platform connection and workflow</td><td>Plain <code>mysql://</code> string, any driver</td></tr>
+      <tr><td>Schema changes</td><td>Branch and deploy-request workflow</td><td>Normal migrations from your ORM or tooling</td></tr>
+      <tr><td>Scaling story</td><td>Horizontal sharding via Vitess</td><td>Vertical resize, plus read replicas as a concept</td></tr>
+      <tr><td>Foreign keys</td><td>Historically discouraged on Vitess</td><td>Plain InnoDB foreign keys, as usual</td></tr>
+      <tr><td>Pricing shape</td><td>Usage-based</td><td>Flat plan, from $8/mo on Kloudbean</td></tr>
+      <tr><td>Where the data lives</td><td>PlanetScale's cloud</td><td>Your private network, beside your app</td></tr>
+      <tr><td>Portability</td><td>MySQL underneath, exportable</td><td><code>mysqldump</code> in and out, no lock-in</td></tr>
+    </tbody>
+  </table>
+
+  <p>Notice the pattern. The right column isn't "worse PlanetScale." It's a different product for a different job: a boring, standard MySQL that does what MySQL has always done, minus the operations work. If you want that argument in full, <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">managed MySQL hosting</a> lays out exactly what "managed" takes off your plate.</p>
+
+  <h2>What owning your MySQL database gets you</h2>
+  <p>"Own your MySQL database" sounds like a slogan. It's actually a short list of concrete things.</p>
+  <p>A <strong>standard connection</strong>. No SDK, no special client, no platform-specific driver. Any MySQL library in any language connects with a normal string. Your existing code doesn't know the difference.</p>
+  <p>An <strong>exit that's a single command</strong>. Because it's real MySQL, you can dump the entire database with <code>mysqldump</code> and walk it anywhere. The door out is a chore, not a rewrite.</p>
+  <p>A <strong>database on infrastructure you pick</strong>. On Kloudbean you launch the managed MySQL on any of seven clouds (AWS, Amazon Lightsail, Google Cloud, DigitalOcean, Vultr, Akamai Linode, or UpCloud) in a region near your users. It sits on a private network, backed up automatically, patched for you.</p>
+  <p>And <strong>one dashboard for the rest of it</strong>. The same console runs your app, object storage, a load balancer, and backups. Fewer vendors, one login, one bill.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed MySQL database, provisioned, patched, and backed up">
+    <figcaption>Launch a managed MySQL (or MariaDB) from the console. It arrives provisioned, patched, and on a schedule of automatic backups, and it's standard MySQL underneath.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: the database connection-details panel (host, port, database, user) with a copy button. Swap for a real screenshot: src -> images/mysql-connection-details.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The managed database connection details: host, port, database, user, with a copy affordance.</em><small>Shows there's nothing proprietary, just a standard MySQL endpoint.</small></span></figure>
+
+  <h2>Connecting is a normal connection string</h2>
+  <p>No migration guide, no client library to install. You get host, port, database, user, and password, roll them into one string, and store it as an environment variable. Never in code, never in Git.</p>
+
+<pre><code># Managed MySQL connection string, stored as an env var (not committed)
+DATABASE_URL=mysql://appuser:s3cret@10.0.0.6:3306/appdb</code></pre>
+
+  <p>That's it. Prisma, Drizzle, Sequelize, TypeORM, Eloquent, Django's ORM, Rails, all of them read a standard MySQL URL. If you want the full app-side walkthrough (env vars, ORMs, running migrations, verifying the connection sticks), it's in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">how to add a managed database to your app</a>. This page is about the switch, not the wiring.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console showing the MySQL connection string set as an environment variable">
+    <figcaption>Keep the connection string in the environment. Out of the repo, rotatable without a code change, and identical to how you'd wire any MySQL.</figcaption>
+  </figure>
+
+  <h2>Moving from PlanetScale to a managed MySQL</h2>
+  <p>This is the part people worry about, and it's the least dramatic part. PlanetScale is MySQL underneath, so a migration is a plain dump and load. No proprietary export format, no data trapped behind an API.</p>
+
+  <figure>
+<svg viewBox="0 0 780 260" width="100%" role="img" aria-label="Migration path from PlanetScale to a managed MySQL you own: export the data with mysqldump into a standard SQL file, import that file into a managed MySQL database on infrastructure you own, then point your app at it over a private network with a standard mysql connection string. Because it is MySQL underneath, the export is a normal command and not a rewrite." xmlns="http://www.w3.org/2000/svg">
+  <rect width="780" height="260" rx="16" fill="#f6f7fb"/>
+  <text x="390" y="40" text-anchor="middle" font-family="Poppins,sans-serif" font-size="18" font-weight="700" fill="#000f27">Moving off PlanetScale is a plain MySQL dump and load</text>
+
+  <!-- Box 1: PlanetScale -->
+  <rect x="20" y="86" width="143" height="98" rx="14" fill="#000f27"/>
+  <text x="91.5" y="124" text-anchor="middle" font-family="Poppins,sans-serif" font-size="14.5" font-weight="700" fill="#ffffff">PlanetScale</text>
+  <text x="91.5" y="146" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11.5" fill="#9fb0d8">serverless MySQL</text>
+  <text x="91.5" y="162" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11.5" fill="#9fb0d8">built on Vitess</text>
+
+  <!-- arrow 1 -->
+  <text x="191" y="123" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10.5" fill="#4F1AF3">mysqldump</text>
+  <line x1="165" y1="135" x2="215" y2="135" stroke="#4F1AF3" stroke-width="2.4"/>
+  <polygon points="219,135 210,130 210,140" fill="#4F1AF3"/>
+
+  <!-- Box 2: dump file -->
+  <rect x="219" y="86" width="143" height="98" rx="14" fill="#ffffff" stroke="#4F1AF3" stroke-width="2"/>
+  <text x="290.5" y="124" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="14" font-weight="500" fill="#000f27">appdb.sql</text>
+  <text x="290.5" y="146" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11.5" fill="#5b6a86">standard MySQL</text>
+  <text x="290.5" y="162" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11.5" fill="#5b6a86">dump file</text>
+
+  <!-- arrow 2 -->
+  <text x="390" y="123" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10.5" fill="#4F1AF3">import</text>
+  <line x1="364" y1="135" x2="414" y2="135" stroke="#4F1AF3" stroke-width="2.4"/>
+  <polygon points="418,135 409,130 409,140" fill="#4F1AF3"/>
+
+  <!-- Box 3: managed mysql -->
+  <rect x="418" y="86" width="143" height="98" rx="14" fill="#000f27" stroke="#40b75f" stroke-width="2.5"/>
+  <text x="489.5" y="122" text-anchor="middle" font-family="Poppins,sans-serif" font-size="14" font-weight="700" fill="#40b75f">Managed MySQL</text>
+  <text x="489.5" y="144" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11.5" fill="#e8ecfb">on infra you own,</text>
+  <text x="489.5" y="160" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11.5" fill="#e8ecfb">backed up daily</text>
+
+  <!-- arrow 3 -->
+  <text x="589" y="123" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10.5" fill="#4F1AF3">mysql://</text>
+  <line x1="563" y1="135" x2="613" y2="135" stroke="#4F1AF3" stroke-width="2.4"/>
+  <polygon points="617,135 608,130 608,140" fill="#4F1AF3"/>
+
+  <!-- Box 4: your app -->
+  <rect x="617" y="86" width="143" height="98" rx="14" fill="#4F1AF3"/>
+  <text x="688.5" y="128" text-anchor="middle" font-family="Poppins,sans-serif" font-size="14.5" font-weight="700" fill="#ffffff">Your app</text>
+  <text x="688.5" y="150" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11.5" fill="#dcd6ff">private network</text>
+
+  <text x="390" y="228" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" fill="#5b6a86">It's MySQL underneath, so the door out is a normal export, not a rewrite.</text>
+</svg>
+<figcaption>The migration is boring on purpose. Dump with mysqldump, load into a managed MySQL you own, repoint the connection string. Nothing about your data is trapped.</figcaption>
+  </figure>
+
+  <p>The commands are the same ones you'd use to move any hosted MySQL. Export from PlanetScale, import into the managed database, then repoint your app:</p>
+
+<pre><code># export from PlanetScale (SSL required; these flags suit a hosted MySQL)
+mysqldump --single-transaction --set-gtid-purged=OFF --no-tablespaces \
+  -h aws.connect.psdb.cloud -u USER -p appdb &gt; appdb.sql
+
+# import into the managed MySQL you own
+mysql -h NEW_HOST -u appuser -p appdb &lt; appdb.sql</code></pre>
+
+  <p>Point <code>DATABASE_URL</code> at the new database, redeploy, done. One thing to check on the way: if your app was built around Vitess behavior (say it never used foreign key constraints because the old setup discouraged them), you can add them back now, since a single-node managed MySQL supports them normally. For a large or production database where you'd rather not run the first cutover alone, Kloudbean's free migration assistance will do it with you and keep downtime minimal.</p>
+
+  <!-- ADD IMAGE: a terminal running mysqldump then the mysql import, showing rows flowing in. Swap for a real screenshot: src -> images/migration-terminal.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal running the mysqldump export, then the mysql import into the managed database.</em><small>Makes the "it's just a dump and load" point tangible.</small></span></figure>
+
+  <h2>When PlanetScale is still the right call</h2>
+  <p>A comparison that only flatters one side isn't worth reading, so here's the honest boundary. If you're genuinely operating at Vitess scale, keep PlanetScale. If you're sharding writes across many nodes because one primary can't hold the load, or your team has built its release process around schema branching and loves it, PlanetScale is home turf and a managed MySQL will feel like a step down.</p>
+  <p>But be honest about where you actually are. Most apps aren't there. They have a database that fits comfortably on one well-sized server with room to grow, and they'd be better served by a solid managed MySQL than by adopting sharding they don't need. Reaching for Vitess-scale tooling before you have Vitess-scale problems is premature optimization: complexity today against a scale you may never hit. My blunt take is to pick the boring database until it actually hurts, then scale deliberately.</p>
+
+  <h2>How a managed MySQL fits the rest of your stack</h2>
+  <p>The database is one tile. On Kloudbean it sits in the same dashboard as everything else. Your app connects over the private network. <a href="https://www.kloudbean.com/blog/managed-mariadb-hosting/">Managed MariaDB</a> is right beside MySQL if your stack prefers the fork, and they're close enough that most apps run on either without noticing. If you're still choosing an engine for a fresh project, <a href="https://www.kloudbean.com/blog/mysql-vs-postgresql/">MySQL vs PostgreSQL</a> is the honest head to head. Coming off a different backend-as-a-service entirely? The <a href="https://www.kloudbean.com/blog/supabase-alternative/">Supabase alternative</a> piece covers the Postgres side of the same move.</p>
+  <p>On pricing, standard plans start from $8/mo and Enterprise is custom, so a small project stays cheap and a flat number is easy to plan around. The full breakdown of what you're paying for (and the costs other platforms hide) is in <a href="https://www.kloudbean.com/blog/cloud-hosting-pricing-explained/">cloud hosting pricing explained</a>. And if you're weighing the whole category rather than one product, <a href="https://www.kloudbean.com/blog/best-managed-cloud-hosting/">how to choose managed cloud hosting</a> is the buyer's framework this page sits under.</p>
+  <p>The honest boundary, once: these are Linux-based managed engines. Managed means the platform handles provisioning, patching, backups, tuning, and monitoring. Your schema, your queries, and your data stay yours, and a standard dump walks out the door with you whenever you want. That's the deal, and it's the whole reason to own your MySQL database in the first place.</p>
+
+  <!-- ADD IMAGE: the one-dashboard overview showing servers and managed databases together. Swap for a real screenshot: src -> images/one-dashboard-overview.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The whole-stack dashboard: the app server and its managed MySQL living in one console.</em><small>Reinforces "one login, one bill" versus juggling a separate DB platform.</small></span></figure>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Move to a MySQL you can dump, move, and keep.</p>
+    <p style="margin:0 0 .6em">Launch a managed MySQL or MariaDB, standard connection and automatic backups from minute one, on infrastructure you own. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">One-click MySQL and MariaDB · Standard mysql:// connection · Automatic backups · Private networking · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is the best PlanetScale alternative?</h3>
+    <p>There's no single winner, because it depends on what pulled you toward PlanetScale in the first place. If you were there for schema branching and Vitess-scale sharding, few things replace that directly. If you were there because you wanted a solid managed MySQL and PlanetScale happened to be the name you knew, a plain managed MySQL you own is the closer fit: standard connection, automatic backups, flat pricing, no proprietary workflow. Kloudbean is one such option.</p>
+    <h3>Is managed MySQL a good alternative to PlanetScale?</h3>
+    <p>For most apps, yes. PlanetScale is MySQL-compatible, so a managed MySQL gives you the same engine your code already targets, with a normal connection string and full portability. You trade the branching workflow and Vitess sharding for simplicity, predictable cost, and full ownership. If you weren't using those advanced features heavily, you lose very little and gain control.</p>
+    <h3>Can I migrate from PlanetScale to a managed MySQL?</h3>
+    <p>Yes, and it's straightforward because PlanetScale is MySQL underneath. Export your data with mysqldump, import it into the managed database with the mysql client, then repoint your DATABASE_URL and redeploy. Kloudbean offers free migration assistance to run the first cutover with you and keep downtime minimal, which is worth taking for a production database.</p>
+    <h3>Does PlanetScale use real MySQL?</h3>
+    <p>Yes. PlanetScale is a MySQL-compatible serverless platform built on Vitess, the clustering system originally created to scale MySQL at YouTube. Your app talks to it as MySQL, and your data can be exported as standard MySQL. That compatibility is exactly why moving to a plain managed MySQL is a dump and load rather than a rewrite.</p>
+    <h3>Why did PlanetScale discourage foreign keys?</h3>
+    <p>It comes from Vitess. Because Vitess shards data horizontally across nodes, enforcing foreign key constraints across shards is genuinely hard, so foreign keys were historically discouraged and off by default. A single-node managed MySQL doesn't have that constraint, so you can use plain InnoDB foreign keys as normal. If your app relies on them, that difference alone can be the reason to switch.</p>
+    <h3>PlanetScale vs managed MySQL: which should I pick?</h3>
+    <p>Pick PlanetScale if you genuinely need horizontal sharding at scale or your team is built around its schema-branching workflow. Pick a managed MySQL you own if you want a standard database beside your app, predictable flat pricing, plain foreign keys, and no proprietary layer. Be honest about your scale: most apps fit comfortably on one well-sized managed MySQL and don't need Vitess.</p>
+    <h3>Is a managed MySQL cheaper than PlanetScale?</h3>
+    <p>It can be, but the real difference is shape, not just size. Usage-based serverless pricing varies with your traffic, while a managed MySQL is a flat plan (from $8/mo on Kloudbean) you can forecast. Compare a busy month, not a quiet one, and check both providers' current pricing pages before you decide, since the numbers change.</p>
+    <h3>Do I lose schema branching if I leave PlanetScale?</h3>
+    <p>Yes. Schema branching is a PlanetScale feature, so on a plain managed MySQL you'd handle schema changes with normal migrations from your ORM or migration tool instead. That's how most of the world has always shipped MySQL changes. If the branching workflow is central to your team, weigh that loss honestly before switching.</p>
+    <h3>Will a managed MySQL lock me in?</h3>
+    <p>No. It's standard MySQL, so your schema, queries, and data are fully portable. You can export the whole database with a normal mysqldump and move it elsewhere anytime. Managed hosting operates the database for you; it never takes ownership of your data, which is the entire point of owning your MySQL database.</p>
+    <h3>Can Kloudbean help me move off PlanetScale?</h3>
+    <p>Yes. Kloudbean offers free migration assistance, and because PlanetScale exports as standard MySQL, the move is a supported dump-and-load rather than a custom project. You launch a managed MySQL or MariaDB, the team helps you import your data and cut over with minimal downtime, and your app connects with a normal connection string.</p>
+  </div>
+
+  <p class="byline">Kloudbean · A database you can dump, move, and keep.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"PlanetScale Alternative: A Managed MySQL You Actually Own","description":"Why teams look for a managed MySQL alternative to PlanetScale, how owning your MySQL database compares to the serverless Vitess model, and how to migrate with mysqldump.","image":"https://www.kloudbean.com/blog/planetscale-alternative/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/planetscale-alternative/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is the best PlanetScale alternative?","acceptedAnswer":{"@type":"Answer","text":"There's no single winner, because it depends on what pulled you toward PlanetScale in the first place. If you were there for schema branching and Vitess-scale sharding, few things replace that directly. If you were there because you wanted a solid managed MySQL and PlanetScale happened to be the name you knew, a plain managed MySQL you own is the closer fit: standard connection, automatic backups, flat pricing, no proprietary workflow. Kloudbean is one such option."}},
+{"@type":"Question","name":"Is managed MySQL a good alternative to PlanetScale?","acceptedAnswer":{"@type":"Answer","text":"For most apps, yes. PlanetScale is MySQL-compatible, so a managed MySQL gives you the same engine your code already targets, with a normal connection string and full portability. You trade the branching workflow and Vitess sharding for simplicity, predictable cost, and full ownership. If you weren't using those advanced features heavily, you lose very little and gain control."}},
+{"@type":"Question","name":"Can I migrate from PlanetScale to a managed MySQL?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it's straightforward because PlanetScale is MySQL underneath. Export your data with mysqldump, import it into the managed database with the mysql client, then repoint your DATABASE_URL and redeploy. Kloudbean offers free migration assistance to run the first cutover with you and keep downtime minimal, which is worth taking for a production database."}},
+{"@type":"Question","name":"Does PlanetScale use real MySQL?","acceptedAnswer":{"@type":"Answer","text":"Yes. PlanetScale is a MySQL-compatible serverless platform built on Vitess, the clustering system originally created to scale MySQL at YouTube. Your app talks to it as MySQL, and your data can be exported as standard MySQL. That compatibility is exactly why moving to a plain managed MySQL is a dump and load rather than a rewrite."}},
+{"@type":"Question","name":"Why did PlanetScale discourage foreign keys?","acceptedAnswer":{"@type":"Answer","text":"It comes from Vitess. Because Vitess shards data horizontally across nodes, enforcing foreign key constraints across shards is genuinely hard, so foreign keys were historically discouraged and off by default. A single-node managed MySQL doesn't have that constraint, so you can use plain InnoDB foreign keys as normal. If your app relies on them, that difference alone can be the reason to switch."}},
+{"@type":"Question","name":"PlanetScale vs managed MySQL: which should I pick?","acceptedAnswer":{"@type":"Answer","text":"Pick PlanetScale if you genuinely need horizontal sharding at scale or your team is built around its schema-branching workflow. Pick a managed MySQL you own if you want a standard database beside your app, predictable flat pricing, plain foreign keys, and no proprietary layer. Be honest about your scale: most apps fit comfortably on one well-sized managed MySQL and don't need Vitess."}},
+{"@type":"Question","name":"Is a managed MySQL cheaper than PlanetScale?","acceptedAnswer":{"@type":"Answer","text":"It can be, but the real difference is shape, not just size. Usage-based serverless pricing varies with your traffic, while a managed MySQL is a flat plan (from $8/mo on Kloudbean) you can forecast. Compare a busy month, not a quiet one, and check both providers' current pricing pages before you decide, since the numbers change."}},
+{"@type":"Question","name":"Do I lose schema branching if I leave PlanetScale?","acceptedAnswer":{"@type":"Answer","text":"Yes. Schema branching is a PlanetScale feature, so on a plain managed MySQL you'd handle schema changes with normal migrations from your ORM or migration tool instead. That's how most of the world has always shipped MySQL changes. If the branching workflow is central to your team, weigh that loss honestly before switching."}},
+{"@type":"Question","name":"Will a managed MySQL lock me in?","acceptedAnswer":{"@type":"Answer","text":"No. It's standard MySQL, so your schema, queries, and data are fully portable. You can export the whole database with a normal mysqldump and move it elsewhere anytime. Managed hosting operates the database for you; it never takes ownership of your data, which is the entire point of owning your MySQL database."}},
+{"@type":"Question","name":"Can Kloudbean help me move off PlanetScale?","acceptedAnswer":{"@type":"Answer","text":"Yes. Kloudbean offers free migration assistance, and because PlanetScale exports as standard MySQL, the move is a supported dump-and-load rather than a custom project. You launch a managed MySQL or MariaDB, the team helps you import your data and cut over with minimal downtime, and your app connects with a normal connection string."}}
+]}
+]}
+</script>
+</body>
+</html>

@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Host Multiple Apps on One Server (Cleanly, With Real Isolation)</title>
+<meta name="description" content="How to host multiple apps on one server without making a mess: the isolation model (own user, web root, process, and database per app), reverse-proxy routing by domain, per-app env vars, and when to split.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/host-multiple-apps-one-server/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Host Multiple Apps on One Server (Cleanly, With Real Isolation)">
+<meta property="og:description" content="The isolation model, reverse-proxy virtual hosts, per-app databases and env vars, noisy-neighbor headroom, and the clear signal for when to split to a second server.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Servers &amp; multi-app</span>
+  <h1>How to Host Multiple Apps on One Server</h1>
+
+  <figure><img src="images/hero.png" alt="How to host multiple apps on one server, kept isolated behind a reverse proxy"></figure>
+
+  <p class="lead">Most servers are barely working. You provisioned a box for one app, that app uses maybe 10% of it, and the other 90% sits idle while you pay the full bill. Then your next project gets its own server, and now you're paying twice for hardware you already own most of.</p>
+  <p>You can host multiple apps on one server and reclaim all that waste, as long as you do it cleanly. The trick isn't cramming apps onto a box. It's <em>isolation</em>: giving each app its own user, web root, process, and database so they share hardware without ever touching each other's state. Get that right and one server quietly runs a handful of projects. Get it wrong and a single bug takes down everything you host.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>One server can run several apps because a light app uses a fraction of it. Keep them clean by isolating each: its own system user, web root, process on its own internal port, environment variables, and its own database. A reverse proxy (Nginx or Apache) routes each domain to the right app. Leave headroom for spikes, never share one database across unrelated apps, and split an app onto its own server when it reliably needs most of the box.</p>
+  </div>
+
+  <h2>Why one server can hold many apps</h2>
+  <p>A single-app server is almost always overprovisioned. A low-traffic WordPress site, a small API, a couple of static sites, even an <a href="https://www.kloudbean.com/blog/discord-bot-hosting/">always-on bot</a>: each spends most of the day idle, using a sliver of CPU and a modest chunk of RAM. Stack a few of those and their <em>quiet</em> moments overlap far more than their busy ones, so the server that was 90% idle for one app is comfortably busy for five.</p>
+  <p>Consolidation is the underrated cost and ops win for small teams, and I'll happily argue for it. One server to patch instead of five. One backup routine. One bill. You get more out of the hardware you're already renting, and you have fewer moving parts to babysit. The one thing you must not trade away for that saving is isolation, which is the whole rest of this guide. If you want the money side spelled out, see <a href="https://www.kloudbean.com/blog/the-real-cost-of-unmanaged-vps/">the real cost of an unmanaged VPS</a>.</p>
+
+  <h2>What it takes to host multiple apps on one server safely</h2>
+  <p>Sharing a server should never mean sharing everything. Clean co-hosting gives each app its own separate world, and there are four boundaries that matter. Miss one and the apps start leaking into each other. Each app here can be a plain runtime process or a <a href="https://www.kloudbean.com/blog/docker-container-hosting/">container you run yourself</a>; the isolation rules are identical either way.</p>
+  <ul>
+    <li><strong>Its own system user.</strong> Each app runs as its own Linux user, so its files and processes are walled off from the others at the OS level. If one app is compromised, the blast radius stops at that user, it can't read the neighbour's files.</li>
+    <li><strong>Its own web root.</strong> Each app's code and uploads live in that user's own directory (say <code>/home/app_a/public</code>), never a shared folder where one deploy could overwrite another.</li>
+    <li><strong>Its own process and port.</strong> Each app is a separate process listening on its own internal port (<code>127.0.0.1:3001</code>, <code>:3002</code>, and so on). They don't share a runtime, so restarting one doesn't touch the others.</li>
+    <li><strong>Its own database.</strong> Each app gets its own database and its own least-privilege user. This is the big one, and it's where I see the worst mistakes.</li>
+  </ul>
+  <p>Here's the shape of a clean multi-app box: many domains coming in, one reverse proxy routing each to the right app, and each app sitting in its own lane with its own database.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 360" role="img" aria-label="Topology diagram: three domains arrive at one server, a reverse proxy routes each domain to its own isolated application, and each application has its own system user, internal port, and its own database." style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="30" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Many domains in, isolated apps out, on one box</text>
+
+      <!-- incoming domains -->
+      <g font-family="JetBrains Mono,monospace" font-size="11">
+        <rect x="16" y="92" width="180" height="34" rx="8" fill="#ffffff" stroke="#e6e9f2"/><text x="106" y="114" text-anchor="middle" fill="#1c2536">client-one.com</text>
+        <rect x="16" y="182" width="180" height="34" rx="8" fill="#ffffff" stroke="#e6e9f2"/><text x="106" y="204" text-anchor="middle" fill="#1c2536">client-two.com</text>
+        <rect x="16" y="272" width="180" height="34" rx="8" fill="#ffffff" stroke="#e6e9f2"/><text x="106" y="294" text-anchor="middle" fill="#1c2536">api.mine.com</text>
+      </g>
+      <!-- arrows to proxy -->
+      <line x1="196" y1="109" x2="266" y2="188" stroke="#5b6a86" stroke-width="1.8"/>
+      <line x1="196" y1="199" x2="266" y2="198" stroke="#5b6a86" stroke-width="1.8"/>
+      <line x1="196" y1="289" x2="266" y2="208" stroke="#5b6a86" stroke-width="1.8"/>
+
+      <!-- server boundary -->
+      <rect x="250" y="56" width="492" height="292" rx="16" fill="#ffffff" stroke="#000f27" stroke-width="1.5" stroke-dasharray="6 6"/>
+      <text x="266" y="78" fill="#000f27" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.2">ONE LINUX SERVER</text>
+
+      <!-- reverse proxy -->
+      <rect x="268" y="150" width="104" height="96" rx="12" fill="#4F1AF3"/>
+      <text x="320" y="188" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">reverse</text>
+      <text x="320" y="205" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">proxy</text>
+      <text x="320" y="224" text-anchor="middle" fill="#d8ccff" font-family="Poppins,sans-serif" font-size="9.5">Nginx / Apache</text>
+
+      <!-- proxy to apps -->
+      <line x1="372" y1="198" x2="406" y2="107" stroke="#4F1AF3" stroke-width="1.8"/><path d="M406 107 l-10 2 3 6 z" fill="#4F1AF3"/>
+      <line x1="372" y1="198" x2="406" y2="199" stroke="#4F1AF3" stroke-width="1.8"/><path d="M406 199 l-9 -4 v8 z" fill="#4F1AF3"/>
+      <line x1="372" y1="198" x2="406" y2="291" stroke="#4F1AF3" stroke-width="1.8"/><path d="M406 291 l-7 -6 -2 7 z" fill="#4F1AF3"/>
+
+      <!-- app lanes -->
+      <g font-family="Poppins,sans-serif">
+        <rect x="408" y="80" width="152" height="54" rx="10" fill="#ffffff" stroke="#000f27" stroke-width="1.4"/>
+        <text x="484" y="103" text-anchor="middle" fill="#000f27" font-size="12.5" font-weight="600">app A · user a</text>
+        <text x="484" y="121" text-anchor="middle" fill="#5b6a86" font-size="10.5">127.0.0.1:3001</text>
+
+        <rect x="408" y="172" width="152" height="54" rx="10" fill="#ffffff" stroke="#000f27" stroke-width="1.4"/>
+        <text x="484" y="195" text-anchor="middle" fill="#000f27" font-size="12.5" font-weight="600">app B · user b</text>
+        <text x="484" y="213" text-anchor="middle" fill="#5b6a86" font-size="10.5">127.0.0.1:3002</text>
+
+        <rect x="408" y="264" width="152" height="54" rx="10" fill="#ffffff" stroke="#000f27" stroke-width="1.4"/>
+        <text x="484" y="287" text-anchor="middle" fill="#000f27" font-size="12.5" font-weight="600">app C · user c</text>
+        <text x="484" y="305" text-anchor="middle" fill="#5b6a86" font-size="10.5">127.0.0.1:3003</text>
+      </g>
+
+      <!-- app to db arrows -->
+      <line x1="560" y1="107" x2="598" y2="104" stroke="#40b75f" stroke-width="1.8"/><path d="M598 104 l-9 -3 1 8 z" fill="#40b75f"/>
+      <line x1="560" y1="199" x2="598" y2="196" stroke="#40b75f" stroke-width="1.8"/><path d="M598 196 l-9 -3 1 8 z" fill="#40b75f"/>
+      <line x1="560" y1="291" x2="598" y2="288" stroke="#40b75f" stroke-width="1.8"/><path d="M598 288 l-9 -3 1 8 z" fill="#40b75f"/>
+
+      <!-- own databases -->
+      <g>
+        <ellipse cx="644" cy="90" rx="26" ry="7" fill="#40b75f"/><path d="M618 90 v28 a26 7 0 0 0 52 0 v-28" fill="#40b75f"/><ellipse cx="644" cy="90" rx="26" ry="7" fill="#5ccd79"/><text x="644" y="112" text-anchor="middle" fill="#0b3d1e" font-family="Poppins,sans-serif" font-size="10" font-weight="600">DB a</text>
+        <ellipse cx="644" cy="182" rx="26" ry="7" fill="#40b75f"/><path d="M618 182 v28 a26 7 0 0 0 52 0 v-28" fill="#40b75f"/><ellipse cx="644" cy="182" rx="26" ry="7" fill="#5ccd79"/><text x="644" y="204" text-anchor="middle" fill="#0b3d1e" font-family="Poppins,sans-serif" font-size="10" font-weight="600">DB b</text>
+        <ellipse cx="644" cy="274" rx="26" ry="7" fill="#40b75f"/><path d="M618 274 v28 a26 7 0 0 0 52 0 v-28" fill="#40b75f"/><ellipse cx="644" cy="274" rx="26" ry="7" fill="#5ccd79"/><text x="644" y="296" text-anchor="middle" fill="#0b3d1e" font-family="Poppins,sans-serif" font-size="10" font-weight="600">DB c</text>
+      </g>
+    </svg>
+    <figcaption>Domains hit one reverse proxy, which routes each to its own app. Every app has its own user, internal port, and database. Shared hardware, separate state.</figcaption>
+  </figure>
+
+  <h2>Routing by domain: virtual hosts</h2>
+  <p>The piece that makes several apps answer on one server is the <strong>reverse proxy</strong> out front. Every request lands on port 80/443, and the proxy reads the <code>Host</code> header (the domain) and forwards it to the matching app's internal port. Nginx calls this a server block; Apache calls it a virtual host. Same idea.</p>
+  <p>Here's Nginx routing two domains to two separate apps on the same box:</p>
+<pre><code># /etc/nginx/sites-available/app-a
+server {
+    listen 80;
+    server_name client-one.com www.client-one.com;
+    location / {
+        proxy_pass http://127.0.0.1:3001;   # app A's own process
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $remote_addr;
+    }
+}
+
+# /etc/nginx/sites-available/app-b
+server {
+    listen 80;
+    server_name client-two.com;
+    location / {
+        proxy_pass http://127.0.0.1:3002;   # app B, different port
+        proxy_set_header Host $host;
+    }
+}</code></pre>
+  <p>The Apache equivalent, if that's your stack:</p>
+<pre><code>&lt;VirtualHost *:80&gt;
+    ServerName client-two.com
+    ProxyPass        / http://127.0.0.1:3002/
+    ProxyPassReverse / http://127.0.0.1:3002/
+&lt;/VirtualHost&gt;</code></pre>
+
+  <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>Console: the Domain Aliases and SSL screen for one co-hosted app, its domain mapped and a free certificate issued.</em><small>Shows per-app routing plus SSL. Optional.</small></span></figure>
+
+  <p>Add a domain, add a block, reload the proxy, and that domain now reaches its app. On a managed platform you don't hand-edit these files. You add an application, point a domain at it, and the routing plus a free SSL certificate are wired up for you. But it's worth knowing what's happening underneath, because this is the mechanism.</p>
+
+  <h2>Per-app environment and secrets</h2>
+  <p>Each app carries its own configuration, and that config never leaks to a neighbour. App A's database password, API keys, and settings live in <em>its</em> environment, invisible to app B. That's not just tidiness. If every app read from one shared config, a single leak would expose all of them at once.</p>
+  <p>So each app reads its own environment variables, the same pattern a single app uses, just kept separate per app. If you're fuzzy on the how and why, <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a> is the deep version.</p>
+
+  <h2>The anti-pattern: one shared database</h2>
+  <p>If you take one thing from this guide, take this. <strong>Do not point several unrelated apps at a single shared database.</strong> It feels efficient. It's a trap.</p>
+  <p>The moment two apps share a database, they're no longer isolated. A runaway query in app A can lock tables app B needs. A bad migration in one app's deploy can break the schema the other relies on. A security hole in the weakest app exposes every app's data, because it's all in one place with one set of credentials. And when one client wants to leave or move, you're untangling their rows from everyone else's. I've watched teams lose a weekend to exactly this.</p>
+  <p>Give each app its own database and its own user. On MySQL that's a couple of lines per app:</p>
+<pre><code>CREATE DATABASE app_a;
+CREATE USER 'app_a'@'localhost' IDENTIFIED BY 'a-strong-secret';
+GRANT ALL PRIVILEGES ON app_a.* TO 'app_a'@'localhost';
+
+CREATE DATABASE app_b;
+CREATE USER 'app_b'@'localhost' IDENTIFIED BY 'a-different-secret';
+GRANT ALL PRIVILEGES ON app_b.* TO 'app_b'@'localhost';</code></pre>
+  <p>Now app_a can only ever see <code>app_a</code>, and a problem in one database can't reach into another. A managed database per app makes this even cleaner, and each one is backed up on its own. More on that in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a>. The one time sharing a database is fine is when the apps are genuinely one system (a frontend and its own API, say). Unrelated apps, never.</p>
+
+  <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>A database list on one server showing a separate database per app: app_a, app_b, app_c.</em><small>Reinforces one-database-per-app. Optional.</small></span></figure>
+
+  <h2>Headroom and the noisy neighbour</h2>
+  <p>The one real risk of packing apps onto a server is resource contention. If they all get busy at once, they compete for the same CPU and RAM. Two habits keep that from biting.</p>
+  <p>First, <strong>leave headroom.</strong> Don't run the box at 90% on a calm Tuesday, because you'll have nothing left for a Friday spike. Size for the sum of your apps' typical usage plus a comfortable buffer, and remember you can resize later, so start sensible instead of over-buying. Second, <strong>know your heavy hitters.</strong> If one app is far busier or hungrier than the rest, it's a candidate to move out before it drags the others down.</p>
+  <p>This is the honest caveat with co-hosting, worth naming plainly. Isolation of data and config is complete: apps genuinely can't see each other's state. Isolation of raw horsepower is not, because they share the same CPU and memory. A true noisy neighbour, one app suddenly eating everything, can slow the others until you move it. That's a fine trade for light and medium apps, and the moment it stops being fine is your signal to split.</p>
+
+  <h2>When to split to a second server</h2>
+  <p>Co-hosting is a spectrum, not a religion. There's a clear point where a second server, or a load balancer in front of several, becomes the right move:</p>
+  <ul>
+    <li><strong>One app outgrows the box.</strong> When a single app reliably needs most of the server, give it its own. It has earned it.</li>
+    <li><strong>A client or rule demands isolation.</strong> Some clients, or a compliance requirement, warrant a dedicated server with no neighbours at all.</li>
+    <li><strong>A spike is coming.</strong> If you know traffic's about to jump, split the busy app out ahead of time, or put a load balancer in front and run more than one copy.</li>
+  </ul>
+  <p>Splitting later is easy <em>because</em> you kept the apps isolated from day one. Each app is already self-contained, its own user, code, env, and database, so moving it to its own server is a redeploy, not a painful untangling. If you get to the point of spreading one app across several servers, a <a href="https://www.kloudbean.com/blog/cloud-load-balancer-explained/">load balancer</a> is the next piece, and Kloudbean's Flexible Load Balancer is built in on any account to switch on when you need it.</p>
+
+  <h2>How Kloudbean does it</h2>
+  <p>On a managed platform the four boundaries above are handled for you. You add an application to a server, give it a domain, and it gets its own user, web root, process, and routing with free SSL, added one at a time.</p>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean console showing several applications running on one server, each with its own domain and its own place in the console">
+    <figcaption>Add each app to the same server, each with its own domain. The console keeps every app's routing, user, and SSL separate.</figcaption>
+  </figure>
+
+  <p>So <code>client-one.com</code>, <code>client-two.com</code>, and <code>api.mine.com</code> can all live on one server, each answering only for its own traffic, each with its own managed database and its own automatic <a href="https://www.kloudbean.com/blog/server-backups-guide/">backups</a>. You add them one at a time, and the platform keeps the routing and SSL straight. When one app earns its own box, moving it is a redeploy. This is the general, technical build. If you're running many client sites and want the operational playbook (billing, handoff, standardising the fleet), that's a different angle covered in the <a href="https://www.kloudbean.com/blog/hosting-for-agencies-playbook/">agency hosting playbook</a> and <a href="https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/">how agencies host 20 client apps</a>.</p>
+
+  <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>The server resource graph with several apps running, CPU and memory sitting comfortably below the ceiling.</em><small>Shows healthy headroom across co-hosted apps.</small></span></figure>
+
+  <p>Want just an app plus its own API and database on one box, rather than many tenants? That narrower setup is walked through in <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">host an app, API, and database on one server</a>. And if you're weighing doing all this yourself versus a managed setup, <a href="https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/">managed vs unmanaged hosting</a> lays out the trade.</p>
+
+  <h2>The honest limits</h2>
+  <p>Underneath, it's ordinary managed Linux hosting. The platform keeps the server, the stack, SSL, and per-app backups healthy, and you own each app and its data. Running several apps on one box doesn't change that deal, it just makes the box you're already paying for do a lot more work. The caveat stays the same as any shared server: apps share raw CPU and memory, so a genuinely heavy app eventually wants its own home. That's not a flaw in the approach. It's the signal, built into it, that tells you when you've grown.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Use the whole server, not 10% of it.</p>
+    <p style="margin:0 0 .6em">Put several apps on one right-sized server, each isolated with its own user, database, and backups. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; sizes and plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Many apps, one server · Isolated per app · Per-app databases · Automatic backups · Built-in load balancer · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Can I host multiple apps or websites on one server?</h3>
+    <p>Yes. You add each app to the same server, give each its own domain or subdomain, and a reverse proxy routes each domain to the right app on its own internal port. Several light-to-medium apps (static sites, a small API, a WordPress site) coexist comfortably on one right-sized server, which uses hardware you're already paying for far more efficiently.</p>
+    <h3>How do I keep multiple apps on one server from interfering?</h3>
+    <p>Isolate them across four boundaries: its own system user, its own web root, its own process and port, and its own database with its own least-privilege user. Add per-app environment variables on top. Then they share hardware but not state, so one app can't read another's config or corrupt its data.</p>
+    <h3>How does a server know which app a domain belongs to?</h3>
+    <p>A reverse proxy (Nginx or Apache) reads the Host header on each incoming request and forwards it to the matching app's internal port. In Nginx that's a server block; in Apache a virtual host. On a managed platform you just add the app and its domain, and the routing plus SSL are configured for you.</p>
+    <h3>Should multiple apps share one database?</h3>
+    <p>No, not unless they're genuinely one system. Give each app its own database and user. A shared database breaks isolation: a runaway query or bad migration in one app can hurt the others, and a breach exposes everyone's data at once. Separate databases keep a problem contained to the one app that caused it.</p>
+    <h3>How many apps can one server handle?</h3>
+    <p>It depends on how heavy each app is, not a fixed number. A few light apps run happily on a modest server; heavier apps need more room or their own box. Size for the sum of your apps' typical usage plus a buffer, watch usage, and leave headroom rather than running near the ceiling.</p>
+    <h3>What is the noisy neighbour problem?</h3>
+    <p>It's when one app on a shared server suddenly consumes most of the CPU or memory and slows the others down. Data and config stay isolated, but raw horsepower is shared. You manage it by leaving headroom and by moving a consistently heavy app to its own server before it affects its neighbours.</p>
+    <h3>When should I move an app to its own server?</h3>
+    <p>When one app reliably needs most of the server, when a client or compliance rule demands isolation, or when you know a spike is coming. Because well-hosted apps are already isolated, moving one is just a redeploy, so start consolidated and split when an app earns it.</p>
+    <h3>Is it cheaper to run several apps on one server?</h3>
+    <p>Usually, yes. Most single-app servers sit largely idle, so adding more apps to the same box gets more value from hardware you already pay for, instead of a new server per project. The savings hold as long as you leave headroom and split off any app that grows too demanding.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · One box, many front doors.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Host Multiple Apps on One Server","description":"How to host multiple apps on one server without making a mess: the isolation model (own user, web root, process, and database per app), reverse-proxy routing by domain, per-app env vars, and when to split.","image":"https://www.kloudbean.com/blog/host-multiple-apps-one-server/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/host-multiple-apps-one-server/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Can I host multiple apps or websites on one server?","acceptedAnswer":{"@type":"Answer","text":"Yes. You add each app to the same server, give each its own domain or subdomain, and a reverse proxy routes each domain to the right app on its own internal port. Several light-to-medium apps (static sites, a small API, a WordPress site) coexist comfortably on one right-sized server, which uses hardware you're already paying for far more efficiently."}},
+{"@type":"Question","name":"How do I keep multiple apps on one server from interfering?","acceptedAnswer":{"@type":"Answer","text":"Isolate them across four boundaries: its own system user, its own web root, its own process and port, and its own database with its own least-privilege user. Add per-app environment variables on top. Then they share hardware but not state, so one app can't read another's config or corrupt its data."}},
+{"@type":"Question","name":"How does a server know which app a domain belongs to?","acceptedAnswer":{"@type":"Answer","text":"A reverse proxy (Nginx or Apache) reads the Host header on each incoming request and forwards it to the matching app's internal port. In Nginx that's a server block; in Apache a virtual host. On a managed platform you just add the app and its domain, and the routing plus SSL are configured for you."}},
+{"@type":"Question","name":"Should multiple apps share one database?","acceptedAnswer":{"@type":"Answer","text":"No, not unless they're genuinely one system. Give each app its own database and user. A shared database breaks isolation: a runaway query or bad migration in one app can hurt the others, and a breach exposes everyone's data at once. Separate databases keep a problem contained to the one app that caused it."}},
+{"@type":"Question","name":"How many apps can one server handle?","acceptedAnswer":{"@type":"Answer","text":"It depends on how heavy each app is, not a fixed number. A few light apps run happily on a modest server; heavier apps need more room or their own box. Size for the sum of your apps' typical usage plus a buffer, watch usage, and leave headroom rather than running near the ceiling."}},
+{"@type":"Question","name":"What is the noisy neighbour problem?","acceptedAnswer":{"@type":"Answer","text":"It's when one app on a shared server suddenly consumes most of the CPU or memory and slows the others down. Data and config stay isolated, but raw horsepower is shared. You manage it by leaving headroom and by moving a consistently heavy app to its own server before it affects its neighbours."}},
+{"@type":"Question","name":"When should I move an app to its own server?","acceptedAnswer":{"@type":"Answer","text":"When one app reliably needs most of the server, when a client or compliance rule demands isolation, or when you know a spike is coming. Because well-hosted apps are already isolated, moving one is just a redeploy, so start consolidated and split when an app earns it."}},
+{"@type":"Question","name":"Is it cheaper to run several apps on one server?","acceptedAnswer":{"@type":"Answer","text":"Usually, yes. Most single-app servers sit largely idle, so adding more apps to the same box gets more value from hardware you already pay for, instead of a new server per project. The savings hold as long as you leave headroom and split off any app that grows too demanding."}}
+]}
+]}
+</script>
+</body>
+</html>

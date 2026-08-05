@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The N+1 Query Problem: What It Is and How to Fix It</title>
+<meta name="description" content="The N+1 query problem is the most common ORM performance bug. Learn what causes N+1 queries and how to fix them with eager loading in Prisma, Django, Rails, and Sequelize.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/n-plus-one-query-problem/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="The N+1 Query Problem: What It Is and How to Fix It">
+<meta property="og:description" content="One query for the list, then one per row. That's the N+1 query problem. Here is why ORMs cause it, how to spot it, and how to fix N+1 queries with eager loading.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">ORM performance</span>
+  <h1>The N+1 Query Problem: The Slow ORM Bug That Hides Until Production</h1>
+  <p class="byline">By Kloudbean Engineering &middot; One Query, Not a Hundred.</p>
+
+  <figure><img src="images/hero.png" alt="The N+1 query problem: one query for a list of posts, then one extra query per post fanning out to the database"></figure>
+
+  <p class="lead">You build a page that lists 50 blog posts with each author's name. Locally it's instant. You ship it, real data shows up, and the page that felt snappy now takes three seconds and pins the database. Odds are you just met the <strong>N+1 query problem</strong>, the most common performance bug an ORM will hand you.</p>
+
+  <p>This guide is the whole picture. What the N+1 query problem actually is, why it hides in development and melts in production, and how to fix N+1 queries with eager loading in Prisma, Django, Rails, Sequelize, and TypeORM. Real code you can paste, plus the honest part most articles skip: eager loading isn't always the right move.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>The N+1 query problem is when your code runs 1 query to load a list, then 1 more query for each row's related data. Fifty posts turns into 51 queries where 2 would do. The cause is lazy loading, where reading <code>post.author</code> quietly fires its own query. The fix is eager loading: tell the ORM to fetch the relation up front with Prisma <code>include</code>, Django <code>select_related</code> or <code>prefetch_related</code>, Rails <code>includes</code>, or Sequelize <code>include</code>.</p>
+  </div>
+
+  <h2>What is the N+1 query problem?</h2>
+  <p>The N+1 query problem is a performance bug where an app runs one query to fetch a list of records, then one more query per record to fetch a related field. Loading 50 posts and each post's author takes 51 queries where 2 would do. It scales with your data, so it gets worse as rows grow.</p>
+
+  <p>Here's the shape of it in code. You load a list, then loop over it and touch a related object:</p>
+
+<pre><code># Rails / ActiveRecord, the canonical example
+posts = Post.limit(50)          # 1 query: SELECT * FROM posts LIMIT 50
+
+posts.each do |post|
+  puts post.author.name         # each access fires its OWN query
+end
+# 1 (the posts) + 50 (one author each) = 51 queries</code></pre>
+
+  <p>That <code>1</code> is the list query. The <code>N</code> is the fan-out, one small query per row. Add them and you get N+1. Two queries of work, done as fifty-one.</p>
+
+  <p>Different ORMs trigger it in slightly different ways, and it's worth being precise because people get this wrong. In Rails, Django, and Sequelize the extra query fires the moment you touch the relation. That's lazy loading. Prisma doesn't lazy-load relations at all, so there the same explosion shows up when you loop and query per item, or when you forget to <code>include</code> the relation. Same bug, different trigger.</p>
+
+  <p>Underneath, here's what the database actually receives. One tidy list query, then a stack of near-identical single-row lookups:</p>
+
+<pre><code>-- the "1"
+SELECT * FROM posts LIMIT 50;
+
+-- the "N", one per post
+SELECT * FROM users WHERE id = 1;
+SELECT * FROM users WHERE id = 2;
+SELECT * FROM users WHERE id = 3;
+-- ...47 more just like it...</code></pre>
+
+  <p>And here's the same job done right, in two queries. Either one batched follow-up, or a single JOIN:</p>
+
+<pre><code>-- option A: one batched query for every author
+SELECT * FROM posts LIMIT 50;
+SELECT * FROM users WHERE id IN (1, 2, 3, ...);
+
+-- option B: a single JOIN, one round trip
+SELECT posts.*, users.*
+FROM posts
+JOIN users ON users.id = posts.author_id
+LIMIT 50;</code></pre>
+
+  <p>Hold onto those two options. The batched <code>IN (...)</code> versus the JOIN is exactly the distinction that trips people up in Django later.</p>
+
+  <h2>Why does it look fine in dev and melt in production?</h2>
+  <p>This is the reason N+1 is so common. It passes every check you run locally.</p>
+
+  <p>In development you seed 5 rows. Five posts means 1 + 5 = 6 queries, against a database running on the same laptop where each query returns in a fraction of a millisecond. Six queries at half a millisecond is three milliseconds. The page feels instant. Nothing looks wrong, no test fails, the code review passes.</p>
+
+  <p>Then production arrives with 5,000 rows. Now it's 1 + 5,000 = 5,001 queries. And the production database isn't on the same box, it's across a network with a real round trip of a millisecond or two each way. Five thousand tiny queries, each paying network latency, adds up to seconds of wall-clock time for one page load. The query that "worked" now times out.</p>
+
+  <p>That dev-to-prod cliff is the whole story. The bug's cost is a function of row count and network distance, and both are tiny in dev. You can't feel N+1 on 5 rows. You feel it hard on 5,000. So it ships, quietly, over and over.</p>
+
+  <!-- ADD IMAGE: a side-by-side of the same page on 5 seeded rows versus thousands of production rows, with the query count next to each. Swap for a real screenshot: src -> images/dev-vs-prod.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The same list page on 5 dev rows versus thousands of prod rows, with the query count beside each.</em><small>Shows why it passes locally and fails live.</small></span></figure>
+
+  <h2>Why do ORMs cause N+1 queries?</h2>
+  <p>Because lazy loading is convenient, and convenience hides cost. An ORM lets you write <code>post.author.name</code> and it just works. You never wrote a query. That's the selling point. But behind that dot is a database round trip, and when the dot sits inside a loop, you've written N round trips without seeing a single line of SQL.</p>
+
+  <p>I want to be fair to ORMs here, because they take unfair blame for this. The abstraction isn't broken. It's doing exactly what it promised: making related data feel like plain object access. The problem is that "feels free" and "is free" are different things, and lazy loading blurs the line. A relation that costs one query on one object costs N queries across a list, and nothing in the syntax warns you which situation you're in.</p>
+
+  <p>The fix isn't to abandon the ORM. It's to tell it, once, that you want the relation up front. That's eager loading.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 400" role="img" aria-label="N+1 queries fan out to one lookup per post for 51 total, while eager loading fetches everything in two queries" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="26" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Same result, 51 queries or 2</text>
+
+      <!-- divider -->
+      <line x1="380" y1="60" x2="380" y2="366" stroke="#d5dae8" stroke-width="1.5" stroke-dasharray="5 6"/>
+
+      <!-- LEFT: N+1 -->
+      <text x="40" y="64" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.4">N+1 QUERIES &middot; THE TRAP</text>
+      <rect x="48" y="80" width="284" height="42" rx="10" fill="#000f27"/>
+      <text x="190" y="106" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13.5" font-weight="600">1 query: load 50 posts</text>
+
+      <!-- fan-out lines -->
+      <line x1="190" y1="122" x2="78" y2="174" stroke="#b23b3b" stroke-width="1.5"/>
+      <line x1="190" y1="122" x2="134" y2="174" stroke="#b23b3b" stroke-width="1.5"/>
+      <line x1="190" y1="122" x2="190" y2="174" stroke="#b23b3b" stroke-width="1.5"/>
+      <line x1="190" y1="122" x2="246" y2="174" stroke="#b23b3b" stroke-width="1.5"/>
+      <line x1="190" y1="122" x2="302" y2="174" stroke="#b23b3b" stroke-width="1.5"/>
+
+      <!-- fan-out boxes -->
+      <g font-family="Poppins,sans-serif" font-size="10.5">
+        <rect x="49" y="176" width="58" height="38" rx="8" fill="#ffffff" stroke="#b23b3b" stroke-width="1.3"/>
+        <text x="78" y="199" text-anchor="middle" fill="#000f27">author?</text>
+        <rect x="105" y="176" width="58" height="38" rx="8" fill="#ffffff" stroke="#b23b3b" stroke-width="1.3"/>
+        <text x="134" y="199" text-anchor="middle" fill="#000f27">author?</text>
+        <rect x="161" y="176" width="58" height="38" rx="8" fill="#ffffff" stroke="#b23b3b" stroke-width="1.3"/>
+        <text x="190" y="199" text-anchor="middle" fill="#000f27">author?</text>
+        <rect x="217" y="176" width="58" height="38" rx="8" fill="#ffffff" stroke="#b23b3b" stroke-width="1.3"/>
+        <text x="246" y="199" text-anchor="middle" fill="#000f27">author?</text>
+        <rect x="273" y="176" width="58" height="38" rx="8" fill="#ffffff" stroke="#b23b3b" stroke-width="1.3"/>
+        <text x="302" y="199" text-anchor="middle" fill="#000f27">author?</text>
+      </g>
+      <text x="190" y="240" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">one lookup per post, N of them</text>
+      <text x="190" y="260" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">(5 shown, plus 45 more)</text>
+      <text x="190" y="316" text-anchor="middle" fill="#b23b3b" font-family="Poppins,sans-serif" font-size="24" font-weight="700">= 51 queries</text>
+
+      <!-- RIGHT: eager -->
+      <text x="420" y="64" fill="#1c7a3f" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.4">EAGER LOADING &middot; THE FIX</text>
+      <rect x="428" y="80" width="284" height="42" rx="10" fill="#000f27"/>
+      <text x="570" y="106" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13.5" font-weight="600">1 query: load 50 posts</text>
+      <line x1="570" y1="122" x2="570" y2="148" stroke="#40b75f" stroke-width="2"/>
+      <path d="M570 148 l-4 -9 8 0 z" fill="#40b75f"/>
+      <rect x="428" y="150" width="284" height="42" rx="10" fill="#4F1AF3"/>
+      <text x="570" y="176" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">1 query: authors WHERE id IN (...)</text>
+      <text x="570" y="222" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">one batched query for every author</text>
+      <line x1="570" y1="234" x2="570" y2="282" stroke="#40b75f" stroke-width="2"/>
+      <path d="M570 282 l-4 -9 8 0 z" fill="#40b75f"/>
+      <rect x="470" y="286" width="200" height="44" rx="12" fill="#40b75f"/>
+      <text x="570" y="314" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="16" font-weight="700">= 2 queries total</text>
+    </svg>
+    <figcaption>Left: N+1 fans out to one lookup per post. Right: eager loading fetches every author in one batched query, so the whole page costs two queries instead of fifty-one.</figcaption>
+  </figure>
+
+  <h2>The fix: eager loading in each ORM</h2>
+  <p>Eager loading means telling the ORM to fetch the relations you'll need at the same time it fetches the list, in one or two queries instead of one-per-row. Every major ORM has a word for it. Here's the fix in the ones people actually use.</p>
+
+  <h3>How to fix N+1 in Prisma (include / select)</h3>
+  <p>Prisma is explicit, so the N+1 usually comes from querying inside a loop. Replace that with <code>include</code>, and Prisma fetches the relation in one extra batched query. Use <code>select</code> when you only want a couple of fields.</p>
+
+<pre><code>// N+1: a findUnique per post
+const posts = await prisma.post.findMany({ take: 50 })
+for (const post of posts) {
+  const author = await prisma.user.findUnique({ where: { id: post.authorId } })
+}
+
+// Fix: eager load the relation in one go
+const posts = await prisma.post.findMany({
+  take: 50,
+  include: { author: true },
+})
+
+// Or pull only the fields you render
+const posts = await prisma.post.findMany({
+  take: 50,
+  select: { title: true, author: { select: { name: true } } },
+})</code></pre>
+
+  <p>Wiring Prisma up in production has its own gotchas beyond N+1. If that's where you are, see <a href="https://www.kloudbean.com/blog/connect-prisma-to-a-managed-database/">connecting Prisma to a managed database</a>. Using Drizzle instead? Same idea, different syntax, covered in <a href="https://www.kloudbean.com/blog/connect-drizzle-to-postgres/">connect Drizzle to Postgres</a>.</p>
+
+  <h3>How to fix N+1 in Django (select_related vs prefetch_related)</h3>
+  <p>Django gives you two tools, and choosing wrong is a classic mistake. They exist because a JOIN and a batched query win in different situations.</p>
+
+<pre><code># N+1: the template loops posts and reads post.author
+posts = Post.objects.all()[:50]
+for post in posts:
+    print(post.author.name)          # 1 query per post
+
+# Fix A: select_related -> a SQL JOIN, for ForeignKey / OneToOne
+posts = Post.objects.select_related("author")[:50]
+
+# Fix B: prefetch_related -> a second batched query, for M2M / reverse FK
+posts = Post.objects.prefetch_related("comments")[:50]</code></pre>
+
+  <p><code>select_related</code> does a JOIN and pulls the related row in the same query. It's the right call for a forward foreign key or a one-to-one, where each post has exactly one author. <code>prefetch_related</code> runs a separate query with an <code>IN (...)</code> clause and stitches the results together in Python. That's what you want for many-to-many and reverse foreign keys (one post, many comments), because a JOIN there would multiply your rows.</p>
+
+  <p>The mistake I see most: reaching for <code>select_related</code> on a to-many relation. Django won't let you JOIN a many-to-many that way, and even where a JOIN is technically possible, duplicating every post row once per comment is the opposite of a fix. Rule of thumb: to-one takes <code>select_related</code>, to-many takes <code>prefetch_related</code>. Deploying the Django app itself is a separate topic, walked through in <a href="https://www.kloudbean.com/blog/deploy-django-app/">deploy a Django app</a>.</p>
+
+  <h3>How to fix N+1 in Rails (includes)</h3>
+  <p>ActiveRecord has one friendly word, <code>includes</code>, and it decides the strategy for you.</p>
+
+<pre><code># N+1: one author query per post
+@posts = Post.limit(50)
+@posts.each { |p| puts p.author.name }
+
+# Fix: eager load the association
+@posts = Post.includes(:author).limit(50)</code></pre>
+
+  <p><code>includes</code> defaults to a separate batched query (like <code>preload</code>), and switches to a JOIN (like <code>eager_load</code>) if you reference the joined table in a <code>where</code> or <code>order</code>. You can force either with <code>preload</code> or <code>eager_load</code> directly. And if you want the bug to yell at you before it reaches production, add the <code>bullet</code> gem in development. It flags N+1 the moment one happens.</p>
+
+  <h3>How to fix N+1 in Sequelize and TypeORM</h3>
+  <p>Node's two big ORMs both eager load through a relations option.</p>
+
+<pre><code>// Sequelize: include the association
+const posts = await Post.findAll({
+  limit: 50,
+  include: [{ model: User, as: "author" }],
+})
+
+// TypeORM: the relations option (or leftJoinAndSelect in a QueryBuilder)
+const posts = await postRepo.find({
+  take: 50,
+  relations: { author: true },
+})</code></pre>
+
+  <p>Both build a JOIN by default. Sequelize can split a to-many into a separate batched query with <code>separate: true</code>, which is the same JOIN-versus-batch tradeoff Django makes explicit. TypeORM's lazy relations (typed as a <code>Promise</code>) will N+1 if you await them in a loop, so prefer <code>relations</code> or a query builder when you're rendering a list.</p>
+
+  <h3>The lazy trap and the eager fix, side by side</h3>
+  <p>One table to keep by your desk. Find your framework, avoid the middle column, reach for the right one.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Framework</th><th>The lazy trap</th><th>The eager fix</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Prisma</strong></td><td>querying per item in a loop</td><td><code>include</code> / <code>select</code></td></tr>
+      <tr><td><strong>Django</strong></td><td><code>post.author</code> in a loop</td><td><code>select_related</code> (to-one), <code>prefetch_related</code> (to-many)</td></tr>
+      <tr><td><strong>Rails</strong></td><td><code>post.author</code> in a loop</td><td><code>includes</code> (preload / eager_load)</td></tr>
+      <tr><td><strong>Sequelize</strong></td><td>per-item fetch or lazy getter</td><td><code>include</code></td></tr>
+      <tr><td><strong>TypeORM</strong></td><td>awaiting a lazy relation in a loop</td><td><code>relations</code> / <code>leftJoinAndSelect</code></td></tr>
+      <tr><td><strong>Laravel Eloquent</strong></td><td><code>$post->author</code> in a loop</td><td><code>with('author')</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>How do I detect N+1 queries?</h2>
+  <p>The tell is simple: query count that scales with row count. Add 10 rows to the list, watch 10 more queries appear. If loading one page fires dozens of near-identical <code>SELECT ... WHERE id = ?</code> lines, that's N+1, no guessing required.</p>
+
+  <p>So the fastest way to catch it is to watch the queries your ORM runs. Turn on query logging in development:</p>
+
+<pre><code>// Prisma: log every query
+const prisma = new PrismaClient({ log: ["query"] })</code></pre>
+
+<pre><code># Django settings.py: print SQL to the console in dev
+LOGGING = {
+    "version": 1,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "loggers": {"django.db.backends": {"level": "DEBUG", "handlers": ["console"]}},
+}</code></pre>
+
+  <p>Rails already logs every query in the dev console, and Sequelize logs by default (<code>logging: console.log</code>). Beyond raw logs, purpose-built tools make it obvious: <code>django-debug-toolbar</code> and <code>nplusone</code> for Django, the <code>bullet</code> gem for Rails, and any APM (the trace shows a waterfall of stacked identical queries). Whatever you use, the signal is the same. A wall of repeated single-row lookups.</p>
+
+  <!-- ADD IMAGE: your ORM query log or an APM trace showing the same SELECT repeated once per row. Swap for a real screenshot: src -> images/query-log.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>An ORM query log or APM waterfall with the same single-row SELECT repeated dozens of times.</em><small>The visual signature of N+1.</small></span></figure>
+
+  <h2>Is eager loading always the answer?</h2>
+  <p>No. And this is where the good articles stop and the honest ones keep going.</p>
+
+  <p>Eager loading has two failure modes of its own. The first is over-eager loading: pulling relations you never render. If you <code>include</code> every association out of habit, you drag megabytes of joined data across the wire and into memory to display a title and a name. That's just N+1 traded for bloat. Load the relations the page actually uses, no more.</p>
+
+  <p>The second is subtler. A giant JOIN can be slower than two queries. Join a one-to-many (50 posts, 20 comments each) and the database returns 1,000 rows with every post's columns repeated 20 times. That row multiplication, sometimes called a JOIN explosion, can move more bytes and cost more than a clean batched follow-up query would. This is the exact reason Django splits <code>select_related</code> (JOIN) from <code>prefetch_related</code> (batched <code>IN</code>). Each wins in a different case.</p>
+
+  <p>So here's my position, after watching this play out plenty of times. Default to eager loading the relations you render. For a to-one relationship (a post's author), a JOIN is usually the right, cheapest choice. For a to-many (a post's comments), prefer a batched second query over a JOIN that duplicates rows. Then measure. Don't blindly JOIN everything, and don't cargo-cult <code>include</code> onto every query. The goal is the smallest number of queries that returns only the data you'll use.</p>
+
+  <h2>Where indexing and connection pooling fit</h2>
+  <p>N+1 rarely travels alone. It floods the database with tiny queries, and two other issues quietly make that flood worse. They compound, which is why an N+1 page can take a healthy database down.</p>
+
+  <p>First, indexing. Every one of those <code>WHERE id = ?</code> lookups is only fast if the column is indexed. Primary keys are indexed automatically, but foreign key columns often aren't, depending on your database. If you're filtering or joining on an unindexed foreign key, each of the N queries does a sequential scan of the table. So N+1 on an unindexed column isn't 50 fast lookups, it's 50 full scans. Adding the index speeds up both the N+1 path and the eager-loaded <code>IN (...)</code> query, so it's worth doing regardless.</p>
+
+  <p>Second, the connection pool. Hundreds of little queries in flight tie up database connections while they wait their turn. Under load, an N+1 page can help push you into <code>FATAL: sorry, too many clients already</code>, which reads like a database problem but started as an app-code one. If that error looks familiar, the mechanics are in <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>. And when the same lookups repeat across requests, caching the hot ones in <a href="https://www.kloudbean.com/blog/redis-caching-patterns/">managed Redis</a> takes pressure off the database before you scale anything.</p>
+
+  <h2>How this looks on a managed database</h2>
+  <p>Let's be clear about ownership, because it matters. N+1 is an application-code bug. You fix it in your ORM, in your repo, by adding eager loading. No hosting platform can fix it for you, because the platform doesn't write your queries. What a good platform does is make the symptom visible and give you the companion fixes.</p>
+
+  <p>On Kloudbean you run a managed PostgreSQL or MySQL, and an N+1 storm shows up the way you'd expect: a spike in query volume and CPU on the database, right when a particular page gets traffic. The server health view is where you'd catch it.</p>
+
+  <figure>
+    <img src="../assets/console/server-health.png" alt="The Kloudbean server health view showing a CPU spike and query volume from an N+1 query storm">
+    <figcaption>Server health: an N+1 page shows up as a query storm and CPU spike here. The metric points you at the symptom, then you fix the queries in your code.</figcaption>
+  </figure>
+
+  <p>The companion fixes live on the platform side and pair with the real fix in your code. An index on the foreign key so each lookup is cheap. Connection pooling so a burst of queries doesn't exhaust the ceiling. Managed Redis to cache repeated reads. A bigger database is a resize, not a migration, if you genuinely need more headroom.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="Launching a managed PostgreSQL or MySQL database in the Kloudbean console">
+    <figcaption>DBS &rarr; Launch Database. Managed Postgres or MySQL on a private network with automatic backups, so app and database talk over a fast internal link.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: a before-and-after of query count or CPU on the same page, once eager loading is in place. Swap for a real screenshot: src -> images/before-after-eager.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Query count or database CPU before and after adding eager loading, on the same page.</em><small>The payoff shot: 51 queries down to 2.</small></span></figure>
+
+  <p>One private network matters more than it sounds here. When your app and database sit on the same private network, even a chatty query pattern pays a tiny round trip instead of a public-internet one, so a mild N+1 hurts less while you fix it. The full walkthrough of wiring a database into an app is the pillar guide, <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">add a managed database to your app</a>, and the engine-specific view is <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Fix the queries in code. Run the database on infrastructure that shows you the storm.</p>
+    <p style="margin:0 0 .6em">Launch managed PostgreSQL or MySQL, watch query volume and CPU in one dashboard, and pair eager loading with indexing, pooling, and managed Redis when you need them. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed PostgreSQL &amp; MySQL &middot; Automatic backups &middot; Private networking &middot; Resize on demand &middot; Free migration &middot; Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is the N+1 query problem?</h3>
+    <p>It is a performance bug where an app runs one query to load a list of records, then one more query per record to fetch a related field. Loading 50 posts and each post's author takes 51 queries instead of 2. Because the query count grows with the number of rows, it scales badly and gets worse as your data grows.</p>
+
+    <h3>What causes N+1 queries?</h3>
+    <p>Lazy loading in your ORM. When you access a related object like post.author inside a loop, the ORM quietly runs a separate query on each access. The syntax hides the cost, so a relation that is one query on a single object becomes N queries across a list. In Prisma, which does not lazy-load, the same explosion comes from querying per item in a loop.</p>
+
+    <h3>What is eager loading?</h3>
+    <p>Eager loading tells the ORM to fetch the related data up front, at the same time it loads the list, using one or two queries instead of one per row. It is the standard fix for N+1. Under the hood it is either a single JOIN or a separate batched query using an IN clause to grab every related row at once.</p>
+
+    <h3>How do I fix N+1 queries in Prisma?</h3>
+    <p>Use the include option to load the relation with the list, for example prisma.post.findMany with include set to author true. Use select if you only want specific fields. Prisma then runs one extra batched query for the relation instead of one query per item, which turns 51 queries back into 2.</p>
+
+    <h3>How do I fix N+1 queries in Django?</h3>
+    <p>Use select_related for forward foreign keys and one-to-one relations, which adds a SQL JOIN. Use prefetch_related for many-to-many and reverse foreign keys, which runs a separate batched query and joins the results in Python. Picking the wrong one is a common mistake, so match the tool to the relationship type.</p>
+
+    <h3>What is the difference between select_related and prefetch_related?</h3>
+    <p>select_related performs a database JOIN and fetches the related row in the same query, which suits to-one relationships like a post's author. prefetch_related runs a second query with an IN clause and stitches results together in Python, which suits to-many relationships like a post's comments, where a JOIN would multiply rows. They exist because JOIN and batched queries each win in different cases.</p>
+
+    <h3>How do I fix N+1 queries in Rails?</h3>
+    <p>Use includes on the query, for example Post.includes(:author). ActiveRecord defaults to a separate batched query and switches to a JOIN if you reference the joined table in a where or order clause. You can force either strategy with preload or eager_load, and the bullet gem will flag N+1 in development.</p>
+
+    <h3>How do I detect N+1 queries?</h3>
+    <p>Watch the query count and see if it scales with row count. Enable query logging in development, such as Prisma's log query option or Django's django.db.backends logger, and look for the same single-row SELECT repeated once per row. Tools like the bullet gem, django-debug-toolbar, and any APM trace make the pattern obvious.</p>
+
+    <h3>Is eager loading always better than lazy loading?</h3>
+    <p>No. Over-eager loading pulls relations you never render, wasting bandwidth and memory. And a large JOIN across a to-many relationship can multiply rows and be slower than two queries. Default to eager loading the relations you actually display, prefer a JOIN for to-one and a batched query for to-many, then measure rather than JOINing everything by reflex.</p>
+
+    <h3>Does the N+1 problem only happen with SQL databases?</h3>
+    <p>No. The pattern appears anywhere you fetch a list and then fetch related data per item, including NoSQL databases, REST APIs called in a loop, and GraphQL resolvers. In GraphQL the standard fix is a batching layer such as DataLoader, which collapses per-item lookups into one batched request, the same idea as eager loading in an ORM.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering &middot; Two queries beat fifty-one, every time.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"The N+1 Query Problem: What It Is and How to Fix It","description":"The N+1 query problem is the most common ORM performance bug. Learn what causes N+1 queries and how to fix them with eager loading in Prisma, Django, Rails, and Sequelize.","image":"https://www.kloudbean.com/blog/n-plus-one-query-problem/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/n-plus-one-query-problem/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is the N+1 query problem?","acceptedAnswer":{"@type":"Answer","text":"It is a performance bug where an app runs one query to load a list of records, then one more query per record to fetch a related field. Loading 50 posts and each post's author takes 51 queries instead of 2. Because the query count grows with the number of rows, it scales badly and gets worse as your data grows."}},
+{"@type":"Question","name":"What causes N+1 queries?","acceptedAnswer":{"@type":"Answer","text":"Lazy loading in your ORM. When you access a related object like post.author inside a loop, the ORM quietly runs a separate query on each access. The syntax hides the cost, so a relation that is one query on a single object becomes N queries across a list. In Prisma, which does not lazy-load, the same explosion comes from querying per item in a loop."}},
+{"@type":"Question","name":"What is eager loading?","acceptedAnswer":{"@type":"Answer","text":"Eager loading tells the ORM to fetch the related data up front, at the same time it loads the list, using one or two queries instead of one per row. It is the standard fix for N+1. Under the hood it is either a single JOIN or a separate batched query using an IN clause to grab every related row at once."}},
+{"@type":"Question","name":"How do I fix N+1 queries in Prisma?","acceptedAnswer":{"@type":"Answer","text":"Use the include option to load the relation with the list, for example prisma.post.findMany with include set to author true. Use select if you only want specific fields. Prisma then runs one extra batched query for the relation instead of one query per item, which turns 51 queries back into 2."}},
+{"@type":"Question","name":"How do I fix N+1 queries in Django?","acceptedAnswer":{"@type":"Answer","text":"Use select_related for forward foreign keys and one-to-one relations, which adds a SQL JOIN. Use prefetch_related for many-to-many and reverse foreign keys, which runs a separate batched query and joins the results in Python. Picking the wrong one is a common mistake, so match the tool to the relationship type."}},
+{"@type":"Question","name":"What is the difference between select_related and prefetch_related?","acceptedAnswer":{"@type":"Answer","text":"select_related performs a database JOIN and fetches the related row in the same query, which suits to-one relationships like a post's author. prefetch_related runs a second query with an IN clause and stitches results together in Python, which suits to-many relationships like a post's comments, where a JOIN would multiply rows. They exist because JOIN and batched queries each win in different cases."}},
+{"@type":"Question","name":"How do I fix N+1 queries in Rails?","acceptedAnswer":{"@type":"Answer","text":"Use includes on the query, for example Post.includes of author. ActiveRecord defaults to a separate batched query and switches to a JOIN if you reference the joined table in a where or order clause. You can force either strategy with preload or eager_load, and the bullet gem will flag N+1 in development."}},
+{"@type":"Question","name":"How do I detect N+1 queries?","acceptedAnswer":{"@type":"Answer","text":"Watch the query count and see if it scales with row count. Enable query logging in development, such as Prisma's log query option or Django's django.db.backends logger, and look for the same single-row SELECT repeated once per row. Tools like the bullet gem, django-debug-toolbar, and any APM trace make the pattern obvious."}},
+{"@type":"Question","name":"Is eager loading always better than lazy loading?","acceptedAnswer":{"@type":"Answer","text":"No. Over-eager loading pulls relations you never render, wasting bandwidth and memory. And a large JOIN across a to-many relationship can multiply rows and be slower than two queries. Default to eager loading the relations you actually display, prefer a JOIN for to-one and a batched query for to-many, then measure rather than JOINing everything by reflex."}},
+{"@type":"Question","name":"Does the N+1 problem only happen with SQL databases?","acceptedAnswer":{"@type":"Answer","text":"No. The pattern appears anywhere you fetch a list and then fetch related data per item, including NoSQL databases, REST APIs called in a loop, and GraphQL resolvers. In GraphQL the standard fix is a batching layer such as DataLoader, which collapses per-item lookups into one batched request, the same idea as eager loading in an ORM."}}
+]}
+]}
+</script>
+</body>
+</html>

@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Celery with Redis: Background Tasks in Python, Built for Production</title>
+<meta name="description" content="Run background tasks in Python with Celery and Redis. Use Redis as the Celery broker via CELERY_BROKER_URL, define tasks, run a Celery worker, schedule jobs with Celery Beat, and make tasks idempotent with retries and acks_late. Real code, on managed Redis.">
+<meta name="author" content="Kloudbean Engineering">
+<link rel="canonical" href="https://www.kloudbean.com/blog/celery-with-redis/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Celery with Redis: Background Tasks in Python, Built for Production">
+<meta property="og:description" content="How to move slow work off the request with Celery and Redis: broker setup, workers, Celery Beat, retries, acks_late, and a real production deploy.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Python task queues</span>
+  <h1>Celery with Redis: Background Tasks in Python, Built for Production</h1>
+
+  <figure><img src="images/hero.png" alt="Celery with Redis architecture: a Python web app enqueues background tasks into a Redis broker, and a Celery worker runs them"></figure>
+
+  <p class="lead">You shipped a Flask, Django, or FastAPI app and it works. Then someone signs up and the request hangs for six seconds while you send a welcome email, resize an avatar, and call a payment API. That's your cue to add a task queue. This is a hands-on walkthrough of <strong>Celery with Redis</strong>: how to move slow work off the request, define Celery background tasks, run a worker, schedule jobs with Celery Beat, and keep the whole thing standing under real traffic. Real Python, real deploy steps, and the sharp edges nobody mentions until 2am.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>Point <code>CELERY_BROKER_URL</code> at a <code>redis://</code> URL to use Redis as your Celery broker. Define work with the <code>@celery_app.task</code> decorator, enqueue it with <code>.delay()</code>, and run a separate worker process (<code>celery -A app worker</code>). Add <strong>Celery Beat</strong> for periodic jobs. Make every task idempotent, turn on retries with backoff and <code>acks_late</code>, and you've got a queue that survives production. On Kloudbean, Redis is a one-click managed engine on a private network, and your Python app plus its worker run on the same server.</p>
+  </div>
+
+  <h2>The HTTP request is the wrong place for slow work</h2>
+  <p>A request should do one job: respond fast. When you send an email inside the request handler, the browser waits on your SMTP provider. When you resize an uploaded image inline, the request waits on CPU. When you call Stripe or a shipping API, you're now at the mercy of someone else's latency, and their bad afternoon becomes yours.</p>
+  <p>None of that work belongs on the request path. Leave it there and things break in a predictable order:</p>
+  <ul>
+    <li><strong>Slow responses.</strong> A 200ms page turns into a 4-second page because it's blocking on an email nobody's even reading yet.</li>
+    <li><strong>Timeouts.</strong> Most app servers kill a request after 30 seconds. Gunicorn's default is exactly that, and when it fires the user gets a <code>504</code> and a half-finished operation.</li>
+    <li><strong>Cascading failure.</strong> If the third-party API stalls, every request that touches it stalls too. Your worker processes fill up waiting, and the whole site goes down with one slow dependency.</li>
+    <li><strong>No second chance.</strong> The email provider blips for two seconds, the send throws, and your user never gets their receipt. Inline code rarely retries.</li>
+  </ul>
+  <p>The fix is old and boring and it works. Hand the slow work to a queue and return right away. The user gets a response in milliseconds. A separate process does the real work a moment later, retries if it fails, and no one's browser is held hostage while it happens.</p>
+
+  <!-- Author: swap this placeholder for a real image. src -> images/504-timeout-log.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>App log showing a request that blew past the 30s worker timeout and returned a 504, the exact failure this article prevents.</em><small>A real screenshot beats a diagram here.</small></span></figure>
+
+  <h2>Celery with Redis: how the pieces fit together</h2>
+  <p>Celery is a task queue for Python. You write ordinary functions, mark them as tasks, and Celery arranges for them to run outside the request in a separate worker process. It needs somewhere to hold the messages while they wait for a worker. That place is the broker.</p>
+  <p>Redis is the broker. When your app calls a task, Celery serializes the call (the task name plus its arguments) and pushes it into a Redis list. Your worker is watching that list, pops the next job, and runs it. Redis is quick, it's a single dependency you probably already run for caching, and it can double as a result backend if you ever need to read a task's return value.</p>
+  <p>So Redis plays up to two roles here:</p>
+  <ul>
+    <li><strong>Broker (required).</strong> The queue itself. This is <code>CELERY_BROKER_URL</code>. No broker, no Celery.</li>
+    <li><strong>Result backend (optional).</strong> Stores the state and return value of each task. This is <code>CELERY_RESULT_BACKEND</code>. Skip it unless you actually read results back.</li>
+  </ul>
+
+  <figure>
+    <svg viewBox="0 0 760 380" role="img" aria-label="Diagram: a Python web app enqueues a task into a Redis broker over a private network, and a Celery worker pulls the task and runs it, optionally writing to a result backend" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="28" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">One task's journey: enqueue, wait in the queue, run</text>
+      <!-- private network box -->
+      <rect x="214" y="60" width="520" height="256" rx="16" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5" stroke-dasharray="6 6"/>
+      <text x="230" y="82" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.5">PRIVATE NETWORK · VPC</text>
+      <!-- Web app -->
+      <rect x="24" y="150" width="150" height="80" rx="12" fill="#000f27"/>
+      <text x="99" y="182" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="15" font-weight="600">Web app</text>
+      <text x="99" y="202" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="10.5">Flask · Django · FastAPI</text>
+      <!-- Redis broker cylinder -->
+      <g>
+        <ellipse cx="360" cy="150" rx="66" ry="13" fill="#3a12b8"/>
+        <path d="M294 150 v70 a66 13 0 0 0 132 0 v-70" fill="#4F1AF3"/>
+        <ellipse cx="360" cy="150" rx="66" ry="13" fill="#6b3cff"/>
+        <text x="360" y="192" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="14" font-weight="600">Redis broker</text>
+        <text x="360" y="210" text-anchor="middle" fill="#d8ccff" font-family="Poppins,sans-serif" font-size="10.5">the queue</text>
+      </g>
+      <!-- Celery worker -->
+      <rect x="560" y="148" width="160" height="84" rx="12" fill="#ffffff" stroke="#40b75f" stroke-width="1.6"/>
+      <text x="640" y="180" text-anchor="middle" fill="#1c2536" font-family="Poppins,sans-serif" font-size="15" font-weight="600">Celery worker</text>
+      <text x="640" y="200" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">runs your task</text>
+      <text x="640" y="216" text-anchor="middle" fill="#40b75f" font-family="JetBrains Mono,monospace" font-size="10.5">--concurrency=4</text>
+      <!-- Result backend (optional) -->
+      <rect x="300" y="266" width="120" height="40" rx="10" fill="#ffffff" stroke="#40b75f" stroke-width="1.4" stroke-dasharray="4 4"/>
+      <text x="360" y="285" text-anchor="middle" fill="#1c2536" font-family="Poppins,sans-serif" font-size="12" font-weight="600">Result backend</text>
+      <text x="360" y="299" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="9.5">optional</text>
+      <!-- arrow: app -> redis -->
+      <line x1="174" y1="185" x2="290" y2="185" stroke="#5b6a86" stroke-width="2"/>
+      <path d="M290 185 l-10 -4.5 v9 z" fill="#5b6a86"/>
+      <text x="232" y="176" text-anchor="middle" fill="#5b6a86" font-family="JetBrains Mono,monospace" font-size="11">.delay()</text>
+      <!-- arrow: redis -> worker -->
+      <line x1="426" y1="185" x2="556" y2="185" stroke="#40b75f" stroke-width="2"/>
+      <path d="M556 185 l-10 -4.5 v9 z" fill="#40b75f"/>
+      <text x="491" y="176" text-anchor="middle" fill="#40b75f" font-family="Poppins,sans-serif" font-size="10.5">worker pulls job</text>
+      <!-- arrow: worker -> result backend -->
+      <line x1="600" y1="232" x2="420" y2="286" stroke="#40b75f" stroke-width="1.6" stroke-dasharray="4 4"/>
+      <path d="M420 286 l10.5 -1.2 -4.6 -7.7 z" fill="#40b75f"/>
+      <text x="512" y="270" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10">store result</text>
+    </svg>
+    <figcaption>The web app calls <code>.delay()</code>, the job lands in the Redis broker, and a Celery worker pulls it and runs it. All of it stays on the private network.</figcaption>
+  </figure>
+
+  <h2>Your first Celery task</h2>
+  <p>Here's a small, complete setup. One file, <code>app.py</code>, holds the Celery instance and a task. Notice that the broker and backend both come from the environment, never from a value typed into the code.</p>
+<pre><code># app.py
+import os
+from celery import Celery
+
+celery_app = Celery(
+    "app",
+    broker=os.environ["CELERY_BROKER_URL"],
+    backend=os.environ.get("CELERY_RESULT_BACKEND"),
+)
+
+# sensible production defaults (explained further down)
+celery_app.conf.update(
+    task_acks_late=True,              # ack a job only after it finishes
+    task_reject_on_worker_lost=True,  # requeue if the worker dies mid-task
+    worker_prefetch_multiplier=1,     # don't let one worker hoard messages
+    broker_transport_options={"visibility_timeout": 3600},
+)
+
+
+@celery_app.task(bind=True, max_retries=5)
+def send_welcome_email(self, user_id):
+    user = get_user(user_id)          # re-fetch by id; don't pass the object
+    try:
+        mailer.send(to=user.email, template="welcome")
+    except TransientError as exc:
+        # back off: 2s, 4s, 8s, 16s, 32s
+        raise self.retry(exc=exc, countdown=2 ** self.request.retries)</code></pre>
+  <p>A few things earn their keep in that snippet. <code>bind=True</code> gives you <code>self</code>, which is how you reach <code>self.retry()</code> and the current retry count. <code>max_retries=5</code> caps the attempts so a permanently broken send doesn't loop forever. And the task takes a <code>user_id</code>, not a <code>user</code> object, which matters more than it looks (more on that later).</p>
+  <p>Enqueue it from your view or route. Both of these return immediately:</p>
+<pre><code># inside your Flask / Django / FastAPI handler
+send_welcome_email.delay(user.id)
+
+# the same call, with options
+send_welcome_email.apply_async(
+    args=[user.id],
+    countdown=10,        # wait 10 seconds before running
+    queue="emails",      # route to a named queue
+)</code></pre>
+  <p><code>.delay(user.id)</code> is the shorthand you'll use most. <code>.apply_async()</code> is the same thing with the dials exposed: delay the start, pick a queue, set a priority, add an expiry. Call one of them and the job is in Redis. Your handler returns, the user sees their page, and a worker takes it from there.</p>
+
+  <h2>Run the Celery worker</h2>
+  <p>The task won't run on its own. Something has to consume the queue, and that something is the worker. Start it from the same directory as your code:</p>
+<pre><code># one worker process, four child processes running tasks in parallel
+celery -A app worker --loglevel=info --concurrency=4</code></pre>
+  <p><code>-A app</code> tells Celery which module holds your <code>celery_app</code> instance. <code>--concurrency=4</code> runs four child processes, so four tasks can run at once. On boot you'll see the banner, the broker line pointing at your Redis, and the list of registered tasks. If your task isn't in that list, the worker can't run it, and that's usually an import problem worth fixing before anything else.</p>
+
+  <div class="note"><b>Web app and worker are two separate processes.</b> Your app server (gunicorn, uvicorn) handles requests and enqueues jobs. The worker runs them. They never share memory, only the broker URL. So the worker has to be running for anything to happen. If nobody starts it, jobs just pile up in Redis and go nowhere.</div>
+
+  <!-- Author: swap this placeholder for a real image. src -> images/worker-startup.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Terminal screenshot of the Celery worker booting: the startup banner, the broker line, the registered task list, and four ready processes.</em><small>Blur any real credentials in the broker URL.</small></span></figure>
+
+  <h2>Celery Beat: periodic tasks on a schedule</h2>
+  <p>Plenty of work isn't triggered by a user at all. Nightly cleanups, a sync every five minutes, a Monday report. Celery Beat is the built-in scheduler for that. It's important to be clear about what Beat does: it doesn't run tasks, it enqueues them on a timer, and your normal worker picks them up. Same queue, same workers.</p>
+<pre><code># app.py (add to the config)
+from celery.schedules import crontab
+
+celery_app.conf.beat_schedule = {
+    "nightly-cleanup": {
+        "task": "app.cleanup_expired_sessions",
+        "schedule": crontab(hour=3, minute=0),   # 03:00 every day
+    },
+    "sync-orders": {
+        "task": "app.sync_orders",
+        "schedule": 300.0,                        # every 300 seconds
+    },
+}</code></pre>
+  <p>Then run Beat as its own process, alongside the worker:</p>
+<pre><code># the scheduler. run exactly one of these, ever.
+celery -A app beat --loglevel=info</code></pre>
+  <p>Run one Beat process and only one. Start two and every scheduled job fires twice. For something simple, like hitting one endpoint each night, you don't strictly need Beat at all. Kloudbean lets you schedule <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">cron jobs</a> from the dashboard with no SSH, and a UI cron that runs a management command is often the lighter choice. Reach for Beat when the schedule lives in your codebase and belongs with your tasks.</p>
+
+  <h2>Redis vs RabbitMQ: which Celery broker should you use?</h2>
+  <p>Celery supports a few brokers, and people love to argue about them. Here's the honest shape of the choice:</p>
+  <table class="cmp">
+    <thead><tr><th>Broker</th><th>Best for</th><th>The tradeoff</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Redis</strong></td><td>Almost everyone. Simple, fast, one dependency, doubles as cache and result backend.</td><td>You tune <code>visibility_timeout</code> yourself, and it's a data store pressed into broker duty rather than a purpose-built one.</td></tr>
+      <tr><td><strong>RabbitMQ</strong></td><td>Complex routing, strict delivery guarantees, priority queues, very high fan-out.</td><td>Another service to run, monitor, and learn. Heavier than most apps ever need.</td></tr>
+      <tr><td><strong>Amazon SQS</strong></td><td>Teams already deep in AWS who want zero broker to operate.</td><td>No result backend, some Celery features unsupported, and polling adds latency.</td></tr>
+    </tbody>
+  </table>
+  <p>My take after wiring up a lot of these: Redis is the pragmatic default, and the bar to move off it is higher than the internet suggests. You'd switch to RabbitMQ when you genuinely need advanced routing or delivery semantics Redis can't give you, and most apps never get there. Redis is also one of Kloudbean's <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed database engines</a>, so it's a one-click launch rather than a server you babysit. If you're already using it for <a href="https://www.kloudbean.com/blog/redis-caching-guide/">caching</a>, your broker is effectively free infrastructure you already run.</p>
+
+  <h2>Make your tasks production-safe</h2>
+  <p>Getting a task to run is the easy 80%. The other 20% is what keeps you out of an incident. A queue introduces at-least-once delivery, retries, crashes, and duplicates, and your code has to expect all of it.</p>
+
+  <h3>1. Assume every task runs twice</h3>
+  <p>This is the one rule I'd tattoo on a junior engineer. A worker can die after doing the work but before acking the message, so Redis hands the job to another worker and it runs again. Retries do the same. So make every task idempotent: running it twice should land the same result as running it once. Charge a card? Use an idempotency key so the second attempt is a no-op. Send an email? Track a "sent" flag. Update a row? Write the final value, don't increment. Design for the double, and duplicates stop being scary.</p>
+
+  <h3>2. Retry transient failures with backoff</h3>
+  <p>Networks blip. APIs rate-limit. Retrying is right, but retrying instantly in a tight loop just hammers a service that's already struggling. Back off exponentially. The manual style is the <code>self.retry(countdown=...)</code> you saw earlier. The declarative style is cleaner when you don't need custom logic:</p>
+<pre><code>@celery_app.task(
+    autoretry_for=(TransientError,),   # retry on these exceptions
+    retry_backoff=True,                # 1s, 2s, 4s, 8s ...
+    retry_backoff_max=600,             # cap the wait at 10 minutes
+    retry_jitter=True,                 # spread retries out
+    max_retries=5,
+    acks_late=True,
+)
+def charge_card(order_id):
+    order = get_order(order_id)
+    payments.charge(order.customer, order.total, key=order.idempotency_key)</code></pre>
+
+  <h3>3. acks_late and the visibility timeout</h3>
+  <p>By default Celery acknowledges a message the moment a worker picks it up. If that worker then crashes, the job is gone. Set <code>task_acks_late=True</code> and the ack waits until the task finishes, so a crash puts the job back on the queue. It pairs with idempotency, because a redelivered job might have partly run.</p>
+  <p>With Redis there's a catch worth knowing. Redis has no native "in-flight" concept, so Celery uses a <strong>visibility timeout</strong>: if a job isn't acked within that window (default 1 hour), Redis assumes the worker is dead and redelivers it. If a legit task runs longer than the timeout, you get a duplicate. Set <code>visibility_timeout</code> comfortably higher than your slowest task and this quietly goes away.</p>
+
+  <h3>4. Set concurrency to match the work</h3>
+  <p>The default prefork pool runs CPU-bound work well, and <code>--concurrency</code> should roughly track your core count for that. For IO-bound tasks that spend their life waiting on the network (most email and API work), a thread or gevent pool lets one process handle far more:</p>
+<pre><code># IO-bound: hundreds of green threads on one process
+celery -A app worker --pool=gevent --concurrency=200</code></pre>
+
+  <h3>5. Pass IDs, not objects</h3>
+  <p>Everything you pass to a task gets serialized into Redis and sits there until a worker reads it. Pass a whole user record or an uploaded file and you've bloated the broker and pinned a stale copy of the data. Pass the <code>user_id</code> and re-fetch inside the task. The payload stays tiny and the task always reads current data. This is why the example took <code>user_id</code>, not <code>user</code>.</p>
+
+  <h3>6. Watch what's happening</h3>
+  <p>A queue you can't see is a queue you can't trust. <strong>Flower</strong> is the usual answer, a small web dashboard that shows active workers, task rates, and which jobs succeeded, failed, or retried. Run it next to your worker (<code>celery -A app flower</code>) and put it behind auth. Beyond that, watch queue length in Redis. A number that only climbs means your workers can't keep up, and it's the earliest warning you'll get.</p>
+
+  <!-- Author: swap this placeholder for a real image. src -> images/flower-dashboard.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Flower dashboard showing active workers, task throughput, and a mix of succeeded and retried tasks.</em><small>Or your own monitoring view if you use something else.</small></span></figure>
+
+  <h2>Deploy Celery and Redis on Kloudbean</h2>
+  <p>Here's the part the tutorials skip: where does this actually run? On Kloudbean it's one server with a managed Redis beside your Python app, so the broker sits on the private network and the worker runs a hop away from the queue.</p>
+
+  <ol>
+    <li><strong>Launch a managed Redis.</strong> Open the DBS section and hit Launch Database. Redis is one of the managed engines, so it's provisioned, secured, backed up, and reachable on your private network in a minute or two.</li>
+  </ol>
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed Redis, the broker for Celery, from the list of managed database engines">
+    <figcaption>DBS then Launch Database: Redis is one of seven managed engines, provisioned on your server and kept on the private network.</figcaption>
+  </figure>
+
+  <ol start="2">
+    <li><strong>Set the broker URL as an environment variable.</strong> Open Runtime Configuration then Environment Variables and add your Redis connection. Both the app and the worker read the same value.</li>
+  </ol>
+<pre><code># broker (required): Redis DB 0
+CELERY_BROKER_URL=redis://:sup3r-secret@10.0.0.6:6379/0
+
+# result backend (optional): Redis DB 1, kept separate from the broker
+CELERY_RESULT_BACKEND=redis://:sup3r-secret@10.0.0.6:6379/1</code></pre>
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console Environment Variables screen, where CELERY_BROKER_URL is stored safely instead of in code">
+    <figcaption>Runtime Configuration then Environment Variables: <code>CELERY_BROKER_URL</code> lives here, never in your repository.</figcaption>
+  </figure>
+  <p>That <code>10.0.0.6</code> is a private address, and the password rides in the URL. Because it's an env var, you rotate it without touching code. There's a fuller treatment in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>.</p>
+
+  <ol start="3">
+    <li><strong>Deploy your Python app and start the worker.</strong> Push your <a href="https://www.kloudbean.com/blog/deploy-django-app/">Django</a> or <a href="https://www.kloudbean.com/blog/deploy-fastapi-app/">FastAPI</a> app, then run the worker as a long-running process on the server (<code>celery -A app worker --loglevel=info --concurrency=4</code>). The worker is a persistent process, not a request handler, so it needs to stay up and restart if it dies. Keep it running under a process supervisor rather than a bare terminal.</li>
+    <li><strong>Add a schedule.</strong> For codebase-owned schedules, run <code>celery -A app beat</code> as its own process. For a simple recurring job, the dashboard cron works with no SSH.</li>
+  </ol>
+  <figure>
+    <img src="../assets/console/cron-jobs.png" alt="The Kloudbean console cron jobs screen, an alternative to Celery Beat for simple recurring schedules">
+    <figcaption>Cron Jobs in the UI: a lightweight alternative to Celery Beat when the schedule is simple and you'd rather not run a second process.</figcaption>
+  </figure>
+
+  <!-- Author: swap this placeholder for a real image. src -> images/worker-process.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The worker running as a supervised long-lived process on the server, with its logs streaming.</em><small>Shows the "keep it alive" point better than prose.</small></span></figure>
+
+  <h2>Keep Redis and your tasks secure</h2>
+  <p>A broker holds your pending work, and sometimes that work carries sensitive arguments. Lock it down:</p>
+  <ul>
+    <li><strong>Never expose Redis to the internet.</strong> Port <code>6379</code> stays on the private network. An open Redis is one of the most scanned, most trivially compromised things you can leave running. On Kloudbean it sits on the VPC by default, reachable by your app, not by the world.</li>
+    <li><strong>Keep the password in the URL, and the URL in the environment.</strong> The credential lives in <code>CELERY_BROKER_URL</code> as an env var, never committed to Git. Rotating it is a config change.</li>
+    <li><strong>Separate your databases.</strong> Use a different Redis DB number for the broker and for caching (the <code>/0</code> and <code>/1</code> above) so a cache flush never wipes queued jobs.</li>
+    <li><strong>Don't queue secrets as arguments.</strong> Pass an id and look up the sensitive data inside the task. Task arguments sit in the broker in plain form, so the less they carry, the better.</li>
+  </ul>
+
+  <h2>Where this fits in your stack</h2>
+  <p>A task queue rarely travels alone. The worker writes to a database, so a <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a> usually sits next to Redis. The same Redis often caches your hot reads. And if part of your platform is a Node service instead of Python, the pattern is identical for a <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">Node app</a> with a queue like BullMQ, also backed by Redis. One dashboard, one server, one bill, and the slow work living where it belongs.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Move the slow work off the request.</p>
+    <p style="margin:0 0 .6em">Launch managed Redis as your Celery broker, deploy your Python app beside it, and run your worker on the same private network. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">One-click managed Redis · Private networking · Automatic backups · Free migration assistance · Free trial · Simple Git deploy</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Can I use Redis as a Celery broker?</h3>
+    <p>Yes, and it's the most common setup. Set <code>CELERY_BROKER_URL</code> to a <code>redis://</code> URL and Celery uses Redis as the message queue. It's fast, it's a single dependency, and the same Redis can also serve as your result backend and your cache.</p>
+
+    <h3>Redis or RabbitMQ for Celery?</h3>
+    <p>Use Redis unless you have a concrete reason not to. Redis is simpler to run and covers the vast majority of workloads. RabbitMQ makes sense when you need advanced routing, priorities, or stricter delivery guarantees, and most apps never reach that point.</p>
+
+    <h3>What is Celery Beat?</h3>
+    <p>Celery Beat is the periodic task scheduler. It enqueues tasks on a schedule you define (like a cron entry), then your regular workers run them. Beat only schedules, it doesn't execute, and you should run exactly one Beat process to avoid duplicate triggers.</p>
+
+    <h3>How do I run a Celery worker in production?</h3>
+    <p>Run it as a long-lived process separate from your web app, for example <code>celery -A app worker --loglevel=info --concurrency=4</code>, and keep it alive under a process supervisor so it restarts on failure. On Kloudbean the worker runs on the same managed server as your app, reading the same broker URL.</p>
+
+    <h3>Do I need a Celery result backend?</h3>
+    <p>Only if you read task results. If tasks just do work (send email, resize an image, call an API) you can skip the backend entirely and run leaner. Add <code>CELERY_RESULT_BACKEND</code> when you need to fetch a return value or poll a task's status.</p>
+
+    <h3>How do I retry a failed Celery task?</h3>
+    <p>Bind the task with <code>bind=True</code> and call <code>self.retry(exc=exc, countdown=...)</code>, or use the declarative options <code>autoretry_for</code> and <code>retry_backoff</code>. Set <code>max_retries</code> so a permanently broken task stops eventually, and back off exponentially so you don't hammer a struggling service.</p>
+
+    <h3>What does acks_late do?</h3>
+    <p>With <code>task_acks_late=True</code>, Celery acknowledges a message only after the task finishes rather than when it starts. If a worker crashes mid-task, the job returns to the queue and runs again. Pair it with idempotent tasks, since a redelivered job may have already partly run.</p>
+
+    <h3>Why should Celery tasks be idempotent?</h3>
+    <p>Because a queue delivers at least once, not exactly once. Crashes, retries, and visibility timeouts can all cause a task to run more than once. If running a task twice produces the same result as running it once, duplicates are harmless. Assume the double will happen and write for it.</p>
+
+    <h3>Can I use Celery with Django, FastAPI, or Flask?</h3>
+    <p>Yes. Celery is a plain pip library and works with all three. You define tasks the same way, enqueue them from your views or routes, and run the worker as a separate process. Django has first-class Celery integration, and FastAPI and Flask wire up in a few lines.</p>
+
+    <h3>Can I use Kloudbean's cron instead of Celery Beat?</h3>
+    <p>For simple schedules, yes. The dashboard lets you schedule cron jobs without SSH, which is handy for running a management command on a timer. Use Celery Beat when the schedule belongs in your codebase alongside the tasks, and reach for UI cron when you just need one job to fire periodically.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Engineering · Move the slow work off the request.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Celery with Redis: Background Tasks in Python, Built for Production","description":"A practical guide to running background tasks in Python with Celery and Redis: using Redis as the broker via CELERY_BROKER_URL, defining tasks, running a worker, scheduling with Celery Beat, and making tasks production-safe with retries, acks_late, and idempotency.","image":"https://www.kloudbean.com/blog/celery-with-redis/images/hero.png","author":{"@type":"Organization","name":"Kloudbean Engineering","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/celery-with-redis/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Can I use Redis as a Celery broker?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it is the most common setup. Set CELERY_BROKER_URL to a redis:// URL and Celery uses Redis as the message queue. It is fast, it is a single dependency, and the same Redis can also serve as your result backend and your cache."}},
+{"@type":"Question","name":"Redis or RabbitMQ for Celery?","acceptedAnswer":{"@type":"Answer","text":"Use Redis unless you have a concrete reason not to. Redis is simpler to run and covers the vast majority of workloads. RabbitMQ makes sense when you need advanced routing, priorities, or stricter delivery guarantees, and most apps never reach that point."}},
+{"@type":"Question","name":"What is Celery Beat?","acceptedAnswer":{"@type":"Answer","text":"Celery Beat is the periodic task scheduler. It enqueues tasks on a schedule you define, like a cron entry, then your regular workers run them. Beat only schedules, it does not execute, and you should run exactly one Beat process to avoid duplicate triggers."}},
+{"@type":"Question","name":"How do I run a Celery worker in production?","acceptedAnswer":{"@type":"Answer","text":"Run it as a long-lived process separate from your web app, for example celery -A app worker --loglevel=info --concurrency=4, and keep it alive under a process supervisor so it restarts on failure. On Kloudbean the worker runs on the same managed server as your app, reading the same broker URL."}},
+{"@type":"Question","name":"Do I need a Celery result backend?","acceptedAnswer":{"@type":"Answer","text":"Only if you read task results. If tasks just do work such as sending email, resizing an image, or calling an API, you can skip the backend entirely and run leaner. Add CELERY_RESULT_BACKEND when you need to fetch a return value or poll a task status."}},
+{"@type":"Question","name":"How do I retry a failed Celery task?","acceptedAnswer":{"@type":"Answer","text":"Bind the task with bind=True and call self.retry with an exception and a countdown, or use the declarative options autoretry_for and retry_backoff. Set max_retries so a permanently broken task stops eventually, and back off exponentially so you do not hammer a struggling service."}},
+{"@type":"Question","name":"What does acks_late do?","acceptedAnswer":{"@type":"Answer","text":"With task_acks_late set to true, Celery acknowledges a message only after the task finishes rather than when it starts. If a worker crashes mid-task, the job returns to the queue and runs again. Pair it with idempotent tasks, since a redelivered job may have already partly run."}},
+{"@type":"Question","name":"Why should Celery tasks be idempotent?","acceptedAnswer":{"@type":"Answer","text":"Because a queue delivers at least once, not exactly once. Crashes, retries, and visibility timeouts can all cause a task to run more than once. If running a task twice produces the same result as running it once, duplicates are harmless. Assume the double will happen and write for it."}},
+{"@type":"Question","name":"Can I use Celery with Django, FastAPI, or Flask?","acceptedAnswer":{"@type":"Answer","text":"Yes. Celery is a plain pip library and works with all three. You define tasks the same way, enqueue them from your views or routes, and run the worker as a separate process. Django has first-class Celery integration, and FastAPI and Flask wire up in a few lines."}},
+{"@type":"Question","name":"Can I use Kloudbean cron instead of Celery Beat?","acceptedAnswer":{"@type":"Answer","text":"For simple schedules, yes. The dashboard lets you schedule cron jobs without SSH, which is handy for running a management command on a timer. Use Celery Beat when the schedule belongs in your codebase alongside the tasks, and reach for UI cron when you just need one job to fire periodically."}}
+]}
+]}
+</script>
+</body>
+</html>

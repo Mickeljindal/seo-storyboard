@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Auto-Deploy Your App from GitHub (CI/CD)</title>
+<meta name="description" content="The anatomy of an auto deploy from GitHub: what happens between git push and your site being live, and the exact stage where the pipeline breaks — build error, missing env var, or a process that won't restart.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Auto-Deploy Your App from GitHub (CI/CD)">
+<meta property="og:description" content="Trace an auto deploy from GitHub stage by stage — push, webhook, pull, install, build, restart, live — and learn to read exactly where it breaks.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">CI/CD · auto-deploy</span>
+  <h1>How to Auto-Deploy Your App from GitHub (CI/CD)</h1>
+
+  <figure><img src="images/hero.png" alt="Auto-deploy from GitHub — push your branch, the server builds and ships it"></figure>
+
+  <p class="lead">You built something in Lovable, Bolt, or Cursor, shipped it once, and now every little fix means clicking through a deploy by hand. That gets old fast. The fix is to auto deploy from GitHub: wire the repo up once so a single <code>git push</code> builds and ships the app for you. This piece is the anatomy of that pipeline, stage by stage, from the moment you push to the moment the new version answers a request. And because knowing how it breaks matters as much as knowing how it runs, I'll flag exactly where each stage fails and how to read it.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>An auto deploy from GitHub is a chain reaction on the server: you push a branch, a webhook fires, the server pulls the code, installs dependencies, runs your build, then restarts the app process on the new version. Set your Build and Start commands once, do a single manual deploy to prove they work, then switch on automated deployment. After that, <code>git push</code> is the deploy. Most failures aren't code bugs, they're a missing env var or a build step that never had a chance to run.</p>
+  </div>
+
+  <h2>What actually happens between git push and live</h2>
+  <p>People treat push-to-deploy as a black box. Code goes in one end, a live site comes out the other, and when it breaks the whole thing feels like magic that stopped working. It isn't magic. It's a short, ordered sequence, and every stage has one job. Once you can name the stages, a failed deploy stops being a mystery and becomes "which box lit up red."</p>
+  <p>Here's the whole chain. A push lands on your deploy branch. A webhook tells the server. The server pulls the new commit, runs your install step, runs your build, and restarts the app on the fresh code. Then it's live. Six moving parts, one trigger.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 470" width="100%" role="img" aria-label="Diagram: the auto-deploy pipeline runs git push, webhook, pull, install, build, restart, live. Failure callouts show install failing on a lockfile or Node mismatch, a build error stopping the pipeline while the live app stays up, and the restart failing to boot because of a missing environment variable causing a 503.">
+      <rect x="1" y="1" width="718" height="468" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="360" y="34" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="17" font-weight="700" fill="#000f27">Between git push and live: the deploy pipeline</text>
+
+      <!-- pipeline nodes -->
+      <g font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#fff" text-anchor="middle">
+        <rect x="20" y="64" width="84" height="46" rx="9" fill="#4F1AF3"/><text x="62" y="92">git push</text>
+        <rect x="120" y="64" width="84" height="46" rx="9" fill="#4F1AF3"/><text x="162" y="92">webhook</text>
+        <rect x="220" y="64" width="84" height="46" rx="9" fill="#4F1AF3"/><text x="262" y="92">pull</text>
+        <rect x="320" y="64" width="84" height="46" rx="9" fill="#4F1AF3"/><text x="362" y="92">install</text>
+        <rect x="420" y="64" width="84" height="46" rx="9" fill="#4F1AF3"/><text x="462" y="92">build</text>
+        <rect x="520" y="64" width="84" height="46" rx="9" fill="#4F1AF3"/><text x="562" y="92">restart</text>
+        <rect x="620" y="64" width="84" height="46" rx="9" fill="#40b75f"/><text x="662" y="92">live</text>
+      </g>
+      <!-- arrows -->
+      <g stroke="#c9d0e3" stroke-width="2" fill="#c9d0e3">
+        <path d="M104 87 L118 87"/><path d="M118 82 L118 92 L126 87 Z"/>
+        <path d="M204 87 L218 87"/><path d="M218 82 L218 92 L226 87 Z"/>
+        <path d="M304 87 L318 87"/><path d="M318 82 L318 92 L326 87 Z"/>
+        <path d="M404 87 L418 87"/><path d="M418 82 L418 92 L426 87 Z"/>
+        <path d="M504 87 L518 87"/><path d="M518 82 L518 92 L526 87 Z"/>
+        <path d="M604 87 L618 87"/><path d="M618 82 L618 92 L626 87 Z"/>
+      </g>
+      <text x="360" y="132" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#5b6a86">The happy path. One push runs every stage on the server.</text>
+
+      <!-- connectors -->
+      <g stroke="#c9d0e3" stroke-width="1.5" stroke-dasharray="4 4">
+        <line x1="262" y1="110" x2="265" y2="326"/>
+        <line x1="362" y1="110" x2="365" y2="196"/>
+        <line x1="462" y1="110" x2="465" y2="326"/>
+        <line x1="562" y1="110" x2="565" y2="196"/>
+      </g>
+
+      <!-- row A cards (install, restart) -->
+      <g font-family="Poppins,Arial,sans-serif">
+        <rect x="290" y="196" width="150" height="104" rx="10" fill="#fff" stroke="#e6e9f2"/>
+        <circle cx="306" cy="214" r="5" fill="#d98324"/>
+        <text x="320" y="219" font-size="11.5" font-weight="700" fill="#d98324">INSTALL</text>
+        <text x="306" y="243" font-size="12" fill="#1c2536">Lockfile out of sync</text>
+        <text x="306" y="261" font-size="12" fill="#1c2536">or wrong Node</text>
+        <text x="306" y="279" font-size="12" fill="#1c2536">version.</text>
+
+        <rect x="490" y="196" width="150" height="104" rx="10" fill="#fff" stroke="#e6e9f2"/>
+        <circle cx="506" cy="214" r="5" fill="#d64545"/>
+        <text x="520" y="219" font-size="11.5" font-weight="700" fill="#d64545">RESTART</text>
+        <text x="506" y="243" font-size="12" fill="#1c2536">Won't boot, usually</text>
+        <text x="506" y="261" font-size="12" fill="#1c2536">a missing env var.</text>
+        <text x="506" y="279" font-size="12" fill="#1c2536">That's the 503.</text>
+      </g>
+
+      <!-- row B cards (pull, build) -->
+      <g font-family="Poppins,Arial,sans-serif">
+        <rect x="190" y="326" width="150" height="104" rx="10" fill="#fff" stroke="#e6e9f2"/>
+        <circle cx="206" cy="344" r="5" fill="#d98324"/>
+        <text x="220" y="349" font-size="11.5" font-weight="700" fill="#d98324">PULL</text>
+        <text x="206" y="373" font-size="12" fill="#1c2536">Wrong branch or</text>
+        <text x="206" y="391" font-size="12" fill="#1c2536">bad credentials.</text>
+        <text x="206" y="409" font-size="12" fill="#1c2536">Nothing ships.</text>
+
+        <rect x="390" y="326" width="150" height="104" rx="10" fill="#fff" stroke="#40b75f"/>
+        <circle cx="406" cy="344" r="5" fill="#40b75f"/>
+        <text x="420" y="349" font-size="11.5" font-weight="700" fill="#40b75f">BUILD</text>
+        <text x="406" y="373" font-size="12" fill="#1c2536">A real error stops</text>
+        <text x="406" y="391" font-size="12" fill="#1c2536">the pipeline here.</text>
+        <text x="406" y="409" font-size="12" fill="#1c2536">Live app stays up.</text>
+      </g>
+
+      <text x="360" y="454" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#5b6a86">A broken build stops the pipeline. It doesn't ship a half-built site over the working one.</text>
+    </svg>
+    <figcaption>The seven stages of an auto deploy, with the spots where each one tends to fail.</figcaption>
+  </figure>
+
+  <h2>The pipeline, stage by stage (and where each one breaks)</h2>
+  <p>Same seven stages, in a table you can keep next to the build log. When a deploy fails, find the last green stage and read the one after it.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Stage</th><th>What runs</th><th>Where it breaks</th></tr></thead>
+    <tbody>
+      <tr><td>Push</td><td>You push a commit to the deploy branch</td><td>You pushed a different branch than the one linked.</td></tr>
+      <tr><td>Webhook</td><td>GitHub pings the server that new code exists</td><td>Repo disconnected, or the push went somewhere else.</td></tr>
+      <tr><td>Pull</td><td>Server fetches the exact commit you pushed</td><td>Wrong branch or a credential that expired.</td></tr>
+      <tr><td>Install</td><td>Your install command runs (<code>npm ci</code>, <code>pip install</code>)</td><td>Lockfile out of sync, or the Node version doesn't match.</td></tr>
+      <tr><td>Build</td><td>Your build command compiles the app</td><td>A real code or config error. The pipeline stops here.</td></tr>
+      <tr><td>Restart</td><td>The app process swaps to the new version</td><td>Won't boot. Usually a missing env var or an unrun migration.</td></tr>
+      <tr><td>Live</td><td>The new version answers requests</td><td>You're done. Check the log if behavior looks off.</td></tr>
+    </tbody>
+  </table>
+  <p>Two of those stages deserve a closer look, because they cause most of the pain. The build stage is where a genuine mistake surfaces, and it's the stage I actually want to fail loudly. A build that errors should halt the deploy right there. It should never quietly ship a half-compiled bundle on top of the version that was working. The restart stage is where a build that passed still leaves you with a dead app, and the reason is almost never the code you just wrote.</p>
+
+  <h2>Manual deploys vs auto deploy from GitHub</h2>
+  <p>I'll be blunt about this one, because I think the answer is clear for almost everyone building an app today. Dragging a build folder up over FTP, or SSHing in to <code>git pull</code> and restart by hand, is a habit worth dropping. Not because it can't work, but because it's you doing, every single time, a job a machine does identically and never forgets a step of.</p>
+
+  <table class="cmp">
+    <thead><tr><th>&nbsp;</th><th>Manual / FTP-style deploy</th><th>Auto deploy from GitHub</th></tr></thead>
+    <tbody>
+      <tr><td>Trigger</td><td>You, remembering to do it</td><td>A <code>git push</code></td></tr>
+      <tr><td>Build step</td><td>Whatever you ran locally (or forgot to)</td><td>Same commands on the server, every time</td></tr>
+      <tr><td>Consistency</td><td>Drifts with your mood and memory</td><td>Identical on every deploy</td></tr>
+      <tr><td>Bad build</td><td>Might ship half-uploaded files</td><td>Stops the pipeline, live app untouched</td></tr>
+      <tr><td>Record of what shipped</td><td>In your head</td><td>Build &amp; Deployment History, with logs</td></tr>
+    </tbody>
+  </table>
+  <p>The consistency is the real prize. Every deploy runs the same install and build on the same machine, so the "works on my laptop, broke on the server" gap shrinks to almost nothing. You stop shipping the wrong branch. You stop forgetting the build. The cost of a one-line fix drops to a commit and a push, which means you actually ship the small fixes instead of hoarding them for a scary batch deploy later.</p>
+
+  <h2>Set up auto deploy from GitHub on Kloudbean</h2>
+  <p>The setup is short because it's the same Git deployment you'd do manually, with one toggle at the end. In the <a href="https://www.kloudbean.com/">Kloudbean</a> console, open your app and go to <strong>Application Administration &#8594; Deploy Code</strong>. That's the Git Deployment screen where the whole pipeline lives.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean console Deploy Code / Git Deployment screen: connect the GitHub repo over OAuth, set the runtime commands, and turn on automated deployment">
+    <figcaption>Deploy Code, then Git Deployment. Connect the repo, set the runtime commands, and the automated deployment toggle lives on this same screen.</figcaption>
+  </figure>
+
+  <p>Connect GitHub over OAuth, paste your <strong>Git Repository URL</strong>, pick the branch, and <strong>Clone Repository</strong>. Then set the fields that the pipeline actually runs on every deploy:</p>
+  <ul>
+    <li><strong>App Directory:</strong> the folder holding your <code>package.json</code> (or equivalent).</li>
+    <li><strong>Port:</strong> the assigned port. Your app must listen on <code>process.env.PORT</code>.</li>
+    <li><strong>Install / Build / Start:</strong> for a Node app that's usually <code>npm ci</code>, then <code>npm run build</code>, then <code>npm start</code>. These are the exact commands the install, build, and restart stages will run.</li>
+  </ul>
+  <p>Now the part people skip and regret: <strong>do one manual deploy first.</strong> Hit <strong>Pull &amp; Deploy</strong> and watch the live build log stream in the console. Confirm the app comes up on its temporary URL and works. Automating a deploy that has never succeeded once just automates a failure and hides it behind a toggle. Prove the commands are right by hand, then make them automatic.</p>
+  <p>Once that manual deploy is green, switch on <strong>automated deployment</strong> for the branch. That's it. From now on, every push to that branch runs the whole pipeline: pull, install, build, restart. Your loop collapses back to writing code, committing, and pushing, which is exactly where it should be. If you'd rather trigger the same build-and-ship over SSH, <code>sudo adm</code> runs the deploy utility from the command line.</p>
+
+  <!-- ADD IMAGE: swap for a real <figure> with an <img> (src -> images/build-history.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Build &amp; Deployment History list showing a green deploy above a failed one, with the timestamps and commit messages.</em><small>Grounds the "you can see and undo every deploy" point.</small></span></figure>
+
+  <h2>Where the pipeline breaks, and how to read it</h2>
+  <p>Here's the thing worth internalizing, and it comes straight from watching a lot of these fail: the most common broken auto deploy isn't a code bug at all. It's a missing environment variable. The build passes cleanly because the build didn't need the variable. Then the app tries to boot, reaches for <code>DATABASE_URL</code> or an API key that exists on your laptop but was never set on the server, and the process dies before it can serve a request. Green build, dead app, a 503 in the browser. If you set up nothing else carefully, get your <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a> before you trust the automation.</p>
+
+  <h3>Read the build log first, always</h3>
+  <p>Every deploy streams a live build log, and finished deploys are kept in <strong>Build &amp; Deployment History</strong> with their logs attached. Don't guess at a failure. Open the log and find the last thing that ran. If it died during install, it's dependencies. If it died during build, it's your code or config. If the build finished and the app still won't answer, the process failed to boot, and the real reason is in the app's own error log:</p>
+  <pre><code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/app.error.log</code></pre>
+  <p>Nine times in ten that file names the exact variable it wanted, or the exact line it choked on. The full walkthrough of that failure is in <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fixing a 503 after deploying</a>.</p>
+
+  <h3>The migration that didn't run</h3>
+  <p>This is the sneaky one, because the code is fine. You add a column, your new code expects it, you push, the build passes, the app boots, and then it throws the first time it queries the table because the database was never migrated. The fix is to make the migration part of the deploy, so schema and code ship as one unit. Add your migration to the build or start step, for example <code>npx prisma migrate deploy</code>, so every automated deploy applies pending migrations before the new version serves traffic. Pair it with a <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">managed database on the same server</a> and the whole change travels together.</p>
+
+  <h3>Rolling back when a bad one slips through</h3>
+  <p>A failed build doesn't take your site down, and that's by design. The deploy doesn't complete, so the currently-running version keeps serving while you fix things. But sometimes a deploy succeeds and the change itself is bad. Because every deploy maps to a commit, rollback is just redeploying the last good commit, or pushing a revert. You're always one action from the previous working state, and knowing that is what makes leaning on the automation reasonable instead of nerve-wracking.</p>
+
+  <div class="note"><b>A branch strategy that keeps this calm.</b> Point <code>main</code> at production and only merge when you mean to ship. Run a second app on the same server from a <code>staging</code> branch, with its own subdomain and its own database and env vars, and push there first. Feature branches stay unlinked until they're ready to merge. Nothing reaches real users until you've clicked around the staging copy. It costs nothing extra, because staging is just <a href="https://www.kloudbean.com/blog/host-multiple-apps-one-server/">another app on the server you already own</a>.</div>
+
+  <h2>Is this really CI/CD, or just the CD half?</h2>
+  <p>Fair question, and the honest answer is that this is continuous deployment: build and ship on push. It is not, by itself, a full continuous-integration system with test matrices and approval gates. That distinction matters, so don't let anyone sell you the toggle as more than it is. What you do get is the deployment half that the polished platforms are famous for, running on a Linux server you own.</p>
+  <p>If you want real CI on top, layer it. Keep GitHub Actions (or your CI of choice) running your tests, linting, and type-checks on every pull request, and require them to pass before a merge. Then let the server deploy whatever lands on the branch. Actions guards what gets into <code>main</code>; the server ships what's there. For lighter needs, just run your test command as part of the build step so a failing test fails the build and stops the deploy. Either way you're not choosing between simple push-to-deploy and having tests. You stack them. That's how a continuous deployment server and a CI pipeline are meant to fit together for a vibe-coded app or a serious one.</p>
+
+  <!-- ADD IMAGE: swap for a real <figure> with an <img> (src -> images/pipeline-log.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>A live build log mid-deploy, paused on the install or build step, so readers see what "reading the pipeline" actually looks like.</em></span></figure>
+
+  <h2>The honest scope</h2>
+  <p>Automated deployment on Kloudbean runs on your <strong>Linux</strong> server: it pulls your branch, runs your install and build commands, and swaps the app to the new version on each push, with the log streaming as it goes. It handles PHP, Node, Python, Ruby, and Java stacks, not Windows or .NET. "Managed" means the platform runs the server, stack, SSL, and backups while you own the app code and its build configuration. Within that scope, git push to deploy is the whole point: the same developer experience the per-app platforms rent you, on infrastructure that's actually yours. If you're just getting the app onto a server in the first place, start with the <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploy an AI-built app guide</a> or the Node-specific <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">managed cloud walkthrough</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Push. Build. Live.</p>
+    <p style="margin:0">Wire up auto deploy from GitHub at <a href="https://www.kloudbean.com/">kloudbean.com</a> with a free trial and your first migration done for you. Add a custom domain and free SSL from the <a href="https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/">domain and SSL guide</a>, and check server sizes on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I make my app deploy automatically on every push?</h3>
+    <p>Connect your repo in Deploy Code over GitHub OAuth, set your Install, Build, and Start commands, and complete one successful manual deploy to confirm they work. Then enable automated deployment for your branch. After that, each push to that branch makes the server pull, install, build, and restart the app on the new version automatically.</p>
+    <h3>Is this real CI/CD?</h3>
+    <p>It's the continuous-deployment half: build and ship on push. For continuous integration (running tests and gating merges), pair it with GitHub Actions on your pull requests, or run tests inside your build command so a failing test fails the build. Together they give you a full pipeline on a continuous deployment server you own.</p>
+    <h3>What's the most common reason an auto deploy fails?</h3>
+    <p>A missing environment variable, more often than a code bug. The build passes because it doesn't need the variable, then the app can't boot because a value it reads at startup (like a database URL or API key) was never set on the server. The app error log usually names the exact key. Set it and redeploy.</p>
+    <h3>Does a failed build take my site down?</h3>
+    <p>No. If the build fails, the deploy doesn't complete and your currently-running version keeps serving. You read the build log in Build &amp; Deployment History, find the stage that broke, fix it, and push again. A broken build stops the pipeline instead of shipping over the working app.</p>
+    <h3>How do I roll back a bad deploy?</h3>
+    <p>Because each deploy maps to a commit, redeploy the previous working commit or push a revert. You're one action from the last good version, which is what makes relying on git push to deploy comfortable rather than risky.</p>
+    <h3>How do I avoid breaking production?</h3>
+    <p>Use a branch strategy: deploy <code>main</code> to production and only merge when you mean to ship, and run a <code>staging</code> branch to a preview app (another application on the same server) with its own database and env vars, so you test changes before they reach real users.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Auto-Deploy Your App from GitHub (CI/CD)","description":"The anatomy of an auto deploy from GitHub: what happens between git push and your site being live, and the exact stage where the pipeline breaks.","image":"https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I make my app deploy automatically on every push?","acceptedAnswer":{"@type":"Answer","text":"Connect your repo in Deploy Code over GitHub OAuth, set your Install, Build, and Start commands, and complete one successful manual deploy to confirm they work. Then enable automated deployment for your branch. After that, each push to that branch makes the server pull, install, build, and restart the app on the new version automatically."}},
+{"@type":"Question","name":"Is this real CI/CD?","acceptedAnswer":{"@type":"Answer","text":"It is the continuous-deployment half: build and ship on push. For continuous integration (running tests and gating merges), pair it with GitHub Actions on your pull requests, or run tests inside your build command so a failing test fails the build. Together they give you a full pipeline on a continuous deployment server you own."}},
+{"@type":"Question","name":"What is the most common reason an auto deploy fails?","acceptedAnswer":{"@type":"Answer","text":"A missing environment variable, more often than a code bug. The build passes because it does not need the variable, then the app cannot boot because a value it reads at startup (like a database URL or API key) was never set on the server. The app error log usually names the exact key. Set it and redeploy."}},
+{"@type":"Question","name":"Does a failed build take my site down?","acceptedAnswer":{"@type":"Answer","text":"No. If the build fails, the deploy does not complete and your currently-running version keeps serving. You read the build log in Build and Deployment History, find the stage that broke, fix it, and push again. A broken build stops the pipeline instead of shipping over the working app."}},
+{"@type":"Question","name":"How do I roll back a bad deploy?","acceptedAnswer":{"@type":"Answer","text":"Because each deploy maps to a commit, redeploy the previous working commit or push a revert. You are one action from the last good version, which is what makes relying on git push to deploy comfortable rather than risky."}},
+{"@type":"Question","name":"How do I avoid breaking production?","acceptedAnswer":{"@type":"Answer","text":"Use a branch strategy: deploy main to production and only merge when you mean to ship, and run a staging branch to a preview app (another application on the same server) with its own database and env vars, so you test changes before they reach real users."}}
+]}
+]}
+</script>
+</body>
+</html>

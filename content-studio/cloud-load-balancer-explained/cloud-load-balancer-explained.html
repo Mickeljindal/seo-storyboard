@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What Is a Cloud Load Balancer? A Plain-English Explainer</title>
+<meta name="description" content="A cloud load balancer sits in front of your servers and spreads traffic across them, health-checks each one, and handles SSL. Learn how it works, the session gotcha, when you actually need one, and how it differs from a CDN.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/cloud-load-balancer-explained/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="What Is a Cloud Load Balancer? A Plain-English Explainer">
+<meta property="og:description" content="How a cloud load balancer works, the session gotcha that logs users out, when you actually need one, and how it differs from a CDN.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Availability &amp; scaling</span>
+  <h1>What Is a Cloud Load Balancer? A Plain-English Explainer</h1>
+
+  <figure><img src="images/hero.png" alt="What is a cloud load balancer: a plain-English explainer"></figure>
+
+  <p class="lead">It's 2am. One of your two web servers just locked up. No alert wakes you, no user notices a thing, because traffic quietly shifted to the server that's still healthy. That's a cloud load balancer earning its keep.</p>
+  <p>The idea is old and simple. A load balancer sits in front of several servers and hands each incoming request to one that's ready to answer. To a visitor it's invisible. They type your domain, they get your site, and they never know which of your servers actually did the work. Let's take it apart, because the details are where load balancers either save you or bite you.</p>
+
+  <div class="tldr">
+    <strong>Short version</strong>
+    <p>A cloud load balancer sits in front of your backend servers and spreads incoming requests across them. It runs health checks and stops routing traffic to any server that goes quiet, and it usually terminates SSL too. The payoff: one server can fail and your site stays up, and you can add servers to handle more traffic instead of buying one ever-bigger box.</p>
+  </div>
+
+  <h2>What a cloud load balancer actually does</h2>
+  <p>It's a piece of infrastructure that sits <strong>in front of</strong> your servers and distributes incoming traffic across them. Visitors connect to the load balancer at your domain. It forwards each request to one of your <strong>backend servers</strong>, the machines actually running your app. People call that group of backends a "pool," and each server in it a "node." Instead of one machine carrying everything, two or three or ten share the work.</p>
+  <p>That's the whole concept. Everything below is detail about how it chooses, how it survives a failure, and when the added moving parts are worth it.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 360" role="img" aria-label="A load balancer receives visitor traffic and fans requests out to three backend servers. Two are healthy and receive traffic. One has failed its health check and has been removed from rotation." xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="lg" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#40b75f"/></marker>
+        <marker id="lr" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#e5484d"/></marker>
+      </defs>
+      <!-- visitors -->
+      <rect x="30" y="158" width="112" height="44" rx="22" fill="#000f27"/>
+      <text x="86" y="185" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#fff">Visitors</text>
+      <line x1="142" y1="180" x2="236" y2="180" stroke="#4F1AF3" stroke-width="2.4" marker-end="url(#lg)"/>
+      <!-- load balancer -->
+      <rect x="240" y="148" width="158" height="66" rx="13" fill="#fff" stroke="#4F1AF3" stroke-width="2"/>
+      <text x="319" y="176" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13.5" font-weight="700" fill="#000f27">Load balancer</text>
+      <text x="319" y="196" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">SSL ends here · health checks</text>
+      <!-- nodes -->
+      <rect x="560" y="46" width="140" height="52" rx="11" fill="#fff" stroke="#40b75f" stroke-width="1.8"/>
+      <text x="630" y="70" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">Server A</text>
+      <text x="630" y="86" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#40b75f">healthy</text>
+      <rect x="560" y="154" width="140" height="52" rx="11" fill="#fff" stroke="#e5484d" stroke-width="1.8" stroke-dasharray="6 5"/>
+      <text x="630" y="178" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#8a94a6">Server B</text>
+      <text x="630" y="194" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#e5484d">DOWN · removed</text>
+      <rect x="560" y="262" width="140" height="52" rx="11" fill="#fff" stroke="#40b75f" stroke-width="1.8"/>
+      <text x="630" y="286" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">Server C</text>
+      <text x="630" y="302" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#40b75f">healthy</text>
+      <!-- arrows -->
+      <line x1="398" y1="168" x2="556" y2="80" stroke="#40b75f" stroke-width="2.2" marker-end="url(#lg)"/>
+      <line x1="398" y1="194" x2="556" y2="288" stroke="#40b75f" stroke-width="2.2" marker-end="url(#lg)"/>
+      <line x1="398" y1="181" x2="556" y2="181" stroke="#e5484d" stroke-width="1.8" stroke-dasharray="6 5" opacity=".7"/>
+      <text x="474" y="150" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#e5484d">no traffic</text>
+    </svg>
+    <figcaption>The balancer fans each request to a healthy node. Server B failed its health check, so it's pulled from rotation until it recovers. Visitors never notice.</figcaption>
+  </figure>
+
+  <h2>The real win: one box can die and nobody notices</h2>
+  <p>Capacity gets the headlines, but survival is the underrated part. A load balancer runs a <strong>health check</strong> against each backend on a schedule, often a quick request to a path like <code>/health</code> every few seconds. Miss a few in a row and that node gets pulled from the pool automatically. When it starts answering again, it's added back.</p>
+  <p>So the load balancer is the piece that takes you from "one box that can die" to "a pool that survives a node failure." That's the shift. A single server is a single point of failure, and the day it falls over, you're down. Put two behind a balancer and a dead node becomes a shrug instead of an outage.</p>
+
+  <h2>How it picks which server: round-robin, least-connections, and friends</h2>
+  <p>Simpler than most people expect. The common default is <strong>round-robin</strong>: request one to A, two to B, three to C, then back to A. <strong>Least-connections</strong> sends the next request to whichever node has the fewest active connections, which helps when some requests run long and others finish instantly. There's also IP hash, which pins a given client to the same node.</p>
+  <p>Honestly, round-robin is fine for the large majority of apps. Don't agonize over the algorithm. The health check matters far more than the distribution rule. You'll also see "Layer 4" versus "Layer 7" balancers, which is just whether it routes on raw TCP connections or actually understands HTTP. For a normal web app, an HTTP-aware (Layer 7) balancer is the default and you rarely think about the distinction.</p>
+
+  <h2>SSL termination: the balancer's other job</h2>
+  <p>Most load balancers also handle <strong>SSL termination</strong>, meaning the HTTPS connection ends at the balancer. It holds the certificate, decrypts the request, and passes it to a backend over the private network. That's one place to manage and renew certificates instead of copying them onto every node. If you need encryption all the way to the backend, the balancer can re-encrypt on the way in, but for most setups terminating at the edge is clean and fast.</p>
+
+  <!-- ADD IMAGE: swap this slot for a real screenshot. src -> images/health-check-status.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A health-check status view: each backend node listed with its pass or fail state and the last check time.</em><small>Shows the balancer actively watching the pool.</small></span></figure>
+
+  <h2>The session gotcha that logs everyone out</h2>
+  <p>This one bites people, so read it twice. Say a visitor logs in and their session gets stored <strong>on Server A</strong>. Their next request lands on <strong>Server B</strong>, which knows nothing about that session, so they suddenly look logged out. You get random, hard-to-reproduce logouts that only show up under load. Miserable to debug.</p>
+  <p>Two clean fixes. <strong>Sticky sessions</strong>, where the balancer keeps pinning a visitor to the same node. Or, better, a <strong>shared session store</strong> like <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis</a> that every node reads from, so it stops mattering which server handles a request. The shared store is the robust answer because any node can serve any visitor. Same rule for uploads: write them to object storage, not a node's local disk, or they'll vanish the moment a request lands elsewhere. Making the app stateless like this is the prerequisite for running behind a balancer at all.</p>
+
+  <table class="cmp">
+    <thead><tr><th>&nbsp;</th><th>One server</th><th>Load-balanced pool</th></tr></thead>
+    <tbody>
+      <tr><td>A server crashes</td><td>Site goes down</td><td>Traffic reroutes, site stays up</td></tr>
+      <tr><td>Handling more traffic</td><td>Resize the one box, until you hit a ceiling</td><td>Add another node to the pool</td></tr>
+      <tr><td>Shipping a deploy</td><td>A downtime window</td><td>Roll one node at a time, zero downtime</td></tr>
+      <tr><td>Sessions</td><td>Simple, in-process</td><td>Need a shared store or sticky sessions</td></tr>
+      <tr><td>Monthly cost</td><td>One server</td><td>Balancer plus two or more servers</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Do you actually need one yet?</h2>
+  <p>Usually not, if you're small, and I'd rather say that plainly than sell you complexity. A single well-sized server handles a surprising amount of traffic before it breaks a sweat. Adding a balancer before you need it is moving parts and a bit of extra cost for a problem you don't have.</p>
+  <p>Reach for one when a single server genuinely isn't enough. Either you've outgrown the biggest sensible box, or you need redundancy so one node dying doesn't take you offline. Both are real reasons. "It sounds professional" is not. Until you hit one of them, a single server that you resize as you grow is simpler and cheaper.</p>
+
+  <h2>Load balancer vs CDN: not the same thing</h2>
+  <p>People blur these constantly. A <strong>CDN</strong> caches your content at locations around the world and serves it from near each visitor, which is great for static files and global speed. A load balancer distributes live, dynamic requests across your backend servers, which is about scale and redundancy. Different layers, different jobs. They often run together: a CDN out front for cached assets, a load balancer behind it spreading the requests that actually hit your app.</p>
+
+  <h2>How it works on Kloudbean</h2>
+  <p>Kloudbean's <strong>Flexible Load Balancer (FLB)</strong> is built into every account. It's off by default, but it isn't a separate product or a tier you have to buy up into. You enable it when you need it. You get virtual load balancers with application pools, SSL management at the balancer, and access logs so you can see what's flowing through.</p>
+
+  <figure>
+    <img src="../assets/console/flb-load-balancer.png" alt="The Kloudbean console showing the Flexible Load Balancer distributing traffic across healthy backend nodes">
+    <figcaption>The Flexible Load Balancer sits in front and spreads each request across the healthy nodes in your pool.</figcaption>
+  </figure>
+
+  <p>The division of labour is honest: the platform runs the balancer and watches your nodes with health checks, and you own the app and <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">keep it ready to run across several servers</a> with shared sessions and shared uploads. Add a second node when one isn't enough, and you've turned a single point of failure into something that survives a bad night. If you're weighing this against automatic scaling, read <a href="https://www.kloudbean.com/blog/autoscaling-explained/">autoscaling: do you actually need it</a>. For deeper cuts, see <a href="https://www.kloudbean.com/blog/scalable-wordpress-hosting/">scaling WordPress</a>, <a href="https://www.kloudbean.com/blog/database-read-replicas-scaling/">scaling the database with read replicas</a>, and keeping backends private inside <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">a VPC</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Turn one box that can die into a pool that survives.</p>
+    <p style="margin:0 0 .6em">Enable a built-in load balancer in front of your app the day one server isn't enough. Health checks, SSL management, and access logs handled, on servers and databases you own.</p>
+    <p style="margin:0">Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> · compare plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">Built-in Flexible Load Balancer · Health checks · SSL management · Access logs · 7 clouds · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is a cloud load balancer?</h3>
+    <p>It's infrastructure that sits in front of your servers and distributes incoming traffic across them. Visitors connect to the load balancer at your domain, and it forwards each request to one of your backend servers. That spreads the work so several servers share the load, and it lets your site survive a single server failing.</p>
+    <h3>When do I need a load balancer?</h3>
+    <p>When one server isn't enough. Either you've outgrown the largest sensible single server and need to spread traffic across several, or you need redundancy so a server failure doesn't take your site offline. Small and medium sites on one well-sized server usually don't need one yet. Add it when the scale or uptime need is real.</p>
+    <h3>How does a load balancer handle a server failure?</h3>
+    <p>Through health checks. The balancer pings each backend on a schedule, and if one stops responding it gets pulled from rotation automatically. Traffic goes only to the healthy nodes until the failed one recovers, then it rejoins the pool. That's what keeps your site up through a server dying, and it's the main reason to use a balancer beyond raw scale.</p>
+    <h3>What's the difference between round-robin and least-connections?</h3>
+    <p>Round-robin sends requests to each node in turn: A, B, C, then back to A. Least-connections sends the next request to whichever node has the fewest active connections, which balances better when some requests run long and others finish fast. Round-robin is fine for most apps. The health check matters more than the algorithm.</p>
+    <h3>Do load balancers cause login problems?</h3>
+    <p>They can, if sessions live on individual servers. A visitor logged in on one node may appear logged out when routed to another. The fix is sticky sessions, which pin a visitor to one node, or better, a shared session store like Redis that every node reads from. Sort this out before you go load-balanced.</p>
+    <h3>Does a load balancer handle SSL?</h3>
+    <p>Usually, yes. Most load balancers terminate SSL, meaning the HTTPS connection ends at the balancer, which holds the certificate and passes requests to your backends over the private network. That gives you one place to manage and renew certificates instead of copying them to every node. Kloudbean's Flexible Load Balancer includes SSL management.</p>
+    <h3>What's the difference between a load balancer and a CDN?</h3>
+    <p>A CDN caches content at global locations and serves it from near each visitor, mainly speeding up static files. A load balancer distributes live requests across your backend servers for scale and redundancy. They solve different problems and often work together: a CDN for cached content out front, a load balancer spreading the dynamic requests behind it.</p>
+    <h3>How much does a cloud load balancer cost?</h3>
+    <p>The balancer itself is a modest, predictable line on your bill, on top of the backends it fronts. The bigger cost of going load-balanced is the extra server or servers, since a balancer implies more than one backend. That's the price of redundancy and horizontal scale, and it's usually money well spent once you genuinely need it.</p>
+  </div>
+
+  <p class="byline">Kloudbean · One box can die. The pool keeps serving.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"What Is a Cloud Load Balancer? A Plain-English Explainer","description":"How a cloud load balancer works, health checks, distribution algorithms, SSL termination, the session gotcha, when you need one, and how it differs from a CDN.","image":"https://www.kloudbean.com/blog/cloud-load-balancer-explained/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/cloud-load-balancer-explained/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is a cloud load balancer?","acceptedAnswer":{"@type":"Answer","text":"It's infrastructure that sits in front of your servers and distributes incoming traffic across them. Visitors connect to the load balancer at your domain, and it forwards each request to one of your backend servers. That spreads the work so several servers share the load, and it lets your site survive a single server failing."}},
+{"@type":"Question","name":"When do I need a load balancer?","acceptedAnswer":{"@type":"Answer","text":"When one server isn't enough. Either you've outgrown the largest sensible single server and need to spread traffic across several, or you need redundancy so a server failure doesn't take your site offline. Small and medium sites on one well-sized server usually don't need one yet. Add it when the scale or uptime need is real."}},
+{"@type":"Question","name":"How does a load balancer handle a server failure?","acceptedAnswer":{"@type":"Answer","text":"Through health checks. The balancer pings each backend on a schedule, and if one stops responding it gets pulled from rotation automatically. Traffic goes only to the healthy nodes until the failed one recovers, then it rejoins the pool. That's what keeps your site up through a server dying, and it's the main reason to use a balancer beyond raw scale."}},
+{"@type":"Question","name":"What's the difference between round-robin and least-connections?","acceptedAnswer":{"@type":"Answer","text":"Round-robin sends requests to each node in turn: A, B, C, then back to A. Least-connections sends the next request to whichever node has the fewest active connections, which balances better when some requests run long and others finish fast. Round-robin is fine for most apps. The health check matters more than the algorithm."}},
+{"@type":"Question","name":"Do load balancers cause login problems?","acceptedAnswer":{"@type":"Answer","text":"They can, if sessions live on individual servers. A visitor logged in on one node may appear logged out when routed to another. The fix is sticky sessions, which pin a visitor to one node, or better, a shared session store like Redis that every node reads from. Sort this out before you go load-balanced."}},
+{"@type":"Question","name":"Does a load balancer handle SSL?","acceptedAnswer":{"@type":"Answer","text":"Usually, yes. Most load balancers terminate SSL, meaning the HTTPS connection ends at the balancer, which holds the certificate and passes requests to your backends over the private network. That gives you one place to manage and renew certificates instead of copying them to every node. Kloudbean's Flexible Load Balancer includes SSL management."}},
+{"@type":"Question","name":"What's the difference between a load balancer and a CDN?","acceptedAnswer":{"@type":"Answer","text":"A CDN caches content at global locations and serves it from near each visitor, mainly speeding up static files. A load balancer distributes live requests across your backend servers for scale and redundancy. They solve different problems and often work together: a CDN for cached content out front, a load balancer spreading the dynamic requests behind it."}},
+{"@type":"Question","name":"How much does a cloud load balancer cost?","acceptedAnswer":{"@type":"Answer","text":"The balancer itself is a modest, predictable line on your bill, on top of the backends it fronts. The bigger cost of going load-balanced is the extra server or servers, since a balancer implies more than one backend. That's the price of redundancy and horizontal scale, and it's usually money well spent once you genuinely need it."}}
+]}
+]}
+</script>
+</body>
+</html>

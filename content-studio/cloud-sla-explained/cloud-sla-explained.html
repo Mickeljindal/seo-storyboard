@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cloud SLA Explained: What "99.9% Uptime" Actually Buys You</title>
+<meta name="description" content="A cloud SLA promises uptime like 99.9%, but what does that number really buy? See the nines in real hours per year, what a service credit actually pays, and why architecture, not the promise, keeps your app online.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/cloud-sla-explained/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Cloud SLA Explained: What &quot;99.9% Uptime&quot; Actually Buys You">
+<meta property="og:description" content="The nines in real hours per year, what counts as downtime, what a service credit pays, and why redundancy (not the SLA number) sets your real uptime.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Enterprise &amp; compliance</span>
+  <h1>Cloud SLA, Decoded: What "99.9% Uptime" Actually Buys You</h1>
+
+  <figure><img src="images/hero.png" alt="Cloud SLA explained: what 99.9% uptime actually buys you"></figure>
+
+  <p class="lead">Every host slaps it on the pricing page. "99.9% uptime!" It reads like a promise of near perfection. But a cloud SLA is a legal document, not a comfort blanket, and 99.9% is not 100%. That missing tenth of a percent is a real, countable number of hours your site can sit dark while the provider still keeps its word.</p>
+  <p>So let's decode a cloud SLA in plain English. The nines in actual hours. What a service credit really pays. And why the number on the sales page is the floor, not the guarantee. By the end you'll read any uptime SLA the way a procurement lawyer does: as a specific, checkable amount of allowed downtime with a refund attached.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>A cloud SLA is a promise (we'll be up X% of the time) plus a penalty (a service credit if we miss). 99.9% uptime allows about 8.77 hours of downtime a year and still counts as kept. The credit refunds a slice of your bill, not your lost sales. And the SLA covers the provider's infrastructure, not your single server or your bad deploy. Real uptime comes from running redundant servers behind a load balancer, not from a bigger number on the page.</p>
+  </div>
+
+  <h2>What a cloud SLA actually is</h2>
+  <p>Strip away the marketing and a cloud SLA (service level agreement) is two things bolted together. A <strong>promise</strong>: we'll keep this available X% of the time. And a <strong>penalty</strong>: if we don't, here's what you get back. Drop the penalty and you don't have an SLA. You have a slogan. The penalty is what turns a soothing percentage into something the provider is actually on the hook for.</p>
+  <p>So the first question about any SLA isn't "how many nines?" It's "what happens the day you miss?" If the answer is vague, the number is decoration. Honestly, an SLA is closer to a refund policy than a force field. It doesn't stop the outage. It tells you what the provider owes you after one.</p>
+
+  <h2>The nines, in real hours</h2>
+  <p>Here's the part the sales page never spells out. Each uptime percentage maps to a hard amount of downtime that's still "within SLA." Climb the staircase below. Every extra nine cuts the allowed downtime by roughly ten times.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 384" role="img" aria-label="The nines staircase: each extra nine cuts allowed downtime about tenfold, from 3.65 days a year at 99% to about 5 minutes a year at 99.999%" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="30" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">The nines staircase</text>
+      <text x="30" y="55" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">Downtime still allowed per year at each level. Not drawn to scale.</text>
+
+      <!-- staircase fill: rises to the right, more nines = higher step -->
+      <polygon points="40,344 40,318 168,318 168,276 296,276 296,234 424,234 424,192 552,192 552,150 680,150 680,344" fill="#efeaff" stroke="#4F1AF3" stroke-width="1.5"/>
+      <!-- riser accents -->
+      <line x1="168" y1="318" x2="168" y2="276" stroke="#4F1AF3" stroke-width="1.5"/>
+      <line x1="296" y1="276" x2="296" y2="234" stroke="#4F1AF3" stroke-width="1.5"/>
+      <line x1="424" y1="234" x2="424" y2="192" stroke="#4F1AF3" stroke-width="1.5"/>
+      <line x1="552" y1="192" x2="552" y2="150" stroke="#4F1AF3" stroke-width="1.5"/>
+
+      <!-- tread cards -->
+      <g>
+        <rect x="46" y="278" width="116" height="38" rx="8" fill="#ffffff" stroke="#e6e9f2"/>
+        <text x="104" y="297" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="700">99%</text>
+        <text x="104" y="311" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">~3.65 days / yr</text>
+      </g>
+      <g>
+        <rect x="174" y="236" width="116" height="38" rx="8" fill="#ffffff" stroke="#e6e9f2"/>
+        <text x="232" y="255" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="700">99.9%</text>
+        <text x="232" y="269" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">~8.77 hrs / yr</text>
+      </g>
+      <g>
+        <rect x="302" y="194" width="116" height="38" rx="8" fill="#ffffff" stroke="#e6e9f2"/>
+        <text x="360" y="213" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="700">99.95%</text>
+        <text x="360" y="227" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">~4.38 hrs / yr</text>
+      </g>
+      <g>
+        <rect x="430" y="152" width="116" height="38" rx="8" fill="#ffffff" stroke="#e6e9f2"/>
+        <text x="488" y="171" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="700">99.99%</text>
+        <text x="488" y="185" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">~52.6 min / yr</text>
+      </g>
+      <g>
+        <rect x="558" y="110" width="116" height="38" rx="8" fill="#ffffff" stroke="#40b75f"/>
+        <text x="616" y="129" text-anchor="middle" fill="#2e8c48" font-family="Poppins,sans-serif" font-size="13" font-weight="700">99.999%</text>
+        <text x="616" y="143" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">~5.26 min / yr</text>
+      </g>
+
+      <!-- climb annotation -->
+      <line x1="70" y1="360" x2="650" y2="360" stroke="#5b6a86" stroke-width="1.5" stroke-dasharray="4 4"/>
+      <path d="M650 360 l-9 -4 v8 z" fill="#5b6a86"/>
+      <text x="360" y="378" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11.5">add a nine, cut downtime ~10x, and usually pay ~10x more to get there</text>
+    </svg>
+    <figcaption>Each step up is one more nine: roughly 10x less allowed downtime, and usually a lot more cost and engineering to reach it.</figcaption>
+  </figure>
+
+  <p>Same numbers, in a table you can scan:</p>
+  <table class="cmp">
+    <thead><tr><th>Uptime</th><th>Downtime / year</th><th>Downtime / month</th></tr></thead>
+    <tbody>
+      <tr><td><strong>99%</strong> (two nines)</td><td>~3.65 days</td><td>~7.3 hours</td></tr>
+      <tr><td><strong>99.9%</strong> (three nines)</td><td>~8.77 hours</td><td>~43.8 minutes</td></tr>
+      <tr><td><strong>99.95%</strong></td><td>~4.38 hours</td><td>~21.9 minutes</td></tr>
+      <tr><td><strong>99.99%</strong> (four nines)</td><td>~52.6 minutes</td><td>~4.4 minutes</td></tr>
+      <tr><td><strong>99.999%</strong> (five nines)</td><td>~5.26 minutes</td><td>~26 seconds</td></tr>
+    </tbody>
+  </table>
+  <p>Look at the second row again. <strong>99.9% uptime allows almost nine hours of downtime a year</strong>, and the host has still met its promise. That's a full working day where your site could be unreachable, entirely "within SLA." Jump to 99.99% and the yearly allowance drops to under an hour. One extra nine, a wildly different experience for your users.</p>
+
+  <!-- ADD IMAGE: screenshot of a real provider SLA page with the uptime percentage and the exclusions clause highlighted. src -> images/sla-fine-print.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A real provider SLA page with the uptime percentage and the exclusions clause highlighted.</em><small>Shows readers the fine print sits right next to the headline number.</small></span></figure>
+
+  <h2>What even counts as "down"?</h2>
+  <p>This is where the fine print earns its keep, and where two SLAs with the same number can mean very different things. Check three clauses before you trust any percentage.</p>
+  <ul>
+    <li><strong>What counts as downtime.</strong> Plenty of SLAs exclude <em>scheduled maintenance</em> entirely. So a planned four-hour outage at 2am might not dent the number at all, even though your site was flat on its back.</li>
+    <li><strong>What's excluded outright.</strong> Force majeure, network problems outside the provider's control, and anything caused by your own config usually don't count. Fair enough, but know it's there.</li>
+    <li><strong>How it's measured.</strong> Over what window? Measured from where? Who decides an outage happened? A 99.99% that excludes maintenance and is measured generously can feel worse in practice than a plainly stated 99.9%.</li>
+  </ul>
+  <p>The percentage alone tells you almost nothing. The definitions wrapped around it tell you everything.</p>
+
+  <h2>What a service credit actually pays</h2>
+  <p>Now the part that surprises people the first time they file a claim. When a host misses its SLA, the penalty is almost always a <strong>service credit</strong>: a percentage of <em>your hosting bill</em> knocked off next month. It is not compensation for <em>your</em> lost revenue.</p>
+  <p>Do the math on that. Say an outage during a launch costs you a few thousand dollars in sales. The SLA credit might be 10% of a hosting bill that runs, what, a few tens of dollars a month? You get pocket change back on a bill, not the sale. That's standard across the whole industry, and it completely reframes what an SLA is for. It's the provider putting <em>their</em> fee at risk to signal confidence. It was never an insurance policy on your business.</p>
+  <p>And there's a trap inside the trap: credits are rarely automatic. Most SLAs make <em>you</em> notice the outage and file a claim within a tight window, sometimes just a handful of days. Miss the window and the credit evaporates, no matter how badly the provider fell short. If uptime matters to you, monitor it yourself. Don't wait for the provider to volunteer that they missed.</p>
+
+  <!-- ADD IMAGE: a mocked invoice line item showing an SLA service credit as a small percentage of the monthly bill. src -> images/service-credit-line.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A mocked invoice showing an SLA service credit as a small percentage of the monthly bill.</em><small>Drives home that the credit refunds the fee, not your lost sales.</small></span></figure>
+
+  <h2>Uptime SLA vs real reliability (they're not the same thing)</h2>
+  <p>Here's the shift in thinking that matters most, and the one the sales page will never make for you. A provider's uptime SLA usually covers <em>their</em> infrastructure being available. But your users don't experience "the infrastructure." They experience your whole app. And a flawless infrastructure SLA does nothing for you if your <strong>single server</strong> reboots, or your one database falls over, or you ship a bad deploy at 4pm on a Friday.</p>
+  <p>I'll say it plainly: most outages I've watched teams live through weren't the provider missing its SLA. They were a single server with no plan B. The way you actually raise real-world uptime is architecture. Run more than one server behind a <a href="https://www.kloudbean.com/blog/cloud-load-balancer-explained/">load balancer</a>, so when one node dies, traffic keeps flowing to the others. Keep <a href="https://www.kloudbean.com/blog/server-backups-guide/">tested backups</a> so a bad day is a restore, not a rebuild.</p>
+
+  <figure>
+    <img src="../assets/console/flb-load-balancer.png" alt="The Kloudbean console: a load balancer spreading traffic across multiple servers for redundancy">
+    <figcaption>Real uptime is engineered. A load balancer keeps traffic flowing when any single server drops out.</figcaption>
+  </figure>
+
+  <p>So a headline SLA number and your app's actual availability are two different measurements. The provider promises a floor for one layer. Redundancy is how you build a reliable app on top of it. If you're weighing whether to run this yourself, that tradeoff is the whole story in <a href="https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/">managed vs unmanaged hosting</a>. And if a shaky SLA is what's pushing you to shop around, switching hosts is a logistics job, not a trap: see <a href="https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/">how to migrate with zero downtime</a> and the <a href="https://www.kloudbean.com/blog/managed-cloud-hosting-myths/">managed cloud hosting myths</a> that keep people stuck.</p>
+
+  <!-- ADD IMAGE: an uptime monitoring graph showing an outage dip and recovery, with an SLA threshold line. src -> images/uptime-monitor.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>An uptime monitoring graph with an outage dip, a recovery, and the SLA threshold line marked.</em><small>Independent monitoring is how you know when a credit is owed.</small></span></figure>
+
+  <h2>A real example: the EC2 SLA</h2>
+  <p>People search "EC2 SLA" for a reason. They've learned to read the document, not the ad. As AWS commonly documents it, the EC2 service targets around <strong>99.99% at the region level</strong> when you run across multiple availability zones. And notice the condition: the strong commitment assumes <em>you</em> spread your workload for redundancy. Run everything in one zone and the promise you actually qualify for is lower.</p>
+  <p>That's the whole lesson in one example. The best uptime numbers are earned jointly. The provider offers a strong SLA <em>if</em> you architect for it. (Always read the current SLA document for exact terms. These figures shift and carry conditions.)</p>
+
+  <h2>How many nines do you actually need?</h2>
+  <p>Don't chase five nines by reflex. Each extra nine costs real money, real engineering, and real ongoing effort. Most apps don't need it. Match the target to the stakes:</p>
+  <ul>
+    <li><strong>A blog or brochure site.</strong> 99.9% is plenty. A rare hour offline is annoying, not expensive.</li>
+    <li><strong>A store or SaaS product.</strong> Aim for 99.95% to 99.99%. Downtime here loses sales and frustrates paying users, so the redundancy pays for itself.</li>
+    <li><strong>Payments, health, anything safety-critical.</strong> You're in four-to-five-nines territory, with the architecture and budget to match.</li>
+  </ul>
+  <p>The honest move is to price the extra nine against what an hour of downtime actually costs <em>you</em>. If an hour down costs pennies, paying heavily for 99.999% is waste. If it costs a fortune, skimping on redundancy is the real risk. This is the same math as <a href="https://www.kloudbean.com/blog/the-real-cost-of-unmanaged-vps/">the real cost of an unmanaged VPS</a>: the sticker number rarely tells you the true bill.</p>
+
+  <h2>Where people get SLAs wrong</h2>
+  <p>Four mistakes come up again and again. They're all avoidable once you've read this far:</p>
+  <ul>
+    <li><strong>Reading the number, skipping the definitions.</strong> A big percentage with generous exclusions is worth less than a modest one measured honestly.</li>
+    <li><strong>Treating the SLA as insurance.</strong> It refunds a fraction of your fee, not your losses. Plan for outages on your side regardless.</li>
+    <li><strong>Trusting a single server under a great SLA.</strong> The provider can hit 99.99% while <em>your</em> box reboots. The SLA covers their layer, not your architecture.</li>
+    <li><strong>Never claiming the credit.</strong> No monitoring, no proof, no claim, no refund. The SLA only protects the people paying attention.</li>
+  </ul>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>Kloudbean's uptime foundation is straightforward, and I want to be careful not to oversell it. Your servers run on tier-1 cloud infrastructure across <strong>seven providers</strong>: AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud. That's the same hardware and network the biggest names on the internet run on, which is a strong floor to build from.</p>
+  <p>But the floor was never the whole point of this article. The reliability you actually feel comes from what you build on top. On Kloudbean that means the <strong>Flexible Load Balancer is built into every account</strong>, so running redundant servers is a feature you switch on, not a project you assemble. It means automatic backups you can restore. It means one dashboard for the servers, the databases, and the balancer, so the redundancy is easy enough that you'll actually set it up. We won't quote you a magic number on a banner. We'd rather give you the parts that make a good SLA turn into an app that's genuinely, dependably up.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Read the nines. Then build above them.</p>
+    <p style="margin:0 0 .6em">Run redundant servers behind a built-in load balancer, on tier-1 cloud infrastructure, all from one dashboard. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Seven clouds · Built-in load balancer · Automatic backups · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does 99.9% uptime actually mean?</h3>
+    <p>It means the service can be down for about 8.77 hours a year, roughly 43.8 minutes a month, and still meet its promise. 99.9% sounds like near-perfection, but that missing 0.1% is real, allowed downtime. Moving up to 99.99% cuts the yearly allowance to under an hour. That's a big gap hiding behind one extra nine.</p>
+    <h3>What is a cloud SLA?</h3>
+    <p>A cloud SLA (service level agreement) is a promise of availability, for example 99.9%, combined with a penalty if the provider misses it. The penalty is what makes it a commitment rather than a slogan. So the key question about any SLA is what happens when they fall short, not just how many nines the banner advertises.</p>
+    <h3>Does an SLA pay me back for lost revenue during an outage?</h3>
+    <p>Almost never. The penalty is typically a service credit: a percentage of your hosting bill applied to next month, not compensation for your lost sales. An SLA is the provider putting their own fee at risk to signal confidence. It isn't insurance on your business, so plan for outages on your side too.</p>
+    <h3>What's the difference between an uptime SLA and real reliability?</h3>
+    <p>An uptime SLA usually covers the provider's infrastructure being available. Real reliability is whether your whole app stays up, which depends on your architecture. A single server or one database can go down regardless of the SLA. You raise real reliability by running multiple servers behind a load balancer and keeping tested backups.</p>
+    <h3>What should I check in an SLA besides the percentage?</h3>
+    <p>Three things. What counts as downtime (many SLAs exclude scheduled maintenance), what's excluded outright (force majeure, your own config), and how it's measured (over what window and by whom). A high number with generous exclusions can feel worse than a plainly stated lower one.</p>
+    <h3>What does 99.99% uptime allow in real terms?</h3>
+    <p>About 52.6 minutes of downtime per year, or roughly 4.4 minutes per month. It's a meaningful step up from 99.9%, and reaching it usually means running redundant servers across zones so no single failure takes you offline. The stronger the target, the more architecture it takes to hold.</p>
+    <h3>How many nines does my app need?</h3>
+    <p>Match it to the cost of an hour offline. A blog or brochure site is fine at 99.9%. A store or SaaS app usually wants 99.95% to 99.99% because downtime loses sales. Payments and safety-critical systems push toward four or five nines. Chasing five nines for a low-stakes site is money wasted.</p>
+    <h3>Does Kloudbean publish a specific uptime SLA percentage?</h3>
+    <p>Your servers run on tier-1 cloud infrastructure across seven providers, which is a strong uptime foundation, and the Flexible Load Balancer is built into every account so you can run redundant servers. For the exact SLA terms that apply to your plan, check with Kloudbean rather than relying on a banner number, because the reliability you feel comes mostly from the redundancy you architect on top.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · Uptime is built, not promised.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Cloud SLA, Decoded: What \"99.9% Uptime\" Actually Buys You","description":"The nines in real hours per year, what counts as downtime, what a service credit pays, and why redundancy rather than the SLA number sets your real uptime.","image":"https://www.kloudbean.com/blog/cloud-sla-explained/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/cloud-sla-explained/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does 99.9% uptime actually mean?","acceptedAnswer":{"@type":"Answer","text":"It means the service can be down for about 8.77 hours a year, roughly 43.8 minutes a month, and still meet its promise. 99.9% sounds like near-perfection, but that missing 0.1% is real, allowed downtime. Moving up to 99.99% cuts the yearly allowance to under an hour. That's a big gap hiding behind one extra nine."}},
+{"@type":"Question","name":"What is a cloud SLA?","acceptedAnswer":{"@type":"Answer","text":"A cloud SLA (service level agreement) is a promise of availability, for example 99.9%, combined with a penalty if the provider misses it. The penalty is what makes it a commitment rather than a slogan. So the key question about any SLA is what happens when they fall short, not just how many nines the banner advertises."}},
+{"@type":"Question","name":"Does an SLA pay me back for lost revenue during an outage?","acceptedAnswer":{"@type":"Answer","text":"Almost never. The penalty is typically a service credit: a percentage of your hosting bill applied to next month, not compensation for your lost sales. An SLA is the provider putting their own fee at risk to signal confidence. It isn't insurance on your business, so plan for outages on your side too."}},
+{"@type":"Question","name":"What's the difference between an uptime SLA and real reliability?","acceptedAnswer":{"@type":"Answer","text":"An uptime SLA usually covers the provider's infrastructure being available. Real reliability is whether your whole app stays up, which depends on your architecture. A single server or one database can go down regardless of the SLA. You raise real reliability by running multiple servers behind a load balancer and keeping tested backups."}},
+{"@type":"Question","name":"What should I check in an SLA besides the percentage?","acceptedAnswer":{"@type":"Answer","text":"Three things. What counts as downtime (many SLAs exclude scheduled maintenance), what's excluded outright (force majeure, your own config), and how it's measured (over what window and by whom). A high number with generous exclusions can feel worse than a plainly stated lower one."}},
+{"@type":"Question","name":"What does 99.99% uptime allow in real terms?","acceptedAnswer":{"@type":"Answer","text":"About 52.6 minutes of downtime per year, or roughly 4.4 minutes per month. It's a meaningful step up from 99.9%, and reaching it usually means running redundant servers across zones so no single failure takes you offline. The stronger the target, the more architecture it takes to hold."}},
+{"@type":"Question","name":"How many nines does my app need?","acceptedAnswer":{"@type":"Answer","text":"Match it to the cost of an hour offline. A blog or brochure site is fine at 99.9%. A store or SaaS app usually wants 99.95% to 99.99% because downtime loses sales. Payments and safety-critical systems push toward four or five nines. Chasing five nines for a low-stakes site is money wasted."}},
+{"@type":"Question","name":"Does Kloudbean publish a specific uptime SLA percentage?","acceptedAnswer":{"@type":"Answer","text":"Your servers run on tier-1 cloud infrastructure across seven providers, which is a strong uptime foundation, and the Flexible Load Balancer is built into every account so you can run redundant servers. For the exact SLA terms that apply to your plan, check with Kloudbean rather than relying on a banner number, because the reliability you feel comes mostly from the redundancy you architect on top."}}
+]}
+]}
+</script>
+</body>
+</html>

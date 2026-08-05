@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deploy a Claude Code App: Read the Diff, Then Ship It</title>
+<meta name="description" content="Claude Code edited real files across your whole repo and ran commands. Before you deploy a Claude Code app, review the diff, scrub for inlined secrets, lock the build, and ship it to a server you own.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/deploy-claude-code-app/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Deploy a Claude Code App: Read the Diff, Then Ship It">
+<meta property="og:description" content="Claude Code is an agent in your terminal that touches real files everywhere. Deploying is easy. Reviewing what it changed first is the part that saves you — here's both.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Shipping a Claude Code app</span>
+  <h1>Deploy a Claude Code App: Read the Diff, Then Ship It</h1>
+
+  <figure><img src="images/hero.png" alt="Deploy a Claude Code app — review what the terminal agent built, then ship it to a server you own"></figure>
+
+  <p class="lead">Claude Code is an agentic coding tool that lives in your terminal. It edits real files across your whole repository, runs commands, installs packages, and commits as it goes. So when you set out to deploy a Claude Code app, you're starting from a good place: the code is standard, and it's already yours in Git, the same as if you'd typed every line.</p>
+
+  <p>The catch is quieter than with a browser builder. The agent may have touched thirty files, pulled in a dependency, and made an assumption you never actually read. A green run on your laptop tells you the app works on your machine, in whatever half-committed state the agent left it. It doesn't tell you the build is reproducible, that no API key got pasted into a source file, or that a clean server can rebuild what you have. So the real work isn't the deploy. It's the review that comes first. Do that, and the deploy takes about five minutes.</p>
+
+  <div class="tldr">
+    <strong>Short version</strong>
+    <p>Push to GitHub, launch a server, connect the repo in Deploy Code, set your build and start commands, add a managed database and your environment variables, then point your domain with SSL. Before any of that, run three quick reviews: read what the agent changed (<code>git diff</code>), scrub for hard-coded secrets and paths, and commit your lockfile so the server builds exactly what you tested.</p>
+  </div>
+
+  <h2>Why deploying a Claude Code app is a review job</h2>
+  <p>With a UI-first tool you get a bounded artifact: the screen it generated, roughly the code behind it. An agent in your terminal is different. It ranges across the repo on its own, refactors files you didn't open, and runs whatever commands it decides it needs. That's exactly why people love it. It's also why you now own a lot of surface you didn't hand-write.</p>
+  <p>Here's the honest version, and it's not a knock on the tool. An agent that can refactor forty files in one turn can also, in one turn, paste your <code>OPENAI_API_KEY</code> straight into a config file because that made the thing run right now. It can hard-code <code>/Users/you/project/uploads</code> as a path. It can <code>npm install</code> a package and forget to save it. None of that shows up when you hit run locally, because locally all of it happens to work. Read the agent's changes before you trust them. That one habit prevents most of what goes wrong later.</p>
+
+  <figure>
+    <svg viewBox="0 0 700 250" width="100%" role="img" aria-label="Three review gates before deploying a Claude Code app: see what changed with git diff, scrub for hard-coded secrets and paths, lock the build with a committed lockfile and pinned runtime, then ship.">
+      <rect x="1" y="1" width="698" height="248" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="350" y="36" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="16" font-weight="700" fill="#000f27">Three reviews before you ship the agent's work</text>
+      <g font-family="Poppins,Arial,sans-serif">
+        <rect x="22" y="62" width="150" height="150" rx="12" fill="#f6f7fb" stroke="#e6e9f2"/>
+        <text x="97" y="90" text-anchor="middle" font-size="12" font-weight="700" fill="#4F1AF3">1 · SEE</text>
+        <text x="97" y="118" text-anchor="middle" font-size="14" font-weight="600" fill="#000f27">What changed?</text>
+        <text x="97" y="146" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#1c2536">git diff --stat</text>
+        <text x="97" y="176" text-anchor="middle" font-size="11.5" fill="#5b6a86">Read it, don't skim.</text>
+
+        <polygon points="176,137 190,131 190,143" fill="#4F1AF3"/>
+
+        <rect x="196" y="62" width="150" height="150" rx="12" fill="#f6f7fb" stroke="#e6e9f2"/>
+        <text x="271" y="90" text-anchor="middle" font-size="12" font-weight="700" fill="#4F1AF3">2 · SCRUB</text>
+        <text x="271" y="118" text-anchor="middle" font-size="14" font-weight="600" fill="#000f27">Anything inlined?</text>
+        <text x="271" y="146" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#1c2536">grep for keys, paths</text>
+        <text x="271" y="176" text-anchor="middle" font-size="11.5" fill="#5b6a86">.env stays untracked.</text>
+
+        <polygon points="350,137 364,131 364,143" fill="#4F1AF3"/>
+
+        <rect x="370" y="62" width="150" height="150" rx="12" fill="#f6f7fb" stroke="#e6e9f2"/>
+        <text x="445" y="90" text-anchor="middle" font-size="12" font-weight="700" fill="#4F1AF3">3 · LOCK</text>
+        <text x="445" y="118" text-anchor="middle" font-size="14" font-weight="600" fill="#000f27">Will it rebuild?</text>
+        <text x="445" y="146" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#1c2536">commit the lockfile</text>
+        <text x="445" y="176" text-anchor="middle" font-size="11.5" fill="#5b6a86">Pin the runtime.</text>
+
+        <polygon points="524,137 538,131 538,143" fill="#40b75f"/>
+
+        <rect x="544" y="98" width="132" height="78" rx="12" fill="#eaf7ef" stroke="#cdebd6"/>
+        <text x="610" y="132" text-anchor="middle" font-size="13" font-weight="700" fill="#2f8f49">SHIP IT</text>
+        <text x="610" y="154" text-anchor="middle" font-size="11.5" fill="#5b6a86">Deploy from Git</text>
+      </g>
+    </svg>
+    <figcaption>The deploy is the easy part. These three passes are what stop a first deploy from leaking a key or failing to build.</figcaption>
+  </figure>
+
+  <h3>1. See what the agent actually changed</h3>
+  <p>Start by looking at the shape of the work. Claude Code commits as it goes, so your history is right there:</p>
+  <pre><code># the shape of it: which files, how much
+git status
+git diff --stat
+
+# the last handful of commits the agent made
+git log --oneline -10
+
+# now actually read the changes
+git diff</code></pre>
+  <p>You don't need to audit every line like a security firm. You do need to know what moved. If the agent rewrote your auth middleware or swapped a library, that's a thing you're now shipping and answering for. Skimming a forty-file diff is uncomfortable. Shipping one you never looked at is worse.</p>
+
+  <!-- IMAGE SLOT: swap this figure for a real figure + img (src -> images/your-file.png) + figcaption -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your terminal after a Claude Code session: git diff --stat listing the files the agent touched, with insertions and deletions.</em><small>The review moment. This is the shot that sells the whole angle.</small></span></figure>
+
+  <h3>2. Scrub for hard-coded secrets and paths</h3>
+  <p>This is the check most people skip and later regret. Agents inline things to make the app run in the moment, and a secret committed to Git is a secret leaked the instant you push to a repo, public or not. A quick grep across what you're about to ship catches the common ones:</p>
+  <pre><code># look for the usual suspects the agent might have baked in
+git grep -nE "sk-[A-Za-z0-9]{10,}|AKIA[0-9A-Z]{16}|password *= *[\"']|/Users/|/home/[a-z]"
+
+# and confirm your .env is NOT tracked (this should print nothing)
+git ls-files | grep -E "(^|/)\.env$"</code></pre>
+  <p>Two things to fix if the grep lights up. Any real key goes into an environment variable and out of the code (rotate it too, if it already hit a commit). Any absolute path like <code>/Users/you/project</code> gets made relative, because that folder does not exist on a Linux server and the app will crash looking for it. While you're here, make sure <code>.gitignore</code> actually lists <code>.env</code>. If your secrets file was never ignored, it's probably already in your history, and that's a leak to clean up before you go further. The full mental model for this is in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a>.</p>
+
+  <h3>3. Make the build reproducible</h3>
+  <p>"Works on my machine" is doing a lot of hidden work in that sentence. When an agent runs commands for you, it can install a package globally, or leave a dependency it used out of your manifest, or build against whatever runtime version happens to be on your laptop. A server has none of that context. It clones your repo and builds from what's committed, nothing else.</p>
+  <p>So commit the things that make the build deterministic:</p>
+  <ul>
+    <li><strong>The lockfile.</strong> For Node that's <code>package-lock.json</code> (or <code>pnpm-lock.yaml</code> / <code>yarn.lock</code>). For Python, a pinned <code>requirements.txt</code> or a <code>uv.lock</code> / <code>poetry.lock</code>. The lockfile is the difference between "it built once" and "it builds."</li>
+    <li><strong>The runtime version.</strong> Pin Node with an <code>engines</code> field in <code>package.json</code> or a <code>.nvmrc</code>. Pin Python with a <code>runtime.txt</code> or your <code>pyproject.toml</code>. If you built on Node 20 and the server quietly runs 18, some packages just won't install.</li>
+  </ul>
+  <pre><code>// package.json: pin what you tested on
+{
+  "engines": { "node": "20.x" },
+  "scripts": { "build": "next build", "start": "next start -p $PORT" }
+}</code></pre>
+  <p>A good sanity check, and it costs a minute: delete <code>node_modules</code>, run <code>npm ci</code> (which installs strictly from the lockfile), then build. If that succeeds, a server will succeed too. If <code>npm ci</code> errors with something like <code>npm ci can only install with an existing package-lock.json</code>, that's your answer. The lockfile isn't committed yet.</p>
+
+  <h2>Know what starts it: Node or Python</h2>
+  <p>Because Claude Code works across a real project, it happily builds Node backends and Python backends (and full-stack combinations of both). The deploy flow is the same either way. Only the install, build, and start commands differ, so figure out yours before you touch the console. Not sure? Ask the agent to read <code>package.json</code> or your entrypoint and tell you the exact commands. That's the terminal-native advantage, and we'll lean on it again for debugging.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Stack</th><th>Install</th><th>Build</th><th>Start (binds the assigned port)</th></tr></thead>
+    <tbody>
+      <tr><td>Node / Express</td><td><code>npm ci</code></td><td>none, or <code>npm run build</code></td><td><code>node server.js</code> reading <code>process.env.PORT</code></td></tr>
+      <tr><td>Next.js</td><td><code>npm ci</code></td><td><code>npm run build</code></td><td><code>next start -p $PORT</code></td></tr>
+      <tr><td>Python / FastAPI</td><td><code>pip install -r requirements.txt</code></td><td>none</td><td><code>uvicorn main:app --host 0.0.0.0 --port $PORT</code></td></tr>
+      <tr><td>Python / Django</td><td><code>pip install -r requirements.txt</code></td><td><code>python manage.py collectstatic</code></td><td><code>gunicorn project.wsgi --bind 0.0.0.0:$PORT</code></td></tr>
+    </tbody>
+  </table>
+  <p>The single thing every one of these has in common: the app listens on the port the platform hands it, not a number hard-coded in the source. If the agent wrote <code>app.listen(3000)</code> or <code>--port 8000</code>, change it to read <code>process.env.PORT</code> (Node) or <code>$PORT</code> (Python). Get that right and you've removed the most common reason a first deploy never comes up. There are framework-specific walkthroughs for <a href="https://www.kloudbean.com/blog/deploy-fastapi-app/">FastAPI</a>, <a href="https://www.kloudbean.com/blog/deploy-django-app/">Django</a>, and <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">Node</a> if you want the detail for your stack.</p>
+
+  <h2>Deploy it on a server you own</h2>
+  <p>Reviews done? Now the quick part. Push your reviewed code to GitHub (you can ask Claude Code to add the remote and push). That repo is the source of truth your server deploys from.</p>
+
+  <p>In the <a href="https://www.kloudbean.com/">Kloudbean</a> console, click <strong>Add Server</strong>. Pick a <strong>Cloud Provider</strong> (AWS, DigitalOcean, Linode, Vultr, GCP, UpCloud, or Lightsail), choose the stack that matches your app (Node.js, or a Python stack), pick the datacenter nearest your users, and give a build 2–4 GB of headroom. <strong>Launch Now</strong> provisions it in a few minutes, with the runtime, web server, process manager, firewall, and SSL already set up.</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="Kloudbean Add Server screen: choosing a cloud provider, application stack, datacenter, and server size">
+    <figcaption>Add Server: pick a provider, choose your stack, size it, and launch. Nothing to hand-configure.</figcaption>
+  </figure>
+
+  <p>Open the app and go to <strong>Application Administration → Deploy Code</strong>. Connect GitHub over OAuth, paste your repository URL, pick the branch, and <strong>Clone Repository</strong>. Then fill the runtime fields with the exact commands from your table above: <strong>App Directory</strong> (the folder with your <code>package.json</code> or entrypoint), <strong>Port</strong>, <strong>runtime version</strong>, and your <strong>Install / Build / Start</strong> commands. Click <strong>Pull &amp; Deploy</strong> and the build log streams live.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="Kloudbean Deploy Code / Git Deployment screen: connect a repo, then set App Directory, port, and build and start commands">
+    <figcaption>Deploy Code, then Git Deployment: connect the repo, set the runtime fields, deploy. One screen.</figcaption>
+  </figure>
+
+  <p>If your app stores data, launch a managed <strong>Postgres</strong> or <strong>MySQL</strong> from <strong>DBS → Launch Database</strong>. It runs on the same box, backed up and secured, and your app reaches it over the local network. If the agent built you a schema and you've a local database, export it and import it here so the deployed app boots with its tables. There's a fuller walkthrough in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a>.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="Kloudbean Launch Database screen for creating a managed Postgres or MySQL instance">
+    <figcaption>Launch a managed database, then point your connection string at it through an environment variable.</figcaption>
+  </figure>
+
+  <p>Now the values you pulled out of the code in review two. In <strong>Runtime Configuration → Environment Variables</strong>, use the <strong>Paste .env Content</strong> tab, drop in your local <code>.env</code>, hit <strong>Convert to Key/Value</strong>, and replace the dev values with real ones, starting with the database connection string.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="Kloudbean environment variables editor with a paste .env content tab and key value list">
+    <figcaption>Environment variables live in the console, never in the repo. Paste, convert, then set the real values.</figcaption>
+  </figure>
+
+  <pre><code>DATABASE_URL=postgres://kb_user:generated-pass@127.0.0.1:5432/kb_appdb
+APP_URL=https://yourapp.com
+OPENAI_API_KEY=sk-...
+SESSION_SECRET=a-long-random-string</code></pre>
+
+  <p>Add your custom domain under <strong>Domain Aliases</strong>, point its DNS at the server, and install a free <strong>Let's Encrypt</strong> certificate so it's HTTPS and self-renewing. Turn on <strong>automated deployment</strong> and every push builds and ships on its own, log streaming in the console. Since the agent does your commits, the loop becomes: describe the change, let it implement and push, and production updates itself. That's the same auto-deploy the per-app platforms rent you, on <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">a server you own</a>. Full-stack app? The front end, the API, and the database all sit on the one box, which is exactly what <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">one server is best at</a>.</p>
+
+  <!-- IMAGE SLOT: swap this figure for a real figure + img (src -> images/your-file.png) + figcaption -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your Claude Code app live on its custom domain with the SSL padlock, next to the console showing a green deployment.</em><small>The payoff shot.</small></span></figure>
+
+  <h2>If it 503s on the first deploy</h2>
+  <p>A <strong>503</strong> means the process didn't start. The usual suspects, in rough order: a missing environment variable, the app not binding <code>process.env.PORT</code>, a start command that doesn't launch the real server, or a build that dropped its tools because <code>NODE_ENV=production</code> was set before install and skipped <code>devDependencies</code>. Read the app's own error log:</p>
+  <pre><code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/app.error.log</code></pre>
+  <p>Open it in the File Manager, or here's the trick that's unique to a terminal-native tool: SSH into the server and have Claude Code read <code>app.error.log</code> with you, interpret the error, and make the fix. Then commit and push to redeploy. You're debugging with the agent that wrote the code, not alone with a manual open in the other window. The full playbook is in <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fixing a 503 after deploying</a>.</p>
+
+  <h2>What you own, and what you don't</h2>
+  <p>Kloudbean runs Linux stacks: Node, Python, PHP, Ruby, and Java, plus the frameworks on top (React, Next.js, Vue, Django, FastAPI, Laravel). That's essentially everything Claude Code builds for the web. If you had it write a Windows or .NET app expecting IIS, that's a port, not a deploy. "Managed" means the server, the stack, SSL, backups, and patching are handled. Your code and your data stay yours, on a standard Linux box you can move whenever you like. No per-app tax as you grow. For the tool-agnostic version that also covers Cursor, Lovable, Bolt, and v0, there's the <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploy an AI-built app</a> pillar.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">You reviewed it. Now run it.</p>
+    <p style="margin:0">Take your Claude Code app to production at <a href="https://www.kloudbean.com/">kloudbean.com</a>, with a free trial and your first migration handled for you. Sizes and plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I deploy an app built with Claude Code?</h3>
+    <p>Review the agent's changes first (read the diff, scrub for hard-coded secrets and paths, commit your lockfile), then push to GitHub and deploy on Kloudbean: launch a server, connect the repo in Deploy Code, set your install/build/start commands, add a managed database and environment variables, and point your domain with SSL. The code is standard, so it deploys like any app.</p>
+
+    <h3>Should I review Claude Code's changes before deploying?</h3>
+    <p>Yes, and it's the step that matters most. Because the agent edits across your whole repo and runs commands on its own, it can inline a secret, hard-code a local path, or install a dependency it never saved to your manifest. Run <code>git diff</code>, grep for keys and absolute paths, and confirm a clean <code>npm ci</code> build works before you ship.</p>
+
+    <h3>My Claude Code app works locally but fails on the server. Why?</h3>
+    <p>Usually the build isn't reproducible. The agent may have installed something globally or left a dependency out of your lockfile, or you built on a different runtime version than the server uses. Commit your lockfile, pin your Node or Python version, and confirm a fresh <code>npm ci</code> (or <code>pip install -r requirements.txt</code>) builds cleanly.</p>
+
+    <h3>Does Claude Code build Python apps too, and how do I deploy those?</h3>
+    <p>Yes, it builds Node and Python backends. The deploy flow is identical; only the commands change. For Python, install with <code>pip install -r requirements.txt</code> and start with a real server like <code>gunicorn</code> or <code>uvicorn</code> bound to <code>$PORT</code>, rather than the dev server. Set those in the Deploy Code runtime fields.</p>
+
+    <h3>Where do my API keys go, and what if the agent inlined one?</h3>
+    <p>Keys belong in environment variables, never the code. Set them under Runtime Configuration, Environment Variables. If your review found a key pasted into a source file, move it to an env var and rotate it, since anything committed to Git should be treated as exposed.</p>
+
+    <h3>Can Claude Code help me deploy and debug, not just build?</h3>
+    <p>Yes, that's the advantage of a terminal-native tool. Before deploying, ask it for your exact build and start commands and the environment variables the code reads. After deploying, SSH in and have it read <code>app.error.log</code> with you, diagnose the failure, and push a fix.</p>
+
+    <h3>Do I need Docker to deploy a Claude Code app?</h3>
+    <p>No. A single app is a Node or Python process, and a managed server runs it directly and restarts it if it falls over. Docker and Kubernetes solve orchestration problems that appear at much larger scale. For getting your app in front of users, you can skip them.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Deploy a Claude Code App: Read the Diff, Then Ship It","description":"Claude Code edited real files across your whole repo and ran commands. Before you deploy a Claude Code app, review the diff, scrub for inlined secrets, lock the build, and ship it to a server you own.","image":"https://www.kloudbean.com/blog/deploy-claude-code-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/deploy-claude-code-app/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I deploy an app built with Claude Code?","acceptedAnswer":{"@type":"Answer","text":"Review the agent's changes first (read the diff, scrub for hard-coded secrets and paths, commit your lockfile), then push to GitHub and deploy on Kloudbean: launch a server, connect the repo in Deploy Code, set your install/build/start commands, add a managed database and environment variables, and point your domain with SSL. The code is standard, so it deploys like any app."}},
+{"@type":"Question","name":"Should I review Claude Code's changes before deploying?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it is the step that matters most. Because the agent edits across your whole repo and runs commands on its own, it can inline a secret, hard-code a local path, or install a dependency it never saved to your manifest. Run git diff, grep for keys and absolute paths, and confirm a clean npm ci build works before you ship."}},
+{"@type":"Question","name":"My Claude Code app works locally but fails on the server. Why?","acceptedAnswer":{"@type":"Answer","text":"Usually the build is not reproducible. The agent may have installed something globally or left a dependency out of your lockfile, or you built on a different runtime version than the server uses. Commit your lockfile, pin your Node or Python version, and confirm a fresh npm ci or pip install builds cleanly."}},
+{"@type":"Question","name":"Does Claude Code build Python apps too, and how do I deploy those?","acceptedAnswer":{"@type":"Answer","text":"Yes, it builds Node and Python backends. The deploy flow is identical; only the commands change. For Python, install with pip install -r requirements.txt and start with a real server like gunicorn or uvicorn bound to the assigned port, rather than the dev server. Set those in the Deploy Code runtime fields."}},
+{"@type":"Question","name":"Where do my API keys go, and what if the agent inlined one?","acceptedAnswer":{"@type":"Answer","text":"Keys belong in environment variables, never the code. Set them under Runtime Configuration, Environment Variables. If your review found a key pasted into a source file, move it to an env var and rotate it, since anything committed to Git should be treated as exposed."}},
+{"@type":"Question","name":"Can Claude Code help me deploy and debug, not just build?","acceptedAnswer":{"@type":"Answer","text":"Yes, that is the advantage of a terminal-native tool. Before deploying, ask it for your exact build and start commands and the environment variables the code reads. After deploying, SSH in and have it read app.error.log with you, diagnose the failure, and push a fix."}},
+{"@type":"Question","name":"Do I need Docker to deploy a Claude Code app?","acceptedAnswer":{"@type":"Answer","text":"No. A single app is a Node or Python process, and a managed server runs it directly and restarts it if it falls over. Docker and Kubernetes solve orchestration problems that appear at much larger scale. For getting your app in front of users, you can skip them."}}
+]}
+]}
+</script>
+</body>
+</html>

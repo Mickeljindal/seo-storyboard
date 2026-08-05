@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gunicorn vs Uvicorn: Which Python Server for Production?</title>
+<meta name="description" content="Gunicorn vs Uvicorn, explained. Use Gunicorn for sync frameworks like Flask and Django, Uvicorn for async apps like FastAPI, plus how to combine them safely.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/gunicorn-vs-uvicorn/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Gunicorn vs Uvicorn: Which Python Server for Production?">
+<meta property="og:description" content="The honest decision guide. Gunicorn for WSGI (Flask, classic Django), Uvicorn for ASGI (FastAPI, async Django), and when to run them together behind nginx.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Python in production</span>
+  <h1>Gunicorn vs Uvicorn: Which Python App Server for Production?</h1>
+  <p class="byline">By the Kloudbean engineering team &middot; Serving Python in Production.</p>
+
+  <figure><img src="images/hero.png" alt="Gunicorn vs Uvicorn: choosing the Python app server for production based on WSGI or ASGI"></figure>
+
+  <p class="lead">You built a Python app. Flask, Django, maybe FastAPI. It runs great with <code>flask run</code> or <code>uvicorn main:app --reload</code>, so you copy that command to a server, run it, and call the thing deployed. That command is the mistake.</p>
+  <p>Gunicorn vs Uvicorn is the question you actually need to answer, and the answer comes down to one distinction most tutorials skip: WSGI vs ASGI. Get it wrong and you either fight your server or watch it fall over the first time real traffic shows up.</p>
+
+  <div class="tldr"><strong>The short answer</strong><p>Use <strong>Gunicorn</strong> for synchronous frameworks (Flask, classic Django). Use <strong>Uvicorn</strong> for async frameworks (FastAPI, Django ASGI, WebSockets). Want an async app with battle-tested process management? Run Uvicorn workers under Gunicorn with <code>gunicorn -k uvicorn_worker.UvicornWorker</code>. Either way, put it behind a reverse proxy like nginx and never run the dev server in production.</p></div>
+
+  <h2>First, stop shipping the development server</h2>
+  <p>Every Python web framework ships a built-in server for local work. They're wonderful for that and wrong for production, and the frameworks say so out loud.</p>
+  <pre><code># development only, do not ship these
+flask run                     # Werkzeug dev server, effectively single process
+python manage.py runserver    # Django dev server, auto-reloads on file change
+uvicorn main:app --reload     # Uvicorn watching your files for edits</code></pre>
+  <p>Run <code>flask run</code> and Werkzeug prints the warning itself: this is a development server, do not use it in a production deployment. Django's <code>runserver</code> says the same. They're single-process, tuned for one developer hitting refresh, and light on the hardening a public endpoint needs. Uvicorn's <code>--reload</code> is worse in prod: it watches your files and restarts on every change, which is a development convenience and a liability on a live box.</p>
+  <p>Production needs a real app server: multiple worker processes to use every CPU core, a supervisor that restarts a worker if it dies, and a reverse proxy in front. That's the job Gunicorn and Uvicorn do, and which one you pick is decided by your framework.</p>
+
+  <h2>WSGI vs ASGI: the fork that picks your server</h2>
+  <p>Here's the whole decision in two acronyms.</p>
+  <p><strong>WSGI</strong> is the synchronous standard Python has used for years (PEP 3333, if you like citations). A worker takes one request, runs it start to finish, then takes the next. Ten simultaneous requests need ten workers. Flask, classic Django views, Bottle, and Pyramid are WSGI apps.</p>
+  <p><strong>ASGI</strong> is the async standard that came later. One ASGI worker runs an event loop that juggles many requests at once, as long as each spends part of its life waiting (on a database, an API, the network). While request A waits, the loop serves B and C. ASGI also handles what WSGI can't: WebSockets, Server-Sent Events, streaming. FastAPI, Starlette, and Django's async stack are ASGI apps.</p>
+  <p>That single split decides everything. Gunicorn is a WSGI server. Uvicorn is an ASGI server. So the framework you already chose has quietly chosen your app server for you.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 480" width="100%" role="img" aria-label="Decision diagram. A sync WSGI framework such as Flask or classic Django is served by Gunicorn, which uses a pre-fork model handling one request per worker. An async ASGI framework such as FastAPI, async Django, or WebSockets is served by Uvicorn, which runs an event loop handling many requests per worker. To get ASGI plus Gunicorn's process manager, run gunicorn with the uvicorn_worker.UvicornWorker class. In production both sit behind nginx, which terminates TLS and serves static files before forwarding traffic from the internet.">
+      <rect x="1" y="1" width="718" height="478" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="360" y="34" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="17" font-weight="700" fill="#000f27">Which server runs your Python app in production?</text>
+      <text x="360" y="56" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#5b6a86">WSGI or ASGI decides. Then it all sits behind a reverse proxy.</text>
+
+      <!-- left column: WSGI / Gunicorn -->
+      <rect x="45" y="74" width="280" height="66" rx="12" fill="#f6f7fb" stroke="#e6e9f2"/>
+      <text x="185" y="100" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="600" fill="#000f27">Sync framework &middot; WSGI</text>
+      <text x="185" y="122" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#5b6a86">Flask &middot; classic Django &middot; Bottle</text>
+      <line x1="185" y1="140" x2="185" y2="166" stroke="#4F1AF3" stroke-width="2"/><polygon points="179,166 185,178 191,166" fill="#4F1AF3"/>
+      <rect x="45" y="180" width="280" height="96" rx="12" fill="#fff" stroke="#4F1AF3" stroke-width="1.5"/>
+      <text x="185" y="206" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="15" font-weight="700" fill="#4F1AF3">Gunicorn</text>
+      <text x="185" y="227" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#5b6a86">mature WSGI server, pre-fork</text>
+      <text x="185" y="245" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#000f27">one request per worker</text>
+      <text x="185" y="266" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10.5" fill="#4F1AF3">gunicorn app:app -w 4</text>
+
+      <!-- right column: ASGI / Uvicorn -->
+      <rect x="395" y="74" width="280" height="66" rx="12" fill="#f6f7fb" stroke="#e6e9f2"/>
+      <text x="535" y="100" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="600" fill="#000f27">Async framework &middot; ASGI</text>
+      <text x="535" y="122" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#5b6a86">FastAPI &middot; async Django &middot; WebSockets</text>
+      <line x1="535" y1="140" x2="535" y2="166" stroke="#40b75f" stroke-width="2"/><polygon points="529,166 535,178 541,166" fill="#40b75f"/>
+      <rect x="395" y="180" width="280" height="96" rx="12" fill="#fff" stroke="#40b75f" stroke-width="1.5"/>
+      <text x="535" y="206" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="15" font-weight="700" fill="#40b75f">Uvicorn</text>
+      <text x="535" y="227" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#5b6a86">ASGI server, event loop</text>
+      <text x="535" y="245" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#000f27">many requests per worker</text>
+      <text x="535" y="266" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10.5" fill="#40b75f">uvicorn app:app --workers 4</text>
+
+      <!-- combo pill between the converging arrows -->
+      <line x1="185" y1="276" x2="205" y2="340" stroke="#8b97b0" stroke-width="1.6"/><polygon points="199,335 207,344 210,332" fill="#8b97b0"/>
+      <line x1="535" y1="276" x2="515" y2="340" stroke="#8b97b0" stroke-width="1.6"/><polygon points="510,332 513,344 521,335" fill="#8b97b0"/>
+      <rect x="206" y="288" width="308" height="32" rx="16" fill="#f4f0ff" stroke="#4F1AF3"/>
+      <text x="360" y="308" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10.5" fill="#4F1AF3">gunicorn -k uvicorn_worker.UvicornWorker</text>
+
+      <!-- reverse proxy -->
+      <rect x="90" y="340" width="540" height="56" rx="12" fill="#000f27"/>
+      <text x="360" y="365" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="14" font-weight="600" fill="#e8ecfb">nginx (reverse proxy)</text>
+      <text x="360" y="384" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="10.5" fill="#c9b8ff">terminates TLS &middot; serves static files &middot; forwards to your app</text>
+      <line x1="360" y1="396" x2="360" y2="422" stroke="#4F1AF3" stroke-width="2"/><polygon points="354,422 360,434 366,422" fill="#4F1AF3"/>
+      <rect x="272" y="434" width="176" height="34" rx="17" fill="#eaf7ef" stroke="#cdebd6"/>
+      <text x="360" y="456" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="600" fill="#2f9e4f">the internet / your users</text>
+    </svg>
+    <figcaption>The framework picks the server. The combo in the middle lets an ASGI app borrow Gunicorn's process manager. Everything terminates behind a reverse proxy.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: terminal running flask run, showing the Werkzeug warning about not using the dev server in production. Swap for a real screenshot: src -> images/dev-server-warning.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Terminal running flask run, with the dev-server warning visible.</em><small>Shows the exact message the framework prints when you boot the wrong server.</small></span></figure>
+
+  <h2>Gunicorn: the WSGI workhorse</h2>
+  <p>Gunicorn (Green Unicorn) is the default answer for sync Python apps, and it earned that spot. Stable, boring in the good way, running Flask and Django in production for over a decade.</p>
+  <p>Its model is <strong>pre-fork</strong>. A master process (Gunicorn calls it the arbiter) boots, then forks a pool of identical worker processes. The master watches them, restarts any that crash, and handles graceful reloads while the workers do the request handling. The master never touches client sockets directly, which is part of why it's so sturdy.</p>
+  <p>A real production command is short:</p>
+  <pre><code># Flask, an app object named "app" in app.py
+gunicorn app:app --workers 4 --bind 0.0.0.0:8000
+
+# Django, project "mysite" exposes mysite/wsgi.py
+gunicorn mysite.wsgi:application --workers 4 --bind 0.0.0.0:8000</code></pre>
+  <p>Two flags carry the weight. <code>--workers</code> sets how many processes to fork. <code>--bind</code> tells Gunicorn where to listen: an address and port, or better yet a unix socket the proxy talks to. Gunicorn also has worker <em>classes</em>: the default <code>sync</code>, threaded <code>gthread</code>, greenlet-based <code>gevent</code>/<code>eventlet</code> for high-concurrency I/O, and the Uvicorn worker class that turns it into an ASGI supervisor. That last one is the bridge to async, and the reason these two aren't really rivals.</p>
+
+  <h2>Uvicorn: the ASGI server for async apps</h2>
+  <p>Uvicorn is a lightning-quick ASGI server built on <code>uvloop</code> and <code>httptools</code>. If your app is async (usually FastAPI, but also Starlette or Django under ASGI), Uvicorn is what actually speaks the protocol. Gunicorn's plain workers can't run an ASGI app at all: they speak WSGI, and FastAPI doesn't.</p>
+  <p>Locally you'll run the bare command. In production you want workers:</p>
+  <pre><code># fine for dev, single process unless you add workers
+uvicorn main:app --host 0.0.0.0 --port 8000
+
+# Uvicorn running its own worker pool (Uvicorn 0.30+)
+uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4</code></pre>
+  <p>Uvicorn also handles WebSockets and streaming out of the box, which is the whole point of going async for real-time dashboards, chat, and live updates. That's ASGI territory, and Uvicorn serves it directly. Now the part people ask about most.</p>
+
+  <h3>Uvicorn with Gunicorn: the combo, and why it exists</h3>
+  <p>For years the recommended production pattern for FastAPI was Uvicorn workers supervised by Gunicorn. You get Uvicorn's ASGI speed <em>and</em> Gunicorn's grown-up process management (graceful restarts, worker recycling, signal handling) in one command:</p>
+  <pre><code># async app, Gunicorn's process manager
+pip install uvicorn-worker
+gunicorn main:app -k uvicorn_worker.UvicornWorker --workers 4 --bind 0.0.0.0:8000</code></pre>
+  <p>One current gotcha, because half the tutorials online are stale: that worker class used to live inside Uvicorn as <code>uvicorn.workers.UvicornWorker</code>. It moved into a separate <code>uvicorn-worker</code> package, so the import is now <code>uvicorn_worker.UvicornWorker</code>. Copy an old command and you'll hit a "module not found" error. Install <code>uvicorn-worker</code> and update the path.</p>
+  <p>And there's a newer wrinkle. Since Uvicorn 0.30 (2024), Uvicorn ships its own multi-worker manager, so <code>uvicorn main:app --workers 4</code> is a legitimate production setup on its own. The Gunicorn combo is no longer mandatory for FastAPI, just a fine, well-understood option if your team already knows Gunicorn's knobs. Both are correct. Pick the one your ops muscle memory prefers.</p>
+
+  <h2>Gunicorn vs Uvicorn, side by side</h2>
+  <p>The honest comparison isn't "which is better." It's "which protocol does your app speak," with a shared column where they meet.</p>
+  <table class="cmp">
+    <thead><tr><th>&nbsp;</th><th>Gunicorn</th><th>Uvicorn</th></tr></thead>
+    <tbody>
+      <tr><td>Protocol</td><td>WSGI (sync)</td><td>ASGI (async)</td></tr>
+      <tr><td>Handles requests</td><td>one per worker at a time</td><td>many per worker via an event loop</td></tr>
+      <tr><td>WebSockets</td><td>No (WSGI can't)</td><td>Yes, natively</td></tr>
+      <tr><td>Typical frameworks</td><td>Flask, classic Django, Bottle, Pyramid</td><td>FastAPI, Starlette, async Django</td></tr>
+      <tr><td>Worker model</td><td>pre-fork master + workers</td><td>event-loop workers (own manager since 0.30)</td></tr>
+      <tr><td>Process management</td><td>mature, its main strength</td><td>solid; historically leaned on Gunicorn</td></tr>
+      <tr><td>Use them together?</td><td colspan="2">Yes: <code>gunicorn -k uvicorn_worker.UvicornWorker</code> runs Uvicorn (ASGI) under Gunicorn's supervisor</td></tr>
+    </tbody>
+  </table>
+  <p>So the choice writes itself. Sync framework, reach for Gunicorn. Async framework, reach for Uvicorn (alone, or under Gunicorn). Nobody's asking you to rank them on a leaderboard.</p>
+
+  <h2>How many workers should I run?</h2>
+  <p>This is where "it depends" is the honest answer, but it depends on things you can reason about. The common starting point you'll see everywhere:</p>
+  <pre><code># rule of thumb, for a 2-core box
+workers = (2 * cores) + 1     # (2 * 2) + 1 = 5</code></pre>
+  <p>Where does <code>(2 x cores) + 1</code> come from? For sync workers doing typical web work, requests spend a chunk of their time waiting on the database or an external call. While one worker waits, another uses the CPU. A little more than one worker per core keeps the cores busy without piling on so many they thrash. The <code>+1</code> is slack. It's a starting line, not a law of physics.</p>
+  <p>Then adjust with your actual workload in mind:</p>
+  <ul>
+    <li><strong>I/O-bound</strong> (waiting on databases, APIs, disk): more workers help, since they're idle a lot. Async servers shine here because a single worker keeps busy during the waits.</li>
+    <li><strong>CPU-bound</strong> (image processing, number crunching): extra workers past your core count don't buy speed, they buy context-switching overhead. Stay closer to core count.</li>
+    <li><strong>Memory</strong>: every worker is a full copy of your app in RAM. Four workers loading a chunky ML model or a fat framework can quietly eat your whole box. Watch memory per worker, not just count.</li>
+  </ul>
+  <p>My advice, plainly: start low, measure, then raise it. Two or four workers, real traffic, watch CPU and memory. Guessing high on day one is how people run out of RAM and wonder why the OS started killing processes.</p>
+
+  <!-- ADD IMAGE: server-health style view showing worker processes and memory per worker under load. Swap for a real screenshot: src -> images/workers-memory.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Resource view showing several worker processes and the memory each one holds.</em><small>Makes the "workers cost RAM" point concrete.</small></span></figure>
+
+  <h2>Both belong behind a reverse proxy</h2>
+  <p>Whichever server you land on, it shouldn't face the internet directly. Put a reverse proxy in front, almost always nginx. It terminates TLS, serves static files fast without waking a Python worker, buffers slow clients, and forwards real requests to Gunicorn or Uvicorn over a socket.</p>
+  <p>Why bother? A Python worker exposed on port 443 spends its time fielding slow connections instead of running your code. One slow client dribbling bytes can tie up a worker that should be serving someone else. nginx absorbs that. It's the same pattern you'd use in front of any app server, and it carries straight over from <a href="https://www.kloudbean.com/blog/reverse-proxy-explained/">what a reverse proxy actually does</a> to <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">putting nginx in front of a Node app</a>. Python is no different.</p>
+  <p>Two founder-ish opinions, since you're here. Don't expose the app server straight to the world, ever. And don't pick your server by hype. FastAPI being fast doesn't mean you should port a Flask app to it just to use Uvicorn. Pick by the framework you already run. The server is a consequence of that choice, not a fashion statement.</p>
+
+  <h2>Where this setup goes wrong</h2>
+  <p>The failure modes are boring and repeatable, which is good news, because you can dodge all of them.</p>
+  <ul>
+    <li><strong>A blocking call in an async route.</strong> The classic. An <code>async def</code> handler calls a synchronous database driver or does heavy CPU work with no <code>await</code>. That parks the whole event loop, and every other request on that worker waits behind it. Async didn't fail; it got handed a sync task. Use an async driver, or make the route a plain <code>def</code> so the framework offloads it to a thread pool.</li>
+    <li><strong>Too many workers, not enough RAM.</strong> Someone sets <code>--workers 16</code> on a small box "for performance." Each worker is a full app copy. The machine swaps, then the kernel's OOM killer starts reaping workers, and throughput drops instead of rising.</li>
+    <li><strong>Forgetting <code>--bind</code>.</strong> Bind to <code>127.0.0.1</code> and only the local box can reach it, so a proxy on another host connects to nothing. Bind to a real interface or a unix socket the proxy can see.</li>
+  </ul>
+  <pre><code># only the box itself can reach this
+--bind 127.0.0.1:8000
+
+# reachable, or (nicer) a unix socket the proxy reads
+--bind 0.0.0.0:8000
+--bind unix:/run/myapp.sock</code></pre>
+  <p>And one more: <strong>timeouts on long requests</strong>. Gunicorn's default worker timeout is 30 seconds. A request that runs longer (a big report, a slow upload) gets its worker killed, and the user sees a broken response. Don't just crank the timeout to 300. Long jobs belong in a background worker, not a web process. If you must allow longer requests, raise <code>--timeout</code> deliberately and know why.</p>
+
+  <h2>What this looks like on a managed server</h2>
+  <p>Everything above is real, and it's a fair amount of plumbing to wire up by hand: install the server, write a systemd unit to keep it alive, configure nginx, get TLS, handle restarts on deploy. A managed platform's job is to take that off your plate so you configure the app, not the machine under it. If the term's fuzzy, here's <a href="https://www.kloudbean.com/blog/what-is-a-managed-server/">what "managed" actually means</a>.</p>
+  <p>On <a href="https://www.kloudbean.com/">Kloudbean</a>, Python is a first-class managed runtime: Flask, Django, and FastAPI are all supported. You set the runtime and your start command in the dashboard, and the WSGI or ASGI server is configured through that runtime config rather than hand-rolled on the box. The platform supervises the process, keeps it alive across crashes and reboots, sits it behind the web server, and handles free auto-renewing SSL and server-level backups. You still own the interesting decisions: which server, how many workers, your framework, your data.</p>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean console adding a Python application and choosing its runtime configuration">
+    <figcaption>Pick the Python app and its runtime in the dashboard. The WSGI or ASGI server is set through runtime config, so you're choosing behavior, not writing init scripts.</figcaption>
+  </figure>
+
+  <p>Deploys follow the same path as any app here: connect a GitHub repo, set the install and start commands, and it builds and ships on every push with build logs streaming live in the console. For a WSGI app the start command is a Gunicorn line; for an async app it's a Uvicorn line (or the Gunicorn combo). Same three fields either way.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean Git Deployment tab with install and start commands for a Python app">
+    <figcaption>Git Deployment: Install runs <code>pip install -r requirements.txt</code>, Start runs your Gunicorn or Uvicorn command. The platform keeps the workers running.</figcaption>
+  </figure>
+
+  <p>Keep your secrets and database URL out of the repo and in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>. Then it's the flow you already know: the WSGI walkthrough is <a href="https://www.kloudbean.com/blog/deploy-flask-app/">deploy a Flask app</a> and <a href="https://www.kloudbean.com/blog/deploy-django-app/">deploy a Django app</a>, the ASGI version is <a href="https://www.kloudbean.com/blog/deploy-fastapi-app/">deploy a FastAPI app</a>. Same server, same proxy. Only the start command changes.</p>
+
+  <!-- ADD IMAGE: the deployed Python app answering a request in a browser, or the live build log finishing. Swap for a real screenshot: src -> images/deployed-app.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The deployed app responding in a browser, or the build log completing.</em><small>The payoff shot once the workers are live behind the proxy.</small></span></figure>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Pick the server your framework asks for. We'll run it.</p>
+    <p style="margin:0">Deploy your Flask, Django, or FastAPI app at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Managed Python runtimes &middot; Git deploy with live logs &middot; Auto SSL &middot; Automatic backups &middot; Free migration &middot; Free trial. Sizes on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Gunicorn vs Uvicorn: which should I use?</h3>
+    <p>Match the server to your framework's protocol: Gunicorn for synchronous WSGI apps like Flask and classic Django, Uvicorn for asynchronous ASGI apps like FastAPI, async Django, or WebSockets. They aren't really competitors, they serve two different standards.</p>
+
+    <h3>What's the difference between WSGI and ASGI?</h3>
+    <p>WSGI is the synchronous standard: one worker handles one request start to finish before the next. ASGI is asynchronous, so a worker runs an event loop handling many requests at once and supports WebSockets, which is why FastAPI and async Django use it while Flask and classic Django are WSGI.</p>
+
+    <h3>Can I use Uvicorn with Gunicorn?</h3>
+    <p>Yes, and it was the recommended FastAPI setup for years: run Uvicorn workers under Gunicorn with <code>gunicorn main:app -k uvicorn_worker.UvicornWorker</code>. Note the worker class now lives in the separate <code>uvicorn-worker</code> package, not inside Uvicorn.</p>
+
+    <h3>How many workers should I run?</h3>
+    <p>A common starting point is (2 x CPU cores) + 1, then adjust: I/O-bound apps can use more, CPU-bound apps stay near the core count. Each worker is a full copy of your app in memory, so start low and raise it on real traffic.</p>
+
+    <h3>Is Uvicorn faster than Gunicorn?</h3>
+    <p>It's the wrong comparison, since they serve different protocols. Uvicorn is quick for genuinely async workloads; for a sync Flask or Django app, Gunicorn is the right tool, and head-to-head benchmarks don't reflect how you'd run either.</p>
+
+    <h3>Do I need Gunicorn for Django?</h3>
+    <p>For classic synchronous Django, Gunicorn is the standard, excellent choice: <code>gunicorn mysite.wsgi:application</code>. If you run Django under ASGI for async views or WebSockets, use Uvicorn against <code>mysite.asgi:application</code>, optionally under Gunicorn with the Uvicorn worker class.</p>
+
+    <h3>Should I run the dev server in production?</h3>
+    <p>No. <code>flask run</code>, <code>python manage.py runserver</code>, and <code>uvicorn --reload</code> are single-process development servers, and the frameworks themselves warn against production use. Run a real app server with multiple workers behind a reverse proxy instead.</p>
+
+    <h3>Do I still need Gunicorn for FastAPI now?</h3>
+    <p>Not necessarily. Since Uvicorn 0.30 it ships its own multi-worker manager, so <code>uvicorn main:app --workers 4</code> is a valid production setup on its own. The Gunicorn combo is still fine if you want its process management.</p>
+
+    <h3>Do Gunicorn and Uvicorn replace nginx?</h3>
+    <p>No. Gunicorn and Uvicorn are app servers that run your Python code; nginx is a reverse proxy that terminates TLS, serves static files, and forwards requests to them. Use both, with nginx in front.</p>
+
+    <h3>What worker class should I use with Gunicorn?</h3>
+    <p>For a normal sync app the default <code>sync</code> class is fine. Use <code>gthread</code> for threaded I/O, <code>gevent</code> or <code>eventlet</code> for high-concurrency I/O, and <code>uvicorn_worker.UvicornWorker</code> when you want Gunicorn to run an ASGI app like FastAPI.</p>
+  </div>
+
+  <p class="byline">Kloudbean &middot; pick the server your framework asks for, then let the platform run it.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Gunicorn vs Uvicorn: Which Python App Server for Production?","description":"Gunicorn vs Uvicorn, explained. Use Gunicorn for sync frameworks like Flask and Django, Uvicorn for async apps like FastAPI, plus how to combine them behind nginx.","image":"https://www.kloudbean.com/blog/gunicorn-vs-uvicorn/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/gunicorn-vs-uvicorn/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Gunicorn vs Uvicorn: which should I use?","acceptedAnswer":{"@type":"Answer","text":"Match the server to your framework's protocol: Gunicorn for synchronous WSGI apps like Flask and classic Django, Uvicorn for asynchronous ASGI apps like FastAPI, async Django, or WebSockets. They aren't really competitors, they serve two different standards."}},
+{"@type":"Question","name":"What's the difference between WSGI and ASGI?","acceptedAnswer":{"@type":"Answer","text":"WSGI is the synchronous standard: one worker handles one request start to finish before the next. ASGI is asynchronous, so a worker runs an event loop handling many requests at once and supports WebSockets, which is why FastAPI and async Django use it while Flask and classic Django are WSGI."}},
+{"@type":"Question","name":"Can I use Uvicorn with Gunicorn?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it was the recommended FastAPI setup for years: run Uvicorn workers under Gunicorn with gunicorn main:app -k uvicorn_worker.UvicornWorker. Note the worker class now lives in the separate uvicorn-worker package, not inside Uvicorn."}},
+{"@type":"Question","name":"How many workers should I run?","acceptedAnswer":{"@type":"Answer","text":"A common starting point is (2 x CPU cores) + 1, then adjust: I/O-bound apps can use more, CPU-bound apps stay near the core count. Each worker is a full copy of your app in memory, so start low and raise it on real traffic."}},
+{"@type":"Question","name":"Is Uvicorn faster than Gunicorn?","acceptedAnswer":{"@type":"Answer","text":"It's the wrong comparison, since they serve different protocols. Uvicorn is quick for genuinely async workloads; for a sync Flask or Django app, Gunicorn is the right tool, and head-to-head benchmarks don't reflect how you'd run either."}},
+{"@type":"Question","name":"Do I need Gunicorn for Django?","acceptedAnswer":{"@type":"Answer","text":"For classic synchronous Django, Gunicorn is the standard, excellent choice: gunicorn mysite.wsgi:application. If you run Django under ASGI for async views or WebSockets, use Uvicorn against mysite.asgi:application, optionally under Gunicorn with the Uvicorn worker class."}},
+{"@type":"Question","name":"Should I run the dev server in production?","acceptedAnswer":{"@type":"Answer","text":"No. flask run, python manage.py runserver, and uvicorn --reload are single-process development servers, and the frameworks themselves warn against production use. Run a real app server with multiple workers behind a reverse proxy instead."}},
+{"@type":"Question","name":"Do I still need Gunicorn for FastAPI now?","acceptedAnswer":{"@type":"Answer","text":"Not necessarily. Since Uvicorn 0.30 it ships its own multi-worker manager, so uvicorn main:app --workers 4 is a valid production setup on its own. The Gunicorn combo is still fine if you want its process management."}},
+{"@type":"Question","name":"Do Gunicorn and Uvicorn replace nginx?","acceptedAnswer":{"@type":"Answer","text":"No. Gunicorn and Uvicorn are app servers that run your Python code; nginx is a reverse proxy that terminates TLS, serves static files, and forwards requests to them. Use both, with nginx in front."}},
+{"@type":"Question","name":"What worker class should I use with Gunicorn?","acceptedAnswer":{"@type":"Answer","text":"For a normal sync app the default sync class is fine. Use gthread for threaded I/O, gevent or eventlet for high-concurrency I/O, and uvicorn_worker.UvicornWorker when you want Gunicorn to run an ASGI app like FastAPI."}}
+]}
+]}
+</script>
+</body>
+</html>

@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Cut Your Cloud Bill: A Cost Audit That Finds the Money</title>
+<meta name="description" content="A practical audit to cut your cloud bill, ordered biggest lever first: idle and oversized servers, metered service sprawl, egress surprises, zombie resources, snapshot pile-ups, and dev environments left running. Illustrative numbers, real fixes.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/how-to-cut-your-cloud-bill/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Cut Your Cloud Bill: A Cost Audit That Finds the Money">
+<meta property="og:description" content="Where cloud money actually leaks and how to plug each hole, biggest lever first. Right-sizing, consolidation, egress, zombie resources, snapshots, and non-prod schedules.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Pricing &amp; cost</span>
+  <h1>How to Cut Your Cloud Bill: A Cost Audit</h1>
+
+  <figure><img src="images/hero.png" alt="A cost audit to cut your cloud bill, ordered by biggest lever first"></figure>
+
+  <p class="lead">Cloud bills rarely spike. They creep. A server sized "to be safe," a volume nobody deleted, bandwidth climbing quietly with traffic, and one month the invoice is double what it should be. Then you go looking for a cloud cost calculator and realize the leak was never a mystery. It was six ordinary things.</p>
+
+  <p>This is the audit I'd run to cut your cloud bill, ordered by the size of the lever, not by how clever it feels. Work top to bottom and most people find real, recurring money in the first two items. Almost none of it degrades your app. It removes waste. Every figure below is illustrative, because your bill is yours, but the shape holds across most small setups.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>Open the itemized bill and attack the biggest line first. In order: right-size idle or oversized servers, consolidate scattered metered services onto one predictable server, plug egress with a CDN and object storage, delete zombie resources, prune old snapshots, and switch off dev environments overnight. Set a budget alert so it can't creep back. The two moves that pay most for small teams are right-sizing and consolidation.</p>
+  </div>
+
+  <h2>Before the checklist: find the single biggest leak</h2>
+  <p>Don't start optimizing at random. Open the itemized bill and sort by cost. The biggest line is where your savings are, full stop. I've watched people spend an afternoon shaving a two-dollar line item while a ninety-dollar-ish egress charge sat three rows up, ignored (numbers illustrative). If you only have twenty minutes, spend them here: find the top line, and go straight at it. Usually that's an oversized server or bandwidth.</p>
+  <p>While you're in there, set a budget alert. Optimization isn't a one-time cleanup. A quick monthly glance is what keeps the next creep from becoming the next surprise.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 380" role="img" aria-label="A leaky bucket of cloud spend: money drips out through idle capacity, metered sprawl, egress, zombie resources, snapshots and dev environments, each fixable with a plug" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="30" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Where a cloud bill leaks, and the plug for each</text>
+      <text x="30" y="55" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">Money in the top. Waste out the sides. Plug the biggest holes first.</text>
+
+      <text x="170" y="92" text-anchor="middle" fill="#2e9e50" font-family="Poppins,sans-serif" font-size="13" font-weight="700">spend in</text>
+      <line x1="170" y1="98" x2="170" y2="122" stroke="#40b75f" stroke-width="2.5"/>
+      <path d="M170 126 l-6 -9 h12 z" fill="#40b75f"/>
+
+      <ellipse cx="170" cy="132" rx="82" ry="11" fill="#ffffff" stroke="#000f27" stroke-width="2"/>
+      <polygon points="88,132 252,132 230,306 110,306" fill="#ffffff" stroke="#000f27" stroke-width="2"/>
+      <polygon points="99,190 241,190 230,306 110,306" fill="#4F1AF3" fill-opacity="0.85"/>
+      <ellipse cx="170" cy="190" rx="71" ry="9" fill="#6b3cff" fill-opacity="0.9"/>
+
+      <!-- leaks -->
+      <circle cx="240" cy="214" r="5" fill="#e05a5a"/>
+      <circle cx="251" cy="228" r="4" fill="#e05a5a"/>
+      <circle cx="260" cy="242" r="3.4" fill="#e05a5a"/>
+      <circle cx="232" cy="262" r="5" fill="#e05a5a"/>
+      <circle cx="243" cy="277" r="4" fill="#e05a5a"/>
+      <circle cx="252" cy="291" r="3.4" fill="#e05a5a"/>
+      <text x="150" y="360" text-anchor="middle" fill="#8a93ad" font-family="Poppins,sans-serif" font-size="10.5">Illustrative. Your top leak may differ.</text>
+
+      <!-- legend / plugs -->
+      <g font-family="Poppins,sans-serif">
+        <circle cx="360" cy="121" r="5" fill="#e05a5a"/>
+        <text x="374" y="119" fill="#000f27" font-size="13" font-weight="600">Idle or oversized servers</text>
+        <text x="374" y="136" fill="#2e9e50" font-size="11.5">plug: right-size down</text>
+
+        <circle cx="360" cy="167" r="5" fill="#e05a5a"/>
+        <text x="374" y="165" fill="#000f27" font-size="13" font-weight="600">Metered service sprawl</text>
+        <text x="374" y="182" fill="#2e9e50" font-size="11.5">plug: one predictable server</text>
+        <rect x="586" y="153" width="118" height="21" rx="10" fill="#40b75f" fill-opacity="0.16" stroke="#40b75f" stroke-width="1"/>
+        <text x="645" y="168" text-anchor="middle" fill="#2e7d46" font-size="10.5" font-weight="700">biggest win</text>
+
+        <circle cx="360" cy="213" r="5" fill="#e05a5a"/>
+        <text x="374" y="211" fill="#000f27" font-size="13" font-weight="600">Egress / bandwidth</text>
+        <text x="374" y="228" fill="#2e9e50" font-size="11.5">plug: CDN + object storage</text>
+
+        <circle cx="360" cy="259" r="5" fill="#e05a5a"/>
+        <text x="374" y="257" fill="#000f27" font-size="13" font-weight="600">Zombie resources</text>
+        <text x="374" y="274" fill="#2e9e50" font-size="11.5">plug: delete the unused</text>
+
+        <circle cx="360" cy="305" r="5" fill="#e05a5a"/>
+        <text x="374" y="303" fill="#000f27" font-size="13" font-weight="600">Snapshots piling up</text>
+        <text x="374" y="320" fill="#2e9e50" font-size="11.5">plug: set a retention limit</text>
+
+        <circle cx="360" cy="351" r="5" fill="#e05a5a"/>
+        <text x="374" y="349" fill="#000f27" font-size="13" font-weight="600">Dev environments left on</text>
+        <text x="374" y="366" fill="#2e9e50" font-size="11.5">plug: schedule them off</text>
+      </g>
+    </svg>
+    <figcaption>Six common leaks and the plug for each. Metered sprawl is the one most small teams underestimate.</figcaption>
+  </figure>
+
+  <h2>The audit, biggest lever first</h2>
+
+  <h3>1. Right-size what's idle or oversized</h3>
+  <p>The most common waste is capacity you pay for and don't use. A box picked oversized "just in case," or sized for a traffic peak that never arrives, burns money every hour it runs. Check actual CPU and memory. If a server sits at, say, 8% CPU all day, it's too big. Resize it down to fit with a sensible buffer. On most platforms that's reversible in minutes, so there's little risk in trying a smaller size and watching it. This single step often trims the largest line on the bill.</p>
+
+  <h3>2. Consolidate metered sprawl onto one server</h3>
+  <p>This is the one I'd push hardest, and it's the biggest structural win for most small teams. Somewhere along the way you ended up with a database on one metered service, a cron worker on another, a queue somewhere else, three tiny apps each on their own lightly-used box, and a per-seat SaaS bill stapled to each. Every one of those carries its own baseline charge, and every one is another thing to watch. Individually they look cheap. Added up, they're the bill.</p>
+  <p>Most single-app servers sit mostly idle. So co-hosting a few apps, plus their databases, on one right-sized server uses hardware you already pay for instead of multiplying it. Keep them isolated with separate config and separate databases, and split anything that grows genuinely demanding. But the small stuff belongs together. There's a full walkthrough in <a href="https://www.kloudbean.com/blog/host-multiple-apps-one-server/">hosting multiple apps on one server</a> and a wider case study in <a href="https://www.kloudbean.com/blog/cut-saas-bill-4000-to-100/">cutting a SaaS bill down to size</a>.</p>
+  <p>Consolidation is also where the pricing model matters. Scattered metered services give you a bill that moves every month. One server on a flat, predictable plan gives you a number you can actually budget, and it's often cheaper once you total all those little per-unit charges you stopped noticing.</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="The Kloudbean console showing server sizes and prices, used to right-size and consolidate several apps onto one predictable server">
+    <figcaption>Right-size once, then put several small apps and their databases on the one box. One dashboard, one predictable line on the bill.</figcaption>
+  </figure>
+
+  <!-- Author: swap this slot for a real image. Empty slot, supply your own. src -> images/before-after-services.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A simple before and after: a scatter of many small metered services on the left, one consolidated server on the right.</em><small>Sell the consolidation lever visually. Keep it abstract, no real vendor logos needed.</small></span></figure>
+
+  <h3>3. Plug the egress leak</h3>
+  <p>For a lot of bills the biggest surprise isn't compute. It's egress, the charge for data leaving your servers. If you pay per gigabyte out and you serve media, downloads, or a busy site, that line can quietly dominate. Two plugs. Put a CDN in front so files are cached at the edge and hit your origin far less often. And move heavy files into S3-compatible <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">object storage</a> instead of serving them off the app server. On Kloudbean you can also add Cloudflare Enterprise edge caching to push more traffic to the edge (it's a paid add-on, and it's included for Enterprise). For anything media-heavy, egress is often the single biggest saving on this list.</p>
+
+  <h3>4. Hunt the zombie resources</h3>
+  <p>Cloud accounts collect ghosts. A server spun up for a test and never deleted. A storage volume detached from any server but still billing. A reserved IP attached to nothing. Each charges you for exactly nothing. Audit the account and delete the unused. Be careful and confirm before removing anything holding data, but a zombie hunt almost always turns up a line or two paying for air. Do it every few months and it stays clean.</p>
+
+  <!-- Author: swap this slot for a real image. Empty slot, supply your own. src -> images/itemized-bill-highlight.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>An itemized cloud bill with the biggest line and a couple of zombie line items highlighted.</em><small>Blur account numbers. Shows readers exactly what a leak looks like on an invoice.</small></span></figure>
+
+  <h3>5. Prune the snapshots and backups piling up</h3>
+  <p>Snapshots are easy to create and even easier to forget. Take a manual one before every risky change, never delete any, and a year later you're paying to store a museum of old disk images. Set a retention policy so old snapshots age out automatically, and keep only what you'd actually restore from. Managed automatic backups help here, because a sensible retention window is handled for you instead of accreting by hand. Cold archives that you must keep can move to cheap object storage rather than sitting on premium disk.</p>
+
+  <h3>6. Switch off non-production overnight</h3>
+  <p>Your staging and dev environments probably don't need to run at 3am when nobody's touching them. If they're separate resources, shut them down outside working hours or put them on a schedule. A dev box that runs only during the workday costs a fraction of one that runs around the clock. It's a small lever per environment, but it's easy, and it stacks across a few of them.</p>
+
+  <h2>The leaks at a glance</h2>
+  <p>If you want the whole audit on one screen:</p>
+  <table class="cmp">
+    <thead><tr><th>The leak</th><th>Typical size</th><th>The plug</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Idle / oversized server</strong></td><td>Often the biggest single line</td><td>Right-size down to real usage</td></tr>
+      <tr><td><strong>Metered service sprawl</strong></td><td>Big once you total it</td><td>Consolidate onto one predictable server</td></tr>
+      <tr><td><strong>Egress / bandwidth</strong></td><td>Large if you serve media</td><td>CDN + object storage at the edge</td></tr>
+      <tr><td><strong>Zombie resources</strong></td><td>Small each, adds up</td><td>Audit and delete the unused</td></tr>
+      <tr><td><strong>Snapshot pile-up</strong></td><td>Creeps quietly</td><td>Set retention, archive cold data cheaply</td></tr>
+      <tr><td><strong>Non-prod running 24/7</strong></td><td>Small per env</td><td>Schedule it off out of hours</td></tr>
+    </tbody>
+  </table>
+
+  <!-- Author: swap this slot for a real image. Empty slot, supply your own. src -> images/spend-trending-down.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A cloud spend graph trending down after the audit, or the budget-alert settings screen where you set the threshold.</em><small>Blur real figures. Proof the levers work is persuasive here.</small></span></figure>
+
+  <h2>A cheaper app that's also faster? Cache.</h2>
+  <p>One lever cuts cost and improves speed at the same time, which is rare enough to call out on its own. Caching. Cached pages don't burn compute rebuilding themselves, and cached query results don't hammer your database. If your app recomputes the same things on every request, you're paying for work you could do once. Add a page cache, put a <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis</a> in front of your hottest reads, and you often find you can run on a smaller server than before. That compounds with lever one.</p>
+
+  <h2>Keep it from creeping back</h2>
+  <p>Two habits make the whole audit stick. Keep the budget alert on, so the next creep tells you early instead of ambushing the invoice. And do a brief monthly scan of the itemized bill to catch new waste, a forgotten test server or growing bandwidth, before it compounds. Predictable, flat pricing for steady workloads also removes the surprise element that lets bills creep unnoticed in the first place. If pricing models confuse you, <a href="https://www.kloudbean.com/blog/cloud-hosting-pricing-explained/">cloud hosting pricing explained</a> untangles metered versus flat.</p>
+  <p>Honestly, on managed hosting there's simply less to hunt. Right-sized plans, included backups with sane retention, one dashboard instead of a dozen metered services, object storage for the heavy files. A lot of the efficiency this audit chases is already shaped for you, so the bill starts closer to what you actually use. If you're comparing that against a raw box, <a href="https://www.kloudbean.com/blog/the-real-cost-of-unmanaged-vps/">the real cost of an unmanaged VPS</a> does the full math.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Pay for what you use, not what you forgot.</p>
+    <p style="margin:0 0 .6em">Consolidate your apps and databases onto one server with predictable pricing, object storage for the heavy files, and included backups, all on one dashboard, at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>, and migration help is free.</p>
+    <p style="margin:0">Predictable pricing · One dashboard · Object storage · Automatic backups · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How can I cut my cloud bill quickly?</h3>
+    <p>Open the itemized bill, find the biggest line, and go straight at it. Usually that's an oversized server (right-size it down) or bandwidth (add a CDN and object storage). Then consolidate scattered services onto one server, delete zombie resources, prune old snapshots, and switch off dev environments overnight. Start with the top line, not the small ones.</p>
+    <h3>What's usually the biggest waste on a cloud bill?</h3>
+    <p>Two things. Capacity you're not using (oversized or forgotten servers), and egress, the data-transfer-out charge that grows quietly with traffic. Right-sizing and addressing egress tend to deliver the largest savings, so check those before you optimize minor line items. For teams with sprawl, consolidation is close behind.</p>
+    <h3>Does cutting cloud costs make my app slower?</h3>
+    <p>Not if you do it right. Most of the savings come from removing waste, not capability. Deleting unused resources, pruning snapshots, and turning off idle dev environments never touch production. And caching actively makes your app faster while letting you run on a smaller server, so it cuts cost and improves speed at once.</p>
+    <h3>What are zombie cloud resources?</h3>
+    <p>Resources still billing you for nothing: servers spun up and forgotten, storage volumes detached from any server, reserved IPs attached to nothing, and old snapshots piling up. Accounts collect them over time. Auditing and deleting the unused ones, carefully and after confirming there's no data you need, almost always removes a few pointless charges.</p>
+    <h3>How do I reduce data egress or bandwidth costs?</h3>
+    <p>Put a CDN in front so files are cached at the edge and hit your origin far less, and move heavy media into object storage instead of serving it off the app server. On managed hosting you can also add edge caching (Cloudflare Enterprise on Kloudbean, a paid add-on) to push more traffic to the edge. For media-heavy sites this is often the single biggest saving.</p>
+    <h3>Is it cheaper to run one bigger server or many small services?</h3>
+    <p>For most small teams, one right-sized server wins. Many small metered services each carry a baseline charge and their own management overhead, and single-app boxes usually sit mostly idle. Co-hosting several apps and their databases on one server uses capacity you already pay for. Split out anything that grows genuinely demanding, but keep the small stuff together.</p>
+    <h3>How much can I realistically save?</h3>
+    <p>It depends entirely on where your waste is, so treat any single number as illustrative. That said, the pattern is consistent: the first two levers (right-sizing and consolidation) usually account for most of the savings, and egress can dominate for media-heavy sites. Attack the biggest line first and the rest is cleanup.</p>
+    <h3>Do cloud cost calculators and estimators help?</h3>
+    <p>They're useful for forecasting a new setup and comparing sizes before you commit, so you don't over-provision from day one. But for an existing bill, your own itemized invoice is the better tool. It shows real spend, not an estimate, and the biggest line on it is where the money actually is.</p>
+    <h3>How do I stop my cloud bill creeping up again?</h3>
+    <p>Set a budget alert so you're warned early, and do a quick monthly review of the itemized bill to catch new waste before it compounds. Predictable, flat pricing for steady workloads removes the surprise element, and consolidating onto fewer resources means there are simply fewer places for a creep to hide.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · Find the leak, keep the app.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Cut Your Cloud Bill: A Cost Audit That Finds the Money","description":"A practical audit to cut your cloud bill, ordered biggest lever first: idle and oversized servers, metered service sprawl, egress surprises, zombie resources, snapshot pile-ups, and dev environments left running.","image":"https://www.kloudbean.com/blog/how-to-cut-your-cloud-bill/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/how-to-cut-your-cloud-bill/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How can I cut my cloud bill quickly?","acceptedAnswer":{"@type":"Answer","text":"Open the itemized bill, find the biggest line, and go straight at it. Usually that is an oversized server (right-size it down) or bandwidth (add a CDN and object storage). Then consolidate scattered services onto one server, delete zombie resources, prune old snapshots, and switch off dev environments overnight. Start with the top line, not the small ones."}},
+{"@type":"Question","name":"What's usually the biggest waste on a cloud bill?","acceptedAnswer":{"@type":"Answer","text":"Two things. Capacity you are not using (oversized or forgotten servers), and egress, the data-transfer-out charge that grows quietly with traffic. Right-sizing and addressing egress tend to deliver the largest savings, so check those before you optimize minor line items. For teams with sprawl, consolidation is close behind."}},
+{"@type":"Question","name":"Does cutting cloud costs make my app slower?","acceptedAnswer":{"@type":"Answer","text":"Not if you do it right. Most of the savings come from removing waste, not capability. Deleting unused resources, pruning snapshots, and turning off idle dev environments never touch production. And caching actively makes your app faster while letting you run on a smaller server, so it cuts cost and improves speed at once."}},
+{"@type":"Question","name":"What are zombie cloud resources?","acceptedAnswer":{"@type":"Answer","text":"Resources still billing you for nothing: servers spun up and forgotten, storage volumes detached from any server, reserved IPs attached to nothing, and old snapshots piling up. Accounts collect them over time. Auditing and deleting the unused ones, carefully and after confirming there is no data you need, almost always removes a few pointless charges."}},
+{"@type":"Question","name":"How do I reduce data egress or bandwidth costs?","acceptedAnswer":{"@type":"Answer","text":"Put a CDN in front so files are cached at the edge and hit your origin far less, and move heavy media into object storage instead of serving it off the app server. On managed hosting you can also add edge caching (Cloudflare Enterprise on Kloudbean, a paid add-on) to push more traffic to the edge. For media-heavy sites this is often the single biggest saving."}},
+{"@type":"Question","name":"Is it cheaper to run one bigger server or many small services?","acceptedAnswer":{"@type":"Answer","text":"For most small teams, one right-sized server wins. Many small metered services each carry a baseline charge and their own management overhead, and single-app boxes usually sit mostly idle. Co-hosting several apps and their databases on one server uses capacity you already pay for. Split out anything that grows genuinely demanding, but keep the small stuff together."}},
+{"@type":"Question","name":"How much can I realistically save on my cloud bill?","acceptedAnswer":{"@type":"Answer","text":"It depends entirely on where your waste is, so treat any single number as illustrative. That said, the pattern is consistent: the first two levers, right-sizing and consolidation, usually account for most of the savings, and egress can dominate for media-heavy sites. Attack the biggest line first and the rest is cleanup."}},
+{"@type":"Question","name":"Do cloud cost calculators and estimators help?","acceptedAnswer":{"@type":"Answer","text":"They are useful for forecasting a new setup and comparing sizes before you commit, so you do not over-provision from day one. But for an existing bill, your own itemized invoice is the better tool. It shows real spend, not an estimate, and the biggest line on it is where the money actually is."}},
+{"@type":"Question","name":"How do I stop my cloud bill creeping up again?","acceptedAnswer":{"@type":"Answer","text":"Set a budget alert so you are warned early, and do a quick monthly review of the itemized bill to catch new waste before it compounds. Predictable, flat pricing for steady workloads removes the surprise element, and consolidating onto fewer resources means there are simply fewer places for a creep to hide."}}
+]}
+]}
+</script>
+</body>
+</html>

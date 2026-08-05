@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DNS Explained: How It Works, Records, TTL, and Propagation</title>
+<meta name="description" content="DNS explained in plain English: what DNS is, how a lookup works from resolver to authoritative server, the records you touch (A, AAAA, CNAME, MX, TXT, NS), and why DNS propagation takes time.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/dns-explained/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="DNS Explained: How It Works, Records, TTL, and Propagation">
+<meta property="og:description" content="What DNS is, how a single lookup resolves from the root down, the records you actually touch, and why DNS propagation and TTL make changes take time.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Networking fundamentals</span>
+  <h1>DNS Explained: How the Internet Finds Your Server</h1>
+
+  <figure><img src="images/hero.png" alt="DNS explained, a domain name resolving to a server IP address"></figure>
+
+  <p class="lead">You changed hosts, updated one setting, and now the site won't load. Or you pointed a fresh domain at your server and nothing happens. Nine times out of ten the server is fine and DNS is the thing standing in the way.</p>
+  <p>So here's DNS explained the way you'd actually want it: what DNS is, how a single lookup really works, the records you'll ever touch, and why a change you made an hour ago still hasn't shown up everywhere. Just a name, a number, and the lookup that connects them.</p>
+
+  <div class="tldr">
+    <strong>The short answer</strong>
+    <p>DNS, the Domain Name System, is the internet's phone book. It turns a name like example.com into the IP address of the server behind it. When you load a site, a resolver walks from the root servers down to the domain's authoritative server, fetches that IP, caches it briefly, and your browser connects.</p>
+  </div>
+
+  <h2>DNS explained: what it actually is</h2>
+  <p>Start with the problem DNS solves. Your browser doesn't speak names. It speaks IP addresses, the numeric labels every server answers to, like <code>203.0.113.10</code> for IPv4 or a longer hex string for IPv6. You, though, are not going to memorize numbers. You want to type a name and hit enter.</p>
+  <p>DNS is the translation layer in between, and the phone book analogy stuck for good reason: look up a name, get back a number, place the call. Underneath, it's a massive distributed database spread across millions of servers, with no single machine holding it all. That's deliberate. One directory holding every domain on earth would be a bottleneck and a spectacular single point of failure, so the job splits into a hierarchy that any resolver can walk. It's the first hop in <a href="https://www.kloudbean.com/blog/how-cloud-hosting-works/">how cloud hosting works</a>, before a line of your code runs.</p>
+
+  <h2>How does DNS work? One lookup, step by step</h2>
+  <p>So how does DNS work when you load a page? Follow one lookup all the way through.</p>
+
+  <figure>
+    <svg viewBox="0 0 880 480" role="img" aria-label="How one DNS lookup finds your server: the browser asks a recursive resolver, which queries a root server, then the .com TLD server, then the domain's authoritative server, gets back the IP address, caches it for the TTL, and the browser connects to the server." xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <defs>
+        <marker id="ap" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4F1AF3"/></marker>
+        <marker id="ag" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#40b75f"/></marker>
+        <marker id="an" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#000f27"/></marker>
+      </defs>
+      <text x="28" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="17" font-weight="700">How one DNS lookup finds your server</text>
+
+      <rect x="28" y="118" width="138" height="64" rx="12" fill="#000f27"/>
+      <text x="97" y="147" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="15" font-weight="600">You</text>
+      <text x="97" y="166" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="11">browser</text>
+
+      <rect x="28" y="312" width="138" height="72" rx="12" fill="#ffffff" stroke="#40b75f" stroke-width="1.6"/>
+      <text x="97" y="342" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="14" font-weight="700">Your server</text>
+      <text x="97" y="362" text-anchor="middle" fill="#5b6a86" font-family="JetBrains Mono,monospace" font-size="11.5">203.0.113.10</text>
+
+      <rect x="216" y="206" width="164" height="88" rx="14" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.9"/>
+      <text x="298" y="240" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="14" font-weight="700">Recursive resolver</text>
+      <text x="298" y="260" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">does the legwork,</text>
+      <text x="298" y="276" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">caches the answer</text>
+
+      <rect x="470" y="84" width="236" height="66" rx="12" fill="#ffffff" stroke="#000f27" stroke-width="1.4"/>
+      <text x="588" y="114" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="700">Root nameserver ( . )</text>
+      <text x="588" y="134" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">points on to the .com servers</text>
+
+      <rect x="470" y="207" width="236" height="66" rx="12" fill="#ffffff" stroke="#000f27" stroke-width="1.4"/>
+      <text x="588" y="237" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="700">TLD nameserver (.com)</text>
+      <text x="588" y="257" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">points on to the domain's NS</text>
+
+      <rect x="470" y="330" width="236" height="66" rx="12" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.6"/>
+      <text x="588" y="360" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="700">Authoritative nameserver</text>
+      <text x="588" y="380" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">holds the real A record</text>
+
+      <path d="M166,164 C 192,178 198,202 214,220" fill="none" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ap)"/>
+      <path d="M380,226 C 424,150 442,122 468,117" fill="none" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ap)"/>
+      <path d="M380,250 L 466,240" fill="none" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ap)"/>
+      <path d="M380,276 C 422,340 442,360 468,363" fill="none" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ap)"/>
+      <path d="M468,380 C 430,372 402,322 384,288" fill="none" stroke="#40b75f" stroke-width="2" marker-end="url(#ag)"/>
+      <path d="M214,238 C 196,216 190,192 168,180" fill="none" stroke="#40b75f" stroke-width="2" marker-end="url(#ag)"/>
+      <path d="M97,182 L 97,310" fill="none" stroke="#000f27" stroke-width="2" marker-end="url(#an)"/>
+
+      <g font-family="Poppins,sans-serif" font-size="11" font-weight="700">
+        <circle cx="196" cy="192" r="11" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5"/><text x="196" y="196" text-anchor="middle" fill="#4F1AF3">1</text>
+        <circle cx="432" cy="150" r="11" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5"/><text x="432" y="154" text-anchor="middle" fill="#4F1AF3">2</text>
+        <circle cx="424" cy="243" r="11" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5"/><text x="424" y="247" text-anchor="middle" fill="#4F1AF3">3</text>
+        <circle cx="432" cy="330" r="11" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5"/><text x="432" y="334" text-anchor="middle" fill="#4F1AF3">4</text>
+        <circle cx="404" cy="352" r="11" fill="#ffffff" stroke="#40b75f" stroke-width="1.5"/><text x="404" y="356" text-anchor="middle" fill="#40b75f">5</text>
+        <circle cx="182" cy="214" r="11" fill="#ffffff" stroke="#40b75f" stroke-width="1.5"/><text x="182" y="218" text-anchor="middle" fill="#40b75f">6</text>
+        <circle cx="97" cy="247" r="11" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/><text x="97" y="251" text-anchor="middle" fill="#000f27">7</text>
+      </g>
+      <text x="118" y="251" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">connect over HTTPS</text>
+      <text x="28" y="462" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">Each tier knows only the next one down; the resolver walks it once, then caches.</text>
+    </svg>
+    <figcaption>One DNS lookup end to end. The browser asks a resolver (1); the resolver walks from the root (2) to the .com servers (3) to the authoritative nameserver (4); the IP travels back and is cached (5, 6), and the browser connects (7).</figcaption>
+  </figure>
+
+  <p>Your browser hands the name to a <strong>recursive resolver</strong>, usually your ISP's or a public one like <code>1.1.1.1</code> or <code>8.8.8.8</code>. Its job is to return a single IP, whatever it takes. The bit most walkthroughs skip: the resolver doesn't know where example.com lives either. It asks a chain of servers, each of which knows only the next step down.</p>
+  <p>It starts at the top. The 13 root server addresses (anycast, so far more machines behind them) don't know your IP. They know who runs <code>.com</code>, and point the resolver at the <strong>TLD</strong> servers for <code>.com</code>. Those don't know your IP either, but they know which nameservers are authoritative for example.com. The resolver asks that <strong>authoritative nameserver</strong>, the one holding your records, and gets the A record with the IP. It caches the answer, hands it back, and the connection opens.</p>
+  <p>That whole walk takes a few milliseconds, and often it doesn't happen at all, because the answer is already cached somewhere along the line. Want to watch it live?</p>
+<pre><code># ask a resolver and see the answer plus the seconds left on its cache
+dig example.com A +noall +answer
+example.com.    283    IN    A    203.0.113.10
+
+# trace the whole chain from the root down yourself
+dig example.com +trace</code></pre>
+
+  <!-- ADD IMAGE: a terminal running dig or nslookup, showing the A record and the TTL value. Swap for a real screenshot: src -> images/dig-lookup.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal running dig or nslookup, with the A record and its TTL visible.</em></span></figure>
+
+  <h2>The DNS records you'll actually touch</h2>
+  <p>A domain's records live together in a zone. You'll hear about a dozen types and touch maybe six. Here's a small but real zone, trimmed to the ones that matter:</p>
+<pre><code>; a small but real zone file
+example.com.       3600   IN   A       203.0.113.10
+example.com.       3600   IN   AAAA    2001:db8::10
+www.example.com.   3600   IN   CNAME   example.com.
+example.com.       3600   IN   MX      10 mail.example.com.
+example.com.       3600   IN   TXT     "v=spf1 include:_spf.example.net ~all"
+example.com.       86400  IN   NS      ns1.registrar.net.</code></pre>
+  <p>Read top to bottom, that's most of the DNS you'll ever manage. What each one does:</p>
+
+  <table class="cmp">
+    <thead><tr><th>Record</th><th>Maps a name to</th><th>You reach for it to</th></tr></thead>
+    <tbody>
+      <tr><td>A</td><td>an IPv4 address</td><td>send the domain to your server's IP</td></tr>
+      <tr><td>AAAA</td><td>an IPv6 address</td><td>do the same over IPv6</td></tr>
+      <tr><td>CNAME</td><td>another name</td><td>make <code>www</code> follow the apex</td></tr>
+      <tr><td>MX</td><td>a mail server (with a priority)</td><td>route email for the domain</td></tr>
+      <tr><td>TXT</td><td>free-form text</td><td>verify ownership, SPF, DKIM, DMARC</td></tr>
+      <tr><td>NS</td><td>the domain's nameservers</td><td>declare who is authoritative</td></tr>
+    </tbody>
+  </table>
+
+  <p>Two of these cause most of the confusion, so be precise about the A record and CNAME difference. The <strong>A record</strong> matters most for a website: it points a name straight at an IPv4 address, your server's public IP. <strong>AAAA</strong> is the same idea for IPv6. A <strong>CNAME</strong> is different. It points a name at another name, not an IP, which is why <code>www</code> is usually a CNAME onto the apex. Change the server's IP later and you update one A record; <code>www</code> follows on its own.</p>
+  <p>Now the classic trap: you can't put a CNAME on the apex (the bare <code>example.com</code>) in standard DNS, because the apex needs records like NS and often MX, and a CNAME can't sit beside them. So the apex gets an A record and only <code>www</code> gets a CNAME. Some providers offer an ALIAS or ANAME record (or CNAME flattening) to fake an apex CNAME, which is handy when you have it. The plain rule holds: apex is an A record, <code>www</code> is a CNAME.</p>
+
+  <!-- ADD IMAGE: your registrar's DNS panel with an A record for the apex and a CNAME for www. Swap for a real screenshot: src -> images/dns-records-panel.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A registrar DNS panel with an A record on the apex and a CNAME on www.</em></span></figure>
+
+  <h2>TTL and why DNS propagation takes time</h2>
+  <p>Every record carries a <strong>TTL</strong>, its time to live, in seconds. That <code>3600</code> above means one hour. TTL is a promise to resolvers: cache this answer for this long, then check again. A low TTL means changes take effect fast but resolvers ask more often. A high TTL means fewer lookups but slower changes. That trade-off is the whole story behind DNS propagation.</p>
+  <p>One thing to unlearn: nothing actually propagates. Change a record and no signal gets pushed out to the world's resolvers. What happens is quieter. Resolvers that cached the old answer keep serving it until the TTL runs out, then fetch the new one. So DNS propagation is just old cached copies expiring on their own schedule, resolver by resolver, worldwide. That's why a change looks instant to you and stays stale for someone whose resolver cached the old IP an hour ago.</p>
+  <p>There's a practical move here. Migrating servers? Lower the TTL a day ahead, to 300 seconds or even 60. Once the old high TTL has aged out everywhere, every resolver holds the record for only a minute, so flipping to the new IP is nearly quick. Raise it back after. Skip this and a TTL of <code>86400</code> means some visitors keep hitting your old server for a full day after you moved.</p>
+
+  <!-- ADD IMAGE: a DNS propagation checker showing the new IP live in some cities and the old one still cached in others. Swap for a real screenshot: src -> images/propagation-checker.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A propagation checker map: the new IP live in some locations, the old one still cached in others.</em></span></figure>
+
+  <h2>Where DNS goes wrong (the classic gotchas)</h2>
+  <p>Most DNS problems aren't exotic. They're the same handful of mistakes, over and over.</p>
+  <ul>
+    <li><strong>The A record points at the wrong IP.</strong> You typed the old server's address, or a typo, or the load balancer's IP when you meant the server's. The domain resolves fine, just to the wrong place. Confirm the A record matches the IP you actually meant.</li>
+    <li><strong>You forgot the www CNAME (or the apex A).</strong> The bare domain works and <code>www</code> errors out, or the reverse. Add the missing record so both resolve, then redirect one to the other.</li>
+    <li><strong>The TTL was too high before a migration.</strong> You moved hosts, updated the record, and half your traffic still lands on the dead server hours later. Nothing's broken. The old TTL is just aging out. This is the one that panics people needlessly.</li>
+    <li><strong>A stale CAA record blocks your SSL.</strong> A CAA record restricts which certificate authorities may issue for your domain, and an old one can silently stop a new certificate from being issued even when DNS resolves perfectly. More on that failure in <a href="https://www.kloudbean.com/blog/fix-ssl-certificate-errors/">fixing SSL certificate errors</a>.</li>
+    <li><strong>The domain still points at your old DNS provider.</strong> If you changed nameservers at the registrar, you're now editing records in a panel that isn't authoritative yet. Those edits do nothing until the NS delegation catches up.</li>
+  </ul>
+
+  <div class="note"><b>A pattern worth internalizing.</b> When someone says the site went down right after they switched hosts, the server is almost never the culprit. It's DNS: an A record still aimed at the old IP, or a TTL set so high the old address stays cached for a day. The fix is the right record and a little patience, not a rebuild. Always check what the name actually resolves to first.</div>
+
+  <h2>From a DNS record to your live server and SSL</h2>
+  <p>All this theory lands on one act: pointing a domain at a server you control. The shape never changes. Your server has a public IP. You create an A record at your registrar pointing the domain at that IP (plus a <code>www</code> CNAME onto the apex). DNS resolves. Done.</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="Provisioning a server in the Kloudbean console, which assigns the public IP your DNS A record points at">
+    <figcaption>A new server gets a public IP on provisioning. That is the address your A record points at.</figcaption>
+  </figure>
+
+  <p>One point trips people up, so plainly: your DNS records live at your registrar, not inside your host. On <a href="https://www.kloudbean.com/">Kloudbean</a> you tell the server which domains to answer for, and the platform issues the certificate, but the A and CNAME records are managed wherever you registered the domain. Host and registrar are different jobs. The step-by-step version, with the www-versus-apex call and the exact records, is in <a href="https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/">how to add a custom domain and free SSL</a>.</p>
+  <p>Once the name resolves to your server, SSL falls into place. Kloudbean issues free, auto-renewing certificates on your Linux server, and the order matters for a pure-DNS reason: a certificate authority proves you control the domain by checking that it points where it should. No resolution, no certificate. So when an SSL request fails moments after you set up DNS, the honest first answer is usually that DNS hasn't finished resolving yet, not that the certificate is broken.</p>
+
+  <figure>
+    <img src="../assets/console/ssl-certificate.png" alt="A free auto-renewing SSL certificate active in the Kloudbean console once DNS resolves to the server">
+    <figcaption>Once the domain resolves, a free certificate issues and auto-renews. The padlock is downstream of DNS being right.</figcaption>
+  </figure>
+
+  <p>And the IP your record points at isn't abstract. It's a real server in a region you picked, which is where <a href="https://www.kloudbean.com/blog/data-residency-explained/">data residency</a> quietly enters the DNS story. Run more than one server and the A record can point at a <a href="https://www.kloudbean.com/blog/cloud-load-balancer-explained/">load balancer's</a> address instead, one public IP in front of a pool. DNS gets your visitor to the front door. What sits behind it is your architecture.</p>
+
+  <h2>DNS is one layer of the stack</h2>
+  <p>A zone file is small, with outsized power, and still just the first hop. Behind that IP sit the server, the app, the database, SSL, and backups. On Kloudbean they share one login, so the domain, the server it resolves to, and its certificate all sit on one screen.</p>
+
+  <figure>
+    <img src="../assets/console/dashboard.png" alt="The Kloudbean dashboard showing servers, applications, databases, and SSL in one place">
+    <figcaption>The domain resolves to a server that runs your app and database, with SSL, all on one dashboard.</figcaption>
+  </figure>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Point your domain. Get the padlock. Move on.</p>
+    <p style="margin:0 0 .6em">Spin up a Linux server, point your A record at its IP, and let free auto-renewing SSL kick in the moment DNS resolves. Plans start from $8/mo and Enterprise is custom, so check current pricing on <a href="https://www.kloudbean.com/pricing/">pricing</a>. See the whole stack on one dashboard at <a href="https://www.kloudbean.com/">kloudbean.com</a>, or weigh the numbers in <a href="https://www.kloudbean.com/blog/digitalocean-vs-kloudbean/">DigitalOcean vs Kloudbean</a>.</p>
+    <p style="margin:0">Point your domain · Free auto-renewing SSL · 7 clouds · Automatic backups · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is DNS in simple terms?</h3>
+    <p>DNS, the Domain Name System, is the internet's phone book. Browsers connect to numeric IP addresses, but people prefer names, so DNS translates a name like example.com into the IP of the server that answers for it. It's distributed across many servers, so no single machine holds every domain.</p>
+    <h3>How does DNS work step by step?</h3>
+    <p>Your browser asks a recursive resolver. The resolver asks a root server, which points it to the top-level-domain servers such as .com. Those point it to the domain's authoritative nameserver, which returns the IP in an A record. The resolver caches that and hands the IP to your browser, which connects.</p>
+    <h3>What is the difference between an A record and a CNAME?</h3>
+    <p>An A record maps a name directly to an IPv4 address, so it points your domain at a server's IP. A CNAME maps a name to another name rather than an IP, which is why www is usually a CNAME onto the apex. You can't use a CNAME on the bare apex in standard DNS, so the apex uses an A record.</p>
+    <h3>What is DNS propagation and why does it take so long?</h3>
+    <p>Propagation is the delay before a record change is visible everywhere. Nothing is pushed out. Resolvers that cached the old answer keep serving it until the TTL expires, then fetch the new value. Because caches expire on their own clocks worldwide, a change can be instant for you and stale for others for minutes to hours.</p>
+    <h3>What is TTL in DNS?</h3>
+    <p>TTL, or time to live, is how many seconds a resolver may cache a record before checking again. A low TTL makes changes take effect quickly but adds lookups. A high TTL means fewer lookups but slower changes. Lowering TTL a day before a planned migration makes the switch much faster.</p>
+    <h3>Why does my site still show the old server after I changed DNS?</h3>
+    <p>Almost always caching. Resolvers between you and the site cached the old IP and keep using it until the record's TTL runs out, which can be hours if the TTL was high. Confirm the record now points at the correct IP, then wait for the cached copies to expire.</p>
+    <h3>Can I point my domain at a Kloudbean server?</h3>
+    <p>Yes. Your server has a public IP, so you create an A record at your registrar pointing your domain at it, plus a CNAME for www. You tell the Kloudbean console which domains the server should answer for, and once DNS resolves it issues a free auto-renewing SSL certificate. The records stay at your registrar.</p>
+    <h3>Why won't my SSL certificate issue right after I set up DNS?</h3>
+    <p>Usually because DNS hasn't finished resolving. A certificate authority confirms you control the domain by checking that it points to your server, and that check fails until the name resolves. Verify it resolves to your IP first. If it does and issuance still fails, look for a CAA record blocking the authority.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Networking · A name, an IP, and the lookup that quietly connects them.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"DNS Explained: How the Internet Finds Your Server","description":"DNS explained in plain English: what DNS is, how a lookup resolves from the root down, the records you touch (A, AAAA, CNAME, MX, TXT, NS), and why DNS propagation and TTL make changes take time.","image":"https://www.kloudbean.com/blog/dns-explained/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/dns-explained/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is DNS in simple terms?","acceptedAnswer":{"@type":"Answer","text":"DNS, the Domain Name System, is the internet's phone book. Browsers connect to numeric IP addresses, but people prefer names, so DNS translates a name like example.com into the IP of the server that answers for it. It is distributed across many servers, so no single machine holds every domain."}},
+{"@type":"Question","name":"How does DNS work step by step?","acceptedAnswer":{"@type":"Answer","text":"Your browser asks a recursive resolver. The resolver asks a root server, which points it to the top-level-domain servers such as .com. Those point it to the domain's authoritative nameserver, which returns the IP in an A record. The resolver caches that and hands the IP to your browser, which connects."}},
+{"@type":"Question","name":"What is the difference between an A record and a CNAME?","acceptedAnswer":{"@type":"Answer","text":"An A record maps a name directly to an IPv4 address, so it points your domain at a server's IP. A CNAME maps a name to another name rather than an IP, which is why www is usually a CNAME onto the apex. You cannot use a CNAME on the bare apex in standard DNS, so the apex uses an A record."}},
+{"@type":"Question","name":"What is DNS propagation and why does it take so long?","acceptedAnswer":{"@type":"Answer","text":"Propagation is the delay before a record change is visible everywhere. Nothing is pushed out. Resolvers that cached the old answer keep serving it until the TTL expires, then fetch the new value. Because caches expire on their own clocks worldwide, a change can be instant for you and stale for others for minutes to hours."}},
+{"@type":"Question","name":"What is TTL in DNS?","acceptedAnswer":{"@type":"Answer","text":"TTL, or time to live, is how many seconds a resolver may cache a record before checking again. A low TTL makes changes take effect quickly but adds lookups. A high TTL means fewer lookups but slower changes. Lowering TTL a day before a planned migration makes the switch much faster."}},
+{"@type":"Question","name":"Why does my site still show the old server after I changed DNS?","acceptedAnswer":{"@type":"Answer","text":"Almost always caching. Resolvers between you and the site cached the old IP and keep using it until the record's TTL runs out, which can be hours if the TTL was high. Confirm the record now points at the correct IP, then wait for the cached copies to expire."}},
+{"@type":"Question","name":"Can I point my domain at a Kloudbean server?","acceptedAnswer":{"@type":"Answer","text":"Yes. Your server has a public IP, so you create an A record at your registrar pointing your domain at it, plus a CNAME for www. You tell the Kloudbean console which domains the server should answer for, and once DNS resolves it issues a free auto-renewing SSL certificate. The records stay at your registrar."}},
+{"@type":"Question","name":"Why won't my SSL certificate issue right after I set up DNS?","acceptedAnswer":{"@type":"Answer","text":"Usually because DNS has not finished resolving. A certificate authority confirms you control the domain by checking that it points to your server, and that check fails until the name resolves. Verify it resolves to your IP first. If it does and issuance still fails, look for a CAA record blocking the authority."}}
+]}
+]}
+</script>
+</body>
+</html>

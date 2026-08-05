@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Store User Uploads in Object Storage, Not on the Server</title>
+<meta name="description" content="Store user uploads in object storage, not on the app server disk, so files survive every deploy and scale-out. The architecture, the upload code, and how to serve them.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/store-user-uploads-in-object-storage/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Store User Uploads in Object Storage, Not on the Server">
+<meta property="og:description" content="Why file uploads vanish after a deploy, the bytes-in-a-bucket architecture that fixes it, and the exact upload code for Node, Python, and the usual frameworks.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Storage · file uploads</span>
+  <h1>Store User Uploads in Object Storage, Not on the App Server</h1>
+  <p class="byline">By Kloudbean Engineering · Files Belong in Buckets.</p>
+
+  <figure><img src="images/hero.png" alt="Store user uploads in object storage: file bytes in a bucket, the object key saved in the database"></figure>
+
+  <p class="lead">A user uploads their profile photo. It works. You ship a new version that night, and by morning the avatar is a broken image, a plain 404 where a face used to be. If your uploaded files keep vanishing after a deploy, the answer is to store user uploads in object storage instead of on the app server's disk. This guide covers why the disk betrays you, the architecture that actually works, and the upload code for Node, Python, and the frameworks you already use.</p>
+
+  <div class="tldr">
+    <strong>Short answer</strong>
+    <p>Where should you store user uploads? In an S3-compatible object storage bucket, not on the app server's local disk. On most managed platforms the app filesystem is ephemeral and isn't shared across instances, so files written to <code>./uploads</code> disappear on the next deploy or 404 behind a load balancer. Keep the file bytes in a bucket, store only the object key and metadata in your database, and serve each file with a public URL or a short-lived presigned URL.</p>
+  </div>
+
+  <h2>Why your uploaded files disappear after a deploy</h2>
+  <p>Let's start with the failure, because it's specific and checkable. Your app saves an upload to a folder like <code>./uploads</code> or <code>/var/www/app/public/uploads</code>. On your laptop that file sits there forever. In production it often doesn't. Two separate things break it.</p>
+  <p>First, ephemeral filesystems. A lot of managed platforms and container setups hand your app a fresh disk on every deploy or restart. Your code comes back. The files you wrote at runtime do not. This is the number one reason people paste <em>"my uploaded images 404 after deploy"</em> into Google. Nothing is wrong with the upload logic. The disk it wrote to just didn't survive the restart.</p>
+  <p>Second, more than one server. The moment you put two app instances behind a load balancer, a file saved on server A doesn't exist on server B. Half your requests find the image, half return a 404, and it looks maddeningly random. Even on a single box, a rebuild starts you from an empty disk. Same result, files gone.</p>
+  <p>The uploads folder feels permanent because on your machine it is. Production is where that assumption dies. Hit this with other post-deploy surprises? It's usually an environment gap, and we cover the rest in <a href="https://www.kloudbean.com/blog/why-my-ai-app-works-locally-but-not-in-production/">why your app works locally but not in production</a>.</p>
+
+  <!-- ADD IMAGE: before/after showing an upload saved to a local uploads folder that is wiped on redeploy, versus the same file safe in a bucket. Swap for a real screenshot: src -> images/uploads-disk-vs-bucket.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A before and after: a file in a local uploads folder that is gone after redeploy, next to the same file living in a bucket.</em><small>Makes the ephemeral disk trap obvious at a glance.</small></span></figure>
+
+  <h2>The pattern that works: bytes in a bucket, key in the database</h2>
+  <p>The fix splits one "file" into two things that live in different places. That split is the whole idea.</p>
+  <p>The <strong>file bytes</strong> go in an object storage bucket. That's the raw image, PDF, or video. Buckets are built to hold files durably, across as many app servers as you like, and they don't reset when you deploy. For file uploads, object storage is simply the right home.</p>
+  <p>The <strong>metadata</strong> goes in your database. Not the bytes, just a row: the object key (the file's name inside the bucket, something like <code>uploads/2025/a1b2c3.jpg</code>), plus who owns it, its size, its content type, and when it landed. Your app already has a database for users and orders, so an upload becomes one more row that points at an object. If you don't have a real database beside your app yet, that's step zero, and it's covered in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">how to add a managed database to your app</a>.</p>
+  <p>To show a user their file, you look up the key and hand back a URL to the object in the bucket. That's the model. The app server touches the bytes only long enough to pass them through, then forgets them. That's exactly why you can rebuild the server without losing a thing.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 440" width="100%" role="img" aria-labelledby="uploadflow-title" xmlns="http://www.w3.org/2000/svg">
+      <title id="uploadflow-title">A browser uploads to the app, the app writes the file bytes to a bucket and the object key plus metadata to the database, then serves the file back by URL</title>
+      <rect x="0" y="0" width="760" height="440" fill="#ffffff"></rect>
+      <text x="24" y="34" font-family="Poppins,Arial,sans-serif" font-size="17" font-weight="700" fill="#000f27">One upload, split into two places</text>
+      <text x="24" y="55" font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#5b6a86">The bytes go to the bucket. The key and metadata go to the database. The app keeps nothing.</text>
+
+      <!-- browser -->
+      <rect x="28" y="76" width="152" height="72" rx="13" fill="#000f27"></rect>
+      <text x="104" y="108" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="15" font-weight="600">Browser</text>
+      <text x="104" y="128" text-anchor="middle" fill="#9fb0d0" font-family="Poppins,sans-serif" font-size="12">user picks a file</text>
+
+      <!-- app server -->
+      <rect x="306" y="76" width="160" height="72" rx="13" fill="#000f27"></rect>
+      <text x="386" y="108" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="15" font-weight="600">App server</text>
+      <text x="386" y="128" text-anchor="middle" fill="#9fb0d0" font-family="Poppins,sans-serif" font-size="12">validate, make a key</text>
+
+      <!-- bucket -->
+      <rect x="590" y="60" width="150" height="96" rx="13" fill="#ffffff" stroke="#40b75f" stroke-width="2.5"></rect>
+      <text x="665" y="96" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="14.5" font-weight="600">Object storage</text>
+      <text x="665" y="116" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="14.5" font-weight="600">bucket</text>
+      <text x="665" y="136" text-anchor="middle" fill="#2f9d4e" font-family="Poppins,sans-serif" font-size="12">the file bytes</text>
+
+      <!-- database -->
+      <rect x="306" y="252" width="160" height="92" rx="13" fill="#ffffff" stroke="#4F1AF3" stroke-width="2.5"></rect>
+      <text x="386" y="288" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="14.5" font-weight="600">Database</text>
+      <text x="386" y="310" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="12">row: key, owner,</text>
+      <text x="386" y="326" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="12">size, content type</text>
+
+      <!-- arrow 1: browser -> app -->
+      <path d="M180 106 H300" stroke="#4F1AF3" stroke-width="3" fill="none" marker-end="url(#apu)"></path>
+      <text x="240" y="96" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">1. upload</text>
+
+      <!-- arrow 2: app -> bucket -->
+      <path d="M466 100 H584" stroke="#40b75f" stroke-width="3" fill="none" marker-end="url(#agr)"></path>
+      <text x="525" y="90" text-anchor="middle" fill="#2f9d4e" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">2. PUT bytes</text>
+
+      <!-- arrow 3: app -> database -->
+      <path d="M386 148 V246" stroke="#4F1AF3" stroke-width="3" fill="none" marker-end="url(#apu)"></path>
+      <text x="398" y="200" text-anchor="start" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">3. save key + metadata</text>
+
+      <!-- serve path: bucket -> browser -->
+      <path d="M665 156 V400 H104 V150" stroke="#40b75f" stroke-width="2.6" fill="none" stroke-dasharray="7 5" marker-end="url(#agr)"></path>
+      <text x="384" y="392" text-anchor="middle" fill="#2f9d4e" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">serve by public URL or short-lived presigned URL</text>
+
+      <defs>
+        <marker id="apu" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0 0 L7 3 L0 6 Z" fill="#4F1AF3"></path></marker>
+        <marker id="agr" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0 0 L7 3 L0 6 Z" fill="#40b75f"></path></marker>
+      </defs>
+    </svg>
+    <figcaption>The app validates the upload and mints a key, streams the bytes to the bucket, and writes the key plus metadata to the database. Serving is just a URL to the object.</figcaption>
+  </figure>
+
+  <h2>How to store user uploads in object storage</h2>
+  <p>There are two ways to get a file into the bucket, and most real apps use both. In every example, the endpoint, region, bucket, and credentials come from environment variables, never hard-coded. New to that habit? Read <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a> first, because leaking a storage key is as bad as leaking a database password.</p>
+
+  <h3>Flow 1: server-side upload (your app streams the file to the bucket)</h3>
+  <p>The browser sends the file to your app, your app streams it to the bucket with the S3 SDK, and you save the key on a database row. This is the simplest flow and the right default for small files like avatars, receipts, and documents.</p>
+  <p>Here's the Node shape with the AWS SDK v3. The <code>req.file.buffer</code> comes from multer's memory storage:</p>
+  <pre><code>import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { randomUUID } from "crypto";
+
+const s3 = new S3Client({
+  endpoint: process.env.S3_ENDPOINT,      // your bucket's S3 endpoint
+  region: process.env.S3_REGION || "auto",
+  credentials: {
+    accessKeyId: process.env.S3_KEY,
+    secretAccessKey: process.env.S3_SECRET,
+  },
+});
+
+// generate your OWN key, never trust the uploaded filename
+const key = "uploads/" + randomUUID() + ".jpg";
+
+await s3.send(new PutObjectCommand({
+  Bucket: process.env.S3_BUCKET,
+  Key: key,
+  Body: req.file.buffer,
+  ContentType: req.file.mimetype,   // so browsers render it, not download it
+}));
+
+// save the KEY on the row, not the bytes
+await db.photo.create({ data: { userId, key } });</code></pre>
+
+  <p>The Python version with <code>boto3</code> is the same three moves, build a client, put the object, store the key:</p>
+  <pre><code>import os, uuid, boto3
+
+s3 = boto3.client(
+    "s3",
+    endpoint_url=os.environ["S3_ENDPOINT"],
+    aws_access_key_id=os.environ["S3_KEY"],
+    aws_secret_access_key=os.environ["S3_SECRET"],
+)
+
+key = "uploads/" + str(uuid.uuid4()) + ".jpg"
+s3.upload_fileobj(
+    file_obj,                                  # the uploaded stream
+    os.environ["S3_BUCKET"],
+    key,
+    ExtraArgs={"ContentType": "image/jpeg"},
+)
+# then persist `key` on the database row</code></pre>
+
+  <h3>Flow 2: direct (presigned) upload from the browser</h3>
+  <p>For big files like video or high-resolution images, or for high upload volume, routing every byte through your app is wasteful. Your server pays the bandwidth twice and ties up a worker for the whole transfer. The fix is a presigned URL.</p>
+  <p>A presigned URL is a temporary, signed link that grants permission to do one operation on one object, for a few minutes, then expires. Your backend generates it. The browser uploads straight to the bucket. Your app never touches the bytes. The handshake is four steps: the browser asks your API for a URL, the API returns a presigned <code>PUT</code> URL plus the key, the browser <code>PUT</code>s the file to that URL, then the browser tells your API the upload finished so you can save the key.</p>
+  <p>Generating a presigned <code>PUT</code> in Node:</p>
+  <pre><code>import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+
+const key = "uploads/" + randomUUID() + ".png";
+
+const url = await getSignedUrl(
+  s3,
+  new PutObjectCommand({
+    Bucket: process.env.S3_BUCKET,
+    Key: key,
+    ContentType: "image/png",
+  }),
+  { expiresIn: 300 },   // valid for 5 minutes
+);
+
+// send { url, key } to the browser</code></pre>
+
+  <p>And the browser side is a plain <code>fetch</code> straight to the bucket, with no bytes passing through your server:</p>
+  <pre><code>await fetch(presignedUrl, {
+  method: "PUT",
+  headers: { "Content-Type": file.type },
+  body: file,
+});
+
+// then POST `key` back to your API so it saves the row</code></pre>
+
+  <p>Store the endpoint, bucket, and keys as environment variables on the server, not in the repo. On Kloudbean that's the Runtime Configuration screen, where you paste them once and redeploy.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean Environment Variables editor, where the S3 endpoint, bucket name, and keys are stored on the server">
+    <figcaption>Set S3_ENDPOINT, S3_BUCKET, S3_KEY, and S3_SECRET as environment variables, then redeploy. The same values feed both upload flows.</figcaption>
+  </figure>
+
+  <h2>Point your existing uploader at a bucket</h2>
+  <p>You rarely need to write raw SDK calls. Most frameworks ship a storage layer that already speaks the S3 API, so you point it at your bucket's endpoint with config and keep the upload code you already have. Set the endpoint, bucket, region, and keys from environment variables in each case, and the framework does the rest.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Framework</th><th>What targets the bucket</th><th>The shape</th></tr></thead>
+    <tbody>
+      <tr><td>Laravel</td><td>The <code>s3</code> filesystem disk in <code>config/filesystems.php</code></td><td><code>Storage::disk('s3')-&gt;put($key, $contents)</code></td></tr>
+      <tr><td>Django</td><td><code>django-storages</code> via the <code>STORAGES</code> backend</td><td>Set the S3 backend and a <code>FileField</code> uploads to the bucket automatically</td></tr>
+      <tr><td>Rails</td><td>Active Storage</td><td><code>config/storage.yml</code> service: S3, then <code>has_one_attached</code></td></tr>
+      <tr><td>Node / Express</td><td><code>multer-s3</code></td><td><code>storage: multerS3({ s3, bucket, key })</code></td></tr>
+      <tr><td>Next.js</td><td>A route handler with <code>@aws-sdk/client-s3</code></td><td><code>PutObjectCommand</code> in a server route or action</td></tr>
+    </tbody>
+  </table>
+
+  <p>The endpoint is the only piece that changes to point at a Kloudbean bucket instead of AWS, because underneath it's the same S3 API. There's more on that portability in <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage explained</a>.</p>
+
+  <!-- ADD IMAGE: a framework storage config (Laravel filesystems.php s3 disk or django-storages settings) with the endpoint, bucket, and keys filled in. Swap for a real screenshot: src -> images/framework-storage-config.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A framework storage config with the S3 endpoint, bucket, and keys filled in.</em><small>Laravel filesystems.php or django-storages settings both work.</small></span></figure>
+
+  <h2>Public or private bucket? Decide per file, not per app</h2>
+  <p>This trips people up, so choose it on purpose.</p>
+  <p>A <strong>public</strong> bucket serves any object to anyone with the URL. That's correct for genuinely public assets: marketing images, a site's CSS, public product photos. You store the object, build its URL once, and drop it in an <code>&lt;img&gt;</code> tag.</p>
+  <p>A <strong>private</strong> bucket keeps objects unreachable by a raw URL. To show one to an authorized user, your app generates a presigned <code>GET</code> URL that works for a set number of minutes, then expires. That's what you want for anything user-private: ID documents, invoices, medical records, paid downloads, private message attachments.</p>
+  <p>The mistake I see most often: someone makes a whole bucket public just to get images rendering, when those images are actually private to each user. Now every user's uploads are one guessed URL away from a stranger, and search engines will happily index them. Don't flip a bucket public to fix a permissions problem. Keep it private and hand out presigned links.</p>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>Public bucket</th><th>Private bucket</th></tr></thead>
+    <tbody>
+      <tr><td>Reached by</td><td>Direct URL</td><td>Presigned URL that expires</td></tr>
+      <tr><td>Good for</td><td>Site assets, public images</td><td>User docs, invoices, anything private</td></tr>
+      <tr><td>Works in a plain <code>&lt;img&gt;</code></td><td>Yes</td><td>Only through a signed URL</td></tr>
+      <tr><td>Risk if misused</td><td>Private files exposed to the web</td><td>None, this is the safe default</td></tr>
+    </tbody>
+  </table>
+
+  <h2>The upload gotchas that bite in production</h2>
+  <p>The architecture is the easy part. These details turn a working upload into a safe one, most of them one line each.</p>
+  <ul>
+    <li><strong>Never trust the client's filename.</strong> A browser will happily send <code>../../etc/passwd</code> or a giant file named <code>cat.jpg</code>. Generate your own key (a UUID is fine) and store the original name as plain metadata if you need to display it. That kills path traversal and filename collisions at once.</li>
+    <li><strong>Validate content type and size on the server.</strong> Client-side checks are a nicety, not a control. Check the real size and MIME type in your backend before you accept the object, and set a hard maximum. For presigned uploads you can constrain the content type and size in the policy, so the bucket itself rejects the wrong thing.</li>
+    <li><strong>Set the right Content-Type.</strong> Store an image with a missing or wrong content type and browsers will download it instead of showing it, or refuse to render it at all. Set <code>ContentType</code> on upload so <code>uploads/x.png</code> is served as <code>image/png</code>.</li>
+    <li><strong>Configure CORS for direct browser uploads.</strong> A presigned <code>PUT</code> from the browser is a cross-origin request. The bucket needs a CORS rule allowing <code>PUT</code> from your domain, or the browser blocks the upload before it even starts.</li>
+    <li><strong>Add Cache-Control on public assets.</strong> A long max-age on immutable, hashed files lets browsers and any CDN in front of the bucket cache them hard, which cuts repeat requests to the origin.</li>
+    <li><strong>Keep credentials in env vars, never in Git.</strong> Bucket keys are as sensitive as a database password. Load them from environment variables. If a key ever lands in a commit, rotate it immediately, because Git history remembers forever.</li>
+    <li><strong>Prefer least-privilege keys.</strong> The key your app uses to write uploads does not need permission to delete every bucket in your account. Scope it down wherever your provider lets you.</li>
+  </ul>
+  <p>One honest caveat. Object storage durability is not the same as a backup of your app. Buckets are durable and replicated, but if your own code deletes the wrong object or a bad migration wipes a batch of keys, replication won't save you. Treat backups as a separate discipline, which we cover in the <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a>.</p>
+
+  <h2>Doing this on Kloudbean</h2>
+  <p>If your servers, apps, and databases already live in one place, your uploads should too. Kloudbean has built-in S3-compatible object storage (added in November 2024), with full AWS S3 SDK and CLI compatibility since March 2025. That compatibility is the whole point: the Node and Python snippets above run unchanged, you just set <code>S3_ENDPOINT</code> to your Kloudbean bucket. If you're on Google Cloud, there are also managed <a href="https://www.kloudbean.com/blog/gcs-object-storage-buckets/">Google Cloud Storage buckets</a> (added December 2025).</p>
+  <p>You create a bucket from the same dashboard as your servers, applications, and managed databases. You set it public or private with the access controls, and manage the objects right there. No second provider, no separate login, no stitching two billing accounts together. One dashboard for the whole stack.</p>
+  <p>The workflow is short: create the bucket, copy its endpoint and keys, set them as environment variables on your app, and point your uploader at it. Then deploy, and your files stop caring whether the server lives or dies.</p>
+
+  <figure>
+    <img src="../assets/console/s3-buckets.png" alt="The Kloudbean console creating an S3-compatible bucket alongside servers, apps, and managed databases">
+    <figcaption>Create a bucket in the same dashboard as everything else, set public or private access, and manage objects from the console.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: the object list inside a bucket after a few uploads, showing keys like uploads/ with size and content type. Swap for a real screenshot: src -> images/bucket-object-list.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A bucket's object list after some uploads, showing keys, sizes, and content types.</em><small>Optional: use your own console screenshot.</small></span></figure>
+
+  <p>Uploads are one piece of keeping an app server stateless, so you can scale or rebuild it at will. Wiring this up for the first time? The full path is in <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">how to deploy an AI-built app to production</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Put the files in a bucket, keep the server disposable.</p>
+    <p style="margin:0 0 .6em">Kloudbean gives you built-in S3-compatible object storage in the same dashboard as your servers, managed databases, and apps. Full AWS S3 SDK and CLI compatibility, public and private buckets, and objects you can export anytime. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">S3-compatible buckets · Managed databases · Automatic backups · Private networking · One dashboard · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Why do my uploaded files disappear after a deploy?</h3>
+    <p>Because they were written to the app server's local disk, and on most managed platforms that disk is ephemeral. A deploy or restart gives the app a fresh filesystem, and the files you saved at runtime are wiped with the old one. Store the file bytes in an object storage bucket instead, and they survive every deploy.</p>
+
+    <h3>Where should I store user uploads?</h3>
+    <p>In an S3-compatible object storage bucket, with only the object key and metadata saved in your database. The bucket holds the bytes durably and independently of any single server, so files persist across deploys and are reachable by every app instance behind a load balancer. The app server stays stateless and disposable.</p>
+
+    <h3>Should I store uploads in the database?</h3>
+    <p>Store the metadata in the database, not the file bytes. Putting large binaries in database rows bloats the database, slows backups, and makes queries heavier, all to do a job object storage does better. Keep a row with the object key, owner, size, and content type, and keep the actual file in the bucket.</p>
+
+    <h3>What is the difference between a public and a private bucket?</h3>
+    <p>A public bucket serves any object to anyone with the URL, which suits site assets and public images. A private bucket keeps objects unreachable by a raw URL, and your app hands out temporary presigned links to authorized users. Default to private for anything user-specific, and only make content public when it is genuinely meant for the open web.</p>
+
+    <h3>What is a presigned URL?</h3>
+    <p>A presigned URL is a temporary, signed link that grants permission for one operation on one object, then expires after a set time. Your backend generates it using your credentials, so the browser can upload or download directly from the bucket without your keys ever leaving the server. It is the standard way to serve private files and to accept large direct uploads.</p>
+
+    <h3>How do I upload directly from the browser to a bucket?</h3>
+    <p>Have your backend generate a presigned PUT URL for a key you choose, send that URL to the browser, and let the browser PUT the file straight to the bucket. Then the browser tells your API the upload finished so you can save the key on a row. You also need a CORS rule on the bucket that allows PUT from your domain.</p>
+
+    <h3>Can I use the S3 SDK with Kloudbean buckets?</h3>
+    <p>Yes. Kloudbean object storage is S3-compatible with full AWS S3 SDK and CLI support, so the same boto3, JavaScript v3 client, and aws CLI commands work by pointing the endpoint at your Kloudbean bucket. You change one endpoint value and the rest of your code stays the same. That portability means you are never locked in.</p>
+
+    <h3>How do I serve images from a bucket?</h3>
+    <p>For public assets, use the object's public URL directly in an img tag, ideally with a long Cache-Control header so browsers and any CDN cache it. For private images, generate a short-lived presigned GET URL when an authorized user requests the file. Either way, set the correct content type on upload so the browser renders the image instead of downloading it.</p>
+
+    <h3>Do I have to rewrite my upload code to use object storage?</h3>
+    <p>Usually not. Most frameworks have a storage layer that already speaks the S3 API, so you repoint it at the bucket with config: Laravel's s3 disk, Django's django-storages, Rails Active Storage, or multer-s3 on Node. You set the endpoint and keys from environment variables and keep your existing upload handlers.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Engineering · Files Belong in Buckets.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Store User Uploads in Object Storage, Not on the App Server","description":"Why file uploads vanish after a deploy, the bytes-in-a-bucket architecture that fixes it, and the exact upload code for Node, Python, and the usual frameworks.","image":"https://www.kloudbean.com/blog/store-user-uploads-in-object-storage/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/store-user-uploads-in-object-storage/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Why do my uploaded files disappear after a deploy?","acceptedAnswer":{"@type":"Answer","text":"Because they were written to the app server's local disk, and on most managed platforms that disk is ephemeral. A deploy or restart gives the app a fresh filesystem, and the files you saved at runtime are wiped with the old one. Store the file bytes in an object storage bucket instead, and they survive every deploy."}},
+{"@type":"Question","name":"Where should I store user uploads?","acceptedAnswer":{"@type":"Answer","text":"In an S3-compatible object storage bucket, with only the object key and metadata saved in your database. The bucket holds the bytes durably and independently of any single server, so files persist across deploys and are reachable by every app instance behind a load balancer. The app server stays stateless and disposable."}},
+{"@type":"Question","name":"Should I store uploads in the database?","acceptedAnswer":{"@type":"Answer","text":"Store the metadata in the database, not the file bytes. Putting large binaries in database rows bloats the database, slows backups, and makes queries heavier, all to do a job object storage does better. Keep a row with the object key, owner, size, and content type, and keep the actual file in the bucket."}},
+{"@type":"Question","name":"What is the difference between a public and a private bucket?","acceptedAnswer":{"@type":"Answer","text":"A public bucket serves any object to anyone with the URL, which suits site assets and public images. A private bucket keeps objects unreachable by a raw URL, and your app hands out temporary presigned links to authorized users. Default to private for anything user-specific, and only make content public when it is genuinely meant for the open web."}},
+{"@type":"Question","name":"What is a presigned URL?","acceptedAnswer":{"@type":"Answer","text":"A presigned URL is a temporary, signed link that grants permission for one operation on one object, then expires after a set time. Your backend generates it using your credentials, so the browser can upload or download directly from the bucket without your keys ever leaving the server. It is the standard way to serve private files and to accept large direct uploads."}},
+{"@type":"Question","name":"How do I upload directly from the browser to a bucket?","acceptedAnswer":{"@type":"Answer","text":"Have your backend generate a presigned PUT URL for a key you choose, send that URL to the browser, and let the browser PUT the file straight to the bucket. Then the browser tells your API the upload finished so you can save the key on a row. You also need a CORS rule on the bucket that allows PUT from your domain."}},
+{"@type":"Question","name":"Can I use the S3 SDK with Kloudbean buckets?","acceptedAnswer":{"@type":"Answer","text":"Yes. Kloudbean object storage is S3-compatible with full AWS S3 SDK and CLI support, so the same boto3, JavaScript v3 client, and aws CLI commands work by pointing the endpoint at your Kloudbean bucket. You change one endpoint value and the rest of your code stays the same. That portability means you are never locked in."}},
+{"@type":"Question","name":"How do I serve images from a bucket?","acceptedAnswer":{"@type":"Answer","text":"For public assets, use the object's public URL directly in an img tag, ideally with a long Cache-Control header so browsers and any CDN cache it. For private images, generate a short-lived presigned GET URL when an authorized user requests the file. Either way, set the correct content type on upload so the browser renders the image instead of downloading it."}},
+{"@type":"Question","name":"Do I have to rewrite my upload code to use object storage?","acceptedAnswer":{"@type":"Answer","text":"Usually not. Most frameworks have a storage layer that already speaks the S3 API, so you repoint it at the bucket with config: Laravel's s3 disk, Django's django-storages, Rails Active Storage, or multer-s3 on Node. You set the endpoint and keys from environment variables and keep your existing upload handlers."}}
+]}
+]}
+</script>
+</body>
+</html>

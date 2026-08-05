@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Server Hardening With Fail2ban and Shorewall: the Baseline Every Linux Server Needs</title>
+<meta name="description" content="Server hardening with Fail2ban and Shorewall, explained by engineers: what each does, real Shorewall firewall rules, how to read and tune an SSH jail (maxretry, bantime), and how Kloudbean turns both on by default.">
+<meta name="author" content="Kloudbean Security">
+<link rel="canonical" href="https://www.kloudbean.com/blog/fail2ban-shorewall-hardening/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Server Hardening With Fail2ban and Shorewall: the Baseline Every Linux Server Needs">
+<meta property="og:description" content="One tool decides which ports are open. The other bans the IPs brute forcing the ports you keep open. Here's how Fail2ban and Shorewall work together, with real config.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+<style>
+  :root{ --navy:#000f27; --ink:#1c2536; --muted:#5b6a86; --purple:#4F1AF3; --green:#40b75f; --line:#e6e9f2; --bg-soft:#f6f7fb; }
+  *{box-sizing:border-box}
+  body{ margin:0; background:#fff; color:var(--ink); font-family:"Poppins","Segoe UI",system-ui,-apple-system,Arial,sans-serif; line-height:1.72; font-size:18px; -webkit-font-smoothing:antialiased; }
+  .wrap{max-width:760px; margin:0 auto; padding:40px 22px 80px}
+  .eyebrow{ display:inline-block; font-size:12px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:var(--purple); border:1px solid var(--line); background:var(--bg-soft); padding:5px 12px; border-radius:999px; margin-bottom:18px; }
+  h1{ font-size:clamp(30px,5vw,44px); line-height:1.12; font-weight:700; letter-spacing:-.02em; color:var(--navy); margin:.1em 0 .5em; }
+  h2{ font-size:clamp(23px,3.4vw,29px); font-weight:700; letter-spacing:-.01em; color:var(--navy); margin:2.2em 0 .6em; padding-left:14px; border-left:4px solid var(--purple); }
+  h3{ font-size:20px; font-weight:600; color:var(--navy); margin:1.5em 0 .3em }
+  p{margin:0 0 1.15em}
+  a{color:var(--purple); text-decoration:none; border-bottom:1px solid rgba(79,26,243,.35)}
+  a:hover{border-bottom-color:var(--purple)}
+  strong{color:var(--navy)}
+  ul{margin:0 0 1.3em; padding-left:0; list-style:none}
+  ul li{position:relative; padding-left:26px; margin:0 0 .7em}
+  ul li::before{content:""; position:absolute; left:2px; top:.62em; width:8px; height:8px; border-radius:2px; background:var(--purple); transform:rotate(45deg)}
+  ol{margin:0 0 1.4em; padding-left:1.3em}
+  ol li{margin:0 0 .8em; padding-left:6px}
+  figure{margin:2em 0}
+  figure img{width:100%; height:auto; display:block; border-radius:16px; border:1px solid var(--line)}
+  figcaption{font-size:14px; color:var(--muted); text-align:center; margin-top:10px}
+  .lead{font-size:20px; color:#2a3550}
+  .tldr{background:var(--bg-soft); border:1px solid var(--line); border-left:4px solid var(--green); border-radius:12px; padding:16px 20px; margin:1.8em 0}
+  .tldr strong{color:var(--navy)}
+  .note{background:#faf8ff; border:1px solid #e7dfff; border-radius:12px; padding:14px 18px; margin:1.6em 0; font-size:16.5px}
+  code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace; font-size:.86em; background:var(--bg-soft); border:1px solid var(--line); border-radius:6px; padding:1px 6px}
+  pre{background:var(--navy); color:#e8ecfb; border-radius:12px; padding:18px 20px; overflow:auto; font-size:14px; line-height:1.6}
+  pre code{background:none;border:none;padding:0;color:inherit;font-size:inherit}
+  table.cmp{width:100%; border-collapse:collapse; margin:1.6em 0; font-size:15.5px}
+  table.cmp th,table.cmp td{border:1px solid var(--line); padding:10px 12px; text-align:left; vertical-align:top}
+  table.cmp th{background:var(--navy); color:#fff; font-weight:600}
+  table.cmp tr:nth-child(even) td{background:var(--bg-soft)}
+  .faq h3{font-size:18px; font-weight:700; color:var(--navy); margin:1.4em 0 .2em}
+  .cta{ margin:2.4em 0 0; padding:22px 24px; border-radius:16px; color:#fff; background:linear-gradient(135deg,var(--navy),#0a1f45); }
+  .cta a{color:#c9b8ff; border-bottom-color:rgba(201,184,255,.4)}
+  .cta .feat{font-size:15px; color:#aeb9d8; margin:.2em 0 0}
+  .byline{font-size:14px; color:var(--muted); border-top:1px solid var(--line); margin-top:2em; padding-top:14px}
+  /* image spacer: replace the whole figure.img-slot with a real figure containing an img and figcaption */
+  .img-slot{display:flex;align-items:center;justify-content:center;text-align:center;min-height:210px;margin:2em 0;padding:30px 24px;border:2px dashed #c9d0e3;border-radius:16px;background:repeating-linear-gradient(45deg,var(--bg-soft),var(--bg-soft) 14px,#eef1f8 14px,#eef1f8 28px);color:var(--muted)}
+  .img-slot > span{display:block;max-width:80%}
+  .img-slot b{display:block;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--purple);margin-bottom:8px}
+  .img-slot em{font-style:normal;font-size:15.5px;color:var(--ink);line-height:1.5}
+  .img-slot small{display:block;margin-top:8px;font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Server hardening</span>
+  <h1>Server Hardening With Fail2ban and Shorewall: the Baseline Every Linux Server Needs</h1>
+
+  <figure><img src="images/hero.png" alt="Server hardening with Fail2ban and Shorewall: a firewall closing unused ports and Fail2ban banning brute-force IPs on the ports that stay open"></figure>
+
+  <p class="lead">Spin up a brand new Linux server, give it a public IP, and within minutes something you've never met is trying to log in as <code>root</code>. That isn't paranoia. It's the background noise of the internet.</p>
+
+  <p>Server hardening with Fail2ban and Shorewall is the two-part answer nearly every internet-facing box needs. One tool decides which ports the world can even reach. The other bans the IPs that sit there guessing passwords on the ports you have to leave open. Get both right and you shut out the overwhelming majority of automated attacks before they get anywhere. It's the cheapest, highest-leverage way to harden a Linux server, and it's the first thing I check on any box that faces the public.</p>
+
+  <div class="tldr">
+    <strong>Short version:</strong> Shorewall is your firewall. It picks which ports are reachable (usually just SSH, HTTP, and HTTPS) and drops the rest. Fail2ban reads your auth logs and temporarily bans any IP that fails to log in too many times, which is how you ban brute force SSH bots without lifting a finger. Use both. The firewall closes the doors you don't need. Fail2ban guards the ones you can't close. Every Kloudbean managed server ships with both switched on.
+  </div>
+
+  <h2>What Fail2ban and Shorewall actually do</h2>
+  <p>Shorewall and Fail2ban get lumped together as "security stuff," but they solve different problems at different layers.</p>
+
+  <p>Shorewall (the Shoreline Firewall) isn't a firewall engine in its own right. The actual packet filtering on Linux is done by netfilter, driven by <code>iptables</code> (or <code>nftables</code> on newer systems). Shorewall sits on top of that. You describe your network in a few plain text files, zones, interfaces, a default policy, and a list of rules, and Shorewall compiles them down into the low-level firewall rules and loads them. So you get the reach of iptables without hand-writing chains you'll misread at 2am, which is exactly the trap Shorewall keeps you out of.</p>
+
+  <p>Fail2ban works one layer up, on your logs. It tails files like <code>/var/log/auth.log</code>, matches each line against filter patterns (a failed SSH password, a bad login to your app), and counts failures per IP address. Cross the threshold and Fail2ban runs an action, almost always "ban this IP," which in practice means inserting a temporary firewall rule that drops them. When the ban window expires, the rule comes back out. It's a feedback loop bolted onto the firewall.</p>
+
+  <p>Picture your server as a building. Shorewall decides which doors exist at all. Close port <code>3306</code> and there's no door there for anyone to try. But some doors stay open: SSH to manage the box, 80 and 443 to serve traffic. Fail2ban is the bouncer on those. It can't wall them up, so it watches who keeps rattling the handle with the wrong key and throws them out for a while. Firewall for the doors you don't use. Fail2ban for the ones you must keep open.</p>
+
+  <figure>
+    <svg viewBox="0 0 700 588" width="100%" role="img" aria-label="How Shorewall and Fail2ban work together: internet traffic hits the Shorewall firewall, which accepts ports 22, 80 and 443 and drops the rest; the reachable services are watched by Fail2ban, which bans IPs that fail to log in repeatedly and feeds those bans back to the firewall.">
+      <rect x="1" y="1" width="698" height="586" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="350" y="34" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="16" font-weight="700" fill="#000f27">Two gates, one door policy</text>
+
+      <rect x="160" y="56" width="380" height="60" rx="10" fill="#f6f7fb" stroke="#e6e9f2"/>
+      <text x="350" y="82" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="14" font-weight="600" fill="#000f27">Internet traffic</text>
+      <text x="350" y="102" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#5b6a86">real visitors and bots probing every port</text>
+
+      <line x1="350" y1="116" x2="350" y2="146" stroke="#4F1AF3" stroke-width="2"/>
+      <polygon points="344,146 356,146 350,156" fill="#4F1AF3"/>
+
+      <rect x="160" y="156" width="380" height="98" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="350" y="180" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="14" font-weight="700" fill="#000f27">Shorewall &#183; firewall over iptables / netfilter</text>
+      <rect x="178" y="192" width="344" height="24" rx="6" fill="#eaf7ef" stroke="#cdebd6"/>
+      <text x="192" y="209" font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#237a41">ACCEPT&#160;&#160;net &#8594; fw&#160;&#160;tcp 22, 80, 443</text>
+      <rect x="178" y="222" width="344" height="24" rx="6" fill="#f1f3f7" stroke="#e6e9f2"/>
+      <text x="192" y="239" font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#5b6a86">DROP everything else&#160;&#160;&#183;&#160;&#160;3306, 25, 8080, ...</text>
+
+      <line x1="350" y1="254" x2="350" y2="284" stroke="#4F1AF3" stroke-width="2"/>
+      <polygon points="344,284 356,284 350,294" fill="#4F1AF3"/>
+      <text x="366" y="274" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#5b6a86">only open ports pass</text>
+
+      <rect x="160" y="294" width="380" height="60" rx="10" fill="#f6f7fb" stroke="#e6e9f2"/>
+      <text x="350" y="320" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="14" font-weight="600" fill="#000f27">Reachable services</text>
+      <text x="350" y="340" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#5b6a86">SSH 22&#160;&#160;&#183;&#160;&#160;HTTP 80&#160;&#160;&#183;&#160;&#160;HTTPS 443</text>
+
+      <line x1="350" y1="354" x2="350" y2="384" stroke="#4F1AF3" stroke-width="2"/>
+      <polygon points="344,384 356,384 350,394" fill="#4F1AF3"/>
+      <text x="366" y="374" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#5b6a86">every login attempt is logged</text>
+
+      <rect x="160" y="394" width="380" height="98" rx="10" fill="#fff" stroke="#4F1AF3" stroke-width="1.5"/>
+      <text x="350" y="418" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="14" font-weight="700" fill="#000f27">Fail2ban &#183; watches /var/log/auth.log</text>
+      <rect x="178" y="430" width="344" height="24" rx="6" fill="#f2eeff" stroke="#e0d6ff"/>
+      <text x="192" y="447" font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#4F1AF3">5 failed logins within 10m</text>
+      <rect x="178" y="460" width="344" height="24" rx="6" fill="#f2eeff" stroke="#e0d6ff"/>
+      <text x="192" y="477" font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#4F1AF3">&#8594; ban that IP for 1h</text>
+
+      <line x1="350" y1="492" x2="350" y2="516" stroke="#4F1AF3" stroke-width="2"/>
+      <polygon points="344,516 356,516 350,526" fill="#4F1AF3"/>
+
+      <rect x="160" y="526" width="380" height="48" rx="10" fill="#000f27"/>
+      <text x="350" y="555" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="600" fill="#fff">Ban table: offender IPs dropped at the firewall</text>
+
+      <path d="M 160 550 C 96 550, 96 205, 156 205" fill="none" stroke="#4F1AF3" stroke-width="1.6" stroke-dasharray="5 4"/>
+      <polygon points="150,199 160,205 150,211" fill="#4F1AF3"/>
+      <text x="90" y="378" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#4F1AF3" transform="rotate(-90 90 378)">Fail2ban writes a firewall rule for the banned IP</text>
+    </svg>
+    <figcaption>Traffic hits Shorewall first, so only 22, 80, and 443 are even reachable. Fail2ban then watches the logins on those open ports and, after too many failures, writes a firewall rule that drops the attacker. Two layers: one closes doors, the other guards the ones you keep open.</figcaption>
+  </figure>
+
+  <table class="cmp">
+    <thead><tr><th>&nbsp;</th><th>Shorewall (firewall)</th><th>Fail2ban</th></tr></thead>
+    <tbody>
+      <tr><td>Layer</td><td>Network (L3/L4). Ports and packets.</td><td>Application and log. Reads auth events.</td></tr>
+      <tr><td>What it blocks</td><td>Whole ports and protocols you never want reachable.</td><td>Individual IPs abusing a port you keep open.</td></tr>
+      <tr><td>When it acts</td><td>Always, the same way, on every packet.</td><td>Reactively, only after repeated failures.</td></tr>
+      <tr><td>Tuning surface</td><td>Zones, policy, and rules files.</td><td>Jails: filter, <code>maxretry</code>, <code>findtime</code>, <code>bantime</code>.</td></tr>
+      <tr><td>Fails at</td><td>Attacks over ports that must stay open.</td><td>Ports it can't see, and one-shot distributed floods.</td></tr>
+    </tbody>
+  </table>
+  <p>They aren't an either/or. The firewall is your fixed policy, Fail2ban is the moving response on top of it. Run one without the other and you've left half the job undone.</p>
+
+  <h2>Shorewall: deciding which doors exist</h2>
+  <p>People argue <strong>iptables vs Shorewall</strong> like it's a cage match. It isn't. Shorewall generates iptables rules under the hood, so choosing Shorewall is really choosing readable config over raw chains. On a server you actually have to maintain over time, readable wins. Every time.</p>
+
+  <p>A minimal setup lives in four files under <code>/etc/shorewall/</code>. First, define your zones, the firewall itself and the outside world:</p>
+  <pre><code># /etc/shorewall/zones
+#ZONE   TYPE
+fw      firewall
+net     ipv4</code></pre>
+
+  <p>Map the <code>net</code> zone to your network interface:</p>
+  <pre><code># /etc/shorewall/interfaces
+#ZONE   INTERFACE   OPTIONS
+net     eth0        tcpflags,nosmurfs,routefilter,logmartians</code></pre>
+
+  <p>Set a default stance. The only sane default for traffic arriving from the internet is drop it:</p>
+  <pre><code># /etc/shorewall/policy
+#SOURCE   DEST   POLICY   LOG
+$FW       net    ACCEPT
+net       $FW    DROP     info
+net       all    DROP     info
+all       all    REJECT   info</code></pre>
+
+  <p>Then open exactly the ports you serve on, and nothing else:</p>
+  <pre><code># /etc/shorewall/rules
+#ACTION   SOURCE   DEST   PROTO   DPORT
+ACCEPT    net      $FW    tcp     22,80,443</code></pre>
+
+  <p>Those Shorewall firewall rules say: from the internet to this firewall, allow TCP on 22, 80, and 443. Everything else hits the <code>DROP</code> policy and never gets a reply. Always check the config before you apply it, then load it:</p>
+  <pre><code>sudo shorewall check
+sudo shorewall reload</code></pre>
+
+  <p>To see what's actually live, including the compiled rules and any dynamic bans sitting in front of them:</p>
+  <pre><code>sudo shorewall status
+sudo shorewall show</code></pre>
+
+  <div class="note"><b>One rule you break once.</b> If you're editing rules over SSH, keep port 22 open or you'll drop your own connection mid-reload and lock yourself out. Better still, restrict 22 to your own IP range rather than the whole internet, which we'll get to below.</div>
+
+  <h2>Fail2ban: the SSH jail, up close</h2>
+  <p>A <strong>Fail2ban jail</strong> is three things bolted together: a filter (the regex that recognises a failed attempt in a log), the log it reads, and the thresholds plus the action to take. The one everybody needs first is the <strong>Fail2ban SSH jail</strong>, because SSH on port 22 is the single most-probed service on the public internet. Leave a password-auth SSH server exposed and you'll see hundreds of attempts a day.</p>
+
+  <p>Don't edit <code>jail.conf</code> directly, since a package upgrade will happily overwrite it. Put your changes in <code>/etc/fail2ban/jail.local</code>, which overrides the defaults and survives updates:</p>
+  <pre><code># /etc/fail2ban/jail.local
+
+[DEFAULT]
+# never ban yourself: home, office, or VPN
+ignoreip = 127.0.0.1/8 ::1 203.0.113.10
+bantime  = 1h
+findtime = 10m
+maxretry = 5
+
+[sshd]
+enabled  = true
+port     = ssh
+backend  = systemd
+maxretry = 5
+findtime = 10m
+bantime  = 1h</code></pre>
+
+  <p>Three settings in that sshd jail do the heavy lifting, and once you get <code>maxretry</code>, <code>findtime</code>, and <code>bantime</code> straight, every other jail reads the same way:</p>
+  <ul>
+    <li><strong><code>maxretry</code></strong>: how many failures are allowed before a ban. Five is a reasonable start; drop it to 3 if you only ever log in with keys.</li>
+    <li><strong><code>findtime</code></strong>: the window those failures must land in. Five strikes in 10 minutes trips the jail. Five spread over three days does not.</li>
+    <li><strong><code>bantime</code></strong>: how long the IP stays blocked. <code>1h</code> is a fine place to begin.</li>
+  </ul>
+
+  <p>Reload the service, then check your jails with <code>fail2ban-client status</code>:</p>
+  <pre><code>sudo systemctl reload fail2ban
+
+sudo fail2ban-client status
+Status
+|- Number of jail:      1
+`- Jail list:   sshd</code></pre>
+
+  <p>Zoom into the SSH jail to see who's currently doing time:</p>
+  <pre><code>sudo fail2ban-client status sshd
+Status for the jail: sshd
+|- Filter
+|  |- Currently failed: 2
+|  |- Total failed:     418
+|  `- File list:        /var/log/auth.log
+`- Actions
+   |- Currently banned: 3
+   |- Total banned:     128
+   `- Banned IP list:   45.148.10.7 193.32.162.19 185.220.101.44</code></pre>
+
+  <p>That <code>Total banned: 128</code> on a week-old server is normal, by the way. It's just bots, and the number climbing doesn't mean anyone's getting in.</p>
+
+  <h2>How to think about hardening (five moves, in order)</h2>
+  <p>Tools are easy to install and easy to misapply. A simple mental model keeps you honest. Hardening is really five moves, and Fail2ban and Shorewall are only the first two.</p>
+
+  <ol>
+    <li><strong>Shrink the attack surface.</strong> Every open port is a door someone can try. Close the ones you don't serve on. This is the firewall's job, and it's the single highest-leverage thing you can do to a fresh server.</li>
+    <li><strong>Guard the doors you keep open.</strong> SSH, HTTP, and HTTPS have to stay reachable, so let Fail2ban ban the IPs that abuse them. This is where you actually ban brute force SSH traffic instead of just hoping.</li>
+    <li><strong>Make the front door hard to force.</strong> Ban rules slow a brute force. SSH keys end it. Turn off password auth entirely and there's nothing left to guess. Honestly, if you do one thing this week, do this one.</li>
+    <li><strong>Limit the blast radius.</strong> If a login is stolen, how much can it touch? Give people and apps the least access that still lets them work.</li>
+    <li><strong>Be able to recover.</strong> Assume something eventually gets through. Backups turn a breach or a fat-fingered command into an annoyance instead of a catastrophe.</li>
+  </ol>
+
+  <p>Steps one and two are exactly what a good managed platform sets up for you. Here's that from a console instead of a config file, firewall rules on top and the ban list below:</p>
+
+  <figure>
+    <img src="../assets/console/firewall.png" alt="Kloudbean server security panel showing Shorewall firewall inbound rules for ports 22, 80, 443 and 3306, plus a Fail2ban brute-force list of blocked IPs with unblock buttons">
+    <figcaption>The same two layers in a dashboard: Shorewall inbound rules up top (22, 80, 443 open, database port whitelist-only) and Fail2ban's blocked IPs below, each with an unblock button.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: replace this slot with a real figure. src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal running sudo fail2ban-client status sshd on your own server, showing the currently banned IP list.</em><small>A real screenshot from your box beats a mockup. Optional.</small></span></figure>
+
+  <h2>Beyond the baseline: what a firewall and Fail2ban don't cover</h2>
+  <p>Here's the honest part. Shorewall and Fail2ban are the baseline, the floor you build on, not the whole house. They handle network reachability and repeated auth failures. Plenty of real attacks look nothing like that. So round out the floor.</p>
+
+  <p><strong>Use SSH keys, then kill password login.</strong> Fail2ban slows a brute force; a key ends the game, because there's no password to guess. Set that up before anything else if you've been putting it off. Our walkthrough is <a href="https://www.kloudbean.com/blog/ssh-key-authentication/">SSH key authentication</a>.</p>
+
+  <p><strong>Allowlist instead of chasing bans.</strong> Better than banning bad IPs is only answering good ones. If SSH and your database port only need to reach your office or VPN, restrict them to that CIDR range. Kloudbean exposes this as IP Access Control (allow or deny by IP or CIDR), far cleaner than chasing individual bans.</p>
+
+  <p><strong>Give out the least access that works.</strong> If one login is stolen, least privilege decides how bad the day gets. Don't hand everyone root. Subusers and User Access Control let you grant per-resource, per-action permissions, so a contractor can deploy one app and touch nothing else. The details are in <a href="https://www.kloudbean.com/blog/user-access-control-explained/">user access control explained</a>.</p>
+
+  <figure>
+    <img src="../assets/console/subusers-uac.png" alt="Kloudbean User Access Control matrix granting a subuser selective view, create, and manage permissions per resource across servers, applications, databases, and buckets">
+    <figcaption>Least privilege in practice: a subuser gets view and deploy on one app and nothing destructive, instead of full account access.</figcaption>
+  </figure>
+
+  <p><strong>Keep your database off the public internet.</strong> A database port facing the world is an accident waiting to happen. Put it on a private network so it answers your app servers and no one else. That's what a <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">VPC</a> is for.</p>
+
+  <p><strong>Add an application-layer guard.</strong> Shorewall and Fail2ban work at the network and log level. They don't read HTTP payloads, so they won't catch SQL injection or a flood of requests that all look valid. That's a job for a WAF or a CDN like Cloudflare in front, which Kloudbean offers as an add-on. Start with <a href="https://www.kloudbean.com/blog/what-a-waf-does/">what a WAF actually does</a>, and send sane <a href="https://www.kloudbean.com/blog/security-headers-guide/">security headers</a> while you're at it.</p>
+
+  <p><strong>Keep backups.</strong> Hardening lowers the odds. Backups cover the day the odds lose. Automatic and tested at least once, they're the difference between a scare and an outage. Here's the <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a>.</p>
+
+  <h3>Tuning without locking yourself out</h3>
+  <p>A word of caution, because Fail2ban will absolutely ban you if you give it the chance. Here's where people get burned:</p>
+  <ul>
+    <li><strong>Whitelist your own IP.</strong> Add your home, office, or VPN address to <code>ignoreip</code> in the <code>[DEFAULT]</code> block. Fat-finger your password three times on a bad morning and you'll be glad it's there.</li>
+    <li><strong>If you do get locked out</strong>, connect from a different IP (a phone hotspot works) or your provider's web console, then lift the ban. On Kloudbean the blocked list is right in the dashboard with an unblock button.</li>
+    <li><strong>Don't set <code>bantime</code> to a year.</strong> Enormous ban windows pile up thousands of stale rules and can permanently block a shared NAT address that a real user sits behind months later. If you want repeat offenders punished harder, enable <code>bantime.increment = true</code> so bans grow each time the same IP returns.</li>
+    <li><strong>Watch for false positives.</strong> A monitoring probe or a misconfigured client can trip a jail. If a legit service keeps getting banned, add it to <code>ignoreip</code> rather than loosening the whole jail for everyone.</li>
+    <li><strong>For the persistent ones</strong>, the built-in <code>recidive</code> jail reads Fail2ban's own log and hands out long bans to IPs that keep getting banned across other jails.</li>
+  </ul>
+
+  <p>Unbanning an address is a single command. Swap <code>sshd</code> for whichever jail caught it:</p>
+  <pre><code>sudo fail2ban-client set sshd unbanip 1.2.3.4</code></pre>
+
+  <!-- ADD IMAGE: replace this slot with a real figure. src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your jail.local open in an editor with ignoreip highlighted, so the reader sees exactly where their own IP goes.</em></span></figure>
+
+  <h2>How Kloudbean applies Fail2ban and Shorewall automatically</h2>
+  <p>You can do all of this by hand, and on your own raw VPS you should. It's just fiddly to get right and easy to forget by server number nine. Kloudbean's take is that the baseline shouldn't be optional.</p>
+
+  <p>Every managed server, on any of the seven supported clouds (AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud), launches with Shorewall and Fail2ban already configured and running. Free SSL is issued for your domains. You don't install or wire anything up.</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="Kloudbean Add Server screen selecting a cloud provider and server size, with baseline hardening applied automatically on launch">
+    <figcaption>Launch a server on any of the seven clouds and it comes up hardened: Shorewall and Fail2ban on by default, SSL ready for your domain.</figcaption>
+  </figure>
+
+  <p>From the dashboard you can see which ports are open, watch the IPs Fail2ban has blocked, and lift a ban with one click. IP Access Control, subusers and UAC, private networking, and automatic backups all live in the same console, so the checklist above is a few toggles rather than a lost weekend.</p>
+
+  <p>What's still yours: your SSH keys and your application's own security. Managed means the server, firewall, ban rules, SSL, and patching are handled for you. It does not mean your code is automatically safe. Nobody's is, and any host that tells you otherwise is selling something.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Every server should start hardened, not eventually.</p>
+    <p style="margin:0">Launch on <a href="https://www.kloudbean.com/">kloudbean.com</a> and the baseline is already on, with free migration help and a free trial to start. Server sizes and plans are on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p class="feat">Firewall + Fail2ban on every server &#183; Free SSL &#183; IP access control &#183; Automatic backups &#183; Free migration &#183; Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What's the difference between Fail2ban and a firewall?</h3>
+    <p>A firewall like Shorewall decides which ports are open or closed, and it applies that policy the same way to everyone, all the time. Fail2ban is reactive. It watches login activity on the ports you keep open and bans an IP only after it fails to authenticate too many times. The firewall sets the fixed policy; Fail2ban responds to behaviour. You want both.</p>
+
+    <h3>Does Fail2ban stop all attacks?</h3>
+    <p>No, and it isn't meant to. Fail2ban is very good at slowing brute force and credential stuffing against services like SSH. It does nothing about application-layer attacks such as SQL injection, or a distributed flood from thousands of IPs that each only try once. For those you need a WAF or a CDN like Cloudflare in front, plus solid application code.</p>
+
+    <h3>How do I unban my own IP?</h3>
+    <p>Run <code>sudo fail2ban-client set sshd unbanip</code> followed by your address, swapping <code>sshd</code> for whichever jail banned you. On Kloudbean you can also open the server's security panel, find the IP in the blocked list, and click unblock. To stop it recurring, add your address to <code>ignoreip</code> in the <code>[DEFAULT]</code> section of <code>jail.local</code>.</p>
+
+    <h3>Is Shorewall better than iptables?</h3>
+    <p>It's a bit of a false choice, because Shorewall generates iptables rules under the hood. Raw iptables gives you total control and zero guardrails, which is powerful and easy to get wrong. Shorewall gives you readable config files that compile down to the same rules, so it's usually the better pick for a server you maintain over months. Newer systems may use nftables, which Shorewall can also target.</p>
+
+    <h3>Do I still need Fail2ban and Shorewall if I have Cloudflare?</h3>
+    <p>They cover different layers, so yes. Cloudflare protects your web traffic at the edge and can absorb large floods. It doesn't guard your SSH port or ban an IP brute forcing your server login. Run the firewall and Fail2ban on the server itself, and put Cloudflare in front of your site. They complement each other rather than replace one another.</p>
+
+    <h3>What are good maxretry and bantime values for the SSH jail?</h3>
+    <p>A sensible starting point is <code>maxretry 5</code>, <code>findtime 10m</code>, and <code>bantime 1h</code>. That bans an IP after five failed logins inside ten minutes and holds the block for an hour. Tighten <code>maxretry</code> to 3 if you only log in with keys, and consider <code>bantime.increment</code> so repeat offenders get progressively longer bans instead of one huge fixed one.</p>
+
+    <h3>Does closing ports with Shorewall break my website?</h3>
+    <p>Only if you close a port your site actually uses. A normal web server needs 80 and 443 open to the world and 22 for you to manage it. As long as your rules accept those, visitors notice nothing. The usual mistake is forgetting a service you added later, like a database or a mail port, so check what you're running before you lock things down.</p>
+
+    <h3>Do bans survive a reboot?</h3>
+    <p>By default Fail2ban keeps its state in a small database and restores recent bans when it starts, and it re-applies the firewall rules at the same time. So a reboot won't quietly leave your ports wide open. If you want long-lived bans for persistent offenders, a longer <code>bantime</code> or the <code>recidive</code> jail handles that.</p>
+
+    <h3>Do I have to set any of this up on Kloudbean?</h3>
+    <p>No. Shorewall and Fail2ban are configured and running on every managed server from launch, and SSL is issued for your domains. You can view open ports, see blocked IPs, and unblock from the dashboard. Setting up SSH keys and hardening your own application code are still on you, which is true on every host.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Security &#183; Locks on every door.</p>
+</article>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Article",
+      "headline": "Server Hardening With Fail2ban and Shorewall: the Baseline Every Linux Server Needs",
+      "description": "Server hardening with Fail2ban and Shorewall, explained by engineers: what each does, real Shorewall firewall rules, how to read and tune an SSH jail, and how Kloudbean turns both on by default.",
+      "image": "https://www.kloudbean.com/blog/fail2ban-shorewall-hardening/images/hero.png",
+      "author": { "@type": "Organization", "name": "Kloudbean Security", "url": "https://www.kloudbean.com/" },
+      "publisher": { "@type": "Organization", "name": "Kloudbean", "logo": { "@type": "ImageObject", "url": "https://www.kloudbean.com/logo.png" } },
+      "mainEntityOfPage": "https://www.kloudbean.com/blog/fail2ban-shorewall-hardening/"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "What is the difference between Fail2ban and a firewall?", "acceptedAnswer": { "@type": "Answer", "text": "A firewall like Shorewall decides which ports are open or closed, and it applies that policy the same way to everyone, all the time. Fail2ban is reactive. It watches login activity on the ports you keep open and bans an IP only after it fails to authenticate too many times. The firewall sets the fixed policy and Fail2ban responds to behaviour. You want both." } },
+        { "@type": "Question", "name": "Does Fail2ban stop all attacks?", "acceptedAnswer": { "@type": "Answer", "text": "No, and it is not meant to. Fail2ban is very good at slowing brute force and credential stuffing against services like SSH. It does nothing about application-layer attacks such as SQL injection, or a distributed flood from thousands of IPs that each only try once. For those you need a WAF or a CDN like Cloudflare in front, plus solid application code." } },
+        { "@type": "Question", "name": "How do I unban my own IP?", "acceptedAnswer": { "@type": "Answer", "text": "Run sudo fail2ban-client set sshd unbanip followed by your address, swapping sshd for whichever jail banned you. On Kloudbean you can also open the server security panel, find the IP in the blocked list, and click unblock. To stop it recurring, add your address to ignoreip in the DEFAULT section of jail.local." } },
+        { "@type": "Question", "name": "Is Shorewall better than iptables?", "acceptedAnswer": { "@type": "Answer", "text": "It is a bit of a false choice, because Shorewall generates iptables rules under the hood. Raw iptables gives you total control and zero guardrails, which is powerful and easy to get wrong. Shorewall gives you readable config files that compile down to the same rules, so it is usually the better pick for a server you maintain over months. Newer systems may use nftables, which Shorewall can also target." } },
+        { "@type": "Question", "name": "Do I still need Fail2ban and Shorewall if I have Cloudflare?", "acceptedAnswer": { "@type": "Answer", "text": "They cover different layers, so yes. Cloudflare protects your web traffic at the edge and can absorb large floods. It does not guard your SSH port or ban an IP brute forcing your server login. Run the firewall and Fail2ban on the server itself, and put Cloudflare in front of your site. They complement each other rather than replace one another." } },
+        { "@type": "Question", "name": "What are good maxretry and bantime values for the SSH jail?", "acceptedAnswer": { "@type": "Answer", "text": "A sensible starting point is maxretry 5, findtime 10m, and bantime 1h. That bans an IP after five failed logins inside ten minutes and holds the block for an hour. Tighten maxretry to 3 if you only log in with keys, and consider bantime.increment so repeat offenders get progressively longer bans instead of one huge fixed one." } },
+        { "@type": "Question", "name": "Does closing ports with Shorewall break my website?", "acceptedAnswer": { "@type": "Answer", "text": "Only if you close a port your site actually uses. A normal web server needs 80 and 443 open to the world and 22 for you to manage it. As long as your rules accept those, visitors notice nothing. The usual mistake is forgetting a service you added later, like a database or a mail port, so check what you are running before you lock things down." } },
+        { "@type": "Question", "name": "Do bans survive a reboot?", "acceptedAnswer": { "@type": "Answer", "text": "By default Fail2ban keeps its state in a small database and restores recent bans when it starts, and it re-applies the firewall rules at the same time. So a reboot will not quietly leave your ports wide open. If you want long-lived bans for persistent offenders, a longer bantime or the recidive jail handles that." } },
+        { "@type": "Question", "name": "Do I have to set any of this up on Kloudbean?", "acceptedAnswer": { "@type": "Answer", "text": "No. Shorewall and Fail2ban are configured and running on every managed server from launch, and SSL is issued for your domains. You can view open ports, see blocked IPs, and unblock from the dashboard. Setting up SSH keys and hardening your own application code are still on you, which is true on every host." } }
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>

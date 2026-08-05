@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Deploy a Next.js App to Your Own Server</title>
+<meta name="description" content="Next.js doesn't need Vercel. Here's how to deploy Next.js to your own server with next build and next start, and what SSG, SSR, and ISR each actually need from a real Node process.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Deploy a Next.js App to Your Own Server">
+<meta property="og:description" content="A built Next.js app is a running Node process, not a static folder. Deploy it to a server you own with next build and next start — SSR, ISR, images, and middleware all working.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Deploy Next.js</span>
+  <h1>How to Deploy a Next.js App to Your Own Server</h1>
+
+  <figure><img src="images/hero.png" alt="Deploy a Next.js app to your own server — next build, next start, no adapter"></figure>
+
+  <p class="lead">You can deploy Next.js to your own server. Not a stripped-down version of it, the whole framework: SSR, API routes, ISR, image optimization, middleware. Next.js is open source and it runs as an ordinary Node app. The reason people don't realize this is that most tutorials skip the one thing that actually matters when you self-host, which is what your app <em>becomes</em> after you build it.</p>
+
+  <p>So let's start there, because it's the fact that changes everything else.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>A built Next.js app is a running Node process (<code>next build</code> then <code>next start</code>), not a static folder, unless you deliberately set <code>output: 'export'</code>. Deploy it like any Node app: launch a server, connect your repo, set Build to <code>next build</code> and Start to <code>next start</code>, listen on <code>process.env.PORT</code>. SSG, SSR, and ISR then all work, because each one is just a different thing that same process does.</p>
+  </div>
+
+  <h2>Is your Next.js app a folder of files, or a program?</h2>
+  <p>This is the fork that decides your entire deploy, and it's the part the "drag your build folder to a host" advice gets wrong for Next.js.</p>
+  <p>By default, <code>next build</code> does not produce a static site. It produces a production server. When you run <code>next start</code>, you're launching a long-lived Node process that renders pages, runs your API routes, revalidates cached pages on a timer, and optimizes images on the fly. That process has to stay running for your app to work. It's a program, not a pile of HTML.</p>
+  <p>There's one exception, and it's opt-in. If you set <code>output: 'export'</code> in <code>next.config.js</code>, Next.js emits a folder of static HTML you can serve from anywhere, including our <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">free static hosting</a>. But the moment you do that, you give up everything that needs a server: no SSR, no API routes, no ISR, no on-the-fly image optimization. Most people who reach for static export don't actually want to lose those. My honest take: unless your app is genuinely a brochure site with zero dynamic behavior, skip <code>output: 'export'</code> and run the real server. You paid for Next.js's dynamic features by using Next.js. Keep them.</p>
+
+  <figure>
+    <svg viewBox="0 0 700 430" width="100%" role="img" aria-label="Diagram: one Next.js Node process handles three rendering modes. SSG serves prebuilt HTML, SSR renders on every request, ISR serves cached HTML and rebuilds on a timer, all on next start.">
+      <rect x="1" y="1" width="698" height="428" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="350" y="36" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="17" font-weight="700" fill="#000f27">One process. Three ways Next.js renders a page.</text>
+
+      <!-- SSG -->
+      <rect x="24" y="60" width="206" height="40" rx="9" fill="#4F1AF3"/>
+      <text x="127" y="85" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="14" font-weight="600" fill="#fff">SSG · built once</text>
+      <rect x="24" y="108" width="206" height="128" rx="10" fill="#f6f7fb" stroke="#e6e9f2"/>
+      <g font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#1c2536">
+        <text x="40" y="134">Rendered to HTML at</text>
+        <text x="40" y="153">build time.</text>
+        <text x="40" y="182" fill="#40b75f" font-weight="600">Server provides:</text>
+        <text x="40" y="201">send prebuilt HTML.</text>
+        <text x="40" y="220">No work per request.</text>
+      </g>
+
+      <!-- SSR -->
+      <rect x="247" y="60" width="206" height="40" rx="9" fill="#4F1AF3"/>
+      <text x="350" y="85" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="14" font-weight="600" fill="#fff">SSR · per request</text>
+      <rect x="247" y="108" width="206" height="128" rx="10" fill="#f6f7fb" stroke="#e6e9f2"/>
+      <g font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#1c2536">
+        <text x="263" y="134">Your code runs on</text>
+        <text x="263" y="153">every single request.</text>
+        <text x="263" y="182" fill="#40b75f" font-weight="600">Server provides:</text>
+        <text x="263" y="201">a Node process that</text>
+        <text x="263" y="220">is always running.</text>
+      </g>
+
+      <!-- ISR -->
+      <rect x="470" y="60" width="206" height="40" rx="9" fill="#4F1AF3"/>
+      <text x="573" y="85" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="14" font-weight="600" fill="#fff">ISR · on a timer</text>
+      <rect x="470" y="108" width="206" height="128" rx="10" fill="#f6f7fb" stroke="#e6e9f2"/>
+      <g font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#1c2536">
+        <text x="486" y="134">Serves cached HTML,</text>
+        <text x="486" y="153">rebuilds in background.</text>
+        <text x="486" y="182" fill="#40b75f" font-weight="600">Server provides:</text>
+        <text x="486" y="201">process + a disk it</text>
+        <text x="486" y="220">can write the cache to.</text>
+      </g>
+
+      <!-- connectors -->
+      <g stroke="#c9d0e3" stroke-width="2">
+        <line x1="127" y1="236" x2="127" y2="300"/>
+        <line x1="350" y1="236" x2="350" y2="300"/>
+        <line x1="573" y1="236" x2="573" y2="300"/>
+      </g>
+
+      <!-- process bar -->
+      <rect x="24" y="300" width="652" height="72" rx="12" fill="#000f27"/>
+      <text x="350" y="332" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="15" font-weight="600" fill="#fff">next build &#8594; next start</text>
+      <text x="350" y="356" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="13" fill="#c9b8ff">one Node process, on a server you own</text>
+
+      <text x="350" y="404" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#5b6a86">Static export (output: 'export') skips the process, and loses all three of these.</text>
+    </svg>
+    <figcaption>SSG, SSR, and ISR aren't three deployment targets. They're three things the same running process does.</figcaption>
+  </figure>
+
+  <h2>What next start actually needs, by rendering mode</h2>
+  <p>Once you see the app as a process, the features people worry about losing stop being mysterious. Each is just a demand on the server, and a normal Node server meets all of them. Here's the whole map.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Feature</th><th>What Next.js does</th><th>What the server has to provide</th></tr></thead>
+    <tbody>
+      <tr><td>SSG</td><td>Renders pages to HTML during <code>next build</code></td><td>Serve static HTML. The cheapest case.</td></tr>
+      <tr><td>SSR</td><td>Runs <code>getServerSideProps</code> / server components per request</td><td>A long-running Node process. This is the default.</td></tr>
+      <tr><td>ISR</td><td>Serves cached HTML, rebuilds after <code>revalidate</code> seconds</td><td>A process plus a persistent disk for the cache.</td></tr>
+      <tr><td>API routes</td><td>Runs your <code>app/api</code> or <code>pages/api</code> handlers</td><td>The same process. No separate functions service.</td></tr>
+      <tr><td>Image optimization</td><td>Resizes and reformats images on request</td><td>The process, plus <code>sharp</code> installed.</td></tr>
+      <tr><td>Middleware</td><td>Runs code before a request resolves</td><td>The process (Node runtime).</td></tr>
+    </tbody>
+  </table>
+
+  <h3>SSR and API routes: the default, and the easy case</h3>
+  <p>If your app uses <code>getServerSideProps</code>, server components with dynamic data, or route handlers under <code>app/api</code>, you need a running process. That's exactly what <code>next start</code> gives you. Nothing special to configure. The API routes run in the same process as your pages, so there's no CORS to fight and no second service to deploy. This is the part that scares people off self-hosting, and it's genuinely the least work.</p>
+
+  <h3>ISR is actually better on a real server than people expect</h3>
+  <p>Incremental Static Regeneration serves a cached page fast, then quietly rebuilds it in the background once your <code>revalidate</code> window passes. To do that it needs two things: a process that keeps running between requests, and a filesystem it can write the regenerated pages to. A real server has both, permanently. That's the whole point of owning the box.</p>
+  <p>On ephemeral platforms, where the filesystem is thrown away and functions spin up per request, ISR needs extra plumbing (a shared cache handler) to behave. On a persistent server it just works, the way the Next.js docs describe it. If ISR is core to your app, a server you own is the least surprising place to run it.</p>
+
+  <h3>Image optimization needs one dependency people forget</h3>
+  <p>Next.js's <code>&lt;Image&gt;</code> component optimizes images on the fly using a library called <code>sharp</code>. In development Next.js is forgiving about it. In production, if <code>sharp</code> isn't installed, image optimization either falls back or errors, depending on your version. So install it as a real dependency:</p>
+  <pre><code>npm install sharp</code></pre>
+  <p>That's it. It builds during your normal install step and the <code>&lt;Image&gt;</code> component works on your server exactly as it does on Vercel. If you'd rather not optimize on the box at all, you can point Next.js at an external image loader, but for most apps, installing <code>sharp</code> is the simplest answer.</p>
+
+  <h3>Middleware runs in your process too</h3>
+  <p>Next.js middleware (auth checks, redirects, rewrites in <code>middleware.ts</code>) runs as part of the app. When you self-host with <code>next start</code>, it executes on the Node runtime on your server. It works. The only nuance worth knowing is that some edge-specific APIs assume an edge runtime, but standard middleware logic runs fine.</p>
+
+  <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal running next build then next start, showing the "ready on port 3000" line so readers see the process boot.</em><small>Grounds the "it's a process" point. Optional.</small></span></figure>
+
+  <h2>Deploy your Next.js app to a server you own</h2>
+  <p>The mechanics are short, because self-hosting Next.js is just deploying a Node app. There's no Nginx to hand-configure and no runtime to install. Here's the path through the <a href="https://www.kloudbean.com/">Kloudbean</a> console.</p>
+
+  <p>Click <strong>Add Server</strong>, pick a <strong>Cloud Provider</strong> (AWS, Lightsail, GCP, Linode, Vultr, DigitalOcean, or UpCloud), choose <strong>Node.js</strong>, pick the datacenter nearest your users, and give the build room to breathe. Next.js builds like memory, so 2-4 GB is a comfortable start. <strong>Launch Now</strong> provisions it in a few minutes with Node, a web server, a process manager, firewall, and SSL already set up.</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="Kloudbean Add Server screen: choosing a cloud provider, Node.js application, datacenter, and server size for a Next.js deploy">
+    <figcaption>Add Server: pick one of seven clouds, choose Node.js, size it for the build, launch. The stack comes ready.</figcaption>
+  </figure>
+
+  <p>Open the app, go to <strong>Application Administration &#8594; Deploy Code</strong>, and you're on the Git Deployment screen where the whole deploy happens.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean console Deploy Code / Git Deployment tab: connect the repo, set Build to next build and Start to next start, then Pull and Deploy">
+    <figcaption>Deploy Code, then Git Deployment: connect the repo, then set the runtime fields below it.</figcaption>
+  </figure>
+
+  <p>Connect GitHub over OAuth, paste your repository URL, pick the branch, and <strong>Clone Repository</strong>. Then the fields that matter:</p>
+  <ul>
+    <li><strong>App Directory:</strong> the folder holding your <code>package.json</code>.</li>
+    <li><strong>Port:</strong> the assigned port. <code>next start</code> reads <code>process.env.PORT</code> for you, so you rarely touch your code here.</li>
+    <li><strong>Node Version:</strong> match what you build on locally. Node 20+ for a current Next.js.</li>
+    <li><strong>Install / Build / Start:</strong> <code>npm ci</code>, then <code>npm run build</code> (which runs <code>next build</code>), then <code>npm start</code> (which runs <code>next start</code>).</li>
+  </ul>
+  <p>Hit <strong>Pull &amp; Deploy</strong> and the build log streams live in the console. Got a database? Launch a managed one from <strong>DBS &#8594; Launch Database</strong> (Postgres, MySQL, MariaDB, MongoDB, Redis, or Elasticsearch), on the same box, backed up, reached over the local network. Run your migrations in the build step, for example <code>npx prisma migrate deploy</code>, so the schema exists before the app serves a request. More on that in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a>.</p>
+
+  <h3>The one env var rule that's specific to Next.js</h3>
+  <p>Under <strong>Runtime Configuration &#8594; Environment Variables</strong> there's a <strong>Paste .env Content</strong> tab. Drop your <code>.env</code> in, convert to key/value, and swap dev values for real ones. Here's the Next.js-specific catch: anything prefixed <code>NEXT_PUBLIC_</code> is baked into the client bundle when <code>next build</code> runs, and frozen there. It's public, so never put a secret behind that prefix. And if you add or change a <code>NEXT_PUBLIC_</code> value <em>after</em> a build, nothing changes until you rebuild. Set it first, then build. Unprefixed variables like <code>DATABASE_URL</code> are read live on the server, which is why they belong in the console and never in the repo. The full mental model is in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a>.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="Kloudbean environment variables editor with a Paste .env Content tab and a key value list, including a NEXT_PUBLIC_ variable">
+    <figcaption>Paste .env, convert to key/value, then set your real values. NEXT_PUBLIC_ vars bake in at build time, so set them before you build.</figcaption>
+  </figure>
+
+  <p>Last, add your domain under <strong>Domain Aliases</strong>, point DNS at the server, install a free <strong>Let's Encrypt</strong> certificate, and turn on <strong>automated deployment</strong>. From then on, every push to your branch runs <code>next build</code> and ships, with the build log streaming as it goes. That's the same git-to-live loop the per-app platforms rent you, except it's <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">running on a server you own</a>.</p>
+
+  <h2>Where self-hosting Next.js actually goes wrong</h2>
+  <p>The failures are boringly consistent, and none of them are about hosting being hard. Three cover almost everything we see.</p>
+  <p><strong>The Start command is still <code>next dev</code>.</strong> This is the big one. Someone sets Start to <code>npm run dev</code> because that's the command they type all day. Dev mode isn't built for production: no optimized build, different behavior, and it falls over under load. Your Start command must run <code>next start</code>, and your Build must have run <code>next build</code> first. If a fresh deploy 503s, check this before anything else.</p>
+  <p><strong>Static export, then surprise.</strong> Someone sets <code>output: 'export'</code> (maybe copied from a tutorial), then wonders why their API routes 404 and their dynamic pages are blank. Export throws away the server. If you use SSR, API routes, or ISR, don't export. Pick one model and mean it.</p>
+  <p><strong>NEXT_PUBLIC_ added too late.</strong> The build baked in the old value (or an empty string), the browser calls the wrong URL, and the page looks broken while the server is perfectly healthy. Set public vars before the build, and redeploy if you change one.</p>
+
+  <div class="note"><b>Do you need a custom server?</b> Probably not. Wrapping Next.js in a custom Express server is a real option, but people mostly reach for it to add API routes, which Next.js already has. If you have a genuine reason (a legacy route, a websocket alongside your pages), it deploys fine: point Start at <code>node server.js</code> instead of <code>next start</code>, and make sure that server listens on <code>process.env.PORT</code>. Otherwise, keep it simple and use <code>next start</code>.</div>
+
+  <h2>When it 503s after deploying Next.js</h2>
+  <p>A 503 means the process didn't come up. Read the app's own error log, which names the real reason:</p>
+  <pre><code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/app.error.log</code></pre>
+  <p>Open it in the File Manager or over SSH. Nine times out of ten it's the <code>next dev</code> mixup above, a missing environment variable the app reads at startup, or a build that failed because the build tools live in <code>devDependencies</code> and something set <code>NODE_ENV=production</code> before install ran, so npm skipped them. There's also <code>sudo adm</code>, our deploy utility, which runs the whole build-and-ship over SSH in one command. The full walkthrough is in <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fixing a 503 after deploying</a>.</p>
+
+  <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>app.error.log open in the File Manager with the line that reveals a Start command stuck on next dev.</em></span></figure>
+
+  <h2>The one honest limit: you're in a region, not on the edge</h2>
+  <p>Everything the framework does works self-hosted. The single real difference from Vercel is geographic. Vercel spreads some execution across a global edge network. Your server sits in the region you picked. For most apps that's a non-issue, because a well-placed server is fast and your database is right next to it. If you genuinely serve a latency-critical audience on every continent, you'd either run in multiple regions or put <strong>Cloudflare Enterprise edge caching</strong> in front of the server (a paid add-on, free on Enterprise) so your app is cached at the edge worldwide while it runs on hardware you own.</p>
+  <p>Beyond that, the boundaries are the usual ones. Kloudbean runs Next.js as a Node app on Linux, not Windows or .NET. "Managed" means the server, stack, SSL, and backups are handled; your code and data stay yours, and you can move hosts whenever you like because underneath it's a normal Linux box. Building with v0 or another AI tool? The Next.js-flavored version of this is the <a href="https://www.kloudbean.com/blog/deploy-v0-app/">deploy a v0 app</a> guide, and running more than one project on the same box is <a href="https://www.kloudbean.com/blog/host-multiple-apps-one-server/">hosting multiple apps on one server</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">next build. next start. Your server.</p>
+    <p style="margin:0">Deploy your Next.js app at <a href="https://www.kloudbean.com/">kloudbean.com</a> with a free trial and your first migration done for you. Weighing the move off Vercel? Read the <a href="https://www.kloudbean.com/blog/vercel-alternative-for-full-stack-apps/">Vercel alternative guide</a>. Server sizes are on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Can I run Next.js without Vercel?</h3>
+    <p>Yes. Next.js is open source and runs as a standard Node app with <code>next build</code> and <code>next start</code>. Deploy it on a managed server straight from your GitHub repo. There's no proprietary adapter, and you get the full production server with every feature.</p>
+
+    <h3>Is a built Next.js app static files or a server?</h3>
+    <p>A server, by default. <code>next build</code> produces a production Node server that you launch with <code>next start</code>. It only becomes a static folder if you deliberately set <code>output: 'export'</code>, and that mode drops SSR, API routes, ISR, and on-the-fly image optimization.</p>
+
+    <h3>Do SSR, API routes, and ISR work when self-hosting Next.js?</h3>
+    <p>All of them. <code>next start</code> runs the real production server, so server-side rendering, <code>app/api</code> or <code>pages/api</code> routes, incremental static regeneration, image optimization, and middleware all run on your own server. ISR in particular works well because a real server has the persistent process and disk it needs.</p>
+
+    <h3>What Build and Start commands should I use?</h3>
+    <p>Build: <code>npm run build</code>, which runs <code>next build</code>. Start: <code>npm start</code>, which runs <code>next start</code>. Make sure the app listens on <code>process.env.PORT</code>, which the standard start script already does.</p>
+
+    <h3>Does Next.js image optimization work on my own server?</h3>
+    <p>Yes, once you install <code>sharp</code> as a dependency (<code>npm install sharp</code>). Next.js uses it to resize and reformat images in production. Without it, optimization may fall back or error depending on your version. Alternatively, configure an external image loader.</p>
+
+    <h3>What is standalone output and do I need it?</h3>
+    <p>Setting <code>output: 'standalone'</code> makes <code>next build</code> bundle only the files needed to run, including a minimal server, for a leaner deploy and a faster start. It's optional. A normal <code>next build</code> and <code>next start</code> works fine without it.</p>
+
+    <h3>Why does my Next.js app 503 after deploying?</h3>
+    <p>Usually the Start command is running <code>next dev</code> instead of <code>next start</code>, a required environment variable is missing at startup, or the build failed because build tools in <code>devDependencies</code> were skipped. Read <code>app.error.log</code>, fix the command or variable, and redeploy.</p>
+
+    <h3>Do I lose anything by not using Vercel?</h3>
+    <p>Functionally, no. The framework runs in full. The one difference is geographic: Vercel spreads some execution across a global edge network, while your server sits in one region you choose. For most apps a well-placed server is plenty, and you can add Cloudflare edge caching if you need global reach.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Deploy a Next.js App to Your Own Server","description":"A built Next.js app is a running Node process, not a static folder. Deploy it to a server you own with next build and next start, with SSR, ISR, images, and middleware all working.","image":"https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Can I run Next.js without Vercel?","acceptedAnswer":{"@type":"Answer","text":"Yes. Next.js is open source and runs as a standard Node app with next build and next start. Deploy it on a managed server straight from your GitHub repo. There is no proprietary adapter, and you get the full production server with every feature."}},
+{"@type":"Question","name":"Is a built Next.js app static files or a server?","acceptedAnswer":{"@type":"Answer","text":"A server, by default. next build produces a production Node server that you launch with next start. It only becomes a static folder if you deliberately set output: 'export', and that mode drops SSR, API routes, ISR, and on-the-fly image optimization."}},
+{"@type":"Question","name":"Do SSR, API routes, and ISR work when self-hosting Next.js?","acceptedAnswer":{"@type":"Answer","text":"All of them. next start runs the real production server, so server-side rendering, app/api or pages/api routes, incremental static regeneration, image optimization, and middleware all run on your own server. ISR in particular works well because a real server has the persistent process and disk it needs."}},
+{"@type":"Question","name":"What Build and Start commands should I use?","acceptedAnswer":{"@type":"Answer","text":"Build: npm run build, which runs next build. Start: npm start, which runs next start. Make sure the app listens on process.env.PORT, which the standard start script already does."}},
+{"@type":"Question","name":"Does Next.js image optimization work on my own server?","acceptedAnswer":{"@type":"Answer","text":"Yes, once you install sharp as a dependency (npm install sharp). Next.js uses it to resize and reformat images in production. Without it, optimization may fall back or error depending on your version. Alternatively, configure an external image loader."}},
+{"@type":"Question","name":"What is standalone output and do I need it?","acceptedAnswer":{"@type":"Answer","text":"Setting output: 'standalone' makes next build bundle only the files needed to run, including a minimal server, for a leaner deploy and a faster start. It is optional. A normal next build and next start works fine without it."}},
+{"@type":"Question","name":"Why does my Next.js app 503 after deploying?","acceptedAnswer":{"@type":"Answer","text":"Usually the Start command is running next dev instead of next start, a required environment variable is missing at startup, or the build failed because build tools in devDependencies were skipped. Read app.error.log, fix the command or variable, and redeploy."}},
+{"@type":"Question","name":"Do I lose anything by not using Vercel?","acceptedAnswer":{"@type":"Answer","text":"Functionally, no. The framework runs in full. The one difference is geographic: Vercel spreads some execution across a global edge network, while your server sits in one region you choose. For most apps a well-placed server is plenty, and you can add Cloudflare edge caching if you need global reach."}}
+]}
+]}
+</script>
+</body>
+</html>

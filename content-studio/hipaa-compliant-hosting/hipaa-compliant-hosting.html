@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HIPAA-Compliant Hosting: What It Covers, and What Stays Yours</title>
+<meta name="description" content="HIPAA-compliant hosting is shared work, and HIPAA has no official certification. Your host secures the infrastructure (encryption in transit, private networking, access control, backups) while you own PHI handling, policies, and BAAs. Here is what HIPAA actually asks of hosting.">
+<meta name="author" content="Kloudbean Security">
+<link rel="canonical" href="https://www.kloudbean.com/blog/hipaa-compliant-hosting/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HIPAA-Compliant Hosting: What It Covers, and What Stays Yours">
+<meta property="og:description" content="What HIPAA actually asks of hosting, the shared-responsibility split, and how infrastructure controls support a HIPAA-aligned setup. Careful, honest, no certification myths.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Enterprise &amp; compliance</span>
+  <h1>HIPAA-Compliant Hosting: What It Covers, and What Stays Yours</h1>
+
+  <figure><img src="images/hero.png" alt="HIPAA-compliant hosting: the split between infrastructure controls your host provides and the PHI handling you own"></figure>
+
+  <p class="lead">If you're a developer or founder building a healthcare app that touches patient data, someone eventually asks the question that stops the sprint: is our setup HIPAA-compliant? So you search for HIPAA-compliant hosting, hoping a plan makes the problem disappear. It doesn't work that way. HIPAA-compliant hosting is real, but it's shared work: your host secures the infrastructure your app runs on, and you own how your app handles protected health information (PHI), your policies, and your paperwork.</p>
+  <p>HIPAA is the US health-privacy law, and its Security Rule is the part that lands on hosting. One thing worth saying plainly up front: there is no official HIPAA certification. No government body hands out a seal, and no host can sell you one. A good host gives you the infrastructure controls that support a HIPAA-aligned setup. The rest of the job is yours.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>Hosting is one piece of HIPAA, not the whole thing. You need infrastructure controls (encryption in transit, private networking, access control, audit logging, backups), your own application-level safeguards and policies, and usually a business associate agreement (BAA) with every vendor that touches PHI. No host makes your app automatically HIPAA-compliant, and there's no official HIPAA certification to buy. Get the shared-responsibility split right and the rest gets much simpler.</p>
+  </div>
+
+  <h2>What HIPAA-compliant hosting actually requires</h2>
+  <p>Most HIPAA hosting requirements trace back to one place: the Security Rule, which governs electronic protected health information (ePHI). It sorts its protections into three categories, and only some are about servers at all. This is general information, not legal advice, so treat it as a map.</p>
+  <p><strong>Administrative safeguards.</strong> The biggest bucket, and almost entirely yours: risk analysis, workforce training, who gets access to PHI and how they lose it, incident response, and contracts with the vendors that handle PHI for you. A server can't run your risk analysis. This is policy and process work that lives with your organization.</p>
+  <p><strong>Physical safeguards.</strong> Facility access, device controls, and the physical security of the machines PHI sits on. Build on a managed platform running on tier-1 clouds like AWS and Google Cloud, and this layer is largely inherited from data centers that already run serious physical security. It's the part of HIPAA you're least likely to touch.</p>
+  <p><strong>Technical safeguards.</strong> Where hosting earns its keep. Access control, audit logging, integrity, authentication, and transmission security are all technical controls, and a host can supply the raw materials for each. The table maps every technical safeguard to the control that satisfies it.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Technical safeguard</th><th>What it means</th><th>The concrete control</th></tr></thead>
+    <tbody>
+      <tr><td>Access control</td><td>Only the right people and services reach PHI</td><td>Unique logins, least-privilege roles, IP allow-lists</td></tr>
+      <tr><td>Audit controls</td><td>Record and review who did what</td><td>An activity log or audit trail you can search and export</td></tr>
+      <tr><td>Integrity</td><td>PHI is not altered or destroyed improperly</td><td>Backups, controlled database access, change history</td></tr>
+      <tr><td>Authentication</td><td>Verify a user is who they claim to be</td><td>Strong login, session controls, no shared accounts</td></tr>
+      <tr><td>Transmission security</td><td>PHI is protected while moving over networks</td><td>Encryption in transit (TLS/SSL) everywhere</td></tr>
+    </tbody>
+  </table>
+
+  <p>One detail catches developers off guard: encryption in HIPAA is mostly what the rule calls <strong>addressable</strong>, not <strong>required</strong>. That's not the same as optional. You implement it, or document why an equivalent safeguard is reasonable. Almost everyone encrypts anyway, because encrypted PHI that leaks generally falls under a breach safe harbor. Treat encryption in transit as table stakes, and decide on encryption at rest where your data lives.</p>
+
+  <h2>Shared responsibility: who owns what</h2>
+  <p>This is the idea that makes the topic click. HIPAA compliance splits between the platform and you, and it isn't an even split. The platform secures the ground your app stands on. You own the app and everything about how it treats PHI. A host that pretends otherwise is selling something that doesn't exist.</p>
+  <table class="cmp">
+    <thead><tr><th>The platform provides (infrastructure)</th><th>You own (application and policy)</th></tr></thead>
+    <tbody>
+      <tr><td>Hardened, patched servers</td><td>Your application code and how it handles PHI</td></tr>
+      <tr><td>Network isolation and private networking</td><td>Access policies: who sees PHI, and when</td></tr>
+      <tr><td>Encryption in transit (free SSL)</td><td>Data retention and minimization decisions</td></tr>
+      <tr><td>Automatic backups for availability</td><td>Workforce training and security awareness</td></tr>
+      <tr><td>Access controls and firewalling</td><td>Business associate agreements with each vendor</td></tr>
+      <tr><td>Physical security of the data center</td><td>Your risk analysis and incident response plan</td></tr>
+    </tbody>
+  </table>
+  <p>Look at the right column. That's most of HIPAA, and no server touches it. The fastest way to fail a HIPAA review isn't a weak server. It's collecting PHI you never needed, or piping it into a tool you forgot was in scope.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 520" role="img" aria-labelledby="hipaa-svg-title hipaa-svg-desc" xmlns="http://www.w3.org/2000/svg">
+      <title id="hipaa-svg-title">How PHI flows, and who secures each part</title>
+      <desc id="hipaa-svg-desc">PHI travels from a user over TLS to your app, then over a private network to a managed database, with automatic backups underneath. The platform provides infrastructure controls: encryption in transit, firewall and brute-force blocking, private networking, backups, and access controls. You own the application and policy layer: how PHI is handled, access and retention policies, workforce training, business associate agreements, and your risk analysis.</desc>
+      <defs>
+        <marker id="hip-arw" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#5b6a86"/>
+        </marker>
+      </defs>
+      <rect x="0" y="0" width="720" height="520" fill="#ffffff"/>
+      <text x="360" y="30" text-anchor="middle" fill="#000f27" font-size="20" font-weight="700" font-family="Poppins,sans-serif">How PHI flows, and who secures each part</text>
+
+      <rect x="20" y="58" width="150" height="54" rx="10" fill="#000f27"/>
+      <text x="95" y="82" text-anchor="middle" fill="#ffffff" font-size="13" font-family="Poppins,sans-serif">Patient / user</text>
+      <text x="95" y="100" text-anchor="middle" fill="#8fa0c4" font-size="11" font-family="Poppins,sans-serif">enters PHI</text>
+
+      <line x1="170" y1="85" x2="234" y2="85" stroke="#5b6a86" stroke-width="2.5" marker-end="url(#hip-arw)"/>
+      <text x="202" y="75" text-anchor="middle" fill="#40b75f" font-size="10.5" font-weight="700" font-family="Poppins,sans-serif">TLS</text>
+
+      <rect x="238" y="58" width="150" height="54" rx="10" fill="#4F1AF3"/>
+      <text x="313" y="82" text-anchor="middle" fill="#ffffff" font-size="13" font-family="Poppins,sans-serif">Your app</text>
+      <text x="313" y="100" text-anchor="middle" fill="#d7ccff" font-size="11" font-family="Poppins,sans-serif">handles PHI</text>
+
+      <line x1="388" y1="85" x2="452" y2="85" stroke="#5b6a86" stroke-width="2.5" marker-end="url(#hip-arw)"/>
+      <text x="420" y="75" text-anchor="middle" fill="#4F1AF3" font-size="10.5" font-weight="700" font-family="Poppins,sans-serif">private net</text>
+
+      <rect x="456" y="58" width="164" height="54" rx="10" fill="#000f27"/>
+      <text x="538" y="82" text-anchor="middle" fill="#ffffff" font-size="13" font-family="Poppins,sans-serif">Managed database</text>
+      <text x="538" y="100" text-anchor="middle" fill="#8fa0c4" font-size="11" font-family="Poppins,sans-serif">stores PHI</text>
+
+      <line x1="538" y1="112" x2="538" y2="148" stroke="#5b6a86" stroke-width="2.5" marker-end="url(#hip-arw)"/>
+      <rect x="456" y="150" width="164" height="46" rx="10" fill="#40b75f"/>
+      <text x="538" y="178" text-anchor="middle" fill="#ffffff" font-size="12.5" font-family="Poppins,sans-serif">Automatic backups</text>
+
+      <rect x="20" y="236" width="322" height="262" rx="16" fill="#4F1AF3"/>
+      <text x="44" y="272" fill="#ffffff" font-size="16" font-weight="700" font-family="Poppins,sans-serif">PLATFORM PROVIDES</text>
+      <text x="44" y="293" fill="#d7ccff" font-size="12.5" font-family="Poppins,sans-serif">infrastructure controls</text>
+      <rect x="44" y="314" width="9" height="9" rx="2" fill="#ffffff"/><text x="62" y="323" fill="#eae4ff" font-size="13.5" font-family="Poppins,sans-serif">Encryption in transit (free SSL)</text>
+      <rect x="44" y="346" width="9" height="9" rx="2" fill="#ffffff"/><text x="62" y="355" fill="#eae4ff" font-size="13.5" font-family="Poppins,sans-serif">Firewall + brute-force blocking</text>
+      <rect x="44" y="378" width="9" height="9" rx="2" fill="#ffffff"/><text x="62" y="387" fill="#eae4ff" font-size="13.5" font-family="Poppins,sans-serif">Private networking / VPC</text>
+      <rect x="44" y="410" width="9" height="9" rx="2" fill="#ffffff"/><text x="62" y="419" fill="#eae4ff" font-size="13.5" font-family="Poppins,sans-serif">Automatic backups</text>
+      <rect x="44" y="442" width="9" height="9" rx="2" fill="#ffffff"/><text x="62" y="451" fill="#eae4ff" font-size="13.5" font-family="Poppins,sans-serif">Access controls (UAC, IP)</text>
+
+      <rect x="378" y="236" width="322" height="262" rx="16" fill="#000f27"/>
+      <text x="402" y="272" fill="#ffffff" font-size="16" font-weight="700" font-family="Poppins,sans-serif">YOU OWN</text>
+      <text x="402" y="293" fill="#8fa0c4" font-size="12.5" font-family="Poppins,sans-serif">application + policy</text>
+      <rect x="402" y="314" width="9" height="9" rx="2" fill="#40b75f"/><text x="420" y="323" fill="#cdd6ea" font-size="13.5" font-family="Poppins,sans-serif">How your code handles PHI</text>
+      <rect x="402" y="346" width="9" height="9" rx="2" fill="#40b75f"/><text x="420" y="355" fill="#cdd6ea" font-size="13.5" font-family="Poppins,sans-serif">Access &amp; retention policies</text>
+      <rect x="402" y="378" width="9" height="9" rx="2" fill="#40b75f"/><text x="420" y="387" fill="#cdd6ea" font-size="13.5" font-family="Poppins,sans-serif">Workforce training</text>
+      <rect x="402" y="410" width="9" height="9" rx="2" fill="#40b75f"/><text x="420" y="419" fill="#cdd6ea" font-size="13.5" font-family="Poppins,sans-serif">BAAs with every vendor</text>
+      <rect x="402" y="442" width="9" height="9" rx="2" fill="#40b75f"/><text x="420" y="451" fill="#cdd6ea" font-size="13.5" font-family="Poppins,sans-serif">Risk analysis + response plan</text>
+    </svg>
+    <figcaption>PHI moves over TLS to your app, then over a private network to your database, with backups underneath. The platform secures that pipeline. You own the app and the policies around it.</figcaption>
+  </figure>
+
+  <!-- Author: replace with your own diagram or screenshot. src -> images/phi-data-flow-map.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A data-flow map for your own app: every place PHI is collected, where it travels, and every service that can see it.</em><small>The single most useful artefact for a HIPAA review, and it is entirely yours to draw.</small></span></figure>
+
+  <h2>How Kloudbean's controls support a HIPAA-aligned setup</h2>
+  <p>Honest framing first: none of this makes your app HIPAA-compliant on its own. It hands you the infrastructure half of the safeguards above, so controls you'd otherwise assemble by hand are already there. Kloudbean sits on the infrastructure side of the line.</p>
+  <p><strong>Access control.</strong> Subusers with granular User Access Control grant per-resource, per-action permissions, so people reach only what their job needs. IP Access Control adds allow and deny rules by CIDR range, HttpOnly cookie sessions harden logins, and a Basic Auth gate can lock an app while you build. That's the access-control and authentication safeguards, and here's <a href="https://www.kloudbean.com/blog/user-access-control-explained/">how user access control works</a>.</p>
+  <p><strong>Transmission security.</strong> Free SSL is issued and auto-renewed, so encryption in transit is on by default across your app and its APIs. Encryption at rest is a separate decision you make at the application or database level, so plan for it rather than assume it.</p>
+  <p><strong>Network isolation.</strong> Put your database on a private network so it never gets a public address and no scanner can find it. That single move removes a whole class of exposure. Pair it with the baseline Shorewall firewall and Fail2ban blocking that run by default, and here's <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">what a VPC is</a>.</p>
+  <p><strong>Availability and integrity.</strong> Automatic <a href="https://www.kloudbean.com/blog/server-backups-guide/">backups</a> cover the recoverability HIPAA expects, and the seven managed database engines run with controlled access and their own backups. For public-facing defense, Cloudflare is a paid add-on (free on enterprise) that adds edge protection; it's worth knowing <a href="https://www.kloudbean.com/blog/what-a-waf-does/">what a web application firewall does</a>.</p>
+  <p><strong>Audit controls.</strong> On enterprise accounts, the Audit Trail is an immutable, searchable, account-wide activity log with CSV export, built for exactly this kind of evidence. Note the boundary: it's an enterprise capability, not per-app HIPAA logging on every plan, and your app still logs PHI-access events in its own layer. For custom architectures, Kubernetes, and tailored setups, Kloudbean can act like an in-house infrastructure team for enterprise and government workloads.</p>
+
+  <h2>Practical steps to build a HIPAA-aligned setup</h2>
+  <p>Concept is nice. Here's the order I'd work in, on any platform, with the console shots where they help.</p>
+
+  <h3>Step 1. Put the database on a private network</h3>
+  <p>Before anything else, keep PHI off the public internet. Launch your managed database on a private network so it has no public address, and open only the app-to-database path. An exposed database gets found by automated scanners in hours, not weeks, and a database full of PHI is the worst thing to leave reachable.</p>
+
+  <h3>Step 2. Turn on encryption in transit</h3>
+  <p>Every page and API call that carries PHI runs over HTTPS, with no mixed content. On a managed host that's a free SSL certificate that issues and renews itself, so there's no excuse to serve health data over plain HTTP.</p>
+
+  <figure>
+    <img src="../assets/console/ssl-certificate.png" alt="The Kloudbean console issuing a free SSL certificate so PHI is encrypted in transit">
+    <figcaption>Encryption in transit, on by default: a free SSL certificate covers the transmission-security safeguard.</figcaption>
+  </figure>
+
+  <h3>Step 3. Lock down who can reach production</h3>
+  <p>Give every teammate a unique login, never a shared one, and grant the narrowest role that does the job. Use subusers and granular access control for least privilege, and restrict where admins can connect from with IP allow-lists. When a review asks who can reach PHI, you want a precise answer, not a shrug.</p>
+
+  <figure>
+    <img src="../assets/console/subusers-uac.png" alt="The Kloudbean console showing subusers and granular User Access Control for least-privilege access to PHI">
+    <figcaption>Access control, evidenced: subusers plus per-resource, per-action permissions so only the right people reach PHI.</figcaption>
+  </figure>
+
+  <h3>Step 4. Harden the server and close ports</h3>
+  <p>Unpatched software and open ports start a lot of breaches. Keep the OS and stack patched, and run baseline protections like a firewall and brute-force blocking by default, not as a task you hope to remember. It pays off the day someone starts probing.</p>
+
+  <figure>
+    <img src="../assets/console/firewall.png" alt="The Kloudbean console firewall settings closing unused ports in front of the server holding PHI">
+    <figcaption>Baseline hardening: a firewall that closes everything you don't explicitly need open.</figcaption>
+  </figure>
+
+  <h3>Step 5. Turn on automatic backups</h3>
+  <p>HIPAA cares about availability and recoverability, not just secrecy. Automatic backups stored off the main server mean a bad day doesn't erase patient records. Do the step everyone skips: actually test a restore, so you know your backups work before the moment you need them.</p>
+
+  <figure>
+    <img src="../assets/console/manage-backups.png" alt="The Kloudbean console managing automatic backups of the database that stores PHI">
+    <figcaption>Availability, covered: automatic backups so PHI survives failure, with a restore you've actually tested.</figcaption>
+  </figure>
+
+  <h3>Step 6. Keep PHI out of logs, URLs, and side tools</h3>
+  <p>This is where healthcare apps quietly break their own compliance. PHI leaks into places nobody classified as sensitive: request logs that capture full bodies, patient IDs in URL query strings that land in access logs, an error tracker shipping stack traces to a third party you never signed a BAA with. Scrub PHI before it's logged, keep it out of URLs, and audit every service your app talks to.</p>
+
+  <!-- Author: replace with your own screenshot. src -> images/log-scrubbing-config.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your logging or error-tracker config with PHI fields masked or dropped before anything is written.</em><small>Proof that patient data never leaks into logs or a third-party tool.</small></span></figure>
+
+  <h3>Step 7. Line up your BAAs and your risk analysis</h3>
+  <p>Now the part only you can do. List every vendor that creates, receives, stores, or transmits PHI for you: host, email provider, SMS gateway, analytics, error tracker. Each is a business associate, and HIPAA generally expects a signed BAA with each. Then write your risk analysis and your access and retention policies. This is the half that actually keeps you compliant.</p>
+
+  <!-- Author: replace with your own screenshot. src -> images/baa-vendor-tracker.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your vendor and BAA tracker: every service that touches PHI, and whether a signed agreement is in place.</em><small>The list an auditor asks for first.</small></span></figure>
+
+  <div class="note">
+    <b>Please read this part.</b> This is general educational information, not legal advice. HIPAA has real nuance, and your specific situation (the PHI you handle, your role as a covered entity or business associate, your risk analysis) deserves a qualified compliance professional. Before you store real PHI anywhere, confirm two things: that you've done a proper risk analysis, and that you have a BAA with every vendor that will touch that data. Confirm BAA availability with any provider directly.
+  </div>
+
+  <h2>So, is my hosting HIPAA-compliant?</h2>
+  <p>It's the wrong question, gently. Hosting can't be HIPAA-compliant on its own, the way a locked filing cabinet isn't a compliant medical practice. The better question: does your hosting give you the infrastructure controls a HIPAA-aligned setup needs, and have you done your half on top? PHI hosting comes down to a short checklist: encryption in transit, a private database, access control, audit logging, backups, and a BAA with anyone who touches the data.</p>
+  <p>My honest opinion after plenty of healthcare builds: most early teams overspend on exotic infrastructure and underspend on the two things that catch them out, minimizing the PHI they collect and keeping it out of places they forgot to secure. HIPAA cloud hosting is a foundation, not a finish line. A hardened server won't save an app that logs patient data into a tool with no agreement behind it.</p>
+  <p>Where Kloudbean fits: on the infrastructure side, giving you the controls your HIPAA work stands on, from free SSL and private networking to access control, automatic backups, and, on enterprise, an immutable Audit Trail. It runs on tier-1 clouds that maintain their own data-center security programs. What it won't do, because no honest host can, is make your app HIPAA-compliant for you or sell you a certification that doesn't exist. Mapping several obligations at once? The siblings pair well: <a href="https://www.kloudbean.com/blog/soc2-compliant-hosting/">SOC 2 compliant hosting</a>, <a href="https://www.kloudbean.com/blog/pci-compliant-hosting/">PCI compliant hosting</a>, <a href="https://www.kloudbean.com/blog/gdpr-compliant-hosting/">GDPR compliant hosting</a>, and the broader <a href="https://www.kloudbean.com/blog/secure-compliant-hosting/">secure and compliant hosting</a> overview.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Build healthcare apps on a foundation you can stand behind.</p>
+    <p style="margin:0 0 .6em">Run your app on infrastructure with hardening, encryption in transit, private networking, access controls, and automatic backups, all on one dashboard. Talk to us about enterprise Audit Trail and custom setups for regulated workloads. Start with a free trial and free migration assistance at <a href="https://www.kloudbean.com/">kloudbean.com</a>, and see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Free SSL · Private networking / VPC · Subuser access control · Shorewall + Fail2ban · Automatic backups · Enterprise Audit Trail</p>
+  </div>
+
+  <h2>HIPAA hosting FAQ</h2>
+  <div class="faq">
+    <h3>Is Kloudbean HIPAA compliant?</h3>
+    <p>No host can be HIPAA-compliant on your behalf, because compliance describes an organization and how it handles PHI, not a product you switch on. Kloudbean provides infrastructure controls that support a HIPAA-aligned setup: encryption in transit, private networking, access control, and automatic backups. Your application, your policies, and your BAAs remain yours to own.</p>
+
+    <h3>Is there an official HIPAA certification for hosting?</h3>
+    <p>No. HIPAA has no official certification or government seal, and the Office for Civil Rights enforces the law rather than certifying products. Any host claiming an official HIPAA seal is overstating things. Judge a provider on its actual controls and contracts, not on a badge, and confirm what it offers directly.</p>
+
+    <h3>Does HIPAA require a BAA?</h3>
+    <p>Generally yes. If a vendor creates, receives, maintains, or transmits PHI on your behalf, HIPAA expects a signed business associate agreement (BAA) with that vendor. That can include your host, email provider, analytics, and error tracking. Before you put real PHI on any platform, confirm BAA availability with the provider directly.</p>
+
+    <h3>Is encryption required for PHI?</h3>
+    <p>Encryption is what HIPAA calls addressable rather than strictly required, which means you implement it or document why an equivalent safeguard is reasonable. In practice you should encrypt, because encrypted PHI that leaks generally qualifies for a breach safe harbor. Encryption in transit through TLS is the baseline, and encryption at rest is a decision you make where the data lives.</p>
+
+    <h3>Can any host make my app HIPAA compliant?</h3>
+    <p>No. Compliance is shared. A host secures the infrastructure layer and can sign a BAA for the part it handles, but your code, your PHI handling, your access policies, and your workforce training are yours. Good infrastructure is a real head start, and it is not the finished result.</p>
+
+    <h3>What is PHI, exactly?</h3>
+    <p>PHI is protected health information: health data that can be tied to a specific person. The rules list eighteen identifiers, such as name, email, dates, and medical record numbers, that turn health data into PHI. When it is stored or transmitted electronically it is called ePHI, and that is what the Security Rule protects.</p>
+
+    <h3>Where should PHI live so it is not exposed?</h3>
+    <p>On a database that sits on a private network with no public address, behind a firewall, reachable only by your app. Keep PHI out of URLs, out of verbose logs, and out of any third-party tool you have not signed a BAA with. Most PHI exposure comes from these forgotten side channels, not from the main database.</p>
+
+    <h3>Do small healthcare startups have to follow HIPAA?</h3>
+    <p>Yes, if you are a covered entity or a business associate handling PHI, size does not exempt you. A two-person telehealth app faces the same core Security Rule obligations as a hospital, scaled to its risk. The Office for Civil Rights can levy real penalties, so treat HIPAA as a day-one design constraint, not a later cleanup.</p>
+
+    <h3>What is the most common HIPAA mistake developers make?</h3>
+    <p>Letting PHI leak into places nobody classified as sensitive: full request bodies in logs, patient IDs in URL query strings, or stack traces shipped to an error tracker with no BAA. The second most common is assuming that running on a big cloud makes the app compliant by itself. Both are shared-responsibility misunderstandings.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Security · Built for regulated workloads.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"HIPAA-Compliant Hosting: What It Covers, and What Stays Yours","description":"What HIPAA actually asks of hosting, the shared-responsibility split, and how infrastructure controls support a HIPAA-aligned setup. Careful, honest, no certification myths.","image":"https://www.kloudbean.com/blog/hipaa-compliant-hosting/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/hipaa-compliant-hosting/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Is Kloudbean HIPAA compliant?","acceptedAnswer":{"@type":"Answer","text":"No host can be HIPAA-compliant on your behalf, because compliance describes an organization and how it handles PHI, not a product you switch on. Kloudbean provides infrastructure controls that support a HIPAA-aligned setup: encryption in transit, private networking, access control, and automatic backups. Your application, your policies, and your BAAs remain yours to own."}},
+{"@type":"Question","name":"Is there an official HIPAA certification for hosting?","acceptedAnswer":{"@type":"Answer","text":"No. HIPAA has no official certification or government seal, and the Office for Civil Rights enforces the law rather than certifying products. Any host claiming an official HIPAA seal is overstating things. Judge a provider on its actual controls and contracts, not on a badge, and confirm what it offers directly."}},
+{"@type":"Question","name":"Does HIPAA require a BAA?","acceptedAnswer":{"@type":"Answer","text":"Generally yes. If a vendor creates, receives, maintains, or transmits PHI on your behalf, HIPAA expects a signed business associate agreement (BAA) with that vendor. That can include your host, email provider, analytics, and error tracking. Before you put real PHI on any platform, confirm BAA availability with the provider directly."}},
+{"@type":"Question","name":"Is encryption required for PHI?","acceptedAnswer":{"@type":"Answer","text":"Encryption is what HIPAA calls addressable rather than strictly required, which means you implement it or document why an equivalent safeguard is reasonable. In practice you should encrypt, because encrypted PHI that leaks generally qualifies for a breach safe harbor. Encryption in transit through TLS is the baseline, and encryption at rest is a decision you make where the data lives."}},
+{"@type":"Question","name":"Can any host make my app HIPAA compliant?","acceptedAnswer":{"@type":"Answer","text":"No. Compliance is shared. A host secures the infrastructure layer and can sign a BAA for the part it handles, but your code, your PHI handling, your access policies, and your workforce training are yours. Good infrastructure is a real head start, and it is not the finished result."}},
+{"@type":"Question","name":"What is PHI, exactly?","acceptedAnswer":{"@type":"Answer","text":"PHI is protected health information: health data that can be tied to a specific person. The rules list eighteen identifiers, such as name, email, dates, and medical record numbers, that turn health data into PHI. When it is stored or transmitted electronically it is called ePHI, and that is what the Security Rule protects."}},
+{"@type":"Question","name":"Where should PHI live so it is not exposed?","acceptedAnswer":{"@type":"Answer","text":"On a database that sits on a private network with no public address, behind a firewall, reachable only by your app. Keep PHI out of URLs, out of verbose logs, and out of any third-party tool you have not signed a BAA with. Most PHI exposure comes from these forgotten side channels, not from the main database."}},
+{"@type":"Question","name":"Do small healthcare startups have to follow HIPAA?","acceptedAnswer":{"@type":"Answer","text":"Yes, if you are a covered entity or a business associate handling PHI, size does not exempt you. A two-person telehealth app faces the same core Security Rule obligations as a hospital, scaled to its risk. The Office for Civil Rights can levy real penalties, so treat HIPAA as a day-one design constraint, not a later cleanup."}},
+{"@type":"Question","name":"What is the most common HIPAA mistake developers make?","acceptedAnswer":{"@type":"Answer","text":"Letting PHI leak into places nobody classified as sensitive: full request bodies in logs, patient IDs in URL query strings, or stack traces shipped to an error tracker with no BAA. The second most common is assuming that running on a big cloud makes the app compliant by itself. Both are shared-responsibility misunderstandings."}}
+]}
+]}
+</script>
+</body>
+</html>

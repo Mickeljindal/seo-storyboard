@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SSL Certificate Errors: A Fix-by-Error Field Guide</title>
+<meta name="description" content="Every common SSL certificate error, sorted by the exact message you see: NET::ERR_CERT_DATE_INVALID, name mismatch, incomplete chain, ERR_CERT_AUTHORITY_INVALID, and mixed content. What each one means, why it happens, and how to fix it.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/fix-ssl-certificate-errors/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SSL Certificate Errors: A Fix-by-Error Field Guide">
+<meta property="og:description" content="A troubleshooting field guide to SSL/TLS certificate errors, organized by the error string you actually see, each with its cause and fix, plus openssl and curl diagnostics.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Security &amp; scaling</span>
+  <h1>SSL Certificate Errors, Decoded: Fix Each One by the Message You See</h1>
+
+  <figure><img src="images/hero.png" alt="SSL certificate errors decoded: a field guide organized by the exact error message"></figure>
+
+  <p class="lead">Few things spike a site owner's pulse like a full-page red warning where the homepage used to be. Your connection is not private. It looks catastrophic. It almost never is.</p>
+  <p>An SSL certificate error is the browser being strict about HTTPS, and it hands you a specific code that says exactly what's wrong. This is a field guide sorted by that message. Find the one you're staring at, read why it happens, apply the fix. Most of them come down to two things, and I'll say which as we go.</p>
+
+  <div class="tldr">
+    <strong>Fast triage</strong>
+    <p>Read the exact error code. A date error means the certificate expired, so renew it (and auto-renew so it can't happen again). A name error means the cert doesn't cover the hostname you're visiting. "Unable to verify the first certificate" means a missing intermediate, so install the full chain. A padlock with a warning is mixed content, which is a fix in your own pages, not the certificate.</p>
+  </div>
+
+  <h2>How a browser decides to trust your certificate</h2>
+  <p>Before the error list, one picture that explains half of them. Your certificate isn't trusted on its own. It's signed by an intermediate certificate authority, which is signed by a root the browser already trusts. That's a chain, and the browser walks it from your site up to a root it recognizes. Break any link and trust collapses.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 262" role="img" aria-label="Certificate chain from browser to your leaf certificate to an intermediate CA to a trusted root CA, with the link between the leaf and the intermediate shown broken" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="30" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="17" font-weight="700">The chain of trust, and where it snaps</text>
+      <text x="30" y="55" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12.5">Each certificate is signed by the one above it, up to a root the browser already trusts.</text>
+
+      <!-- dashed recovery arc browser -> intermediate -->
+      <path d="M79 140 Q290 92 477 140" fill="none" stroke="#9aa4bf" stroke-width="1.5" stroke-dasharray="5 5"/>
+      <text x="284" y="88" text-anchor="middle" fill="#7c86a3" font-family="Poppins,sans-serif" font-size="10.5">a browser may auto-fetch the missing link; strict clients won't</text>
+
+      <!-- Browser -->
+      <rect x="22" y="140" width="114" height="74" rx="12" fill="#000f27"/>
+      <text x="79" y="172" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="14" font-weight="600">Browser</text>
+      <text x="79" y="191" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="10.5">walks the chain</text>
+
+      <!-- Leaf -->
+      <rect x="206" y="140" width="150" height="74" rx="12" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5"/>
+      <text x="281" y="171" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="13.5" font-weight="600">Your certificate</text>
+      <text x="281" y="190" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">leaf, for your domain</text>
+
+      <!-- Intermediate -->
+      <rect x="402" y="140" width="150" height="74" rx="12" fill="#ffffff" stroke="#c7cee0" stroke-width="1.5"/>
+      <text x="477" y="171" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="13.5" font-weight="600">Intermediate CA</text>
+      <text x="477" y="190" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">the middle link</text>
+
+      <!-- Root -->
+      <rect x="616" y="140" width="120" height="74" rx="12" fill="#ffffff" stroke="#40b75f" stroke-width="1.5"/>
+      <text x="676" y="171" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="13.5" font-weight="600">Root CA</text>
+      <text x="676" y="190" text-anchor="middle" fill="#2f7d45" font-family="Poppins,sans-serif" font-size="10.5">already trusted</text>
+
+      <!-- chain link 1: browser-leaf (intact) -->
+      <circle cx="164" cy="177" r="9" fill="none" stroke="#1c2536" stroke-width="4"/>
+      <circle cx="178" cy="177" r="9" fill="none" stroke="#1c2536" stroke-width="4"/>
+
+      <!-- chain link 2: leaf-intermediate (BROKEN) -->
+      <circle cx="366" cy="177" r="9" fill="none" stroke="#e5484d" stroke-width="4"/>
+      <circle cx="392" cy="177" r="9" fill="none" stroke="#e5484d" stroke-width="4"/>
+      <line x1="373" y1="170" x2="385" y2="184" stroke="#e5484d" stroke-width="2.5"/>
+      <line x1="385" y1="170" x2="373" y2="184" stroke="#e5484d" stroke-width="2.5"/>
+      <text x="379" y="232" text-anchor="middle" fill="#e5484d" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600">chain breaks here</text>
+
+      <!-- chain link 3: intermediate-root (intact) -->
+      <circle cx="577" cy="177" r="9" fill="none" stroke="#1c2536" stroke-width="4"/>
+      <circle cx="591" cy="177" r="9" fill="none" stroke="#1c2536" stroke-width="4"/>
+    </svg>
+    <figcaption>When the intermediate is missing, the client can't connect your certificate to a trusted root. That's the "unable to verify the first certificate" error.</figcaption>
+  </figure>
+
+  <p>Two of the scariest errors are really just this chain going wrong: a missing middle link (incomplete chain) or a root nobody trusts (self-signed). Keep the picture in mind and they stop being mysterious. Here's the whole error list, and honestly, the vast majority of real SSL pain is two of them: a certificate that expired, and a chain that's missing its middle. Handle those two and you've handled most of what ever goes wrong.</p>
+
+  <h2>Match the SSL certificate error to its cause</h2>
+  <p>Skim for the exact string you see, then jump to its section below.</p>
+
+  <table class="cmp">
+    <thead><tr><th>The message you see</th><th>What it means</th><th>The fix</th></tr></thead>
+    <tbody>
+      <tr><td><code>NET::ERR_CERT_DATE_INVALID</code></td><td>The certificate expired (or your device clock is wrong)</td><td>Renew it, then auto-renew</td></tr>
+      <tr><td><code>NET::ERR_CERT_COMMON_NAME_INVALID</code></td><td>The cert doesn't cover this hostname (often www vs apex)</td><td>Issue one covering every name you serve</td></tr>
+      <tr><td>"unable to verify the first certificate"</td><td>The server isn't sending the intermediate</td><td>Install the full chain</td></tr>
+      <tr><td><code>NET::ERR_CERT_AUTHORITY_INVALID</code></td><td>Self-signed, or from a CA the browser doesn't trust</td><td>Use a cert from a trusted CA</td></tr>
+      <tr><td>Padlock with a warning</td><td>Mixed content: an HTTPS page loading <code>http://</code> assets</td><td>Serve every asset over HTTPS</td></tr>
+      <tr><td>"certificate is not valid yet"</td><td>Clock skew, or a fresh cert and DNS not settled</td><td>Fix the clock, or wait for DNS</td></tr>
+    </tbody>
+  </table>
+
+  <h2>NET::ERR_CERT_DATE_INVALID: the certificate expired</h2>
+  <p>The most common one by a wide margin. Certificates are valid for a fixed window, then they die. If renewal is manual, someone eventually forgets, and one morning every visitor meets a full-page warning. <strong>What you see:</strong> the red "your connection is not private" page with <code>NET::ERR_CERT_DATE_INVALID</code>. <strong>Why:</strong> today's date is past the certificate's <code>notAfter</code> date. <strong>The fix right now</strong> is to renew and reload. <strong>The real fix</strong> is automatic renewal, so the cert quietly reissues itself weeks before it lapses and expiry stops being a thing that can happen to you.</p>
+  <p>One gotcha worth knowing: if the site looks fine on your phone but throws a date error on one laptop, suspect that laptop's clock. TLS checks validity against the local time, so a badly wrong system clock produces a date error on a perfectly good certificate. Correct the clock and it clears.</p>
+
+  <h2>NET::ERR_CERT_COMMON_NAME_INVALID: the name doesn't match</h2>
+  <p>A classic. <code>https://example.com</code> loads fine, but <code>https://www.example.com</code> throws an error, or the other way round. <strong>What you see:</strong> <code>NET::ERR_CERT_COMMON_NAME_INVALID</code> or a "this certificate is not valid for this name" message. <strong>Why:</strong> a certificate is only valid for the exact names listed on it, and you're visiting one it doesn't cover. The bare domain and the <code>www</code> version count as two different names. <strong>The fix:</strong> get a certificate that covers every hostname you serve (apex, <code>www</code>, and any subdomains), then redirect consistently to one canonical version so visitors land on the name the cert is built for. If HTTPS works without <code>www</code> but not with it, this is nearly always the reason. The cleanest setup is to add each domain and its SSL up front, which is what the <a href="https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/">custom domain and SSL</a> walkthrough covers.</p>
+
+  <h2>"Unable to verify the first certificate": a broken chain</h2>
+  <p>This is the sneaky one, because it fools you. The site loads with a padlock in Chrome, so you assume it's fine. Then an API call from another server fails, or a mobile app won't connect, or a payment gateway rejects you with a certificate error. <strong>What you see:</strong> "unable to verify the first certificate," "incomplete chain," or <code>SEC_ERROR_UNKNOWN_ISSUER</code> from stricter clients. <strong>Why:</strong> your server is sending its own certificate but not the intermediate that signed it (the broken link in the diagram above). Browsers often paper over it by fetching the missing piece themselves, which is exactly why it looks fine in a browser and breaks everywhere else. Servers, command-line tools, and mobile SDKs don't do that favor. <strong>The fix:</strong> install the complete chain, your certificate plus its intermediates, so every client can walk it to a trusted root. If a site works in a browser but a server-to-server call complains about the cert, suspect the chain before anything else.</p>
+
+  <h2>NET::ERR_CERT_AUTHORITY_INVALID: self-signed or untrusted CA</h2>
+  <p><strong>What you see:</strong> <code>NET::ERR_CERT_AUTHORITY_INVALID</code>, sometimes worded as "issued by an unknown authority." <strong>Why:</strong> the certificate traces back to a root the browser doesn't trust. Usually that means it's self-signed (you generated it yourself for local testing) or it came from an internal CA that public browsers have never heard of. Self-signed certs are perfectly fine on your own machine. They are not fine on a public site, because no visitor's browser will trust them. <strong>The fix:</strong> replace it with a certificate from a publicly trusted CA. Let's Encrypt issues those for free, and on managed hosting you don't touch the process at all. If you deliberately run an internal CA for a private tool, the fix instead is to distribute your root to the machines that need it, but for anything public, use a trusted CA.</p>
+
+  <h2>Mixed content: the half-secure padlock</h2>
+  <p>Sometimes the page loads over HTTPS but the padlock has a small warning, or it's crossed out. <strong>What you see:</strong> "not fully secure," a broken padlock, and a console line like "Mixed Content: The page was loaded over HTTPS but requested an insecure resource." <strong>Why:</strong> the page itself is secure, but it's pulling in an image, a script, or a stylesheet over plain <code>http://</code>, and the browser flags that insecure asset. <strong>The fix lives in your code, not the certificate.</strong> Your cert is fine. Change those <code>http://</code> references to <code>https://</code> (or drop the scheme so they inherit the page's), and every resource loads securely. Search your templates and bundled assets for <code>http://</code> links and hunt them down. Once you're serving everything over HTTPS, add <a href="https://www.kloudbean.com/blog/security-headers-guide/">HSTS and the other security headers</a> so browsers refuse to fall back to insecure requests at all. And to be clear, SSL only encrypts the connection. It isn't a filter for attacks, which is a separate job for <a href="https://www.kloudbean.com/blog/what-a-waf-does/">a WAF</a>.</p>
+
+  <h2>"Certificate is not valid yet": clocks, fresh issues, and DNS</h2>
+  <p>The mirror image of expiry, and it trips people up right after they set a site up. <strong>What you see:</strong> a validity error saying the certificate isn't active yet. <strong>Why, and the fix, split two ways.</strong> Either the client's clock is set in the past, so a valid cert looks like it hasn't started (fix the clock), or you just issued the cert and DNS hasn't fully pointed at your server yet. A certificate authority validates that you control the domain before it issues, and it can only do that once the domain resolves to your server. So the order matters: point your DNS first, confirm it resolves, then issue the certificate. Rush it and issuance fails or the cert lands before the world can see the domain. If you're moving a live site between hosts, sequence the DNS cutover and the new certificate carefully, which is the heart of a <a href="https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/">zero-downtime migration</a>.</p>
+
+  <h2>Diagnose it from the command line</h2>
+  <p>The browser gives you a code. These give you the evidence. Two tools settle almost every SSL question, and you don't have to guess which error you've got.</p>
+<pre><code># What certificate(s) is the server actually sending? A full chain, or just one?
+openssl s_client -connect example.com:443 -servername example.com -showcerts
+
+# The essentials: who it's for, who issued it, and the valid dates
+echo | openssl s_client -connect example.com:443 -servername example.com 2&gt;/dev/null \
+  | openssl x509 -noout -subject -issuer -dates
+
+# Headers plus the TLS handshake in one quick look
+curl -vI https://example.com</code></pre>
+  <p>Read it like this. If <code>-showcerts</code> returns a single certificate, your chain is probably incomplete, because a healthy server sends the leaf and at least one intermediate. A <code>notAfter</code> date in the past means it's expired. If the <code>subject</code> or its subject-alternative names don't include the exact host you typed, that's your name mismatch. And <code>curl</code> failing with a certificate error while a browser stays happy is the classic fingerprint of a missing intermediate. Two minutes here beats an afternoon of guessing.</p>
+
+  <!-- IMAGE SLOT: replace with a real figure + img (src -> images/openssl-chain.png) + figcaption -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal showing openssl s_client output, with the certificate chain and the notAfter date highlighted.</em><small>Shows readers exactly what a healthy chain versus a broken one looks like.</small></span></figure>
+
+  <h2>Why most of this never happens on managed SSL</h2>
+  <p>Here's the part that quietly deletes four of the six errors above. On managed hosting, the certificate is auto-provisioned for your domain, the full chain is installed correctly, modern protocols are configured, and renewal is automatic. On Kloudbean that's free, auto-renewing Let's Encrypt SSL, and it checks that your domain resolves before it issues, so the "not valid yet" and authority errors don't get a chance to appear. Expiry, chain, authority, and issuance timing all stop being your problem.</p>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean console: an application served over HTTPS with auto-provisioned, auto-renewing SSL and the full chain installed">
+    <figcaption>Auto-provisioned, auto-renewing SSL with the complete chain, so the expiry, chain, and authority errors simply don't occur.</figcaption>
+  </figure>
+
+  <p>That leaves exactly one on your side of the line: mixed content, because only you know which assets your pages load. It's a Linux and web-server stack underneath, and "managed" means the platform keeps the padlock green (issuing, chaining, and renewing the cert) while you make sure your own pages request everything over HTTPS. Decode the specific message, apply its fix, and the scary red screen goes back to a quiet padlock.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">A green padlock you never have to renew.</p>
+    <p style="margin:0 0 .6em">Serve your site with free, auto-provisioning, auto-renewing SSL and the full chain installed for you, on <a href="https://www.kloudbean.com/">kloudbean.com</a>. Most of these errors never occur. Plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Free auto-renewing SSL · Full chain installed · Custom domains · Private networking · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Why does my site say "Your connection is not private"?</h3>
+    <p>The browser doesn't trust your certificate, and the code underneath says why. Usually it has expired (<code>NET::ERR_CERT_DATE_INVALID</code>), it's for the wrong domain, or it's self-signed. Read the specific code on the warning, then renew, reissue for the right names, or replace a self-signed cert with one from a trusted CA. Auto-renewal stops the expiry version coming back.</p>
+    <h3>What does NET::ERR_CERT_DATE_INVALID mean?</h3>
+    <p>The certificate is outside its valid dates, almost always because it expired. Renew it and reload. If only one device shows the error while others are fine, check that device's clock, since TLS validates the certificate against the local time and a wrong clock fakes a date error on a good cert.</p>
+    <h3>Why does HTTPS work on my domain but not with www (or the reverse)?</h3>
+    <p>Your certificate covers one hostname but not the other. The apex domain and the <code>www</code> version are separate names, so a cert issued for one throws <code>NET::ERR_CERT_COMMON_NAME_INVALID</code> on the other. Issue a certificate that covers every name you serve, then redirect consistently to one canonical version.</p>
+    <h3>Why does my SSL work in the browser but fail from an app, curl, or API?</h3>
+    <p>Almost always an incomplete chain. Your server is sending its certificate without the intermediate that signed it. Browsers often fetch the missing piece automatically and hide the problem, but curl, mobile apps, and payment gateways don't and fail with "unable to verify the first certificate." Install the full chain and the server-to-server errors stop.</p>
+    <h3>What causes NET::ERR_CERT_AUTHORITY_INVALID?</h3>
+    <p>The certificate traces to a root the browser doesn't trust, usually because it's self-signed or from an internal CA. Self-signed is fine for local testing but never for a public site. Replace it with a certificate from a publicly trusted authority like Let's Encrypt, which managed hosting provisions for you automatically.</p>
+    <h3>What is mixed content and how do I fix the padlock warning?</h3>
+    <p>Mixed content is an HTTPS page loading a resource (image, script, or stylesheet) over insecure <code>http://</code>, which the browser flags with a broken padlock. Your certificate is fine. Change those references to <code>https://</code> in your code so every asset loads securely, then add HSTS so browsers won't attempt insecure requests at all.</p>
+    <h3>How do I check my certificate and its chain from the command line?</h3>
+    <p>Run <code>openssl s_client -connect example.com:443 -servername example.com -showcerts</code> to see every certificate the server sends. One certificate usually means an incomplete chain. Pipe into <code>openssl x509 -noout -subject -issuer -dates</code> to read the names and expiry, and use <code>curl -vI https://example.com</code> for a quick handshake check.</p>
+    <h3>Do I have to manage SSL renewal myself?</h3>
+    <p>Not on managed hosting. Certificates auto-provision and auto-renew, and the full chain is installed for you, so expiry and chain errors don't occur. On a hand-configured server you own renewal, and forgetting it is the single most common cause of a site suddenly showing a certificate warning.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Most SSL errors are a date or a broken chain.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"SSL Certificate Errors, Decoded: Fix Each One by the Message You See","description":"A troubleshooting field guide to common SSL/TLS certificate errors, organized by the error string you see, each with its cause and fix, plus openssl and curl diagnostics.","image":"https://www.kloudbean.com/blog/fix-ssl-certificate-errors/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/fix-ssl-certificate-errors/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Why does my site say Your connection is not private?","acceptedAnswer":{"@type":"Answer","text":"The browser doesn't trust your certificate, and the code underneath says why. Usually it has expired (NET::ERR_CERT_DATE_INVALID), it's for the wrong domain, or it's self-signed. Read the specific code on the warning, then renew, reissue for the right names, or replace a self-signed cert with one from a trusted CA. Auto-renewal stops the expiry version coming back."}},
+{"@type":"Question","name":"What does NET::ERR_CERT_DATE_INVALID mean?","acceptedAnswer":{"@type":"Answer","text":"The certificate is outside its valid dates, almost always because it expired. Renew it and reload. If only one device shows the error while others are fine, check that device's clock, since TLS validates the certificate against the local time and a wrong clock fakes a date error on a good cert."}},
+{"@type":"Question","name":"Why does HTTPS work on my domain but not with www?","acceptedAnswer":{"@type":"Answer","text":"Your certificate covers one hostname but not the other. The apex domain and the www version are separate names, so a cert issued for one throws NET::ERR_CERT_COMMON_NAME_INVALID on the other. Issue a certificate that covers every name you serve, then redirect consistently to one canonical version."}},
+{"@type":"Question","name":"Why does my SSL work in the browser but fail from an app, curl, or API?","acceptedAnswer":{"@type":"Answer","text":"Almost always an incomplete chain. Your server is sending its certificate without the intermediate that signed it. Browsers often fetch the missing piece automatically and hide the problem, but curl, mobile apps, and payment gateways don't and fail with unable to verify the first certificate. Install the full chain and the server-to-server errors stop."}},
+{"@type":"Question","name":"What causes NET::ERR_CERT_AUTHORITY_INVALID?","acceptedAnswer":{"@type":"Answer","text":"The certificate traces to a root the browser doesn't trust, usually because it's self-signed or from an internal CA. Self-signed is fine for local testing but never for a public site. Replace it with a certificate from a publicly trusted authority like Let's Encrypt, which managed hosting provisions for you automatically."}},
+{"@type":"Question","name":"What is mixed content and how do I fix the padlock warning?","acceptedAnswer":{"@type":"Answer","text":"Mixed content is an HTTPS page loading a resource (image, script, or stylesheet) over insecure http, which the browser flags with a broken padlock. Your certificate is fine. Change those references to https in your code so every asset loads securely, then add HSTS so browsers won't attempt insecure requests at all."}},
+{"@type":"Question","name":"How do I check my certificate and its chain from the command line?","acceptedAnswer":{"@type":"Answer","text":"Run openssl s_client -connect example.com:443 -servername example.com -showcerts to see every certificate the server sends. One certificate usually means an incomplete chain. Pipe into openssl x509 -noout -subject -issuer -dates to read the names and expiry, and use curl -vI https://example.com for a quick handshake check."}},
+{"@type":"Question","name":"Do I have to manage SSL renewal myself?","acceptedAnswer":{"@type":"Answer","text":"Not on managed hosting. Certificates auto-provision and auto-renew, and the full chain is installed for you, so expiry and chain errors don't occur. On a hand-configured server you own renewal, and forgetting it is the single most common cause of a site suddenly showing a certificate warning."}}
+]}
+]}
+</script>
+</body>
+</html>

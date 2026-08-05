@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Deploy an Express App to Production (Node + PM2)</title>
+<meta name="description" content="Deploy an Express app to production: read PORT from env, bind 0.0.0.0, trust the proxy, then Git deploy with PM2, a managed database, and free SSL.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/deploy-express-app/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Deploy an Express App to Production (Node + PM2)">
+<meta property="og:description" content="The Express-specific changes that make a local app production-ready (PORT, 0.0.0.0, trust proxy, a health route), then the real deploy: Git, PM2, env vars, a managed database, and free SSL.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Deployment · Express</span>
+  <h1>How to Deploy an Express App to Production</h1>
+  <p class="byline">By Kloudbean Engineering · Getting Express from <code>node app.js</code> to a live URL, without the guesswork.</p>
+
+  <figure><img src="images/hero.png" alt="Deploy an Express app to production: git push to a build, PM2 keeps the process alive, Nginx proxies HTTPS to it"></figure>
+
+  <p class="lead">Your Express app runs fine with <code>node app.js</code>. You hit <code>localhost:3000</code>, the routes answer, life is good. Then you try to deploy that Express app to production and it 502s, or it boots but nothing reaches it. Nine times out of ten the code is fine. The config isn't.</p>
+
+  <p>This is a practical guide to deploy Express.js to production on a server you own. First the handful of code changes that make an Express app production-ready, then the actual deploy: Git, PM2, environment variables, a domain with SSL. We'll also host an Express API next to a managed database, and fix the 502/503 that eats most people's first evening. If you want the framework-agnostic model first, the pillar covers <a href="https://www.kloudbean.com/blog/how-to-deploy-any-app/">how to deploy any app</a>. Here we stay specific to Express.</p>
+
+  <div class="tldr">
+    <strong>How do I deploy an Express app to production?</strong>
+    <p>Read the port from <code>process.env.PORT</code>, bind to <code>0.0.0.0</code> (not localhost), turn on <code>trust proxy</code> so it behaves behind Nginx, and add a small health route. Then push to Git, let a managed server run <code>npm ci</code> and your build, keep the process alive with PM2, set your env vars and database URL in the dashboard, and attach a domain with free auto-renewing SSL. Most Express deploy failures are config, not code.</p>
+  </div>
+
+  <h2>The Express code that's fine locally and breaks in production</h2>
+  <p>Express barely gets in your way locally, which is the whole appeal. That same forgiving default is why the first deploy surprises people. Four small changes cover almost all of it. None of them touch your routes or your business logic. Here's how they fit together, then we'll take each one.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 352" role="img" aria-label="Two bands. Top, DEPLOY: a git push triggers npm ci and a build with live logs, then PM2 reloads the Express process and can run one copy per CPU core. Bottom, SERVE: a browser makes an HTTPS request to Nginx on port 443, which terminates TLS and sets X-Forwarded-For, then proxies to the Express app bound to 0.0.0.0 on its port with trust proxy on, and a health route answers 200 OK. If Nginx cannot reach the app on that port you get a 502 or 503." style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <defs>
+        <marker id="axg" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5b6a86"></path></marker>
+        <marker id="axp" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#4F1AF3"></path></marker>
+        <marker id="axgr" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#40b75f"></path></marker>
+      </defs>
+
+      <text x="28" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="17" font-weight="700">One Express app, two flows: deploy and serve</text>
+
+      <!-- DEPLOY band -->
+      <text x="28" y="66" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="12" font-weight="600" letter-spacing="1.2">DEPLOY · ON EVERY PUSH</text>
+
+      <rect x="28" y="80" width="120" height="56" rx="12" fill="#000f27"></rect>
+      <text x="88" y="104" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">git push</text>
+      <text x="88" y="122" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="10.5">to your branch</text>
+
+      <rect x="188" y="80" width="150" height="56" rx="12" fill="#fff" stroke="#4F1AF3" stroke-width="1.5"></rect>
+      <text x="263" y="104" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12" font-weight="600">npm ci, build</text>
+      <text x="263" y="122" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">live build logs</text>
+
+      <rect x="378" y="80" width="150" height="56" rx="12" fill="#4F1AF3"></rect>
+      <text x="453" y="104" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">PM2 reload</text>
+      <text x="453" y="122" text-anchor="middle" fill="#d8ccff" font-family="Poppins,sans-serif" font-size="10.5">cluster: -i max</text>
+
+      <line x1="148" y1="108" x2="186" y2="108" stroke="#5b6a86" stroke-width="2" marker-end="url(#axg)"></line>
+      <line x1="338" y1="108" x2="376" y2="108" stroke="#5b6a86" stroke-width="2" marker-end="url(#axg)"></line>
+
+      <line x1="28" y1="170" x2="732" y2="170" stroke="#e6e9f2" stroke-width="1"></line>
+
+      <!-- SERVE band -->
+      <text x="28" y="202" fill="#2f7d45" font-family="Poppins,sans-serif" font-size="12" font-weight="600" letter-spacing="1.2">SERVE · EVERY REQUEST</text>
+
+      <rect x="28" y="216" width="120" height="64" rx="12" fill="#000f27"></rect>
+      <text x="88" y="242" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">Browser</text>
+      <text x="88" y="260" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="10.5">HTTPS request</text>
+
+      <rect x="196" y="210" width="168" height="76" rx="12" fill="#fff" stroke="#000f27" stroke-width="1.5"></rect>
+      <text x="280" y="236" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">Nginx :443</text>
+      <text x="280" y="254" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">terminates TLS</text>
+      <text x="280" y="270" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">sets X-Forwarded-For</text>
+
+      <rect x="412" y="210" width="180" height="76" rx="12" fill="#4F1AF3"></rect>
+      <text x="502" y="236" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">Express app</text>
+      <text x="502" y="254" text-anchor="middle" fill="#d8ccff" font-family="Poppins,sans-serif" font-size="10.5">0.0.0.0 : PORT</text>
+      <text x="502" y="270" text-anchor="middle" fill="#d8ccff" font-family="Poppins,sans-serif" font-size="10.5">trust proxy on</text>
+
+      <rect x="640" y="222" width="92" height="52" rx="12" fill="#fff" stroke="#40b75f" stroke-width="1.8"></rect>
+      <text x="686" y="245" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600">/healthz</text>
+      <text x="686" y="262" text-anchor="middle" fill="#2f7d45" font-family="Poppins,sans-serif" font-size="10.5">200 OK</text>
+
+      <line x1="148" y1="248" x2="194" y2="248" stroke="#5b6a86" stroke-width="2" marker-end="url(#axg)"></line>
+      <text x="171" y="240" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="9.5">https</text>
+      <line x1="364" y1="248" x2="410" y2="248" stroke="#4F1AF3" stroke-width="2" marker-end="url(#axp)"></line>
+      <text x="387" y="240" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="9.5">proxy_pass</text>
+      <line x1="592" y1="248" x2="638" y2="248" stroke="#40b75f" stroke-width="2" marker-end="url(#axgr)"></line>
+
+      <!-- deploy manages serve -->
+      <path d="M453 136 C453 175, 502 175, 502 208" fill="none" stroke="#4F1AF3" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#axp)"></path>
+      <text x="566" y="180" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="10">manages + restarts</text>
+
+      <text x="380" y="322" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">If Nginx can't reach the app on that port, you get a 502/503. Bind 0.0.0.0, read PORT from env.</text>
+    </svg>
+    <figcaption>Two flows in one app: a deploy that rebuilds and reloads on every push, and a request path where Nginx proxies HTTPS to your Express process on its port.</figcaption>
+  </figure>
+
+  <h3>1. Read the port from the environment</h3>
+  <p>Local code says <code>app.listen(3000)</code> because 3000 was free on your machine. In production the platform assigns the port and the reverse proxy in front forwards to it. If your app ignores that and grabs 3000 anyway, the proxy connects to nothing and you get a 502. The app didn't even crash. It's just listening in the wrong place.</p>
+  <pre><code>// works on your laptop, breaks in production
+app.listen(3000);
+
+// reads the assigned port, works anywhere
+const port = process.env.PORT || 3000;
+app.listen(port, () =&gt; console.log(`Express listening on ${port}`));</code></pre>
+  <p>That <code>|| 3000</code> keeps your local run unchanged while letting production hand you the real port. It's the single highest-value line in this whole guide.</p>
+
+  <h3>2. Bind to 0.0.0.0, not localhost</h3>
+  <p>A plain <code>app.listen(port)</code> already binds to all interfaces, which is what you want. The trap is a template or a habit that pins the host:</p>
+  <pre><code>// reachable only from the same loopback
+app.listen(port, 'localhost');   // or '127.0.0.1'
+
+// reachable by the proxy, health checks, containers
+app.listen(port, '0.0.0.0');</code></pre>
+  <p>On a single managed box Nginx is local, so <code>127.0.0.1</code> often happens to work. But bind to <code>0.0.0.0</code> and you delete a whole class of "works on my machine" surprises: health checks from another interface, a sidecar, a container network, a load balancer probe. It costs nothing and prevents a confusing outage. Just bind to all interfaces and move on.</p>
+
+  <h3>3. Trust the proxy</h3>
+  <p>This one is pure Express and it bites quietly. Behind Nginx, every request arrives from <code>127.0.0.1</code>, over plain HTTP, on the internal port. Express believes what it sees. So <code>req.ip</code> is the proxy, <code>req.protocol</code> is <code>http</code>, and <code>req.secure</code> is false, even though your user is on HTTPS. That breaks secure cookies, HTTPS redirects, and rate limiters that key on IP (every request looks like it came from one address). One line fixes it:</p>
+  <pre><code>// tell Express it sits behind one reverse proxy
+app.set('trust proxy', 1);</code></pre>
+  <p>Now Express reads the real client IP and protocol from the <code>X-Forwarded-For</code> and <code>X-Forwarded-Proto</code> headers Nginx set. Secure cookies set correctly, <code>express-rate-limit</code> counts real IPs, and <code>req.protocol</code> reports <code>https</code>. Skip this and you'll ship a login that silently won't stay logged in behind SSL. Ask me how I know.</p>
+
+  <h3>4. Add a health route</h3>
+  <p>Give the platform a cheap, honest way to ask "are you up?" A tiny route that returns 200 and touches nothing slow:</p>
+  <pre><code>app.get('/healthz', (req, res) =&gt; res.status(200).send('ok'));</code></pre>
+  <p>Keep it dumb on purpose. Don't hang it on a database query or a downstream API, or a brief blip there marks your whole app as unhealthy and something starts restarting a process that was fine. A health route is a liveness signal, not a full system check. If you want deeper checks, put them behind a separate path that your monitoring hits, not the one the proxy uses to decide the app is alive.</p>
+
+  <div class="note"><b>Coming off Heroku?</b> Express and Heroku grew up together, so most of this maps cleanly. Your Procfile's <code>web:</code> line becomes your Start command, and reading <code>process.env.PORT</code> works exactly the same. The migration angle, dynos versus a server you actually own, is in the <a href="https://www.kloudbean.com/blog/heroku-alternative-for-modern-apps/">Heroku alternative for modern apps</a>.</div>
+
+  <h2>How to deploy an Express app on a managed server</h2>
+  <p>With those four changes in, the deploy is short. A managed server hands you the survival machinery already assembled: the Node runtime, PM2, an Nginx reverse proxy, a firewall, SSL. You bring the app. Here's the path through the Kloudbean console.</p>
+
+  <h3>Create the server and add your app</h3>
+  <p>Click <strong>Add Server</strong>, pick a cloud provider (Kloudbean runs seven: AWS, Amazon Lightsail, Google Cloud, DigitalOcean, Vultr, Akamai Linode, and UpCloud), choose the <strong>Node.js</strong> stack, a location near your users, and a size. 2 GB is a comfortable start for a single API. If you're putting several apps on one box, or an Express API beside a front end, add each one under <strong>Applications, Add Application</strong> and pick its stack. Multiple apps per server is a first-class thing here, not a hack.</p>
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean Add Application screen: adding an Express Node.js app to a server and choosing its stack">
+    <figcaption>Add Application: your Express API and its front end can share one server, each with its own space and config.</figcaption>
+  </figure>
+
+  <h3>Connect Git and set the runtime</h3>
+  <p>Deploys come from Git, which is what you want. The repo is the source of truth, not a folder on your laptop. In <strong>Git Deployment</strong>, connect GitHub, paste the repository URL, choose a branch, and clone. Then fill the runtime config:</p>
+  <ul>
+    <li><strong>App Directory:</strong> the folder holding your <code>package.json</code>.</li>
+    <li><strong>Port:</strong> the port your app reads from <code>process.env.PORT</code>. This is the number the proxy forwards to, so it has to match.</li>
+    <li><strong>Node Version:</strong> match what you built on. Node 20+ is a safe default.</li>
+    <li><strong>Install / Build / Start:</strong> usually <code>npm ci</code>, an optional <code>npm run build</code> (TypeScript, a bundled client), then <code>npm start</code> or <code>node app.js</code>.</li>
+  </ul>
+  <p>Hit <strong>Pull &amp; Deploy</strong> and the build log streams live, so you watch clone, install, build, and start scroll past instead of guessing. Turn on automated deployment and every push to that branch ships itself. That's the same continuous-deploy loop the big platforms sell, on a box you own. The details are in <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD auto-deploy from GitHub</a>.</p>
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean Git Deployment tab: repository URL, branch, and the install, build, and start commands for an Express app">
+    <figcaption>Git Deployment: connect the repo, set your install/build/start commands and the port, then Pull and Deploy.</figcaption>
+  </figure>
+  <!-- ADD IMAGE: the runtime configuration panel with App Directory, Port, Node version, and Install/Build/Start filled in for Express. Swap for a real screenshot: src -> images/express-runtime-config.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The runtime config panel filled in for Express: App Directory, Port, Node version, and the Install, Build, and Start commands.</em><small>This is where your build artifact and the long-running process get defined.</small></span></figure>
+
+  <h3>Let PM2 keep it alive</h3>
+  <p>On the managed stack your Express app runs under PM2, so a crash doesn't become downtime. PM2 notices the process exit and restarts it in about a second, and it starts your app again after a server reboot. That's the line between a service and a terminal window you forgot to close. Kloudbean supports PM2 multi-process, so when one core stops being enough you run a copy per core behind the same port:</p>
+  <pre><code># one instance per CPU core
+pm2 start app.js -i max</code></pre>
+  <p>Start with a single instance. Turn on clustering when your metrics actually ask for it. One caveat that trips people the moment they cluster: in-memory state stops being shared. A sessions object, a local rate-limiter, or a cache that's just a <code>Map</code> now has one copy per instance, so a user hits instance A and their session isn't on instance B. Move that state into managed Redis and it's shared again. The full PM2 story, graceful <code>SIGTERM</code> shutdown and cluster mode in depth, lives in <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploy a Node app to managed cloud</a>.</p>
+  <!-- ADD IMAGE: terminal running pm2 list showing the Express app online with its restart count. Swap for a real screenshot: src -> images/pm2-list.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal running pm2 list: the Express app online, its uptime, and restart count.</em><small>Optional. Makes the process-manager point concrete.</small></span></figure>
+
+  <h3>Set environment variables (and NODE_ENV)</h3>
+  <p>Your database URL, API keys, and any config that differs between laptop and production go in <strong>Runtime Configuration, Environment Variables</strong>, never in the repo. There's a <strong>Paste .env Content</strong> tab so you can drop the whole file in and convert it to key/value. A missing variable is the most common reason an Express app builds but won't boot, so copy them all.</p>
+  <p>Set <code>NODE_ENV=production</code> too. Express uses it to cache view templates and trim verbose error output, and it changes how installs behave. Watch this real gotcha: with <code>NODE_ENV=production</code> set, <code>npm ci</code> can skip <code>devDependencies</code>, so if your build step needs the TypeScript compiler or a bundler that's sitting in <code>devDependencies</code>, the build fails with a "command not found" that looks nothing like the real cause. Either move build-time tools into <code>dependencies</code>, or install with <code>npm ci --include=dev</code> for the build. The broader why-and-how is in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a>.</p>
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean Environment Variables editor with a paste-dot-env tab and a key/value list for an Express app">
+    <figcaption>Environment Variables: paste your .env, convert to key/value, save. Secrets stay out of Git.</figcaption>
+  </figure>
+
+  <h3>Point a domain and turn on SSL</h3>
+  <p>Add your custom domain in the app's domain settings, point its DNS at the server, and install a free auto-renewing SSL certificate. Renewal is automatic, so no calendar reminder and no plain-HTTP API in 2026. A pure Express API with no browser front end still gets a domain and HTTPS. Clients call it over TLS the same way.</p>
+  <!-- ADD IMAGE: the domain and SSL panel with a custom domain added and a free certificate issued. Swap for a real screenshot: src -> images/express-domain-ssl.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The domain and SSL panel: a custom domain added and a free auto-renewing certificate issued.</em></span></figure>
+
+  <h2>Hosting an Express API with a managed database</h2>
+  <p>Most Express apps are an API in front of a database, so this is the part that matters. Move your data off any local file before you have users, not after. A SQLite file or a JSON store on the app server's disk works right up until your first redeploy or a second instance, and then it's gone or out of sync.</p>
+  <p>Open <strong>Launch Database</strong> and create a managed engine. Kloudbean runs seven: PostgreSQL, MySQL, MariaDB, Redis, Memcached, Elasticsearch, and MongoDB. It provisions on the same box or a private network, gets backed up on a schedule, and hands you credentials. Feed those into your env vars as a connection string, and read it in Express, never hardcoded:</p>
+  <pre><code>// read the connection string from the environment
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });</code></pre>
+  <p>Two things worth getting right early. Use a <strong>connection pool</strong> rather than opening a socket per request, because an Express app under load will exhaust a database's connection limit fast if every handler dials its own. And keep the database on the private network, not a public port, so only your app can reach it. The full walkthrough, pooling, migrations on deploy, and when an external managed database still makes sense, is in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">add a managed database to your app</a>. If your Express app also runs scheduled work, you can add cron jobs from the dashboard without a separate service or SSH.</p>
+
+  <h2>When it 502s or 503s after you deploy</h2>
+  <p>Almost nobody nails a first deploy, and that's fine, because the failures are predictable. A <strong>502 Bad Gateway</strong> means Nginx reached the box but got nothing back from your app: it crashed on boot, it's listening on the wrong port, or it bound somewhere the proxy can't reach. A <strong>503</strong> means nothing is available to answer yet. For an Express app the causes are a short list:</p>
+  <ul>
+    <li>The app isn't reading <code>process.env.PORT</code>, so it listens on 3000 while the proxy forwards to another port.</li>
+    <li>A required environment variable is missing, so it throws on startup and PM2 keeps restarting a process that can't stay up.</li>
+    <li>The Start command doesn't actually launch the server, or points at the wrong file.</li>
+    <li>A dependency is imported but missing from <code>package.json</code> (or got dropped as a devDependency in a production install).</li>
+  </ul>
+  <p>Don't guess. Read the app's error log, where a Node crash writes its stack trace and usually names the exact line:</p>
+  <pre><code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/app.error.log</code></pre>
+  <p>Fix the one thing it names and <strong>Pull &amp; Deploy</strong> again. The full triage is in <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fix the 503 after deploying your app</a>.</p>
+  <p><strong>A founder note, since we see this constantly:</strong> the overwhelming majority of Express deploy failures are configuration, not code. Port, host, a missing env var, a wrong start command. Your routes are almost never the problem. So when a deploy breaks, resist the urge to reread your controllers. Check the four things above first. It's faster, and it's usually right.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Your Express app, live on a server you own.</p>
+    <p style="margin:0 0 .6em">Deploy from Git, let PM2 keep it up, wire in a managed database, and get free auto-renewing SSL, without hand-rolling a single Nginx config. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>; sizes and plans (from $8/mo, Enterprise custom) are on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Seven clouds, one dashboard · Git deploy with live logs · PM2 process management · Managed databases · Free auto-renewing SSL · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I deploy an Express app to production?</h3>
+    <p>Make the app read <code>process.env.PORT</code>, bind to <code>0.0.0.0</code>, set <code>trust proxy</code>, and add a health route. Then push to GitHub, launch a managed Node server, deploy from the repo with your install, build, and start commands, add your env vars and a managed database, and point a domain with SSL. PM2 keeps the process alive and the reverse proxy sends HTTPS traffic to it.</p>
+
+    <h3>Why does my Express app work locally but 502 in production?</h3>
+    <p>A 502 means the proxy reached the server but your app answered nothing. Usually the app isn't listening on <code>process.env.PORT</code>, a required environment variable is missing so it crashed on boot, or the start command doesn't launch the server. Read <code>app.error.log</code> for the stack trace, fix that one thing, and redeploy. It's config, not your routes.</p>
+
+    <h3>Do I need to set process.env.PORT in Express?</h3>
+    <p>Yes. In production the platform assigns the port and the reverse proxy forwards to it, so a hardcoded <code>app.listen(3000)</code> leaves the proxy talking to nothing. Use <code>const port = process.env.PORT || 3000</code> so your local run is unchanged and production gets the real port. This single line prevents the most common first-deploy failure.</p>
+
+    <h3>What does app.set trust proxy do, and do I need it?</h3>
+    <p>It tells Express it's running behind a reverse proxy, so it reads the real client IP and protocol from the X-Forwarded-For and X-Forwarded-Proto headers instead of seeing every request as coming from the proxy over HTTP. You need it on managed hosting or behind any proxy, otherwise secure cookies, HTTPS detection, and IP-based rate limiting misbehave. Set it to 1 for a single proxy.</p>
+
+    <h3>Should I bind Express to 0.0.0.0 or localhost?</h3>
+    <p>Bind to <code>0.0.0.0</code>, which is Express's default with a plain <code>app.listen(port)</code>. Binding to localhost or 127.0.0.1 only accepts connections from the same loopback, which can break health checks, containers, and load balancer probes. There's no upside to restricting the host in a typical deploy, so leave it on all interfaces.</p>
+
+    <h3>How do I keep my Express app running after it crashes?</h3>
+    <p>Run it under a process manager, not in a terminal. On Kloudbean that's PM2, configured as part of the managed stack. It restarts the app in about a second if it exits and starts it again after a reboot, so one unhandled error doesn't become downtime until a human notices. You don't set it up yourself.</p>
+
+    <h3>Do I need Docker to deploy an Express app?</h3>
+    <p>No. A single Express app is one process, and a managed server runs it directly, restarts it on crash, and puts it behind a proxy with SSL. Docker and Kubernetes solve orchestration across many services at scale. For shipping one API, they're extra moving parts you don't need yet.</p>
+
+    <h3>How do I connect a database to my Express app?</h3>
+    <p>Launch a managed database (Postgres, MySQL, Redis, and more), put its connection string in an environment variable, and read it in code with <code>process.env.DATABASE_URL</code>. Use a connection pool rather than a socket per request, and keep the database on the private network instead of a public port. Never commit credentials to the repo.</p>
+
+    <h3>How do I add a health check to an Express app?</h3>
+    <p>Add a small route like <code>/healthz</code> that returns a 200 and touches nothing slow. Keep it independent of your database, so a brief database blip doesn't mark the whole app unhealthy and trigger restarts. If you want a deeper check, expose it on a separate path that only your monitoring calls.</p>
+
+    <h3>Can I auto-deploy my Express app on every git push?</h3>
+    <p>Yes. Connect the repository, pick a branch, and turn on automated deployment, so each push triggers a build and ship with live logs you can watch. That turns releasing a change into a plain <code>git push</code>, and every deploy is recorded so you can see exactly what went out.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Deploy your Express API, keep it alive, and own the box it runs on.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Deploy an Express App to Production","description":"A practical guide to deploy an Express app to production: the code changes that make it production-ready (read process.env.PORT, bind 0.0.0.0, trust proxy, a health route), then the real deploy with Git, PM2, environment variables, a managed database, and free auto-renewing SSL, plus how to fix the 502/503 that hits most first deploys.","image":"https://www.kloudbean.com/blog/deploy-express-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/deploy-express-app/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I deploy an Express app to production?","acceptedAnswer":{"@type":"Answer","text":"Make the app read process.env.PORT, bind to 0.0.0.0, set trust proxy, and add a health route. Then push to GitHub, launch a managed Node server, deploy from the repo with your install, build, and start commands, add your env vars and a managed database, and point a domain with SSL. PM2 keeps the process alive and the reverse proxy sends HTTPS traffic to it."}},
+{"@type":"Question","name":"Why does my Express app work locally but 502 in production?","acceptedAnswer":{"@type":"Answer","text":"A 502 means the proxy reached the server but your app answered nothing. Usually the app is not listening on process.env.PORT, a required environment variable is missing so it crashed on boot, or the start command does not launch the server. Read app.error.log for the stack trace, fix that one thing, and redeploy. It is config, not your routes."}},
+{"@type":"Question","name":"Do I need to set process.env.PORT in Express?","acceptedAnswer":{"@type":"Answer","text":"Yes. In production the platform assigns the port and the reverse proxy forwards to it, so a hardcoded app.listen(3000) leaves the proxy talking to nothing. Use const port = process.env.PORT || 3000 so your local run is unchanged and production gets the real port. This single line prevents the most common first-deploy failure."}},
+{"@type":"Question","name":"What does app.set trust proxy do, and do I need it?","acceptedAnswer":{"@type":"Answer","text":"It tells Express it is running behind a reverse proxy, so it reads the real client IP and protocol from the X-Forwarded-For and X-Forwarded-Proto headers instead of seeing every request as coming from the proxy over HTTP. You need it on managed hosting or behind any proxy, otherwise secure cookies, HTTPS detection, and IP-based rate limiting misbehave. Set it to 1 for a single proxy."}},
+{"@type":"Question","name":"Should I bind Express to 0.0.0.0 or localhost?","acceptedAnswer":{"@type":"Answer","text":"Bind to 0.0.0.0, which is Express default with a plain app.listen(port). Binding to localhost or 127.0.0.1 only accepts connections from the same loopback, which can break health checks, containers, and load balancer probes. There is no upside to restricting the host in a typical deploy, so leave it on all interfaces."}},
+{"@type":"Question","name":"How do I keep my Express app running after it crashes?","acceptedAnswer":{"@type":"Answer","text":"Run it under a process manager, not in a terminal. On Kloudbean that is PM2, configured as part of the managed stack. It restarts the app in about a second if it exits and starts it again after a reboot, so one unhandled error does not become downtime until a human notices. You do not set it up yourself."}},
+{"@type":"Question","name":"Do I need Docker to deploy an Express app?","acceptedAnswer":{"@type":"Answer","text":"No. A single Express app is one process, and a managed server runs it directly, restarts it on crash, and puts it behind a proxy with SSL. Docker and Kubernetes solve orchestration across many services at scale. For shipping one API, they are extra moving parts you do not need yet."}},
+{"@type":"Question","name":"How do I connect a database to my Express app?","acceptedAnswer":{"@type":"Answer","text":"Launch a managed database (Postgres, MySQL, Redis, and more), put its connection string in an environment variable, and read it in code with process.env.DATABASE_URL. Use a connection pool rather than a socket per request, and keep the database on the private network instead of a public port. Never commit credentials to the repo."}},
+{"@type":"Question","name":"How do I add a health check to an Express app?","acceptedAnswer":{"@type":"Answer","text":"Add a small route like /healthz that returns a 200 and touches nothing slow. Keep it independent of your database, so a brief database blip does not mark the whole app unhealthy and trigger restarts. If you want a deeper check, expose it on a separate path that only your monitoring calls."}},
+{"@type":"Question","name":"Can I auto-deploy my Express app on every git push?","acceptedAnswer":{"@type":"Answer","text":"Yes. Connect the repository, pick a branch, and turn on automated deployment, so each push triggers a build and ship with live logs you can watch. That turns releasing a change into a plain git push, and every deploy is recorded so you can see exactly what went out."}}
+]}
+]}
+</script>
+</body>
+</html>

@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WP-CLI Guide: Manage WordPress From the Command Line (Commands That Earn Their Keep)</title>
+<meta name="description" content="WP-CLI is the WordPress command line. Run updates, database export and import, user management, cache flush, and the migration hero wp search-replace in seconds over SSH. A working reference grouped by job.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/wordpress-cli-guide/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="WP-CLI Guide: Manage WordPress From the Command Line">
+<meta property="og:description" content="What the WordPress CLI is, where you run it, and the commands that earn their keep, grouped by job, including the search-replace migration superpower.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">WordPress &amp; frontend</span>
+  <h1>WP-CLI Guide: Manage WordPress From the Command Line</h1>
+
+  <figure><img src="images/hero.png" alt="WP-CLI, managing WordPress from the command line"></figure>
+
+  <p class="lead">Updating forty plugins through the WordPress admin means forty trips to a page, a lot of clicking, and a lot of waiting. The same job in WP-CLI is one line, done before your coffee's poured. That gap, clicking versus typing, is the whole reason the WordPress CLI exists.</p>
+  <p>WP-CLI is the official command-line tool for WordPress. Anything you can do in the dashboard you can do from the terminal, and the repetitive, bulk, and migration work you can do far faster. This is a working reference. What it is, where you run it, and the commands grouped by the job they do, with the one command that makes site migrations safe getting a section to itself.</p>
+
+  <div class="tldr">
+    <strong>Short answer</strong>
+    <p>WP-CLI runs WordPress tasks from the terminal instead of the dashboard: updates, users, database export, cache flush, and the migration hero <code>wp search-replace</code>. You run it over SSH on the server where the site lives, which any real (managed) server gives you. Rule one: <code>wp db export</code> before anything that changes data.</p>
+  </div>
+
+  <h2>What WP-CLI is, and why it beats the dashboard for bulk work</h2>
+  <p>WP-CLI (the WordPress CLI) talks to your WordPress install directly from the command line, skipping the browser entirely. No logging in, no paginated plugin lists, no waiting for admin screens to paint. That's the speed part. The bigger part is that commands are just text, so you can chain them, loop them, drop them in a shell script, and wire them into a deploy. You go from "faster clicking" to actual automation.</p>
+  <p>Here's the difference in practice, for the jobs where it matters most:</p>
+  <table class="cmp">
+    <thead><tr><th>The job</th><th>In the dashboard</th><th>With WP-CLI</th></tr></thead>
+    <tbody>
+      <tr><td>Update 40 plugins</td><td>Click, wait, repeat, 40 times</td><td><code>wp plugin update --all</code></td></tr>
+      <tr><td>Change the site URL after a move</td><td>A risky raw-SQL find and replace</td><td><code>wp search-replace ... --dry-run</code></td></tr>
+      <tr><td>Create 20 users</td><td>20 separate forms</td><td>a loop over <code>wp user create</code></td></tr>
+      <tr><td>Back up the database</td><td>Install and configure a plugin</td><td><code>wp db export backup.sql</code></td></tr>
+    </tbody>
+  </table>
+  <p>For a one-off post edit, none of this matters and the admin is fine. For anything bulk or repeated, the terminal wins so decisively it isn't really a contest.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 580" width="100%" role="img" aria-labelledby="climaptitle climapdesc" xmlns="http://www.w3.org/2000/svg">
+      <title id="climaptitle">WP-CLI command categories</title>
+      <desc id="climapdesc">A central wp command branches out to six job categories: updates, database, migration, cache, users, and cron, each with a representative command.</desc>
+      <rect x="0" y="0" width="720" height="580" fill="#ffffff"></rect>
+
+      <!-- spokes -->
+      <g stroke="#c9b8ff" stroke-width="2.5">
+        <line x1="360" y1="280" x2="360" y2="90"></line>
+        <line x1="360" y1="280" x2="559" y2="185"></line>
+        <line x1="360" y1="280" x2="559" y2="375"></line>
+        <line x1="360" y1="280" x2="360" y2="470"></line>
+        <line x1="360" y1="280" x2="161" y2="375"></line>
+        <line x1="360" y1="280" x2="161" y2="185"></line>
+      </g>
+
+      <!-- category cards -->
+      <g font-family="Poppins,Arial,sans-serif">
+        <!-- Updates (top) -->
+        <rect x="270" y="60" width="180" height="60" rx="12" fill="#000f27"></rect>
+        <text x="360" y="86" font-size="14" font-weight="600" fill="#ffffff" text-anchor="middle">Updates</text>
+        <text x="360" y="106" font-family="JetBrains Mono,monospace" font-size="11" fill="#8ea0c8" text-anchor="middle">wp plugin update --all</text>
+
+        <!-- Database (top-right) -->
+        <rect x="469" y="155" width="180" height="60" rx="12" fill="#000f27"></rect>
+        <text x="559" y="181" font-size="14" font-weight="600" fill="#ffffff" text-anchor="middle">Database</text>
+        <text x="559" y="201" font-family="JetBrains Mono,monospace" font-size="11" fill="#8ea0c8" text-anchor="middle">wp db export</text>
+
+        <!-- Cache (bottom-right) -->
+        <rect x="469" y="345" width="180" height="60" rx="12" fill="#000f27"></rect>
+        <text x="559" y="371" font-size="14" font-weight="600" fill="#ffffff" text-anchor="middle">Cache</text>
+        <text x="559" y="391" font-family="JetBrains Mono,monospace" font-size="11" fill="#8ea0c8" text-anchor="middle">wp cache flush</text>
+
+        <!-- Users (bottom) -->
+        <rect x="270" y="440" width="180" height="60" rx="12" fill="#000f27"></rect>
+        <text x="360" y="466" font-size="14" font-weight="600" fill="#ffffff" text-anchor="middle">Users</text>
+        <text x="360" y="486" font-family="JetBrains Mono,monospace" font-size="11" fill="#8ea0c8" text-anchor="middle">wp user create</text>
+
+        <!-- Cron (bottom-left) -->
+        <rect x="71" y="345" width="180" height="60" rx="12" fill="#000f27"></rect>
+        <text x="161" y="371" font-size="14" font-weight="600" fill="#ffffff" text-anchor="middle">Cron</text>
+        <text x="161" y="391" font-family="JetBrains Mono,monospace" font-size="11" fill="#8ea0c8" text-anchor="middle">wp cron event run</text>
+
+        <!-- Migration (top-left) -->
+        <rect x="71" y="155" width="180" height="60" rx="12" fill="#40b75f"></rect>
+        <text x="161" y="181" font-size="14" font-weight="700" fill="#08240f" text-anchor="middle">Migration</text>
+        <text x="161" y="201" font-family="JetBrains Mono,monospace" font-size="11" fill="#0c3a1a" text-anchor="middle">wp search-replace</text>
+
+        <!-- hub -->
+        <circle cx="360" cy="280" r="54" fill="#4F1AF3"></circle>
+        <text x="360" y="278" font-size="26" font-weight="700" fill="#ffffff" text-anchor="middle">wp</text>
+        <text x="360" y="300" font-size="11" fill="#d9ccff" text-anchor="middle">WP-CLI</text>
+      </g>
+    </svg>
+    <figcaption>One <code>wp</code> command, many jobs. Migration (in green) is the one most people underestimate until a move goes sideways.</figcaption>
+  </figure>
+
+  <h2>Where you run WP-CLI</h2>
+  <p>WP-CLI runs on the server, over SSH, so you need shell access to where WordPress actually lives. On a managed server you connect over SSH into the same environment your site is deployed in and run <code>wp</code> commands right there. It's an ordinary Linux box with WordPress on it, and you log in like any other.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean console, where you connect over SSH to the server your WordPress site runs on">
+    <figcaption>Connect over SSH to the environment where your site runs, then run wp commands from the site's folder.</figcaption>
+  </figure>
+
+  <p>Commands act on the WordPress install in whatever directory you're standing in, so run them from your site's folder, or add <code>--path=/var/www/html</code> to point WP-CLI at it. And if all you want is scheduled tasks, you don't even need SSH for that: cron jobs can be set from the Kloudbean dashboard directly, no terminal required. WP-CLI is for the hands-on work.</p>
+
+  <h2>The commands that earn their keep</h2>
+  <p>You don't memorize WP-CLI. You keep a handful close and reach for the rest with <code>--help</code>. Grouped by the job you're doing:</p>
+
+  <h3>Updates: core, plugins, themes</h3>
+  <p>The daily bread. Update everything without touching the admin:</p>
+  <pre><code>wp core update
+wp core update-db
+wp plugin update --all
+wp theme update --all</code></pre>
+
+  <h3>Database: export and import</h3>
+  <p>Under the hood these are a real mysqldump and restore. The export is your safety net before anything risky, and the fastest backup you can take in one line:</p>
+  <pre><code>wp db export backup.sql
+wp db import backup.sql</code></pre>
+
+  <!-- Add image here. To use your own screenshot, replace this block with a real figure and set src -> images/wp-db-export.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Terminal showing wp db export writing a .sql file, then ls confirming the file size.</em><small>A full database backup in one command.</small></span></figure>
+
+  <h3>The migration lifesaver: wp search-replace</h3>
+  <p>If WP-CLI had one killer feature, this is it. When you move a site, from <code>staging.example.com</code> to <code>example.com</code>, or <code>http</code> to <code>https</code>, the old URL is scattered all through the database: posts, settings, widgets. You cannot just find-and-replace the raw SQL, because WordPress stores some data serialized, a format that records the length of each string. A naive replace changes the text but not the recorded length, and that mismatch corrupts the setting. Widgets vanish, options break.</p>
+  <p><code>wp search-replace</code> understands serialization and fixes the lengths as it goes, so it replaces safely everywhere. Always preview with <code>--dry-run</code> first:</p>
+  <pre><code># preview: how many replacements, without changing anything
+wp search-replace 'https://staging.example.com' 'https://example.com' --dry-run
+
+# looks right? run it for real
+wp search-replace 'https://staging.example.com' 'https://example.com'</code></pre>
+  <p>This one command is why WP-CLI is central to a clean move. It's a big part of the <a href="https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/">zero-downtime migration</a> flow, and it's the safe answer to the raw-SQL replace that breaks so many sites.</p>
+
+  <!-- Add image here. To use your own screenshot, replace this block with a real figure and set src -> images/wp-search-replace-dryrun.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Output of wp search-replace with --dry-run showing the replacement count per table.</em><small>Always run the dry run before the real one.</small></span></figure>
+
+  <h3>Cache</h3>
+  <p>One line clears WordPress's object cache, Redis included when it's wired up:</p>
+  <pre><code>wp cache flush</code></pre>
+  <p>It's the most reliable single "clear the cache" action there is. If a change won't show up, the <a href="https://www.kloudbean.com/blog/how-to-clear-wordpress-cache/">clear WordPress cache guide</a> walks the layers, but this is the command that empties the object cache.</p>
+
+  <h3>Users</h3>
+  <p>Create, list, and reset without the admin, which is a lifesaver when you're locked out:</p>
+  <pre><code>wp user list
+wp user create alice alice@example.com --role=editor
+wp user update alice --user_pass='a-new-password'</code></pre>
+
+  <h3>Cron and scheduled tasks</h3>
+  <p>See what WordPress has scheduled and run due events by hand when you're debugging a stuck job:</p>
+  <pre><code>wp cron event list
+wp cron event run --due-now</code></pre>
+
+  <h3>Health checks (the doctor)</h3>
+  <p>Verify core and plugin files against the official checksums to catch tampering, and check the database is sound:</p>
+  <pre><code>wp core verify-checksums
+wp plugin verify-checksums --all
+wp db check</code></pre>
+  <p>That <code>wp db check</code> is handy when you're chasing a database problem, like the classic <a href="https://www.kloudbean.com/blog/fix-error-establishing-database-connection-wordpress/">database connection error</a>.</p>
+
+  <h3>The pocket reference</h3>
+  <p>The commands worth keeping in a sticky note, in one place:</p>
+  <table class="cmp">
+    <thead><tr><th>Task</th><th>Command</th></tr></thead>
+    <tbody>
+      <tr><td>Update core</td><td><code>wp core update</code></td></tr>
+      <tr><td>Update all plugins</td><td><code>wp plugin update --all</code></td></tr>
+      <tr><td>Install and activate a plugin</td><td><code>wp plugin install &lt;name&gt; --activate</code></td></tr>
+      <tr><td>Update all themes</td><td><code>wp theme update --all</code></td></tr>
+      <tr><td>Export the database</td><td><code>wp db export backup.sql</code></td></tr>
+      <tr><td>Import a database</td><td><code>wp db import backup.sql</code></td></tr>
+      <tr><td>Search and replace (preview)</td><td><code>wp search-replace 'old' 'new' --dry-run</code></td></tr>
+      <tr><td>Create a user</td><td><code>wp user create &lt;login&gt; &lt;email&gt; --role=&lt;role&gt;</code></td></tr>
+      <tr><td>Reset a password</td><td><code>wp user update &lt;login&gt; --user_pass=&lt;new&gt;</code></td></tr>
+      <tr><td>Flush the cache</td><td><code>wp cache flush</code></td></tr>
+      <tr><td>Verify core files</td><td><code>wp core verify-checksums</code></td></tr>
+      <tr><td>Read the manual for any command</td><td><code>wp &lt;command&gt; --help</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>A real maintenance routine, scripted</h2>
+  <p>This is where the payoff lands. A weekly maintenance pass that would be a click-fest in the admin becomes a short script you run, or schedule. Back up first, then update core, plugins, and themes, then flush the cache so the fresh code is actually served:</p>
+  <pre><code>#!/bin/bash
+set -e
+wp db export "backup-$(date +%F).sql"   # safety net first
+wp core update
+wp core update-db
+wp plugin update --all
+wp theme update --all
+wp cache flush</code></pre>
+  <p>Save that, and your entire update ritual is one command. Wire the same idea into your <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">deploy step</a> and updates happen on every release without anyone remembering to click a thing. That's the real jump: not faster clicking, but no clicking.</p>
+
+  <!-- Add image here. To use your own screenshot, replace this block with a real figure and set src -> images/wp-maintenance-script.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal running the maintenance script end to end, ending with "Success: The cache was flushed."</em><small>The whole weekly routine in one run.</small></span></figure>
+
+  <h2>Where WP-CLI bites you, and when to just use the dashboard</h2>
+  <p>The power cuts both ways. A few honest warnings from watching people get burned:</p>
+  <ul>
+    <li><strong>Commands that change data don't ask "are you sure?"</strong> There's no confirmation dialog and no undo. <code>wp db export</code> before anything destructive isn't optional, it's the whole safety net. WP-CLI is fast, which means mistakes are fast too.</li>
+    <li><strong>Never do a raw SQL find-and-replace on URLs.</strong> It breaks serialized data and corrupts settings. That's the exact problem <code>wp search-replace</code> exists to solve, so use it.</li>
+    <li><strong>Don't force everything through the terminal.</strong> Writing a post, tweaking one setting, previewing a page? The dashboard is genuinely better for that. WP-CLI earns its place on bulk, repetitive, and migration work.</li>
+  </ul>
+  <p>My honest take after enough of these: for anything you're doing more than twice, and for every single migration, WP-CLI beats the dashboard hands down. For the creative, one-at-a-time work, the admin is still where you want to be. Use each where it's strong.</p>
+  <p>One boundary worth stating plainly. WP-CLI needs shell access, which a managed server provides because it's a real Linux box, not a locked black box. Managed means the server, the WordPress stack, SSL, and backups are handled for you; the install and whatever you do with WP-CLI on it stay yours. If you want the deeper caching and query wins alongside this, the <a href="https://www.kloudbean.com/blog/speed-up-wordpress/">speed up WordPress guide</a> and <a href="https://www.kloudbean.com/blog/wordpress-multisite-hosting/">multisite hosting guide</a> pick up where the CLI leaves off.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Type it, don't click it.</p>
+    <p style="margin:0 0 .7em">Run WordPress on a managed server with real SSH and WP-CLI ready, so maintenance and migrations take seconds. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; color:#c9b8ff">SSH + WP-CLI ready · Managed WordPress · Staging sites · Cron from the dashboard · Automatic backups · Free migration</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is WP-CLI?</h3>
+    <p>WP-CLI is the official command-line interface for WordPress, sometimes called the WordPress CLI. It runs WordPress tasks from the terminal instead of the admin dashboard: updating core and plugins, managing users, exporting the database, search-and-replace, flushing caches. It's far faster for repetitive work and lets you script and automate things the dashboard can't.</p>
+    <h3>How do I run WP-CLI commands?</h3>
+    <p>You run them over SSH on the server where WordPress lives, from the site's folder, using the wp command (for example wp plugin update --all). On a managed server you connect via SSH into the same environment as your site and run commands there. Add --path if you're not standing inside the WordPress directory.</p>
+    <h3>What is wp search-replace used for?</h3>
+    <p>It safely changes a string throughout the WordPress database, most often the site URL during a migration or an http-to-https switch. Unlike a raw SQL replace, it handles serialized data correctly, so settings and widgets don't break. Run it with --dry-run first to preview the number of replacements, then run it for real.</p>
+    <h3>Is WP-CLI safe to use?</h3>
+    <p>Yes, but it's powerful and immediate. Commands that modify the database don't prompt for confirmation and there's no undo. The essential habit is to run wp db export before anything that changes data, so a mistake is a quick restore instead of a disaster. With that habit it's both safe and fast.</p>
+    <h3>Do I need special hosting for WP-CLI?</h3>
+    <p>You need shell (SSH) access to the server, which managed servers provide. WP-CLI is already available in most managed WordPress environments, so you connect over SSH and start running wp commands. Hosting with no shell access at all can't run WP-CLI directly.</p>
+    <h3>Can I run scheduled WordPress tasks without SSH?</h3>
+    <p>Yes. On Kloudbean you can set cron jobs from the dashboard, no terminal needed, which covers scheduled tasks like publishing or cleanup. WP-CLI is for interactive, hands-on work over SSH. The two complement each other: the UI for schedules, the CLI for bulk and migration jobs.</p>
+    <h3>How do I back up the database with WP-CLI?</h3>
+    <p>Run wp db export backup.sql, which writes a full SQL dump of your database to a file. It's the fastest one-line backup there is and the right thing to do before any risky command. To restore, use wp db import backup.sql. On managed hosting you also get automatic backups on top of this.</p>
+    <h3>Is WP-CLI actually faster than the dashboard?</h3>
+    <p>For bulk and repetitive work, dramatically. Updating fifty plugins is one command instead of fifty clicks, and because commands are text you can script whole routines and run them in one go. For one-off tasks like writing a single post, the dashboard is fine. The CLI wins the moment you're repeating yourself.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Type it, don't click it.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"WP-CLI Guide: Manage WordPress From the Command Line (Commands That Earn Their Keep)","description":"What the WordPress CLI is, where you run it, and the commands that earn their keep, grouped by job, including the search-replace migration superpower.","image":"https://www.kloudbean.com/blog/wordpress-cli-guide/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/wordpress-cli-guide/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is WP-CLI?","acceptedAnswer":{"@type":"Answer","text":"WP-CLI is the official command-line interface for WordPress, sometimes called the WordPress CLI. It runs WordPress tasks from the terminal instead of the admin dashboard: updating core and plugins, managing users, exporting the database, search-and-replace, flushing caches. It's far faster for repetitive work and lets you script and automate things the dashboard can't."}},
+{"@type":"Question","name":"How do I run WP-CLI commands?","acceptedAnswer":{"@type":"Answer","text":"You run them over SSH on the server where WordPress lives, from the site's folder, using the wp command (for example wp plugin update --all). On a managed server you connect via SSH into the same environment as your site and run commands there. Add --path if you're not standing inside the WordPress directory."}},
+{"@type":"Question","name":"What is wp search-replace used for?","acceptedAnswer":{"@type":"Answer","text":"It safely changes a string throughout the WordPress database, most often the site URL during a migration or an http-to-https switch. Unlike a raw SQL replace, it handles serialized data correctly, so settings and widgets don't break. Run it with --dry-run first to preview the number of replacements, then run it for real."}},
+{"@type":"Question","name":"Is WP-CLI safe to use?","acceptedAnswer":{"@type":"Answer","text":"Yes, but it's powerful and immediate. Commands that modify the database don't prompt for confirmation and there's no undo. The essential habit is to run wp db export before anything that changes data, so a mistake is a quick restore instead of a disaster. With that habit it's both safe and fast."}},
+{"@type":"Question","name":"Do I need special hosting for WP-CLI?","acceptedAnswer":{"@type":"Answer","text":"You need shell (SSH) access to the server, which managed servers provide. WP-CLI is already available in most managed WordPress environments, so you connect over SSH and start running wp commands. Hosting with no shell access at all can't run WP-CLI directly."}},
+{"@type":"Question","name":"Can I run scheduled WordPress tasks without SSH?","acceptedAnswer":{"@type":"Answer","text":"Yes. On Kloudbean you can set cron jobs from the dashboard, no terminal needed, which covers scheduled tasks like publishing or cleanup. WP-CLI is for interactive, hands-on work over SSH. The two complement each other: the UI for schedules, the CLI for bulk and migration jobs."}},
+{"@type":"Question","name":"How do I back up the database with WP-CLI?","acceptedAnswer":{"@type":"Answer","text":"Run wp db export backup.sql, which writes a full SQL dump of your database to a file. It's the fastest one-line backup there is and the right thing to do before any risky command. To restore, use wp db import backup.sql. On managed hosting you also get automatic backups on top of this."}},
+{"@type":"Question","name":"Is WP-CLI actually faster than the dashboard?","acceptedAnswer":{"@type":"Answer","text":"For bulk and repetitive work, dramatically. Updating fifty plugins is one command instead of fifty clicks, and because commands are text you can script whole routines and run them in one go. For one-off tasks like writing a single post, the dashboard is fine. The CLI wins the moment you're repeating yourself."}}
+]}
+]}
+</script>
+</body>
+</html>

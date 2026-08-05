@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connect Mongoose to MongoDB: The Production Setup That Doesn't Break</title>
+<meta name="description" content="Connect Mongoose to MongoDB in production: the connection string, mongoose.connect options, maxPoolSize, connection events, schemas and models, and fixes for MongooseServerSelectionError and buffering timed out.">
+<meta name="author" content="Kloudbean Engineering">
+<link rel="canonical" href="https://www.kloudbean.com/blog/connect-mongoose-to-mongodb/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Connect Mongoose to MongoDB: The Production Setup That Doesn't Break">
+<meta property="og:description" content="One connection per process, a capped pool, real event handlers, schemas you control, and none of the mistakes that page you at 2am. Real Mongoose code for production.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Node.js · MongoDB</span>
+  <h1>Connect Mongoose to MongoDB: The Production Setup That Doesn't Break</h1>
+
+  <figure><img src="images/hero.png" alt="Connect Mongoose to MongoDB in production: one Node process, a single pooled connection over a private network to a managed MongoDB with automatic backups"></figure>
+
+  <p class="lead">On your laptop, Mongoose connects on the first try and everything feels easy. Then you deploy, and the logs fill with <code>MongooseServerSelectionError</code> or a baffling <code>Operation buffering timed out after 10000ms</code>. Same code, different result.</p>
+  <p>This is a guide to connect Mongoose to MongoDB the way it actually needs to run in production: one connection for the whole process, a capped pool, real event handlers, schemas and indexes you control, and none of the lifecycle mistakes that page you at 2am. Every snippet below is copy-paste ready. Honestly, most Mongoose production problems aren't Mongoose at all. They're how the connection was opened.</p>
+
+  <div class="tldr"><strong>Short version</strong><p>Call <code>mongoose.connect(process.env.MONGODB_URI, { maxPoolSize: 10, serverSelectionTimeoutMS: 5000 })</code> once at startup, never inside a route. Read the connection string from a <code>MONGODB_URI</code> environment variable, not from code. Attach <code>connection.on('error')</code> and <code>'connected'</code> handlers so failures are loud. Turn <code>autoIndex</code> off in production and build indexes on purpose. On Kloudbean the MongoDB is managed, sits on a private network, and is backed up for you.</p></div>
+
+  <h2>Why Mongoose apps break in production (and not in dev)</h2>
+  <p>Locally, MongoDB runs on <code>127.0.0.1:27017</code> with no auth, your app is the only client, and you restart it by hand. Production breaks every one of those assumptions. The database is on another host, behind a firewall, with credentials, and your app might run as four processes under PM2. Here are the failure modes I see over and over, roughly in order of how often they bite.</p>
+
+  <ul>
+    <li><strong><code>MongooseServerSelectionError: connect ECONNREFUSED</code></strong>. The driver looked for a reachable MongoDB and gave up. Nine times out of ten it's a wrong host in the connection string, a database that isn't up yet, or a firewall blocking port <code>27017</code>. The <code>ECONNREFUSED 127.0.0.1:27017</code> variant is the classic "I shipped my localhost URI to production" mistake.</li>
+    <li><strong><code>Operation `users.find()` buffering timed out after 10000ms</code></strong>. Mongoose queues model operations until a connection is ready, then gives up after ten seconds. So this error rarely means "the query is slow." It means the connection never came up, and your code queried anyway.</li>
+    <li><strong>Connecting per request.</strong> Someone drops <code>mongoose.connect()</code> inside a route handler. Every request opens a fresh pool, the database's connection limit fills in minutes, and new requests start failing.</li>
+    <li><strong>No pool cap.</strong> Mongoose defaults <code>maxPoolSize</code> to 100 per process. Run four PM2 workers and that's up to 400 sockets aimed at a database that may allow far fewer. It works in dev with one process and falls over under load.</li>
+    <li><strong><code>autoIndex</code> on in production.</strong> By default Mongoose builds every declared index when it connects. On a big collection that can stall your boot or lock reads at exactly the wrong moment, on every single deploy.</li>
+  </ul>
+
+  <p>Notice the pattern. None of these are query bugs. They're all about <em>how and when</em> the connection is made. Get the connection lifecycle right and the rest of Mongoose behaves.</p>
+
+  <figure>
+    <svg viewBox="0 0 700 396" width="100%" role="img" aria-label="Diagram of a correct Mongoose to MongoDB setup. On the left, a single Node process (Express plus Mongoose) holds ONE mongoose connection. That connection owns a pool of reusable sockets, capped at maxPoolSize of 10. Every incoming request reuses a socket from the pool instead of opening its own. The pooled sockets bundle together and travel through a private network lane, the VPC, where nothing is exposed to the public internet. On the right they reach a managed MongoDB database listening on port 27017, which writes automatic backups underneath it. A footer note reads: connect once at startup, not per request; the pool is shared by every request in the process.">
+      <rect x="0.5" y="0.5" width="699" height="395" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="350" y="30" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="16" font-weight="700" fill="#000f27">One connection, one pool, shared by every request</text>
+
+      <!-- Node process -->
+      <rect x="26" y="52" width="220" height="292" rx="13" fill="#f6f7fb" stroke="#d8def0"/>
+      <text x="136" y="76" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#000f27">Node process (Express)</text>
+
+      <!-- incoming requests -->
+      <g font-family="Poppins,Arial,sans-serif" font-size="9.5" fill="#5b6a86">
+        <rect x="44" y="90" width="52" height="20" rx="6" fill="#fff" stroke="#e6e9f2"/><text x="70" y="104" text-anchor="middle">req</text>
+        <rect x="102" y="90" width="52" height="20" rx="6" fill="#fff" stroke="#e6e9f2"/><text x="128" y="104" text-anchor="middle">req</text>
+        <rect x="160" y="90" width="52" height="20" rx="6" fill="#fff" stroke="#e6e9f2"/><text x="186" y="104" text-anchor="middle">req</text>
+      </g>
+
+      <!-- single mongoose connection -->
+      <rect x="44" y="122" width="184" height="42" rx="10" fill="#4F1AF3"/>
+      <text x="136" y="140" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="600" fill="#fff">1 mongoose connection</text>
+      <text x="136" y="156" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="10" fill="#d7ccff">created once at startup</text>
+
+      <!-- pool -->
+      <rect x="44" y="176" width="184" height="150" rx="10" fill="#fff" stroke="#cdd5ea"/>
+      <text x="136" y="196" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="10.5" font-weight="600" fill="#000f27">connection pool</text>
+      <text x="136" y="211" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="9.5" fill="#5b6a86">maxPoolSize: 10</text>
+      <g>
+        <rect x="60" y="222" width="150" height="18" rx="5" fill="#eaf7ef" stroke="#cdebd6"/><text x="135" y="235" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#2f8f4e">socket 1 (reused)</text>
+        <rect x="60" y="246" width="150" height="18" rx="5" fill="#eaf7ef" stroke="#cdebd6"/><text x="135" y="259" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#2f8f4e">socket 2 (reused)</text>
+        <rect x="60" y="270" width="150" height="18" rx="5" fill="#eaf7ef" stroke="#cdebd6"/><text x="135" y="283" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#2f8f4e">socket 3 (reused)</text>
+        <rect x="60" y="294" width="150" height="18" rx="5" fill="#f6f7fb" stroke="#e6e9f2"/><text x="135" y="307" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#5b6a86">... up to 10</text>
+      </g>
+
+      <!-- arrows req to connection -->
+      <g stroke="#c9d0e3" stroke-width="1.5" fill="none">
+        <line x1="70" y1="110" x2="90" y2="120"/><line x1="128" y1="110" x2="128" y2="120"/><line x1="186" y1="110" x2="166" y2="120"/>
+      </g>
+
+      <!-- private network lane -->
+      <rect x="270" y="150" width="150" height="96" rx="12" fill="#fff" stroke="#4F1AF3" stroke-dasharray="6 5"/>
+      <text x="345" y="192" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="700" fill="#4F1AF3">private network</text>
+      <text x="345" y="210" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="10.5" fill="#5b6a86">VPC, not public</text>
+
+      <!-- bundle of pooled connections -->
+      <g stroke="#40b75f" stroke-width="2" fill="none">
+        <line x1="228" y1="231" x2="270" y2="205"/>
+        <line x1="228" y1="255" x2="270" y2="198"/>
+        <line x1="228" y1="279" x2="270" y2="191"/>
+      </g>
+      <g stroke="#4F1AF3" stroke-width="2.5" fill="none">
+        <line x1="420" y1="198" x2="470" y2="198"/><polygon points="470,191 484,198 470,205" fill="#4F1AF3"/>
+      </g>
+
+      <!-- managed mongodb -->
+      <g>
+        <ellipse cx="560" cy="150" rx="66" ry="16" fill="#000f27"/>
+        <rect x="494" y="150" width="132" height="86" fill="#000f27"/>
+        <ellipse cx="560" cy="236" rx="66" ry="16" fill="#0a1f45"/>
+        <text x="560" y="182" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="700" fill="#fff">Managed</text>
+        <text x="560" y="200" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="700" fill="#fff">MongoDB</text>
+        <text x="560" y="218" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9.5" fill="#9db0d8">:27017</text>
+      </g>
+
+      <!-- backups -->
+      <rect x="500" y="262" width="120" height="40" rx="10" fill="#eaf7ef" stroke="#cdebd6"/>
+      <text x="560" y="280" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="10.5" font-weight="600" fill="#2f8f4e">automatic backups</text>
+      <text x="560" y="294" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="9" fill="#40b75f">restorable</text>
+      <g stroke="#40b75f" stroke-width="1.5" fill="none" stroke-dasharray="4 3"><line x1="560" y1="236" x2="560" y2="262"/></g>
+
+      <!-- footer -->
+      <rect x="26" y="356" width="648" height="30" rx="9" fill="#000f27"/>
+      <text x="350" y="375" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#e8ecfb">Connect once at startup, not per request. Every request borrows a socket from the same pool.</text>
+    </svg>
+    <figcaption>The whole game is one connection with a bounded pool, reached privately. Requests borrow sockets; they don't open their own.</figcaption>
+  </figure>
+
+  <h2>The Mongoose connection string and MONGODB_URI env</h2>
+  <p>A MongoDB connection string tells the driver where the database is, who you are, and which database to use. In production it belongs in an environment variable, usually <code>MONGODB_URI</code>, set on the server and kept out of your code and your Git history. Here's the shape:</p>
+
+  <pre><code># Standard connection string, credentials plus private host plus db name
+MONGODB_URI=mongodb://appuser:s3cret@10.0.0.5:27017/appdb
+
+# If your user was created in the admin database, add authSource
+MONGODB_URI=mongodb://appuser:s3cret@10.0.0.5:27017/appdb?authSource=admin</code></pre>
+
+  <p>Read it apart once and it stops being cryptic. <code>appuser:s3cret</code> is the least-privilege user and password. <code>10.0.0.5:27017</code> is the private host and the default MongoDB port. <code>/appdb</code> is the database to use. Anything after <code>?</code> is options. The reason it lives in an env var, and not in a config file you commit, is covered properly in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>. Short version: secrets in code leak, and rotating a password shouldn't need a code change.</p>
+
+  <!-- Swap this slot for a real screenshot. src -> images/mongodb-uri-env.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The app's Environment Variables panel with a MONGODB_URI row, its value masked, so readers see where the connection string is stored instead of in code.</em><small>Reinforces the point: string lives in config, not in the repo.</small></span></figure>
+
+  <h2>mongoose.connect options that actually matter</h2>
+  <p>You could call <code>mongoose.connect(uri)</code> with no options and it would work in dev. In production you want a handful of settings that make the connection fail fast, stay bounded, and behave under load. Put this in a small module and import it once.</p>
+
+  <pre><code>// db.js
+const mongoose = require('mongoose');
+
+async function connectDB() {
+  await mongoose.connect(process.env.MONGODB_URI, {
+    maxPoolSize: 10,                // cap sockets to Mongo per process
+    minPoolSize: 2,                 // keep a couple warm to cut cold latency
+    serverSelectionTimeoutMS: 5000, // fail in 5s if Mongo is unreachable
+    socketTimeoutMS: 45000,         // drop a socket stuck on one op
+    family: 4,                      // force IPv4, dodges ::1 ECONNREFUSED
+    autoIndex: false                // do NOT build indexes on boot in prod
+  });
+}
+
+module.exports = connectDB;</code></pre>
+
+  <p>Here's what each option buys you, and a sane default to start from. Tune later, once you have real traffic.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Option</th><th>What it does</th><th>Sensible default</th></tr></thead>
+    <tbody>
+      <tr><td>maxPoolSize</td><td>Max sockets Mongoose keeps open to MongoDB per process</td><td>10 (raise for high concurrency)</td></tr>
+      <tr><td>minPoolSize</td><td>Sockets kept warm even while idle, so the first query isn't cold</td><td>0 to 2</td></tr>
+      <tr><td>serverSelectionTimeoutMS</td><td>How long the driver hunts for a reachable server before throwing</td><td>5000 (fail fast)</td></tr>
+      <tr><td>socketTimeoutMS</td><td>How long one operation can occupy a socket before it's killed</td><td>45000</td></tr>
+      <tr><td>connectTimeoutMS</td><td>TCP handshake timeout when opening a new socket</td><td>10000</td></tr>
+      <tr><td>family</td><td>IP stack; set to 4 to force IPv4 and avoid IPv6 localhost surprises</td><td>4 if you hit ECONNREFUSED</td></tr>
+      <tr><td>autoIndex</td><td>Builds every declared index on connect</td><td>false in production</td></tr>
+    </tbody>
+  </table>
+
+  <p>The two that save you the most grief are <code>maxPoolSize</code> and <code>serverSelectionTimeoutMS</code>. The pool cap keeps you from drowning the database. The selection timeout turns a silent 30-second hang into a clear, fast error you can actually act on.</p>
+
+  <h2>Wire up connection events so failures are loud</h2>
+  <p>Mongoose exposes the connection as an event emitter. If you don't listen, a dropped connection is invisible until a query fails somewhere weird. Attach these handlers next to your connect logic, and you'll know the moment anything changes.</p>
+
+  <pre><code>// db.js (continued): attach BEFORE you call connectDB()
+const mongoose = require('mongoose');
+const conn = mongoose.connection;
+
+conn.on('connected',    () => console.log('MongoDB connected'));
+conn.on('error',        (err) => console.error('MongoDB error:', err.message));
+conn.on('disconnected', () => console.warn('MongoDB disconnected, retrying'));
+
+// Close the pool cleanly when the process is told to stop
+process.on('SIGINT', async () => {
+  await conn.close();
+  process.exit(0);
+});</code></pre>
+
+  <p>Then start the connection at boot, and only listen for HTTP once the database is actually up. This ordering is what kills the buffering-timeout error dead.</p>
+
+  <pre><code>// server.js
+const connectDB = require('./db');
+const app = require('./app');
+
+connectDB()
+  .then(() => app.listen(process.env.PORT || 3000, () => console.log('up')))
+  .catch((err) => {
+    console.error('Could not reach MongoDB:', err.message);
+    process.exit(1); // let the platform restart it, don't limp along
+  });</code></pre>
+
+  <div class="note"><b>Coming from MongoDB Atlas?</b> The Mongoose code is identical; only <code>MONGODB_URI</code> changes. On <a href="https://www.kloudbean.com/blog/managed-mongodb-hosting/">managed MongoDB hosting</a> the database runs on infrastructure you control, on a private network, with automatic backups. Replication and clustering are general MongoDB concepts you can architect; they're not a one-click toggle here, so plan them deliberately rather than assuming a magic global cluster.</div>
+
+  <h2>Connect once, not on every request</h2>
+  <p>This is the mistake that looks harmless and takes down production. Someone puts the connect call inside a handler because it "makes the route self-contained." Every hit opens a new pool.</p>
+
+  <pre><code>// WRONG: a fresh pool on every request, connections exhaust fast
+app.get('/users', async (req, res) =&gt; {
+  await mongoose.connect(process.env.MONGODB_URI); // do NOT do this
+  const users = await User.find();
+  res.json(users);
+});</code></pre>
+
+  <p>Mongoose keeps a single default connection for the whole process. You connect once at startup (as above), and every model, in every request, reuses that same pooled connection automatically. You never call <code>connect</code> again. If you've ever watched a database hit its connection ceiling under mild load, this is usually why.</p>
+
+  <h2>Schemas and models: the Mongoose schema model</h2>
+  <p>A schema describes the shape of a document; a model is the thing you actually query. Defining a schema is what separates Mongoose from raw MongoDB, and it's the reason a lot of Node teams reach for it. Validation, defaults, and types live in one place.</p>
+
+  <pre><code>// models/user.js
+const mongoose = require('mongoose');
+
+const userSchema = new mongoose.Schema({
+  email:     { type: String, required: true, unique: true, lowercase: true, trim: true },
+  name:      { type: String, required: true },
+  role:      { type: String, enum: ['user', 'admin'], default: 'user' },
+  createdAt: { type: Date, default: Date.now }
+});
+
+// Declare indexes here; build them on your terms (see the next section)
+userSchema.index({ email: 1 }, { unique: true });
+
+module.exports = mongoose.model('User', userSchema);</code></pre>
+
+  <p>Now querying is plain and safe:</p>
+
+  <pre><code>const User = require('./models/user');
+
+const user = await User.create({ email: 'a@b.com', name: 'Ada' });
+const admins = await User.find({ role: 'admin' }).limit(50).lean();</code></pre>
+
+  <p>The <code>unique: true</code> on <code>email</code> is a schema hint, but the guarantee comes from the underlying index. Which is exactly why the next section matters.</p>
+
+  <!-- Swap this slot for a real screenshot. src -> images/mongoose-model-query.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A code editor showing a Mongoose schema on the left and a query using the model on the right, or a terminal running the query and printing a returned document.</em><small>Shows schema plus model plus query as one flow.</small></span></figure>
+
+  <h2>Indexes, and why autoIndex is off in production</h2>
+  <p>Indexes are what make queries fast and what enforce uniqueness. By default Mongoose has <code>autoIndex: true</code>, so it tries to build every declared index each time it connects. In development that's convenient. In production it's a foot-gun: on a large collection, building an index at boot can block operations and slow every deploy, whether or not anything changed.</p>
+  <p>So you turn it off in the connect options (we did, above) and build indexes deliberately. A one-off script or a step in your deploy pipeline is the right home for it.</p>
+
+  <pre><code>// scripts/sync-indexes.js: run on deploy, or manually, NOT on every boot
+const connectDB = require('../db');
+const User = require('../models/user');
+
+(async () =&gt; {
+  await connectDB();
+  await User.syncIndexes(); // creates missing, drops stale, on purpose
+  console.log('indexes in sync');
+  process.exit(0);
+})();</code></pre>
+
+  <p>My honest opinion: leave <code>autoIndex</code> off from day one, even on a small app. The habit costs nothing and it means the day your collection gets big, your boot time doesn't quietly fall off a cliff.</p>
+
+  <h2>Mongoose vs the native driver vs Prisma for Mongo</h2>
+  <p>Mongoose isn't the only way to talk to MongoDB from Node, and it isn't always the right one. Here's a fair read on the three common choices.</p>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>Mongoose (ODM)</th><th>Native MongoDB driver</th><th>Prisma (MongoDB)</th></tr></thead>
+    <tbody>
+      <tr><td>What it is</td><td>Schemas, models, validation, hooks, populate</td><td>The official low-level client</td><td>Type-safe client from a schema file</td></tr>
+      <tr><td>Best for</td><td>Most Node apps that want structure over schemaless docs</td><td>Max control and the thinnest layer</td><td>TypeScript teams that want generated types</td></tr>
+      <tr><td>Schema</td><td>Enforced in your app code</td><td>None; you shape documents yourself</td><td>In a Prisma schema, client generated</td></tr>
+      <tr><td>Learning curve</td><td>Moderate</td><td>Small API, more responsibility on you</td><td>Low if you already use Prisma</td></tr>
+      <tr><td>Pick it when</td><td>You want validation, middleware, populate</td><td>You want raw speed and control</td><td>You use Prisma elsewhere already</td></tr>
+    </tbody>
+  </table>
+
+  <p>They all connect to the same managed MongoDB. If your data is genuinely relational with lots of joins, none of these are the real answer, and a SQL client like <a href="https://www.kloudbean.com/blog/connect-typeorm-to-a-database/">TypeORM against Postgres</a> will treat you better. More on that call near the end.</p>
+
+  <h2>Deploy it: connect Mongoose to MongoDB on a managed server</h2>
+  <p>Here's the part that ties Mongoose to a real server. Your Node app runs on Kloudbean's managed Node runtime, and it talks to a managed Kloudbean MongoDB over the private network. There's no "one-click Mongoose," because Mongoose is just an npm package in your app. What's managed is the database and the runtime around your code.</p>
+
+  <ol>
+    <li><strong>Launch a managed MongoDB.</strong> In the DBS section, choose MongoDB and create it. MongoDB is one of seven managed engines here, and it comes up provisioned, secured, and already being backed up. Copy the host, port, database, user, and password.</li>
+  </ol>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed MongoDB, one of seven managed database engines, provisioned and backed up automatically">
+    <figcaption>Launch Database: pick MongoDB, name it, create it. A minute later it's live on a private network and backed up.</figcaption>
+  </figure>
+
+  <ol start="2">
+    <li><strong>Set MONGODB_URI as an environment variable.</strong> Open Runtime Configuration, then Environment Variables, and add <code>MONGODB_URI</code> with the private host. Use the Paste .env Content tab to drop it in. This is what your Mongoose <code>connect</code> reads.</li>
+  </ol>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean Environment Variables panel where MONGODB_URI is stored on the server instead of in application code">
+    <figcaption>Environment Variables: <code>MONGODB_URI</code> lives here, on the server, never in your repo.</figcaption>
+  </figure>
+
+  <ol start="3">
+    <li><strong>Deploy from Git.</strong> Connect your GitHub repo and Kloudbean builds and deploys on every push, with live build logs and deployment history. Add your <code>syncIndexes</code> script as a deploy step so index changes ship with the code that needs them.</li>
+  </ol>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean Git deployment screen connecting a GitHub repo to build and deploy the Node app on every push">
+    <figcaption>Git deployment: push to your branch, Kloudbean builds and deploys. Details in the <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD from GitHub</a> guide.</figcaption>
+  </figure>
+
+  <p>Then verify. Redeploy so the app reads the new variable, hit an endpoint that writes and reads a document, and confirm it persists. If it won't connect, it's almost always the connection string, a wrong variable name, or the database being unreachable. The full runtime walkthrough is in <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploy a Node app to managed cloud</a>, and the Express specifics are in <a href="https://www.kloudbean.com/blog/deploy-express-app/">deploy an Express app</a>.</p>
+
+  <!-- Swap this slot for a real screenshot. src -> images/mongo-connected-logs.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The app's live log stream showing the line MongoDB connected right before the server prints that it is listening on its port.</em><small>The payoff moment: connection up, then server up.</small></span></figure>
+
+  <h2>Security: the parts you can't skip</h2>
+  <p>A database holds the data you least want leaked. None of these are optional.</p>
+  <ul>
+    <li><strong>Credentials in env, not code.</strong> The connection string lives in <code>MONGODB_URI</code>, set on the server. It never appears in a source file.</li>
+    <li><strong>Keep .env out of Git.</strong> Add <code>.env</code> to <code>.gitignore</code>. A committed connection string is a leaked one, forever, in your history.</li>
+    <li><strong>Private network to Mongo.</strong> Your app reaches MongoDB over the private network, so port <code>27017</code> is never exposed to the public internet where scanners find open databases in minutes.</li>
+    <li><strong>Least-privilege user.</strong> The app's MongoDB user should have rights to its own database and nothing more. It doesn't need cluster admin.</li>
+    <li><strong>Backups, and a tested restore.</strong> Automatic backups are on. Actually restoring one before a crisis is the step people skip and later regret.</li>
+  </ul>
+  <p>The platform side of this (Shorewall firewall, Fail2ban, free SSL, private networking) is handled for you. The app side (env vars, least privilege, not committing secrets) is yours to get right.</p>
+
+  <h2>Performance and scaling that actually matters</h2>
+  <p>You don't need to tune anything on launch day. But a few levers save you later, and one of them (pool sizing) trips people up specifically because of how Node runs in production.</p>
+  <ul>
+    <li><strong>Size maxPoolSize per process, then multiply by PM2.</strong> Each process keeps its own pool. If PM2 runs 4 instances at <code>maxPoolSize: 10</code>, that's up to 40 sockets to MongoDB. Set the per-process number so the total stays comfortably under your database's limit. This is the single most common pooling mistake, and it only shows up once you scale past one process.</li>
+    <li><strong>Indexes are the biggest win, by far.</strong> Add an index on every field you filter or sort on. A missing index turns a fast query slow the moment the collection grows. And keep <code>autoIndex</code> off, as covered above.</li>
+    <li><strong>Use <code>.lean()</code> for read-only queries.</strong> It skips Mongoose's document hydration and returns plain objects, which is noticeably faster and lighter when you're just rendering data.</li>
+    <li><strong>Never ship an unbounded <code>find()</code>.</strong> <code>User.find()</code> with no limit will happily try to load a million documents into memory. Always paginate with <code>.limit()</code> and <code>.skip()</code>, or a range query.</li>
+    <li><strong>Resize the server as you grow.</strong> More CPU and RAM is the simplest first scaling move. For read-heavy loads, replication is the usual next step, planned deliberately.</li>
+  </ul>
+
+  <h2>When NOT to reach for MongoDB</h2>
+  <p>A quick honest aside, because picking the wrong database is a slow, expensive mistake. MongoDB shines for flexible or nested documents, high write throughput, and shapes that don't fit neatly into rows. But if your data is deeply relational, orders that join to customers that join to invoices that join to line items, you'll spend your life hand-rolling joins that a relational database does for free. That's a job for Postgres or MySQL. If you're genuinely unsure, <a href="https://www.kloudbean.com/blog/when-to-use-a-nosql-database/">when to use a NoSQL database</a> walks through the decision without cheerleading for either side. Pick the model that matches your data, not the one that's trendy.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Ship your Mongoose app on a database you own.</p>
+    <p style="margin:0">Run your Node app and a managed MongoDB together at <a href="https://www.kloudbean.com/">kloudbean.com</a>. One-click MongoDB · Automatic backups · Private networking · Env vars in the UI · Simple Git deploy · Free migration · Free trial. From $8/mo, sizes on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I connect Mongoose to MongoDB in production?</h3>
+    <p>Call <code>mongoose.connect(process.env.MONGODB_URI, { maxPoolSize: 10, serverSelectionTimeoutMS: 5000 })</code> once when your process starts, not inside a route. Read the connection string from an environment variable, attach <code>error</code> and <code>connected</code> event handlers, and only start your HTTP server after the connection resolves. On a managed host the MongoDB sits on a private network and is backed up for you.</p>
+
+    <h3>How do I fix MongooseServerSelectionError?</h3>
+    <p>It means the driver couldn't reach a MongoDB server before <code>serverSelectionTimeoutMS</code> elapsed. Check the host and port in <code>MONGODB_URI</code>, confirm the database is running and reachable on the private network, and make sure a firewall isn't blocking port 27017. A <code>connect ECONNREFUSED</code> usually points at a wrong host or a database that isn't up yet.</p>
+
+    <h3>What is maxPoolSize in Mongoose?</h3>
+    <p><code>maxPoolSize</code> is the maximum number of sockets Mongoose keeps open to MongoDB per Node process. The default is 100, which is often too high once you run several processes. Set it around 10 per process and multiply by your PM2 instance count to stay under the database's connection limit.</p>
+
+    <h3>Why do I get "Operation buffering timed out after 10000ms"?</h3>
+    <p>Mongoose queues model operations until a connection is ready, then gives up after 10000ms if it never connects. The real problem is almost always a failed connection: a bad URI, an unreachable host, or a query that ran before <code>connect</code> resolved. Fix the connection and the buffering error disappears.</p>
+
+    <h3>Should autoIndex be on in production?</h3>
+    <p>No. <code>autoIndex</code> tells Mongoose to build every declared index on connect, which can be slow and can lock a large collection right as your app boots. Set <code>autoIndex</code> to false in production and build indexes deliberately with <code>syncIndexes</code> or a deploy step.</p>
+
+    <h3>Mongoose vs the native MongoDB driver, which should I use?</h3>
+    <p>Use Mongoose when you want schemas, validation, populate, and middleware in your app code. Use the native driver when you want the thinnest possible layer and full control over documents. Both talk to the same MongoDB; Mongoose just adds structure on top.</p>
+
+    <h3>Where should the Mongoose connection string live?</h3>
+    <p>In an environment variable such as <code>MONGODB_URI</code>, set on the server, never committed to Git. That keeps credentials out of your source history and lets you rotate a password without a code change. Add <code>.env</code> to <code>.gitignore</code> for local development.</p>
+
+    <h3>Should I call mongoose.connect on every request?</h3>
+    <p>No. Connecting per request opens a new pool every time and quickly exhausts the database's connection limit. Call <code>connect</code> once at startup; Mongoose keeps a single pooled connection that every request reuses automatically.</p>
+
+    <h3>How many connections should my pool have with PM2?</h3>
+    <p>Multiply <code>maxPoolSize</code> by the number of PM2 instances, because each process keeps its own pool. Four instances at <code>maxPoolSize</code> 10 means up to 40 sockets to MongoDB. Size the total so it stays comfortably under what your database allows.</p>
+
+    <h3>Does Kloudbean have managed MongoDB?</h3>
+    <p>Yes. MongoDB is one of seven managed database engines on Kloudbean, launched with one click, kept on a private network, and backed up automatically. Your Node app runs on the managed Node runtime and connects to it with a <code>MONGODB_URI</code> environment variable.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Engineering · Schemas, models, and connections</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Connect Mongoose to MongoDB: The Production Setup That Doesn't Break","description":"Connect Mongoose to MongoDB in production: the connection string, mongoose.connect options, maxPoolSize, connection events, schemas and models, and fixes for MongooseServerSelectionError and buffering timed out.","image":"https://www.kloudbean.com/blog/connect-mongoose-to-mongodb/images/hero.png","author":{"@type":"Organization","name":"Kloudbean Engineering","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/connect-mongoose-to-mongodb/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I connect Mongoose to MongoDB in production?","acceptedAnswer":{"@type":"Answer","text":"Call mongoose.connect with process.env.MONGODB_URI and options like maxPoolSize 10 and serverSelectionTimeoutMS 5000 once when your process starts, not inside a route. Read the connection string from an environment variable, attach error and connected event handlers, and only start your HTTP server after the connection resolves. On a managed host the MongoDB sits on a private network and is backed up for you."}},
+{"@type":"Question","name":"How do I fix MongooseServerSelectionError?","acceptedAnswer":{"@type":"Answer","text":"It means the driver could not reach a MongoDB server before serverSelectionTimeoutMS elapsed. Check the host and port in MONGODB_URI, confirm the database is running and reachable on the private network, and make sure a firewall is not blocking port 27017. A connect ECONNREFUSED usually points at a wrong host or a database that is not up yet."}},
+{"@type":"Question","name":"What is maxPoolSize in Mongoose?","acceptedAnswer":{"@type":"Answer","text":"maxPoolSize is the maximum number of sockets Mongoose keeps open to MongoDB per Node process. The default is 100, which is often too high once you run several processes. Set it around 10 per process and multiply by your PM2 instance count to stay under the database connection limit."}},
+{"@type":"Question","name":"Why do I get Operation buffering timed out after 10000ms?","acceptedAnswer":{"@type":"Answer","text":"Mongoose queues model operations until a connection is ready, then gives up after 10000ms if it never connects. The real problem is almost always a failed connection: a bad URI, an unreachable host, or a query that ran before connect resolved. Fix the connection and the buffering error disappears."}},
+{"@type":"Question","name":"Should autoIndex be on in production?","acceptedAnswer":{"@type":"Answer","text":"No. autoIndex tells Mongoose to build every declared index on connect, which can be slow and can lock a large collection right as your app boots. Set autoIndex to false in production and build indexes deliberately with syncIndexes or a deploy step."}},
+{"@type":"Question","name":"Mongoose vs the native MongoDB driver, which should I use?","acceptedAnswer":{"@type":"Answer","text":"Use Mongoose when you want schemas, validation, populate, and middleware in your app code. Use the native driver when you want the thinnest possible layer and full control over documents. Both talk to the same MongoDB; Mongoose just adds structure on top."}},
+{"@type":"Question","name":"Where should the Mongoose connection string live?","acceptedAnswer":{"@type":"Answer","text":"In an environment variable such as MONGODB_URI, set on the server, never committed to Git. That keeps credentials out of your source history and lets you rotate a password without a code change. Add a .env file to .gitignore for local development."}},
+{"@type":"Question","name":"Should I call mongoose.connect on every request?","acceptedAnswer":{"@type":"Answer","text":"No. Connecting per request opens a new pool every time and quickly exhausts the database connection limit. Call connect once at startup; Mongoose keeps a single pooled connection that every request reuses automatically."}},
+{"@type":"Question","name":"How many connections should my pool have with PM2?","acceptedAnswer":{"@type":"Answer","text":"Multiply maxPoolSize by the number of PM2 instances, because each process keeps its own pool. Four instances at maxPoolSize 10 means up to 40 sockets to MongoDB. Size the total so it stays comfortably under what your database allows."}},
+{"@type":"Question","name":"Does Kloudbean have managed MongoDB?","acceptedAnswer":{"@type":"Answer","text":"Yes. MongoDB is one of seven managed database engines on Kloudbean, launched with one click, kept on a private network, and backed up automatically. Your Node app runs on the managed Node runtime and connects to it with a MONGODB_URI environment variable."}}
+]}
+]}
+</script>
+</body>
+</html>

@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5 Myths About Deploying FastAPI (and What's Actually True)</title>
+<meta name="description" content="FastAPI is fast and async, which spawns a lot of deploy myths — one worker is enough, you need Kubernetes, Uvicorn alone is production. Here's what's real, and how to actually ship it.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/deploy-fastapi-app/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="5 Myths About Deploying FastAPI (and What's Actually True)">
+<meta property="og:description" content="The five most common FastAPI deploy myths — async workers, Uvicorn, Kubernetes, blocking calls — replaced with what actually happens in production.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">App deployment</span>
+  <h1>5 Myths About Deploying FastAPI (and What's Actually True)</h1>
+
+  <figure><img src="images/hero.png" alt="Deploy a FastAPI app — Uvicorn workers on a real server, scaled sensibly"></figure>
+
+  <p class="lead">Everyone has a theory about how to deploy a FastAPI app, and a surprising number of them are folklore. FastAPI is fast, modern, and async, and that reputation quietly breeds bad advice: that "async" means one process can carry the world, that Uvicorn on its own is the finish line, that you need Kubernetes to run it seriously.</p>
+  <p>None of those hold up. Believe them and you end up either over-engineering a simple API or watching it fall over the first time real traffic arrives. The root of almost every FastAPI myth is one word people don't fully unpack: <strong>ASGI</strong>. So before the myths, a minute on what ASGI actually changes about how you run the thing.</p>
+
+  <div class="tldr"><strong>The short version</strong><p>FastAPI is an ASGI app, so you run it with Uvicorn, not Gunicorn's plain WSGI workers. In production that's <code>uvicorn main:app --host 0.0.0.0 --port $PORT --workers 4</code> (or Uvicorn workers under Gunicorn), bound to the port the platform assigns. Async handles many requests <em>per worker</em>; multiple workers use every core. One good server carries a lot. Reach for Kubernetes only when you actually have to.</p></div>
+
+  <h2>First, what ASGI actually changes</h2>
+  <p>Flask and Django are <strong>WSGI</strong> apps. WSGI is synchronous: a worker takes one request, runs it start to finish, then takes the next. To handle ten requests at once you need ten workers. FastAPI is an <strong>ASGI</strong> app, and ASGI is asynchronous: a single worker runs an <em>event loop</em> that can juggle many requests at the same time, as long as each one spends part of its life waiting (on the database, an API call, the network). While request A waits, the loop serves B and C.</p>
+  <p>That single difference drives how you run it. You still want several workers to use every CPU core, but each worker now does far more than one request at a time. Picture it like this.</p>
+
+  <figure>
+    <svg viewBox="0 0 700 476" width="100%" role="img" aria-label="Diagram: FastAPI runs several Uvicorn workers, one per CPU core, supervised by the platform. Inside each worker an event loop juggles multiple concurrent requests: some are awaiting the database or an API while one runs. This is different from WSGI, where a worker handles one request at a time.">
+      <rect x="1" y="1" width="698" height="474" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="350" y="32" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="17" font-weight="700" fill="#000f27">One Uvicorn worker per core, each looping over many requests</text>
+      <text x="350" y="54" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#5b6a86">ASGI: many concurrent requests per worker, not one at a time</text>
+
+      <rect x="150" y="70" width="400" height="42" rx="10" fill="#000f27"/>
+      <text x="350" y="91" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="12.5" fill="#e8ecfb">uvicorn main:app --workers 3</text>
+      <text x="350" y="106" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="10.5" fill="#c9b8ff">kept alive + supervised by the platform</text>
+
+      <g stroke="#4F1AF3" stroke-width="2" fill="none">
+        <line x1="250" y1="112" x2="120" y2="150"/><polygon points="114,144 120,156 126,148" fill="#4F1AF3"/>
+        <line x1="350" y1="112" x2="350" y2="150"/><polygon points="344,150 350,138 356,150" fill="#4F1AF3"/>
+        <line x1="450" y1="112" x2="580" y2="150"/><polygon points="574,148 586,156 580,144" fill="#4F1AF3"/>
+      </g>
+
+      <!-- three workers -->
+      <g font-family="Poppins,Arial,sans-serif">
+        <!-- worker template -->
+        <g>
+          <rect x="20" y="156" width="200" height="176" rx="12" fill="#f6f7fb" stroke="#e6e9f2"/>
+          <text x="120" y="180" text-anchor="middle" font-size="12.5" font-weight="600" fill="#000f27">Worker · core 1</text>
+          <text x="120" y="199" text-anchor="middle" font-size="10.5" fill="#4F1AF3">event loop</text>
+          <rect x="36" y="210" width="168" height="26" rx="7" fill="#fff" stroke="#e6e9f2"/><text x="46" y="227" font-size="11" fill="#5b6a86">req A · awaiting DB</text>
+          <rect x="36" y="242" width="168" height="26" rx="7" fill="#fff" stroke="#e6e9f2"/><text x="46" y="259" font-size="11" fill="#5b6a86">req B · awaiting API</text>
+          <rect x="36" y="274" width="168" height="26" rx="7" fill="#eaf7ef" stroke="#cdebd6"/><text x="46" y="291" font-size="11" fill="#40b75f">req C · running now</text>
+          <text x="120" y="320" text-anchor="middle" font-size="10" fill="#5b6a86">serves B or C while A waits</text>
+        </g>
+        <g>
+          <rect x="250" y="156" width="200" height="176" rx="12" fill="#f6f7fb" stroke="#e6e9f2"/>
+          <text x="350" y="180" text-anchor="middle" font-size="12.5" font-weight="600" fill="#000f27">Worker · core 2</text>
+          <text x="350" y="199" text-anchor="middle" font-size="10.5" fill="#4F1AF3">event loop</text>
+          <rect x="266" y="210" width="168" height="26" rx="7" fill="#fff" stroke="#e6e9f2"/><text x="276" y="227" font-size="11" fill="#5b6a86">req D · awaiting DB</text>
+          <rect x="266" y="242" width="168" height="26" rx="7" fill="#eaf7ef" stroke="#cdebd6"/><text x="276" y="259" font-size="11" fill="#40b75f">req E · running now</text>
+          <rect x="266" y="274" width="168" height="26" rx="7" fill="#fff" stroke="#e6e9f2"/><text x="276" y="291" font-size="11" fill="#5b6a86">req F · awaiting API</text>
+          <text x="350" y="320" text-anchor="middle" font-size="10" fill="#5b6a86">its own loop, its own core</text>
+        </g>
+        <g>
+          <rect x="480" y="156" width="200" height="176" rx="12" fill="#f6f7fb" stroke="#e6e9f2"/>
+          <text x="580" y="180" text-anchor="middle" font-size="12.5" font-weight="600" fill="#000f27">Worker · core 3</text>
+          <text x="580" y="199" text-anchor="middle" font-size="10.5" fill="#4F1AF3">event loop</text>
+          <rect x="496" y="210" width="168" height="26" rx="7" fill="#fdecec" stroke="#f6cccc"/><text x="506" y="227" font-size="11" fill="#c0392b">blocking call · loop stuck</text>
+          <rect x="496" y="242" width="168" height="26" rx="7" fill="#fff" stroke="#e6e9f2"/><text x="506" y="259" font-size="11" fill="#9aa6bd">req H · waiting behind it</text>
+          <rect x="496" y="274" width="168" height="26" rx="7" fill="#fff" stroke="#e6e9f2"/><text x="506" y="291" font-size="11" fill="#9aa6bd">req I · waiting behind it</text>
+          <text x="580" y="320" text-anchor="middle" font-size="10" fill="#c0392b">one sync call freezes all of it</text>
+        </g>
+      </g>
+
+      <line x1="30" y1="352" x2="670" y2="352" stroke="#e6e9f2" stroke-width="1"/>
+      <text x="350" y="380" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#5b6a86">Async = many requests per worker while they wait. Workers = use every core.</text>
+      <text x="350" y="402" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#5b6a86">WSGI (Flask, Django) runs one request per worker. ASGI (FastAPI) runs many.</text>
+      <text x="350" y="440" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#c0392b">Worker 3 shows the trap: a blocking call parks the loop and everything behind it waits.</text>
+    </svg>
+    <figcaption>Each Uvicorn worker owns a core and an event loop. Async wins while requests wait. A synchronous call in an async route parks the whole loop, which is Myth 4 below.</figcaption>
+  </figure>
+
+  <p>Hold that picture. Every myth below is really a misunderstanding of it.</p>
+
+  <h2>Myth 1: "It's async, so one worker handles everything"</h2>
+  <p><strong>Reality:</strong> async and multiple workers solve two different problems, and you want both.</p>
+  <p>Async lets one worker juggle many waiting requests, which is real and valuable. But a single worker still runs on a single CPU core. Give the server 4 cores, run one worker, and three sit idle while you pay for them. So you run several Uvicorn workers to spread across cores, and each worker uses async to handle many requests at once. The rule of thumb matches every other Python server: start around <strong>(2 × cores) + 1</strong> workers, then let async do its thing inside each one. One without the other leaves performance on the table.</p>
+
+  <h2>Myth 2: "Bare <code>uvicorn main:app</code> is production-ready"</h2>
+  <p><strong>Reality:</strong> Uvicorn is the right server. A single bare command in a terminal is not the whole production story.</p>
+  <p>Here's the anti-pattern I see most: someone ships <code>uvicorn main:app --reload</code> to production because it's what they ran locally. The <code>--reload</code> flag watches your files for changes and restarts on every edit. It's a single-process development convenience, and it has no business on a live server. Drop it.</p>
+  <p>Production wants two things around Uvicorn. First, <strong>workers</strong>, either <code>uvicorn main:app --workers 4</code> or the classic combo of Uvicorn worker processes under Gunicorn:</p>
+  <pre><code># option A: Uvicorn manages its own workers
+uvicorn main:app --host 0.0.0.0 --port $PORT --workers 4
+
+# option B: Gunicorn supervises Uvicorn workers (the "uvicorn gunicorn fastapi" combo)
+gunicorn main:app -k uvicorn.workers.UvicornWorker --workers 4 --bind 0.0.0.0:$PORT</code></pre>
+  <p>Second, <strong>something to keep it alive</strong>: a process manager that restarts the app if it crashes or the box reboots. On managed cloud that supervision is built in. You hand over the start command and the platform keeps it running, no init scripts to write. Note the <code>$PORT</code> in both commands. The app must bind the port the platform assigns, not a hard-coded one, or the web server in front connects to nothing and you get a 503. That single mistake causes a big share of "it deployed but won't load" tickets, same as it does for <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">a Node app reading the wrong port</a>.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean Deploy Code / Git Deployment tab: Install set to pip install requirements, Start set to the Uvicorn command binding the assigned port">
+    <figcaption>Git Deployment: Install runs <code>pip install -r requirements.txt</code>, Start runs your Uvicorn command bound to <code>$PORT</code>. The platform supervises the workers.</figcaption>
+  </figure>
+
+  <h2>Myth 3: "It's async, so nothing ever blocks"</h2>
+  <p><strong>Reality:</strong> a slow, synchronous, CPU-heavy call inside an async route blocks the entire event loop. This is the bug that surprises people most, and it's Worker 3 in the diagram.</p>
+  <p>Async is cooperative. A worker serves many requests happily <em>as long as each one yields while it waits</em>. But if one request does something heavy and synchronous (a big image resize, a tight CPU loop, a library that isn't async-aware), it holds the loop, and every other request on that worker waits behind it. Async didn't fail. It got asked to do something it can't.</p>
+  <p>The version we see constantly: an <code>async def</code> route calling a plain synchronous database driver. One user in dev, feels instant. Real traffic arrives and every request lines up behind that blocking query, because a sync call parks the loop. It looks fine right up until it doesn't. Two clean fixes:</p>
+  <pre><code># blocks the loop: synchronous driver inside an async route
+@app.get("/users")
+async def users():
+    return db.query(User).all()      # sync call, parks the event loop
+
+# fix 1: use a normal def route, FastAPI runs it in a threadpool
+@app.get("/users")
+def users():
+    return db.query(User).all()      # no longer blocks the loop
+
+# fix 2: go fully async with an async driver (asyncpg, databases)
+@app.get("/users")
+async def users():
+    return await database.fetch_all("SELECT * FROM users")</code></pre>
+  <p>Pick one shape on purpose. Fully async (an async driver like <code>asyncpg</code>, <code>async def</code> routes, awaited queries), or simple and sync (a normal driver with plain <code>def</code> routes, letting FastAPI's threadpool handle concurrency). Both are fine. What hurts is a sync driver stuck inside an async route, quietly serializing your traffic.</p>
+
+  <h2>Myth 4: "You need Kubernetes to run FastAPI properly"</h2>
+  <p><strong>Reality:</strong> for the vast majority of apps, one good server with several workers is plenty. Add a load balancer in front when you genuinely outgrow it.</p>
+  <p>FastAPI is quick, so a single modest server handles more traffic than most people expect. My opinion, plainly: Uvicorn with a few workers behind the managed web server is the sane default, and most FastAPI apps never need more than that. When you do outgrow one box, you don't leap to container orchestration. You add a second server and put a <strong>load balancer</strong> in front to spread requests across both.</p>
+
+  <figure>
+    <img src="../assets/console/flb-load-balancer.png" alt="The Kloudbean console load balancer spreading traffic across two FastAPI app servers with health checks">
+    <figcaption>Horizontal scaling the boring way: two or three app servers behind a load balancer, each running Uvicorn workers, with health checks routing around any that go unhealthy.</figcaption>
+  </figure>
+
+  <p>That's real horizontal scaling without the Kubernetes tax. Kubernetes is a fine tool at large scale, and Kloudbean does offer k8s and autoscaling for enterprise setups that truly need them, but reaching for it on day one solves a problem you don't have yet. Start simple, scale the simple thing. If you want the deeper version of this argument, it's in <a href="https://www.kloudbean.com/blog/autoscaling-explained/">autoscaling, explained</a> and <a href="https://www.kloudbean.com/blog/cloud-load-balancer-explained/">what a load balancer actually does</a>.</p>
+
+  <h2>Myth 5: "Deploying FastAPI is totally different from other Python apps"</h2>
+  <p><strong>Reality:</strong> the shape is identical to any other Python web app. Only the server type differs.</p>
+  <p>Flask and Django are WSGI apps served by Gunicorn. FastAPI is an ASGI app served by Uvicorn. That's the entire difference from a deploy standpoint. Everything else is the same familiar path, and on <a href="https://www.kloudbean.com/">Kloudbean</a> it's three fields under <strong>Application Administration &#8594; Deploy Code &#8594; Git Deployment</strong>:</p>
+  <ul>
+    <li><strong>Install:</strong> <code>pip install -r requirements.txt</code>.</li>
+    <li><strong>Build:</strong> usually empty for a plain API. If you generate anything at build time, it goes here.</li>
+    <li><strong>Start:</strong> <code>uvicorn main:app --host 0.0.0.0 --port $PORT --workers 4</code>.</li>
+  </ul>
+  <p>Add your secrets and database URL under <strong>Runtime Configuration &#8594; Environment Variables</strong> with the <strong>Paste .env</strong> tab, launch a <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">managed Postgres or MySQL</a> on the same box, point a domain, and install free Let's Encrypt SSL. Deployed a Flask app before? Then you already know this, you just swap <code>gunicorn app:app</code> for the Uvicorn command. The full WSGI walkthrough is <a href="https://www.kloudbean.com/blog/deploy-flask-app/">deploy a Flask app</a>, and the settings-first version is <a href="https://www.kloudbean.com/blog/deploy-django-app/">deploy a Django app</a>.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean Environment Variables screen: FastAPI database URL and secrets pasted in as a .env">
+    <figcaption>Environment Variables, Paste .env. Your database URL and secrets live on the server, and FastAPI reads them at startup.</figcaption>
+  </figure>
+
+  <p>One nice payoff once it's live: FastAPI generates interactive API docs for free at <code>/docs</code> (Swagger UI) and <code>/redoc</code>. Deploy, and they're immediately at <code>yourdomain.com/docs</code> with zero extra setup, which makes handing an API to a frontend team genuinely pleasant.</p>
+
+  <!-- ADD IMAGE: swap this slot for a real <figure> with an <img> (src -> images/fastapi-docs.png) and a <figcaption>. -->
+  <figure class="img-slot"><span><b>Add image</b><em>Browser at yourdomain.com/docs showing FastAPI's auto-generated Swagger UI, live on the deployed app.</em><small>Shows the built-in interactive docs working in production.</small></span></figure>
+
+  <p>None of this fights the platform. FastAPI is Python on Linux, which is exactly what a managed server runs. Kloudbean keeps the server healthy, supervises your Uvicorn workers, handles SSL, and takes server-level backups. You own the app code, the worker count, the secrets, and the data. The myths all come from treating "fast and async" as if it needed exotic hosting. It doesn't. It needs a normal server, sensibly configured, and it flies. When it does 503, the cause is almost always the port, a missing env var, or the start command, and the stack trace is in <code>app.error.log</code>; the checklist is <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fixing a 503 after deploying</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Fast doesn't mean complicated.</p>
+    <p style="margin:0">Deploy your FastAPI app, Uvicorn workers and all, at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Git deploy · Managed Postgres · Auto SSL · Load balancer when you need it · Free migration · Free trial. Sizes on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I deploy a FastAPI app?</h3>
+    <p>Push it to GitHub, connect the repo, set the build/install command to <code>pip install -r requirements.txt</code>, and set the start command to <code>uvicorn main:app --host 0.0.0.0 --port $PORT --workers 4</code>. Add environment variables for your secrets and database, and deploy. It's the same flow as any Python app, with Uvicorn as the server.</p>
+
+    <h3>What is ASGI, and why does FastAPI need Uvicorn?</h3>
+    <p>ASGI is the async server interface FastAPI is built on, the async counterpart to WSGI. It lets one worker handle many requests concurrently via an event loop. Uvicorn is an ASGI server that runs it. Gunicorn's plain workers are WSGI, so you either run Uvicorn directly or run Uvicorn worker processes under Gunicorn.</p>
+
+    <h3>Do I run FastAPI with Uvicorn or Gunicorn?</h3>
+    <p>Uvicorn is the ASGI server that runs FastAPI. You can run multiple Uvicorn workers directly with <code>--workers</code>, or run Uvicorn worker processes managed by Gunicorn with <code>-k uvicorn.workers.UvicornWorker</code>. Both are common. Either way you want several workers to use all your CPU cores.</p>
+
+    <h3>How many workers should a FastAPI app use?</h3>
+    <p>A common starting point is (2 x CPU cores) + 1. Async handles concurrency within each worker; multiple workers use all the cores. Adjust based on real traffic and whether your workload is I/O-bound or CPU-bound.</p>
+
+    <h3>Why is my async FastAPI app slow under load?</h3>
+    <p>Usually a blocking, CPU-heavy, or non-async call inside an <code>async def</code> route is holding the event loop. Use a normal <code>def</code> route (FastAPI runs it in a threadpool) for blocking calls, and move heavy work to a background task or separate worker. A synchronous database driver in an async route is the classic culprit.</p>
+
+    <h3>Do I need Kubernetes to run FastAPI in production?</h3>
+    <p>No. A single well-sized server with multiple workers handles a lot, and when you outgrow it you add servers behind a load balancer. Kubernetes is useful at large scale but is unnecessary complexity for most FastAPI apps.</p>
+
+    <h3>Does FastAPI's interactive <code>/docs</code> work once deployed?</h3>
+    <p>Yes. FastAPI generates Swagger UI at <code>/docs</code> and ReDoc at <code>/redoc</code> automatically. Once your app is live they're served at your domain with no extra configuration. You can disable them in production if you'd rather not expose the schema publicly.</p>
+  </div>
+
+  <p class="byline">Kloudbean · ASGI apps, served straight.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"5 Myths About Deploying FastAPI (and What's Actually True)","description":"The five most common FastAPI deploy myths — async workers, Uvicorn, Kubernetes, blocking calls — replaced with what actually happens in production.","image":"https://www.kloudbean.com/blog/deploy-fastapi-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/deploy-fastapi-app/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I deploy a FastAPI app?","acceptedAnswer":{"@type":"Answer","text":"Push it to GitHub, connect the repo, set the install command to pip install -r requirements.txt, and set the start command to uvicorn main:app --host 0.0.0.0 --port $PORT --workers 4. Add environment variables for your secrets and database, and deploy. It's the same flow as any Python app, with Uvicorn as the server."}},
+{"@type":"Question","name":"What is ASGI, and why does FastAPI need Uvicorn?","acceptedAnswer":{"@type":"Answer","text":"ASGI is the async server interface FastAPI is built on, the async counterpart to WSGI. It lets one worker handle many requests concurrently via an event loop. Uvicorn is an ASGI server that runs it. Gunicorn's plain workers are WSGI, so you either run Uvicorn directly or run Uvicorn worker processes under Gunicorn."}},
+{"@type":"Question","name":"Do I run FastAPI with Uvicorn or Gunicorn?","acceptedAnswer":{"@type":"Answer","text":"Uvicorn is the ASGI server that runs FastAPI. You can run multiple Uvicorn workers directly with --workers, or run Uvicorn worker processes managed by Gunicorn with -k uvicorn.workers.UvicornWorker. Both are common. Either way you want several workers to use all your CPU cores."}},
+{"@type":"Question","name":"How many workers should a FastAPI app use?","acceptedAnswer":{"@type":"Answer","text":"A common starting point is (2 x CPU cores) + 1. Async handles concurrency within each worker; multiple workers use all the cores. Adjust based on real traffic and whether your workload is I/O-bound or CPU-bound."}},
+{"@type":"Question","name":"Why is my async FastAPI app slow under load?","acceptedAnswer":{"@type":"Answer","text":"Usually a blocking, CPU-heavy, or non-async call inside an async def route is holding the event loop. Use a normal def route (FastAPI runs it in a threadpool) for blocking calls, and move heavy work to a background task or separate worker. A synchronous database driver in an async route is the classic culprit."}},
+{"@type":"Question","name":"Do I need Kubernetes to run FastAPI in production?","acceptedAnswer":{"@type":"Answer","text":"No. A single well-sized server with multiple workers handles a lot, and when you outgrow it you add servers behind a load balancer. Kubernetes is useful at large scale but is unnecessary complexity for most FastAPI apps."}},
+{"@type":"Question","name":"Does FastAPI's interactive /docs work once deployed?","acceptedAnswer":{"@type":"Answer","text":"Yes. FastAPI generates Swagger UI at /docs and ReDoc at /redoc automatically. Once your app is live they're served at your domain with no extra configuration. You can disable them in production if you'd rather not expose the schema publicly."}}
+]}
+]}
+</script>
+</body>
+</html>

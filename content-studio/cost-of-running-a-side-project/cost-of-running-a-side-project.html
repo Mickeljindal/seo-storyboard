@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Real Cost of Running a Side Project (Honest Line-Item Breakdown)</title>
+<meta name="description" content="The real cost of running a side project, broken down line by line: compute, database, storage, egress, domain, SSL, and the one cost nobody bills you for. Honest illustrative ranges, plus a setup that stays cheap and boring.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/cost-of-running-a-side-project/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="The Real Cost of Running a Side Project (Honest Line-Item Breakdown)">
+<meta property="og:description" content="Compute, database, storage, egress, domain, SSL, and your own time. Where a side project's money actually goes, with illustrative ranges and a setup that stays cheap.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Pricing &amp; cost</span>
+  <h1>The Real Cost of Running a Side Project</h1>
+
+  <figure><img src="images/hero.png" alt="The real cost of running a side project, broken down line by line"></figure>
+
+  <p class="lead">You built a thing. A weekend SaaS, a Discord bot, a small Django API, an app Lovable or Bolt spat out on a Tuesday night. Now you want it online, and a small voice asks the question that kills more side projects than bad code ever does: is this going to cost me a fortune?</p>
+
+  <p>Short answer: no. The cost of running a side project is usually tiny, and the fear is almost always bigger than the bill. But "tiny" isn't "free," and the free option has a bite you should see coming. So let's put honest, illustrative numbers on every line, including the one nobody sends you an invoice for. Every figure here is a rough example, not a quote. Prices move, and yours will differ.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>For most side projects the bill is small. Often nothing while you build on free tiers, then a few dollars a month once you want it always-on with your own domain. Compute is the biggest cash line, a domain is roughly a dollar a month billed yearly, and a small database adds a few dollars only if you need one. The cost that actually stings is your time. Aim for a bill so small and predictable you never babysit it. All numbers below are illustrative.</p>
+  </div>
+
+  <h2>So what's the honest number?</h2>
+  <p>For a typical side project, somewhere between free and about the price of a couple of coffees a month. A small always-on server, maybe a small database, plus a domain, lands in the low single digits to low teens of dollars a month once it's real. That's it. The scary five-figure cloud bills you've read about come from large production systems, badly configured autoscaling, or a viral moment with no caps. They don't come from a personal project serving a few hundred people. Your side project probably costs less to run than one streaming subscription.</p>
+  <p>So why does the fear persist? Because pricing pages are confusing on purpose, and because the loudest cost stories online are the disasters. Nobody writes a viral thread about the app that quietly cost four dollars a month for two years.</p>
+
+  <!-- Author: swap this slot for a real image. To use a console shot: src -> ../assets/console/add-application.png. Or supply your own: src -> images/your-project-dashboard.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A screenshot of a simple side project running (the app dashboard, or your own hosting bill showing a small monthly figure).</em><small>A real small bill is reassuring. Blur any account details.</small></span></figure>
+
+  <h2>The "$0" that isn't free: the free-tier trap</h2>
+  <p>Free tiers are great, and I'd never tell you to skip them while you're still building. Static front end? Host it free, custom domain and SSL included, and enjoy it. A free app tier or a small free database is perfect for the phase where the only visitors are you and three friends.</p>
+  <p>But free has fine print. Two parts of it catch people out.</p>
+  <ul>
+    <li><strong>It sleeps.</strong> Most free app tiers idle your app after a few minutes of no traffic. The next visitor triggers a cold start and waits several seconds for the thing to wake up. Fine for a demo. Rough when a real user or a Show HN link finally arrives and the first impression is a spinner.</li>
+    <li><strong>It bites later.</strong> Free tiers cap resources, and the jump to the first paid tier is often steep, not gentle. Or the bill that was zero starts metering bandwidth once you get popular, exactly when you can least afford a surprise. And some free platforms make leaving painful, so the real cost shows up as a migration you didn't budget for.</li>
+  </ul>
+  <p>None of that makes free bad. It makes free a phase, not a destination. There's a fuller take in <a href="https://www.kloudbean.com/blog/is-free-hosting-worth-it/">is free hosting worth it</a> and a head to head in <a href="https://www.kloudbean.com/blog/free-tier-vs-cheap-vps/">free tier vs cheap VPS</a>.</p>
+
+  <h2>Where the cost of running a side project actually goes</h2>
+  <p>Picture the whole bill as a stack. A few small cash lines at the bottom, and one big block on top that no provider prints.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 360" role="img" aria-label="A side project cost stack: compute, database, storage and domain are small cash lines, while your own time is the largest block sitting on top" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="30" y="38" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">What a side project actually costs, stacked</text>
+      <text x="30" y="60" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">The cash lines are small. Your time is the block that dwarfs them.</text>
+
+      <line x1="120" y1="312" x2="300" y2="312" stroke="#c9d0e3" stroke-width="1.5"/>
+
+      <rect x="120" y="242" width="150" height="70" fill="#000f27"/>
+      <text x="195" y="283" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Compute</text>
+      <rect x="120" y="206" width="150" height="36" fill="#4F1AF3"/>
+      <text x="195" y="229" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12" font-weight="600">Database</text>
+      <rect x="120" y="178" width="150" height="28" fill="#6b3cff"/>
+      <text x="195" y="197" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="11" font-weight="600">Storage</text>
+      <rect x="120" y="160" width="150" height="18" fill="#40b75f"/>
+      <text x="195" y="173" text-anchor="middle" fill="#04331a" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600">Domain</text>
+
+      <rect x="96" y="44" width="198" height="112" rx="8" fill="#4F1AF3" fill-opacity="0.14" stroke="#4F1AF3" stroke-width="1.5" stroke-dasharray="6 6"/>
+      <text x="195" y="96" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="15" font-weight="700">YOUR TIME</text>
+      <text x="195" y="118" text-anchor="middle" fill="#3a2a86" font-family="Poppins,sans-serif" font-size="11">the line nobody invoices</text>
+
+      <g font-family="Poppins,sans-serif" font-size="12.5">
+        <rect x="360" y="150" width="14" height="14" rx="3" fill="#000f27"/>
+        <text x="384" y="162" fill="#1c2536">Compute: a small always-on server</text>
+        <text x="384" y="178" fill="#5b6a86" font-size="11">a few dollars a month*</text>
+        <rect x="360" y="196" width="14" height="14" rx="3" fill="#4F1AF3"/>
+        <text x="384" y="208" fill="#1c2536">Database (optional)</text>
+        <text x="384" y="224" fill="#5b6a86" font-size="11">a few dollars, or run it on the same box*</text>
+        <rect x="360" y="242" width="14" height="14" rx="3" fill="#6b3cff"/>
+        <text x="384" y="254" fill="#1c2536">Storage and egress</text>
+        <text x="384" y="270" fill="#5b6a86" font-size="11">often near zero at small scale*</text>
+        <rect x="360" y="288" width="14" height="14" rx="3" fill="#40b75f"/>
+        <text x="384" y="300" fill="#1c2536">Domain</text>
+        <text x="384" y="316" fill="#5b6a86" font-size="11">about a dollar a month, billed yearly*</text>
+      </g>
+      <text x="360" y="344" fill="#8a93ad" font-family="Poppins,sans-serif" font-size="10.5">* illustrative only; prices vary by provider and size.</text>
+    </svg>
+    <figcaption>A side project cost stack. Small cash lines, and the translucent block of your own time on top.</figcaption>
+  </figure>
+
+  <p>Here's each cash line, one at a time, with rough example ranges.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Line item</th><th>Rough example</th><th>What drives it</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Compute (server)</strong></td><td>a few dollars a month</td><td>The size you pick. Start small, resize later. This is the biggest and most controllable line.</td></tr>
+      <tr><td><strong>Database</strong></td><td>$0 to a few dollars</td><td>Free if you run it on the same server; a few dollars for a small managed one with backups.</td></tr>
+      <tr><td><strong>Storage + egress</strong></td><td>usually near $0</td><td>Object storage for files is cheap; egress only bites if you serve lots of media.</td></tr>
+      <tr><td><strong>Domain</strong></td><td>~$1 a month</td><td>Billed yearly, roughly ten to fifteen dollars a year. Separate from hosting.</td></tr>
+      <tr><td><strong>SSL certificate</strong></td><td>$0</td><td>Free with Let's Encrypt and included on most decent hosts. Never pay for a basic cert.</td></tr>
+      <tr><td><strong>Email, monitoring, CDN</strong></td><td>$0 for a while</td><td>Sending email, error tracking, a CDN. All have free tiers sized for exactly this.</td></tr>
+    </tbody>
+  </table>
+  <p>Add the real lines together and a live side project sits in the single digits to low teens per month. That's the number to keep in your head. Not the horror stories.</p>
+
+  <h3>Is the database really a separate cost?</h3>
+  <p>Only if your app stores data, and even then it's small. You've got two sane options. Run the database on the same small server as the app to keep the bill at zero extra, which is totally fine for a side project. Or launch a small managed database so patching and backups are handled for you. That second option costs a few dollars, and for data you'd be sad to lose, it's cheap insurance.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a small managed database (PostgreSQL, MySQL, MariaDB, Redis, Elasticsearch or MongoDB) for a side project">
+    <figcaption>A small managed database adds a few dollars, with backups and patching handled. Or run it on the same box for free.</figcaption>
+  </figure>
+
+  <p>Kloudbean runs six managed engines if you go that route: PostgreSQL, MySQL, MariaDB, Redis, Elasticsearch, and MongoDB. If your project is stateless or just calls an external API, skip it. That line disappears. More on the choice in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a>.</p>
+
+  <h3>Will bandwidth blow up the bill?</h3>
+  <p>For most side projects, no. Egress (the charge for data leaving your server) only turns into a real number when you serve a lot of media, big downloads, or a genuinely busy site. If that's you, the fix is to put a CDN in front so files get cached at the edge and hit your origin far less, and to keep large files in <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">object storage</a> instead of bloating the server. For a normal app serving pages and JSON, bandwidth barely registers.</p>
+
+  <h2>The line item nobody sends you: your time</h2>
+  <p>This is the big translucent block in that diagram, and it's the one that actually decides whether your side project is cheap. A raw server for a few dollars looks unbeatable until you count the evenings. Setup. Patching. The SSL renewal that silently failed. The 11pm "why is it down" session. None of that is on a pricing page, but it's the most expensive part of the whole thing.</p>
+  <p>Honestly? For a side project, the goal was never $0. It's a bill so small and so predictable you forget it exists, plus a setup you never have to nurse. Chasing a true zero usually means paying in weekends instead of dollars, and your weekends are worth a lot more than three dollars a month. If you want to see that math laid out in full, we did it in <a href="https://www.kloudbean.com/blog/the-real-cost-of-unmanaged-vps/">the real cost of an unmanaged VPS</a>.</p>
+
+  <!-- Author: swap this slot for a real image. Empty slot, supply your own. src -> images/time-vs-money.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A simple sketch or photo showing time as the real cost: a late-night laptop, or a small chart of hours spent vs dollars saved.</em><small>Reinforces the your-time-is-the-real-bill point.</small></span></figure>
+
+  <h2>A setup that stays cheap (and boring)</h2>
+  <p>Cheap and boring is the goal. Boring means it doesn't wake you up. Here's a shape that stays small as the project grows.</p>
+  <ul>
+    <li><strong>One small always-on server.</strong> No cold starts, no waking a sleeping app. Run the app and a small database on the same box to start. Resize only when you measure an actual reason to, not "just in case."</li>
+    <li><strong>Free SSL.</strong> Certificates are automatic and free. That line stays at zero forever.</li>
+    <li><strong>Free static hosting for a front end.</strong> If your project is a static site or a SPA, host it free with a custom domain and SSL, and point it at your API.</li>
+    <li><strong>Files in object storage.</strong> Uploads and media go to S3-compatible <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">object storage</a>, not onto the server disk, so the server stays small.</li>
+    <li><strong>Automatic backups.</strong> So a bad deploy or a fat-fingered delete isn't a catastrophe. See the <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a>.</li>
+  </ul>
+  <p>On Kloudbean that's all one dashboard and one predictable bill. The server, the database, storage, SSL, and backups sit together instead of scattered across four accounts you'll forget about. There's a free trial to start, and free migration help if you're moving something over. Most side projects, honestly, never outgrow this.</p>
+
+  <!-- Author: swap this slot for a real image. To use a console shot: src -> ../assets/console/add-server.png. Or supply your own: src -> images/server-sizes.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The add-server screen showing small sizes and their prices, so readers see the cheap options up front.</em><small>Console screenshot: add-server.png fits well here.</small></span></figure>
+
+  <h2>When it's actually worth paying more</h2>
+  <p>When the project stops being just for you. The moment real users depend on it, or it starts earning, the small step from a sleepy free tier to an always-on server pays for itself in one avoided bad first impression. That's not spending for the sake of it. It's matching a still-small cost to the fact that the thing now matters. And a managed setup earns its few extra dollars the day you'd rather improve the project than patch its operating system. If you're weighing hosting styles, <a href="https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/">managed vs unmanaged hosting</a> and <a href="https://www.kloudbean.com/blog/cloud-hosting-pricing-explained/">cloud hosting pricing explained</a> both go deeper.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Ship it without the bill anxiety.</p>
+    <p style="margin:0 0 .6em">Run your side project always-on on one small server, app and database together, with free SSL and automatic backups, on a single dashboard and one predictable bill. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; sizes and plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Always-on server · Managed databases · Free SSL · Automatic backups · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How much does it cost to run a side project?</h3>
+    <p>For most small projects, very little. Often free while you build on free tiers, then commonly single digits to low teens of dollars a month once you want it always-on with your own domain. The big cloud bills people fear come from large-scale systems, not a personal project serving a manageable audience. These are illustrative ranges, not a quote.</p>
+    <h3>Can I host a side project for free?</h3>
+    <p>Early on, usually yes. Free app tiers, free static hosting for a front end, and small free databases can carry a project while you build or show a few people. The trade-off is that free tiers sleep when idle (so the first visitor after a lull hits a cold start) and cap resources. That's fine until real users need it fast and always-on.</p>
+    <h3>What's the catch with free hosting tiers?</h3>
+    <p>Two things. They sleep, so your app cold-starts and the first visitor waits several seconds. And they bite later, either by metering bandwidth as you get popular, by jumping steeply to the first paid tier, or by making it painful to migrate off. Free is a great building phase, not a forever home.</p>
+    <h3>Where does the money actually go?</h3>
+    <p>Mostly the server (the biggest and most controllable line), then a domain (small, billed yearly), and possibly a small database if your app stores data. SSL is free, and email, monitoring, and a CDN usually sit on free tiers at this scale. Unless you serve a lot of media, that's the whole bill.</p>
+    <h3>Do I need to pay for a database?</h3>
+    <p>Only if your app stores data, and even then it's small. Run it on the same small server to spend nothing extra, or use a small managed database for a few dollars to get backups and patching handled. Stateless projects, or ones that only call external APIs, may need no database at all.</p>
+    <h3>Is bandwidth (egress) going to surprise me?</h3>
+    <p>Rarely, for a normal app. Egress only becomes a real cost when you serve heavy media, big downloads, or a busy site. If that's you, put a CDN in front so files cache at the edge, and keep large files in object storage rather than on the server. For pages and JSON, bandwidth barely registers.</p>
+    <h3>How do I keep a side project cheap as it grows?</h3>
+    <p>Start small and resize only when you measure a reason to. Cache so a small server does more. Keep media in cheap object storage instead of bloating the server. Watch bandwidth if you serve a lot of files. Do those and the bill grows slowly and predictably. Most side projects never outgrow a small, cheap setup.</p>
+    <h3>Is a cheap unmanaged VPS cheaper than managed hosting for a side project?</h3>
+    <p>On the sticker, yes. Once you count your own time for setup, patching, backups, and the occasional late-night fix, often no. For a hobby box or a learning project the admin can be the point. For something you want to stay up without babysitting, a managed setup usually wins on real cost. We break down the math in the real cost of an unmanaged VPS.</p>
+    <h3>When should I upgrade from a free tier?</h3>
+    <p>When it stops being just for you, when real users rely on it or it starts earning. At that point the small step to an always-on server (no cold starts, your own domain, reliability) is easily worth it. Until then, free or very cheap is the sensible choice.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · The bill is smaller than the fear.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"The Real Cost of Running a Side Project","description":"The real cost of running a side project, broken down line by line: compute, database, storage, egress, domain, SSL, and the one cost nobody bills you for. Honest illustrative ranges, plus a setup that stays cheap.","image":"https://www.kloudbean.com/blog/cost-of-running-a-side-project/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/cost-of-running-a-side-project/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How much does it cost to run a side project?","acceptedAnswer":{"@type":"Answer","text":"For most small projects, very little. Often free while you build on free tiers, then commonly single digits to low teens of dollars a month once you want it always-on with your own domain. The big cloud bills people fear come from large-scale systems, not a personal project serving a manageable audience. These are illustrative ranges, not a quote."}},
+{"@type":"Question","name":"Can I host a side project for free?","acceptedAnswer":{"@type":"Answer","text":"Early on, usually yes. Free app tiers, free static hosting for a front end, and small free databases can carry a project while you build or show a few people. The trade-off is that free tiers sleep when idle, so the first visitor after a lull hits a cold start, and cap resources. That is fine until real users need it fast and always-on."}},
+{"@type":"Question","name":"What's the catch with free hosting tiers?","acceptedAnswer":{"@type":"Answer","text":"Two things. They sleep, so your app cold-starts and the first visitor waits several seconds. And they bite later, either by metering bandwidth as you get popular, by jumping steeply to the first paid tier, or by making it painful to migrate off. Free is a great building phase, not a forever home."}},
+{"@type":"Question","name":"Where does the money actually go when hosting a side project?","acceptedAnswer":{"@type":"Answer","text":"Mostly the server, the biggest and most controllable line, then a domain that is small and billed yearly, and possibly a small database if your app stores data. SSL is free, and email, monitoring, and a CDN usually sit on free tiers at this scale. Unless you serve a lot of media, that is the whole bill."}},
+{"@type":"Question","name":"Do I need to pay for a database?","acceptedAnswer":{"@type":"Answer","text":"Only if your app stores data, and even then it is small. Run it on the same small server to spend nothing extra, or use a small managed database for a few dollars to get backups and patching handled. Stateless projects, or ones that only call external APIs, may need no database at all."}},
+{"@type":"Question","name":"Is bandwidth (egress) going to surprise me?","acceptedAnswer":{"@type":"Answer","text":"Rarely, for a normal app. Egress only becomes a real cost when you serve heavy media, big downloads, or a busy site. If that is you, put a CDN in front so files cache at the edge, and keep large files in object storage rather than on the server. For pages and JSON, bandwidth barely registers."}},
+{"@type":"Question","name":"How do I keep a side project cheap as it grows?","acceptedAnswer":{"@type":"Answer","text":"Start small and resize only when you measure a reason to. Cache so a small server does more. Keep media in cheap object storage instead of bloating the server. Watch bandwidth if you serve a lot of files. Do those and the bill grows slowly and predictably. Most side projects never outgrow a small, cheap setup."}},
+{"@type":"Question","name":"Is a cheap unmanaged VPS cheaper than managed hosting for a side project?","acceptedAnswer":{"@type":"Answer","text":"On the sticker, yes. Once you count your own time for setup, patching, backups, and the occasional late-night fix, often no. For a hobby box or a learning project the admin can be the point. For something you want to stay up without babysitting, a managed setup usually wins on real cost."}},
+{"@type":"Question","name":"When should I upgrade from a free tier?","acceptedAnswer":{"@type":"Answer","text":"When it stops being just for you, when real users rely on it or it starts earning. At that point the small step to an always-on server, with no cold starts, your own domain, and reliability, is easily worth it. Until then, free or very cheap is the sensible choice."}}
+]}
+]}
+</script>
+</body>
+</html>

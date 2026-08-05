@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deploy a Django App: The Production Checklist</title>
+<meta name="description" content="Django's runserver is for your laptop, not the internet. This checklist covers the settings you must change for production, the deploy steps, Gunicorn, and how to serve static and media files properly.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/deploy-django-app/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Deploy a Django App: The Production Checklist">
+<meta property="og:description" content="The settings you must change for production, the deploy steps, Gunicorn, and how to serve static and media files properly.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">App deployment</span>
+  <h1>Deploy a Django App: The Production Checklist</h1>
+
+  <figure><img src="images/hero.png" alt="Deploy a Django app — Gunicorn, static files and Postgres on a server you own"></figure>
+
+  <p class="lead"><code>python manage.py runserver</code> is great on your laptop. On the public internet it's the wrong tool. To deploy a Django app for production you really make two moves: swap that development server for a real one, and flip a handful of settings that are harmless in dev and genuinely dangerous once you're live.</p>
+  <p>Most Django tutorials stop at "it runs locally." This one is the other half. Two checklists, worked top to bottom: the settings that must change, then the deploy steps that put Gunicorn in front of your app. Get both right and your django production server comes up clean the first time, styling and all.</p>
+
+  <div class="tldr"><strong>The gist</strong><p>Set <code>DEBUG=False</code>, read <code>SECRET_KEY</code> and the database from the environment, list your domain in <code>ALLOWED_HOSTS</code>. Then deploy: <code>pip install</code>, <code>collectstatic</code>, <code>migrate</code>, and start with <code>gunicorn</code> bound to the assigned port. That's the whole job. <code>runserver</code> never touches production.</p></div>
+
+  <h2>Why runserver stops at your laptop</h2>
+  <p>Django's own docs are blunt about it: don't use <code>runserver</code> in production. It's a development server. It's single-threaded, it hasn't been through a security audit, and it isn't built to hold up under real traffic. That's not a knock on Django. The dev server exists to give you auto-reload and friendly tracebacks while you build, and it's excellent at that. It just isn't a web server.</p>
+  <p>So a production deploy has a shape. A real web server terminates HTTPS and hands requests to Gunicorn, which runs your Django code across a pool of workers, which talks to a managed database. The diagram below is that path, with the settings that have to change for prod marked on the boxes they affect.</p>
+
+  <figure>
+    <svg viewBox="0 0 700 470" width="100%" role="img" aria-label="Diagram: the production request path for Django. A browser sends HTTPS to a managed web server, which proxies to Gunicorn workers, which run the Django app, which reads from managed Postgres. Below, the settings that flip for production: DEBUG False, ALLOWED_HOSTS set to your domain, SECRET_KEY and DATABASES from the environment, and collectstatic feeding WhiteNoise.">
+      <rect x="1" y="1" width="698" height="468" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="350" y="34" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="17" font-weight="700" fill="#000f27">The production request path (runserver is nowhere in it)</text>
+
+      <!-- flow boxes -->
+      <g font-family="Poppins,Arial,sans-serif">
+        <rect x="16" y="70" width="118" height="58" rx="10" fill="#f6f7fb" stroke="#e6e9f2"/>
+        <text x="75" y="96" text-anchor="middle" font-size="13" font-weight="600" fill="#000f27">Browser</text>
+        <text x="75" y="114" text-anchor="middle" font-size="11" fill="#5b6a86">HTTPS</text>
+
+        <rect x="164" y="70" width="118" height="58" rx="10" fill="#eef0ff" stroke="#d7ddff"/>
+        <text x="223" y="96" text-anchor="middle" font-size="13" font-weight="600" fill="#000f27">Web server</text>
+        <text x="223" y="114" text-anchor="middle" font-size="11" fill="#5b6a86">SSL + proxy</text>
+
+        <rect x="312" y="70" width="118" height="58" rx="10" fill="#000f27"/>
+        <text x="371" y="96" text-anchor="middle" font-size="13" font-weight="600" fill="#fff">Gunicorn</text>
+        <text x="371" y="114" text-anchor="middle" font-size="11" fill="#c9b8ff">WSGI workers</text>
+
+        <rect x="460" y="70" width="118" height="58" rx="10" fill="#eaf7ef" stroke="#cdebd6"/>
+        <text x="519" y="96" text-anchor="middle" font-size="13" font-weight="600" fill="#000f27">Django</text>
+        <text x="519" y="114" text-anchor="middle" font-size="11" fill="#40b75f">your app</text>
+
+        <rect x="596" y="70" width="90" height="58" rx="10" fill="#f6f7fb" stroke="#e6e9f2"/>
+        <text x="641" y="96" text-anchor="middle" font-size="13" font-weight="600" fill="#000f27">Postgres</text>
+        <text x="641" y="114" text-anchor="middle" font-size="11" fill="#5b6a86">managed</text>
+      </g>
+      <g stroke="#4F1AF3" stroke-width="2" fill="none">
+        <line x1="134" y1="99" x2="160" y2="99"/><polygon points="160,93 172,99 160,105" fill="#4F1AF3"/>
+        <line x1="282" y1="99" x2="308" y2="99"/><polygon points="308,93 320,99 308,105" fill="#4F1AF3"/>
+        <line x1="430" y1="99" x2="456" y2="99"/><polygon points="456,93 468,99 456,105" fill="#4F1AF3"/>
+        <line x1="578" y1="99" x2="592" y2="99"/><polygon points="592,93 604,99 592,105" fill="#4F1AF3"/>
+      </g>
+
+      <line x1="30" y1="168" x2="670" y2="168" stroke="#e6e9f2" stroke-width="1"/>
+      <text x="350" y="196" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="600" fill="#4F1AF3">WHAT FLIPS WHEN YOU GO TO PROD</text>
+
+      <g font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#1c2536">
+        <rect x="40" y="216" width="290" height="52" rx="9" fill="#f6f7fb" stroke="#e6e9f2"/>
+        <text x="56" y="240" font-weight="600" fill="#000f27">DEBUG = False</text>
+        <text x="56" y="258" font-size="11.5" fill="#5b6a86">no error page leaking your code + settings</text>
+
+        <rect x="370" y="216" width="290" height="52" rx="9" fill="#f6f7fb" stroke="#e6e9f2"/>
+        <text x="386" y="240" font-weight="600" fill="#000f27">ALLOWED_HOSTS = your domain</text>
+        <text x="386" y="258" font-size="11.5" fill="#5b6a86">Django rejects any host not on the list</text>
+
+        <rect x="40" y="280" width="290" height="52" rx="9" fill="#f6f7fb" stroke="#e6e9f2"/>
+        <text x="56" y="304" font-weight="600" fill="#000f27">SECRET_KEY + DATABASES from env</text>
+        <text x="56" y="322" font-size="11.5" fill="#5b6a86">secrets live on the server, not in git</text>
+
+        <rect x="370" y="280" width="290" height="52" rx="9" fill="#f6f7fb" stroke="#e6e9f2"/>
+        <text x="386" y="304" font-weight="600" fill="#000f27">collectstatic then WhiteNoise</text>
+        <text x="386" y="322" font-size="11.5" fill="#5b6a86">or every CSS + JS file 404s</text>
+      </g>
+
+      <rect x="40" y="352" width="620" height="46" rx="9" fill="#000f27"/>
+      <text x="350" y="373" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="12.5" fill="#e8ecfb">gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 3</text>
+      <text x="350" y="390" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#c9b8ff">the start command that replaces runserver</text>
+
+      <text x="350" y="432" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#5b6a86">Same code, different values. The environment decides whether you're safe or exposed.</text>
+      <text x="350" y="452" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#5b6a86">On managed cloud the web server, SSL and process supervision are already there.</text>
+    </svg>
+    <figcaption>Dev and prod run the same Django code. The settings and the server in front of it are what change.</figcaption>
+  </figure>
+
+  <h2>Checklist A: the settings that must change for production</h2>
+  <p>These live in your Django settings and read from environment variables, so one codebase runs safely in both places with different values. Don't skip any of them.</p>
+  <ul>
+    <li><strong><code>DEBUG = False</code>.</strong> With <code>DEBUG</code> on, an unhandled error renders a full Django debug page to whoever hit it: your traceback, local variables, parts of settings, installed apps. Off is non-negotiable in production.</li>
+    <li><strong><code>SECRET_KEY</code> from the environment.</strong> It signs sessions, password-reset tokens, and more. Read it from an env var, keep it stable, and never commit it.</li>
+    <li><strong><code>ALLOWED_HOSTS</code>.</strong> Set it to your domain(s). Django refuses any request whose <code>Host</code> header isn't on the list, so an empty list means every request 400s.</li>
+    <li><strong><code>CSRF_TRUSTED_ORIGINS</code>.</strong> Add your <code>https://</code> domain so form posts and the admin work correctly behind TLS.</li>
+    <li><strong>Database from the environment.</strong> Point <code>DATABASES</code> at your managed Postgres via env vars, not the SQLite default. SQLite is lovely in dev and wrong for a real deploy: it lives in a single file on local disk, so it doesn't survive a rebuild and can't be shared across workers.</li>
+  </ul>
+  <p>In code that's a small, boring block near the top of your settings:</p>
+  <pre><code># settings.py: production config comes from the environment
+import os
+
+DEBUG = os.environ.get("DEBUG", "False") == "True"
+SECRET_KEY = os.environ["SECRET_KEY"]          # no default: crash loudly if unset
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "").split(",")
+CSRF_TRUSTED_ORIGINS = ["https://" + h for h in ALLOWED_HOSTS if h]</code></pre>
+  <p>One opinion, stated flatly: <code>DEBUG = True</code> in production isn't a tidiness problem, it's a security hole. That pretty yellow error page hands a stranger your stack trace, your settings, and enough of your internals to plan a real attack. Treat a live site running with debug on as an incident, not a to-do. You set these values on the server, never in the repo:</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console Environment Variables screen: Django's SECRET_KEY, database URL and ALLOWED_HOSTS set on the server via Paste .env">
+    <figcaption>Runtime Configuration, Environment Variables. Paste your <code>.env</code> and Django reads <code>SECRET_KEY</code>, the database URL and host settings from here.</figcaption>
+  </figure>
+
+  <p>That keeps secrets out of version control and lets you rotate a key without a code change. The reasoning, and the mistakes people make with it, is in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a>.</p>
+
+  <h2>Checklist B: deploy your Django app with Install, Build, Start</h2>
+  <p>With settings sorted, the deploy is a short sequence. On <a href="https://www.kloudbean.com/">Kloudbean</a> you connect the repo under <strong>Application Administration &#8594; Deploy Code &#8594; Git Deployment</strong>, then fill three fields: Install, Build, and Start.</p>
+  <ul>
+    <li><strong>Install:</strong> <code>pip install -r requirements.txt</code>. Add <code>gunicorn</code> to that file if it isn't already there.</li>
+    <li><strong>Build:</strong> <code>python manage.py collectstatic --noinput</code>, then <code>python manage.py migrate</code>. Collectstatic gathers every static file into one folder to be served; migrate applies your schema changes so the database matches the code on every deploy.</li>
+    <li><strong>Start:</strong> <code>gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 3</code>. Swap <code>config</code> for the package that holds your <code>wsgi.py</code>. The <code>$PORT</code> matters: bind the port the platform assigns, not a hard-coded one, or the web server in front connects to nothing and you get a 503.</li>
+  </ul>
+  <pre><code># the three fields, for a project package called "config"
+# Install
+pip install -r requirements.txt
+# Build
+python manage.py collectstatic --noinput &amp;&amp; python manage.py migrate
+# Start
+gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 3</code></pre>
+  <p>Hit <strong>Pull &amp; Deploy</strong> and the build log streams live while it installs, collects static, migrates, and boots Gunicorn. The whole point of Checklist B is that one swap: <strong>Gunicorn, not runserver</strong>. Everything else is plumbing.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean Deploy Code / Git Deployment tab: repo connected, Install, Build and Start commands set for a Django app, ready to Pull and Deploy">
+    <figcaption>Git Deployment: connect the repo, set Install / Build / Start, Pull &amp; Deploy. The build log streams as it runs.</figcaption>
+  </figure>
+
+  <h2>The collectstatic trap: why your CSS 404s</h2>
+  <p>Here's the anti-pattern that catches nearly every first Django deploy. The most common question we hear is some version of "the site works but there's no styling." Almost every time, <code>collectstatic</code> never ran, so every request for a file under <code>/static/</code> comes back 404 and the page renders as naked HTML. The app is fine. The static files just aren't where the server looks for them.</p>
+  <p>The fix is two parts. Run <code>collectstatic</code> in your Build step (above), and give Django something to actually serve those files with. The simplest option by a mile is <strong>WhiteNoise</strong>: <code>pip install whitenoise</code>, add its middleware, and your app serves its own static files with proper caching and no separate config. For a single app, that's the least-effort win.</p>
+
+  <!-- ADD IMAGE: swap this slot for a real <figure> with an <img> (src -> images/django-admin-https.png) and a <figcaption>. -->
+  <figure class="img-slot"><span><b>Add image</b><em>Before/after browser shot: the same page unstyled (collectstatic skipped, CSS 404s) next to it styled correctly.</em><small>Makes the number-one Django deploy bug concrete.</small></span></figure>
+
+  <h2>Static vs media: two different problems</h2>
+  <p>Django splits files into two buckets, and they're handled differently. Mixing them up is the second-most-common deploy mistake.</p>
+  <ul>
+    <li><strong>Static files</strong> ship with your app (CSS, JS, the admin's assets). They're known at build time, gathered by <code>collectstatic</code>, and served by WhiteNoise or the web server. They never change at runtime.</li>
+    <li><strong>Media files</strong> are user uploads, created while the app runs. On a single server the local media directory works. The moment you run more than one server, or you want uploads to survive a rebuild, point Django's storage at <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage</a>. Uploads then live independently of the app box, which is where they should be for anything real.</li>
+  </ul>
+
+  <h2>How many Gunicorn workers?</h2>
+  <p>Gunicorn runs your app in a pool of worker processes, and the default of one leaves performance on the floor. A well-worn starting point is <strong>(2 × CPU cores) + 1</strong>, so a 2-core server runs about 5 workers. That handles concurrent requests comfortably without swamping the box. Don't crank it to 50. Each worker is a separate process holding its own memory, and too many will exhaust a small server and make everything slower, not faster. Start with the formula, watch memory, adjust. If your app spends most of its time waiting on the network, gevent or async workers can help, but plain sync workers are the right default for most Django apps.</p>
+
+  <h2>Migrations, the database, and HTTPS</h2>
+  <p>Run <code>migrate</code> on every deploy (it's in your Build step) so the schema never drifts behind the code. Skip it after a model change and the first request that touches the new column throws. For the database itself, launch a managed Postgres from <strong>DBS &#8594; Launch Database</strong> and reach it over the local network on the same box. It's backed up, and your app finds it through the <code>DATABASES</code> env var from Checklist A.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean Launch Database screen: creating a managed PostgreSQL instance for a Django app on the same server">
+    <figcaption>Launch Database: a managed Postgres on the same server, reached over the local network and backed up for you.</figcaption>
+  </figure>
+
+  <p>Then point your domain at the server and install a free <strong>Let's Encrypt</strong> certificate. Django's CSRF and secure-cookie behaviour expects HTTPS, so this isn't optional dressing. Turn on automated deployment and every push re-runs collectstatic and migrate and restarts Gunicorn. Your update loop becomes one step: push, and production catches up. More on the shared-box setup in <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">host your app, API, and database on one server</a>, and on managed Postgres specifically in <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a>.</p>
+
+  <h2>When it breaks: the three first-deploy errors</h2>
+  <p>Django's opening-night failures are predictable, and each maps straight back to a checklist item:</p>
+  <ul>
+    <li><strong>DisallowedHost, a 400 on every page.</strong> Your domain isn't in <code>ALLOWED_HOSTS</code>. Add it, redeploy.</li>
+    <li><strong>A 500 with no detail.</strong> That's <code>DEBUG = False</code> doing its job, which is correct. The real cause is usually a missing <code>SECRET_KEY</code> or wrong database credentials. Read the log; the traceback names it.</li>
+    <li><strong>Loads but unstyled.</strong> The collectstatic trap. Static files aren't served: either the build step didn't run <code>collectstatic</code>, or WhiteNoise isn't wired up.</li>
+  </ul>
+  <p>The stack trace is waiting in the app error log at <code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/app.error.log</code>. Read that before you start changing code on a hunch. The full walkthrough is in <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fixing a 503 after deploying your app</a>.</p>
+
+  <h2>If you use Celery</h2>
+  <p>Plenty of Django apps push slow work (emails, image processing, report generation) onto <strong>Celery</strong>. If yours does, remember Celery is its own process, separate from Gunicorn. A Celery <strong>worker</strong> runs the queued tasks and Celery <strong>beat</strong> runs the scheduled ones. Run both as persistent processes alongside the web app, pointed at a broker like <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis</a>. No worker running means tasks queue up and never execute, which is a genuinely confusing bug the first time it bites. Not using Celery? Skip this entirely.</p>
+
+  <h2>What you own, what Kloudbean runs</h2>
+  <p>Django is a Python app, and Python on Linux is exactly what a managed server runs, so nothing here is a workaround. Kloudbean keeps the box healthy: the Python runtime, the web server in front of Gunicorn, SSL, firewall, and server-level backups, on whichever of its seven clouds you pick. You own the Django project: its settings, its migrations, its static and media strategy, any Celery processes. It's a Linux server running standard Python, so you can move hosts whenever you like. Building in other frameworks too? The async sibling is <a href="https://www.kloudbean.com/blog/deploy-fastapi-app/">deploy a FastAPI app</a>, and the minimal one is <a href="https://www.kloudbean.com/blog/deploy-flask-app/">deploy a Flask app</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Gunicorn, not runserver. Then relax.</p>
+    <p style="margin:0">Put your Django app on a server you own at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Managed Postgres · Automatic backups · Free Let's Encrypt SSL · Git deploy · Free migration · Free trial. Server sizes are on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Can I run Django with <code>manage.py runserver</code> in production?</h3>
+    <p>No. It's a development server and Django explicitly warns against it. In production you run Gunicorn (or another WSGI server) with the managed web server in front. Use <code>runserver</code> only on your machine.</p>
+
+    <h3>What settings must change before going live?</h3>
+    <p><code>DEBUG = False</code>, a <code>SECRET_KEY</code> read from the environment, <code>ALLOWED_HOSTS</code> set to your domain, <code>CSRF_TRUSTED_ORIGINS</code> with your HTTPS domain, and a real database (Postgres) via env vars. Those five matter most.</p>
+
+    <h3>Is <code>DEBUG = True</code> really a security risk in production?</h3>
+    <p>Yes. With debug on, any unhandled error shows a detailed page containing your traceback, parts of your settings, and local variables. That hands an attacker a map of your app. Keep it off in production, always.</p>
+
+    <h3>Why is my Django site missing its CSS after deploy?</h3>
+    <p>Static files aren't being served. Run <code>collectstatic</code> in your build step, then serve the files with WhiteNoise or the web server. Broken styling after deploy almost always traces back to skipped or unserved static files.</p>
+
+    <h3>Where should user uploads (media) go?</h3>
+    <p>On a single server, the local media directory works. If you scale to multiple servers or want uploads to survive a rebuild, point Django's storage at S3-compatible object storage, which Django supports cleanly.</p>
+
+    <h3>Do I need to run migrations on every deploy?</h3>
+    <p>Yes. Run <code>python manage.py migrate</code> as part of each deploy so the schema stays in step with your code. Skip it after a model change and the app errors the moment it touches the missing column or table.</p>
+
+    <h3>Do I use Gunicorn or Uvicorn for Django?</h3>
+    <p>Gunicorn. Django is a WSGI app, and Gunicorn is the standard WSGI server for it. You only reach for an ASGI server like Uvicorn or Daphne if you're using Django's async views, channels, or websockets.</p>
+
+    <h3>Do I need Docker to deploy a Django app?</h3>
+    <p>No. A single Django app is a process behind Gunicorn, and a managed server runs it directly. Docker and Kubernetes solve orchestration problems that show up with many services at scale. For shipping one app, you can skip them.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Django in production, not on a dev server.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Deploy a Django App: The Production Checklist","description":"The settings you must change for production, the deploy steps, Gunicorn, and how to serve static and media files properly.","image":"https://www.kloudbean.com/blog/deploy-django-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/deploy-django-app/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Can I run Django with manage.py runserver in production?","acceptedAnswer":{"@type":"Answer","text":"No. It's a development server and Django explicitly warns against it. In production you run Gunicorn (or another WSGI server) with the managed web server in front. Use runserver only on your machine."}},
+{"@type":"Question","name":"What settings must change before going live?","acceptedAnswer":{"@type":"Answer","text":"DEBUG = False, a SECRET_KEY read from the environment, ALLOWED_HOSTS set to your domain, CSRF_TRUSTED_ORIGINS with your HTTPS domain, and a real database (Postgres) via env vars. Those five matter most."}},
+{"@type":"Question","name":"Is DEBUG = True really a security risk in production?","acceptedAnswer":{"@type":"Answer","text":"Yes. With debug on, any unhandled error shows a detailed page containing your traceback, parts of your settings, and local variables. That hands an attacker a map of your app. Keep it off in production, always."}},
+{"@type":"Question","name":"Why is my Django site missing its CSS after deploy?","acceptedAnswer":{"@type":"Answer","text":"Static files aren't being served. Run collectstatic in your build step, then serve the files with WhiteNoise or the web server. Broken styling after deploy almost always traces back to skipped or unserved static files."}},
+{"@type":"Question","name":"Where should user uploads (media) go?","acceptedAnswer":{"@type":"Answer","text":"On a single server, the local media directory works. If you scale to multiple servers or want uploads to survive a rebuild, point Django's storage at S3-compatible object storage, which Django supports cleanly."}},
+{"@type":"Question","name":"Do I need to run migrations on every deploy?","acceptedAnswer":{"@type":"Answer","text":"Yes. Run python manage.py migrate as part of each deploy so the schema stays in step with your code. Skip it after a model change and the app errors the moment it touches the missing column or table."}},
+{"@type":"Question","name":"Do I use Gunicorn or Uvicorn for Django?","acceptedAnswer":{"@type":"Answer","text":"Gunicorn. Django is a WSGI app, and Gunicorn is the standard WSGI server for it. You only reach for an ASGI server like Uvicorn or Daphne if you're using Django's async views, channels, or websockets."}},
+{"@type":"Question","name":"Do I need Docker to deploy a Django app?","acceptedAnswer":{"@type":"Answer","text":"No. A single Django app is a process behind Gunicorn, and a managed server runs it directly. Docker and Kubernetes solve orchestration problems that show up with many services at scale. For shipping one app, you can skip them."}}
+]}
+]}
+</script>
+</body>
+</html>

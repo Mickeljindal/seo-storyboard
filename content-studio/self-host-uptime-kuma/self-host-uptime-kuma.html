@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Self-Host Uptime Kuma in Production</title>
+<meta name="description" content="Self-host Uptime Kuma in production: run the open-source UptimeRobot and Pingdom alternative on a managed Node server, keep its data durable in managed MariaDB, put SSL in front, and host it apart from the apps it watches.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/self-host-uptime-kuma/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Self-Host Uptime Kuma in Production">
+<meta property="og:description" content="Why self-host Uptime Kuma, the architecture (a Node app on SQLite or external MariaDB), the production must-dos, notifications, and how to deploy it on a managed Node server on its own independent host.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Self-hosted monitoring</span>
+  <h1>How to Self-Host Uptime Kuma in Production</h1>
+
+  <figure><img src="images/hero.png" alt="Self-host Uptime Kuma: the open-source uptime monitoring and status-page tool running on its own independent server"></figure>
+
+  <p class="lead">Uptime Kuma is an open-source, self-hosted uptime monitoring tool, and it's the one most people reach for once they're tired of paying per monitor for UptimeRobot or Pingdom. Point it at your sites, APIs, and ports, and it checks each on a schedule, draws a clean dashboard, and can publish a status page. This guide covers how to self-host Uptime Kuma in production, a very different job from running it on your laptop for an afternoon. The tool is easy; keeping it durable, reachable, and able to reach you when something breaks is the real work.</p>
+
+  <p>I'll say the uncomfortable part early. Most self-hosted uptime monitors are quietly broken in the one way that matters, and their owners don't find out until an outage proves it.</p>
+
+  <div class="tldr">
+    <strong>Short version</strong>
+    <p>Run the Uptime Kuma Node app on a managed Node server. Keep its data durable, either managed MariaDB or a persistent volume, never an ephemeral SQLite file that gets wiped on redeploy. Put free SSL in front of the dashboard. And the step almost everyone skips: host it on a different server, ideally a different provider or region, from the apps it watches. A monitor that dies alongside your app tells you nothing.</p>
+  </div>
+
+  <h2>Why self-host Uptime Kuma</h2>
+  <p>Hosted monitors are fine until their pricing starts shaping your behavior. You stop adding checks because each one costs money. You skip the internal API because you're rationing monitors. That's backwards. Monitoring should watch everything that can break, and a per-monitor bill quietly pushes you to watch less. Self-hosting Uptime Kuma flips that:</p>
+  <ul>
+    <li><strong>Unlimited monitors, no per-monitor fee.</strong> Watch every site, API, port, and cron target you have. The cost is the small server it runs on, not the count of things you watch.</li>
+    <li><strong>Your monitoring data stays in-house.</strong> Response times, incident history, every up and down event, all in a database you own. Nobody else holds your reliability record.</li>
+    <li><strong>Status pages, public or private.</strong> Publish a clean status page for customers, or keep an internal one for your team. You pick what's exposed.</li>
+    <li><strong>Rich checks and 90+ alert channels built in.</strong> HTTP(s), keyword, TCP port, ping, DNS, and database checks, wired to Slack, email, Telegram, Discord, or a webhook.</li>
+  </ul>
+  <p>The honest tradeoff: you're running a small service now, so its database has to survive and its process has to stay up. A managed platform carries most of that weight (the server, the OS, SSL, backups), which leaves you a light amount of app-level care.</p>
+
+  <h2>The mistake that makes your monitor useless</h2>
+  <p>This is the section I wish more Uptime Kuma tutorials led with. You can follow every install step perfectly and still end up with monitoring that's pure theatre. A monitor on the same box as the app it watches is theatre, not monitoring.</p>
+  <p>Picture it. You run your app on one server and, to save a few dollars, install Uptime Kuma right next to it. The server has a bad night: the disk fills, the kernel panics, the provider has a regional incident. Your app goes down, and so does the monitor that was supposed to tell you. No alert fires, because the thing that fires alerts is face-down in the same outage. You find out from a customer. That failure mode is incredibly common.</p>
+  <p>The fix is architectural, not a setting. The monitor has to be independent of what it watches. Same idea as a smoke detector: you don't wire it to the circuit most likely to catch fire.</p>
+  <p>Three more ways a self-hosted monitor quietly betrays you, all avoidable:</p>
+  <ul>
+    <li><strong>SQLite on ephemeral disk.</strong> Uptime Kuma writes to a local SQLite file by default. If that file sits on disk that resets on every deploy or restart, your entire monitoring history vanishes on the next push. You keep the tool, you lose the memory.</li>
+    <li><strong>No SSL on the dashboard.</strong> Your admin login and your whole infrastructure map crossing the network in the clear. Free certificates make this a non-issue.</li>
+    <li><strong>No notifications wired up.</strong> A dashboard nobody is staring at is not an alerting system. If you haven't connected at least one channel and tested it, you've built a pretty page that watches your outage in silence.</li>
+  </ul>
+
+  <figure>
+    <svg viewBox="0 0 820 430" role="img" aria-label="Diagram: Uptime Kuma runs on its own independent monitoring host, separate from the apps it watches. It reaches out to check your app server, website, and API, and pushes alerts to Slack, email, and Telegram when one goes down." style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="28" y="36" fill="#000f27" font-family="Poppins,sans-serif" font-size="17" font-weight="700">Keep the monitor separate from what it watches</text>
+
+      <line x1="300" y1="70" x2="300" y2="412" stroke="#4F1AF3" stroke-width="1.5" stroke-dasharray="6 7"/>
+      <text x="42" y="98" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.2">MONITORING HOST (INDEPENDENT)</text>
+      <text x="560" y="98" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.2">WHAT IT WATCHES</text>
+
+      <rect x="46" y="132" width="214" height="120" rx="14" fill="#000f27"/>
+      <text x="153" y="178" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="18" font-weight="700">Uptime Kuma</text>
+      <text x="153" y="202" text-anchor="middle" fill="#b9c2d6" font-family="Poppins,sans-serif" font-size="12">on its own Node server</text>
+      <rect x="96" y="216" width="122" height="24" rx="12" fill="#4F1AF3"/>
+      <text x="157" y="233" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="11">node · port 3001</text>
+
+      <rect x="556" y="122" width="220" height="62" rx="12" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="574" y="150" fill="#000f27" font-family="Poppins,sans-serif" font-size="14" font-weight="600">Your app server</text>
+      <text x="574" y="170" fill="#5b6a86" font-family="JetBrains Mono,monospace" font-size="11">app.example.com</text>
+
+      <rect x="556" y="200" width="220" height="62" rx="12" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="574" y="228" fill="#000f27" font-family="Poppins,sans-serif" font-size="14" font-weight="600">Your website / status</text>
+      <text x="574" y="248" fill="#5b6a86" font-family="JetBrains Mono,monospace" font-size="11">example.com</text>
+
+      <rect x="556" y="278" width="220" height="62" rx="12" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="574" y="306" fill="#000f27" font-family="Poppins,sans-serif" font-size="14" font-weight="600">Your API endpoint</text>
+      <text x="574" y="326" fill="#5b6a86" font-family="JetBrains Mono,monospace" font-size="11">api.example.com/health</text>
+
+      <text x="408" y="120" text-anchor="middle" fill="#40b75f" font-family="Poppins,sans-serif" font-size="11" font-weight="600">checks: HTTP / keyword / TCP</text>
+      <line x1="262" y1="176" x2="552" y2="153" stroke="#40b75f" stroke-width="2"/>
+      <path d="M554 153 l-11 -3 l3 10 z" fill="#40b75f"/>
+      <line x1="262" y1="192" x2="552" y2="231" stroke="#40b75f" stroke-width="2"/>
+      <path d="M554 231 l-11 -4 l1 10 z" fill="#40b75f"/>
+      <line x1="262" y1="208" x2="552" y2="309" stroke="#40b75f" stroke-width="2"/>
+      <path d="M554 309 l-11 -5 l0 10 z" fill="#40b75f"/>
+
+      <line x1="153" y1="252" x2="153" y2="336" stroke="#4F1AF3" stroke-width="2"/>
+      <path d="M153 338 l-5 -11 h10 z" fill="#4F1AF3"/>
+      <text x="168" y="300" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600">alerts when down</text>
+
+      <rect x="40" y="340" width="76" height="40" rx="10" fill="#4F1AF3"/>
+      <text x="78" y="365" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12" font-weight="600">Slack</text>
+      <rect x="124" y="340" width="76" height="40" rx="10" fill="#4F1AF3"/>
+      <text x="162" y="365" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12" font-weight="600">Email</text>
+      <rect x="208" y="340" width="86" height="40" rx="10" fill="#4F1AF3"/>
+      <text x="251" y="365" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12" font-weight="600">Telegram</text>
+    </svg>
+    <figcaption>Uptime Kuma sits on its own host, apart from everything it watches. It reaches out to check your app server, website, and API on a schedule, and pushes an alert to Slack, email, or Telegram the moment one stops responding. If the monitored server dies, the monitor stays up to tell you.</figcaption>
+  </figure>
+
+  <h2>What you're running when you self-host Uptime Kuma</h2>
+  <p>Uptime Kuma is a single Node.js application with a Vue frontend. That's the whole thing, and it runs anywhere Node runs, which is why it lives comfortably on a managed Node server. By default it listens on port <code>3001</code>, and a managed platform puts a web layer and SSL in front so you reach it at your own domain over HTTPS.</p>
+  <p>The interesting decision is storage. Out of the box, Uptime Kuma keeps everything in a local <strong>SQLite</strong> file inside its data directory (<code>DATA_DIR</code>, holding <code>kuma.db</code>). SQLite is fine for a small single instance, as long as that directory lives on storage that persists. It also supports an external <strong>MariaDB</strong>, and for anything you depend on that's the sturdier choice: managed MariaDB is backed up for you, sits on a private network, and survives redeploys. Everything else (monitors, notifications, status pages, even the database choice) is set in the web UI after first launch. What you decide at deploy time is where data lives, the port, and that it's reachable over SSL.</p>
+
+  <h2>Self-hosted Uptime Kuma vs a hosted monitor</h2>
+  <p>Uptime Kuma is a strong UptimeRobot alternative and a credible self-hosted Pingdom alternative, but a fair comparison names what the hosted services do well. Here's the honest side by side.</p>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>Self-hosted Uptime Kuma</th><th>Hosted monitor (UptimeRobot / Pingdom)</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Cost model</strong></td><td>Flat cost of one small server</td><td>Per-monitor or per-check fees that climb with usage</td></tr>
+      <tr><td><strong>Monitor limits</strong></td><td>Unlimited, bounded only by your server</td><td>Capped by plan tier</td></tr>
+      <tr><td><strong>Data ownership</strong></td><td>Your database, your server</td><td>Held in the vendor's cloud</td></tr>
+      <tr><td><strong>Status pages</strong></td><td>Public or private, included</td><td>Included, often on higher tiers</td></tr>
+      <tr><td><strong>Who runs it</strong></td><td>You (a managed platform does the heavy lifting)</td><td>The vendor</td></tr>
+      <tr><td><strong>External vantage point</strong></td><td>Wherever you host it, so plan the location</td><td>Checks from many global locations you never manage</td></tr>
+    </tbody>
+  </table>
+  <p>The one real edge a hosted monitor has: it checks from many global locations you never have to run. That matters for a worldwide audience, and you can only approximate it by running Uptime Kuma in a couple of regions yourself. For most teams the ownership, unlimited monitors, and flat cost still win. Plenty of people run both, Uptime Kuma for the deep internal picture and a light external monitor for a distant second opinion.</p>
+
+  <!-- To add your own screenshot here, replace this whole figure with a real figure/img/figcaption. Image path: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your live Uptime Kuma dashboard with a row of green monitors and one red, so readers see the payoff.</em><small>A real shot of your own instance beats any mockup.</small></span></figure>
+
+  <h2>Deploy Uptime Kuma on a managed Node server</h2>
+  <p>Here's the production path end to end. Five steps, and the order is deliberate: durable data first, then the app, then config, then the deploy, then SSL.</p>
+
+  <h3>1. Launch managed MariaDB for durable history</h3>
+  <p>Start with the database, the piece you least want to lose. Provision a managed MariaDB instance, create a database named <code>uptimekuma</code>, and note its private-network host and credentials. Managed means it's provisioned, patched, and backed up for you, on a private network your monitor reaches without a public port. Prefer SQLite? Skip this and make sure the data directory lands on a persistent volume instead.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console Launch Database screen used to provision managed MariaDB so Uptime Kuma monitoring history survives redeploys">
+    <figcaption>Launch managed MariaDB first. Your monitoring history lives here, so it's the piece you back up and keep. Details in the <a href="https://www.kloudbean.com/blog/managed-mariadb-hosting/">managed MariaDB hosting</a> guide.</figcaption>
+  </figure>
+
+  <h3>2. Add the Uptime Kuma Node app</h3>
+  <p>Add an application as a Node app and point it at the Uptime Kuma source (the official <code>louislam/uptime-kuma</code> repo, or your fork). Worth being straight: there's no magic one-click Uptime Kuma button. You're running the real Node app on a managed Node runtime, which lets you update on your own schedule. The <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploy a Node app</a> guide has the long form.</p>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean console Add Application screen where the Uptime Kuma Node app is added to a managed server">
+    <figcaption>Add Application as a Node app, then connect the Uptime Kuma repository. It's a standard Node project, so nothing exotic is needed.</figcaption>
+  </figure>
+
+  <h3>3. Point it at the database with environment variables</h3>
+  <p>To use managed MariaDB, set Uptime Kuma's database environment variables in the console, not in a file you might commit. Skip these and Uptime Kuma falls back to its default SQLite file.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console Environment Variables screen where the Uptime Kuma MariaDB connection details are configured">
+    <figcaption>Runtime Configuration then Environment Variables: the MariaDB connection details live here, safely out of your Git repo.</figcaption>
+  </figure>
+
+<pre><code># Point Uptime Kuma at managed MariaDB instead of the default SQLite file.
+# Set these as environment variables in the console (never in a committed file).
+UPTIME_KUMA_DB_TYPE=mariadb
+UPTIME_KUMA_DB_HOSTNAME=10.0.0.7        # private-network address of managed MariaDB
+UPTIME_KUMA_DB_PORT=3306
+UPTIME_KUMA_DB_NAME=uptimekuma
+UPTIME_KUMA_DB_USERNAME=kuma
+UPTIME_KUMA_DB_PASSWORD=a-long-random-password</code></pre>
+
+  <p>Prefer to keep it simple with SQLite? Leave the database variables unset and make sure the data directory is durable. This is the single most important line in the whole deploy:</p>
+
+<pre><code># The default: no DB vars set, so Uptime Kuma writes a local SQLite file.
+DATA_DIR=./data/       # holds kuma.db; this path MUST be a persistent volume
+UPTIME_KUMA_PORT=3001  # Uptime Kuma listens on 3001 by default</code></pre>
+
+  <p>Either way, the data has to outlive a redeploy. Managed MariaDB gives you that plus backups for free; a persistent volume gives you that only if you configure and back it up yourself; an ephemeral disk gives you a monitor with amnesia. Our <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a> guide covers keeping config out of code.</p>
+
+  <h3>4. Build and deploy from GitHub</h3>
+  <p>Connect the repository and let the platform build and start the app, with the build logs streaming in the console. Uptime Kuma installs its dependencies, builds the frontend, then starts the server process, which the platform keeps alive for you.</p>
+
+<pre><code># Install, build the frontend, then start the server.
+npm ci
+npm run build
+node server/server.js   # starts Uptime Kuma on port 3001</code></pre>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean console Git deployment screen building and deploying the Uptime Kuma Node app from GitHub with live build logs">
+    <figcaption>Connect GitHub and every push rebuilds and redeploys Uptime Kuma. The live build logs show it installing, building the frontend, and starting the server on port 3001.</figcaption>
+  </figure>
+
+  <h3>5. Add your domain and free SSL</h3>
+  <p>Point a subdomain like <code>status.yourdomain.com</code> at the app, issue a free SSL certificate, and the dashboard is now served over HTTPS. On the first visit Uptime Kuma runs a short setup wizard where you create the admin account. Choose a strong password right there, because this dashboard maps out your whole infrastructure.</p>
+
+  <figure>
+    <img src="../assets/console/ssl-certificate.png" alt="The Kloudbean console SSL certificate screen issuing free HTTPS for the self-hosted Uptime Kuma dashboard">
+    <figcaption>Issue free SSL so the Uptime Kuma dashboard and its admin login are encrypted. This one is a non-decision: turn it on.</figcaption>
+  </figure>
+
+  <h2>Set up your monitors, and the keyword trick</h2>
+  <p>Monitors are created in the web UI, not a config file, so this part is quick. For each thing you care about, add a monitor, pick a type, set an interval, save. Uptime Kuma allows intervals down to about 20 seconds, though 60 is a sensible default that keeps noise and load reasonable. The types you'll use most:</p>
+  <ul>
+    <li><strong>HTTP(s)</strong> for a site or API. Up if the request returns a healthy status code.</li>
+    <li><strong>HTTP(s) keyword</strong> for the check that actually catches trouble. It fetches the page and confirms a specific word is present, which catches a page returning a 200 while rendering an error, the classic "up but broken" state a plain status check sails right past.</li>
+    <li><strong>TCP Port</strong> for a database or service that isn't HTTP, like checking that MariaDB answers on 3306.</li>
+    <li><strong>Ping</strong> for a basic "is the host reachable at all" signal.</li>
+  </ul>
+
+<pre><code># Monitors live in the web UI, not a config file. A typical set for one app:
+#  Type             Target                                     Interval
+#  HTTP(s)          https://app.example.com/health             60s
+#  HTTP(s) keyword  https://app.example.com/   word: Sign in   60s
+#  TCP Port         db.internal : 3306                         60s
+#  Ping             203.0.113.10                               60s</code></pre>
+
+  <p>My advice: don't just monitor the homepage. Monitor a real health endpoint that touches your database, and put a keyword monitor on a page that only renders correctly when the app is genuinely working. That pairing catches the failures a naive ping misses.</p>
+
+  <!-- To add your own screenshot here, replace this whole figure with a real figure/img/figcaption. Image path: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Uptime Kuma add-monitor screen, or a finished public status page built from your monitors.</em><small>Optional. Shows readers where monitors and status pages are configured.</small></span></figure>
+
+  <h2>Notifications: wire one before you need it</h2>
+  <p>A monitor that notices an outage and tells no one is decoration. Uptime Kuma ships with over 90 notification integrations, including Slack, email (SMTP), Telegram, Discord, and webhooks. Wire up at least one, attach it to your monitors, then test it on purpose. Trigger a failure and confirm the message lands where your team will see it at an awkward hour. An alert you've never seen arrive is one you can't trust.</p>
+  <p>A couple of channels beats one, since people miss email. A Slack or Telegram ping is harder to sleep through, and a webhook can escalate to an on-call tool.</p>
+
+  <!-- To add your own screenshot here, replace this whole figure with a real figure/img/figcaption. Image path: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>An Uptime Kuma outage alert as it lands in Slack or Telegram, so readers see the notification actually arrive.</em><small>A real alert screenshot makes the point better than words.</small></span></figure>
+
+  <h2>Security: lock the dashboard, protect the data</h2>
+  <p>Self-hosting means the security defaults are yours to set. None of this is heavy, and skipping it is how a quiet monitoring box turns into a liability.</p>
+  <ul>
+    <li><strong>SSL in front of everything.</strong> Serve the dashboard over HTTPS so your admin login and infrastructure map aren't traveling in the clear. Free certificates remove the excuse.</li>
+    <li><strong>A strong admin login.</strong> Set a real password in the first-run wizard and enable two-factor auth, which Uptime Kuma supports. You create the account, so don't hand it a weak password.</li>
+    <li><strong>Reachable, not wide open.</strong> The dashboard reveals a lot about your systems. If it doesn't need to face the public internet, put it behind an IP allowlist or a basic auth gate. A public <em>status page</em> is fine to expose; the admin dashboard is not.</li>
+    <li><strong>Database credentials in env vars.</strong> The MariaDB connection details belong in environment variables, never in a config file that could land in Git.</li>
+    <li><strong>Back up the monitoring database.</strong> Managed MariaDB is backed up for you; if you run SQLite, back up that data directory on a schedule. Your incident history is the one thing you can't recreate. The <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a> has sane defaults.</li>
+  </ul>
+  <p>The platform helps at the baseline too. A Shorewall firewall and Fail2ban come switched on, and SSL is free, so a chunk of the hardening is done before you touch anything.</p>
+
+  <h2>Host it somewhere independent (yes, really)</h2>
+  <p>Back to the point that matters most, the one people rationalize away to save a few dollars. Put Uptime Kuma on a small, separate server, ideally a different region or provider from the apps it watches. It's a light app, so the box can be tiny and cheap.</p>
+  <p>The reasoning is boring and correct. If your monitor shares fate with your app, it can't warn you about the failures that take them both down together, and those hurt most. A small box in another region that only runs Uptime Kuma is some of the cheapest reliability insurance going. You can even watch that server's own health from the console, so the watcher doesn't go dark unnoticed.</p>
+
+  <figure>
+    <img src="../assets/console/server-health.png" alt="The Kloudbean console server health view showing the small independent server that runs the self-hosted Uptime Kuma monitor">
+    <figcaption>Run Uptime Kuma on its own small server and keep an eye on that server's health too. The watcher needs watching, lightly.</figcaption>
+  </figure>
+
+  <p>If this is your first self-hosted tool, you're in good company. The <a href="https://www.kloudbean.com/blog/best-self-hosted-tools/">best self-hosted tools</a> roundup is worth a browse, <a href="https://www.kloudbean.com/blog/self-host-supabase/">self-hosting Supabase</a> is a natural next step for a backend you own, and for the broader theory of what to watch and how to alert without crying wolf, read <a href="https://www.kloudbean.com/blog/uptime-monitoring/">uptime monitoring</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Know before your users do.</p>
+    <p style="margin:0 0 .6em">Run the Uptime Kuma Node app on a managed server, keep its history in managed MariaDB, and host it on its own independent box. The OS, SSL, and backups are handled, so you watch your stack instead of babysitting the watcher. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Managed Node runtime · Managed MariaDB · Private networking · Automatic backups · Free SSL · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Is Uptime Kuma free?</h3>
+    <p>Yes. It's open source and free to run, so you only pay for the small server and, optionally, a managed database for durable history. There are no per-monitor fees, which is why people move to it from paid monitors.</p>
+
+    <h3>What database does Uptime Kuma use?</h3>
+    <p>By default it stores everything in a local SQLite file in its data directory. It also supports an external MariaDB, which is sturdier for production because it backs up cleanly and survives redeploys. Either way, the data must live on storage that persists.</p>
+
+    <h3>Should I run Uptime Kuma on the same server as my app?</h3>
+    <p>No, and this is the biggest self-hosted monitoring mistake. If the monitor shares a server with the app it watches, one outage takes down both and no alert fires. Run it on a separate server, ideally a different region or provider from what it watches.</p>
+
+    <h3>Is Uptime Kuma a good UptimeRobot alternative?</h3>
+    <p>For most teams, yes. You get unlimited monitors, status pages, and 90+ notification channels with no per-monitor pricing, and your data stays in-house. Hosted monitors like UptimeRobot and Pingdom do check from many global locations more easily, so some people run both.</p>
+
+    <h3>How do I get alerts from Uptime Kuma?</h3>
+    <p>Add a notification in the settings and attach it to your monitors. It supports Slack, email, Telegram, Discord, webhooks, and dozens more. Wire up at least one, then trigger a test failure to confirm the alert actually reaches you.</p>
+
+    <h3>Can Uptime Kuma make a status page?</h3>
+    <p>Yes. It can publish status pages, public for customers or internal for your team, and you choose which monitors appear on each. So you can show a clean customer-facing status while keeping sensitive internal checks private.</p>
+
+    <h3>How do I connect Uptime Kuma to MariaDB?</h3>
+    <p>Set the database environment variables at deploy time: UPTIME_KUMA_DB_TYPE=mariadb plus the hostname, port, database name, username, and password. Point the hostname at your managed MariaDB private-network address. Leave them unset and it uses the default SQLite file.</p>
+
+    <h3>Do I need Docker to self-host Uptime Kuma?</h3>
+    <p>No. Docker is one common way to run it, but Uptime Kuma is a plain Node.js app, so you can run it directly on a managed Node runtime. That keeps updates on your schedule while the platform handles the server, SSL, and backups.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Engineering · Know before your users do.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Self-Host Uptime Kuma in Production","description":"Why self-host Uptime Kuma, the open-source UptimeRobot and Pingdom alternative: the architecture (a Node app on SQLite or external MariaDB), the production must-dos, notifications, and how to deploy it on a managed Node server on its own independent host.","image":"https://www.kloudbean.com/blog/self-host-uptime-kuma/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/self-host-uptime-kuma/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Is Uptime Kuma free?","acceptedAnswer":{"@type":"Answer","text":"Yes. It is open source and free to run, so you only pay for the small server and, optionally, a managed database for durable history. There are no per-monitor fees, which is why people move to it from paid monitors."}},
+{"@type":"Question","name":"What database does Uptime Kuma use?","acceptedAnswer":{"@type":"Answer","text":"By default it stores everything in a local SQLite file in its data directory. It also supports an external MariaDB, which is sturdier for production because it backs up cleanly and survives redeploys. Either way, the data must live on storage that persists."}},
+{"@type":"Question","name":"Should I run Uptime Kuma on the same server as my app?","acceptedAnswer":{"@type":"Answer","text":"No, and this is the biggest self-hosted monitoring mistake. If the monitor shares a server with the app it watches, one outage takes down both and no alert fires. Run it on a separate server, ideally a different region or provider from what it watches."}},
+{"@type":"Question","name":"Is Uptime Kuma a good UptimeRobot alternative?","acceptedAnswer":{"@type":"Answer","text":"For most teams, yes. You get unlimited monitors, status pages, and over 90 notification channels with no per-monitor pricing, and your data stays in-house. Hosted monitors like UptimeRobot and Pingdom do check from many global locations more easily, so some people run both."}},
+{"@type":"Question","name":"How do I get alerts from Uptime Kuma?","acceptedAnswer":{"@type":"Answer","text":"Add a notification in the settings and attach it to your monitors. It supports Slack, email, Telegram, Discord, webhooks, and dozens more. Wire up at least one, then trigger a test failure to confirm the alert actually reaches you."}},
+{"@type":"Question","name":"Can Uptime Kuma make a status page?","acceptedAnswer":{"@type":"Answer","text":"Yes. It can publish status pages, public for customers or internal for your team, and you choose which monitors appear on each. So you can show a clean customer-facing status while keeping sensitive internal checks private."}},
+{"@type":"Question","name":"How do I connect Uptime Kuma to MariaDB?","acceptedAnswer":{"@type":"Answer","text":"Set the database environment variables at deploy time: UPTIME_KUMA_DB_TYPE set to mariadb, plus the hostname, port, database name, username, and password. Point the hostname at your managed MariaDB private-network address. Leave them unset and it uses the default SQLite file."}},
+{"@type":"Question","name":"Do I need Docker to self-host Uptime Kuma?","acceptedAnswer":{"@type":"Answer","text":"No. Docker is one common way to run it, but Uptime Kuma is a plain Node.js app, so you can run it directly on a managed Node runtime. That keeps updates on your schedule while the platform handles the server, SSL, and backups."}}
+]}
+]}
+</script>
+</body>
+</html>

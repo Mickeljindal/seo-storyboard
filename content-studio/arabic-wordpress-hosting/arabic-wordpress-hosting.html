@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arabic WordPress Hosting: RTL, utf8mb4, and In-Kingdom Speed</title>
+<meta name="description" content="Arabic WordPress hosting done right: pick an RTL-ready theme, set the site language to Arabic, store text in a utf8mb4 database, and serve it fast from Dammam.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/arabic-wordpress-hosting/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Arabic WordPress Hosting: RTL, utf8mb4, and In-Kingdom Speed">
+<meta property="og:description" content="A practical guide to running an Arabic, right-to-left WordPress site for a Saudi and Gulf audience: RTL themes, the utf8mb4 charset, Arabic fonts, and in-Kingdom hosting.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">WordPress · Arabic &amp; RTL · Saudi Arabia</span>
+  <h1>Arabic WordPress Hosting Done Right: RTL, Fonts, and utf8mb4</h1>
+  <p class="byline">By Kloudbean MENA · Right-to-left WordPress, served from inside the Kingdom.</p>
+
+  <figure><img src="images/hero.png" alt="Arabic WordPress hosting: an RTL layout and a utf8mb4 database served from the Dammam region for Saudi readers"></figure>
+
+  <p class="lead">You built an Arabic WordPress site, opened the homepage, and the text came back as <code>?????</code> or a wall of <code>Ø£Ø®</code>-shaped garbage. Or the layout runs left-to-right when it should mirror, or it loads fine in your office and crawls for a reader in Riyadh. Arabic WordPress hosting has a short list of specific gotchas that generic guides skip, and most are fixable in an afternoon once you know where to look. This is a field guide to running an Arabic, right-to-left WordPress site for a Saudi or Gulf audience: the theme and language settings, the database charset that decides whether Arabic survives, fonts, caching, and hosting close to your readers.</p>
+
+  <div class="tldr">
+    <strong>What do you need to host an Arabic (RTL) WordPress site well?</strong>
+    <p>Five things. An RTL-ready theme with the site language set to Arabic (WordPress handles right-to-left natively). A database on the <code>utf8mb4</code> charset so Arabic and emoji store correctly instead of turning into question marks. A subset, cached Arabic webfont. Hosting near your readers, which for a Saudi audience means the in-Kingdom Google Cloud Dammam region. And a managed stack for caching, backups, free SSL, and staging.</p>
+  </div>
+
+  <h2>Does WordPress support Arabic and RTL out of the box?</h2>
+  <p>Yes, and it's easier than people expect. Go to Settings, then General, and set <strong>Site Language</strong> to <span dir="rtl" lang="ar">العربية</span>. WordPress pulls the Arabic translation, flips the admin to right-to-left, and serves your site in RTL. No plugin needed for the language itself.</p>
+  <p>Right-to-left is really two concerns. One is <em>content direction</em>, which WordPress handles: once the locale is Arabic, <code>is_rtl()</code> returns true, the <code>&lt;body&gt;</code> gets an <code>rtl</code> class, and WordPress loads the right-to-left stylesheets. The other is <em>your theme</em>. An RTL-ready theme mirrors cleanly, with the logo on the right, the menu flowing right-to-left, and text aligned right. A theme that hard-codes <code>float: left</code> everywhere looks broken in Arabic, however good your hosting is.</p>
+  <p>So the practical rule for Arabic website hosting is simple. Pick a theme that lists RTL support (most ship an <code>rtl.css</code>), set the site language to Arabic, and check the front end. Hosting doesn't draw your layout; your theme and WordPress do. It decides whether the text stores correctly, how fast it reaches readers, and whether you recover when something breaks.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 430" role="img" aria-label="Two mock web pages side by side. On the left, an English left-to-right layout: logo top-left, navigation on the right, title and text aligned to the left, sidebar on the right, reading arrow pointing right. On the right, the same page mirrored for Arabic right-to-left: logo top-right, navigation on the left, title and text aligned to the right, sidebar on the left, reading arrow pointing left. A dashed mirror line runs down the middle." style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="30" y="38" fill="#000f27" font-family="Poppins,sans-serif" font-size="16.5" font-weight="700">The same page, mirrored: LTR vs RTL layout</text>
+
+      <!-- center mirror line -->
+      <line x1="380" y1="66" x2="380" y2="392" stroke="#4F1AF3" stroke-width="1.4" stroke-dasharray="6 6"></line>
+      <text x="380" y="410" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.5">MIRROR</text>
+
+      <!-- LEFT PANEL: LTR -->
+      <rect x="30" y="62" width="330" height="322" rx="14" fill="#ffffff" stroke="#e6e9f2"></rect>
+      <text x="46" y="92" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="700" letter-spacing="1.5">LTR · ENGLISH</text>
+      <!-- mini page -->
+      <rect x="46" y="104" width="298" height="248" rx="10" fill="#f6f7fb" stroke="#e6e9f2"></rect>
+      <!-- header -->
+      <rect x="58" y="116" width="274" height="30" rx="6" fill="#000f27"></rect>
+      <rect x="66" y="122" width="26" height="18" rx="3" fill="#4F1AF3"></rect>
+      <rect x="250" y="126" width="20" height="10" rx="2" fill="#8ea0c8"></rect>
+      <rect x="278" y="126" width="20" height="10" rx="2" fill="#8ea0c8"></rect>
+      <rect x="306" y="126" width="20" height="10" rx="2" fill="#8ea0c8"></rect>
+      <!-- title + body (left aligned) -->
+      <rect x="66" y="162" width="150" height="13" rx="3" fill="#000f27"></rect>
+      <rect x="66" y="186" width="168" height="8" rx="3" fill="#c8cede"></rect>
+      <rect x="66" y="202" width="150" height="8" rx="3" fill="#c8cede"></rect>
+      <rect x="66" y="218" width="120" height="8" rx="3" fill="#c8cede"></rect>
+      <!-- sidebar right -->
+      <rect x="248" y="162" width="84" height="78" rx="7" fill="#eafaf0" stroke="#40b75f" stroke-width="1.2"></rect>
+      <text x="290" y="205" text-anchor="middle" fill="#2f8f49" font-family="Poppins,sans-serif" font-size="10">sidebar</text>
+      <!-- reading arrow -->
+      <line x1="66" y1="322" x2="196" y2="322" stroke="#5b6a86" stroke-width="2"></line>
+      <path d="M196 322 l-9 -4 v8 z" fill="#5b6a86"></path>
+      <text x="66" y="342" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">logo left · reads left to right</text>
+
+      <!-- RIGHT PANEL: RTL -->
+      <rect x="400" y="62" width="330" height="322" rx="14" fill="#ffffff" stroke="#e6e9f2"></rect>
+      <text x="714" y="92" text-anchor="end" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="700" letter-spacing="1.5">RTL · ARABIC</text>
+      <!-- mini page -->
+      <rect x="416" y="104" width="298" height="248" rx="10" fill="#f6f7fb" stroke="#e6e9f2"></rect>
+      <!-- header -->
+      <rect x="428" y="116" width="274" height="30" rx="6" fill="#000f27"></rect>
+      <rect x="676" y="122" width="26" height="18" rx="3" fill="#4F1AF3"></rect>
+      <rect x="436" y="126" width="20" height="10" rx="2" fill="#8ea0c8"></rect>
+      <rect x="464" y="126" width="20" height="10" rx="2" fill="#8ea0c8"></rect>
+      <rect x="492" y="126" width="20" height="10" rx="2" fill="#8ea0c8"></rect>
+      <!-- title + body (right aligned) -->
+      <rect x="552" y="162" width="150" height="13" rx="3" fill="#000f27"></rect>
+      <rect x="534" y="186" width="168" height="8" rx="3" fill="#c8cede"></rect>
+      <rect x="552" y="202" width="150" height="8" rx="3" fill="#c8cede"></rect>
+      <rect x="582" y="218" width="120" height="8" rx="3" fill="#c8cede"></rect>
+      <!-- sidebar left -->
+      <rect x="428" y="162" width="84" height="78" rx="7" fill="#eafaf0" stroke="#40b75f" stroke-width="1.2"></rect>
+      <text x="470" y="205" text-anchor="middle" fill="#2f8f49" font-family="Poppins,sans-serif" font-size="10">sidebar</text>
+      <!-- reading arrow -->
+      <line x1="702" y1="322" x2="572" y2="322" stroke="#5b6a86" stroke-width="2"></line>
+      <path d="M572 322 l9 -4 v8 z" fill="#5b6a86"></path>
+      <text x="702" y="342" text-anchor="end" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">logo right · reads right to left</text>
+    </svg>
+    <figcaption>Right-to-left flips the whole layout, not just the text. WordPress does this automatically once the site language is Arabic and the theme ships RTL styles.</figcaption>
+  </figure>
+
+  <h2>The bug that turns Arabic into question marks: your database charset</h2>
+  <p>Here's the failure I'd bet on before I've seen your site. You save an Arabic post, reload, and the words are replaced by <code>?????</code> or mojibake like <code>Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©</code>. The layout's fine; the text is wrecked. This is almost never a WordPress bug. It's a character-set mismatch in the database, the most common thing that breaks Arabic sites.</p>
+  <p>Text passes through several layers, each with its own charset: the database, the table, the column, the PHP-to-MySQL connection, and the <code>DB_CHARSET</code> line in <code>wp-config.php</code>. If any link treats UTF-8 as Latin-1, Arabic gets mangled. The fix is to make the whole path speak one charset: <code>utf8mb4</code>.</p>
+  <p>One detail causes half the trouble here. In MySQL, the charset historically labelled <code>utf8</code> is actually <code>utf8mb3</code>, which stores at most three bytes per character and can't hold four-byte characters like emoji. Real, full UTF-8 in MySQL is <code>utf8mb4</code>. WordPress core has defaulted to it since version 4.2 (back in 2015) when the database supports it. Set it explicitly:</p>
+  <pre><code>// wp-config.php
+define( 'DB_CHARSET', 'utf8mb4' );
+define( 'DB_COLLATE', '' );   // let the DB pick utf8mb4_unicode_ci</code></pre>
+  <p>Not sure what your database runs? Check directly, in MySQL or via WP-CLI with <code>wp db query</code>:</p>
+  <pre><code>SHOW VARIABLES LIKE 'character_set_database';
+-- you want the value: utf8mb4
+
+ALTER TABLE wp_posts
+  CONVERT TO CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;</code></pre>
+  <p>Match the symptom to the cause with this field table.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td>Arabic shows as <code>?????</code></td><td>Column or connection is Latin-1, so the UTF-8 bytes get dropped on the way in</td><td>Convert tables to <code>utf8mb4</code>; set <code>DB_CHARSET</code> to <code>utf8mb4</code></td></tr>
+      <tr><td>Arabic shows as <code>Ø§Ù„Ø¹</code> mojibake</td><td>Text saved through a mismatched connection charset and got double-encoded</td><td>Re-export and re-import with the correct charset; fix the connection charset first</td></tr>
+      <tr><td>Emoji or rare characters vanish</td><td>Tables are on old <code>utf8</code> (three-byte <code>utf8mb3</code>), not <code>utf8mb4</code></td><td>Move the affected tables to <code>utf8mb4</code></td></tr>
+      <tr><td>An imported store broke on migration</td><td><code>mysqldump</code> ran without a charset flag, so the dump lied about its encoding</td><td>Re-dump with <code>--default-character-set=utf8mb4</code>, reimport, verify on staging</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note"><b>The anti-pattern I see most:</b> someone migrates an old Arabic site, imports the database on the new host, and only then notices every post is mojibake. The culprit is usually a <code>mysqldump</code> that ran without <code>--default-character-set=utf8mb4</code>, which double-encodes the text. Do the conversion on a staging copy first, never on the live database, because a botched conversion is far harder to undo than to prevent.</div>
+
+  <p>On Kloudbean this is mostly a non-event, by design. The managed MySQL and MariaDB engines default to <code>utf8mb4</code>, so a fresh Arabic WordPress site stores its first post cleanly. You still own migrating old data correctly, but you start from a database that already speaks Arabic. For how a managed database attaches to a WordPress app, the <a href="https://www.kloudbean.com/blog/managed-wordpress-hosting/">managed WordPress hosting</a> guide walks the whole stack.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed MySQL or MariaDB database that defaults to the utf8mb4 charset for an Arabic WordPress site">
+    <figcaption>Managed MySQL or MariaDB launches on utf8mb4 by default, so Arabic text and emoji store correctly from the first save.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: swap this slot for a real screenshot of Settings > General with Site Language set to Arabic. src -> images/site-language-arabic.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The WordPress Settings screen with Site Language set to Arabic, showing the admin flipped to right-to-left.</em></span></figure>
+
+  <h2>Fonts: making Arabic script look the way it should</h2>
+  <p>Arabic is cursive and connected, so type choices matter more than they do in Latin text. Lean on the browser default and your site renders in whatever Arabic font each device ships, which rarely matches your brand. A dedicated Arabic webfont fixes that. Good open options include Cairo, Tajawal, IBM Plex Sans Arabic, and Noto Naskh Arabic, which all cover the script well.</p>
+  <p>There's a cost people forget. Arabic glyph sets are large, so a webfont file can be heavy, and a fat font undoes the speed you came here for. Three habits keep it fast: subset the font to the Arabic range plus the Latin you use, self-host or load only that subset, and set <code>font-display: swap</code> so text shows immediately while the font loads. Done right, an Arabic page is as quick as an English one. The broader playbook is in <a href="https://www.kloudbean.com/blog/speed-up-wordpress/">speed up WordPress</a>.</p>
+
+  <!-- ADD IMAGE: swap this slot for a real screenshot of an Arabic webfont in the editor. src -> images/arabic-webfont.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>An Arabic webfont such as Cairo or Tajawal in the editor, next to the browser default for contrast.</em></span></figure>
+
+  <h2>Arabic WordPress hosting in Saudi Arabia: why host in-Kingdom?</h2>
+  <p>Two reasons, and they stack. First, speed. Distance is physics, not a setting you can tune away. Riyadh to a European data center is roughly 4,000 km, a floor of tens of milliseconds on every round trip, often 90 to 130 ms in practice. Serve the same reader from Dammam and that floor mostly disappears into the single digits or low tens. Arabic content isn't heavier than English, but a font-rich page firing a dozen requests feels every millisecond. In-Kingdom hosting is the most direct speed win for a Saudi audience.</p>
+  <p>Second, residency. If you hold personal data on people in Saudi Arabia, keeping it in-Kingdom is often expected or required, and it comes up constantly in procurement. Saudi Arabia's PDPL is real, and the honest framing is shared responsibility: hosting in the Kingdom settles the location part, while consent, retention, and disclosures stay yours. No host makes you "certified" on its own. The full buyer's guide is <a href="https://www.kloudbean.com/blog/cloud-hosting-saudi-arabia/">cloud hosting in Saudi Arabia</a>.</p>
+  <p>On Kloudbean, the practical move is one choice at launch. Among its seven clouds, the in-Kingdom option is Google Cloud's Dammam region, code-named <code>me-central2</code>, which sits physically inside Saudi Arabia. It isn't the only Saudi region on the market, and Kloudbean doesn't own a data center there; the capability comes from provisioning on that Google Cloud region. Pick it when you add the server, and your WordPress site, its managed database, and its backups all live on Saudi soil.</p>
+
+  <figure>
+    <img src="../assets/console/add-server-region.png" alt="The Kloudbean Add Server page with Google Cloud's Dammam (me-central2) Saudi Arabia region selected for in-Kingdom Arabic WordPress hosting">
+    <figcaption>Add Server: choose Google Cloud and the Dammam (me-central2) region to keep your Arabic WordPress site and its data inside Saudi Arabia.</figcaption>
+  </figure>
+
+  <h2>Does caching work on right-to-left and multilingual sites?</h2>
+  <p>Yes, and the nervousness here is usually misplaced. A full-page cache serves a ready-made copy of the HTML, and right-to-left is baked into that HTML, so the cache doesn't care which direction the text runs. A single-language Arabic site caches exactly like an English one.</p>
+  <p>The real trap is multilingual. If you run Arabic alongside English with Polylang or WPML, the cache key has to include the language, or you'll serve a cached Arabic page to an English visitor. Most setups give each language its own URL (like <code>/ar/</code> and <code>/en/</code>), which caches cleanly. The danger is switching language by cookie on the same URL, where a naive cache hands the wrong version to the wrong reader. Keep languages on separate URLs and the problem evaporates.</p>
+  <p>An object cache helps every language equally. A managed Redis stores the results of the queries WordPress repeats endlessly, so a busy Arabic site isn't asking MySQL the same thing a thousand times a minute. Page cache for the HTML, object cache for the queries, separate URLs per language: quick sites, no RTL-specific hacks.</p>
+
+  <h2>The managed stack: SSL, backups, and staging you'll actually use</h2>
+  <p>A managed host handles the boring, critical jobs, and three matter a lot for an Arabic site. Free SSL is issued and auto-renews, so HTTPS is one step. Automatic backups run off the box and restore themselves, exactly what you want the day a charset conversion or theme swap goes sideways. And one-click staging gives you a copy of the live site to break safely.</p>
+  <p>Staging is the habit that saves Arabic sites specifically. Test an RTL theme change, a <code>utf8mb4</code> conversion, or a translation plugin on a staging copy, and you find the broken layout or the mangled text before your readers do. Push to live only once it looks right. Kloudbean gives you one-click staging for WordPress (and Laravel), automatic backups with self-serve restore, and a baseline every server gets: a firewall and brute-force banning. The security half you own is in <a href="https://www.kloudbean.com/blog/secure-wordpress-hosting/">secure WordPress hosting</a>.</p>
+
+  <figure>
+    <img src="../assets/console/staging.png" alt="The Kloudbean one-click staging screen creating a staging copy of an Arabic WordPress site to test RTL and charset changes safely">
+    <figcaption>One-click staging: test an RTL theme swap, a utf8mb4 conversion, or a translation plugin on a copy before it touches the live site.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="../assets/console/ssl-certificate.png" alt="The Kloudbean console issuing a free auto-renewing SSL certificate for an Arabic WordPress site served from Dammam">
+    <figcaption>Free SSL is issued and auto-renews, so an Arabic site on a custom domain serves HTTPS without manual renewals.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: swap this slot for a real screenshot of the live Arabic site with the HTTPS padlock and RTL layout. src -> images/arabic-site-live.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your live Arabic site on its custom domain: HTTPS padlock, right-to-left layout, clean Arabic type.</em></span></figure>
+
+  <h2>A quick honest take, and where to go next</h2>
+  <p>After a fair number of these builds, my read is that Arabic WordPress rarely fails for exotic reasons. It fails on two boring things: the text isn't in <code>utf8mb4</code>, or the site sits a continent away from its readers. Fix those two, pick an RTL-ready theme, add a subset Arabic font, and you've handled most of what separates a native-feeling site from a bolted-together one.</p>
+  <p>Running an Arabic store? The same rules apply with more at stake, since checkout latency and customer-data residency turn into money. That's covered in <a href="https://www.kloudbean.com/blog/hosting-for-saudi-ecommerce/">hosting for Saudi ecommerce</a>. Weighing managed WordPress hosts for an Arabic project? The honest head-to-head is <a href="https://www.kloudbean.com/blog/kloudbean-vs-kinsta/">Kloudbean vs Kinsta</a>. Both keep the focus where it belongs: storing Arabic cleanly and serving it fast to the Gulf.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Arabic that renders right, served from inside the Kingdom.</p>
+    <p style="margin:0 0 .6em">Launch managed WordPress on Google Cloud's Dammam region (<code>me-central2</code>), on a database that speaks <code>utf8mb4</code> from the first post, with staging, backups, and free SSL handled. Plans start from $8/mo, Enterprise is custom. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see options on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.85">In-Kingdom Dammam region · utf8mb4 managed databases · One-click staging · Automatic backups · Free auto-renewing SSL · Free migration assistance · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Does WordPress support Arabic and right-to-left out of the box?</h3>
+    <p>Yes. Set Site Language to Arabic under Settings, then General, and WordPress loads the Arabic translation, flips the admin to right-to-left, and serves the front end in RTL. You supply an RTL-ready theme, whose stylesheet is what mirrors the layout.</p>
+
+    <h3>Why is my Arabic WordPress text showing as question marks?</h3>
+    <p>That's a database charset mismatch, not a WordPress bug. Somewhere in the chain (table, column, connection, or wp-config) UTF-8 is read as Latin-1, so Arabic renders as junk. Use utf8mb4 everywhere and convert the affected tables, testing on staging first.</p>
+
+    <h3>What database charset should an Arabic WordPress site use?</h3>
+    <p>Use utf8mb4. MySQL's older utf8 is really utf8mb3, storing only three bytes per character, so it can't hold emoji or some symbols. utf8mb4 is full UTF-8. WordPress has defaulted to it since version 4.2, and Kloudbean's managed MySQL and MariaDB use it by default.</p>
+
+    <h3>Do I need a special theme for an Arabic WordPress site?</h3>
+    <p>You need an RTL-ready theme, one that ships right-to-left styles (usually an rtl.css). Most modern themes do. WordPress applies the RTL stylesheet automatically once the language is Arabic. A theme that hard-codes left-side spacing will look broken in Arabic.</p>
+
+    <h3>What are good fonts for an Arabic WordPress site?</h3>
+    <p>Cairo, Tajawal, IBM Plex Sans Arabic, and Noto Naskh Arabic all cover the script well. Subset your choice to the Arabic range, self-host or load only that subset, and set font-display to swap. Arabic glyph sets are large, so an unsubsetted webfont slows the page.</p>
+
+    <h3>Should I host my Arabic WordPress site in Saudi Arabia?</h3>
+    <p>If your readers are in the Kingdom, yes, mostly for speed. Hosting in Europe adds roughly 90 to 130 ms per round trip from Riyadh, which the Dammam region removes for local readers. It also helps with residency, which stays a shared responsibility you own at the app level.</p>
+
+    <h3>Can I run a bilingual Arabic and English WordPress site?</h3>
+    <p>Yes, with Polylang or WPML. Give each language its own URL, like /ar/ and /en/, so caching stays clean and each version serves correctly. WordPress applies RTL to the Arabic side and LTR to the English side automatically. Avoid switching language by cookie on the same URL.</p>
+
+    <h3>Does caching work on RTL WordPress sites?</h3>
+    <p>Yes. A page cache stores the finished HTML, and right-to-left is already baked into it, so direction makes no difference. A single-language Arabic site caches like any other. For multilingual sites, keep each language on its own URL and add a Redis object cache.</p>
+
+    <h3>How much does Arabic WordPress hosting cost?</h3>
+    <p>On Kloudbean, standard plans start from $8 a month, and Enterprise is custom pricing based on scale. An Arabic site follows the same plans as any WordPress site; the language doesn't change the price. Confirm current numbers on the pricing page before you commit.</p>
+
+    <h3>Can you migrate my existing Arabic WordPress site without breaking the text?</h3>
+    <p>Yes, and the charset is the thing to watch. Export the database with utf8mb4 so the text isn't double-encoded, import onto the new host, and verify the Arabic on staging before switching DNS. Free migration assistance can handle it, so a mojibake site never goes live.</p>
+  </div>
+
+  <p class="byline">Kloudbean MENA · Arabic WordPress that stores clean and loads fast across the Gulf.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Arabic WordPress Hosting Done Right: RTL, Fonts, and utf8mb4","description":"A practical guide to Arabic WordPress hosting: RTL themes and the Arabic site language, the utf8mb4 database charset that keeps Arabic from turning into question marks, Arabic fonts, caching, and in-Kingdom hosting on Google Cloud's Dammam region.","image":"https://www.kloudbean.com/blog/arabic-wordpress-hosting/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/arabic-wordpress-hosting/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Does WordPress support Arabic and right-to-left out of the box?","acceptedAnswer":{"@type":"Answer","text":"Yes. Set Site Language to Arabic under Settings, then General, and WordPress loads the Arabic translation, flips the admin to right-to-left, and serves the front end in RTL. You supply an RTL-ready theme, whose stylesheet is what mirrors the layout."}},
+{"@type":"Question","name":"Why is my Arabic WordPress text showing as question marks?","acceptedAnswer":{"@type":"Answer","text":"That is a database charset mismatch, not a WordPress bug. Somewhere in the chain (table, column, connection, or wp-config) UTF-8 is read as Latin-1, so Arabic renders as junk. Use utf8mb4 everywhere and convert the affected tables, testing on staging first."}},
+{"@type":"Question","name":"What database charset should an Arabic WordPress site use?","acceptedAnswer":{"@type":"Answer","text":"Use utf8mb4. MySQL's older utf8 is really utf8mb3, storing only three bytes per character, so it cannot hold emoji or some symbols. utf8mb4 is full UTF-8. WordPress has defaulted to it since version 4.2, and Kloudbean's managed MySQL and MariaDB use it by default."}},
+{"@type":"Question","name":"Do I need a special theme for an Arabic WordPress site?","acceptedAnswer":{"@type":"Answer","text":"You need an RTL-ready theme, one that ships right-to-left styles (usually an rtl.css). Most modern themes do. WordPress applies the RTL stylesheet automatically once the language is Arabic. A theme that hard-codes left-side spacing will look broken in Arabic."}},
+{"@type":"Question","name":"What are good fonts for an Arabic WordPress site?","acceptedAnswer":{"@type":"Answer","text":"Cairo, Tajawal, IBM Plex Sans Arabic, and Noto Naskh Arabic all cover the script well. Subset your choice to the Arabic range, self-host or load only that subset, and set font-display to swap. Arabic glyph sets are large, so an unsubsetted webfont slows the page."}},
+{"@type":"Question","name":"Should I host my Arabic WordPress site in Saudi Arabia?","acceptedAnswer":{"@type":"Answer","text":"If your readers are in the Kingdom, yes, mostly for speed. Hosting in Europe adds roughly 90 to 130 ms per round trip from Riyadh, which the Dammam region removes for local readers. It also helps with residency, which stays a shared responsibility you own at the app level."}},
+{"@type":"Question","name":"Can I run a bilingual Arabic and English WordPress site?","acceptedAnswer":{"@type":"Answer","text":"Yes, with Polylang or WPML. Give each language its own URL, like /ar/ and /en/, so caching stays clean and each version serves correctly. WordPress applies RTL to the Arabic side and LTR to the English side automatically. Avoid switching language by cookie on the same URL."}},
+{"@type":"Question","name":"Does caching work on RTL WordPress sites?","acceptedAnswer":{"@type":"Answer","text":"Yes. A page cache stores the finished HTML, and right-to-left is already baked into it, so direction makes no difference. A single-language Arabic site caches like any other. For multilingual sites, keep each language on its own URL and add a Redis object cache."}},
+{"@type":"Question","name":"How much does Arabic WordPress hosting cost?","acceptedAnswer":{"@type":"Answer","text":"On Kloudbean, standard plans start from $8 a month, and Enterprise is custom pricing based on scale. An Arabic site follows the same plans as any WordPress site; the language does not change the price. Confirm current numbers on the pricing page before you commit."}},
+{"@type":"Question","name":"Can you migrate my existing Arabic WordPress site without breaking the text?","acceptedAnswer":{"@type":"Answer","text":"Yes, and the charset is the thing to watch. Export the database with utf8mb4 so the text is not double-encoded, import onto the new host, and verify the Arabic on staging before switching DNS. Free migration assistance can handle it, so a mojibake site never goes live."}}
+]}
+]}
+</script>
+</body>
+</html>

@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hetzner vs Kloudbean: Cheap Servers vs Managed Hosting</title>
+<meta name="description" content="Hetzner vs Kloudbean, honestly: cheap raw servers where you do the sysadmin, versus managed hosting that runs the stack, SSL, backups, and security for you.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/hetzner-vs-kloudbean/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Hetzner vs Kloudbean: Cheap Servers vs Managed Hosting">
+<meta property="og:description" content="Hetzner is a superb deal on raw compute. Managed hosting deletes the ops work. The honest total-cost comparison, without pretending either one is bad.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">vs Competitors</span>
+  <h1>Hetzner vs Kloudbean: Cheap Raw Servers vs Managed Hosting</h1>
+  <p class="byline">By Kloudbean Infrastructure · Cheap Servers, Real Total Cost.</p>
+
+  <figure><img src="images/hero.png" alt="Hetzner vs Kloudbean: a cheap raw server on one side, a managed platform on the other"></figure>
+
+  <p class="lead">Hetzner vs Kloudbean is a slightly unfair fight on price, and a completely different fight on everything else. Hetzner rents some of the cheapest, most powerful raw servers you can buy. Kloudbean runs a managed platform on seven other clouds, where the stack, SSL, patching, and backups are handled for you. So the real question was never which sticker is smaller.</p>
+
+  <p>It's what the server actually costs you once your time, your security, and your 2am incidents land on the bill. Let's do that comparison properly. Hetzner earns real credit here, and I'll give it plainly. Then we'll add up the parts of a cheap server that never show on the pricing page.</p>
+
+  <div class="tldr">
+    <strong>Short answer</strong>
+    <p>Hetzner is a genuinely great deal for raw compute, and it's unmanaged, so you own every operations task on the box: patching, SSL, firewall, backups, and the pager. Kloudbean is managed hosting on a different set of clouds, so the server, stack, free SSL, patching, and automatic backups are handled while you keep your app and data. Want the lowest bill and enjoy the ops? Hetzner. Want your time back? Managed.</p>
+  </div>
+
+  <h2>What Hetzner actually is, and why people love it</h2>
+  <p>Credit where it's due, because Hetzner earns it. It's a German provider with a hard-won reputation for one thing above all: price to performance that's tough to beat. The Hetzner Cloud line gives you fast VMs for a few euros a month, and the dedicated servers, including the famous auction of used hardware, hand you a lot of real metal for the money. If your only metric is raw compute per dollar, Hetzner is often the sharpest deal on the board.</p>
+  <p>The hardware is quick, the network is solid, and the pricing is refreshingly flat, with generous traffic allowances instead of metered-egress surprises. If you're in Europe, the data centers sit close to home, mostly in Germany and Finland, with US locations added more recently. For a confident sysadmin who wants a big, cheap box and full root control, Hetzner is a legitimately excellent choice. I'd recommend it there without blinking.</p>
+  <p>So this isn't a hit piece. If you're shopping for a <strong>Hetzner alternative</strong> because someone said Hetzner is bad, stop. It isn't. The reason to compare is different, and it has nothing to do with the hardware.</p>
+
+  <h2>Does Kloudbean run on Hetzner?</h2>
+  <p>No. This one matters, so I'll be direct. Kloudbean does not provision servers on Hetzner. Its clouds are AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud. Seven of them. Hetzner isn't on that list, and this article won't pretend otherwise.</p>
+  <p>That makes this a true external comparison, not a "same box, different label" story. On one side, Hetzner: rock-bottom raw servers where you do all the sysadmin. On the other, a managed platform on seven other tier-1 clouds that takes the operations off your plate. So "Hetzner vs Kloudbean" really means raw and cheap versus managed and hands-off, on different infrastructure. Go the Kloudbean route and you'd run your app on one of those seven clouds, not on Hetzner. A migration, not a rewrite. More on the split in <a href="https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/">managed vs unmanaged hosting</a>.</p>
+
+  <!-- ADD IMAGE: a simple two-logo split graphic, Hetzner raw server on the left and a managed dashboard on the right. Swap for a real image: src -> images/hetzner-vs-managed.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A split graphic: a bare server rack labeled Hetzner on one side, a tidy dashboard labeled managed on the other.</em><small>Sets up the raw-vs-managed framing visually.</small></span></figure>
+
+  <h2>The honest catch: raw means you're the sysadmin now</h2>
+  <p>A raw Hetzner server is an empty, powerful room. Everything that turns it into a live, secure, backed-up application is your job. Not hard, exactly. Just yours, and it never stops.</p>
+  <p>Day one on a fresh box, and every line is now your task:</p>
+  <pre><code># a fresh Hetzner box, day one, all yours
+apt update &amp;&amp; apt upgrade -y            # patch the OS, then keep patching it
+apt install nginx mysql-server php-fpm   # install the whole stack by hand
+ufw allow 80,443/tcp &amp;&amp; ufw enable       # write your own firewall rules
+certbot --nginx -d yourdomain.com        # issue SSL, then remember to renew it
+# still yours after this: backups, monitoring, fail2ban, and the 2am pager</code></pre>
+  <p>Then it becomes a routine. Patch the OS and stack, or you're the soft target a scanner finds. Renew SSL before it lapses, because the day one expires, every visitor hits a browser wall reading <code>NET::ERR_CERT_DATE_INVALID</code> and your site looks broken. Set up backups, store them off the box, and restore once to prove they work, because a backup you've never tested is a rumor. Watch the disk before it fills. And when it falls over on a Sunday, you're the on-call engineer. There's no other name on the rota.</p>
+  <p>None of that is exotic. It's the ordinary tax of owning a server, and on Hetzner you're the tax collector. Enjoy it and it's a perk. If you'd rather ship, it's a slow leak you pay for in evenings.</p>
+
+  <h2>The real total cost of a cheap Hetzner server</h2>
+  <p>This is the section that settles most of these decisions. The sticker on a Hetzner box covers raw compute and nothing else. For an honest number, add the invisible line items. I won't invent dollar figures for your situation, they'd be fiction, but the categories are real, and so are the hours.</p>
+  <ul>
+    <li><strong>The sticker.</strong> A few euros a month for the VM. Real, and genuinely cheap. This is the only number most comparisons show.</li>
+    <li><strong>Your time.</strong> Setup, patching, SSL renewals, backup checks, monitoring, and the occasional fix. Call it a handful of hours in a calm month, more in a bad one. Multiply by whatever an hour of yours is worth. That's the line item that dwarfs the sticker.</li>
+    <li><strong>Risk.</strong> Skip one patch and catch a compromise. Miss one backup check and find the restore is broken on the day you need it. A single lost database can cost more than years of a management fee.</li>
+    <li><strong>Downtime.</strong> When the box falls over during your busiest hour and you're asleep, that outage costs real revenue and trust, whether or not anyone invoices you.</li>
+  </ul>
+  <p>Put those on one chart and the shape is always the same: the visible price is a sliver, and the real monthly cost towers above it in hours and risk you carry personally.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 470" width="100%" role="img" aria-label="A stacked bar chart comparing real monthly cost. The raw Hetzner bar has a tiny green sticker segment at the bottom and tall segments above it for your ops time, security and patching, backups you build, and downtime and breach risk, so the total towers. The Kloudbean managed bar is a taller green plan-price base with a small management-included cap, and its total stays under a dashed green line labeled one predictable total that the Hetzner bar rises well above.">
+      <rect x="1" y="1" width="758" height="468" rx="16" fill="#ffffff" stroke="#e6e9f2"/>
+      <text x="380" y="34" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="16" font-weight="700" fill="#000f27">Sticker price vs real monthly cost (illustrative)</text>
+
+      <!-- axes -->
+      <line x1="70" y1="410" x2="710" y2="410" stroke="#c7cede" stroke-width="1.5"/>
+      <line x1="70" y1="410" x2="70" y2="66" stroke="#c7cede" stroke-width="1.5"/>
+      <text x="70" y="58" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="10.5" fill="#5b6a86">$ / mo</text>
+
+      <!-- LEFT BAR: Raw Hetzner -->
+      <rect x="150" y="150" width="160" height="50" fill="#000f27"/>
+      <text x="230" y="180" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#ffffff">Downtime + breach risk</text>
+      <rect x="150" y="200" width="160" height="44" fill="#4F1AF3"/>
+      <text x="230" y="227" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#ffffff">Backups you build</text>
+      <rect x="150" y="244" width="160" height="56" fill="#6b3df5"/>
+      <text x="230" y="276" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#ffffff">Security + patching</text>
+      <rect x="150" y="300" width="160" height="72" fill="#4F1AF3"/>
+      <text x="230" y="340" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#ffffff">Your ops time</text>
+      <rect x="150" y="372" width="160" height="38" fill="#40b75f"/>
+      <text x="230" y="395" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="10.5" fill="#ffffff">Sticker: a few EUR/mo</text>
+      <text x="230" y="434" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#000f27">Raw Hetzner</text>
+      <text x="230" y="452" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#5b6a86">you run the server</text>
+
+      <!-- RIGHT BAR: Kloudbean managed -->
+      <rect x="470" y="272" width="160" height="38" fill="#000f27"/>
+      <text x="550" y="296" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="10.5" fill="#ffffff">Management included</text>
+      <rect x="470" y="310" width="160" height="100" fill="#40b75f"/>
+      <text x="550" y="365" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#ffffff">Plan: from $8/mo</text>
+      <text x="550" y="434" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#000f27">Kloudbean managed</text>
+      <text x="550" y="452" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#5b6a86">the platform runs it</text>
+
+      <!-- managed flat line -->
+      <line x1="150" y1="272" x2="700" y2="272" stroke="#40b75f" stroke-width="2" stroke-dasharray="7 5"/>
+      <text x="700" y="266" text-anchor="end" font-family="Poppins,Arial,sans-serif" font-size="10.5" font-style="italic" fill="#2e8f49">managed: one predictable total</text>
+    </svg>
+    <figcaption>Illustrative, not a quote. On raw Hetzner the sticker is tiny and the real monthly cost stacks up in your own hours, security, backups, and downtime risk, past the flat managed line. Managed folds most of that into one predictable number.</figcaption>
+  </figure>
+
+  <p>My honest read after seeing this many times: a cheap VPS was never actually cheap. It's the sticker plus every hour it takes to keep alive, plus the tail risk of the month you skip a step. We ran the full breakdown in <a href="https://www.kloudbean.com/blog/the-real-cost-of-unmanaged-vps/">the real cost of an unmanaged VPS</a>, and the pattern holds whatever logo is on the box. Weighing the entry rung? <a href="https://www.kloudbean.com/blog/free-tier-vs-cheap-vps/">Free tier vs cheap VPS</a> hits the same math from another angle.</p>
+
+  <h2>What Kloudbean gives you instead</h2>
+  <p>Managed hosting moves that whole stack of chores to the platform. On Kloudbean you still pick a real cloud, so you're on tier-1 infrastructure; what changes is the layer on top. You launch a server and it comes up already hardened, with a Shorewall firewall and Fail2ban running, free SSL ready to issue and auto-renew, and automatic backups on. No day-one <code>apt install</code> marathon.</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="The Kloudbean console launching a managed server on a choice of seven clouds, with the price shown before you provision">
+    <figcaption>Pick the cloud, the size, the region. It comes up patched, firewalled, and backed up, not a bare OS you now have to secure yourself.</figcaption>
+  </figure>
+
+  <p>The bigger difference is scope. Hetzner gives you servers. Kloudbean gives you one dashboard for the whole stack. That means servers and applications, plus seven managed database engines you launch with one click (MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB), built-in S3-compatible object storage and managed Google Cloud Storage buckets, and a built-in Flexible Load Balancer you enable when you need it. All under one login. On a raw box you'd install, secure, and babysit each of those yourself. If your app needs a database, wiring one up is a click rather than an afternoon of installing and hardening it by hand.</p>
+
+  <!-- ADD IMAGE: the whole-stack dashboard overview. Swap for a real screenshot: src -> ../assets/console/dashboard.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The one-dashboard view: servers, apps, databases, and storage together.</em><small>Console screenshot: dashboard.png fits here.</small></span></figure>
+
+  <p>Deploys change too. Instead of SSH and hand-rolled scripts, you connect a Git repo and the platform builds and ships on every push, with live build logs in the console. There's staging for WordPress and Laravel, subusers with granular access control, and cron jobs from the UI without a terminal. That's what people mean by managed, spelled out in <a href="https://www.kloudbean.com/blog/what-is-a-managed-server/">what a managed server is</a>. Server, stack, SSL, patching, and backups are handled, and your app code and data stay yours to export any day.</p>
+
+  <figure>
+    <img src="../assets/console/manage-backups.png" alt="The Kloudbean console showing automatic backups running on a schedule, handled by the platform">
+    <figcaption>Backups run on a schedule without you scripting them. Still, test a restore once. That's the step everyone skips.</figcaption>
+  </figure>
+
+  <p>Automatic backups are only worth what a restore proves, so run one before you need it. The <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a> covers the drill.</p>
+
+  <h2>Hetzner vs Kloudbean, side by side</h2>
+  <p>Here's the whole comparison in one table, honest about where Hetzner wins (the raw sticker) and what managed folds in. No invented prices, and no pretending Kloudbean runs on Hetzner.</p>
+  <table class="cmp">
+    <thead><tr><th>Dimension</th><th>Raw Hetzner (you operate)</th><th>Kloudbean managed (platform operates)</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Price model</strong></td><td>A few EUR/mo, raw compute (cheapest on sticker)</td><td>From $8/mo, management included</td></tr>
+      <tr><td><strong>Who patches the OS</strong></td><td>You, forever</td><td>Handled for you</td></tr>
+      <tr><td><strong>SSL certificates</strong></td><td>You install and renew</td><td>Free, auto-renewing</td></tr>
+      <tr><td><strong>Backups</strong></td><td>You script, store, and test</td><td>Automatic backups</td></tr>
+      <tr><td><strong>Security baseline</strong></td><td>You configure the firewall and fail2ban</td><td>Shorewall + Fail2ban on by default</td></tr>
+      <tr><td><strong>Managed databases</strong></td><td>You install and run them</td><td>7 engines, one-click (MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, MongoDB)</td></tr>
+      <tr><td><strong>Object storage</strong></td><td>Roll your own or bolt on a service</td><td>Built-in S3-compatible plus managed GCS buckets</td></tr>
+      <tr><td><strong>Load balancer</strong></td><td>You set up and maintain HAProxy or nginx</td><td>Built-in Flexible Load Balancer, enable when needed</td></tr>
+      <tr><td><strong>Deploys</strong></td><td>SSH and your own scripts</td><td>Managed CI/CD from Git, live build logs</td></tr>
+      <tr><td><strong>Dashboard scope</strong></td><td>Server console only</td><td>Servers, apps, databases, storage, load balancer, one login</td></tr>
+      <tr><td><strong>Cloud choice</strong></td><td>Hetzner regions</td><td>7 clouds: AWS, Lightsail, GCP, Linode, Vultr, DigitalOcean, UpCloud</td></tr>
+      <tr><td><strong>EU data residency</strong></td><td>Strong, EU-based (Germany, Finland)</td><td>EU regions available via its clouds</td></tr>
+      <tr><td><strong>Support model</strong></td><td>Docs and community, you're on call</td><td>Platform handles the infrastructure side</td></tr>
+      <tr><td><strong>Best for</strong></td><td>Confident sysadmins who want the lowest bill</td><td>Teams whose time and uptime beat the price gap</td></tr>
+    </tbody>
+  </table>
+  <p>Read the price row and the OS row together, and there's the trade. Hetzner wins the sticker. Kloudbean wins the rows underneath. You're not paying more for the same server, you're paying to delete the list. For the wider field of managed platforms, we lined them up in <a href="https://www.kloudbean.com/blog/best-managed-cloud-hosting/">best managed cloud hosting</a>.</p>
+
+  <!-- ADD IMAGE: a checklist graphic contrasting "you do it" tasks on Hetzner with "handled" tasks on managed. Swap for a real image: src -> images/who-does-what.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A two-column checklist: patching, SSL, backups, firewall marked "you" on one side and "handled" on the other.</em><small>Reinforces the table for scanners.</small></span></figure>
+
+  <h2>Is Hetzner good for WordPress or production?</h2>
+  <p>Yes, with an asterisk. A Hetzner box will run WordPress, WooCommerce, Laravel, a Node API, or a Django app happily. The hardware is more than enough. But <strong>Hetzner for WordPress</strong> means you install and secure the LEMP stack, tune PHP, set up caching, issue and renew SSL, harden logins, schedule backups, and watch for the plugin that just opened a hole. Hetzner hands you the engine. You're still the mechanic.</p>
+  <p>For production, the question isn't "can Hetzner handle it." It's "who handles Hetzner." If that's you and you're good at it, great, you'll run a lean, cheap, fast site. If it isn't, a managed platform gives you the same app on tier-1 infrastructure with the ops covered, plus staging to test changes before they hit real customers. That's the gap between a server that technically runs your store and one you don't think about at midnight.</p>
+
+  <h2>Data residency: Hetzner is EU-centric</h2>
+  <p>If keeping data in Europe matters, Hetzner's EU footprint is a real strength. Its core data centers are in Germany and Finland, with US locations more recently, so European residency is easy, and it's a common reason teams pick it. Credit earned.</p>
+  <p>Managed hosting doesn't lose that option, though. The clouds Kloudbean runs on have EU regions too, so you can keep an app and its data in Europe while still handing off the operations. I won't overclaim specific city names, because the right region depends on which of the seven clouds you pick and what your compliance rules require. We unpacked it in <a href="https://www.kloudbean.com/blog/data-residency-explained/">data residency explained</a>. The takeaway: EU residency isn't a Hetzner-only feature, so it shouldn't be the single reason you skip managed.</p>
+
+  <h2>So which should you pick? An honest call</h2>
+  <p>I'll take a position, because "it depends, both are great" helps no one. Pick Hetzner if you're a confident sysadmin who wants the absolute lowest bill and you're happy doing the ops. If you know your way around nginx, cron, certbot, and a firewall, and you don't mind the maintenance, Hetzner is one of the best deals in hosting. Full stop. Paying for management on top would be paying someone to not do a job you'd do well yourself.</p>
+  <p>Pick managed if your time and uptime are worth more than the price gap. If every hour on patching is an hour not shipping, if "who fixes it at 2am" can't only be you, or if you'd rather see servers, databases, storage, and a load balancer in one dashboard than assemble them by hand, the higher sticker buys back real hours and real risk. Most teams running something that earns money land here, and plenty of strong engineers choose it on purpose.</p>
+  <p>The trap is picking on the sticker alone and discovering the rest of the bill in your evenings. Choose on the total, not the tip.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Keep the low-fuss server. Skip the sysadmin shift.</p>
+    <p style="margin:0 0 .6em">Launch a real server on the cloud you choose, hardened and backed up from minute one, then deploy by pushing code. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, or see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>. Migration off a raw box is free.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">7 clouds &middot; One-click databases &middot; Free auto-renewing SSL &middot; Automatic backups &middot; Firewall + Fail2ban built in &middot; Free migration &middot; Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Does Kloudbean run on Hetzner?</h3>
+    <p>No. Kloudbean provisions on seven clouds: AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud. Hetzner isn't one of them. Moving over means running your app on one of those clouds instead, and migration help is free.</p>
+
+    <h3>Is Hetzner cheaper than managed hosting?</h3>
+    <p>On the sticker, yes, usually clearly so. On total cost it's closer, once you add your time for patching, SSL, backups, and incidents, plus the risk of a breach or an outage. Counted honestly, the cheap box often isn't cheaper.</p>
+
+    <h3>Is Hetzner good for WordPress or production?</h3>
+    <p>The hardware is more than good enough. The catch is you install and secure the stack, tune it, renew SSL, and run backups yourself. Fine if you're a sysadmin. If not, managed hosting handles that, with staging included.</p>
+
+    <h3>What's the real cost of a cheap VPS?</h3>
+    <p>The sticker plus your time plus risk. The fee buys raw compute only. Add the hours for patching, backups, and monitoring, plus the tail risk of a lost database or an outage. The true number sits well above the page price.</p>
+
+    <h3>Is Hetzner managed hosting?</h3>
+    <p>No. Hetzner sells unmanaged infrastructure: raw cloud VMs and dedicated servers. You get the machine and an OS, and every task above that is yours. That's exactly why the pricing is so low, and it fits people who want full control.</p>
+
+    <h3>When is managed hosting worth it over Hetzner?</h3>
+    <p>When your time and uptime beat the price gap. If you'd rather ship than patch servers, or you can't be the only answer to a 2am outage, managed pays for itself. If the ops work is the point, or your hours are genuinely free, Hetzner wins.</p>
+
+    <h3>Where are Hetzner's data centers?</h3>
+    <p>Hetzner is EU-centric, with core data centers in Germany and Finland, and US locations added more recently. That EU footprint helps if European data residency matters. Managed platforms can keep data in Europe too, via their clouds' EU regions.</p>
+
+    <h3>Can I move off Hetzner to a managed platform without rebuilding?</h3>
+    <p>Usually yes. Your app and data are portable, so it's a migration, not a rewrite: bring the code, restore the data, repoint the domain. Kloudbean offers free migration assistance if you'd rather not run it yourself.</p>
+
+    <h3>Is Hetzner reliable and good value?</h3>
+    <p>Yes. Hetzner has a strong reputation for fast hardware, a solid network, and flat pricing. With a raw server the risk isn't the infrastructure, it's the operations layer on top. Reliable hardware still goes down if nobody maintains it.</p>
+
+    <h3>What do I give up by going managed instead of Hetzner?</h3>
+    <p>Mostly the lowest bill and deep, unusual control over the OS. Need a custom kernel? Raw wins. You don't lose ownership: it's Linux either way, and your app and data stay yours to export.</p>
+  </div>
+
+  <p class="byline">Kloudbean &middot; Cheap servers, real total cost.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Hetzner vs Kloudbean: Cheap Raw Servers vs Managed Hosting","description":"Hetzner vs Kloudbean, honestly: cheap raw servers where you do the sysadmin, versus managed hosting that runs the stack, SSL, backups, and security for you.","image":"https://www.kloudbean.com/blog/hetzner-vs-kloudbean/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/hetzner-vs-kloudbean/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Does Kloudbean run on Hetzner?","acceptedAnswer":{"@type":"Answer","text":"No. Kloudbean provisions on seven clouds: AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud. Hetzner is not one of them. Moving over means running your app on one of those clouds instead, and migration help is free."}},
+{"@type":"Question","name":"Is Hetzner cheaper than managed hosting?","acceptedAnswer":{"@type":"Answer","text":"On the sticker, yes, usually clearly so. On total cost it is closer, once you add your time for patching, SSL, backups, and incidents, plus the risk of a breach or an outage. Counted honestly, the cheap box often is not cheaper."}},
+{"@type":"Question","name":"Is Hetzner good for WordPress or production?","acceptedAnswer":{"@type":"Answer","text":"The hardware is more than good enough. The catch is you install and secure the stack, tune it, renew SSL, and run backups yourself. Fine if you are a sysadmin. If not, managed hosting handles that, with staging included."}},
+{"@type":"Question","name":"What is the real cost of a cheap VPS?","acceptedAnswer":{"@type":"Answer","text":"The sticker plus your time plus risk. The fee buys raw compute only. Add the hours for patching, backups, and monitoring, plus the tail risk of a lost database or an outage. The true number sits well above the page price."}},
+{"@type":"Question","name":"Is Hetzner managed hosting?","acceptedAnswer":{"@type":"Answer","text":"No. Hetzner sells unmanaged infrastructure: raw cloud VMs and dedicated servers. You get the machine and an OS, and every task above that is yours. That is exactly why the pricing is so low, and it fits people who want full control."}},
+{"@type":"Question","name":"When is managed hosting worth it over Hetzner?","acceptedAnswer":{"@type":"Answer","text":"When your time and uptime beat the price gap. If you would rather ship than patch servers, or you cannot be the only answer to a 2am outage, managed pays for itself. If the ops work is the point, or your hours are genuinely free, Hetzner wins."}},
+{"@type":"Question","name":"Where are Hetzner data centers?","acceptedAnswer":{"@type":"Answer","text":"Hetzner is EU-centric, with core data centers in Germany and Finland, and US locations added more recently. That EU footprint helps if European data residency matters. Managed platforms can keep data in Europe too, via the EU regions their clouds offer."}},
+{"@type":"Question","name":"Can I move off Hetzner to a managed platform without rebuilding?","acceptedAnswer":{"@type":"Answer","text":"Usually yes. Your app and data are portable, so it is a migration, not a rewrite: bring the code, restore the data, repoint the domain. Kloudbean offers free migration assistance if you would rather not run it yourself."}},
+{"@type":"Question","name":"Is Hetzner reliable and good value?","acceptedAnswer":{"@type":"Answer","text":"Yes. Hetzner has a strong reputation for fast hardware, a solid network, and flat pricing. With a raw server the risk is not the infrastructure, it is the operations layer on top. Reliable hardware still goes down if nobody maintains it."}},
+{"@type":"Question","name":"What do I give up by going managed instead of Hetzner?","acceptedAnswer":{"@type":"Answer","text":"Mostly the lowest bill and deep, unusual control over the OS. Need a custom kernel? Raw wins. You do not lose ownership: it is Linux either way, and your app and data stay yours to export."}}
+]}
+]}
+</script>
+</body>
+</html>

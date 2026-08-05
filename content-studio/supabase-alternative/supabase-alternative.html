@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Supabase Alternative: Own Your Postgres (2 Honest Paths)</title>
+<meta name="description" content="Want a Supabase alternative that lets you own your Postgres? Two honest paths: migrate to a managed PostgreSQL you control, or self-host Supabase on your own server.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/supabase-alternative/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Supabase Alternative: Own Your Postgres (2 Honest Paths)">
+<meta property="og:description" content="A fair Supabase alternative guide. Because Supabase is Postgres underneath, you can own your database without a rewrite: migrate to managed Postgres, or self-host Supabase.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Supabase alternative</span>
+  <h1>Supabase Alternative: How to Own Your Postgres, Two Honest Paths</h1>
+  <p class="byline">By the Kloudbean Database Team · Own your Postgres, keep the parts of Supabase you actually liked.</p>
+
+  <figure><img src="images/hero.png" alt="Supabase alternative: two honest paths to own your Postgres, migrate to managed PostgreSQL or self-host Supabase"></figure>
+
+  <p class="lead">Supabase gets a lot right. A Postgres database, auth, file storage, and realtime behind one clean API, and you're shipping in an afternoon. So why go looking for a Supabase alternative at all? Almost always it's one word: ownership. You want to own your Postgres, run it on infrastructure you control, and stop guessing what a hosted backend will cost or lock you into as you grow. Here's the good news most guides skip. Supabase is Postgres underneath, so escaping the parts you dislike doesn't mean a rewrite.</p>
+
+  <div class="tldr">
+    <strong>The short answer</strong>
+    <p>If you want a Supabase alternative because you'd like to own your database, the answer is a managed PostgreSQL you control, since Supabase runs on standard Postgres. Two honest paths get you there. Migrate your data to a managed PostgreSQL with <code>pg_dump</code> and <code>psql</code>, then repoint <code>DATABASE_URL</code>. Or run self-hosted Supabase itself as a one-click app on a server you own. Either way the database lives on your infrastructure, backed up, on a private network, across seven clouds from one dashboard.</p>
+  </div>
+
+  <h2>First, the fair part: Supabase is genuinely good</h2>
+  <p>Credit where it's due. Supabase took Postgres and wrapped it in the developer experience Firebase made famous, an open-source backend-as-a-service with the database, authentication, file storage, realtime subscriptions, and edge functions all behind one SDK. For a prototype or an early product, that's a fast and genuinely pleasant way to ship. If Supabase is working for you and the bill is fine, stay. Really. This guide is for the moment that stops being true, not a reason to leave a tool you like.</p>
+
+  <h2>Why people search for a Supabase alternative</h2>
+  <p>A handful of reasons come up again and again. None of them mean Supabase is bad. They mean a hosted backend and a maturing product eventually start pulling in different directions.</p>
+  <p><strong>You want to own the whole stack.</strong> There's a real difference between renting a backend and running one you own. As a product gets serious, teams want the database, the app server, and the files sitting on infrastructure they can see, size, and reason about. Owning your Postgres is the first step toward owning everything around it.</p>
+  <p><strong>The bill climbs at scale.</strong> This is the classic "Supabase pricing alternative" search. Usage-based backends are cheap when you're small and less predictable when you're not, especially once bandwidth, storage, and add-ons stack up. A managed server you own tends to price more like a flat line than a meter. Model your busy month, not your quiet one, before you decide.</p>
+  <p><strong>Lock-in makes you nervous.</strong> The more you lean on a platform's proprietary auth, storage, and function conventions, the more leaving looks like a rewrite. Postgres itself is portable. The layers bolted on top are where the stickiness hides.</p>
+  <p><strong>You need the database beside your other apps.</strong> If your API, a background worker, and a cache all want to talk to the same database over a private network, a hosted DB reached across the public internet adds latency and one more vendor. Owning the database lets you park it next to everything else that uses it.</p>
+
+  <!-- ADD IMAGE: your current Supabase project dashboard, for context on what you're starting from before the move. Swap for a real screenshot: src -> images/supabase-project.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Supabase project you're starting from, so readers can see the before state.</em><small>Your own Supabase dashboard screenshot. Author supplies.</small></span></figure>
+
+  <h2>The part people miss: Supabase is Postgres</h2>
+  <p>This is the insight the whole decision turns on. Supabase didn't invent a new database. It runs plain PostgreSQL and adds auth, storage, realtime, and functions as services around it. Your tables, your rows, your schema, your indexes: all standard Postgres. That's why the "Supabase vs managed Postgres" question is friendlier than it looks. You're not comparing two databases. You're comparing the same database with a BaaS wrapper against the same database on infrastructure you own.</p>
+  <p>So here's the founder-level point, and it's the one I'd want a friend to tell me. You don't have to abandon Supabase's Postgres to escape the parts you dislike. You can keep the database and drop the wrapper, or keep the whole thing and just move where it runs. Two paths, both honest, both grounded in the fact that it's Postgres all the way down.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 500" width="100%" role="img" aria-label="A diagram showing two honest paths off Supabase. At the top, a Supabase box labeled Postgres plus Auth, Storage, and Realtime. It splits into Path A, migrate to a managed PostgreSQL you own, and Path B, self-host Supabase on your own server. Both paths land on a shared foundation: your infrastructure across seven clouds, one dashboard, a private network, and automatic backups.">
+      <rect x="1" y="1" width="718" height="498" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="360" y="32" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="16" font-weight="700" fill="#000f27">Two honest paths off Supabase</text>
+
+      <!-- Supabase source box -->
+      <rect x="248" y="52" width="224" height="60" rx="10" fill="#f6f7fb" stroke="#4F1AF3" stroke-width="1.6"/>
+      <text x="360" y="80" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="14" font-weight="700" fill="#000f27">Supabase</text>
+      <text x="360" y="99" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="10.5" fill="#5b6a86">Postgres + Auth + Storage + Realtime</text>
+
+      <!-- split bus -->
+      <g stroke="#9aa7c2" stroke-width="1.6" fill="none">
+        <line x1="360" y1="112" x2="360" y2="158"/>
+        <line x1="196" y1="158" x2="524" y2="158"/>
+        <line x1="196" y1="158" x2="196" y2="196"/>
+        <line x1="524" y1="158" x2="524" y2="196"/>
+      </g>
+      <polygon points="190,186 196,198 202,186" fill="#9aa7c2"/>
+      <polygon points="518,186 524,198 530,186" fill="#9aa7c2"/>
+
+      <!-- Path A (green) -->
+      <rect x="52" y="198" width="288" height="92" rx="11" fill="#eafaf0" stroke="#40b75f" stroke-width="1.4"/>
+      <text x="68" y="222" font-family="Poppins,Arial,sans-serif" font-size="10.5" font-weight="700" letter-spacing="1" fill="#2f8f49">PATH A</text>
+      <text x="68" y="245" font-family="Poppins,Arial,sans-serif" font-size="13.5" font-weight="700" fill="#000f27">Managed PostgreSQL you own</text>
+      <text x="68" y="266" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#42607f">pg_dump &#8594; psql, then repoint</text>
+      <text x="68" y="281" font-family="JetBrains Mono,monospace" font-size="10.5" fill="#4F1AF3">DATABASE_URL</text>
+
+      <!-- Path B (purple) -->
+      <rect x="380" y="198" width="288" height="92" rx="11" fill="#f0ecff" stroke="#4F1AF3" stroke-width="1.4"/>
+      <text x="396" y="222" font-family="Poppins,Arial,sans-serif" font-size="10.5" font-weight="700" letter-spacing="1" fill="#4F1AF3">PATH B</text>
+      <text x="396" y="245" font-family="Poppins,Arial,sans-serif" font-size="13.5" font-weight="700" fill="#000f27">Self-host Supabase</text>
+      <text x="396" y="266" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#42607f">One-click app on a server you own.</text>
+      <text x="396" y="281" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#42607f">Keep the whole Supabase API.</text>
+
+      <!-- merge to foundation -->
+      <g stroke="#9aa7c2" stroke-width="1.6" fill="none">
+        <line x1="196" y1="290" x2="196" y2="344"/>
+        <line x1="524" y1="290" x2="524" y2="344"/>
+        <line x1="196" y1="344" x2="524" y2="344"/>
+        <line x1="360" y1="344" x2="360" y2="392"/>
+      </g>
+      <polygon points="354,380 360,392 366,380" fill="#9aa7c2"/>
+
+      <!-- foundation -->
+      <rect x="52" y="394" width="616" height="70" rx="11" fill="#000f27"/>
+      <text x="360" y="424" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="14" font-weight="700" fill="#fff">Your infrastructure, either way</text>
+      <text x="360" y="446" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#9db4d8">7 clouds &#183; one dashboard &#183; private network &#183; automatic backups</text>
+    </svg>
+    <figcaption>Both routes land in the same place: a Postgres database on infrastructure you own. Path A keeps only the database. Path B keeps the whole Supabase experience and just moves where it runs.</figcaption>
+  </figure>
+
+  <h2>Path A: migrate to a managed PostgreSQL you own</h2>
+  <p>If, when you're honest, you mostly use Supabase as a database and reach for its auth or storage rarely, this is the lean route. It's also the truest self-hosted Supabase alternative, because you keep the part that holds your data and drop the layers you weren't leaning on. You move the Postgres data to a managed PostgreSQL you control, then point your app at it.</p>
+  <p>Start by launching the database. Open the databases section, choose PostgreSQL, name it, create it. A minute or two later it's provisioned, secured, and already being backed up, sitting on a private network rather than the open internet.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean Launch Database screen with managed PostgreSQL, MySQL, MariaDB, Redis, Memcached, Elasticsearch, and MongoDB">
+    <figcaption>Launch a managed PostgreSQL from the console. Same Postgres your app already speaks, provisioned and backed up, on infrastructure you own.</figcaption>
+  </figure>
+
+  <p>Now move the data. Because both sides are Postgres, this is a plain dump and restore, then a connection-string swap. Grab your Supabase connection string from its dashboard and run:</p>
+
+  <pre><code># 1. Dump your Supabase database (it's just Postgres)
+pg_dump "$SUPABASE_DATABASE_URL" --no-owner --no-privileges &gt; supabase-dump.sql
+
+# 2. Restore into your new managed PostgreSQL
+psql "$NEW_DATABASE_URL" &lt; supabase-dump.sql
+
+# 3. Repoint your app, then redeploy
+#    (set this in your environment variables, never in code)
+DATABASE_URL=postgresql://appuser:s3cret@10.0.0.5:5432/appdb</code></pre>
+
+  <p>The <code>--no-owner --no-privileges</code> flags save you from role errors, since the ownership on Supabase won't match your new database's users. After the restore, set <code>DATABASE_URL</code> in your app's environment (not in the source) and redeploy. Your ORM won't notice the difference. Prisma, Drizzle, Django, Laravel, Rails: they all just read the new connection string and carry on. The full walkthrough, with the migrate commands per framework, is in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a>.</p>
+
+  <!-- ADD IMAGE: a terminal mid-migration showing pg_dump then psql running, with the row counts matching after import. Swap for a real screenshot: src -> images/pg-dump-restore.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal mid-migration: pg_dump then psql, with row counts matching after the import.</em><small>Shows the dump-and-restore actually completing. Author supplies.</small></span></figure>
+
+  <p>What did you give up? The Supabase auth and storage APIs, if you were using them. That's the honest tradeoff. Auth becomes your framework's own auth (or a library), and files go to object storage. If you barely touched those, you won't miss them. If you leaned on them heavily, read on, because Path B keeps them.</p>
+
+  <h2>Path B: self-host Supabase on your own server</h2>
+  <p>Maybe you love the full Supabase experience. The auth, the storage, the realtime, the generated APIs. You just want it running on infrastructure you own instead of a hosted plan. Supabase is open source, so this is a supported thing to do, and it's the path for people who want everything Supabase does without the shared platform.</p>
+  <p>On Kloudbean, self-hosted Supabase is a one-click app. You add it the same way you'd add any application, on a managed server on the cloud of your choice. You keep the Supabase API surface your code already calls, and the whole thing sits on your server, on your private network, backed up on your schedule.</p>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean Add Application screen where self-hosted Supabase can be launched as a one-click app on a managed server">
+    <figcaption>Self-hosted Supabase runs as a one-click app on a managed server you own. Same Supabase surface, your infrastructure underneath.</figcaption>
+  </figure>
+
+  <p>The tradeoff here is the mirror image of Path A. You keep every Supabase feature, and in exchange you're now running the Supabase stack yourself (on a managed server, so the OS, firewall, SSL, and backups are handled, but the Supabase services are yours to operate). For a lot of teams that's a fair deal: full features, full ownership, predictable server pricing. The deeper how-to lives in the <a href="https://www.kloudbean.com/blog/self-host-supabase/">self-host Supabase</a> guide.</p>
+
+  <!-- ADD IMAGE: the self-hosted Supabase Studio dashboard running on your own domain, to prove the full experience is intact. Swap for a real screenshot: src -> images/supabase-studio.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Self-hosted Supabase Studio open on your own domain, showing the table editor and auth still fully intact.</em><small>Proves you kept the whole experience. Author supplies.</small></span></figure>
+
+  <h2>Path A or Path B: which one fits you?</h2>
+  <p>No universal winner. It depends on how much of Supabase you actually use. Here's the honest split.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Question</th><th>Path A: managed Postgres you own</th><th>Path B: self-host Supabase</th></tr></thead>
+    <tbody>
+      <tr><td>You mostly use</td><td>The database</td><td>Auth, storage, realtime, and the database</td></tr>
+      <tr><td>What you keep</td><td>Your Postgres data, on your infra</td><td>The full Supabase API, on your infra</td></tr>
+      <tr><td>What changes in your code</td><td>Swap <code>DATABASE_URL</code>; move auth and file logic</td><td>Point the client at your own Supabase URL</td></tr>
+      <tr><td>Ongoing complexity</td><td>Lowest: one plain database</td><td>You operate the Supabase services</td></tr>
+      <tr><td>Best when</td><td>You want the leanest stack you own</td><td>You want every Supabase feature, self-hosted</td></tr>
+    </tbody>
+  </table>
+
+  <p>My honest steer? If you're not sure which you are, you're probably a Path A person. Most apps that start on a BaaS end up using the database far more than the extras, and a plain managed Postgres is the simplest thing to own and the hardest to get locked out of. But if realtime and the auth layer are load-bearing in your product, Path B keeps them without a rewrite. Both are legitimate. Neither is a trap.</p>
+
+  <h2>Owning the database is half of it: own the whole stack</h2>
+  <p>Here's why the destination matters as much as the path. Moving your Postgres to a random second host just swaps one bill for another. The point of leaving a BaaS is to own the stack, and that's easier when the database isn't off on its own island. On Kloudbean, the database is one tab in a dashboard that also runs your app servers, object storage, static sites, a load balancer, and Git deploys.</p>
+
+  <figure>
+    <img src="../assets/console/dashboard.png" alt="The Kloudbean dashboard showing servers, applications, and managed databases managed from one place">
+    <figcaption>One dashboard for the whole stack: servers, apps, and managed databases in the same place, on the cloud you picked.</figcaption>
+  </figure>
+
+  <p>The specifics, all grounded, no marketing math:</p>
+  <ul>
+    <li><strong>Seven clouds, your pick.</strong> Launch on AWS, Amazon Lightsail, Google Cloud, DigitalOcean, Vultr, Akamai Linode, or UpCloud. Choose on price, choose on where your users are, and you're never captive to one vendor.</li>
+    <li><strong>Seven managed database engines.</strong> PostgreSQL for your Supabase migration, plus MySQL, MariaDB, Redis, Memcached, Elasticsearch, and MongoDB when the app needs more than one.</li>
+    <li><strong>A private network.</strong> The database sits on an internal network your app reaches directly, not out on the public internet where scanners knock.</li>
+    <li><strong>Automatic backups and free SSL.</strong> Backed up without you thinking about it, behind auto-renewing certificates.</li>
+    <li><strong>Object storage in the same console.</strong> S3-compatible buckets for the files you'd have kept in Supabase Storage, no separate vendor.</li>
+  </ul>
+
+  <!-- ADD IMAGE: the S3-compatible object storage buckets screen, for the files that used to live in Supabase Storage. Swap for a real screenshot: src -> images/object-storage.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The object storage buckets screen, where files that lived in Supabase Storage go.</em><small>Or use the real ../assets/console/s3-buckets.png shot. Author supplies.</small></span></figure>
+
+  <p>Fewer logins, one bill, and a stack you can actually see. That's the difference between renting a backend and owning one. For the pricing shape of all this, the honest breakdown is in <a href="https://www.kloudbean.com/blog/cloud-hosting-pricing-explained/">cloud hosting pricing explained</a>, and the bigger buyer's view is the pillar, <a href="https://www.kloudbean.com/blog/best-managed-cloud-hosting/">best managed cloud hosting</a>.</p>
+
+  <div class="note">
+    <strong>Coming from Firebase instead?</strong> The same "own your data" logic applies, though the migration is different because Firebase isn't Postgres. That one has its own guide: <a href="https://www.kloudbean.com/blog/firebase-alternative/">Firebase alternative</a>. If you specifically want the managed Postgres deep dive, see <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a>.
+  </div>
+
+  <h2>The honest limits</h2>
+  <p>A guide that only sells one side isn't worth much, so here's the fine print. Kloudbean runs Linux stacks: Node, PHP, Python, Ruby, Java, and the frameworks on top, plus standard databases like Postgres. It isn't a Windows or .NET host. "Managed" means the platform runs the server, the stack, SSL, patching, and backups; your app code, your schema, and your data stay yours to export whenever you like. On compliance, treat it as shared responsibility: the platform provides infrastructure controls, and your application-level compliance is still your job.</p>
+  <p>And the most honest limit of all: if Supabase is serving you well and the cost is comfortable, you don't need to move. An alternative is for when the fit changes, not a verdict on the tool. When that day comes, the fact that it's Postgres underneath is what makes leaving painless. Free migration assistance can handle Path A for you if you'd rather not run <code>pg_dump</code> yourself.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Own your Postgres. Keep what you liked about Supabase.</p>
+    <p style="margin:0 0 .6em">Migrate to a managed PostgreSQL you control, or self-host Supabase on a server you own, both on infrastructure across seven clouds from one dashboard. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>; check current plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Managed PostgreSQL · One-click Supabase · Private networking · Automatic backups · Free migration · Free trial · Seven clouds</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is the best Supabase alternative if I want to own my database?</h3>
+    <p>A managed PostgreSQL you control, because Supabase runs on standard Postgres. You migrate your data to a managed database on infrastructure you own, then repoint your connection string. If you also want Supabase's auth, storage, and realtime, the alternative is to self-host Supabase itself on your own server. Both keep your data on infrastructure you can see and size.</p>
+
+    <h3>Is Supabase just Postgres?</h3>
+    <p>At its core, yes. Supabase runs plain PostgreSQL and adds auth, file storage, realtime subscriptions, and edge functions as services around it. Your tables, schema, and rows are standard Postgres, which is exactly why moving your database off Supabase is straightforward rather than a rewrite.</p>
+
+    <h3>How do I migrate from Supabase to my own PostgreSQL?</h3>
+    <p>Export your Supabase database with pg_dump, restore it into a managed PostgreSQL with psql, then set DATABASE_URL to the new database and redeploy. Because both sides are Postgres, your ORM keeps working without changes. Use the no-owner and no-privileges flags on the dump to avoid role mismatches, and free migration assistance can do the move for you.</p>
+
+    <h3>Can I self-host Supabase instead of migrating the data out?</h3>
+    <p>Yes. Supabase is open source, so you can run the whole thing yourself. On Kloudbean it's a one-click app on a managed server, which keeps the full Supabase API your code already calls while putting it on infrastructure you own. You keep auth, storage, and realtime, and gain ownership and predictable server pricing.</p>
+
+    <h3>Supabase vs managed Postgres: what is the real difference?</h3>
+    <p>It's the same database, wrapped differently. Supabase is a backend-as-a-service built on Postgres, with auth, storage, and realtime included. A managed Postgres is that same Postgres on infrastructure you own, without the extra services. If you use those services, self-host Supabase. If you mostly use the database, a managed Postgres is leaner and simpler to own.</p>
+
+    <h3>Will I lose auth, storage, and realtime if I move off Supabase?</h3>
+    <p>Only if you choose Path A, which keeps just the database. In that case auth becomes your framework's own auth or a library, and files move to object storage. If those features are important to your app, choose Path B and self-host Supabase, which keeps all of them intact on your own server.</p>
+
+    <h3>Is a managed Postgres a cheaper Supabase pricing alternative?</h3>
+    <p>It can be, because a managed server tends to price like a flat line rather than a usage meter, so a busy month doesn't surprise you. That said, pricing changes on every platform, so compare current numbers yourself and model your realistic monthly usage. Kloudbean standard plans start from a low monthly figure, with Enterprise priced custom; confirm today's pricing on the pricing page.</p>
+
+    <h3>Do I have to leave Supabase completely?</h3>
+    <p>No. This is a decision guide, not a push. If Supabase fits your product and the cost is fine, staying is a perfectly good choice. An alternative matters when the fit changes: when you want to own the stack, control the bill, or place the database beside your other apps. Because it's Postgres underneath, you can move whenever that day comes.</p>
+
+    <h3>What do I actually own on Kloudbean?</h3>
+    <p>Your application code, your database schema, and your data, all exportable whenever you like. The platform manages the server, stack, SSL, patching, and backups, and the database sits on a private network across the cloud you picked from seven providers. You run the whole stack from one dashboard, and nothing proprietary traps you if you decide to leave.</p>
+  </div>
+
+  <p class="byline">By the Kloudbean Database Team · Supabase is Postgres. So own the Postgres.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Supabase Alternative: How to Own Your Postgres, Two Honest Paths","description":"A fair Supabase alternative guide. Because Supabase is Postgres underneath, you can own your database without a rewrite: migrate to a managed PostgreSQL you control, or self-host Supabase on your own server across seven clouds.","image":"https://www.kloudbean.com/blog/supabase-alternative/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/supabase-alternative/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is the best Supabase alternative if I want to own my database?","acceptedAnswer":{"@type":"Answer","text":"A managed PostgreSQL you control, because Supabase runs on standard Postgres. You migrate your data to a managed database on infrastructure you own, then repoint your connection string. If you also want Supabase auth, storage, and realtime, the alternative is to self-host Supabase itself on your own server. Both keep your data on infrastructure you can see and size."}},
+{"@type":"Question","name":"Is Supabase just Postgres?","acceptedAnswer":{"@type":"Answer","text":"At its core, yes. Supabase runs plain PostgreSQL and adds auth, file storage, realtime subscriptions, and edge functions as services around it. Your tables, schema, and rows are standard Postgres, which is exactly why moving your database off Supabase is straightforward rather than a rewrite."}},
+{"@type":"Question","name":"How do I migrate from Supabase to my own PostgreSQL?","acceptedAnswer":{"@type":"Answer","text":"Export your Supabase database with pg_dump, restore it into a managed PostgreSQL with psql, then set DATABASE_URL to the new database and redeploy. Because both sides are Postgres, your ORM keeps working without changes. Use the no-owner and no-privileges flags on the dump to avoid role mismatches, and free migration assistance can do the move for you."}},
+{"@type":"Question","name":"Can I self-host Supabase instead of migrating the data out?","acceptedAnswer":{"@type":"Answer","text":"Yes. Supabase is open source, so you can run the whole thing yourself. On Kloudbean it is a one-click app on a managed server, which keeps the full Supabase API your code already calls while putting it on infrastructure you own. You keep auth, storage, and realtime, and gain ownership and predictable server pricing."}},
+{"@type":"Question","name":"Supabase vs managed Postgres: what is the real difference?","acceptedAnswer":{"@type":"Answer","text":"It is the same database, wrapped differently. Supabase is a backend-as-a-service built on Postgres, with auth, storage, and realtime included. A managed Postgres is that same Postgres on infrastructure you own, without the extra services. If you use those services, self-host Supabase. If you mostly use the database, a managed Postgres is leaner and simpler to own."}},
+{"@type":"Question","name":"Will I lose auth, storage, and realtime if I move off Supabase?","acceptedAnswer":{"@type":"Answer","text":"Only if you choose Path A, which keeps just the database. In that case auth becomes your framework own auth or a library, and files move to object storage. If those features are important to your app, choose Path B and self-host Supabase, which keeps all of them intact on your own server."}},
+{"@type":"Question","name":"Is a managed Postgres a cheaper Supabase pricing alternative?","acceptedAnswer":{"@type":"Answer","text":"It can be, because a managed server tends to price like a flat line rather than a usage meter, so a busy month does not surprise you. That said, pricing changes on every platform, so compare current numbers yourself and model your realistic monthly usage. Kloudbean standard plans start from a low monthly figure, with Enterprise priced custom; confirm today pricing on the pricing page."}},
+{"@type":"Question","name":"Do I have to leave Supabase completely?","acceptedAnswer":{"@type":"Answer","text":"No. This is a decision guide, not a push. If Supabase fits your product and the cost is fine, staying is a perfectly good choice. An alternative matters when the fit changes: when you want to own the stack, control the bill, or place the database beside your other apps. Because it is Postgres underneath, you can move whenever that day comes."}},
+{"@type":"Question","name":"What do I actually own on Kloudbean?","acceptedAnswer":{"@type":"Answer","text":"Your application code, your database schema, and your data, all exportable whenever you like. The platform manages the server, stack, SSL, patching, and backups, and the database sits on a private network across the cloud you picked from seven providers. You run the whole stack from one dashboard, and nothing proprietary traps you if you decide to leave."}}
+]}
+]}
+</script>
+</body>
+</html>

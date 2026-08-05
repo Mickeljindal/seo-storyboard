@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Deploy an App: The Mental Model Behind Every Deploy</title>
+<meta name="description" content="How to deploy an app, explained through the six moves every deploy shares: build, process, reverse proxy, domain and SSL, keep-alive, and state.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/how-to-deploy-any-app/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Deploy an App: The Mental Model Behind Every Deploy">
+<meta property="og:description" content="Every deploy is the same handful of moves. Learn the universal model (build, process, reverse proxy, domain, SSL, state) and route to the exact guide for your framework.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Deployment fundamentals</span>
+  <h1>How to Deploy an App: The Mental Model Behind Every Deploy</h1>
+
+  <figure><img src="images/hero.png" alt="How to deploy an app: the universal chain from code to a live URL, with state and a restart loop"></figure>
+
+  <p class="lead">Learning how to deploy an app feels like ten different skills because every tutorial teaches a different tool. Docker here, Nginx there, a serverless YAML file somewhere else. It isn't ten skills. It's one model wearing ten costumes.</p>
+
+  <p>Under all the tooling, shipping any app to production is the same short chain of moves. You turn source into a build artifact, you run that artifact as a long-running process, you put a reverse proxy in front of it, you attach a domain with SSL, you make sure the process stays alive, and you decide where the data lives. That's it. Learn the chain once and every framework guide you read afterward slots into place. This page teaches the model, then points you to the exact steps for your stack.</p>
+
+  <div class="tldr">
+    <strong>The short answer</strong>
+    <p>To deploy an app: build it into an artifact, run that artifact as a long-running process on a server, put a reverse proxy in front so port 443 reaches your app's port, point a domain at it with an auto-renewing SSL certificate, run it under a supervisor that restarts it on crash or reboot, and keep state (database, uploads, cache) outside the app. Every framework is a variation on those six moves.</p>
+  </div>
+
+  <h2>The six moves every deployment shares</h2>
+  <p>Start here, because this is the part that actually transfers. A Next.js app, a Django API, a Go binary, and a WordPress site look nothing alike in code. They deploy in almost exactly the same shape. Here's the whole chain in one picture, then we'll walk each link.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 402" role="img" aria-label="Deployment pipeline: git push becomes a build artifact, runs as a long-running process on a port, sits behind a reverse proxy on 443, and is served on a domain with SSL. A supervisor loop restarts the process, and state (database, object storage, cache) lives outside the process." style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <defs>
+        <marker id="ar" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5b6a86"></path></marker>
+        <marker id="arG" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#40b75f"></path></marker>
+      </defs>
+      <text x="28" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="17" font-weight="700">One pipeline, every framework</text>
+      <text x="28" y="55" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12.5">Source becomes an artifact, the artifact runs as a process, a proxy exposes it on a real domain.</text>
+
+      <!-- top pipeline -->
+      <g font-family="Poppins,sans-serif">
+        <rect x="10" y="92" width="104" height="56" rx="12" fill="#000f27"></rect>
+        <text x="62" y="116" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="600">git push</text>
+        <text x="62" y="134" text-anchor="middle" fill="#aeb6d4" font-size="10.5">your source</text>
+
+        <rect x="140" y="92" width="116" height="56" rx="12" fill="#fff" stroke="#4F1AF3" stroke-width="1.5"></rect>
+        <text x="198" y="116" text-anchor="middle" fill="#000f27" font-size="12.5" font-weight="600">Build</text>
+        <text x="198" y="134" text-anchor="middle" fill="#5b6a86" font-size="10.5">to an artifact</text>
+
+        <rect x="282" y="86" width="120" height="68" rx="12" fill="#4F1AF3"></rect>
+        <text x="342" y="112" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="600">Process</text>
+        <text x="342" y="130" text-anchor="middle" fill="#d8ccff" font-size="10.5">runs on :PORT</text>
+
+        <rect x="428" y="92" width="148" height="56" rx="12" fill="#fff" stroke="#000f27" stroke-width="1.5"></rect>
+        <text x="502" y="114" text-anchor="middle" fill="#000f27" font-size="12" font-weight="600">Reverse proxy</text>
+        <text x="502" y="132" text-anchor="middle" fill="#5b6a86" font-size="10.5">:443 to :PORT</text>
+
+        <rect x="602" y="92" width="146" height="56" rx="12" fill="#fff" stroke="#40b75f" stroke-width="1.8"></rect>
+        <text x="675" y="114" text-anchor="middle" fill="#000f27" font-size="12" font-weight="600">Domain + SSL</text>
+        <text x="675" y="132" text-anchor="middle" fill="#2f7d45" font-size="10.5">https://you.com</text>
+      </g>
+
+      <!-- pipeline arrows -->
+      <line x1="114" y1="120" x2="138" y2="120" stroke="#5b6a86" stroke-width="2" marker-end="url(#ar)"></line>
+      <line x1="256" y1="120" x2="280" y2="120" stroke="#5b6a86" stroke-width="2" marker-end="url(#ar)"></line>
+      <line x1="402" y1="120" x2="426" y2="120" stroke="#5b6a86" stroke-width="2" marker-end="url(#ar)"></line>
+      <line x1="576" y1="120" x2="600" y2="120" stroke="#5b6a86" stroke-width="2" marker-end="url(#ar)"></line>
+
+      <!-- restart loop over process -->
+      <path d="M300 86 C300 54, 384 54, 384 86" fill="none" stroke="#40b75f" stroke-width="2" marker-end="url(#arG)"></path>
+      <text x="342" y="48" text-anchor="middle" fill="#2f7d45" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600">supervisor restarts on crash / reboot</text>
+
+      <!-- connector down to state -->
+      <line x1="342" y1="154" x2="342" y2="236" stroke="#5b6a86" stroke-width="2" marker-end="url(#ar)"></line>
+      <text x="356" y="200" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">reads / writes</text>
+
+      <!-- state band -->
+      <rect x="150" y="238" width="470" height="132" rx="14" fill="#fff" stroke="#4F1AF3" stroke-width="1.4" stroke-dasharray="6 6"></rect>
+      <text x="170" y="262" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.2">STATE LIVES OUTSIDE THE PROCESS</text>
+
+      <!-- DB cylinder -->
+      <g>
+        <ellipse cx="238" cy="292" rx="52" ry="11" fill="#000f27"></ellipse>
+        <path d="M186 292 v42 a52 11 0 0 0 104 0 v-42" fill="#000f27"></path>
+        <ellipse cx="238" cy="292" rx="52" ry="11" fill="#16244a"></ellipse>
+        <text x="238" y="322" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="12" font-weight="600">Database</text>
+      </g>
+      <!-- object storage -->
+      <rect x="322" y="284" width="122" height="60" rx="10" fill="#fff" stroke="#40b75f" stroke-width="1.6"></rect>
+      <text x="383" y="310" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12" font-weight="600">Object storage</text>
+      <text x="383" y="328" text-anchor="middle" fill="#2f7d45" font-family="Poppins,sans-serif" font-size="10.5">uploads / files</text>
+      <!-- cache -->
+      <rect x="470" y="284" width="122" height="60" rx="10" fill="#fff" stroke="#c9d0e3" stroke-width="1.4"></rect>
+      <text x="531" y="310" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12" font-weight="600">Cache</text>
+      <text x="531" y="328" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">Redis / Memcached</text>
+    </svg>
+    <figcaption>The whole model on one screen: source to artifact to a running process behind a proxy on a real domain, kept alive by a supervisor, with state parked outside the app.</figcaption>
+  </figure>
+
+  <p>Read that diagram top to bottom and you have deployment. Now the detail, because the detail is where first deploys go sideways.</p>
+
+  <h3>1. Turn source into a build artifact</h3>
+  <p>Your repository is not what runs in production. Something has to turn it into a runnable thing first, and what that "thing" is depends on the app. A React or Vue front end compiles to a folder of static HTML, CSS, and JavaScript. A Next.js or Nuxt app produces a server bundle plus static assets. A Go program compiles to a single binary. A Python or PHP app doesn't compile, so the artifact is really "your code plus its installed dependencies at pinned versions." The build step is where <code>npm run build</code>, <code>pip install</code>, <code>composer install</code>, or <code>go build</code> happens.</p>
+  <p>Why this matters: the artifact is what you want to be reproducible. Build it once, the same way every time, and you stop shipping "works on my machine" surprises. This is also why installing dependencies at build time (not hand-copying files) is the norm. It pins what runs.</p>
+
+  <h3>2. Run the artifact as a long-running process</h3>
+  <p>This is the concept that trips up the most people, so slow down here. In development you type <code>npm run dev</code> or <code>python manage.py runserver</code>, a process starts, and it lives as long as your terminal is open. Production needs the same idea, a process that listens for requests, but running permanently, in the background, on a machine that isn't your laptop.</p>
+  <p>That process binds to a <strong>port</strong> (say 3000 or 8000) and waits. It does not serve the public directly. It just answers whoever connects to that port on that machine. For Node that process is typically managed by PM2. For Python you're usually running Gunicorn or Uvicorn workers. For a Go binary, it's the binary itself. For PHP and WordPress, PHP-FPM plays this role behind the web server. Different words, same job: a program that stays up and listens.</p>
+  <div class="note"><b>The anti-pattern that eats a whole evening:</b> shipping the dev server to production. <code>next dev</code>, <code>vite</code>, and <code>runserver</code> are built for reloading your code as you type, not for serving real traffic. They're slower, chattier, and sometimes bind only to localhost so nothing outside can reach them. Build the artifact, then run the production start command (<code>next start</code>, Gunicorn, <code>node server.js</code>). If you're staring at a page that never loads, this is suspect number two.</div>
+
+  <h3>3. Put a reverse proxy in front</h3>
+  <p>Your app listens on port 3000. The web speaks to ports 80 (HTTP) and 443 (HTTPS). Something has to bridge that gap, and that something is a reverse proxy, usually Nginx. It listens on 443, terminates SSL, and forwards the request to your app on its internal port. On the way back it can gzip responses, serve static files directly, and shield your app from a class of malformed requests.</p>
+  <p>You rarely configure this by hand on managed hosting, but you should know it exists, because half of all "it works locally but 502s in production" reports trace back to a proxy pointed at the wrong port. When your runtime config asks which port your app listens on, this is why. The proxy needs to know where to forward.</p>
+
+  <h3>4. Attach a domain and turn on SSL</h3>
+  <p>Now make it findable. You point your domain's DNS at the server's public address (an A record for the apex, a CNAME for subdomains), then issue an SSL certificate so the site loads over HTTPS. Let's Encrypt made certificates free and automatic, so there's no excuse for shipping plain HTTP in 2026. The one detail people miss: certificates expire, so you want auto-renewal, not a reminder in your calendar. If you want the mechanics start to finish, we wrote them up in <a href="https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/">custom domain and SSL for your app</a>.</p>
+
+  <h3>5. Keep it alive</h3>
+  <p>Processes die. A bug throws an unhandled exception at 3 a.m., the server reboots after a kernel update, memory runs out. Without a supervisor, a dead process stays dead and your site is down until you notice. A process manager (PM2, systemd, or the platform's own supervisor) watches the process and restarts it: on crash, on reboot, and cleanly on each deploy. This is the difference between "a server" and "a service." A terminal window running your app is not a deployment. It's a demo that ends when you close the lid.</p>
+
+  <h3>6. Decide where state lives</h3>
+  <p>Last move, and the one that quietly ruins the most launches. Your app process should be disposable. You should be able to kill it, rebuild it, and start a fresh copy without losing anything. That's only true if the important stuff lives somewhere else: your database in a managed database, user uploads in <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">object storage</a>, sessions and hot data in a cache like Redis.</p>
+  <p>The classic failure is a SQLite file or an <code>uploads/</code> folder sitting on the app server's local disk. It works right up until your first redeploy or a move to a second server, and then it's gone or out of sync. Treat the process as cattle, not a pet, and keep every byte you care about outside it. When you're ready for the real version, <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a> walks the whole thing.</p>
+
+  <h2>The one decision that changes everything: what kind of app is it?</h2>
+  <p>The six moves are universal, but how much of each you need depends on one question: what shape is your app? Get this right and the rest of the choices fall out of it. There are really four shapes, and most apps are one of them or a combination.</p>
+
+  <table class="cmp">
+    <thead><tr><th>App type</th><th>What it produces</th><th>Needs a long-running process?</th><th>What it mostly needs</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Static site / SPA</strong></td><td>HTML, CSS, JS files</td><td>No</td><td>A web server or CDN, a domain, SSL</td></tr>
+      <tr><td><strong>Server-rendered (SSR)</strong></td><td>Server bundle + assets</td><td>Yes</td><td>A Node/PHP/Python process, proxy, domain, SSL</td></tr>
+      <tr><td><strong>API / backend</strong></td><td>An HTTP service</td><td>Yes</td><td>A process, a database, env vars, proxy</td></tr>
+      <tr><td><strong>Worker / background job</strong></td><td>No HTTP surface</td><td>Yes (no proxy)</td><td>A process + a queue or schedule; no public port</td></tr>
+    </tbody>
+  </table>
+
+  <p>A pure <strong>static site</strong> (a landing page, a docs site, a built React SPA with no server) is the easy case. There's no process to keep alive because there's nothing to run, just files to serve. You can host it almost anywhere, and Kloudbean's static hosting even bundles a domain, free SSL, and visit analytics at no cost. An <strong>SSR app</strong> like Next.js or a Laravel site does need a process, because pages are rendered on each request. An <strong>API</strong> is a process with no UI, usually the busiest relationship with your database. A <strong>worker</strong> (a queue consumer, a scheduled scraper, a Discord bot) is the odd one out: it needs a process that stays up but no reverse proxy and no public port, because nobody connects to it directly. It reaches out, or it pulls from a queue.</p>
+  <p>Most real products are a combination: a static or SSR front end, an API behind it, a database under that, and maybe a worker doing the slow jobs. The good news is they can all live on one server. You don't need a microservice diagram to ship your first version. Running <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">the app, its API, and the database on one server</a> is the sane default until one piece genuinely outgrows the box.</p>
+
+  <h2>Environment variables: the config that must not ship in code</h2>
+  <p>Every one of those app types needs configuration that differs between your laptop and production: the database connection string, API keys, the public URL, secret tokens. These belong in <strong>environment variables</strong>, read by the app at runtime, never hard-coded and never committed to Git.</p>
+  <p>Two reasons this is non-negotiable. First, security: a secret in your repo is a secret in everyone's repo the moment it's cloned, forked, or leaked, and rotating it becomes a code change instead of a config change. Second, portability: the same artifact should run in staging and production unchanged, with only the environment differing. A build baked full of one environment's values can't do that. This is worth getting right early, and it's easy to get wrong in subtle ways, so we gave it a full guide: <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>.</p>
+  <div class="note"><b>A subtle one worth internalizing:</b> front-end frameworks read some variables at <em>build</em> time, not run time. If a Vite or Next.js public variable is missing when the build runs, it bakes in as undefined, and setting it afterward changes nothing until you rebuild. Set build-time variables before the build, not after. This is behind a surprising share of "I set the env var and it still doesn't work" tickets.</p></div>
+
+  <h2>The three ways people actually deploy (and the tradeoffs)</h2>
+  <p>You've got the model. Where do you run it? There are three honest options, and each is right for someone.</p>
+  <p><strong>Stay on a platform-as-a-service.</strong> Push to Git, the platform builds and runs it, you never see a server. Vercel, Netlify, Render, Railway, Heroku. This is the fastest way to a URL and genuinely great for front ends and prototypes. The tradeoff shows up later: pricing that scales with success (often per seat, per project, or per request), a backend and database that are the platform's product rather than yours, and limits you only discover when you hit them. Fine to start. Watch the bill and the lock-in.</p>
+  <p><strong>Rent a raw VPS.</strong> A bare Linux box from any cloud, cheap and completely yours. The catch is that everything in this article becomes your job: installing the runtime, configuring Nginx, wiring up PM2 or systemd, issuing and renewing SSL, setting up a firewall, and making backups that actually run. It's a real education, and it's a real second job. Great if you want to learn the internals. Rough if you just want your app live and it's 11 p.m.</p>
+  <p><strong>Use a managed server.</strong> The middle path, and the one I'd point most people to. You keep the ownership of a VPS (your code, your data, a standard Linux box, a flat price) but the tedious, easy-to-get-wrong parts are handled: the stack is provisioned, the process manager and proxy are set up, SSL is issued and auto-renews, and backups run on a schedule. You get the six moves without hand-rolling each one. That's the path the rest of this guide assumes.</p>
+  <p>Choosing between them is really a whole decision on its own. If you're weighing it seriously, we put the criteria side by side in <a href="https://www.kloudbean.com/blog/best-managed-cloud-hosting/">best managed cloud hosting</a>.</p>
+
+  <h2>How to deploy an app on Kloudbean, concretely</h2>
+  <p>Theory's done. Here's the model made real, on a managed server, with the actual screens. It's the same six moves, most of them handled for you.</p>
+
+  <h3>Launch a server and pick your stack</h3>
+  <p>From the dashboard, click <strong>Add Server</strong>. You choose a cloud provider (Kloudbean runs seven: AWS, Amazon Lightsail, Google Cloud, DigitalOcean, Vultr, Akamai Linode, and UpCloud), a location near your users, an application stack (Node, Next.js, React, Vue, Angular, Laravel, Django, Flask, FastAPI, Ruby, Java, WordPress, and more), and a size. Picking the stack here preloads the right runtime, so you're not installing Node or PHP by hand. A few minutes later the server is provisioned and ready.</p>
+  <figure>
+    <img src="../assets/console/add-server.png" alt="The Kloudbean Add Server page: choosing a cloud provider, framework, location, and server size">
+    <figcaption>Add Server: pick one of seven clouds, your framework, a location, and a size. The stack comes preinstalled.</figcaption>
+  </figure>
+
+  <h3>Add your application</h3>
+  <p>If you chose a framework while provisioning, your app slot is already there. Need another (a second project, an API beside your front end, a tool like n8n)? Go to <strong>Applications, Add Application</strong> and pick the stack. Multiple apps per server is a first-class feature here, not a workaround, which is exactly how you run a front end, an API, and a worker on one box.</p>
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean Add Application screen: adding another app to an existing server and choosing its stack">
+    <figcaption>Add Application: run several apps on one server, each with its own space and config.</figcaption>
+  </figure>
+
+  <h3>Connect Git and set the runtime</h3>
+  <p>Deploys come from Git, which is what you want: the repo is the source of truth, not a folder on your laptop. In <strong>Code Delivery, Git Deployment</strong>, connect GitHub (OAuth or an SSH key), paste the repo URL, choose a branch, and clone. Then set the runtime config: the app directory, the port your app listens on, the runtime version, and your install, build, and start commands. Those fields are moves one through three from the diagram, made explicit.</p>
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean Git Deployment tab: repository URL, branch selection, and clone">
+    <figcaption>Git Deployment: connect the repo, pick a branch, clone. Every push can build from here.</figcaption>
+  </figure>
+  <!-- Author: swap this slot for a real screenshot. src -> images/runtime-config-panel.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The runtime configuration panel: App Directory, Port, runtime version, and the Install / Build / Start commands.</em><small>This is where the build artifact and the long-running process get defined.</small></span></figure>
+
+  <h3>Set environment variables</h3>
+  <p>In <strong>Runtime Configuration, Environment Variables</strong>, add your database URL, API keys, and public app URL. There's a <strong>Paste .env Content</strong> tab so you can drop your whole file in and convert it to key/value. Set them, save, and they're available to the process at runtime without ever touching your code.</p>
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean Environment Variables editor with a paste-dot-env tab and a key/value list">
+    <figcaption>Environment Variables: paste your .env, convert to key/value, save. Secrets stay out of Git.</figcaption>
+  </figure>
+
+  <h3>Add a database, then deploy</h3>
+  <p>Move your data off any local file before you have users, not after. Open <strong>Launch Database</strong> and create a managed engine (Kloudbean runs seven: MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB), then feed its credentials into your environment variables. Now click <strong>Pull &amp; Deploy</strong>. Behind the scenes it pulls the code, installs dependencies, runs the build, starts the process under a supervisor, and puts it behind the proxy. That's moves one, two, three, five, and six, in one button.</p>
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean Launch Database screen: creating a managed PostgreSQL, MySQL, or other engine">
+    <figcaption>Launch Database: one of seven managed engines, provisioned and backed up, wired in through env vars.</figcaption>
+  </figure>
+
+  <h3>Point your domain, then watch it build</h3>
+  <p>Add your custom domain in the app's domain settings, point its DNS at the server, and install a free auto-renewing SSL certificate. Every deploy shows up in <strong>Build &amp; Deployment History</strong> with live logs, so you can watch pull, install, build, and start stream past. Turn on automated deployment and every <code>git push</code> ships itself. That's the CI/CD loop the big platforms sell, on a box you own. If you want just that piece, see <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD auto-deploy from GitHub</a>.</p>
+  <!-- Author: swap this slot for a real screenshot. src -> images/build-history-live-logs.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Build &amp; Deployment History with a deploy open and live logs streaming the pull, install, build, and start steps.</em></span></figure>
+
+  <h2>When your first deploy breaks (it probably will)</h2>
+  <p>Almost nobody nails a first deploy. That's fine, because the failures are predictable and the model tells you where to look. The single most common one is a <strong>503</strong>, and it's almost never a bug in your code. A 503 means the proxy is up but the process behind it isn't answering, which points straight at move two or the config around it: a missing environment variable, the wrong start command, or the app listening on a different port than the proxy forwards to.</p>
+  <p>On Kloudbean the answer is usually sitting in the logs at <code>app.error.log</code> (via the File Manager, or over SSH under the app's <code>app-logs</code> directory). Read the last error, fix the config, redeploy. Nine times out of ten it's one line. We wrote the full triage as <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fix the 503 after deploying your app</a> because it comes up that often. The habit to build: when something's down, read the process logs first. Guessing is slower.</p>
+
+  <h2>Deploy your framework: the route map</h2>
+  <p>Now that the model's in your head, here's where to go for the exact commands for your stack. Each of these is the same six moves with framework-specific install, build, and start steps.</p>
+  <ul>
+    <li><strong>Node / Express:</strong> the general case for a JavaScript backend, PM2 and all. Start with <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploy a Node app to managed cloud</a>.</li>
+    <li><strong>Next.js:</strong> SSR, a build step, and a running Node process. See <a href="https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/">deploy a Next.js app to your own server</a>.</li>
+    <li><strong>Vue:</strong> static build or SSR depending on your setup. See <a href="https://www.kloudbean.com/blog/deploy-vue-app/">deploy a Vue app</a>.</li>
+    <li><strong>Astro:</strong> often static, sometimes hybrid. See <a href="https://www.kloudbean.com/blog/deploy-astro-app/">deploy an Astro app</a>.</li>
+    <li><strong>Django:</strong> Gunicorn, static files, and migrations. See <a href="https://www.kloudbean.com/blog/deploy-django-app/">deploy a Django app</a>.</li>
+    <li><strong>Flask:</strong> the minimal Python service, done right. See <a href="https://www.kloudbean.com/blog/deploy-flask-app/">deploy a Flask app</a>.</li>
+    <li><strong>FastAPI:</strong> Uvicorn workers and async. See <a href="https://www.kloudbean.com/blog/deploy-fastapi-app/">deploy a FastAPI app</a>.</li>
+    <li><strong>Laravel:</strong> PHP-FPM, the artisan migrate step, queues. See <a href="https://www.kloudbean.com/blog/deploy-laravel-app/">deploy a Laravel app</a>.</li>
+    <li><strong>Rails:</strong> Puma, asset precompile, ActiveRecord migrations. See <a href="https://www.kloudbean.com/blog/deploy-rails-app/">deploy a Rails app</a>.</li>
+    <li><strong>Go:</strong> a compiled binary you run on a managed server. See <a href="https://www.kloudbean.com/blog/deploy-golang-app/">deploy a Go app</a>.</li>
+  </ul>
+  <p>Different commands, identical shape. Once you've done one, the next is mostly "which install and start command does this framework want?"</p>
+
+  <h2>The honest limits</h2>
+  <p>Two things worth saying plainly. First, Kloudbean runs <strong>Linux</strong> stacks: Node, PHP, Python, Ruby, Java, Go binaries, and the frameworks built on them. A classic Windows or .NET app expecting IIS and SQL Server isn't a fit as-is; that's a porting conversation, not a deploy. The vast majority of modern apps are the Linux stacks above, so you're very likely fine. Just check before you assume.</p>
+  <p>Second, "managed" is a division of labor, not magic. The platform provisions the server, the stack, the process manager, the proxy, SSL, and backups. You still own your application: its logic, its data, its security decisions. That's the right split and a genuinely good deal, but it isn't the same as "nothing to think about." You still write the code and decide where the data goes.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">You learned the model. Now ship the app.</p>
+    <p style="margin:0 0 .6em">Deploy from Git onto a managed server you own, with the process manager, reverse proxy, SSL, and backups handled for you. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>; sizes and plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Seven clouds, one dashboard · Git deploy with live logs · Free auto-renewing SSL · Managed databases · Automatic backups · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does it actually mean to deploy an app?</h3>
+    <p>Deploying an app means taking the code that runs on your machine and making it run for other people on the internet. Concretely: build it into an artifact, run that artifact as a long-running process on a server, put a reverse proxy in front, attach a domain with SSL, keep the process alive with a supervisor, and store your data in a real database rather than a local file. Every framework follows that same shape.</p>
+    <h3>What's the easiest way to deploy an app for a beginner?</h3>
+    <p>Start from Git on a platform that builds and runs your app for you, so you don't hand-configure a server. A managed server hits a nice balance: you connect your repo, set a few runtime fields, add environment variables, and click deploy, while the stack, SSL, and backups are handled. That teaches you the model without dropping you into Nginx config on day one.</p>
+    <h3>Do I need Docker to deploy my app?</h3>
+    <p>No. Docker packages your app and its dependencies into a container, which is useful for consistency, but it's one way to produce the build artifact, not a requirement. Plenty of production apps deploy straight from source with pinned dependencies and a start command. Learn the six moves first; reach for containers when you actually need the isolation or reproducibility they give you.</p>
+    <h3>Why does my app work locally but not in production?</h3>
+    <p>Usually one of three things: an environment variable that's set on your laptop but not on the server, the dev server running instead of the production start command, or the app listening on a different port than the reverse proxy forwards to. The logs almost always name it. Read the process error log first, then fix the config and redeploy.</p>
+    <h3>What is a reverse proxy and do I have to set one up?</h3>
+    <p>A reverse proxy (usually Nginx) listens on the public ports 80 and 443, handles SSL, and forwards requests to your app on its internal port. It's what lets a browser reach an app that's listening on, say, port 3000. On a raw VPS you configure it yourself; on managed hosting it's set up for you, and you just tell the platform which port your app uses.</p>
+    <h3>Where should my database and uploaded files live?</h3>
+    <p>Outside the app process. Put your data in a managed database and user uploads in object storage, never in a local SQLite file or an uploads folder on the app server's disk. If state lives on the app's local disk, it gets wiped on redeploy and can't be shared across servers. Keeping state external is what makes your app safe to rebuild and scale.</p>
+    <h3>How do I keep my app running after I close my terminal?</h3>
+    <p>Run it under a process manager or supervisor, not in a terminal window. PM2 is the common choice for Node, systemd for many others, and PHP-FPM handles this for PHP. The supervisor restarts the app if it crashes and starts it again after a reboot. On managed hosting this is configured for you, which is the difference between a service and a demo.</p>
+    <h3>Can I run my front end, API, and database on one server?</h3>
+    <p>Yes, and for most apps you should, at least to start. Add multiple applications to one server and launch a managed database beside them. It's simpler and cheaper than scattering pieces across separate services, and you split something out only when it genuinely outgrows the box. Premature microservices cost more than they save for a young app.</p>
+    <h3>How do static sites deploy differently from server-rendered apps?</h3>
+    <p>A static site is just files, so there's no long-running process to keep alive. You serve the built folder from a web server or CDN, attach a domain and SSL, and you're done. A server-rendered app (like Next.js or a Laravel site) renders pages on each request, so it needs a running process, a reverse proxy, and usually a database, the full six moves.</p>
+    <h3>How do I make my app deploy automatically on every push?</h3>
+    <p>Connect your Git repository and turn on automated deployment, so a push to your chosen branch triggers a build and ship. That's continuous deployment, and it turns releasing a change into a plain <code>git push</code>. On Kloudbean you get live build logs and a deployment history for every release, so you can see exactly what shipped and roll your thinking back if something looks off.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Every deploy is the same six moves once you can see them.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Deploy an App: The Mental Model Behind Every Deploy","description":"How to deploy an app, explained through the six moves every deployment shares: build an artifact, run a long-running process, add a reverse proxy, attach a domain with SSL, keep it alive, and keep state outside the app. Plus how the choice differs by app type and where to go next for your framework.","image":"https://www.kloudbean.com/blog/how-to-deploy-any-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/how-to-deploy-any-app/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does it actually mean to deploy an app?","acceptedAnswer":{"@type":"Answer","text":"Deploying an app means taking the code that runs on your machine and making it run for other people on the internet. Concretely: build it into an artifact, run that artifact as a long-running process on a server, put a reverse proxy in front, attach a domain with SSL, keep the process alive with a supervisor, and store your data in a real database rather than a local file. Every framework follows that same shape."}},
+{"@type":"Question","name":"What's the easiest way to deploy an app for a beginner?","acceptedAnswer":{"@type":"Answer","text":"Start from Git on a platform that builds and runs your app for you, so you don't hand-configure a server. A managed server hits a nice balance: you connect your repo, set a few runtime fields, add environment variables, and click deploy, while the stack, SSL, and backups are handled. That teaches you the model without dropping you into Nginx config on day one."}},
+{"@type":"Question","name":"Do I need Docker to deploy my app?","acceptedAnswer":{"@type":"Answer","text":"No. Docker packages your app and its dependencies into a container, which is useful for consistency, but it's one way to produce the build artifact, not a requirement. Plenty of production apps deploy straight from source with pinned dependencies and a start command. Learn the six moves first; reach for containers when you actually need the isolation or reproducibility they give you."}},
+{"@type":"Question","name":"Why does my app work locally but not in production?","acceptedAnswer":{"@type":"Answer","text":"Usually one of three things: an environment variable that's set on your laptop but not on the server, the dev server running instead of the production start command, or the app listening on a different port than the reverse proxy forwards to. The logs almost always name it. Read the process error log first, then fix the config and redeploy."}},
+{"@type":"Question","name":"What is a reverse proxy and do I have to set one up?","acceptedAnswer":{"@type":"Answer","text":"A reverse proxy (usually Nginx) listens on the public ports 80 and 443, handles SSL, and forwards requests to your app on its internal port. It's what lets a browser reach an app that's listening on, say, port 3000. On a raw VPS you configure it yourself; on managed hosting it's set up for you, and you just tell the platform which port your app uses."}},
+{"@type":"Question","name":"Where should my database and uploaded files live?","acceptedAnswer":{"@type":"Answer","text":"Outside the app process. Put your data in a managed database and user uploads in object storage, never in a local SQLite file or an uploads folder on the app server's disk. If state lives on the app's local disk, it gets wiped on redeploy and can't be shared across servers. Keeping state external is what makes your app safe to rebuild and scale."}},
+{"@type":"Question","name":"How do I keep my app running after I close my terminal?","acceptedAnswer":{"@type":"Answer","text":"Run it under a process manager or supervisor, not in a terminal window. PM2 is the common choice for Node, systemd for many others, and PHP-FPM handles this for PHP. The supervisor restarts the app if it crashes and starts it again after a reboot. On managed hosting this is configured for you, which is the difference between a service and a demo."}},
+{"@type":"Question","name":"Can I run my front end, API, and database on one server?","acceptedAnswer":{"@type":"Answer","text":"Yes, and for most apps you should, at least to start. Add multiple applications to one server and launch a managed database beside them. It's simpler and cheaper than scattering pieces across separate services, and you split something out only when it genuinely outgrows the box. Premature microservices cost more than they save for a young app."}},
+{"@type":"Question","name":"How do static sites deploy differently from server-rendered apps?","acceptedAnswer":{"@type":"Answer","text":"A static site is just files, so there's no long-running process to keep alive. You serve the built folder from a web server or CDN, attach a domain and SSL, and you're done. A server-rendered app (like Next.js or a Laravel site) renders pages on each request, so it needs a running process, a reverse proxy, and usually a database, the full six moves."}},
+{"@type":"Question","name":"How do I make my app deploy automatically on every push?","acceptedAnswer":{"@type":"Answer","text":"Connect your Git repository and turn on automated deployment, so a push to your chosen branch triggers a build and ship. That's continuous deployment, and it turns releasing a change into a plain git push. On Kloudbean you get live build logs and a deployment history for every release, so you can see exactly what shipped."}}
+]}
+]}
+</script>
+</body>
+</html>

@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deploy a Symfony App to Production the Right Way</title>
+<meta name="description" content="Deploy a Symfony app to production the honest way: set APP_ENV=prod, composer install --no-dev, warm the cache, run Doctrine migrations, fix var/ permissions, and serve public/ behind nginx and PHP-FPM.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/deploy-symfony-app/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Deploy a Symfony App to Production the Right Way">
+<meta property="og:description" content="APP_ENV=prod, composer install --no-dev, cache warmup, Doctrine migrations, the var/ permissions fix, and nginx + PHP-FPM pointed at public/. The honest Symfony deploy guide.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">App deployment</span>
+  <h1>Deploy a Symfony App to Production, the Honest Way</h1>
+  <p class="byline">By Kloudbean · Symfony, Served.</p>
+
+  <figure><img src="images/hero.png" alt="Deploy a Symfony app to production: build, warm the cache, migrate, then serve public/index.php behind nginx and PHP-FPM"></figure>
+
+  <p class="lead">Deploying a Symfony app is a well-worn path. Symfony is a mature PHP framework, the production story is documented, and the steps rarely change. The trouble is the sharp edges: a handful of small things that turn a five-minute deploy into a white 500 page.</p>
+  <p>Set <code>APP_ENV=prod</code>. Install without dev dependencies. Warm the cache. Run your Doctrine migrations. Make <code>var/</code> writable by the web server. Point the docroot at <code>public/</code>, not the project root. Get those right and Symfony production hosting is genuinely boring, which is exactly what you want. Get one wrong and you'll spend an hour reading the wrong log. This guide walks the whole thing, in order, with the real commands.</p>
+
+  <div class="tldr"><strong>Short version</strong><p>To deploy a Symfony app: set <code>APP_ENV=prod</code> and a real <code>APP_SECRET</code> on the server, run <code>composer install --no-dev --optimize-autoloader</code>, then <code>bin/console cache:clear</code> and <code>cache:warmup</code>, then <code>doctrine:migrations:migrate --no-interaction</code>. Serve <code>public/index.php</code> with nginx and PHP-FPM, and make sure <code>var/cache</code> and <code>var/log</code> are writable by the web server user. That last one is the classic 500.</p></div>
+
+  <h2>The Symfony deploy in one picture</h2>
+  <p>Before the commands, the shape. A Symfony deploy is a short pipeline. Code goes in one end, a warmed, migrated, production-tuned app comes out the other, and nginx serves a single front controller. Nothing exotic. But every stage has a job, and skipping one is where the pain starts.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 470" width="100%" role="img" aria-label="Diagram: the Symfony production deploy pipeline. Your repo is pushed, then the build runs composer install --no-dev --optimize-autoloader and bin/console cache:warmup to compile the container into var/cache, then doctrine:migrations:migrate applies schema changes, then nginx and PHP-FPM serve public/index.php. The app and the migrations both reach a managed database over DATABASE_URL. The whole thing depends on var/cache and var/log being writable by the web server user, with opcache enabled for speed.">
+      <rect x="0.5" y="0.5" width="719" height="469" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="360" y="34" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="16.5" font-weight="700" fill="#000f27">The Symfony production deploy pipeline</text>
+
+      <!-- stage nodes -->
+      <g font-family="Poppins,Arial,sans-serif">
+        <!-- repo -->
+        <rect x="22" y="66" width="150" height="86" rx="12" fill="#000f27"/>
+        <text x="97" y="104" text-anchor="middle" font-size="13.5" font-weight="600" fill="#fff">Your repo</text>
+        <text x="97" y="124" text-anchor="middle" font-size="11" fill="#c9b8ff">git push</text>
+
+        <!-- build -->
+        <rect x="200" y="66" width="168" height="86" rx="12" fill="#eef0ff" stroke="#d7ddff"/>
+        <text x="284" y="90" text-anchor="middle" font-size="13.5" font-weight="600" fill="#000f27">Build</text>
+        <text x="284" y="110" text-anchor="middle" font-size="10.5" fill="#5b6a86">composer install --no-dev</text>
+        <text x="284" y="126" text-anchor="middle" font-size="10.5" fill="#5b6a86">cache:clear + cache:warmup</text>
+        <text x="284" y="142" text-anchor="middle" font-size="10.5" fill="#5b6a86">assets build</text>
+
+        <!-- migrate -->
+        <rect x="396" y="66" width="150" height="86" rx="12" fill="#f6f7fb" stroke="#e6e9f2"/>
+        <text x="471" y="98" text-anchor="middle" font-size="13.5" font-weight="600" fill="#000f27">Migrate</text>
+        <text x="471" y="118" text-anchor="middle" font-size="10.5" fill="#5b6a86">doctrine:migrations</text>
+        <text x="471" y="133" text-anchor="middle" font-size="10.5" fill="#5b6a86">:migrate</text>
+
+        <!-- serve -->
+        <rect x="574" y="66" width="124" height="86" rx="12" fill="#eef0ff" stroke="#d7ddff"/>
+        <text x="636" y="94" text-anchor="middle" font-size="13.5" font-weight="600" fill="#000f27">Serve</text>
+        <text x="636" y="114" text-anchor="middle" font-size="10" fill="#5b6a86">nginx + PHP-FPM</text>
+        <text x="636" y="130" text-anchor="middle" font-size="10" fill="#5b6a86">public/index.php</text>
+      </g>
+
+      <!-- arrows between stages -->
+      <g stroke="#4F1AF3" stroke-width="2" fill="none">
+        <line x1="172" y1="109" x2="196" y2="109"/><polygon points="196,103 208,109 196,115" fill="#4F1AF3"/>
+        <line x1="368" y1="109" x2="392" y2="109"/><polygon points="392,103 404,109 392,115" fill="#4F1AF3"/>
+        <line x1="546" y1="109" x2="570" y2="109"/><polygon points="570,103 582,109 570,115" fill="#4F1AF3"/>
+      </g>
+
+      <!-- managed DB -->
+      <g font-family="Poppins,Arial,sans-serif">
+        <rect x="396" y="238" width="302" height="66" rx="12" fill="#eaf7ef" stroke="#cdebd6"/>
+        <text x="547" y="268" text-anchor="middle" font-size="13.5" font-weight="600" fill="#000f27">Managed database (MySQL or PostgreSQL)</text>
+        <text x="547" y="288" text-anchor="middle" font-size="10.5" fill="#40b75f">reached over DATABASE_URL, backed up for you</text>
+      </g>
+      <g stroke="#40b75f" stroke-width="2" fill="none" stroke-dasharray="5 4">
+        <line x1="471" y1="152" x2="471" y2="236"/><polygon points="465,236 471,248 477,236" fill="#40b75f"/>
+        <line x1="636" y1="152" x2="636" y2="220"/><path d="M636 220 L636 232"/><polygon points="630,232 636,244 642,232" fill="#40b75f"/>
+      </g>
+      <text x="360" y="196" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#5b6a86">migrations and the live app both talk to the same managed DB</text>
+
+      <!-- sharp edge strip -->
+      <line x1="30" y1="336" x2="690" y2="336" stroke="#e6e9f2" stroke-width="1"/>
+      <text x="360" y="360" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#4F1AF3">THE SHARP EDGE UNDER ALL OF IT</text>
+      <rect x="40" y="374" width="640" height="44" rx="9" fill="#000f27"/>
+      <text x="360" y="401" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="12.5" fill="#e8ecfb">var/cache and var/log must be writable by the web server user</text>
+      <text x="360" y="444" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" fill="#5b6a86">Enable opcache in production. On a managed PHP server, nginx, PHP-FPM and SSL are already wired. You bring the code.</text>
+    </svg>
+    <figcaption>The Symfony deploy pipeline. Build and warm, migrate, then serve <code>public/index.php</code>. The permissions on <code>var/</code> sit under everything.</figcaption>
+  </figure>
+
+  <h2>Set APP_ENV=prod and a real APP_SECRET</h2>
+  <p>Symfony reads its configuration from environment variables, and two of them decide how the app behaves the moment it boots. <code>APP_ENV</code> picks the environment. In <code>dev</code> you get the debug toolbar, verbose errors, and a cache that rebuilds when files change. In <code>prod</code> you get a compiled container, terse error pages, and none of that live rebuilding. Ship with <code>APP_ENV=dev</code> by accident and you leak stack traces and pay a real speed penalty on every request. So set <code>APP_ENV=prod</code>. It's the single most important variable on the box.</p>
+  <p><code>APP_SECRET</code> is the other one. Symfony uses it to sign things: CSRF tokens, signed URIs, the "remember me" cookie. It needs to be a long, random value, set once and kept stable. Rotate it and every existing CSRF token and signed URL becomes invalid, which logs people out and breaks in-flight forms. Generate it once, store it as an environment variable, and leave it be.</p>
+  <p>Keep real values out of git. Symfony's convention makes this clean: <code>.env</code> holds committed, safe defaults, and anything real (secrets, the production database URL) goes in <code>.env.local</code> or straight into the server's environment, neither of which you commit. Here's what each file is actually for.</p>
+
+  <table class="cmp">
+    <thead><tr><th>File</th><th>What goes in it</th><th>In git?</th></tr></thead>
+    <tbody>
+      <tr><td><code>.env</code></td><td>Committed defaults with safe placeholder values</td><td>Yes</td></tr>
+      <tr><td><code>.env.local</code></td><td>Real secrets and overrides for this specific machine</td><td>No</td></tr>
+      <tr><td><code>.env.prod</code></td><td>Non-secret defaults that only apply in prod</td><td>Yes</td></tr>
+      <tr><td><code>.env.local.php</code></td><td>A compiled, fast version of all the above (see <code>dump-env</code>)</td><td>Generated</td></tr>
+    </tbody>
+  </table>
+
+  <pre><code># the production environment (set on the server, never committed)
+APP_ENV=prod
+APP_SECRET=change_me_to_a_long_random_string
+DATABASE_URL="postgresql://appuser:secret@127.0.0.1:5432/appdb?serverVersion=16&amp;charset=utf8"</code></pre>
+
+  <p>One Symfony-specific speed trick worth knowing. If you use Symfony Flex (most modern apps do), <code>composer dump-env prod</code> compiles all those dotenv files into a single <code>.env.local.php</code>. Symfony then loads that PHP file instead of parsing text files on every request. Small win, zero downside in production.</p>
+
+  <pre><code># compile env vars into an optimized PHP file (Symfony Flex)
+composer dump-env prod</code></pre>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console environment variables screen showing a Symfony app's APP_ENV, APP_SECRET and DATABASE_URL set on the server">
+    <figcaption>Environment variables set in the console. <code>APP_ENV=prod</code>, <code>APP_SECRET</code>, and <code>DATABASE_URL</code> live on the server, not in the repo.</figcaption>
+  </figure>
+
+  <p>The deeper reasoning on keeping secrets out of code, and the mistakes people make rotating them, is in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a>.</p>
+
+  <!-- ADD IMAGE: a code editor showing .env vs .env.local side by side, with the placeholder value in .env and the real secret in .env.local. Swap for a real screenshot: src -> images/env-files.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The two env files side by side: safe placeholders in .env, the real secret in .env.local.</em><small>Makes the "which file do I edit" question concrete.</small></span></figure>
+
+  <h2>The production build: install without dev, then warm the cache</h2>
+  <p>A production Symfony deploy runs a fixed set of commands, in order, every time. Each has a purpose and a matching failure mode. This is the part generic PHP tutorials skip, so here's the whole sequence with the reasons attached.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Command</th><th>What it does</th><th>Skip it and…</th></tr></thead>
+    <tbody>
+      <tr><td><code>composer install --no-dev --optimize-autoloader</code></td><td>Installs production deps only and builds a fast classmap</td><td>Dev tooling ships to prod, autoloading is slower, and Flex scripts run in the wrong env</td></tr>
+      <tr><td><code>bin/console cache:clear --env=prod</code></td><td>Rebuilds the compiled container and config for prod</td><td>A stale or dev-shaped cache in production, or a boot error</td></tr>
+      <tr><td><code>bin/console cache:warmup --env=prod</code></td><td>Precompiles the container, routes and metadata into <code>var/cache</code></td><td>The first visitor pays the compile cost, so the first hit is cold and slow</td></tr>
+      <tr><td><code>bin/console doctrine:migrations:migrate</code></td><td>Applies pending schema changes to the database</td><td>A 500 the instant your code queries a column that isn't there yet</td></tr>
+      <tr><td>asset build (<code>importmap:install</code> or Encore)</td><td>Publishes your CSS and JavaScript</td><td>Unstyled pages and missing front-end behavior</td></tr>
+    </tbody>
+  </table>
+
+  <p>Two of those deserve a closer look, because they're where Symfony differs from a plain PHP app.</p>
+  <p>First, <code>--no-dev</code>. Production doesn't need PHPUnit, the profiler's dev bits, or fixture bundles, and <code>--optimize-autoloader</code> builds a class map so PHP finds classes by lookup instead of scanning the filesystem. It pairs with opcache to make autoloading close to free. There's a subtle trap too: Composer's post-install scripts (a cache clear via Flex, for one) run under whatever <code>APP_ENV</code> is set at build time, so set <code>APP_ENV=prod</code> before you install or they warm the wrong cache.</p>
+  <p>Second, <code>cache:warmup</code>. Symfony compiles your service container, routing, and metadata into plain PHP under <code>var/cache/prod</code>. Warm it at deploy time and the compiled cache is already there when the first request lands. Skip it and Symfony builds it lazily, so the first visitor after each deploy waits while the container compiles. Warm it in the build.</p>
+
+  <pre><code># the deploy build, in order
+composer install --no-dev --optimize-autoloader
+php bin/console cache:clear --env=prod
+php bin/console cache:warmup --env=prod
+php bin/console doctrine:migrations:migrate --no-interaction
+# assets, if you use them:
+php bin/console importmap:install     # AssetMapper
+# or, for Webpack Encore:
+npm ci &amp;&amp; npm run build</code></pre>
+
+  <p>An opinion, since this is a guide and not a menu: turn on opcache in production and leave it on. Symfony leans on compiled PHP for the container and the warmed cache, and opcache is what keeps that compiled code in memory instead of re-reading it from disk. Symfony even ships a <code>config/preload.php</code> for opcache preloading. It's one of the cheapest speedups you'll ever get. If your production PHP has opcache off, fix that before you go tuning anything clever.</p>
+
+  <h2>The 500 that is almost always var/ permissions</h2>
+  <p>If a fresh Symfony deploy greets you with a blank 500 and nothing obvious in the browser, put your money on permissions before you touch a line of code. Symfony writes to two directories at runtime: <code>var/cache</code> and <code>var/log</code>. If the web server user (PHP-FPM runs as something like <code>www-data</code>) can't write there, Symfony throws on boot. The error in the log is blunt about it:</p>
+
+  <pre><code>Unable to write in the cache directory (/path/to/app/var/cache/prod)</code></pre>
+
+  <p>This happens because the person who deployed owns <code>var/</code>, but the PHP-FPM process runs as a different user, and that user has no write bit. The fix is to give the web server user write access to <code>var/</code>. And here's the anti-pattern to avoid: do not <code>chmod -R 777 var</code>. It "works" in the sense that the error goes away, and it's a bad habit that hands write access to everyone on the box. Use ownership or ACLs instead, so exactly the web server user can write, and nobody else.</p>
+
+  <pre><code># give the web server user write access to var/ with ACLs (not chmod 777)
+setfacl -R -m u:www-data:rwX var
+setfacl -dR -m u:www-data:rwX var</code></pre>
+
+  <p>On a managed PHP server this is handled for you: the deploy runs as the right system user and the web root already has the correct ownership, so the classic <code>var/</code> 500 mostly stops being your problem. Worth knowing why it happens anyway, because the day you SSH in and run a console command as the wrong user, you'll recognize the error on sight.</p>
+
+  <!-- ADD IMAGE: a terminal showing the "Unable to write in the cache directory" error, then the setfacl fix and a working page. Swap for a real screenshot: src -> images/var-permissions.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The var/cache permissions error in a log, next to the ACL fix that clears it.</em><small>The single most common first-deploy Symfony 500.</small></span></figure>
+
+  <h2>Run Doctrine migrations on every deploy</h2>
+  <p>If you use Doctrine (most Symfony apps do), your schema lives in migration classes, and production applies them with one command:</p>
+
+  <pre><code>php bin/console doctrine:migrations:migrate --no-interaction</code></pre>
+
+  <p>The <code>--no-interaction</code> flag skips the "are you sure?" prompt, which you want in an automated deploy. Run this as part of the build, after the code is in place and before traffic hits the new version. The order matters: if new code that expects a column deploys before the migration that adds it, every request touching that column 500s until the migration catches up.</p>
+  <p>Two habits keep this smooth. Write backward-compatible migrations where you can, so old code and new schema coexist for the few seconds a deploy takes: add a column, backfill, then switch code to use it, rather than renaming a column out from under a running app. And a firm opinion: never run <code>doctrine:schema:update --force</code> in production. It changes the live schema on the spot with no review and no history, which is a footgun. Migrations give you an ordered, reversible, version-controlled record of every change. Use them.</p>
+  <p>Migrations are also where a deploy can genuinely damage data, so treat a risky one with respect: back the database up first, and rehearse it against a staging copy or a restored backup before it touches production. The mechanics of dumping and restoring a database, which is what a backup and a rehearsal both rely on, are covered in <a href="https://www.kloudbean.com/blog/database-migration-pg_dump-mysqldump/">database migration with pg_dump and mysqldump</a>.</p>
+
+  <h2>Connect Doctrine to a managed database with DATABASE_URL</h2>
+  <p>Doctrine reads its connection from a single environment variable, <code>DATABASE_URL</code>. One string carries the driver, credentials, host, port, and database name. Postgres and MySQL both work; pick the one your team knows.</p>
+
+  <pre><code># PostgreSQL
+DATABASE_URL="postgresql://appuser:secret@127.0.0.1:5432/appdb?serverVersion=16&amp;charset=utf8"
+
+# MySQL / MariaDB
+DATABASE_URL="mysql://appuser:secret@127.0.0.1:3306/appdb?serverVersion=8.0"</code></pre>
+
+  <p>Point that at a managed database rather than one you install and babysit yourself. A managed instance is backed up, patched, and secured for you, and when it sits on the same server as the app you reach it over <code>127.0.0.1</code> on the local network, so credentials never cross the public internet. Launch a <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">managed MySQL</a> or a managed PostgreSQL, drop its URL into <code>DATABASE_URL</code>, and Doctrine connects. The wider pattern of putting a real database next to your app, instead of leaning on a metered external service, is in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">add a managed database to your app</a>.</p>
+  <p>One production note. PHP opens a database connection per request, so a busy app opens and closes a lot of them; watch your database's connection limit as traffic grows. And set <code>serverVersion</code> correctly in the URL, since Doctrine uses it to decide which SQL features are safe to emit.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean Launch Database screen: creating a managed PostgreSQL instance on the same server as a Symfony app">
+    <figcaption>Launch Database: a managed PostgreSQL or MySQL on the same server, reached over the local network and backed up automatically.</figcaption>
+  </figure>
+
+  <h2>Point nginx at public/, never the project root</h2>
+  <p>Symfony has a single entry point: <code>public/index.php</code>, the front controller every request flows through. Your web server's docroot must be the <code>public/</code> directory, and nothing above it. This is not a style preference. Point the docroot at the project root and you've just published <code>.env</code>, your <code>config/</code>, your <code>src/</code>, and your <code>vendor/</code> to the open web. Anyone can read your secrets. Docroot is <code>public/</code>. Always.</p>
+  <p>A minimal nginx and PHP-FPM setup looks like this. Requests that don't match a file get rewritten to the front controller, and PHP is handed to FPM over a socket:</p>
+
+  <pre><code>server {
+    server_name yourdomain.com;
+    root /home/your-app/public;          # docroot is public/, not the project root
+
+    location / {
+        try_files $uri /index.php$is_args$args;
+    }
+
+    location ~ ^/index\.php(/|$) {
+        fastcgi_pass unix:/run/php/php-fpm.sock;
+        fastcgi_split_path_info ^(.+\.php)(/.*)$;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+    }
+
+    location ~ \.php$ { return 404; }     # block direct access to any other .php
+}</code></pre>
+
+  <p>That's nginx as a reverse proxy in front of PHP-FPM, the standard way PHP runs in production. If the path through a proxy is fuzzy, <a href="https://www.kloudbean.com/blog/reverse-proxy-explained/">reverse proxy, explained</a> lays it out. Good news for most readers: on a managed PHP server the web server, PHP-FPM, the <code>public/</code> docroot, and free auto-renewing SSL are already configured. You don't hand-write this file. It's here so you know what the platform does on your behalf.</p>
+
+  <h2>Wiring the Symfony deploy on a managed server</h2>
+  <p>Symfony is a PHP application, and a managed PHP stack is exactly what it runs on. You're not installing PHP-FPM or configuring nginx by hand; that stack already exists and stays patched. So a real question people ask is whether Symfony works on a managed server when it isn't a one-click app type. Yes. It runs on the same managed PHP runtime that hosts WordPress, Laravel, Magento, and the rest. You deploy it like any PHP codebase.</p>
+  <p>Connect your Git repository under <strong>Application Administration &#8594; Deploy Code &#8594; Git Deployment</strong> and put the build sequence (Composer, cache warmup, migrations, assets) into the build step. The start side is PHP-FPM already serving <code>public/index.php</code>.</p>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean Add Application screen: creating a PHP application to host a Symfony app on the managed stack">
+    <figcaption>Add an application on the managed PHP stack. Symfony deploys as a PHP app, no bespoke server build required.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean Deploy Code / Git Deployment screen with a Symfony repo connected and the Composer and console build sequence set">
+    <figcaption>Deploy Code &#8594; Git Deployment: connect the repo, set the build sequence, then Pull &amp; Deploy. The build log streams live so you watch the warmup and migrations run.</figcaption>
+  </figure>
+
+  <p>Push once to wire it up, then turn on auto-deploy so every push to your branch re-runs the build and applies new migrations. The live build log is the part I'd actually watch, because that's where a failed migration or a warmup error shows up first, in plain text, while it happens. More on the push-to-deploy loop is in <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD auto-deploy from GitHub</a>. And for a risky migration, deploy to a staging copy first, watch it, then promote to production.</p>
+
+  <div class="note"><b>Running background work?</b> If your app uses Symfony Messenger for async jobs, that's a long-lived worker process, kept alive by the server and restarted on deploy so it picks up new code. This guide stays on the web-request path; the worker pattern deserves its own walkthrough.</div>
+
+  <!-- ADD IMAGE: the live build log streaming composer install, cache:warmup and doctrine:migrations:migrate output during a deploy. Swap for a real screenshot: src -> images/build-log.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The live build log during a deploy: composer install, cache warmup, then migrations running line by line.</em><small>Where a broken deploy shows itself first.</small></span></figure>
+
+  <h2>When the first deploy goes sideways</h2>
+  <p>Symfony's opening-night failures are few and predictable, and each maps to something above. Read the log before you change code on a hunch.</p>
+  <ul>
+    <li><strong>Blank 500, nothing in the browser.</strong> Almost always <code>var/cache</code> or <code>var/log</code> permissions, or a missing <code>APP_SECRET</code>. Read <code>var/log/prod.log</code>. The exception is named there.</li>
+    <li><strong>Verbose errors and a toolbar on production.</strong> You shipped with <code>APP_ENV=dev</code>. Set it to <code>prod</code> and clear the cache.</li>
+    <li><strong>A 500 that mentions a missing column or table.</strong> Migrations didn't run. Run <code>doctrine:migrations:migrate</code>.</li>
+    <li><strong>Your secrets are readable over the web, or you get a raw directory listing.</strong> The docroot points at the project root. Repoint it at <code>public/</code>.</li>
+    <li><strong>A slow first request after each deploy.</strong> You're warming the cache lazily. Add <code>cache:warmup</code> to the build.</li>
+    <li><strong>Class not found only in production.</strong> You built with the wrong env or without <code>--optimize-autoloader</code>. Set <code>APP_ENV=prod</code>, reinstall, rebuild the autoloader.</li>
+  </ul>
+
+  <h2>What you run, what Kloudbean runs</h2>
+  <p>Symfony is PHP, and PHP on Linux is what a managed server runs, so none of this is a workaround. Kloudbean keeps the box healthy: the PHP runtime, PHP-FPM and nginx, free SSL, the Shorewall and Fail2ban baseline, and server-level backups, on whichever of its seven clouds you pick. You own the Symfony app: its environment variables, its Doctrine migrations, its cache warmup, the <code>public/</code> docroot the platform already points at. Clean split, and it's the arrangement most PHP teams actually want. If your app were .NET on IIS this wouldn't be your platform. For PHP and Symfony, it's home turf.</p>
+  <p>Building elsewhere in the same stack? The closest sibling is <a href="https://www.kloudbean.com/blog/deploy-laravel-app/">deploy a Laravel app</a>, the other big PHP framework, with its own set of production quirks around queues and the artisan sequence. Same platform, different sharp edges.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Warmed, migrated, and served from public/. That's a Symfony deploy.</p>
+    <p style="margin:0">Deploy your Symfony app on a server you own at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Managed MySQL &amp; PostgreSQL · Automatic backups · Free auto-renewing SSL · Git deploy with live build logs · Free migration · Free trial. Server sizes are on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I deploy a Symfony app to production?</h3>
+    <p>Set <code>APP_ENV=prod</code> and a real <code>APP_SECRET</code> on the server, then on each deploy run <code>composer install --no-dev --optimize-autoloader</code>, clear and warm the cache with <code>bin/console cache:clear</code> and <code>cache:warmup</code>, and apply <code>doctrine:migrations:migrate --no-interaction</code>. Serve <code>public/index.php</code> with nginx and PHP-FPM. On a managed host you set that build sequence once, connect your repo, and every push repeats it.</p>
+
+    <h3>What does APP_ENV=prod do?</h3>
+    <p>It puts Symfony in production mode: a compiled service container, terse error pages, and no live cache rebuilding. In <code>dev</code> you get the debug toolbar and verbose errors, which are slow and leak internals, so they must never run on a public site. Setting <code>APP_ENV=prod</code> is the most important environment variable on the server.</p>
+
+    <h3>How do I run composer install for production?</h3>
+    <p>Run <code>composer install --no-dev --optimize-autoloader</code>. The <code>--no-dev</code> flag skips test and development packages, and <code>--optimize-autoloader</code> builds a class map so PHP resolves classes by lookup instead of scanning the filesystem. Make sure <code>APP_ENV</code> is set to <code>prod</code> before you run it, or the post-install cache scripts warm the wrong environment.</p>
+
+    <h3>Why do I get a 500 error on var/cache after deploying?</h3>
+    <p>The web server user cannot write to <code>var/cache</code> or <code>var/log</code>. Symfony writes its compiled cache and logs there at runtime, and if PHP-FPM runs as a user without write access it throws on boot. Grant that user write access with ACLs or correct ownership, and avoid <code>chmod 777</code>, which is insecure. On a managed server the ownership is set up for you.</p>
+
+    <h3>How do I run Doctrine migrations on deploy?</h3>
+    <p>Run <code>php bin/console doctrine:migrations:migrate --no-interaction</code> as part of the build, after the code is in place. The flag skips the confirmation prompt so it works in automation. Apply migrations before traffic reaches the new code, because code that expects a new column will error until the schema catches up.</p>
+
+    <h3>How do I connect a Symfony app to a database?</h3>
+    <p>Set the <code>DATABASE_URL</code> environment variable and Doctrine reads it. One string holds the driver, username, password, host, port, and database name, for example a PostgreSQL or MySQL URL. Point it at a managed database on the same server over <code>127.0.0.1</code> so credentials stay on the local network and the instance is backed up for you.</p>
+
+    <h3>Do I need to run cache:warmup?</h3>
+    <p>You should. <code>cache:warmup</code> precompiles the service container, routing, and metadata into <code>var/cache</code> during the build. Skip it and Symfony builds that cache lazily, so the first visitor after each deploy waits while it compiles. Warming it in the build keeps the first request fast.</p>
+
+    <h3>What should the nginx docroot be for a Symfony app?</h3>
+    <p>The <code>public/</code> directory, and never the project root. Symfony routes every request through the <code>public/index.php</code> front controller, so the docroot points there. Exposing the project root would publish your <code>.env</code>, config, and source to the internet. A managed PHP server sets the docroot to <code>public/</code> for you.</p>
+
+    <h3>What is APP_SECRET and do I need to change it?</h3>
+    <p>It's a long random value Symfony uses to sign CSRF tokens, signed URIs, and remember-me cookies. Set it once to a strong random string and keep it stable. Changing it invalidates existing tokens and signed URLs, which logs users out and breaks in-flight forms, so only rotate it deliberately.</p>
+
+    <h3>Can I host a Symfony app on Kloudbean?</h3>
+    <p>Yes. Symfony is a PHP application, so it runs on the same managed PHP stack that hosts WordPress, Laravel, Magento, and other PHP apps, with nginx, PHP-FPM, and free SSL already configured. You deploy it from Git, set your environment variables in the console, and run a managed MySQL or PostgreSQL alongside it. There is no dedicated one-click Symfony installer; you deploy it as a standard PHP codebase.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Symfony, Served.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Deploy a Symfony App to Production, the Honest Way","description":"The full Symfony deploy on a managed server: set APP_ENV=prod and APP_SECRET, composer install --no-dev, warm the cache, run Doctrine migrations, fix var/ permissions, and serve public/ behind nginx and PHP-FPM.","image":"https://www.kloudbean.com/blog/deploy-symfony-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/deploy-symfony-app/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I deploy a Symfony app to production?","acceptedAnswer":{"@type":"Answer","text":"Set APP_ENV=prod and a real APP_SECRET on the server, then on each deploy run composer install --no-dev --optimize-autoloader, clear and warm the cache with bin/console cache:clear and cache:warmup, and apply doctrine:migrations:migrate --no-interaction. Serve public/index.php with nginx and PHP-FPM. On a managed host you set that build sequence once, connect your repo, and every push repeats it."}},
+{"@type":"Question","name":"What does APP_ENV=prod do?","acceptedAnswer":{"@type":"Answer","text":"It puts Symfony in production mode: a compiled service container, terse error pages, and no live cache rebuilding. In dev you get the debug toolbar and verbose errors, which are slow and leak internals, so they must never run on a public site. Setting APP_ENV=prod is the most important environment variable on the server."}},
+{"@type":"Question","name":"How do I run composer install for production?","acceptedAnswer":{"@type":"Answer","text":"Run composer install --no-dev --optimize-autoloader. The --no-dev flag skips test and development packages, and --optimize-autoloader builds a class map so PHP resolves classes by lookup instead of scanning the filesystem. Make sure APP_ENV is set to prod before you run it, or the post-install cache scripts warm the wrong environment."}},
+{"@type":"Question","name":"Why do I get a 500 error on var/cache after deploying?","acceptedAnswer":{"@type":"Answer","text":"The web server user cannot write to var/cache or var/log. Symfony writes its compiled cache and logs there at runtime, and if PHP-FPM runs as a user without write access it throws on boot. Grant that user write access with ACLs or correct ownership, and avoid chmod 777, which is insecure. On a managed server the ownership is set up for you."}},
+{"@type":"Question","name":"How do I run Doctrine migrations on deploy?","acceptedAnswer":{"@type":"Answer","text":"Run php bin/console doctrine:migrations:migrate --no-interaction as part of the build, after the code is in place. The flag skips the confirmation prompt so it works in automation. Apply migrations before traffic reaches the new code, because code that expects a new column will error until the schema catches up."}},
+{"@type":"Question","name":"How do I connect a Symfony app to a database?","acceptedAnswer":{"@type":"Answer","text":"Set the DATABASE_URL environment variable and Doctrine reads it. One string holds the driver, username, password, host, port, and database name, for example a PostgreSQL or MySQL URL. Point it at a managed database on the same server over 127.0.0.1 so credentials stay on the local network and the instance is backed up for you."}},
+{"@type":"Question","name":"Do I need to run cache:warmup?","acceptedAnswer":{"@type":"Answer","text":"You should. cache:warmup precompiles the service container, routing, and metadata into var/cache during the build. Skip it and Symfony builds that cache lazily, so the first visitor after each deploy waits while it compiles. Warming it in the build keeps the first request fast."}},
+{"@type":"Question","name":"What should the nginx docroot be for a Symfony app?","acceptedAnswer":{"@type":"Answer","text":"The public/ directory, and never the project root. Symfony routes every request through the public/index.php front controller, so the docroot points there. Exposing the project root would publish your .env, config, and source to the internet. A managed PHP server sets the docroot to public/ for you."}},
+{"@type":"Question","name":"What is APP_SECRET and do I need to change it?","acceptedAnswer":{"@type":"Answer","text":"It is a long random value Symfony uses to sign CSRF tokens, signed URIs, and remember-me cookies. Set it once to a strong random string and keep it stable. Changing it invalidates existing tokens and signed URLs, which logs users out and breaks in-flight forms, so only rotate it deliberately."}},
+{"@type":"Question","name":"Can I host a Symfony app on Kloudbean?","acceptedAnswer":{"@type":"Answer","text":"Yes. Symfony is a PHP application, so it runs on the same managed PHP stack that hosts WordPress, Laravel, Magento, and other PHP apps, with nginx, PHP-FPM, and free SSL already configured. You deploy it from Git, set your environment variables in the console, and run a managed MySQL or PostgreSQL alongside it. There is no dedicated one-click Symfony installer; you deploy it as a standard PHP codebase."}}
+]}
+]}
+</script>
+</body>
+</html>

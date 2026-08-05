@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Add a Custom Domain and Free SSL to Your App</title>
+<meta name="description" content="The DNS-to-HTTPS path for a custom domain and SSL for an app: point DNS, issue a free Let's Encrypt certificate, force HTTPS — and why the cert sometimes won't issue (it's almost always DNS).">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Add a Custom Domain and Free SSL to Your App">
+<meta property="og:description" content="Point your domain, issue free Let's Encrypt SSL, force HTTPS — and fix the reason a certificate won't issue, stage by stage.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Custom domain &amp; SSL</span>
+  <h1>How to Add a Custom Domain and Free SSL to Your App</h1>
+
+  <figure><img src="images/hero.png" alt="Add a custom domain and free SSL to your app — your domain, the HTTPS padlock, done"></figure>
+
+  <p class="lead">Your app works. It's just living at a temporary address like <code>something.kloudbeansite.com</code>, which is fine for a demo and wrong for anything real. Adding a custom domain and SSL for an app is the step that turns a project into a product: your own name in the address bar, and the padlock next to it. This is the path from a bare domain name to a live HTTPS site, told as the four stages it actually moves through, with the specific thing that trips people up at each one. Because the order matters more than anything else, and getting it wrong is exactly why a certificate sometimes just won't issue.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>To put a custom domain and free SSL on your app: add the domain in the console, point DNS at your server (an A record for the apex, a CNAME for <code>www</code>), wait for DNS to propagate, then issue a free Let's Encrypt certificate and force HTTPS. Order is everything. The certificate can only issue after DNS resolves to your server, which is why "my SSL won't issue" is almost always "my DNS hasn't propagated yet."</p>
+  </div>
+
+  <h2>How the custom domain and SSL flow actually works</h2>
+  <p>Most guides hand you a checklist and skip the one idea that prevents the frustration: this is a pipeline with a required order. Each stage depends on the one before it finishing. Skip ahead, and the stage you jumped to fails, not because you did it wrong, but because its prerequisite wasn't done yet. Here's the whole path, and the gotcha waiting at each step.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 556" width="100%" role="img" aria-label="Diagram: the DNS-to-SSL flow in five stages. Add DNS records, DNS propagates, ACME challenge validates, certificate issued, HTTPS live and auto-renews. The most common failure is at the ACME stage because DNS is not pointing at the server yet.">
+      <rect x="1" y="1" width="718" height="554" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="360" y="34" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="17" font-weight="700" fill="#000f27">From a domain name to a padlock</text>
+
+      <!-- connectors down the left column -->
+      <g stroke="#c9d0e3" stroke-width="2" fill="#c9d0e3">
+        <path d="M178 136 L178 154"/><path d="M173 154 L183 154 L178 162 Z"/>
+        <path d="M178 230 L178 248"/><path d="M173 248 L183 248 L178 256 Z"/>
+        <path d="M178 324 L178 342"/><path d="M173 342 L183 342 L178 350 Z"/>
+        <path d="M178 418 L178 436"/><path d="M173 436 L183 436 L178 444 Z"/>
+      </g>
+
+      <!-- step nodes (left) + gotcha cards (right) -->
+      <g font-family="Poppins,Arial,sans-serif">
+        <!-- 1 -->
+        <rect x="28" y="62" width="300" height="74" rx="11" fill="#4F1AF3"/>
+        <text x="178" y="94" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">1 &#183; Add DNS records</text>
+        <text x="178" y="116" text-anchor="middle" font-size="12" fill="#d7ccff">A record (apex) &#8594; server IP, CNAME www</text>
+        <rect x="364" y="62" width="328" height="74" rx="11" fill="#f6f7fb" stroke="#e6e9f2"/>
+        <circle cx="384" cy="88" r="5" fill="#5b6a86"/>
+        <text x="398" y="92" font-size="12.5" font-weight="700" fill="#1c2536">www vs apex</text>
+        <text x="398" y="114" font-size="12" fill="#5b6a86">Add both, then redirect one to the other.</text>
+
+        <!-- 2 -->
+        <rect x="28" y="156" width="300" height="74" rx="11" fill="#4F1AF3"/>
+        <text x="178" y="188" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">2 &#183; DNS propagates</text>
+        <text x="178" y="210" text-anchor="middle" font-size="12" fill="#d7ccff">resolvers worldwide pick up the change</text>
+        <rect x="364" y="156" width="328" height="74" rx="11" fill="#fff8ef" stroke="#f0dcc0"/>
+        <circle cx="384" cy="182" r="5" fill="#d98324"/>
+        <text x="398" y="186" font-size="12.5" font-weight="700" fill="#1c2536">The wait is real</text>
+        <text x="398" y="208" font-size="12" fill="#5b6a86">Minutes to hours. Nobody can rush it.</text>
+
+        <!-- 3 highlighted -->
+        <rect x="28" y="250" width="300" height="74" rx="11" fill="#4F1AF3"/>
+        <text x="178" y="282" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">3 &#183; ACME challenge validates</text>
+        <text x="178" y="304" text-anchor="middle" font-size="12" fill="#d7ccff">Let's Encrypt checks the domain is yours</text>
+        <rect x="364" y="250" width="328" height="74" rx="11" fill="#fdf0f0" stroke="#e7b7b7"/>
+        <circle cx="384" cy="276" r="5" fill="#d64545"/>
+        <text x="398" y="280" font-size="12.5" font-weight="700" fill="#d64545">The #1 reason a cert won't issue</text>
+        <text x="398" y="302" font-size="12" fill="#5b6a86">DNS isn't pointing at the server yet.</text>
+
+        <!-- 4 -->
+        <rect x="28" y="344" width="300" height="74" rx="11" fill="#4F1AF3"/>
+        <text x="178" y="376" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">4 &#183; Certificate issued</text>
+        <text x="178" y="398" text-anchor="middle" font-size="12" fill="#d7ccff">free Let's Encrypt cert, installed for you</text>
+        <rect x="364" y="344" width="328" height="74" rx="11" fill="#fff8ef" stroke="#f0dcc0"/>
+        <circle cx="384" cy="370" r="5" fill="#d98324"/>
+        <text x="398" y="374" font-size="12.5" font-weight="700" fill="#1c2536">Check for a CAA record</text>
+        <text x="398" y="396" font-size="12" fill="#5b6a86">One can silently block Let's Encrypt.</text>
+
+        <!-- 5 -->
+        <rect x="28" y="438" width="300" height="74" rx="11" fill="#40b75f"/>
+        <text x="178" y="470" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">5 &#183; HTTPS live, auto-renews</text>
+        <text x="178" y="492" text-anchor="middle" font-size="12" fill="#e4f6ea">force http &#8594; https, renews before expiry</text>
+        <rect x="364" y="438" width="328" height="74" rx="11" fill="#f6f7fb" stroke="#e6e9f2"/>
+        <circle cx="384" cy="464" r="5" fill="#d98324"/>
+        <text x="398" y="468" font-size="12.5" font-weight="700" fill="#1c2536">Mixed-content warning?</text>
+        <text x="398" y="490" font-size="12" fill="#5b6a86">Load every asset over https, not http.</text>
+      </g>
+
+      <text x="360" y="538" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#5b6a86">Point DNS first. The certificate can only issue once the name resolves to your server.</text>
+    </svg>
+    <figcaption>Four stages, in order. Rush the certificate before DNS resolves and stage three fails every time.</figcaption>
+  </figure>
+
+  <h2>Stage 1: point your domain at the server</h2>
+  <p>Two things happen here, in two different places, and mixing them up is where confusion starts. In your hosting console you <em>tell the server which domains to answer for</em>. At your registrar you <em>tell the internet where those domains live</em>. Both are needed. Neither does the other's job.</p>
+  <p>On <a href="https://www.kloudbean.com/">Kloudbean</a>, open your app and find <strong>Domain Aliases</strong>. Add your domain there, and decide up front whether you want the apex (<code>yourdomain.com</code>), the <code>www</code> subdomain, or both. Most people add both and redirect one to the other. Adding the domain here doesn't route any traffic yet. It just means the server will respond correctly when traffic for that name arrives.</p>
+  <p>Then, to actually point the domain to your app, create DNS records at your registrar (Namecheap, Cloudflare, GoDaddy, wherever the domain lives):</p>
+
+  <table class="cmp">
+    <thead><tr><th>Type</th><th>Host</th><th>Value</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td>A</td><td><code>@</code></td><td>your server's IP (e.g. <code>203.0.113.42</code>)</td><td>Points the apex, <code>yourdomain.com</code>, at the server.</td></tr>
+      <tr><td>CNAME</td><td><code>www</code></td><td><code>yourdomain.com</code></td><td>Points <code>www</code> at the apex, so both resolve.</td></tr>
+    </tbody>
+  </table>
+  <p>That's the whole DNS for a web app in most cases: one A record and one CNAME. The A record maps a name straight to an IPv4 address; if your server has IPv6, an <code>AAAA</code> record does the same for it. A CNAME maps a name to <em>another name</em> rather than an IP, which is why <code>www</code> can follow the apex around if the underlying IP ever changes.</p>
+
+  <!-- ADD IMAGE: swap for a real <figure> with an <img> (src -> images/domain-aliases.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Domain Aliases screen with the apex and www domains added, so readers see where the domain goes in the console.</em><small>Grounds Stage 1. Use your own screenshot.</small></span></figure>
+
+  <h2>Stage 2: let DNS propagate (the honest wait)</h2>
+  <p>You saved the records. The domain still doesn't load your app. Don't panic, and don't start changing things. DNS changes take time to spread across the internet's resolvers. Sometimes it's a couple of minutes. Sometimes it's a few hours. That window is baked into how DNS works, and no host or registrar can make a global change instant. This is genuinely out of everyone's hands, including ours, so anyone promising instant propagation is bluffing.</p>
+  <p>If you know in advance you'll be changing records, lowering the record's <strong>TTL</strong> (time to live) a day beforehand shortens the cache window and speeds the eventual switch. Otherwise, the move is simply to wait, then check whether the name now resolves to your server's IP with any DNS lookup tool before you go looking for a problem that isn't there.</p>
+
+  <h2>Stage 3: issue the free SSL certificate</h2>
+  <p>Once the domain resolves to your server, secure it. Kloudbean issues free <strong>Let's Encrypt</strong> certificates: you request one for your domain in the console and it's installed for you. Let's Encrypt is the certificate authority a huge share of the web already runs on, so "free" here doesn't mean second-rate. It means the padlock and encrypted connections at no cost.</p>
+  <p>Here's why the order in that diagram is non-negotiable, and it's the single most common support pattern I've seen around SSL: issuing a certificate proves you control the domain, and Let's Encrypt proves it by checking that the domain points where it should (the ACME challenge). If DNS hasn't propagated, that check can't pass, and issuance fails. So when someone says "my SSL certificate won't issue," the honest first answer, nine times out of ten, is "your DNS isn't pointing at the server yet." Confirm the domain resolves to your IP, then request the certificate again. If it resolves fine and issuance still fails, look for a <strong>CAA record</strong> on the domain, an older DNS record that restricts which authorities may issue certs and can quietly lock Let's Encrypt out. A deeper walkthrough of the failure cases lives in <a href="https://www.kloudbean.com/blog/fix-ssl-certificate-errors/">fixing SSL certificate errors</a>.</p>
+
+  <h2>Stage 4: force HTTPS and let it renew itself</h2>
+  <p>With the certificate installed, your site answers on <code>https://</code>. One thing left: make sure everyone lands there. Redirect <code>http://</code> to <code>https://</code> so nobody hits the insecure version, and search engines treat the secure URL as canonical. Most setups flip this with a single toggle.</p>
+  <p>After that, renewal is not your job. Let's Encrypt certificates are short-lived by design, and on a managed platform they renew automatically before they expire. You set this up once and stop thinking about it. That's a real difference from running a bare VPS, where renewal is a cron job you write, babysit, and get paged about when it silently fails.</p>
+
+  <!-- ADD IMAGE: swap for a real <figure> with an <img> (src -> images/padlock.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>The browser address bar showing your own domain with the HTTPS padlock, the payoff shot for the whole guide.</em><small>Use a screenshot of your live site.</small></span></figure>
+
+  <h2>Don't pay for a basic SSL certificate</h2>
+  <p>Time for an opinion, because people still get talked into this. For a normal web app, a paid "basic" SSL certificate buys you nothing a free Let's Encrypt certificate doesn't already give you. The encryption is identical. The padlock is identical. Browsers don't rank one above the other. What you'd pay for is a domain-validated certificate that does exactly what the free one does, plus an annual renewal chore.</p>
+
+  <table class="cmp">
+    <thead><tr><th>&nbsp;</th><th>Paid "basic" (DV) certificate</th><th>Free Let's Encrypt</th></tr></thead>
+    <tbody>
+      <tr><td>Encryption strength</td><td>Standard TLS</td><td>Identical standard TLS</td></tr>
+      <tr><td>Browser padlock</td><td>Yes</td><td>Yes, the same one</td></tr>
+      <tr><td>Cost</td><td>An annual fee</td><td>Free</td></tr>
+      <tr><td>Renewal</td><td>You remember and re-buy</td><td>Automatic, before expiry</td></tr>
+    </tbody>
+  </table>
+  <p>There are narrow cases for paid certificates: an OV or EV certificate that validates your organization's legal identity, or a wildcard covering unlimited subdomains under one cert. If you have that need, buy it deliberately. For "I just want my app on HTTPS," the free certificate is the right call, full stop.</p>
+
+  <h2>Where custom domain and SSL setups actually break</h2>
+  <p>Almost every problem here is one of four, and none is a dead end. It's the ordinary friction of DNS and certificates, and it clears with the right record and a little patience.</p>
+  <ul>
+    <li><strong>The domain won't load.</strong> Almost always propagation. Confirm the A record points to the correct server IP, then give it time.</li>
+    <li><strong>The certificate won't issue.</strong> DNS hasn't propagated so the ACME challenge can't confirm control, or a CAA record is blocking Let's Encrypt. Confirm the domain resolves to your server, check for a CAA record, then request again.</li>
+    <li><strong>The padlock shows a warning.</strong> That's mixed content: your HTTPS page is pulling an image, script, or stylesheet over <code>http://</code>. Find the hard-coded <code>http://</code> reference and make it <code>https://</code> (or protocol-relative). It often pairs with tightening up your <a href="https://www.kloudbean.com/blog/security-headers-guide/">security headers</a>.</li>
+    <li><strong>www works but the apex doesn't</strong> (or the reverse). You only set up one. Add the DNS record for the other and include it in Domain Aliases.</li>
+  </ul>
+
+  <!-- ADD IMAGE: swap for a real <figure> with an <img> (src -> images/ssl-install.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>The SSL screen showing a free Let's Encrypt certificate issued and active, with auto-renew on.</em></span></figure>
+
+  <div class="note"><b>Running Cloudflare in front?</b> Two settings save a lot of head-scratching. While you issue your server's Let's Encrypt certificate, temporarily set the DNS record to "DNS only" (grey cloud) so the domain-control check reaches your server directly, then re-enable proxying. And set Cloudflare's SSL mode to "Full (strict)" so it validates your server's real certificate, never "Flexible," which leaves the hop between Cloudflare and your server unencrypted. Not using Cloudflare? A plain A record at your registrar is all you need. Ignore this.</div>
+
+  <h2>The honest limits</h2>
+  <p>On Kloudbean, adding a domain and issuing a free Let's Encrypt certificate are console operations on your <strong>Linux</strong> server, and renewal is automatic. Two honest notes. Propagation time is inherent to DNS, so a short wait after you change records is normal, not a red flag. And your DNS records live at your registrar, not in the hosting console: the console tells the server which domains to answer for and handles the certificate, but the actual A and CNAME records are managed wherever the domain is registered. Get those two right and HTTPS for your deployed app is a few calm steps. If you built in a tool like Lovable, the whole deploy-then-domain path is in <a href="https://www.kloudbean.com/blog/deploy-lovable-app-to-your-own-server/">deploying a Lovable app to your own server</a>, and once the domain's live you'll want <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">auto-deploy from GitHub</a> so updates ship on every push.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Your address. The padlock. Done.</p>
+    <p style="margin:0">Point your domain and issue free SSL at <a href="https://www.kloudbean.com/">kloudbean.com</a>, with a free trial and your first migration done for you. The full deploy path is in the <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploy guide</a>; server sizes are on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I put my app on my own domain?</h3>
+    <p>Add the domain under Domain Aliases in your hosting console, then create a DNS A record at your registrar pointing the domain to your server's IP address (and a CNAME for <code>www</code>). Once DNS propagates, the domain serves your app. Then issue an SSL certificate for HTTPS.</p>
+    <h3>Is the SSL certificate really free?</h3>
+    <p>Yes. Kloudbean issues free Let's Encrypt certificates, the same authority much of the web uses, and renews them automatically. Free here means no cost for the padlock and encryption, not a lesser certificate. For a standard app there's no reason to buy a basic paid one.</p>
+    <h3>Why won't my SSL certificate issue?</h3>
+    <p>Almost always because DNS hasn't propagated yet, so the domain-control check can't confirm your domain points to the server. Verify the domain resolves to your server's IP first. If it does and issuance still fails, check for a CAA record on the domain that may be blocking Let's Encrypt, then request again.</p>
+    <h3>How long does DNS take to propagate?</h3>
+    <p>Anywhere from a few minutes to a few hours, occasionally longer. It's inherent to how DNS spreads across the internet and isn't something a host or registrar can make instant. Point the records, then give it time before you troubleshoot.</p>
+    <h3>Should I use www or the bare domain?</h3>
+    <p>Either is fine. Just pick one as primary and redirect the other to it so your site isn't split across two addresses. Add both in Domain Aliases, choose a canonical one, and redirect the other.</p>
+    <h3>My padlock shows "Not Secure" even with a certificate. Why?</h3>
+    <p>That's usually mixed content: the page loads over HTTPS but pulls an asset (an image, script, or stylesheet) over plain <code>http://</code>. Find the hard-coded <code>http://</code> reference in your code and switch it to <code>https://</code>, and the warning clears.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Add a Custom Domain and Free SSL to Your App","description":"The DNS-to-HTTPS path for a custom domain and SSL for an app: point DNS, issue a free Let's Encrypt certificate, force HTTPS, and fix the reason a certificate won't issue.","image":"https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I put my app on my own domain?","acceptedAnswer":{"@type":"Answer","text":"Add the domain under Domain Aliases in your hosting console, then create a DNS A record at your registrar pointing the domain to your server's IP address (and a CNAME for www). Once DNS propagates, the domain serves your app. Then issue an SSL certificate for HTTPS."}},
+{"@type":"Question","name":"Is the SSL certificate really free?","acceptedAnswer":{"@type":"Answer","text":"Yes. Kloudbean issues free Let's Encrypt certificates, the same authority much of the web uses, and renews them automatically. Free here means no cost for the padlock and encryption, not a lesser certificate. For a standard app there is no reason to buy a basic paid one."}},
+{"@type":"Question","name":"Why won't my SSL certificate issue?","acceptedAnswer":{"@type":"Answer","text":"Almost always because DNS hasn't propagated yet, so the domain-control check can't confirm your domain points to the server. Verify the domain resolves to your server's IP first. If it does and issuance still fails, check for a CAA record on the domain that may be blocking Let's Encrypt, then request again."}},
+{"@type":"Question","name":"How long does DNS take to propagate?","acceptedAnswer":{"@type":"Answer","text":"Anywhere from a few minutes to a few hours, occasionally longer. It is inherent to how DNS spreads across the internet and is not something a host or registrar can make instant. Point the records, then give it time before you troubleshoot."}},
+{"@type":"Question","name":"Should I use www or the bare domain?","acceptedAnswer":{"@type":"Answer","text":"Either is fine. Just pick one as primary and redirect the other to it so your site is not split across two addresses. Add both in Domain Aliases, choose a canonical one, and redirect the other."}},
+{"@type":"Question","name":"My padlock shows Not Secure even with a certificate. Why?","acceptedAnswer":{"@type":"Answer","text":"That is usually mixed content: the page loads over HTTPS but pulls an asset (an image, script, or stylesheet) over plain http. Find the hard-coded http reference in your code and switch it to https, and the warning clears."}}
+]}
+]}
+</script>
+</body>
+</html>

@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security Headers: The Checklist That Turns an F into an A</title>
+<meta name="description" content="Got a bad grade from a security headers scanner? Here are the HTTP security headers that matter, with real Nginx values you can paste, why CSP breaks sites, and how to roll it out safely.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/security-headers-guide/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Security Headers: The Checklist That Turns an F into an A">
+<meta property="og:description" content="Every core HTTP security header with real values, what each one stops, why CSP is the hard one, and where to set them on a Linux stack.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Security &amp; scaling</span>
+  <h1>Security Headers: The Checklist That Turns an F into an A</h1>
+
+  <figure><img src="images/hero.png" alt="Security headers: the short checklist that hardens any site"></figure>
+
+  <p class="lead">You ran your site through a free scanner and it handed you an F. Rude. But also the easiest security win you'll get all week. <strong>Security headers</strong> are short instructions your server attaches to every response, telling the browser to behave more carefully, and switching on the right ones takes minutes and closes off whole classes of attack.</p>
+
+  <p>This is the working checklist: each HTTP security header, what it actually stops, the real value to set, and the one that needs care before you flip it on. Five of them you can turn on today without breaking a thing. One of them can break your own site if you rush it, so I'll be honest about which is which.</p>
+
+  <div class="tldr">
+    <strong>Short version</strong>
+    <p>Turn on five headers now: <code>Strict-Transport-Security</code>, <code>X-Content-Type-Options: nosniff</code>, <code>X-Frame-Options: SAMEORIGIN</code>, <code>Referrer-Policy</code>, and <code>Permissions-Policy</code>. They're low risk and rarely break anything. Then treat <code>Content-Security-Policy</code> as a small project: start it in report-only mode so it can't break your scripts, tune it against real traffic, and only then enforce. HSTS needs HTTPS first, which is free on any decent host.</p>
+  </div>
+
+  <h2>If you just want to paste something</h2>
+  <p>Fine. Here's a sensible Nginx block that lifts most sites straight to a good grade. Drop it in your <code>server { }</code> block and reload.</p>
+  <pre><code># the five safe ones
+add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+add_header X-Content-Type-Options "nosniff" always;
+add_header X-Frame-Options "SAMEORIGIN" always;
+add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+
+# CSP: start in report-only so it CANNOT break your site
+add_header Content-Security-Policy-Report-Only "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'" always;</code></pre>
+  <p>One detail people miss and then spend an hour debugging: that <code>always</code> keyword matters. Without it, Nginx skips <code>add_header</code> on error responses like 404s and 500s, so your headers vanish on exactly the pages an attacker probes. Keep <code>always</code> on every line.</p>
+  <p>On Apache the same idea, different syntax:</p>
+  <pre><code>Header always set X-Content-Type-Options "nosniff"
+Header always set X-Frame-Options "SAMEORIGIN"
+Header always set Referrer-Policy "strict-origin-when-cross-origin"</code></pre>
+  <p>On a Node app, the <code>helmet</code> middleware sets most of these for you with <code>app.use(helmet())</code>. Same headers, set in code instead of the web server. Pick whichever layer owns your responses.</p>
+
+  <h2>One thing has to be true first: HTTPS</h2>
+  <p>None of this means much without <strong>HTTPS</strong>. Security headers assume an encrypted connection, and the most important one flat out enforces it. If your site still answers on plain <code>http://</code>, fix that first. It's free and automatic on any decent host with a Let's Encrypt certificate, and it's the prerequisite for HSTS below. If you're wrestling with certificate warnings, we wrote up the common ones in <a href="https://www.kloudbean.com/blog/fix-ssl-certificate-errors/">fixing SSL certificate errors</a>, and the setup itself in <a href="https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/">custom domain and SSL for your app</a>.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 384" width="100%" role="img" aria-label="A mapping diagram. On the left, six HTTP security headers. On the right, the specific attack each one blocks. Strict-Transport-Security stops HTTPS downgrade and SSL strip. Content-Security-Policy stops cross-site scripting. X-Content-Type-Options stops MIME-type sniffing. X-Frame-Options stops clickjacking. Referrer-Policy stops URL and referrer leakage. Permissions-Policy stops camera, microphone, and geolocation abuse.">
+      <rect x="1" y="1" width="718" height="382" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="360" y="34" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="16" font-weight="700" fill="#000f27">Each header shuts one specific door</text>
+      <text x="149" y="62" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="600" fill="#4F1AF3">THE HEADER</text>
+      <text x="571" y="62" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="600" fill="#5b6a86">WHAT IT STOPS</text>
+
+      <g font-family="Poppins,Arial,sans-serif" font-size="12.5">
+        <rect x="24" y="76" width="250" height="40" rx="8" fill="#efeaff" stroke="#d7ccff"/><text x="40" y="101" fill="#000f27">Strict-Transport-Security</text>
+        <line x1="274" y1="96" x2="440" y2="96" stroke="#40b75f" stroke-width="2"/><polygon points="440,91 451,96 440,101" fill="#40b75f"/>
+        <rect x="452" y="76" width="244" height="40" rx="8" fill="#eaf7ef" stroke="#cdebd6"/><text x="468" y="101" fill="#000f27">HTTPS downgrade / SSL strip</text>
+
+        <rect x="24" y="126" width="250" height="40" rx="8" fill="#efeaff" stroke="#d7ccff"/><text x="40" y="151" fill="#000f27">Content-Security-Policy</text>
+        <line x1="274" y1="146" x2="440" y2="146" stroke="#40b75f" stroke-width="2"/><polygon points="440,141 451,146 440,151" fill="#40b75f"/>
+        <rect x="452" y="126" width="244" height="40" rx="8" fill="#eaf7ef" stroke="#cdebd6"/><text x="468" y="151" fill="#000f27">Cross-site scripting (XSS)</text>
+
+        <rect x="24" y="176" width="250" height="40" rx="8" fill="#efeaff" stroke="#d7ccff"/><text x="40" y="201" fill="#000f27">X-Content-Type-Options</text>
+        <line x1="274" y1="196" x2="440" y2="196" stroke="#40b75f" stroke-width="2"/><polygon points="440,191 451,196 440,201" fill="#40b75f"/>
+        <rect x="452" y="176" width="244" height="40" rx="8" fill="#eaf7ef" stroke="#cdebd6"/><text x="468" y="201" fill="#000f27">MIME-type sniffing</text>
+
+        <rect x="24" y="226" width="250" height="40" rx="8" fill="#efeaff" stroke="#d7ccff"/><text x="40" y="251" fill="#000f27">X-Frame-Options</text>
+        <line x1="274" y1="246" x2="440" y2="246" stroke="#40b75f" stroke-width="2"/><polygon points="440,241 451,246 440,251" fill="#40b75f"/>
+        <rect x="452" y="226" width="244" height="40" rx="8" fill="#eaf7ef" stroke="#cdebd6"/><text x="468" y="251" fill="#000f27">Clickjacking</text>
+
+        <rect x="24" y="276" width="250" height="40" rx="8" fill="#efeaff" stroke="#d7ccff"/><text x="40" y="301" fill="#000f27">Referrer-Policy</text>
+        <line x1="274" y1="296" x2="440" y2="296" stroke="#40b75f" stroke-width="2"/><polygon points="440,291 451,296 440,301" fill="#40b75f"/>
+        <rect x="452" y="276" width="244" height="40" rx="8" fill="#eaf7ef" stroke="#cdebd6"/><text x="468" y="301" fill="#000f27">URL / referrer leakage</text>
+
+        <rect x="24" y="326" width="250" height="40" rx="8" fill="#efeaff" stroke="#d7ccff"/><text x="40" y="351" fill="#000f27">Permissions-Policy</text>
+        <line x1="274" y1="346" x2="440" y2="346" stroke="#40b75f" stroke-width="2"/><polygon points="440,341 451,346 440,351" fill="#40b75f"/>
+        <rect x="452" y="326" width="244" height="40" rx="8" fill="#eaf7ef" stroke="#cdebd6"/><text x="468" y="351" fill="#000f27">Camera, mic, geo abuse</text>
+      </g>
+    </svg>
+    <figcaption>Six headers, six doors. Five of them are safe to set today; CSP is the one that rewards a careful rollout.</figcaption>
+  </figure>
+
+  <h2>The security headers, one by one</h2>
+
+  <h3>Strict-Transport-Security (HSTS)</h3>
+  <p>Forces browsers to only ever reach your site over HTTPS, even if someone types <code>http://</code> or clicks an old link. Once a browser has seen the header, it refuses an insecure connection to your domain, which kills SSL-strip and downgrade attacks. Set <code>max-age=31536000; includeSubDomains</code> (that's a year). One caution: HSTS is sticky. Browsers remember it for the whole <code>max-age</code>, so only add <code>includeSubDomains</code> once every subdomain is genuinely on HTTPS, or you'll lock out the ones that aren't. There's also an optional <code>preload</code> token that bakes your domain into browsers directly, but don't add it until you're certain, because getting off the preload list is slow.</p>
+
+  <h3>Content-Security-Policy (CSP)</h3>
+  <p>Controls exactly which sources of scripts, styles, images, and other content the browser may load. This is the heavyweight against <strong>cross-site scripting</strong>. Even if an attacker manages to inject a <code>&lt;script&gt;</code>, a good CSP stops the browser from running it. It's also the one header that can break your own site, so it gets its own section below. Don't paste a strict CSP straight into production and hope.</p>
+
+  <h3>X-Content-Type-Options</h3>
+  <p>One value, <code>nosniff</code>, and you're done. It tells browsers to stop guessing the type of a file. Without it, a browser might decide an uploaded image is actually JavaScript and run it. With it, the declared content type is respected and that trick dies. No downside, no tuning. Set it and move on.</p>
+
+  <h3>X-Frame-Options</h3>
+  <p>Stops other sites from loading yours inside an invisible frame to trick your users into clicking things they can't see. That's <strong>clickjacking</strong>. Use <code>SAMEORIGIN</code> for most sites (you can still frame your own pages) or <code>DENY</code> if you never frame yourself. Modern browsers also honor the CSP directive <code>frame-ancestors 'self'</code>, which does the same job with more control. Setting both is common and harmless; older browsers read one, newer ones read the other.</p>
+
+  <h3>Referrer-Policy</h3>
+  <p>Controls how much of your URL gets sent to another site when a user clicks away. URLs sometimes carry things you'd rather not leak, like tokens or IDs in a query string. The value <code>strict-origin-when-cross-origin</code> is a good private default: it sends the full path within your own site and only the bare origin to everyone else.</p>
+
+  <h3>Permissions-Policy</h3>
+  <p>Switches off browser features your site never uses, so nothing sneaky can quietly ask for them. If you don't use the camera, microphone, or geolocation, disable them outright: <code>camera=(), microphone=(), geolocation=()</code>. Free protection for features you weren't going to touch anyway.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Header</th><th>Stops</th><th>Effort</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Strict-Transport-Security</strong></td><td>HTTPS downgrade, SSL strip</td><td>Set and forget (needs HTTPS)</td></tr>
+      <tr><td><strong>X-Content-Type-Options</strong></td><td>MIME sniffing</td><td>Set and forget</td></tr>
+      <tr><td><strong>X-Frame-Options</strong></td><td>Clickjacking</td><td>Set and forget</td></tr>
+      <tr><td><strong>Referrer-Policy</strong></td><td>URL leakage to third parties</td><td>Set and forget</td></tr>
+      <tr><td><strong>Permissions-Policy</strong></td><td>Camera, mic, geolocation abuse</td><td>Set and forget</td></tr>
+      <tr><td><strong>Content-Security-Policy</strong></td><td>Cross-site scripting (XSS)</td><td>A project: report-only, then enforce</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Cookies ride along with these</h2>
+  <p>Headers harden the page. Your cookies deserve the same treatment, because a stolen session cookie is a logged-in attacker. Three flags do the heavy lifting. <code>HttpOnly</code> keeps JavaScript from reading a cookie, which blunts what an XSS attack can steal. <code>Secure</code> means the cookie only travels over HTTPS. <code>SameSite=Lax</code> (or <code>Strict</code>) limits when the cookie is sent cross-site, which takes the edge off CSRF. If you run WordPress, a lot of this is handled for you, and the plugin side is covered in <a href="https://www.kloudbean.com/blog/secure-wordpress-hosting/">secure WordPress hosting</a>.</p>
+
+  <!-- swap this slot for a real screenshot: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A securityheaders.com scan of your site before and after: an F next to an A.</em><small>The before-and-after grade is the whole story in one picture.</small></span></figure>
+
+  <h2>Why CSP breaks your own site (and how to roll it out)</h2>
+  <p>CSP is the highest-value header and the one people quietly give up on. Here's why. A strict policy like <code>default-src 'self'</code> tells the browser to only run scripts served from your own domain. Great against attackers. Also fatal to your inline <code>&lt;script&gt;</code> tags, your analytics snippet, that one Stripe or Google widget, and any <code>onclick="..."</code> in your HTML. Ship that cold and half your site stops working.</p>
+  <p>So don't ship it cold. Roll it out in three steps:</p>
+  <ol>
+    <li><strong>Report-only first.</strong> Use <code>Content-Security-Policy-Report-Only</code>. The browser reports what <em>would</em> be blocked without blocking anything, so nothing breaks while you learn.</li>
+    <li><strong>Read the violations, then widen.</strong> Add the legitimate sources your site actually needs (your CDN, your payment widget). Use a <code>nonce</code> or a hash for inline scripts you can't remove rather than opening the floodgates.</li>
+    <li><strong>Enforce.</strong> Once the reports are quiet, switch the header from report-only to <code>Content-Security-Policy</code> and you're protecting for real.</li>
+  </ol>
+  <p>The anti-pattern to avoid: slapping <code>'unsafe-inline'</code> on <code>script-src</code> to make the errors go away. That switch re-permits exactly the inline injection CSP exists to stop, so you've kept the header and thrown out the protection. If you must allow inline for styles, scope it there, not to scripts.</p>
+
+  <!-- swap this slot for a real screenshot: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>DevTools console showing Content-Security-Policy-Report-Only violations: the sources your policy would block, before you enforce.</em><small>This is the exact view you tune against. Worth a real screenshot.</small></span></figure>
+
+  <h2>Check your grade</h2>
+  <p>The feedback loop here is genuinely satisfying. Paste your URL into a free scanner like <strong>securityheaders.com</strong> or <strong>Mozilla Observatory</strong>, and it grades you and lists exactly what's missing. Add the flagged headers, reload your config, re-scan, and watch the letter climb. Few security tasks give you a visible score in under a minute, which is why this one's easy to knock out in a single sitting.</p>
+
+  <h2>Where you actually set them</h2>
+  <p>Headers live at the <strong>web server</strong> level (Nginx, Apache) or in your <strong>application's</strong> response config, and they apply to every response your site sends. On a managed stack you edit that config alongside your other app settings, reload, and the headers take effect immediately.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console: manage app configuration alongside your other settings">
+    <figcaption>Manage header and related config next to your other app settings, then reload so it applies to every response.</figcaption>
+  </figure>
+
+  <!-- swap this slot for a real screenshot: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your browser DevTools, Network tab, Response Headers: the security headers now present on a request.</em><small>Proof they're actually being sent. Optional but convincing.</small></span></figure>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>Security headers are your policy to write, and that stays true anywhere. What a managed stack removes is the friction around them. <strong>Free SSL</strong> gets you the HTTPS that HSTS depends on, and it renews itself. Sessions run on <strong>HttpOnly cookies</strong>, so the cookie side of this is already hardened. The Linux web-server stack underneath is kept patched, so you're setting headers on a current server rather than babysitting the OS too. You still own your CSP, because only you know which scripts your site legitimately loads. Fair split. Headers are a layer, not the whole fortress, so keep them next to the rest of your hygiene: patched software, strong logins, and the filtering in front covered in <a href="https://www.kloudbean.com/blog/what-a-waf-does/">what a WAF does</a> and <a href="https://www.kloudbean.com/blog/container-security-scanning/">container security scanning</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Turn that F into an A in one sitting.</p>
+    <p style="margin:0">Serve your site over HTTPS and set sensible security headers on a managed stack at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Free SSL · HttpOnly cookie sessions · Managed, patched stack · Automatic backups · Free migration · Free trial. Plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What are HTTP security headers?</h3>
+    <p>They're short instructions your server sends with each response that tell the browser to behave more safely: enforce HTTPS, restrict what content can load, block clickjacking, and more. Adding the right ones closes off whole categories of attack like cross-site scripting and clickjacking, and it usually takes minutes.</p>
+    <h3>Which security headers should I add first?</h3>
+    <p>Start with the five that rarely break anything: Strict-Transport-Security (HSTS), X-Content-Type-Options set to nosniff, X-Frame-Options set to SAMEORIGIN, Referrer-Policy, and Permissions-Policy. Add those today for an instant grade jump, then take on Content-Security-Policy as a separate, careful project.</p>
+    <h3>What is HSTS and how do I set it?</h3>
+    <p>HSTS (Strict-Transport-Security) tells browsers to only ever connect to your site over HTTPS. Set it with a max-age, a year is common, and add includeSubDomains once every subdomain is on HTTPS. It's sticky, so browsers remember it for the whole max-age. Only add the optional preload token when you're certain, because removing your domain from the preload list is slow.</p>
+    <h3>Why does Content-Security-Policy break my site?</h3>
+    <p>Because a strict policy only allows scripts and styles from sources you name, and most sites have inline scripts, analytics snippets, and third-party widgets that suddenly aren't allowed. Roll it out in report-only mode first so it reports violations without blocking, add the legitimate sources you actually use, then switch to enforcing. Avoid adding 'unsafe-inline' to script-src, since that re-opens the hole CSP exists to close.</p>
+    <h3>How do I check my site's security headers?</h3>
+    <p>Paste your URL into a free scanner like securityheaders.com or Mozilla Observatory. It grades your site and lists exactly which headers are missing or weak. Add the flagged headers, reload your web-server config, and re-scan to confirm the grade improves. It's a fast, visible feedback loop.</p>
+    <h3>Is X-Frame-Options still needed if I use CSP frame-ancestors?</h3>
+    <p>Modern browsers honor CSP's frame-ancestors directive, which supersedes X-Frame-Options and gives you more control. But older browsers still read X-Frame-Options, so setting both is common and harmless: newer clients use frame-ancestors, older ones fall back to X-Frame-Options. Together they cover clickjacking across the widest range of browsers.</p>
+    <h3>Do security headers require HTTPS?</h3>
+    <p>Effectively, yes. The headers assume an encrypted connection and HSTS literally enforces HTTPS, so it's meaningless without a valid certificate. Get your site onto HTTPS first, which is free and automatic with a Let's Encrypt certificate on most hosts, then layer the headers on top.</p>
+    <h3>Where do I set security headers?</h3>
+    <p>At the web-server level (Nginx add_header, Apache Header set) or in your application (for example the helmet middleware in Node). They apply to every response. Keep the always keyword on Nginx add_header lines so the headers are also sent on error responses like 404s and 500s, not just successful pages.</p>
+    <h3>What's the difference between X-Frame-Options DENY and SAMEORIGIN?</h3>
+    <p>DENY means your pages can't be framed by anyone, including you. SAMEORIGIN means your pages can only be framed by pages on your own domain, which is the right choice for most sites because you can still embed your own pages while blocking strangers. Pick DENY only if you never frame your own content anywhere.</p>
+    <h3>Do security headers replace a WAF or secure code?</h3>
+    <p>No. Headers are instructions to the browser, so they're one layer of defense in depth, not the whole thing. They complement, rather than replace, keeping software patched, writing secure code, using strong authentication, and filtering malicious traffic with a web application firewall. Add the headers, and keep the rest of your hygiene up too.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Headers that quietly protect you.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Security Headers: The Checklist That Turns an F into an A","description":"Every core HTTP security header with real values, what each one stops, why CSP is the hard one, and where to set them on a Linux stack.","image":"https://www.kloudbean.com/blog/security-headers-guide/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/security-headers-guide/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What are HTTP security headers?","acceptedAnswer":{"@type":"Answer","text":"They're short instructions your server sends with each response that tell the browser to behave more safely: enforce HTTPS, restrict what content can load, block clickjacking, and more. Adding the right ones closes off whole categories of attack like cross-site scripting and clickjacking, and it usually takes minutes."}},
+{"@type":"Question","name":"Which security headers should I add first?","acceptedAnswer":{"@type":"Answer","text":"Start with the five that rarely break anything: Strict-Transport-Security (HSTS), X-Content-Type-Options set to nosniff, X-Frame-Options set to SAMEORIGIN, Referrer-Policy, and Permissions-Policy. Add those today for an instant grade jump, then take on Content-Security-Policy as a separate, careful project."}},
+{"@type":"Question","name":"What is HSTS and how do I set it?","acceptedAnswer":{"@type":"Answer","text":"HSTS (Strict-Transport-Security) tells browsers to only ever connect to your site over HTTPS. Set it with a max-age, a year is common, and add includeSubDomains once every subdomain is on HTTPS. It's sticky, so browsers remember it for the whole max-age. Only add the optional preload token when you're certain, because removing your domain from the preload list is slow."}},
+{"@type":"Question","name":"Why does Content-Security-Policy break my site?","acceptedAnswer":{"@type":"Answer","text":"Because a strict policy only allows scripts and styles from sources you name, and most sites have inline scripts, analytics snippets, and third-party widgets that suddenly aren't allowed. Roll it out in report-only mode first so it reports violations without blocking, add the legitimate sources you actually use, then switch to enforcing. Avoid adding unsafe-inline to script-src, since that re-opens the hole CSP exists to close."}},
+{"@type":"Question","name":"How do I check my site's security headers?","acceptedAnswer":{"@type":"Answer","text":"Paste your URL into a free scanner like securityheaders.com or Mozilla Observatory. It grades your site and lists exactly which headers are missing or weak. Add the flagged headers, reload your web-server config, and re-scan to confirm the grade improves. It's a fast, visible feedback loop."}},
+{"@type":"Question","name":"Is X-Frame-Options still needed if I use CSP frame-ancestors?","acceptedAnswer":{"@type":"Answer","text":"Modern browsers honor CSP's frame-ancestors directive, which supersedes X-Frame-Options and gives you more control. But older browsers still read X-Frame-Options, so setting both is common and harmless: newer clients use frame-ancestors, older ones fall back to X-Frame-Options. Together they cover clickjacking across the widest range of browsers."}},
+{"@type":"Question","name":"Do security headers require HTTPS?","acceptedAnswer":{"@type":"Answer","text":"Effectively, yes. The headers assume an encrypted connection and HSTS literally enforces HTTPS, so it's meaningless without a valid certificate. Get your site onto HTTPS first, which is free and automatic with a Let's Encrypt certificate on most hosts, then layer the headers on top."}},
+{"@type":"Question","name":"Where do I set security headers?","acceptedAnswer":{"@type":"Answer","text":"At the web-server level (Nginx add_header, Apache Header set) or in your application (for example the helmet middleware in Node). They apply to every response. Keep the always keyword on Nginx add_header lines so the headers are also sent on error responses like 404s and 500s, not just successful pages."}},
+{"@type":"Question","name":"What's the difference between X-Frame-Options DENY and SAMEORIGIN?","acceptedAnswer":{"@type":"Answer","text":"DENY means your pages can't be framed by anyone, including you. SAMEORIGIN means your pages can only be framed by pages on your own domain, which is the right choice for most sites because you can still embed your own pages while blocking strangers. Pick DENY only if you never frame your own content anywhere."}},
+{"@type":"Question","name":"Do security headers replace a WAF or secure code?","acceptedAnswer":{"@type":"Answer","text":"No. Headers are instructions to the browser, so they're one layer of defense in depth, not the whole thing. They complement, rather than replace, keeping software patched, writing secure code, using strong authentication, and filtering malicious traffic with a web application firewall. Add the headers, and keep the rest of your hygiene up too."}}
+]}
+]}
+</script>
+</body>
+</html>

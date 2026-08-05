@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deploy a Lovable App to Your Own Server: the Supabase Half People Forget</title>
+<meta name="description" content="A Lovable app is a React frontend wired to a Supabase backend. Here's how to deploy a Lovable app to a server you own, keep or move Supabase, get your VITE_ env vars right, and go live with SSL.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/deploy-lovable-app-to-your-own-server/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Deploy a Lovable App to Your Own Server: the Supabase Half People Forget">
+<meta property="og:description" content="Lovable builds a React frontend on a Supabase backend. Here's how to deploy it to a server you own — keep or move Supabase, set VITE_ vars right, go live with SSL.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{ --navy:#000f27; --ink:#1c2536; --muted:#5b6a86; --purple:#4F1AF3; --green:#40b75f; --line:#e6e9f2; --bg-soft:#f6f7fb; }
+  *{box-sizing:border-box}
+  body{ margin:0; background:#fff; color:var(--ink); font-family:"Poppins","Segoe UI",system-ui,-apple-system,Arial,sans-serif; line-height:1.72; font-size:18px; -webkit-font-smoothing:antialiased; }
+  .wrap{max-width:760px; margin:0 auto; padding:40px 22px 80px}
+  .eyebrow{ display:inline-block; font-size:12px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:var(--purple); border:1px solid var(--line); background:var(--bg-soft); padding:5px 12px; border-radius:999px; margin-bottom:18px; }
+  h1{ font-size:clamp(30px,5vw,44px); line-height:1.12; font-weight:700; letter-spacing:-.02em; color:var(--navy); margin:.1em 0 .5em; }
+  h2{ font-size:clamp(23px,3.4vw,29px); font-weight:700; letter-spacing:-.01em; color:var(--navy); margin:2.2em 0 .6em; padding-left:14px; border-left:4px solid var(--purple); }
+  h3{ font-size:20px; font-weight:700; color:var(--navy); margin:1.6em 0 .3em; }
+  p{margin:0 0 1.15em}
+  a{color:var(--purple); text-decoration:none; border-bottom:1px solid rgba(79,26,243,.35)}
+  a:hover{border-bottom-color:var(--purple)}
+  strong{color:var(--navy)}
+  ul{margin:0 0 1.3em; padding-left:0; list-style:none}
+  ul li{position:relative; padding-left:26px; margin:0 0 .7em}
+  ul li::before{content:""; position:absolute; left:2px; top:.62em; width:8px; height:8px; border-radius:2px; background:var(--purple); transform:rotate(45deg)}
+  figure{margin:2em 0}
+  figure img{width:100%; height:auto; display:block; border-radius:16px; border:1px solid var(--line)}
+  figcaption{font-size:14px; color:var(--muted); text-align:center; margin-top:10px}
+  .lead{font-size:20px; color:#2a3550}
+  code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace; font-size:.88em; background:var(--bg-soft); border:1px solid var(--line); border-radius:6px; padding:1px 6px}
+  pre{background:var(--navy); color:#e8ecfb; border-radius:12px; padding:18px 20px; overflow:auto; font-size:14.5px; line-height:1.6}
+  pre code{background:none;border:none;padding:0;color:inherit;font-size:inherit}
+  .tldr{background:var(--bg-soft); border:1px solid var(--line); border-left:4px solid var(--green); border-radius:12px; padding:16px 20px; margin:1.8em 0}
+  .tldr strong{color:var(--navy)}
+  .note{background:#faf8ff; border:1px solid #e7dfff; border-radius:12px; padding:14px 18px; margin:1.6em 0; font-size:16.5px}
+  .note b{color:var(--navy)}
+  table.cmp{width:100%; border-collapse:collapse; margin:1.6em 0; font-size:15.5px}
+  table.cmp th,table.cmp td{border:1px solid var(--line); padding:10px 12px; text-align:left; vertical-align:top}
+  table.cmp th{background:var(--navy); color:#fff; font-weight:600}
+  table.cmp tr:nth-child(even) td{background:var(--bg-soft)}
+  .faq h3{font-size:18px; margin:1.4em 0 .2em}
+  .cta{ margin:2.4em 0 0; padding:22px 24px; border-radius:16px; color:#fff; background:linear-gradient(135deg,var(--navy),#0a1f45); }
+  .cta a{color:#c9b8ff; border-bottom-color:rgba(201,184,255,.4)}
+  .byline{font-size:14px; color:var(--muted); border-top:1px solid var(--line); margin-top:2em; padding-top:14px}
+  /* image spacer: replace the whole <figure class="img-slot"> with a real <figure><img ...><figcaption>...</figcaption></figure> */
+  .img-slot{display:flex;align-items:center;justify-content:center;text-align:center;min-height:210px;margin:2em 0;padding:30px 24px;border:2px dashed #c9d0e3;border-radius:16px;background:repeating-linear-gradient(45deg,var(--bg-soft),var(--bg-soft) 14px,#eef1f8 14px,#eef1f8 28px);color:var(--muted)}
+  .img-slot > span{display:block;max-width:80%}
+  .img-slot b{display:block;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--purple);margin-bottom:8px}
+  .img-slot em{font-style:normal;font-size:15.5px;color:var(--ink);line-height:1.5}
+  .img-slot small{display:block;margin-top:8px;font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Shipping a Lovable app</span>
+  <h1>Deploy a Lovable App to Your Own Server: the Supabase Half People Forget</h1>
+
+  <figure><img src="images/hero.png" alt="Deploy a Lovable app on a server you own — the React frontend and the Supabase backend, both in one dashboard"></figure>
+
+  <p class="lead">Lovable builds fast. You describe an app and it ships a working React frontend, styled with Tailwind, wired to a Supabase backend for login, data, and file uploads. It runs on Lovable's own hosting by default. So when you decide to deploy a Lovable app to your own server, the frontend turns out to be the easy half. The backend is the half people forget. And it's the half that breaks.</p>
+
+  <p>This guide splits the job the way the app is actually split: where the static frontend goes, and where Supabase lives. Get both right and you're live on your own domain in an afternoon. Get only the frontend right and you'll ship a login button that spins forever and a dashboard with no data. Same app, half a deploy.</p>
+
+  <div class="tldr">
+    <strong>Short version:</strong> A Lovable app is a static React/Vite bundle plus a Supabase backend. Host the built frontend on free static hosting with SSL, then point it at a Supabase you control. Keep managed Supabase, or move the data into a managed Postgres. Set your <code>VITE_</code> variables before you build, and never put the Supabase <code>service_role</code> key in frontend env.
+  </div>
+
+  <h2>A Lovable app is two things wearing one URL</h2>
+  <p>Inside the Lovable editor it feels like a single thing. It isn't. There's a frontend, and there's a backend, and they only meet over the network. Naming the two halves is the whole trick to moving the app cleanly.</p>
+  <p>The <strong>frontend</strong> is a React app built with Vite and Tailwind. When you build it, Vite compiles everything down to a folder of plain static files: HTML, CSS, and JavaScript. No database, no secrets, no server logic. Just files a browser downloads.</p>
+  <p>The <strong>backend</strong> is Supabase. Lovable leans on it for the parts a static bundle can't do: user login, the Postgres database your data lives in, file storage, and sometimes Edge Functions for server-side logic. The frontend reaches all of that by calling your Supabase URL with a key that's baked into the build.</p>
+
+  <figure>
+    <svg viewBox="0 0 700 340" width="100%" role="img" aria-label="Diagram of a Lovable app split into a static React frontend on the left calling a Supabase backend on the right for auth, Postgres, storage, and edge functions.">
+      <rect x="1" y="1" width="698" height="338" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="350" y="30" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="16" font-weight="700" fill="#000f27">One Lovable app, two homes</text>
+      <text x="145" y="60" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#4F1AF3">THE FRONTEND</text>
+      <text x="551" y="60" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#40b75f">THE BACKEND (SUPABASE)</text>
+
+      <rect x="28" y="118" width="234" height="104" rx="10" fill="#f6f7fb" stroke="#e6e9f2"/>
+      <text x="145" y="156" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="14" font-weight="700" fill="#000f27">React + Vite + Tailwind</text>
+      <text x="145" y="180" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#1c2536">compiles to static files</text>
+      <text x="145" y="200" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" fill="#5b6a86">(a dist/ folder)</text>
+
+      <text x="300" y="104" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#5b6a86">SUPABASE_URL + anon key</text>
+
+      <g font-family="Poppins,Arial,sans-serif" font-size="13" fill="#1c2536">
+        <rect x="430" y="92" width="242" height="42" rx="8" fill="#eaf7ef" stroke="#cdebd6"/><text x="446" y="118">Auth (login and signup)</text>
+        <rect x="430" y="148" width="242" height="42" rx="8" fill="#eaf7ef" stroke="#cdebd6"/><text x="446" y="174">Postgres (your data)</text>
+        <rect x="430" y="204" width="242" height="42" rx="8" fill="#eaf7ef" stroke="#cdebd6"/><text x="446" y="230">Storage (file uploads)</text>
+        <rect x="430" y="260" width="242" height="42" rx="8" fill="#eaf7ef" stroke="#cdebd6"/><text x="446" y="286">Edge Functions (server logic)</text>
+      </g>
+
+      <g stroke="#4F1AF3" stroke-width="2" fill="none">
+        <line x1="262" y1="170" x2="424" y2="113"/>
+        <line x1="262" y1="170" x2="424" y2="169"/>
+        <line x1="262" y1="170" x2="424" y2="225"/>
+        <line x1="262" y1="170" x2="424" y2="281"/>
+      </g>
+      <g fill="#4F1AF3">
+        <polygon points="424,107 430,113 424,119"/>
+        <polygon points="424,163 430,169 424,175"/>
+        <polygon points="424,219 430,225 424,231"/>
+        <polygon points="424,275 430,281 424,287"/>
+      </g>
+    </svg>
+    <figcaption>The frontend is a bundle of static files. Everything dynamic (login, data, uploads, server logic) is a call to Supabase. Move the frontend and forget Supabase, and all four of those calls have nowhere to go.</figcaption>
+  </figure>
+
+  <h2>What breaks when you copy the frontend and forget the backend</h2>
+  <p>Picture the wrong version of this. You build the frontend, drop the static files on a host, point your domain at it, and load the page. The layout is perfect. Then you click Sign in, and nothing happens. That's not a broken deploy. That's a frontend with no backend to talk to.</p>
+  <p>Here's what each thing you touch in the app is really doing under the hood, and what you see when the backend half is missing or misconfigured.</p>
+
+  <table class="cmp">
+    <thead><tr><th>What you do in the app</th><th>What it actually calls</th><th>What you see if the backend is wrong</th></tr></thead>
+    <tbody>
+      <tr><td>Log in or sign up</td><td>Supabase Auth</td><td>The button spins, then nothing. The console shows a failed request to the Supabase URL.</td></tr>
+      <tr><td>Load a list or dashboard</td><td>Postgres, over Supabase's API</td><td>Empty screen, or a <code>401</code>. Often "permission denied" when a row-level policy is missing.</td></tr>
+      <tr><td>Upload an avatar or file</td><td>Supabase Storage</td><td>Upload fails, images render broken.</td></tr>
+      <tr><td>Trigger a server action</td><td>An Edge Function</td><td>A <code>404</code> on the function endpoint.</td></tr>
+      <tr><td>Anything, wrong address</td><td>The baked-in <code>VITE_SUPABASE_URL</code></td><td>The app talks to your old project, or to nowhere at all.</td></tr>
+    </tbody>
+  </table>
+
+  <p>The fix is never to rewrite the app. It's to give the frontend a real Supabase to talk to, then point the build at it. So the rest of this is about the backend half, plus the two settings that decide whether the frontend can even reach it.</p>
+
+  <h2>The Supabase key you must never ship to the browser</h2>
+  <p>Supabase hands you two API keys, and they are not interchangeable. Mixing them up is the single most dangerous mistake you can make while deploying a Lovable app, so it goes near the top.</p>
+  <p>The <strong>anon</strong> key (the public or publishable one) is designed to live in your frontend. It ships inside the JavaScript bundle, and that's fine. On its own it can't do much, because Supabase's Row Level Security decides what any request is allowed to read or write. Exposing the anon key is expected. It's how the browser talks to Supabase at all.</p>
+  <p>The <strong>service_role</strong> key is the opposite animal. It bypasses Row Level Security completely. It can read and write every row in every table, no questions asked. It belongs only on a server, in server-side environment variables, and it must never sit in anything prefixed <code>VITE_</code>.</p>
+  <p>The trap is subtle. You hit a <code>401</code> while testing, you're tired, and you "fix" it by dropping the <code>service_role</code> key into a <code>VITE_</code> variable so the request goes through. It does go through. It also compiles that god key straight into your public bundle, where anyone can open DevTools and copy it. That's a full-database leak, and it's one of the most common ways an AI-built app gets its data dumped. A <code>401</code> means a Row Level Security policy is missing. It does not mean you need the master key in the browser.</p>
+
+  <pre><code># Safe in the frontend build (public by design, guarded by RLS)
+VITE_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOi...   # anon / publishable
+
+# NEVER in a VITE_ variable. Server-side only.
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOi...   # bypasses Row Level Security</code></pre>
+
+  <p>If you want the wider mental model for what goes public and what stays secret, we wrote it up in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a>.</p>
+
+  <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Supabase project API settings page, with the anon key and service_role key side by side and labelled.</em><small>Readers recognize this screen. Optional.</small></span></figure>
+
+  <h2>Your VITE_ variables freeze at build time</h2>
+  <p>This one costs people an afternoon, so it's worth being blunt. Anything prefixed <code>VITE_</code> is read once, when Vite builds. The value gets stamped into the compiled JavaScript and then it's frozen. It is not read live when the app runs.</p>
+  <p>So the classic mistake goes like this: you deploy, the page is blank, you add <code>VITE_SUPABASE_URL</code> in the console, you reload, and nothing changes. Of course it doesn't. The old build already has the old value (or an empty one) baked in. Setting the variable after the build does nothing until you build again.</p>
+  <p>Set your <code>VITE_</code> variables first. Then build. If you added one late, just rebuild so it gets picked up. A blank white page, or an error like <code>supabaseUrl is required</code> thrown on load, almost always means the URL wasn't present at build time.</p>
+
+  <pre><code># set these FIRST, then build
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+npm run build   # values are now baked into dist/</code></pre>
+
+  <h2>Keep Supabase, or move to Postgres? Decide on purpose</h2>
+  <p>Once you're hosting the app yourself, you've got two honest options for the backend. Both are fine. They suit different apps, and picking the wrong one wastes a weekend.</p>
+  <p><strong>Option one: keep a managed Supabase.</strong> You keep Auth, Storage, Edge Functions, and the Postgres-with-RLS model exactly as Lovable built it. Nothing in the app changes. Kloudbean runs <a href="https://www.kloudbean.com/blog/self-host-supabase/">Supabase as a one-click managed app</a>, so it can sit in the same dashboard as the frontend, backed up and yours.</p>
+  <p><strong>Option two: move the data to a plain managed Postgres.</strong> You drop Supabase's auth, storage, and functions layer and own a straight <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed Postgres</a> database instead. Cleaner if you barely used those features. More work if you did, because you're now on the hook to replace login, uploads, and any function logic yourself.</p>
+  <p>My honest take: if your app leans on Supabase Auth and Storage, keep Supabase. Rewriting authentication just to say you're "on plain Postgres" is a lot of risk for very little gain, and auth is exactly the thing you don't want to hand-roll under deadline. If Supabase was really just a Postgres with a few tables, and you never touched RLS, auth, or storage, then a managed Postgres is simpler to reason about and one less moving part. Don't move off Supabase to prove a point. Move because the app is genuinely simpler without it.</p>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>Keep managed Supabase</th><th>Move to managed Postgres</th></tr></thead>
+    <tbody>
+      <tr><td>Login / auth</td><td>Works as-is</td><td>You rebuild it</td></tr>
+      <tr><td>File storage</td><td>Works as-is</td><td>You add object storage yourself</td></tr>
+      <tr><td>Server functions</td><td>Edge Functions stay</td><td>You move logic into your own API</td></tr>
+      <tr><td>Effort to switch</td><td>Low</td><td>Medium to high</td></tr>
+      <tr><td>Best when</td><td>You use auth, storage, or RLS</td><td>Supabase was basically just a database</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Deploying a Lovable app: the two halves, one dashboard</h2>
+  <p>Now the actual moves. The nice part of doing this on Kloudbean is that both halves, the frontend and the backend, live behind one login. No stitching three services together.</p>
+
+  <h3>Get the code out first</h3>
+  <p>Lovable can sync your project to GitHub. Connect it and push the full source to a repo you own. That repo, not the editor, becomes the thing you deploy. Do this even if you're not shipping today, because the moment the code is in your own GitHub you're no longer locked into anyone's hosting.</p>
+
+  <h3>Half one: host the built frontend</h3>
+  <p>Your Lovable frontend builds to a folder of static files. Two clean ways to serve it:</p>
+  <ul>
+    <li><strong>Free static site hosting.</strong> Point a custom domain at the built output, get a free SSL certificate, and there's built-in visit analytics. This fits the common Lovable shape, where the frontend is fully static and Supabase does everything dynamic.</li>
+    <li><strong>As a Node app over Git.</strong> If your project also runs a small Node server, connect the GitHub repo and let managed CI/CD build and ship it on every push, with the build log streaming live in the console.</li>
+  </ul>
+  <p>Either way, remember the rule from two sections up: set your <code>VITE_</code> variables before the build runs.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="Kloudbean Deploy Code / Git Deployment screen: connect the GitHub repo, choose the branch, set the runtime, and pull and deploy">
+    <figcaption>Deploy Code, then Git Deployment: connect the repo Lovable synced to, pick the branch, and deploy. Auto-deploy on every push is a toggle here.</figcaption>
+  </figure>
+
+  <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>Kloudbean free static site hosting screen: the Lovable frontend deployed with a custom domain and the free SSL toggle on.</em><small>The static-hosting path for the frontend half.</small></span></figure>
+
+  <h3>Half two: give the frontend a Supabase to talk to</h3>
+  <p>Pick the backend you chose above.</p>
+  <ul>
+    <li><strong>Keeping Supabase?</strong> Launch a managed Supabase (one click) or point at your existing project. Put the project URL and anon key into the frontend build. Keep the <code>service_role</code> key server-side.</li>
+    <li><strong>Moving to Postgres?</strong> Launch a managed Postgres or MySQL from the console, import your data (next section), and point your server code at the connection string.</li>
+  </ul>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="Kloudbean Launch Database screen for creating a managed Postgres or MySQL instance next to the app">
+    <figcaption>Launch a managed database from the console when you're moving off Supabase, or run managed Supabase itself as a one-click app.</figcaption>
+  </figure>
+
+  <h3>Set the environment variables</h3>
+  <p>In <strong>Runtime Configuration, Environment Variables</strong>, there's a <strong>Paste .env Content</strong> tab. Drop your <code>.env</code> in, click <strong>Convert to Key/Value</strong>, and swap the dev values for the real ones. Frontend keys (<code>VITE_SUPABASE_URL</code>, <code>VITE_SUPABASE_ANON_KEY</code>) matter at build time. Server secrets (<code>service_role</code>, any <code>DATABASE_URL</code>) are read at runtime and stay out of the repo.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="Kloudbean environment variables editor showing a paste .env content tab and a key value list">
+    <figcaption>Environment variables live in the console, not in the repo. Paste your .env, then replace the dev values with production ones.</figcaption>
+  </figure>
+
+  <h3>Domain, SSL, and auto-deploy</h3>
+  <p>Add your custom domain under <strong>Domain Aliases</strong>, point its DNS at the server, and install a free Let's Encrypt certificate so it's HTTPS and renews itself. Turn on automated deployment and every push to your branch rebuilds and ships. From then on, updating production is just <code>git push</code>, the same loop you'd get from a per-app platform, except it's <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">running on a server you own</a>.</p>
+
+  <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your Lovable app live on its custom domain, logged in, with real data loading and the SSL padlock in the address bar.</em><small>The payoff shot: frontend and backend talking to each other.</small></span></figure>
+
+  <h2>Bringing your Supabase data across (only if you're moving it)</h2>
+  <p>Skip this if you're keeping Supabase. If you're moving to a plain Postgres, or to a fresh Supabase project, the data has to come with you on purpose. The good news: Supabase is Postgres underneath, so this is an ordinary dump and restore.</p>
+
+  <pre><code># pull everything from the old database
+pg_dump "postgresql://postgres:PASS@db.OLD-PROJECT.supabase.co:5432/postgres" \
+  --no-owner --no-privileges -Fc -f lovable.dump
+
+# load it into the new managed database
+pg_restore --no-owner --no-privileges \
+  -d "postgresql://kb_user:PASS@127.0.0.1:5432/kb_appdb" lovable.dump</code></pre>
+
+  <p>One caveat that catches people: if you kept Supabase Auth, your users live in Supabase's <code>auth</code> schema, and a plain Postgres won't magically replace login. That's the same tradeoff from the decision table, just showing up at migration time. The full walkthrough is in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a>.</p>
+
+  <h2>When the first deploy misbehaves</h2>
+  <p>Three symptoms cover almost everything, and each points at one of the two halves.</p>
+  <ul>
+    <li><strong>Blank white page.</strong> A <code>VITE_</code> variable (usually the Supabase URL or anon key) wasn't set when you built. Rebuild with them in place.</li>
+    <li><strong>Login does nothing, or data returns a <code>401</code>.</strong> Either a Row Level Security policy is missing, the frontend is pointed at the wrong Supabase project, or the auth redirect URL still points at your old Lovable address. Add your new domain to Supabase's list of allowed redirect and site URLs. This last one trips up nearly every Supabase move, and it's a quick fix once you know to look for it.</li>
+    <li><strong>A <code>503</code> on a Node-server build.</strong> The process didn't start, usually a missing env var or a wrong start command. Read the app's own log at <code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/app.error.log</code>. The full playbook is in <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fixing a 503 after deploying</a>.</li>
+  </ul>
+
+  <h2>What you own, and what's managed</h2>
+  <p>Kloudbean runs Linux stacks: the JavaScript toolkit Lovable uses (React, Vite, Node) plus PHP, Python, Ruby, and Java when you need them. That covers what Lovable builds for the web. It isn't for Windows or .NET workloads. "Managed" means the server, the stack, SSL, backups, and patching are handled. Your code stays in your repo and your data stays in a database you control. And because the frontend, the database or Supabase, and object storage all sit in one dashboard, your next Lovable project can share the same server instead of starting a new bill. If you'd rather see the tool-agnostic version that also covers Cursor, Bolt, and v0, that's the <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploy an AI-built app</a> guide. Hosting several apps on one box is covered in <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">app, API, and database on one server</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">You built the app. Now own where it runs.</p>
+    <p style="margin:0">Give your Lovable app a real home at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Free static hosting with SSL · One-click managed Supabase · Managed Postgres and MySQL · Free migration · Free trial · Git deploy. Sizes and plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Can I deploy a Lovable app without using Lovable's hosting?</h3>
+    <p>Yes. Sync your project to GitHub so the code is a repo you own, host the built React frontend on a server or static hosting you control, and point it at a Supabase you control. It's standard React and Vite code, so it runs anywhere.</p>
+
+    <h3>Do I have to move off Supabase to self-host a Lovable app?</h3>
+    <p>No. You can keep a managed Supabase and change nothing in the app, or move the data to a managed Postgres if you barely used Supabase's auth, storage, and functions. Keep Supabase if you rely on those features. Moving off it means rebuilding them.</p>
+
+    <h3>Is the Supabase anon key safe to expose in the frontend?</h3>
+    <p>Yes. The anon key is public by design and protected by Row Level Security, so it belongs in the frontend bundle. The key to protect is the service_role key, which bypasses RLS and must stay server-side, never in a VITE_ variable.</p>
+
+    <h3>Why is my deployed Lovable app a blank white page?</h3>
+    <p>Almost always a VITE_ variable that wasn't set at build time, usually the Supabase URL or anon key. VITE_ values are baked into the bundle when you build, not read at runtime, so set them first and then rebuild.</p>
+
+    <h3>My login or data returns a 401 after deploying, why?</h3>
+    <p>Three usual causes: a missing Row Level Security policy, the frontend pointed at the wrong Supabase project, or the auth redirect URL still pointing at your old Lovable domain. Add your new domain to Supabase's allowed redirect and site URLs.</p>
+
+    <h3>How do I move my Supabase data to a new database?</h3>
+    <p>Supabase is Postgres underneath, so use pg_dump on the old database and pg_restore into the managed one. Remember that a plain Postgres won't carry Supabase Auth users or Storage, so keep Supabase if you depend on those.</p>
+
+    <h3>Where do my Supabase URL and keys go on the server?</h3>
+    <p>The project URL and anon key go into the frontend build as VITE_ variables, set before you build. The service_role key and any database connection string are server-side runtime variables and never belong in a VITE_ variable or the repo.</p>
+
+    <h3>Do I keep ownership of my Lovable code and data?</h3>
+    <p>Yes. The code lives in your GitHub repo, the data in a database you own, on a server you can move whenever you like. There's no per-app pricing that climbs as you add projects.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.</p>
+</article>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Article",
+      "headline": "Deploy a Lovable App to Your Own Server: the Supabase Half People Forget",
+      "description": "A Lovable app is a React frontend wired to a Supabase backend. Here is how to deploy a Lovable app to a server you own, keep or move Supabase, get your VITE_ env vars right, and go live with SSL.",
+      "image": "https://www.kloudbean.com/blog/deploy-lovable-app-to-your-own-server/images/hero.png",
+      "author": { "@type": "Organization", "name": "Kloudbean", "url": "https://www.kloudbean.com/" },
+      "publisher": { "@type": "Organization", "name": "Kloudbean", "logo": { "@type": "ImageObject", "url": "https://www.kloudbean.com/logo.png" } },
+      "mainEntityOfPage": "https://www.kloudbean.com/blog/deploy-lovable-app-to-your-own-server/"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "Can I deploy a Lovable app without using Lovable's hosting?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Sync your project to GitHub so the code is a repo you own, host the built React frontend on a server or static hosting you control, and point it at a Supabase you control. It is standard React and Vite code, so it runs anywhere." } },
+        { "@type": "Question", "name": "Do I have to move off Supabase to self-host a Lovable app?", "acceptedAnswer": { "@type": "Answer", "text": "No. You can keep a managed Supabase and change nothing in the app, or move the data to a managed Postgres if you barely used Supabase's auth, storage, and functions. Keep Supabase if you rely on those features. Moving off it means rebuilding them." } },
+        { "@type": "Question", "name": "Is the Supabase anon key safe to expose in the frontend?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. The anon key is public by design and protected by Row Level Security, so it belongs in the frontend bundle. The key to protect is the service_role key, which bypasses RLS and must stay server-side, never in a VITE_ variable." } },
+        { "@type": "Question", "name": "Why is my deployed Lovable app a blank white page?", "acceptedAnswer": { "@type": "Answer", "text": "Almost always a VITE_ variable that was not set at build time, usually the Supabase URL or anon key. VITE_ values are baked into the bundle when you build, not read at runtime, so set them first and then rebuild." } },
+        { "@type": "Question", "name": "My login or data returns a 401 after deploying, why?", "acceptedAnswer": { "@type": "Answer", "text": "Three usual causes: a missing Row Level Security policy, the frontend pointed at the wrong Supabase project, or the auth redirect URL still pointing at your old Lovable domain. Add your new domain to Supabase's allowed redirect and site URLs." } },
+        { "@type": "Question", "name": "How do I move my Supabase data to a new database?", "acceptedAnswer": { "@type": "Answer", "text": "Supabase is Postgres underneath, so use pg_dump on the old database and pg_restore into the managed one. Remember that a plain Postgres will not carry Supabase Auth users or Storage, so keep Supabase if you depend on those." } },
+        { "@type": "Question", "name": "Where do my Supabase URL and keys go on the server?", "acceptedAnswer": { "@type": "Answer", "text": "The project URL and anon key go into the frontend build as VITE_ variables, set before you build. The service_role key and any database connection string are server-side runtime variables and never belong in a VITE_ variable or the repo." } },
+        { "@type": "Question", "name": "Do I keep ownership of my Lovable code and data?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. The code lives in your GitHub repo, the data in a database you own, on a server you can move whenever you like. There is no per-app pricing that climbs as you add projects." } }
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>

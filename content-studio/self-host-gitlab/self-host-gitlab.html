@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Self-Host GitLab Without Starving It</title>
+<meta name="description" content="Self-host GitLab and the software is free; you pay for a server. The catch nobody mentions: GitLab is RAM-hungry. Here's the honest hardware floor, who should do it, and how to size a managed server so it doesn't crawl.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/self-host-gitlab/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Self-Host GitLab Without Starving It">
+<meta property="og:description" content="The honest hardware floor for self-hosted GitLab, who should run it, and how to size a managed server so it doesn't crawl.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Self-hosted tools</span>
+  <h1>How to Self-Host GitLab Without Starving It</h1>
+
+  <figure><img src="images/hero.png" alt="Self-host GitLab: repos, CI/CD, and a container registry on a server you control"></figure>
+
+  <p class="lead">The number one mistake people make when they self-host GitLab isn't a bad config or a botched install. It's memory. They drop GitLab on a tiny 1 GB or 2 GB box to save a few dollars, then wonder why the UI hangs, pipelines stall, and the whole thing feels broken. It isn't broken. It's starving.</p>
+  <p>So this guide leads with the part that actually decides whether your self-hosted GitLab is a joy or a headache: how much server it needs, and why. Get that right and everything else is easy.</p>
+
+  <div class="tldr"><strong>Short version</strong><p>GitLab bundles a lot of services into one app, which makes it genuinely RAM-hungry. Treat 4 GB as the floor for a small team and 8 GB as comfortable; its own docs recommend more as you grow. Self-host it when you want to own your source and CI or dodge per-seat pricing, size the server properly, and give CI runners their own room.</p></div>
+
+  <h2>Why self-host GitLab at all</h2>
+  <p>GitLab sells two things: the software and the hosting of it. The software has a free self-managed tier you can run forever. The per-seat pricing lives on their cloud. So the real question isn't "is GitLab expensive," it's "do I want to run it myself on one server, or pay per person every month."</p>
+  <p>Good reasons to run it yourself:</p>
+  <ul>
+    <li><strong>Per-seat pricing stops scaling with headcount.</strong> A self-managed server costs the same whether five people push code or fifty. For a growing team, that flip pays off fast.</li>
+    <li><strong>You own the source and its history.</strong> For a lot of companies the repository is the company. Keeping it on infrastructure you control is a plain business decision, not paranoia.</li>
+    <li><strong>Data residency and compliance.</strong> Self-hosting lets you keep code, issues, and CI logs in a region and an account you choose.</li>
+    <li><strong>One place for everything.</strong> If you already run apps on a server, putting Git, CI, and your registry alongside them is tidy.</li>
+  </ul>
+  <p>And who should skip it? If you're a solo dev or a pair, GitLab.com's free tier is generous and running a server for two people is effort you don't need. If you never want to think about infrastructure, stay on their cloud. Both choices are fine. Only one stops billing you per person.</p>
+
+  <h2>What's actually inside GitLab (and why it's heavy)</h2>
+  <p>People picture GitLab as "a Git server with a nice UI." It's far more than that, and understanding the pieces explains the memory appetite. A single GitLab install quietly runs a stack of cooperating services:</p>
+
+  <figure>
+  <svg viewBox="0 0 720 372" role="img" aria-labelledby="gitlab-diagram-title" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#fff">
+    <title id="gitlab-diagram-title">GitLab bundles many services into one install, which is why it needs real RAM</title>
+    <rect x="26" y="44" width="392" height="300" rx="16" fill="#f6f7fb" stroke="#000f27" stroke-width="1.6"></rect>
+    <text x="222" y="72" text-anchor="middle" font-size="13.5" font-weight="700" fill="#000f27">One GitLab install bundles</text>
+    <rect x="46" y="86" width="168" height="58" rx="10" fill="#fff" stroke="#4F1AF3" stroke-width="2"></rect>
+    <text x="130" y="111" text-anchor="middle" font-size="12.5" font-weight="700" fill="#000f27">Repos (Gitaly)</text>
+    <text x="130" y="128" text-anchor="middle" font-size="10.5" fill="#5b6a86">git storage + access</text>
+    <rect x="230" y="86" width="168" height="58" rx="10" fill="#fff" stroke="#4F1AF3" stroke-width="2"></rect>
+    <text x="314" y="111" text-anchor="middle" font-size="12.5" font-weight="700" fill="#000f27">CI/CD (Sidekiq)</text>
+    <text x="314" y="128" text-anchor="middle" font-size="10.5" fill="#5b6a86">jobs + background work</text>
+    <rect x="46" y="154" width="168" height="58" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.4"></rect>
+    <text x="130" y="179" text-anchor="middle" font-size="12.5" font-weight="700" fill="#000f27">Container registry</text>
+    <text x="130" y="196" text-anchor="middle" font-size="10.5" fill="#5b6a86">your Docker images</text>
+    <rect x="230" y="154" width="168" height="58" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.4"></rect>
+    <text x="314" y="179" text-anchor="middle" font-size="12.5" font-weight="700" fill="#000f27">Issues + MRs</text>
+    <text x="314" y="196" text-anchor="middle" font-size="10.5" fill="#5b6a86">web UI (Puma)</text>
+    <rect x="46" y="222" width="168" height="58" rx="10" fill="#40b75f" stroke="#2f9c4c" stroke-width="1.4"></rect>
+    <text x="130" y="247" text-anchor="middle" font-size="12.5" font-weight="700" fill="#fff">PostgreSQL</text>
+    <text x="130" y="264" text-anchor="middle" font-size="10.5" fill="#eafff0">all its data</text>
+    <rect x="230" y="222" width="168" height="58" rx="10" fill="#40b75f" stroke="#2f9c4c" stroke-width="1.4"></rect>
+    <text x="314" y="247" text-anchor="middle" font-size="12.5" font-weight="700" fill="#fff">Redis</text>
+    <text x="314" y="264" text-anchor="middle" font-size="10.5" fill="#eafff0">cache + queues</text>
+    <text x="222" y="312" text-anchor="middle" font-size="11.5" fill="#5b6a86">All of this runs together on the same box.</text>
+    <text x="222" y="330" text-anchor="middle" font-size="11.5" font-weight="700" fill="#4F1AF3">That is why RAM, not disk, is the constraint.</text>
+    <rect x="486" y="44" width="72" height="300" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.2"></rect>
+    <rect x="488" y="250" width="68" height="92" rx="8" fill="#d9433f"></rect>
+    <rect x="488" y="168" width="68" height="82" fill="#e0a63b"></rect>
+    <rect x="488" y="46" width="68" height="122" rx="8" fill="#40b75f"></rect>
+    <text x="522" y="302" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">1-2 GB</text>
+    <text x="522" y="214" text-anchor="middle" font-size="12" font-weight="700" fill="#3a2c00">4 GB</text>
+    <text x="522" y="112" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">8 GB</text>
+    <text x="574" y="300" font-size="11" fill="#d9433f" font-weight="700">crawls, OOM kills</text>
+    <text x="574" y="212" font-size="11" fill="#8a6a12" font-weight="700">bare floor</text>
+    <text x="574" y="110" font-size="11" fill="#2f9c4c" font-weight="700">comfortable</text>
+    <text x="574" y="128" font-size="10.5" fill="#5b6a86">size here</text>
+  </svg>
+  <figcaption>GitLab isn't one process, it's a bundle of them, so memory is the number that decides how it feels.</figcaption>
+  </figure>
+
+  <p>The good news: the standard GitLab package (the "Omnibus" install) wires all of that together for you. You don't assemble six services by hand. The trade for that convenience is that they all want RAM at the same time.</p>
+
+  <h2>The honest floor: how much RAM GitLab needs</h2>
+  <p>Here's the number to burn into memory. GitLab wants <strong>at least 4 GB of RAM</strong> as a realistic floor for a small team, and it's genuinely comfortable at <strong>8 GB</strong>. GitLab's own documentation recommends more as your user count climbs. Give it 1 GB or 2 GB and it will crawl, then crash.</p>
+  <p>What "starving it" actually looks like, because the symptoms are specific and worth recognizing:</p>
+  <ul>
+    <li>The Linux <strong>OOM killer</strong> starts killing GitLab processes when memory runs out. Puma (the web server) or Sidekiq (the job runner) get taken down mid-request.</li>
+    <li>Your reverse proxy returns <strong>502 Bad Gateway</strong> because the app behind it just died.</li>
+    <li>Pipelines queue up and never seem to start, since Sidekiq can't keep up.</li>
+    <li>The web UI loads at a crawl, or times out on a big merge request.</li>
+  </ul>
+  <p>None of that is a GitLab bug. It's a box that's too small for the workload. I'll say it flatly: this is the one place where being frugal backfires. Every other cost in self-hosting is forgiving. Memory isn't. Size for 8 GB if you possibly can, and add swap on top so a brief spike doesn't trigger the OOM killer.</p>
+
+  <!-- Replace with your screenshot: src -> images/gitlab-admin-monitoring.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>GitLab admin monitoring page showing memory and CPU usage on the server.</em><small>Optional: proof that headroom is the thing that matters.</small></span></figure>
+
+  <h2>Sizing it by team size</h2>
+  <p>A rough guide, and it errs toward giving GitLab room rather than cutting it close:</p>
+  <table class="cmp">
+    <thead><tr><th>Your situation</th><th>RAM to aim for</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Kicking the tires, 1 to 3 people</td><td>4 GB + swap</td><td>The floor. Fine for light use, light CI.</td></tr>
+      <tr><td>Small team, real daily use</td><td>8 GB</td><td>The comfortable default. Pick this if unsure.</td></tr>
+      <tr><td>Busy team, heavy pipelines</td><td>8 GB app box + a separate runner box</td><td>Keep builds off the main server.</td></tr>
+      <tr><td>Larger org</td><td>16 GB and up, split services</td><td>Follow GitLab's reference architectures.</td></tr>
+    </tbody>
+  </table>
+  <p>On a managed platform you choose that size up front when you add the server: a provider, a region near your team, and a size with headroom.</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="The Kloudbean console Add Server screen: pick a cloud, region, and a server size with enough RAM for GitLab">
+    <figcaption>Add Server, then pick a size with real headroom. For GitLab, 8 GB is the number you want.</figcaption>
+  </figure>
+
+  <!-- Replace with your screenshot: src -> images/gitlab-project-ui.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your self-hosted GitLab project page at git.yourcompany.com with repos and merge requests.</em><small>Optional: the payoff once it's running on your own domain.</small></span></figure>
+
+  <h2>CI runners need their own room</h2>
+  <p>This is the second thing people forget, and it's related to the first. Your pipelines run on <em>runners</em>, and a runner burns real CPU and memory for the length of every job. Put the runner on the same 8 GB box as GitLab, then fire a heavy build, and the two fight for the same memory. The UI goes sluggish exactly when a build is running, which feels random until you spot the pattern.</p>
+  <p>The fix is boring and effective: give runners their own space. Add a small second server dedicated to CI, or size the main box larger if your pipelines are genuinely light. If you're already <a href="https://www.kloudbean.com/blog/host-multiple-apps-one-server/">running several apps across servers</a>, a dedicated runner box slots right in. A GitLab that's snappy in the UI but stalls every build is not the win you were after.</p>
+
+  <!-- Replace with your screenshot: src -> images/gitlab-pipeline.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A GitLab CI/CD pipeline view with stages and job logs streaming.</em><small>Optional: shows runners doing their job.</small></span></figure>
+
+  <h2>The setup, right-sized</h2>
+  <p>You don't need a wall of commands. The shape is short:</p>
+  <ol>
+    <li><strong>Launch a server</strong> with 8 GB of RAM in the region nearest your team.</li>
+    <li><strong>Install GitLab</strong> from its official Omnibus package. A managed server gives you a real Linux box with root, so the standard install runs exactly as GitLab documents it.</li>
+    <li><strong>Point your domain</strong> at the server and turn on free SSL, so you get <code>git.yourcompany.com</code> with the padlock. If DNS and certificates aren't your favorite chore, our guide to a <a href="https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/">custom domain and SSL</a> walks it through.</li>
+    <li><strong>Register a runner</strong> for CI, ideally pointed at its own box.</li>
+  </ol>
+  <p>That's a morning, not a project. The OS, the web stack, the firewall, and SSL are handled for you; you're installing one well-packaged app on a box you sized correctly.</p>
+
+  <div class="note"><b>On the database:</b> the Omnibus package bundles its own PostgreSQL, so a basic GitLab install includes it and you don't add one separately. Larger setups sometimes move Postgres to a dedicated server for headroom. If you want to understand that engine on its own, see <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a>.</p></div>
+
+  <h2>What's managed, and what's yours</h2>
+  <p>"Managed" means different things in different places, so let's be precise. The platform keeps the <em>server</em> healthy: the operating system, the web stack, the firewall, SSL, and server-level backups. You own the <em>GitLab application</em>: running its version upgrades when a new release ships, and making sure GitLab's own backups (repos plus its database) are running.</p>
+  <p>Managed hosting removes the sysadmin work around the box. It doesn't press the "upgrade GitLab" button for you, and GitLab's built-in backup task is yours to schedule. Keep both running and you're in good shape. Worth noting: this is Linux hosting, which is exactly what GitLab runs on. It's your install on your server, not GitLab's own SaaS with a support desk attached. Pair GitLab's backup task with the platform's <a href="https://www.kloudbean.com/blog/server-backups-guide/">server-level backups</a> for two layers of safety.</p>
+
+  <h2>Already on GitLab.com? Moving your data across</h2>
+  <p>If you're migrating rather than starting fresh, GitLab makes it clean because both ends run the same software. It has a built-in export and import: you export your groups and projects from GitLab.com, then import them into your self-managed instance. Repositories, issues, merge requests, and history come along. There's no proprietary format to untangle. It's GitLab to GitLab, just landing on a server that's now yours.</p>
+  <p>For a handful of projects it's a short job. For a large org, do it in batches and keep GitLab.com live until you've confirmed everything landed. Point your team at the new domain once it's verified, then retire the old seats. And if you'd rather keep CI on your own runners from day one, our take on <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">auto-deploy pipelines from Git</a> is worth a read alongside GitLab's own CI.</p>
+
+  <h2>The cost, side by side</h2>
+  <p>Numbers depend on team size and the plan you'd otherwise buy, so treat these as shape, not quotes:</p>
+  <table class="cmp">
+    <thead><tr><th>Scenario</th><th>GitLab.com (paid tier)</th><th>Self-hosted on one server</th></tr></thead>
+    <tbody>
+      <tr><td>Billing basis</td><td>Per user, per month</td><td>Flat, per server</td></tr>
+      <tr><td>10 developers</td><td>10 seats</td><td>One 8 GB server</td></tr>
+      <tr><td>Add the 11th dev</td><td>+1 more seat</td><td>No change</td></tr>
+      <tr><td>Who owns the data</td><td>GitLab</td><td>You</td></tr>
+      <tr><td>Who runs upgrades</td><td>GitLab</td><td>You</td></tr>
+    </tbody>
+  </table>
+  <p>The trade is clean: you take on running the app, and in return the bill stops scaling with headcount and your code lives on infrastructure you control.</p>
+
+  <h2>The verdict</h2>
+  <p>GitLab is absolutely worth self-hosting when you want control of your source and CI or you're feeling the per-seat pinch. Just don't cheap out on memory. Size the server at 8 GB, give CI its own room, keep GitLab's backups running, and it'll feel every bit as fast as the hosted version, on a box that's yours.</p>
+  <p>Curious what else earns its keep on your own server? Our <a href="https://www.kloudbean.com/blog/best-self-hosted-tools/">best self-hosted tools</a> roundup covers the neighbors, and if files are next on your list, <a href="https://www.kloudbean.com/blog/self-host-nextcloud/">self-hosting Nextcloud</a> is a natural companion.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Own the repo, not the per-seat bill.</p>
+    <p style="margin:0">Spin up a right-sized server for GitLab at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Pick 8 GB, a region near your team, and free SSL. Start on a free trial and scale up as you grow. See plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.6em 0 0; font-size:15px">7 clouds · Right-size the RAM · Free SSL · Server-level backups · Private networking · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Is self-hosting GitLab free?</h3>
+    <p>The software is. GitLab's free self-managed tier costs nothing to run, and your only cost is the server it lives on. Paid self-managed tiers (Premium and Ultimate) add per-user licensing, but the free tier covers what most small teams need.</p>
+    <h3>How much RAM does self-hosted GitLab need?</h3>
+    <p>Treat 4 GB as the floor for a small team and 8 GB as comfortable, with more as your user count grows. Under-size it to 1 or 2 GB and GitLab becomes slow or unstable, so this is the single most important choice you'll make.</p>
+    <h3>Why is my self-hosted GitLab so slow?</h3>
+    <p>Almost always not enough memory. When RAM runs out, the OOM killer takes down Puma or Sidekiq, your proxy returns 502 errors, and pipelines stall. The fix is to move to an 8 GB server (with swap), and to give CI runners their own box so builds don't starve the web UI.</p>
+    <h3>Do I need a separate database for GitLab?</h3>
+    <p>Not to start. GitLab's Omnibus package bundles PostgreSQL, so a basic install includes the database. Larger setups sometimes move Postgres to a dedicated server for headroom, but you don't have to begin there.</p>
+    <h3>What about CI/CD runners?</h3>
+    <p>Runners consume real CPU and memory while jobs run. For anything beyond light pipelines, give them their own server so builds don't slow the main GitLab instance. Running heavy CI on the same box as the app is the classic self-host performance trap.</p>
+    <h3>Who handles GitLab upgrades and backups?</h3>
+    <p>You do. That's the part you own when you self-host. Managed hosting keeps the underlying server, SSL, and server-level backups healthy, but running GitLab's version upgrades and scheduling its repo and database backups is your responsibility.</p>
+    <h3>Can I migrate from GitLab.com to a self-managed instance?</h3>
+    <p>Yes. GitLab has built-in export and import for groups and projects, and because both ends run the same software, repositories, issues, merge requests, and history come across cleanly. Migrate in batches for a large org and keep GitLab.com live until you've verified the import.</p>
+    <h3>Does self-hosting GitLab save money versus per-seat pricing?</h3>
+    <p>For a growing team, usually yes. A flat server cost doesn't rise when you add developers, so past a handful of seats the math tilts toward self-hosting. For one or two people, GitLab.com's free tier is hard to beat and not worth replacing with a server.</p>
+    <h3>Is a self-hosted GitLab secure enough for private code?</h3>
+    <p>Yes, with the basics in place: HTTPS on your domain, the server firewalled, private networking between components, and GitLab's backups running. Managed hosting keeps the OS patched and the firewall on, and keeping the box on a private network limits its exposure.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Right-size the box, own the pipeline.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Self-Host GitLab Without Starving It","description":"The honest hardware floor for self-hosted GitLab, who should run it, and how to size a managed server so it doesn't crawl.","image":"https://www.kloudbean.com/blog/self-host-gitlab/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/self-host-gitlab/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Is self-hosting GitLab free?","acceptedAnswer":{"@type":"Answer","text":"The software is. GitLab's free self-managed tier costs nothing to run, and your only cost is the server it lives on. Paid self-managed tiers (Premium and Ultimate) add per-user licensing, but the free tier covers what most small teams need."}},
+{"@type":"Question","name":"How much RAM does self-hosted GitLab need?","acceptedAnswer":{"@type":"Answer","text":"Treat 4 GB as the floor for a small team and 8 GB as comfortable, with more as your user count grows. Under-size it to 1 or 2 GB and GitLab becomes slow or unstable, so this is the single most important choice you'll make."}},
+{"@type":"Question","name":"Why is my self-hosted GitLab so slow?","acceptedAnswer":{"@type":"Answer","text":"Almost always not enough memory. When RAM runs out, the OOM killer takes down Puma or Sidekiq, your proxy returns 502 errors, and pipelines stall. The fix is to move to an 8 GB server with swap, and to give CI runners their own box so builds don't starve the web UI."}},
+{"@type":"Question","name":"Do I need a separate database for GitLab?","acceptedAnswer":{"@type":"Answer","text":"Not to start. GitLab's Omnibus package bundles PostgreSQL, so a basic install includes the database. Larger setups sometimes move Postgres to a dedicated server for headroom, but you don't have to begin there."}},
+{"@type":"Question","name":"What about CI/CD runners?","acceptedAnswer":{"@type":"Answer","text":"Runners consume real CPU and memory while jobs run. For anything beyond light pipelines, give them their own server so builds don't slow the main GitLab instance. Running heavy CI on the same box as the app is the classic self-host performance trap."}},
+{"@type":"Question","name":"Who handles GitLab upgrades and backups?","acceptedAnswer":{"@type":"Answer","text":"You do. That's the part you own when you self-host. Managed hosting keeps the underlying server, SSL, and server-level backups healthy, but running GitLab's version upgrades and scheduling its repo and database backups is your responsibility."}},
+{"@type":"Question","name":"Can I migrate from GitLab.com to a self-managed instance?","acceptedAnswer":{"@type":"Answer","text":"Yes. GitLab has built-in export and import for groups and projects, and because both ends run the same software, repositories, issues, merge requests, and history come across cleanly. Migrate in batches for a large org and keep GitLab.com live until you've verified the import."}},
+{"@type":"Question","name":"Does self-hosting GitLab save money versus per-seat pricing?","acceptedAnswer":{"@type":"Answer","text":"For a growing team, usually yes. A flat server cost doesn't rise when you add developers, so past a handful of seats the math tilts toward self-hosting. For one or two people, GitLab.com's free tier is hard to beat and not worth replacing with a server."}},
+{"@type":"Question","name":"Is a self-hosted GitLab secure enough for private code?","acceptedAnswer":{"@type":"Answer","text":"Yes, with the basics in place: HTTPS on your domain, the server firewalled, private networking between components, and GitLab's backups running. Managed hosting keeps the OS patched and the firewall on, and keeping the box on a private network limits its exposure."}}
+]}
+]}
+</script>
+</body>
+</html>

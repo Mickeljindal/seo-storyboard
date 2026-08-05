@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Deploy a Spring Boot App to Production (Java)</title>
+<meta name="description" content="Deploy a Spring Boot app to production: build the executable JAR, run java -jar behind a reverse proxy, externalize config with env vars and profiles, set -Xmx, and add a managed database.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/deploy-spring-boot-app/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Deploy a Spring Boot App to Production (Java)">
+<meta property="og:description" content="The honest Java deploy guide: build a fat JAR with embedded Tomcat, run java -jar, externalize config through environment variables and profiles, set the JVM heap, front it with a proxy, and wire in a managed database.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Deployment · Spring Boot</span>
+  <h1>How to Deploy a Spring Boot App to Production</h1>
+  <p class="byline">By Kloudbean Engineering · One JAR, In Production.</p>
+
+  <figure><img src="images/hero.png" alt="Deploy a Spring Boot app to production: build a fat JAR with embedded Tomcat, run java -jar on a JVM behind a proxy, connected to a managed database"></figure>
+
+  <p class="lead">You built a Spring Boot service. It runs locally with <code>./mvnw spring-boot:run</code>, the endpoints answer on <code>localhost:8080</code>, and everything's green. Then you go to deploy that Spring Boot app to production and the questions pile up. Where does the JAR run? What about the port, the database, the config, the memory? Good news: Spring Boot makes this simpler than most stacks. It packages your whole app, embedded web server and all, into one executable JAR. This is the honest guide to Spring Boot hosting: build the JAR, run it, and handle the five production details that matter.</p>
+
+  <div class="tldr">
+    <strong>How do I deploy a Spring Boot app to production?</strong>
+    <p>Build an executable JAR with <code>./mvnw clean package</code> (or <code>./gradlew bootJar</code>), then run <code>java -jar app.jar</code> on any server that has a JVM. Spring Boot embeds Tomcat, so there's no separate app server to install. Externalize config through environment variables (<code>SPRING_DATASOURCE_URL</code>, <code>SPRING_PROFILES_ACTIVE=prod</code>), set a sane <code>-Xmx</code> so the JVM isn't OOM-killed, put it behind a reverse proxy for TLS, keep the process supervised so it restarts on crash and reboot, and point it at a managed database.</p>
+  </div>
+
+  <h2>What actually happens when you deploy a Spring Boot app</h2>
+  <p>The mental model is the whole game. Spring Boot builds what people call a fat JAR (or uber JAR): one file that contains your compiled classes, every dependency, and an embedded web server, usually Tomcat. There's no WAR to drop into a servlet container you installed separately. The server is inside the JAR.</p>
+
+  <p>So the runtime story is short. Put a JVM on a machine, copy the JAR over, run <code>java -jar app.jar</code>. The embedded Tomcat starts, binds a port, and serves your endpoints. Your entry point is a plain <code>main</code> method, the one Spring Boot generated for you:</p>
+
+<pre><code>@SpringBootApplication
+public class Application {
+  public static void main(String[] args) {
+    SpringApplication.run(Application.class, args);
+  }
+}</code></pre>
+
+  <p>A Spring Boot app is just a long-running Java process, and everything below is about running that one process well: config, a port, memory, staying alive, and a database.</p>
+
+  <figure>
+    <svg viewBox="0 0 780 340" role="img" aria-label="Pipeline: source in Git is built by Maven or Gradle into a fat JAR that contains your code, an embedded Tomcat, and dependencies. Running java -jar starts a JVM with a set heap. A reverse proxy on 443 terminates TLS and forwards to the JVM on 8080. The JVM talks to a managed Postgres or MySQL database over a private network using a HikariCP connection pool." style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <defs>
+        <marker id="sbg" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5b6a86"></path></marker>
+        <marker id="sbp" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#4F1AF3"></path></marker>
+        <marker id="sbgr" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#40b75f"></path></marker>
+      </defs>
+
+      <text x="24" y="32" fill="#000f27" font-family="Poppins,sans-serif" font-size="17" font-weight="700">From source to a running JAR behind a proxy</text>
+
+      <!-- BUILD band label -->
+      <text x="24" y="62" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600" letter-spacing="1.2">BUILD · IN CI ON EVERY PUSH</text>
+
+      <!-- Source -->
+      <rect x="22" y="76" width="104" height="60" rx="12" fill="#000f27"></rect>
+      <text x="74" y="102" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">Source</text>
+      <text x="74" y="120" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="10.5">Git repo</text>
+
+      <!-- Build -->
+      <rect x="158" y="76" width="120" height="60" rx="12" fill="#fff" stroke="#4F1AF3" stroke-width="1.5"></rect>
+      <text x="218" y="102" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">mvn / gradle</text>
+      <text x="218" y="120" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">package · bootJar</text>
+
+      <!-- Fat JAR -->
+      <rect x="310" y="66" width="150" height="92" rx="12" fill="#4F1AF3"></rect>
+      <text x="385" y="86" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="12.5" font-weight="700">app.jar (fat JAR)</text>
+      <rect x="322" y="94" width="126" height="17" rx="5" fill="#6b3cff"></rect>
+      <text x="385" y="106" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="9.5">your code</text>
+      <rect x="322" y="114" width="126" height="17" rx="5" fill="#6b3cff"></rect>
+      <text x="385" y="126" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="9.5">embedded Tomcat</text>
+      <rect x="322" y="134" width="126" height="17" rx="5" fill="#6b3cff"></rect>
+      <text x="385" y="146" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="9.5">dependencies</text>
+
+      <!-- JVM -->
+      <rect x="596" y="76" width="160" height="60" rx="12" fill="#fff" stroke="#000f27" stroke-width="1.5"></rect>
+      <text x="676" y="100" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">JVM · java -jar</text>
+      <rect x="612" y="110" width="128" height="16" rx="5" fill="#eee7ff"></rect>
+      <text x="676" y="122" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="9.5">:8080 · heap capped by -Xmx</text>
+
+      <!-- build-flow arrows -->
+      <line x1="126" y1="106" x2="156" y2="106" stroke="#5b6a86" stroke-width="2" marker-end="url(#sbg)"></line>
+      <line x1="278" y1="106" x2="308" y2="106" stroke="#5b6a86" stroke-width="2" marker-end="url(#sbg)"></line>
+      <line x1="460" y1="112" x2="594" y2="112" stroke="#4F1AF3" stroke-width="2" marker-end="url(#sbp)"></line>
+      <text x="527" y="103" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="10">java -jar</text>
+
+      <!-- proxy above JVM -->
+      <rect x="596" y="18" width="160" height="40" rx="10" fill="#000f27"></rect>
+      <text x="676" y="42" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="11" font-weight="600">Reverse proxy :443 · TLS</text>
+      <line x1="676" y1="58" x2="676" y2="74" stroke="#5b6a86" stroke-width="2" marker-end="url(#sbg)"></line>
+      <text x="748" y="70" text-anchor="end" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="9">to :8080</text>
+
+      <!-- managed server dashed box around JVM + DB -->
+      <rect x="566" y="160" width="200" height="150" rx="14" fill="none" stroke="#40b75f" stroke-width="1.4" stroke-dasharray="6 6"></rect>
+      <text x="582" y="182" fill="#2f7d45" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600" letter-spacing="1.2">MANAGED SERVER · PRIVATE NET</text>
+
+      <!-- DB below JVM -->
+      <ellipse cx="676" cy="212" rx="58" ry="11" fill="#40b75f"></ellipse>
+      <path d="M618 212 v56 a58 11 0 0 0 116 0 v-56" fill="#40b75f"></path>
+      <ellipse cx="676" cy="212" rx="58" ry="11" fill="#54c873"></ellipse>
+      <text x="676" y="250" text-anchor="middle" fill="#08321a" font-family="Poppins,sans-serif" font-size="12" font-weight="600">Managed DB</text>
+      <text x="676" y="268" text-anchor="middle" fill="#0c3f22" font-family="Poppins,sans-serif" font-size="10">Postgres / MySQL</text>
+
+      <line x1="676" y1="136" x2="676" y2="200" stroke="#40b75f" stroke-width="2" marker-end="url(#sbgr)"></line>
+      <text x="690" y="170" fill="#2f7d45" font-family="Poppins,sans-serif" font-size="9.5">JDBC · HikariCP pool</text>
+
+      <text x="300" y="300" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">One file, one process. Build it once, run java -jar anywhere a JVM lives.</text>
+      <text x="300" y="320" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">The embedded Tomcat means there is no separate server to install or patch.</text>
+    </svg>
+    <figcaption>The whole path: Git source, built by Maven or Gradle into a fat JAR with an embedded Tomcat, run as one JVM process behind a TLS proxy, talking to a managed database over a private network.</figcaption>
+  </figure>
+
+  <div class="note"><b>Coming from WAR files and a standalone Tomcat?</b> That's the old model: build a WAR, install and tune a separate Tomcat, drop the WAR into <code>webapps/</code>, manage two lifecycles apart. Fat JARs collapse that into one artifact you own end to end. You can still build a WAR for a legacy container, but for a new service the executable JAR is the right default.</div>
+
+  <h2>Build the executable JAR (Maven or Gradle)</h2>
+  <p>Both build tools produce the same kind of artifact, so use whichever your project already uses. The command differs, the result doesn't.</p>
+
+<pre><code># Maven: build the executable JAR
+./mvnw clean package
+# -> target/myapp-1.0.0.jar
+
+# Gradle: same idea, different task
+./gradlew clean bootJar
+# -> build/libs/myapp-1.0.0.jar</code></pre>
+
+  <table class="cmp">
+    <thead><tr><th>Build tool</th><th>Build command</th><th>Output artifact</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Maven</strong></td><td><code>./mvnw clean package</code></td><td><code>target/myapp-1.0.0.jar</code></td></tr>
+      <tr><td><strong>Gradle</strong></td><td><code>./gradlew clean bootJar</code></td><td><code>build/libs/myapp-1.0.0.jar</code></td></tr>
+    </tbody>
+  </table>
+
+  <p>Use the committed wrapper (<code>./mvnw</code> or <code>./gradlew</code>), not a globally installed Maven or Gradle. It pins the build-tool version, so CI matches your laptop and you dodge a whole genre of "works locally, breaks on the build server" tickets. Build in CI from Git, not by hand. More on that below.</p>
+
+  <!-- ADD IMAGE: terminal showing ./mvnw clean package finishing with BUILD SUCCESS and the target jar path. Swap for a real screenshot: src -> images/mvn-build-success.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal running the build to BUILD SUCCESS, with the target JAR path visible.</em><small>Optional.</small></span></figure>
+
+  <h2>Run it: java -jar and an embedded server</h2>
+  <p>With the JAR built, running it is one line. People expect this part to be hard. It isn't:</p>
+
+<pre><code># run the fat JAR on any machine with a JVM
+java -jar target/myapp-1.0.0.jar
+
+# with a heap cap and the prod profile active
+java -Xmx512m -Dspring.profiles.active=prod -jar target/myapp-1.0.0.jar</code></pre>
+
+  <p>The JVM boots, Spring wires up your beans, the embedded Tomcat starts, and you'll see the familiar "Tomcat started on port 8080" line. No <code>CATALINA_HOME</code>, no <code>server.xml</code>, no WAR to drop anywhere. One rule: match the Java version you built against. A JAR compiled for Java 17 needs a Java 17 (or newer) runtime, or it throws <code>UnsupportedClassVersionError</code> on startup.</p>
+
+  <!-- ADD IMAGE: the Spring Boot startup banner in logs with the line about Tomcat started on port 8080. Swap for a real screenshot: src -> images/spring-boot-startup-log.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The startup logs showing the Spring banner and the embedded Tomcat binding its port.</em><small>Proof it serves without a separate server.</small></span></figure>
+
+  <h2>Externalize config: application.properties vs environment variables</h2>
+  <p>This is the Spring-specific bit that trips people. Your <code>application.properties</code> or <code>application.yml</code> is fine for defaults: the values that are the same everywhere and aren't secret. Commit those.</p>
+
+  <p>Secrets and anything that changes per environment come from the environment, not the JAR. Bake a production password into <code>application.properties</code> and commit it, and you've published your credentials to everyone with repo access, and to Git history forever. It's the single most common Spring Boot production mistake, and it's completely avoidable.</p>
+
+  <p>Spring makes this easy through <strong>relaxed binding</strong>. Any property has an environment-variable form: uppercase it, turn dots into underscores, and the env var overrides the file. So you keep safe defaults in the JAR and inject the real values at runtime:</p>
+
+<pre><code># application.yml -> safe defaults, committed to git
+server:
+  port: 8080
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/appdb</code></pre>
+
+<pre><code># production -> set in the dashboard, never committed
+SPRING_PROFILES_ACTIVE=prod
+SPRING_DATASOURCE_URL=jdbc:postgresql://10.0.0.5:5432/appdb
+SPRING_DATASOURCE_USERNAME=appuser
+SPRING_DATASOURCE_PASSWORD=change-me</code></pre>
+
+  <p>The mapping people forget:</p>
+
+  <table class="cmp">
+    <thead><tr><th>Property (in the file)</th><th>Environment variable</th></tr></thead>
+    <tbody>
+      <tr><td><code>spring.datasource.url</code></td><td><code>SPRING_DATASOURCE_URL</code></td></tr>
+      <tr><td><code>spring.datasource.username</code></td><td><code>SPRING_DATASOURCE_USERNAME</code></td></tr>
+      <tr><td><code>spring.datasource.password</code></td><td><code>SPRING_DATASOURCE_PASSWORD</code></td></tr>
+      <tr><td><code>spring.profiles.active</code></td><td><code>SPRING_PROFILES_ACTIVE</code></td></tr>
+      <tr><td><code>server.port</code></td><td><code>SERVER_PORT</code></td></tr>
+    </tbody>
+  </table>
+
+  <p>Profiles are the other half. Put production overrides in <code>application-prod.yml</code>, set <code>SPRING_PROFILES_ACTIVE=prod</code>, and Spring layers that file on top of the defaults. Forget to activate it and your app runs with dev settings in production, which is how a service ends up pointing at a laptop database on launch day. More on keeping secrets out of Git in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>.</p>
+
+  <!-- ADD IMAGE: the dashboard environment variables panel filled with the SPRING_DATASOURCE_ values and SPRING_PROFILES_ACTIVE. Swap for a real screenshot: src -> images/spring-env-vars.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The environment variables panel with the SPRING_ values entered, so secrets live outside the JAR.</em></span></figure>
+
+  <h2>The port and the reverse proxy</h2>
+  <p>Spring Boot listens on <code>server.port</code>, default 8080. In production your app doesn't face the internet directly. A reverse proxy sits in front, terminates TLS on 443, and forwards plain HTTP to your app's internal port. The proxy handles certificates and the public connection; your JVM just handles requests.</p>
+
+  <p>Two ways to set the port. Set <code>server.port</code> (or its <code>SERVER_PORT</code> env form) and point the proxy at that number. Or, if your platform hands you a <code>PORT</code> variable, bridge it, since Spring Boot doesn't read a bare <code>PORT</code> on its own:</p>
+
+<pre><code># application.properties: use the platform's PORT if present, else 8080
+server.port=${PORT:8080}</code></pre>
+
+  <p>Get this wrong and the proxy talks to a port nothing is listening on, which shows up as a 502 or 503 while your app sits there healthy on the wrong number. If the reverse-proxy concept is fuzzy, we break it down in <a href="https://www.kloudbean.com/blog/reverse-proxy-explained/">reverse proxy explained</a>, and the hands-on config (written for Node, but the behavior is identical) is in <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">nginx reverse proxy for Node</a>. On a managed server you don't hand-write any of this; the proxy and a free auto-renewing certificate come with the stack.</p>
+
+  <h2>JVM memory: set -Xmx before the OOM killer does</h2>
+  <p>This one bites Java deploys specifically. The JVM sizes its heap from how much memory it thinks the machine has, and on a small server or container that guess goes wrong both ways. Too timid, and you paid for RAM the heap never touches. Too greedy, on older runtimes that ignored the container's memory limit, and the heap outgrows the box, so the Linux kernel kills the process. No stack trace, just a service that vanishes and restarts.</p>
+
+  <p>The fix is to stop guessing. Cap the heap:</p>
+
+<pre><code># cap the max heap so the JVM stays inside the box
+java -Xmx512m -jar app.jar</code></pre>
+
+  <p>Treat <code>512m</code> as illustrative, not a recommendation; size it to your app and your box. The rule that keeps you safe: the heap is not the whole process. Metaspace, thread stacks, and buffers live outside <code>-Xmx</code>, so the real footprint is bigger than the heap. Leave headroom. On a 1 GB box, giving <code>-Xmx</code> the full gigabyte is how you get OOM-killed under load. Modern JVMs (Java 11 and up, and late Java 8 builds) are container-aware and respect a cgroup limit, but an explicit <code>-Xmx</code> removes the doubt. I'd rather read one number in a config than reason about defaults at 2am.</p>
+
+  <p>Watching real memory beats guessing. A managed server shows the JVM's actual usage, so you size the heap and the box against real numbers, not vibes.</p>
+
+  <figure>
+    <img src="../assets/console/server-health.png" alt="The Kloudbean server health view showing CPU, RAM, and disk usage for a server running a Java app">
+    <figcaption>Server health: watch real RAM and CPU, then set a heap that fits the box instead of guessing.</figcaption>
+  </figure>
+
+  <h2>Keep the process alive (systemd, or let the platform do it)</h2>
+  <p>Run <code>java -jar app.jar</code> in an SSH session and it dies when that session closes. That's not a deploy, that's a demo. In production something has to own the process: start it on boot, restart it on crash, keep it running after you log out. On a plain Linux box that's <strong>systemd</strong>. A minimal unit:</p>
+
+<pre><code># /etc/systemd/system/myapp.service
+[Unit]
+Description=My Spring Boot app
+After=network.target
+
+[Service]
+User=appuser
+EnvironmentFile=/opt/myapp/app.env
+ExecStart=/usr/bin/java -Xmx512m -jar /opt/myapp/app.jar
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target</code></pre>
+
+  <p><code>Restart=always</code> is the line that matters. It turns "crashed and down until someone noticed" into "crashed and back in five seconds." <code>EnvironmentFile</code> loads secrets from a file that never touches Git. If you're weighing supervisors, or came from Node and know PM2, the tradeoffs are in <a href="https://www.kloudbean.com/blog/pm2-vs-systemd/">PM2 vs systemd</a>. Short version for a JVM app: systemd is the natural fit, since you're supervising one long-lived process, not a fleet of Node workers.</p>
+
+  <p>On a managed platform you don't write the unit file. The platform runs your start command as a supervised service, brings it back after a crash, and restarts it after a reboot. Same guarantee, none of the wiring.</p>
+
+  <h2>Connect Spring Boot to a managed database</h2>
+  <p>Almost every Spring Boot service is an API in front of a database. Spring Data JPA or plain JDBC talks to Postgres or MySQL, and Spring auto-configures the connection from the same <code>spring.datasource.*</code> properties you already saw. In production those come from the environment:</p>
+
+<pre><code># these three env vars are all Spring needs to connect
+SPRING_DATASOURCE_URL=jdbc:postgresql://10.0.0.5:5432/appdb
+SPRING_DATASOURCE_USERNAME=appuser
+SPRING_DATASOURCE_PASSWORD=change-me</code></pre>
+
+  <p>Spring Boot ships with <strong>HikariCP</strong> as its default connection pool, and that default earns its keep. Opening a fresh database connection is slow. A pool keeps connections warm and hands them out: a request borrows one, runs its query, returns it. Without pooling, a traffic burst opens a socket per request and blows through the database's connection limit. You'll see <code>FATAL: too many connections</code> and a pile of failed requests. Cap the pool so your app can't ask for more than the database can give:</p>
+
+<pre><code># HikariCP is the default pool; size it deliberately
+spring.datasource.hikari.maximum-pool-size=10</code></pre>
+
+  <p>Size it against your database, and remember the math changes when you run more than one instance: three app instances at a pool of 10 each is 30 connections, not 10. The why-and-how of pool sizing is in <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>. For launching the database itself, wiring the connection string safely, and running migrations, follow <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">add a managed database to your app</a>.</p>
+
+  <p>Two rules that aren't optional. Keep the database on a private network, not a public port, so only your app reaches it. And never hardcode credentials in <code>application.properties</code>; they belong in the environment, where you rotate a password without a code change.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console Launch Database screen with managed PostgreSQL, MySQL, MariaDB, Redis, and more">
+    <figcaption>Launch Database: a managed Postgres or MySQL, provisioned on a private network and backed up. Feed its details into your SPRING_DATASOURCE_ variables.</figcaption>
+  </figure>
+
+  <h2>Deploy a Spring Boot app on a managed server</h2>
+  <p>Here's where it comes together. A managed server hands you the pieces already assembled: a JVM, a reverse proxy, free SSL, a firewall, and process supervision. Java is a first-class managed runtime on Kloudbean, alongside Node, Python, PHP, and Ruby, so you bring the repo and it brings the plumbing.</p>
+
+  <h3>Add the app and pick the runtime</h3>
+  <p>Create a server, choose a cloud (Kloudbean runs seven: AWS, Amazon Lightsail, Google Cloud, DigitalOcean, Vultr, Akamai Linode, and UpCloud), pick a size, then add your application. A single JVM service is comfortable on a small box to start; resize later if the numbers say so.</p>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean Add Application screen for adding a Java Spring Boot app to a server">
+    <figcaption>Add Application: your Spring Boot service gets its own space on the server, with its runtime and config kept separate.</figcaption>
+  </figure>
+
+  <h3>Deploy from Git with live build logs</h3>
+  <p>Deploys come from your repository, which is exactly right: the repo is the source of truth, not a JAR you scp'd once and forgot. Connect GitHub, pick a branch, and set the build and start commands:</p>
+
+<pre><code># Build command
+./mvnw clean package -DskipTests
+
+# Start command
+java -Xmx512m -jar target/myapp-1.0.0.jar</code></pre>
+
+  <p>Trigger a deploy and the build log streams live, so you watch the dependencies download, the compile, and the JAR get built instead of guessing why it failed. Turn on automated deployment and every push to that branch builds and ships itself, with a recorded history of what went out. Same continuous-deploy loop the big platforms sell, on a server you own. Full setup in <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD auto-deploy from GitHub</a>.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean Git Deployment tab with the repository, branch, and the Maven build and java -jar start commands for a Spring Boot app">
+    <figcaption>Git Deployment: connect the repo, set the build and start commands and the port, then deploy and watch the build log stream.</figcaption>
+  </figure>
+
+  <p>Set your environment variables in the console (the <code>SPRING_DATASOURCE_*</code> values, <code>SPRING_PROFILES_ACTIVE=prod</code>, and any keys), point a domain, and turn on the free auto-renewing certificate. The proxy is already terminating TLS, so your JVM never thinks about certificates.</p>
+
+  <!-- ADD IMAGE: the deployment history list with a successful Spring Boot build and its timestamp. Swap for a real screenshot: src -> images/deploy-history.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The deployment history showing a successful build and the commit that shipped.</em><small>Optional.</small></span></figure>
+
+  <h2>Where Spring Boot deploys usually go wrong</h2>
+  <p>Most failed Java deploys aren't Java problems. They're config and memory problems. The list of suspects is short, so check these before you reread your service classes:</p>
+  <ul>
+    <li><strong>Secrets baked into the JAR.</strong> A password in a committed <code>application.properties</code> is a leak and a rotation headache. Move it to an env var.</li>
+    <li><strong>The prod profile never activated.</strong> No <code>SPRING_PROFILES_ACTIVE=prod</code>, so the app runs dev config in production and connects to the wrong things.</li>
+    <li><strong>Port mismatch.</strong> The app listens on 8080 while the proxy forwards somewhere else, and you get a 502 from a perfectly healthy app.</li>
+    <li><strong>No <code>-Xmx</code> on a small box.</strong> The heap outgrows the machine and the kernel OOM-kills the process on the first real traffic.</li>
+    <li><strong>Run in a shell, not supervised.</strong> The JAR dies with the SSH session, or never comes back after a reboot.</li>
+    <li><strong>A connection per request.</strong> Bypassing the pool exhausts the database's connections under load.</li>
+    <li><strong>Java version mismatch.</strong> A JAR built for a newer Java throws <code>UnsupportedClassVersionError</code> on an older runtime.</li>
+  </ul>
+  <p>Notice what's not on that list: your business logic. It's almost never the endpoints. So when a deploy breaks, resist the urge to reread controllers. Read the startup logs, find the one line that names the real cause, fix that, and ship again. Faster, and usually right.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Your Spring Boot app, live on a server you own.</p>
+    <p style="margin:0 0 .6em">Deploy the JAR from Git with live build logs, wire in a managed Postgres or MySQL, and get a reverse proxy with free auto-renewing SSL, no hand-rolled config. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>; sizes and plans (from $8/mo, Enterprise custom) are on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Managed Java runtime · Git deploy with live build logs · Managed PostgreSQL and MySQL · Reverse proxy and free SSL · Private networking · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I deploy a Spring Boot app to production?</h3>
+    <p>Build an executable JAR with <code>./mvnw clean package</code> or <code>./gradlew bootJar</code>, then run <code>java -jar app.jar</code> on any server with a JVM. Externalize config via environment variables, activate the prod profile, set a sane <code>-Xmx</code>, front it with a reverse proxy for TLS, and keep it supervised. On a managed platform you deploy from Git and the proxy, SSL, and supervision come with the stack.</p>
+
+    <h3>How do I run a Spring Boot JAR in production?</h3>
+    <p>Run <code>java -jar app.jar</code>, but not in a terminal that closes. Wrap it in systemd with <code>Restart=always</code> so it survives crashes and reboots, or let a managed platform run your start command as a supervised service. Match the runtime to the Java version you built against.</p>
+
+    <h3>Do I need to install Tomcat separately for Spring Boot?</h3>
+    <p>No. A Spring Boot fat JAR embeds Tomcat, so <code>java -jar app.jar</code> starts the server for you. Nothing separate to install or patch. You can still build a WAR for a legacy external container, but for a new service the embedded server is the right default.</p>
+
+    <h3>How do I set environment variables and profiles for Spring Boot?</h3>
+    <p>Spring uses relaxed binding: uppercase a property and turn dots into underscores, so <code>spring.datasource.url</code> becomes <code>SPRING_DATASOURCE_URL</code>. Put per-environment overrides in <code>application-prod.yml</code> and set <code>SPRING_PROFILES_ACTIVE=prod</code> to activate them. Keep secrets in env vars, never in the JAR.</p>
+
+    <h3>How do I connect Spring Boot to a PostgreSQL or MySQL database?</h3>
+    <p>Set <code>SPRING_DATASOURCE_URL</code>, <code>SPRING_DATASOURCE_USERNAME</code>, and <code>SPRING_DATASOURCE_PASSWORD</code> from the environment and Spring auto-configures the datasource, pooled by HikariCP. Keep the database on a private network and never hardcode credentials. Launch a managed Postgres or MySQL and feed its details into those three variables.</p>
+
+    <h3>What -Xmx should I set for a Spring Boot app?</h3>
+    <p>There's no universal number, so size it after watching real memory use. The point is to set it, so the heap can't outgrow a small box and get OOM-killed. And remember the heap isn't the whole process: metaspace, thread stacks, and buffers live outside <code>-Xmx</code>, so leave headroom.</p>
+
+    <h3>Should I run Spring Boot behind nginx or a reverse proxy?</h3>
+    <p>Yes, in production. The proxy terminates TLS on 443 and forwards plain HTTP to your app's internal port, so the JVM never handles certificates. Make sure it forwards to the same port Spring Boot listens on. On a managed server the proxy and free SSL come with the stack.</p>
+
+    <h3>Maven or Gradle for building the Spring Boot JAR?</h3>
+    <p>Either. Use whatever your project already uses, since both produce the same executable JAR. Maven builds it with <code>./mvnw clean package</code>, Gradle with <code>./gradlew bootJar</code>. Use the committed wrapper so the build version is pinned and CI matches your laptop.</p>
+
+    <h3>How do I keep a Spring Boot app running after it crashes or the server reboots?</h3>
+    <p>Don't run it in a shell session. A systemd unit with <code>Restart=always</code> restarts it in seconds and starts it on boot, or a managed platform does the same by running your start command as a service. That's the difference between a service and a process someone babysits.</p>
+
+    <h3>Can I auto-deploy my Spring Boot app from GitHub?</h3>
+    <p>Yes. Connect the repository, choose a branch, set the build and start commands, and turn on automated deployment. Each push then builds and ships with live build logs, and every deploy is recorded. Releasing a change becomes a plain git push.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · Build the JAR once, run it anywhere a JVM lives, and own the box it runs on.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Deploy a Spring Boot App to Production","description":"The honest Java deploy guide: build an executable fat JAR with an embedded Tomcat, run java -jar on a JVM, externalize config through environment variables and profiles, set the JVM heap, front it with a reverse proxy for TLS, keep the process supervised, and connect it to a managed PostgreSQL or MySQL database.","image":"https://www.kloudbean.com/blog/deploy-spring-boot-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/deploy-spring-boot-app/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I deploy a Spring Boot app to production?","acceptedAnswer":{"@type":"Answer","text":"Build an executable JAR with ./mvnw clean package or ./gradlew bootJar, then run java -jar app.jar on any server with a JVM. Externalize config via environment variables, activate the prod profile, set a sane -Xmx, front it with a reverse proxy for TLS, and keep it supervised. On a managed platform you deploy from Git and the proxy, SSL, and supervision come with the stack."}},
+{"@type":"Question","name":"How do I run a Spring Boot JAR in production?","acceptedAnswer":{"@type":"Answer","text":"Run java -jar app.jar, but not in a terminal that closes. Wrap it in systemd with Restart=always so it survives crashes and reboots, or let a managed platform run your start command as a supervised service. Match the runtime to the Java version you built against."}},
+{"@type":"Question","name":"Do I need to install Tomcat separately for Spring Boot?","acceptedAnswer":{"@type":"Answer","text":"No. A Spring Boot fat JAR embeds Tomcat, so java -jar app.jar starts the server for you. Nothing separate to install or patch. You can still build a WAR for a legacy external container, but for a new service the embedded server is the right default."}},
+{"@type":"Question","name":"How do I set environment variables and profiles for Spring Boot?","acceptedAnswer":{"@type":"Answer","text":"Spring uses relaxed binding: uppercase a property and turn dots into underscores, so spring.datasource.url becomes SPRING_DATASOURCE_URL. Put per-environment overrides in application-prod.yml and set SPRING_PROFILES_ACTIVE=prod to activate them. Keep secrets in env vars, never in the JAR."}},
+{"@type":"Question","name":"How do I connect Spring Boot to a PostgreSQL or MySQL database?","acceptedAnswer":{"@type":"Answer","text":"Set SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME, and SPRING_DATASOURCE_PASSWORD from the environment and Spring auto-configures the datasource, pooled by HikariCP. Keep the database on a private network and never hardcode credentials. Launch a managed Postgres or MySQL and feed its details into those three variables."}},
+{"@type":"Question","name":"What -Xmx should I set for a Spring Boot app?","acceptedAnswer":{"@type":"Answer","text":"There is no universal number, so size it after watching real memory use. The point is to set it, so the heap cannot outgrow a small box and get OOM-killed. And remember the heap is not the whole process: metaspace, thread stacks, and buffers live outside -Xmx, so leave headroom."}},
+{"@type":"Question","name":"Should I run Spring Boot behind nginx or a reverse proxy?","acceptedAnswer":{"@type":"Answer","text":"Yes, in production. The proxy terminates TLS on 443 and forwards plain HTTP to the internal port your app listens on, so the JVM never handles certificates. Make sure it forwards to the same port Spring Boot listens on. On a managed server the proxy and free SSL come with the stack."}},
+{"@type":"Question","name":"Maven or Gradle for building the Spring Boot JAR?","acceptedAnswer":{"@type":"Answer","text":"Either. Use whatever your project already uses, since both produce the same executable JAR. Maven builds it with ./mvnw clean package, Gradle with ./gradlew bootJar. Use the committed wrapper so the build version is pinned and CI matches your laptop."}},
+{"@type":"Question","name":"How do I keep a Spring Boot app running after it crashes or the server reboots?","acceptedAnswer":{"@type":"Answer","text":"Do not run it in a shell session. A systemd unit with Restart=always restarts it in seconds and starts it on boot, or a managed platform does the same by running your start command as a service. That is the difference between a service and a process someone babysits."}},
+{"@type":"Question","name":"Can I auto-deploy my Spring Boot app from GitHub?","acceptedAnswer":{"@type":"Answer","text":"Yes. Connect the repository, choose a branch, set the build and start commands, and turn on automated deployment. Each push then builds and ships with live build logs, and every deploy is recorded. Releasing a change becomes a plain git push."}}
+]}
+]}
+</script>
+</body>
+</html>

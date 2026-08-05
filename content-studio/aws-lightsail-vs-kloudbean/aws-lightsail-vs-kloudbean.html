@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AWS Lightsail vs Kloudbean: Raw VPS or Managed Stack?</title>
+<meta name="description" content="AWS Lightsail vs Kloudbean isn't either/or: Lightsail is one of the clouds Kloudbean manages. Compare a raw Lightsail VPS you run yourself to the same box with a managed stack on top.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/aws-lightsail-vs-kloudbean/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="AWS Lightsail vs Kloudbean: Raw VPS or Managed Stack?">
+<meta property="og:description" content="Not either/or. Lightsail is one of the seven clouds Kloudbean manages. A fair breakdown of a raw Lightsail box you run yourself versus the same box with a managed stack.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">AWS Lightsail vs Kloudbean</span>
+  <h1>AWS Lightsail vs Kloudbean: Raw VPS or a Managed Stack?</h1>
+  <p class="byline">By Kloudbean · Lightsail, Managed. Same AWS box, minus the homework.</p>
+
+  <figure><img src="images/hero.png" alt="AWS Lightsail vs Kloudbean, a managed stack that can run on AWS Lightsail and six other clouds"></figure>
+
+  <p class="lead">Search AWS Lightsail vs Kloudbean and you'll get a wall of head-to-head tables that quietly miss the point. These two aren't the same kind of thing. Lightsail is a cloud, a simplified VPS from AWS. Kloudbean is a management layer that runs on top of a cloud, and Lightsail happens to be one of the seven it supports. So the real question isn't which company wins. It's whether you want a raw Lightsail box you patch and babysit yourself, or that same box with a managed stack handling the boring parts.</p>
+
+  <div class="tldr">
+    <strong>Short answer</strong>
+    <p>AWS Lightsail vs Kloudbean isn't a fair fight, because they solve different jobs. Lightsail gives you a simple, predictably priced Linux VPS inside AWS. Kloudbean is a managed layer that can provision and run a full stack on Lightsail (or six other clouds) from one dashboard, so the OS, web stack, SSL, firewall, backups, and deploys are handled while you keep your app. Want the cheapest box and you enjoy running servers? Raw Lightsail is great. Want to ship without becoming a part-time sysadmin? Let Kloudbean manage Lightsail for you.</p>
+  </div>
+
+  <h2>Hold on, is this even a fair comparison?</h2>
+  <p>Most "X vs Y" hosting pieces pit two networks against each other. This one can't do that cleanly, because Kloudbean isn't a cloud. It's the layer that turns a bare virtual machine into a managed stack. And AWS Lightsail is literally one of Kloudbean's seven supported clouds, sitting right next to AWS, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud.</p>
+  <p>So a truer title would be "raw Lightsail vs Lightsail managed by Kloudbean." Same AWS hardware underneath. Different amount of work landing on you. That reframes the whole decision away from "whose cloud is better" and toward the question that actually matters: who does the ops? It's the same reframe we walked through for a droplet in <a href="https://www.kloudbean.com/blog/digitalocean-vs-kloudbean/">DigitalOcean vs Kloudbean</a>, just with Amazon's simple VPS in the base.</p>
+
+  <h2>What AWS Lightsail actually is</h2>
+  <p>Let's give Lightsail its due, because it earned it. Lightsail is AWS's simplified VPS. You get fixed monthly bundles that roll compute, storage, and a data transfer allowance into one predictable price, a console that's far friendlier than raw EC2, and one-click blueprints for common setups like WordPress, LAMP, or Node.js. If EC2's pricing dials and IAM knobs make your eyes glaze over, Lightsail is AWS with the sharp edges filed down. It's simple, the pricing is predictable, and it rides on Amazon's network. That's a genuinely good starting point, and I won't pretend otherwise.</p>
+  <p>But "managed" has a ceiling here, and it's worth being precise about where. Is Lightsail managed? At the infrastructure level, sort of. Amazon keeps the hardware and the hypervisor healthy. At the stack level, not really. Lightsail hands you a running VM and maybe a blueprint, then it steps back. From that moment on, a long list of jobs is yours.</p>
+  <ul>
+    <li>OS patching and version upgrades, forever, not just on day one.</li>
+    <li>Web server and runtime config (nginx, PHP-FPM, Node, whatever your app needs).</li>
+    <li>Security hardening beyond the basics: firewall rules, fail2ban, locking down SSH.</li>
+    <li>SSL certificates and the renewal that everyone forgets until the site throws a warning.</li>
+    <li>A real backup routine. Snapshots exist, but remembering to take them, and testing that they restore, is on you.</li>
+    <li>Every scaling decision, by hand.</li>
+  </ul>
+  <p>A fresh Lightsail instance is a bare Linux box. The first hour looks less like building your product and more like a chore list:</p>
+
+  <pre><code># a new Lightsail instance is an empty Linux box. rough first hour:
+sudo apt update &amp;&amp; sudo apt upgrade -y
+sudo ufw allow OpenSSH
+sudo ufw allow 'Nginx Full'
+sudo ufw enable
+sudo apt install -y nginx php-fpm mysql-server
+sudo certbot --nginx -d yourdomain.com   # and set a reminder to renew it</code></pre>
+
+  <p>If server work is your thing, that's satisfying. If it isn't, it's a wall between you and a running app. That gap, between "here's a VM" and "here's a healthy production stack," is the whole story of this comparison.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 560" width="100%" role="img" aria-label="A single vertical tower of stack layers, identical for raw Lightsail and for Kloudbean. From the bottom: an AWS Lightsail VM, then OS and security patching, web server and runtime stack, SSL and renewal, firewall and hardening, automatic backups, deploy pipeline and monitoring, and at the top your app, code and data. A large amber bracket on the left spans everything above the VM, labelled raw Lightsail, all yours. On the right, a green bracket spans the middle operations layers labelled Kloudbean handles these, and a small purple bracket marks only the top layer as still yours.">
+      <rect x="1" y="1" width="718" height="558" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="360" y="32" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="16" font-weight="700" fill="#000f27">Who owns the stack, layer by layer</text>
+      <text x="360" y="54" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#5b6a86">Same AWS Lightsail VM in both cases. Only the ownership line moves.</text>
+
+      <!-- layer boxes -->
+      <g font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600">
+        <rect x="250" y="78" width="220" height="38" rx="8" fill="#efeaff" stroke="#4F1AF3"/><text x="264" y="102" fill="#000f27">Your app, code and data</text>
+        <rect x="250" y="122" width="220" height="38" rx="8" fill="#f6f7fb" stroke="#e6e9f2"/><text x="264" y="146" fill="#000f27">Deploy pipeline and monitoring</text>
+        <rect x="250" y="166" width="220" height="38" rx="8" fill="#f6f7fb" stroke="#e6e9f2"/><text x="264" y="190" fill="#000f27">Automatic backups</text>
+        <rect x="250" y="210" width="220" height="38" rx="8" fill="#f6f7fb" stroke="#e6e9f2"/><text x="264" y="234" fill="#000f27">Firewall and hardening</text>
+        <rect x="250" y="254" width="220" height="38" rx="8" fill="#f6f7fb" stroke="#e6e9f2"/><text x="264" y="278" fill="#000f27">SSL certificate and renewal</text>
+        <rect x="250" y="298" width="220" height="38" rx="8" fill="#f6f7fb" stroke="#e6e9f2"/><text x="264" y="322" fill="#000f27">Web server and runtime stack</text>
+        <rect x="250" y="342" width="220" height="38" rx="8" fill="#f6f7fb" stroke="#e6e9f2"/><text x="264" y="366" fill="#000f27">OS and security patching</text>
+        <rect x="250" y="396" width="220" height="46" rx="8" fill="#000f27"/><text x="360" y="424" text-anchor="middle" font-size="12.5" fill="#fff">AWS Lightsail VM · identical either way</text>
+      </g>
+
+      <!-- left amber bracket: raw Lightsail owns everything above the VM (A..G) -->
+      <path d="M160 78 H150 V380 H160" fill="none" stroke="#c07a1e" stroke-width="2"/>
+      <text x="58" y="229" text-anchor="middle" transform="rotate(-90 58 229)" font-family="Poppins,Arial,sans-serif" font-size="11.5" font-weight="700" letter-spacing=".06em" fill="#c07a1e">RAW LIGHTSAIL: ALL YOURS</text>
+
+      <!-- right green bracket: Kloudbean handles the ops layers (B..G) -->
+      <path d="M560 122 H570 V380 H560" fill="none" stroke="#2f9350" stroke-width="2"/>
+      <text x="656" y="251" text-anchor="middle" transform="rotate(-90 656 251)" font-family="Poppins,Arial,sans-serif" font-size="11.5" font-weight="700" letter-spacing=".06em" fill="#2f9350">KLOUDBEAN HANDLES THESE</text>
+
+      <!-- right purple bracket: you keep the top layer -->
+      <path d="M560 78 H570 V116 H560" fill="none" stroke="#4F1AF3" stroke-width="2"/>
+      <text x="578" y="92" font-family="Poppins,Arial,sans-serif" font-size="9.5" font-weight="700" fill="#4F1AF3">you still</text>
+      <text x="578" y="104" font-family="Poppins,Arial,sans-serif" font-size="9.5" font-weight="700" fill="#4F1AF3">own this</text>
+    </svg>
+    <figcaption>The tower is identical on raw Lightsail and on Kloudbean. The only thing that moves is the ownership line. Run Lightsail raw and everything above the VM is your job. Let Kloudbean manage it and your job shrinks to the top box: your app and your data.</figcaption>
+  </figure>
+
+  <h2>AWS Lightsail vs Kloudbean: who owns what</h2>
+  <p>Neither column below is wrong. The left is what you sign up for with a raw Lightsail instance, and plenty of developers run it well and enjoy it. The right is what a managed layer folds into the plan. Same job, different owner. Here's the same Lightsail box run two ways.</p>
+
+  <table class="cmp">
+    <thead><tr><th>The job</th><th>Raw AWS Lightsail</th><th>Kloudbean managing Lightsail</th></tr></thead>
+    <tbody>
+      <tr><td>OS + security patching</td><td>You, indefinitely</td><td>Handled</td></tr>
+      <tr><td>Web stack setup</td><td>You install and tune it</td><td>Provisioned for you</td></tr>
+      <tr><td>SSL + renewal</td><td>You run certbot, and remember to renew</td><td>Free SSL, auto-renewed</td></tr>
+      <tr><td>Firewall + hardening</td><td>You configure it</td><td>Shorewall + Fail2ban baseline</td></tr>
+      <tr><td>Backups</td><td>Snapshots exist, the discipline is on you</td><td>Automatic backups</td></tr>
+      <tr><td>Managed databases</td><td>Install and secure yourself</td><td>One-click: MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, MongoDB</td></tr>
+      <tr><td>Object storage</td><td>Wire up S3 as a separate thing</td><td>Built-in S3-compatible buckets, plus managed GCS</td></tr>
+      <tr><td>Load balancing</td><td>Lightsail load balancer, configured by you</td><td>Built-in Flexible Load Balancer, on when you need it</td></tr>
+      <tr><td>Deploys</td><td>SSH, scripts, or your own CI</td><td>Connect a Git repo, build and deploy on push, live logs</td></tr>
+      <tr><td>Dashboard scope</td><td>One VM (or a few) per AWS account</td><td>Servers, apps, databases, storage, load balancers, one login</td></tr>
+      <tr><td>Cloud choice</td><td>AWS only</td><td>7 clouds, move without relearning</td></tr>
+      <tr><td>Best for</td><td>Hands-on folks who want the cheapest box</td><td>Teams who'd rather ship than administer</td></tr>
+    </tbody>
+  </table>
+
+  <p>Notice there are no prices or region counts in that table. Those change, and Lightsail's bundle prices are their own thing. The point isn't the sticker. It's which of those two lists you want to own.</p>
+
+  <figure>
+    <img src="../assets/console/add-server-region.png" alt="Kloudbean Add Server screen showing seven cloud providers including AWS Lightsail, plus a region picker, when provisioning a managed server">
+    <figcaption>Adding a server in Kloudbean. Pick your cloud (AWS Lightsail sits right there among the seven providers) and a region, then Kloudbean provisions the OS, stack, firewall, and free SSL. Same Lightsail box underneath, managed for you.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: show the AWS Lightsail bundle picker in the AWS console for a fair side-by-side. Swap for a real screenshot: src -> images/lightsail-bundles.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The AWS Lightsail bundle picker in the AWS console, next to Kloudbean's Add Server screen, so readers see both sides fairly.</em><small>Keeps the comparison honest by showing raw Lightsail too. Author supplies.</small></span></figure>
+
+  <h2>Does Kloudbean actually run on AWS Lightsail?</h2>
+  <p>Yes. When you add a server, choose AWS Lightsail as the cloud provider, pick a size and a region, and Kloudbean builds a managed stack on that Lightsail instance. You're renting the same Amazon box you'd get by going direct. The difference is what shows up on top of it.</p>
+  <p>What does "managed" mean here, concretely? Kloudbean runs the server, the web stack, SSL, patching, and backups. You own your application code and your data. That boundary is the important bit, so I'll be blunt about it: this is not a black box that hides your app from you. It's your app, on a standard Linux server, that someone else keeps healthy. If you want the longer version, we spell it out in <a href="https://www.kloudbean.com/blog/what-is-a-managed-server/">what a managed server actually is</a>.</p>
+
+  <figure>
+    <img src="../assets/console/dashboard.png" alt="Kloudbean dashboard showing servers, applications, managed databases, object storage and load balancers in one place">
+    <figcaption>One dashboard for the whole stack: servers, applications, managed databases, object storage, and load balancers, whatever cloud they sit on. This is the Lightsail control panel experience most people actually wanted.</figcaption>
+  </figure>
+
+  <h2>What the managed layer adds on top of Lightsail</h2>
+  <p>Provisioning is the part everyone compares, and it matters least six months in. What you get with the managed layer is a set of things that would otherwise be separate chores or separate products. All of this rides on the same Lightsail instance:</p>
+  <ul>
+    <li><strong>Managed databases, one click.</strong> MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, or MongoDB, with backups and controlled access, instead of installing and securing a database engine by hand. Here's <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">how to add one to your app</a>.</li>
+    <li><strong>Built-in object storage.</strong> S3-compatible buckets with public or private access, plus managed Google Cloud Storage, managed from the same dashboard.</li>
+    <li><strong>A built-in load balancer.</strong> The Flexible Load Balancer is available on every account. It's off by default, and you enable it when traffic asks for it.</li>
+    <li><strong>Managed CI/CD from Git.</strong> Connect a repo, and every push builds and deploys, with the build logs streaming live in the console. No hand-rolled deploy script.</li>
+    <li><strong>Staging, backups, and team controls.</strong> Staging sites for WordPress and Laravel, automatic backups (more in the <a href="https://www.kloudbean.com/blog/server-backups-guide/">backups guide</a>), free auto-renewing SSL, a Shorewall and Fail2ban baseline, plus subusers and per-resource User Access Control.</li>
+  </ul>
+  <p>And it isn't just a PHP or WordPress box. You can run WordPress, WooCommerce, Laravel, Magento, Drupal, and Joomla on PHP; Express, React, Vue, and Angular on Node; Flask, Django, and FastAPI on Python; plus Ruby, Java, free static sites, and one-click apps like n8n and Supabase. So "run WordPress on Lightsail" and "run Laravel or Node on Lightsail" both point at the same managed setup. If WordPress is your whole world, the <a href="https://www.kloudbean.com/blog/managed-wordpress-hosting/">managed WordPress hosting</a> angle covers it in depth.</p>
+  <p>There's one more thing a raw Lightsail box can't give you: you're not married to AWS. Because Kloudbean runs on seven clouds, you can start on Lightsail today and move the same setup to DigitalOcean, Google Cloud, Linode, Vultr, or UpCloud later, behind one console, without relearning everything. You keep Lightsail if you love it. You keep the exit if you don't. That's a big part of what makes a real <a href="https://www.kloudbean.com/blog/best-managed-cloud-hosting/">managed cloud host</a> worth the money.</p>
+
+  <!-- ADD IMAGE: a simple map of your app plus a managed database plus object storage all sitting on one Lightsail server. Swap for a real screenshot: src -> images/managed-stack-on-lightsail.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A simple diagram or screenshot of an app, a managed database, and object storage all running on one Lightsail-backed server.</em><small>Shows the whole stack living on the same box. Author supplies.</small></span></figure>
+
+  <h2>When raw Lightsail is enough, and when the managed layer pays off</h2>
+  <p>This is a real decision, not a setup for a sales pitch, so here's the honest split.</p>
+  <p>Raw Lightsail is the right call when you're comfortable on the Linux command line, you want the cheapest predictable box, and running the server is part of the project or you simply enjoy it. A single low-traffic site you personally tend to? Raw Lightsail is plenty. If your time is cheaper than your budget, going direct is a fine, honest answer, and you don't need a managed layer at all.</p>
+  <p>The managed layer pays off when your time is worth more than the sysadmin toil, when you're running something that can't casually go down, when you want databases, storage, and load balancing without stitching them together yourself, or when you deployed something out of Cursor, Lovable, or Bolt and the last thing you want is to learn nginx just to get it live.</p>
+  <p>Here's where I'll take a side. The trap almost nobody warns you about isn't choosing Lightsail. It's choosing Lightsail and then treating it like it's managed. Set up once, patched never, "I'll sort out backups later." I've watched that story end the same way more than once: an SSL cert that expired on a Sunday, a disk full of logs nobody rotated, a snapshot nobody ever tested restoring. Boring failures, every one, and invisible right up until they aren't. If the server is just where your product happens to live, paying so you never think about the patch cadence is usually the better trade. We argue that at more length in <a href="https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/">managed vs unmanaged hosting</a>, where the real cost of an unmanaged box gets its own math.</p>
+
+  <h2>The honest limits</h2>
+  <p>Kloudbean runs Linux web stacks: PHP, Node, Python, Ruby, Java, and their databases, with frameworks like WordPress, Laravel, Django, React, and Vue. It isn't for Windows, .NET, or IIS. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups, while you keep your application and your data. And a fair word on scaling: autoscaling and Kubernetes are enterprise and custom options, not something that quietly kicks in on a standard plan. On a standard server you resize when you need more, so don't expect your app to scale itself automatically. Compliance is shared too: the platform provides the infrastructure controls, and you own the app-level side.</p>
+  <p>Because it's standard Linux and standard code underneath, none of this locks you in. You can move to a raw Lightsail box you manage yourself, or to any other host, whenever you want. The exit door is part of the design.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Keep Lightsail's simple box. Drop the sysadmin homework.</p>
+    <p style="margin:0">Run a managed stack on AWS Lightsail (or six other clouds) at <a href="https://www.kloudbean.com/">kloudbean.com</a>. One dashboard, one-click managed databases, a built-in load balancer, automatic backups, free SSL, simple Git deploy, free migration, and a free trial. Standard plans start from $8/mo, with custom Enterprise pricing on request. Check current numbers on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Is AWS Lightsail managed?</h3>
+    <p>Partly. At the infrastructure level, AWS keeps the hardware and hypervisor healthy. At the stack level, no: once your instance is running, OS patching, web server config, security hardening, SSL renewal, and backups are all your responsibility. That's the gap a managed layer like Kloudbean fills.</p>
+
+    <h3>Can I run WordPress on AWS Lightsail?</h3>
+    <p>Yes. Lightsail has a WordPress blueprint that gets a site running quickly, and you can also run WordPress on a Lightsail box managed by Kloudbean. With the managed route you get free auto-renewing SSL, automatic backups, staging, and a managed database without setting each one up by hand.</p>
+
+    <h3>What is the difference between AWS Lightsail and Kloudbean?</h3>
+    <p>Lightsail is a cloud, a simplified VPS from AWS. Kloudbean is a management layer that runs on top of a cloud, and Lightsail is one of the seven clouds it supports. So they're not direct rivals. The real comparison is running Lightsail raw and doing the ops yourself versus having Kloudbean manage the stack on that same Lightsail box.</p>
+
+    <h3>Does Kloudbean run on AWS Lightsail?</h3>
+    <p>Yes. When you add a server, pick AWS Lightsail as the cloud provider, choose a size and region, and Kloudbean provisions a managed stack on that Lightsail instance. You get Amazon's box underneath with Kloudbean's managed experience (one-click deploy, managed databases, free SSL, automatic backups) on top.</p>
+
+    <h3>Is AWS Lightsail cheaper than Kloudbean?</h3>
+    <p>On sticker price, usually, because with raw Lightsail you supply the setup and maintenance labor yourself. A managed plan costs a bit more and does that work for you. The right answer depends on whether your time or your budget is tighter, and on how much you enjoy running servers. Standard Kloudbean plans start from $8/mo, so verify current pricing on the pricing page.</p>
+
+    <h3>Is Kloudbean an AWS Lightsail alternative?</h3>
+    <p>It's more of a layer on top than a straight alternative, since Kloudbean can manage Lightsail itself. If you're looking for a Lightsail alternative because you want the box managed for you, or you want the freedom to move across seven clouds, that's exactly what the managed layer provides.</p>
+
+    <h3>Can I run Laravel or Node on Lightsail with Kloudbean?</h3>
+    <p>Yes. Kloudbean supports PHP frameworks like Laravel, Node runtimes like Express with React, Vue, or Angular, Python with Flask, Django, and FastAPI, plus Ruby and Java. You deploy from a Git repo and it builds on every push, whatever cloud the server runs on, Lightsail included.</p>
+
+    <h3>When should I use a managed layer instead of raw Lightsail?</h3>
+    <p>Use a managed layer when your time is worth more than the sysadmin toil, when the app can't casually go down, or when you want databases, storage, and load balancing without assembling them yourself. Stick with raw Lightsail when you're comfortable administering a server, want the cheapest box, and will actually keep up with patching and backups.</p>
+
+    <h3>Can I move off Lightsail later without relearning everything?</h3>
+    <p>Yes. Because Kloudbean runs on seven clouds, you can start on Lightsail and later move the same managed setup to DigitalOcean, Google Cloud, Linode, Vultr, or UpCloud from one console. And since it's standard Linux and standard code, you're never locked in.</p>
+
+    <h3>Does Kloudbean auto-scale my Lightsail app?</h3>
+    <p>Not on a standard plan. Autoscaling and Kubernetes are enterprise and custom options, so a normal server doesn't scale itself automatically. On standard plans you resize the server when you need more capacity, or talk to the team about a custom setup for heavier workloads.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · Lightsail, Managed.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"AWS Lightsail vs Kloudbean: Raw VPS or a Managed Stack?","description":"AWS Lightsail vs Kloudbean isn't either/or, because Lightsail is one of the seven clouds Kloudbean manages. A fair breakdown of a raw Lightsail box you run yourself versus the same box with a managed stack that handles OS, web stack, SSL, firewall, backups, and deploys.","image":"https://www.kloudbean.com/blog/aws-lightsail-vs-kloudbean/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/aws-lightsail-vs-kloudbean/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Is AWS Lightsail managed?","acceptedAnswer":{"@type":"Answer","text":"Partly. At the infrastructure level, AWS keeps the hardware and hypervisor healthy. At the stack level, no: once your instance is running, OS patching, web server config, security hardening, SSL renewal, and backups are all your responsibility. That is the gap a managed layer like Kloudbean fills."}},
+{"@type":"Question","name":"Can I run WordPress on AWS Lightsail?","acceptedAnswer":{"@type":"Answer","text":"Yes. Lightsail has a WordPress blueprint that gets a site running quickly, and you can also run WordPress on a Lightsail box managed by Kloudbean. With the managed route you get free auto-renewing SSL, automatic backups, staging, and a managed database without setting each one up by hand."}},
+{"@type":"Question","name":"What is the difference between AWS Lightsail and Kloudbean?","acceptedAnswer":{"@type":"Answer","text":"Lightsail is a cloud, a simplified VPS from AWS. Kloudbean is a management layer that runs on top of a cloud, and Lightsail is one of the seven clouds it supports. So they are not direct rivals. The real comparison is running Lightsail raw and doing the ops yourself versus having Kloudbean manage the stack on that same Lightsail box."}},
+{"@type":"Question","name":"Does Kloudbean run on AWS Lightsail?","acceptedAnswer":{"@type":"Answer","text":"Yes. When you add a server, pick AWS Lightsail as the cloud provider, choose a size and region, and Kloudbean provisions a managed stack on that Lightsail instance. You get Amazon's box underneath with Kloudbean's managed experience (one-click deploy, managed databases, free SSL, automatic backups) on top."}},
+{"@type":"Question","name":"Is AWS Lightsail cheaper than Kloudbean?","acceptedAnswer":{"@type":"Answer","text":"On sticker price, usually, because with raw Lightsail you supply the setup and maintenance labor yourself. A managed plan costs a bit more and does that work for you. The right answer depends on whether your time or your budget is tighter, and on how much you enjoy running servers. Standard Kloudbean plans start from 8 dollars a month, so verify current pricing on the pricing page."}},
+{"@type":"Question","name":"Is Kloudbean an AWS Lightsail alternative?","acceptedAnswer":{"@type":"Answer","text":"It is more of a layer on top than a straight alternative, since Kloudbean can manage Lightsail itself. If you are looking for a Lightsail alternative because you want the box managed for you, or you want the freedom to move across seven clouds, that is exactly what the managed layer provides."}},
+{"@type":"Question","name":"Can I run Laravel or Node on Lightsail with Kloudbean?","acceptedAnswer":{"@type":"Answer","text":"Yes. Kloudbean supports PHP frameworks like Laravel, Node runtimes like Express with React, Vue, or Angular, Python with Flask, Django, and FastAPI, plus Ruby and Java. You deploy from a Git repo and it builds on every push, whatever cloud the server runs on, Lightsail included."}},
+{"@type":"Question","name":"When should I use a managed layer instead of raw Lightsail?","acceptedAnswer":{"@type":"Answer","text":"Use a managed layer when your time is worth more than the sysadmin toil, when the app cannot casually go down, or when you want databases, storage, and load balancing without assembling them yourself. Stick with raw Lightsail when you are comfortable administering a server, want the cheapest box, and will actually keep up with patching and backups."}},
+{"@type":"Question","name":"Can I move off Lightsail later without relearning everything?","acceptedAnswer":{"@type":"Answer","text":"Yes. Because Kloudbean runs on seven clouds, you can start on Lightsail and later move the same managed setup to DigitalOcean, Google Cloud, Linode, Vultr, or UpCloud from one console. And since it is standard Linux and standard code, you are never locked in."}},
+{"@type":"Question","name":"Does Kloudbean auto-scale my Lightsail app?","acceptedAnswer":{"@type":"Answer","text":"Not on a standard plan. Autoscaling and Kubernetes are enterprise and custom options, so a normal server does not scale itself automatically. On standard plans you resize the server when you need more capacity, or talk to the team about a custom setup for heavier workloads."}}
+]}
+]}
+</script>
+</body>
+</html>

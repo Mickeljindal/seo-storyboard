@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Managed MySQL Hosting: The Web's Workhorse Without the Ops Bill</title>
+<meta name="description" content="MySQL runs a huge share of the web. Here's what managed MySQL hosting takes off your plate versus running mysqld yourself, when self-hosting still wins, and how to keep it fast and safe.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/managed-mysql-hosting/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Managed MySQL Hosting: The Web's Workhorse Without the Ops Bill">
+<meta property="og:description" content="What managed MySQL hosting takes off your plate versus running mysqld yourself, where self-hosting still wins, and how to keep MySQL fast and safe.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Databases &amp; storage</span>
+  <h1>Managed MySQL Hosting: The Web's Workhorse Without the Ops Bill</h1>
+
+  <figure><img src="images/hero.png" alt="Managed MySQL hosting, the web's workhorse without the ops bill"></figure>
+
+  <p class="lead">Open the hood of most of the web and you'll find MySQL. WordPress, WooCommerce, Magento, half the LAMP stack, countless internal tools nobody talks about. It's the database that just works, which is exactly why so few people think about it until it breaks.</p>
+  <p>Managed MySQL hosting is about keeping it from breaking. The platform patches the engine, runs the backups, sizes the memory, and watches the connection count, so you get a connection string and get back to your app. This piece covers what that actually buys you, where running <code>mysqld</code> yourself is a false economy, and the two or three places self-hosting still wins.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>MySQL powers a huge slice of the web, and for the vast majority of apps it (or MariaDB) is the safe default. Managed MySQL hosting hands the boring, critical jobs to the platform: patching, automatic backups, sensible tuning, monitoring, a private network. You keep the schema, the queries, and the data, and you can export the lot with <code>mysqldump</code> whenever you want.</p>
+  </div>
+
+  <h2>Why MySQL still runs so much of the web</h2>
+  <p>MySQL turned up in the late 90s and never left. WordPress alone sits under a large share of all websites, and WordPress runs on MySQL. Add WooCommerce stores, Laravel apps, Magento, Drupal, and a mountain of custom PHP, and you're looking at the default database for the CMS-and-store half of the internet.</p>
+  <p>That ubiquity is a feature, not an accident. Every host supports it. Every framework has a mature driver for it. Every developer you hire has used it. The tooling is deep and the failure modes are well understood, because millions of people have already hit them and written up the fix.</p>
+  <p>So here's an opinion I'll stand behind: for a typical web app, CMS, or store, MySQL or MariaDB is the boring right answer, and boring is a compliment for a database. You rarely regret picking it. If you're genuinely torn between engines for a brand-new project, the <a href="https://www.kloudbean.com/blog/mysql-vs-postgresql/">MySQL vs PostgreSQL</a> comparison is the honest head to head. For most people reading this, though, the engine choice was made the day they installed WordPress.</p>
+
+  <h2>The ops bill nobody quotes you</h2>
+  <p>Installing MySQL takes about five minutes. That's the trap. The bill doesn't arrive at install time. It arrives in month four, at 2am, when the disk fills or the backups turn out to be empty. Running <code>mysqld</code> yourself signs you up for a standing list of chores:</p>
+  <ul>
+    <li><strong>Security patches.</strong> MySQL ships regular fixes. Somebody has to notice, test, and apply them, or your database drifts into known-vulnerable territory.</li>
+    <li><strong>Backups that actually run, plus a restore you've tested.</strong> A backup nobody has ever restored is a rumor, not a safety net.</li>
+    <li><strong>Memory tuning.</strong> The single biggest MySQL knob is <code>innodb_buffer_pool_size</code>. Set it too small and the database reads from disk constantly. Left on a default, it often is too small.</li>
+    <li><strong>Connection limits.</strong> The default <code>max_connections</code> is modest, and a traffic spike can blow straight through it.</li>
+    <li><strong>Disk watching.</strong> Binary logs and temp files grow. Fill the disk and MySQL stops accepting writes, which looks like a total outage to your users.</li>
+    <li><strong>Failover, if you need it.</strong> A standby replica that takes over when the primary dies is real work to build and rehearse.</li>
+  </ul>
+  <p>Want the blunt version of where this goes wrong? The most common self-host disaster isn't a dramatic crash. It's a restore that didn't exist. The cron job silently stopped in March, or the only copy lived on the same disk that just failed. That's the risk managed hosting quietly removes, and it's the one people value most only after they've been burned once.</p>
+
+  <figure>
+<svg viewBox="0 0 720 320" width="100%" role="img" aria-label="What you own versus what managed MySQL runs for you" xmlns="http://www.w3.org/2000/svg">
+  <rect width="720" height="320" rx="16" fill="#f6f7fb"/>
+  <text x="360" y="44" text-anchor="middle" font-family="Poppins,sans-serif" font-size="18" font-weight="700" fill="#000f27">Where the work actually lands</text>
+  <rect x="40" y="72" width="300" height="212" rx="14" fill="#000f27"/>
+  <text x="190" y="108" text-anchor="middle" font-family="Poppins,sans-serif" font-size="15" font-weight="700" fill="#40b75f" letter-spacing="1">YOU OWN</text>
+  <text x="72" y="150" font-family="Poppins,sans-serif" font-size="15" fill="#e8ecfb">Schema and indexes</text>
+  <text x="72" y="186" font-family="Poppins,sans-serif" font-size="15" fill="#e8ecfb">Your queries</text>
+  <text x="72" y="222" font-family="Poppins,sans-serif" font-size="15" fill="#e8ecfb">The data itself</text>
+  <text x="72" y="256" font-family="Poppins,sans-serif" font-size="13" fill="#9fb0d8">export it anytime</text>
+  <rect x="380" y="72" width="300" height="212" rx="14" fill="#4F1AF3"/>
+  <text x="530" y="108" text-anchor="middle" font-family="Poppins,sans-serif" font-size="15" font-weight="700" fill="#fff" letter-spacing="1">MANAGED RUNS</text>
+  <text x="410" y="146" font-family="Poppins,sans-serif" font-size="14.5" fill="#fff">Provisioning and patching</text>
+  <text x="410" y="176" font-family="Poppins,sans-serif" font-size="14.5" fill="#fff">Automatic backups</text>
+  <text x="410" y="206" font-family="Poppins,sans-serif" font-size="14.5" fill="#fff">Buffer pool and tuning</text>
+  <text x="410" y="236" font-family="Poppins,sans-serif" font-size="14.5" fill="#fff">Monitoring and limits</text>
+  <text x="410" y="266" font-family="Poppins,sans-serif" font-size="14.5" fill="#fff">Private networking</text>
+</svg>
+<figcaption>Managed MySQL hosting draws a clean line: you keep the data model, the platform keeps the database healthy.</figcaption>
+  </figure>
+
+  <h2>What managed MySQL hosting actually runs for you</h2>
+  <p>Go managed and that chore list becomes someone else's job. You pick the engine and version, and it arrives configured, secured, and already being backed up. Here's the split, chore by chore:</p>
+
+  <table class="cmp">
+    <thead><tr><th>Job</th><th>Running mysqld yourself</th><th>Managed MySQL</th></tr></thead>
+    <tbody>
+      <tr><td>Install and configure</td><td>You, per server</td><td>One click, ready in minutes</td></tr>
+      <tr><td>Security patches</td><td>You track and apply</td><td>Handled for you</td></tr>
+      <tr><td>Backups</td><td>You script and monitor</td><td>Automatic, on a schedule</td></tr>
+      <tr><td>Restore path</td><td>You hope it works</td><td>A defined, ready path</td></tr>
+      <tr><td>Buffer pool and tuning</td><td>You size it by hand</td><td>Sane defaults, resizable</td></tr>
+      <tr><td>Connection and disk limits</td><td>You watch the graphs</td><td>Monitored</td></tr>
+      <tr><td>Private networking</td><td>You configure firewalls</td><td>On a private network</td></tr>
+    </tbody>
+  </table>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed MySQL database, patched, backed up, and monitored">
+    <figcaption>Launch a managed MySQL (or MariaDB) from the console. It arrives provisioned, patched, and on a schedule of automatic backups.</figcaption>
+  </figure>
+
+  <p>Once it's up, connecting is the same one env-var trick you'd use for any database. You get host, port, database name, user, and password. Roll them into a single connection string and store it as an environment variable, never in code:</p>
+
+<pre><code># MySQL connection string, stored as an env var (not committed to Git)
+DATABASE_URL=mysql://appuser:s3cret@10.0.0.6:3306/appdb</code></pre>
+
+  <p>The full app-side walkthrough (env vars, ORMs, running migrations, verifying it sticks) lives in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">how to add a managed database to your app</a>, so I won't repeat it here. This piece is about the database, not the wiring.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console showing the MySQL connection string set as an environment variable">
+    <figcaption>Keep the connection string in the environment. Out of the repo, and rotatable without a code change.</figcaption>
+  </figure>
+
+  <h2>The connection wall that bites WordPress and PHP hardest</h2>
+  <p>Let me pick one failure mode to show in detail, because it's the one our inbox sees most on busy PHP sites. You launch fine, traffic climbs, and then the site throws:</p>
+
+<pre><code>ERROR 1040 (HY000): Too many connections</code></pre>
+
+  <p>Here's why it happens. Each PHP-FPM worker that handles a request opens its own MySQL connection. Under a traffic spike you can have hundreds of workers alive at once, each holding a connection, and MySQL's <code>max_connections</code> ceiling (often left near its default of 151) gets hit. New requests can't get a connection, so they fail. The database itself is fine. It's the connection budget that ran out.</p>
+  <p>The fixes are boring and effective. Right-size <code>max_connections</code> for the RAM the server actually has. Size <code>innodb_buffer_pool_size</code> so hot data lives in memory instead of thrashing the disk (a common starting point on a dedicated database box is somewhere around 60 to 70% of RAM). And take repeat reads off MySQL entirely by caching them in <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis</a>, so the database sees far fewer queries in the first place. Managed hosting sets defensible defaults for the first two and lets you resize the server for more headroom, so you're tuning from a sane baseline instead of from scratch.</p>
+
+  <!-- Author: replace with a screenshot of the backups / restore-point panel. src -> images/mysql-backups.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Show the automatic backups list with a restore point selected.</em><small>Reinforces the restore-not-just-backup point above.</small></span></figure>
+
+  <h2>Where self-hosting MySQL still makes sense</h2>
+  <p>Managed isn't automatically right, and it'd be dishonest to pretend otherwise. Run it yourself when:</p>
+  <ul>
+    <li><strong>You're learning.</strong> Setting up and tuning MySQL by hand teaches you how it actually works. If understanding the internals is the goal, do it the hard way.</li>
+    <li><strong>It's a hobby or throwaway.</strong> A tiny side project where a bit of downtime costs nothing runs happily on the server you already have.</li>
+    <li><strong>You need exotic configuration.</strong> Unusual plugins or engine settings a managed service doesn't expose are a real reason to keep full control.</li>
+    <li><strong>You already have a DBA team.</strong> If operating databases is literally someone's job and they want the keys, managed can just get in their way.</li>
+  </ul>
+  <p>No shame in either path. But for anything real users depend on, the trade usually tips hard toward managed once you count your own time and the cost of an outage. If you want that argument laid out in full, it's in <a href="https://www.kloudbean.com/blog/managed-database-vs-self-managed/">managed database vs self-managed</a>.</p>
+
+  <h2>MySQL or MariaDB?</h2>
+  <p>You'll see both offered, and Kloudbean runs both as managed engines. MariaDB is a community fork of MySQL that stays drop-in compatible for the overwhelming majority of apps. WordPress, Laravel, and most PHP software run happily on either. Pick whichever your stack or host already expects, and don't lose sleep over it. If you have no preference, plain MySQL is the most widely documented starting point.</p>
+
+  <h2>Keep the database off the public internet</h2>
+  <p>A database open to the whole internet gets found by scanners within hours. So the security basics aren't optional:</p>
+  <ul>
+    <li><strong>Private network.</strong> On Kloudbean the database sits on a <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">private network (VPC)</a>, reachable by your app internally rather than exposed to the open web.</li>
+    <li><strong>Least privilege.</strong> Your app's user should have the rights it needs and nothing more. It doesn't need to be <code>root</code>.</li>
+    <li><strong>No credentials in code.</strong> The connection string lives in an environment variable, and <code>.env</code> stays out of Git.</li>
+    <li><strong>Rotate freely.</strong> Because the credential is an env var, changing the password is a config edit, not a deploy.</li>
+  </ul>
+
+  <!-- Author: replace with a screenshot of the private network / VPC view showing the database not exposed publicly. src -> images/mysql-private-network.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Show the private network view with the database reachable internally, not on the public internet.</em><small>Backs up the security section.</small></span></figure>
+
+  <h2>Moving an existing MySQL database in</h2>
+  <p>Already have data somewhere? A migration is a plain dump and load, then you repoint the connection string:</p>
+
+<pre><code># export from the old host, import into the managed one
+mysqldump -h OLD_HOST -u USER -p appdb &gt; appdb.sql
+mysql -h NEW_HOST -u USER -p appdb &lt; appdb.sql</code></pre>
+
+  <p>Point <code>DATABASE_URL</code> at the new database, redeploy, done. For a large or production database where you'd rather not do the first cutover solo, Kloudbean's free migration assistance will handle it with you.</p>
+
+  <h2>How it fits the rest of your stack</h2>
+  <p>A managed MySQL is one tile in a bigger picture. Your app connects to it over the private network. Hot reads get cached in Redis. Big uploads go to <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">object storage</a> instead of bloating the database. Everything sits behind <a href="https://www.kloudbean.com/blog/server-backups-guide/">automatic backups</a> and free SSL, and read-heavy growth later points you at <a href="https://www.kloudbean.com/blog/database-read-replicas-scaling/">read replicas as a scaling concept</a>. One dashboard, one server, one bill. The <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a> option sits right beside MySQL in the same console if a project ever calls for it.</p>
+  <p>The honest boundary, stated once: these are Linux-based managed engines. Managed means the platform handles provisioning, patching, backups, tuning, and monitoring. Your schema, your queries, and your data stay yours, and a standard dump walks out the door with you whenever you want.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Ship on a database you don't have to babysit.</p>
+    <p style="margin:0 0 .6em">Launch a managed MySQL or MariaDB, patched and backed up from minute one, and get back to building. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">One-click MySQL and MariaDB · Automatic backups · Private networking · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is managed MySQL hosting?</h3>
+    <p>It's MySQL delivered as a service. The platform installs, configures, patches, backs up, and monitors the database, and you get a ready-to-use connection string. It's the standard MySQL engine underneath, so your app and queries work unchanged. The difference is that operating the database is handled for you instead of being your job.</p>
+    <h3>Do I actually need managed MySQL, or can I run it myself?</h3>
+    <p>Go managed for anything real users depend on, when you don't want to tune and patch databases, or when you're a small team with no ops person. Run it yourself for learning, hobby projects, unusual configurations, or when you have a DBA team that wants full control. It's a fit-to-situation call, not a rule.</p>
+    <h3>MySQL or MariaDB, which should I choose?</h3>
+    <p>MariaDB is a fork of MySQL that stays drop-in compatible for almost every app, and both are available as managed engines on Kloudbean. WordPress, Laravel, and most PHP software run on either. Pick whichever your stack expects. With no preference, plain MySQL is the most widely documented starting point.</p>
+    <h3>Does managed MySQL lock me in?</h3>
+    <p>No. It's standard MySQL, so your schema, queries, and data are fully portable. You can export the entire database with a normal mysqldump and move it elsewhere anytime. Managed hosting operates the database for you; it never takes ownership of your data.</p>
+    <h3>What causes the Too many connections error, and does managed fix it?</h3>
+    <p>MySQL has a max_connections ceiling, and busy PHP sites hit it because each worker opens its own connection. The fix is right-sizing max_connections for the available RAM, sizing the InnoDB buffer pool, and caching repeat reads in Redis. Managed hosting sets defensible defaults and lets you resize the server, so you tune from a sane baseline rather than from scratch.</p>
+    <h3>How do I move my existing MySQL database to managed hosting?</h3>
+    <p>Export the old database with mysqldump, import it into the managed one with the mysql client, then repoint your DATABASE_URL and redeploy. For a large or production database, Kloudbean offers free migration assistance to run the cutover with you and keep downtime minimal.</p>
+    <h3>Is managed MySQL more expensive than self-hosting?</h3>
+    <p>On the sticker, yes. A managed database costs more than running MySQL on a server you already have. But it bundles the patching, backups, tuning, and monitoring you would otherwise do by hand, plus the risk reduction of professional operation. For production data, the real cost usually favours managed once your time and downtime risk are counted.</p>
+    <h3>Is managed MySQL good for WordPress and WooCommerce?</h3>
+    <p>Yes. WordPress and WooCommerce are built on MySQL, so managed MySQL (or MariaDB) is a natural fit. Automatic backups and sane connection and buffer-pool settings matter a lot for stores, where a database stall means lost sales. Caching repeat reads in Redis on top keeps the database load down under traffic.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Your MySQL, minus the maintenance.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Managed MySQL Hosting: The Web's Workhorse Without the Ops Bill","description":"What managed MySQL hosting takes off your plate versus running mysqld yourself, where self-hosting still wins, and how to keep MySQL fast and safe.","image":"https://www.kloudbean.com/blog/managed-mysql-hosting/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/managed-mysql-hosting/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is managed MySQL hosting?","acceptedAnswer":{"@type":"Answer","text":"It's MySQL delivered as a service. The platform installs, configures, patches, backs up, and monitors the database, and you get a ready-to-use connection string. It's the standard MySQL engine underneath, so your app and queries work unchanged. The difference is that operating the database is handled for you instead of being your job."}},
+{"@type":"Question","name":"Do I actually need managed MySQL, or can I run it myself?","acceptedAnswer":{"@type":"Answer","text":"Go managed for anything real users depend on, when you don't want to tune and patch databases, or when you're a small team with no ops person. Run it yourself for learning, hobby projects, unusual configurations, or when you have a DBA team that wants full control. It's a fit-to-situation call, not a rule."}},
+{"@type":"Question","name":"MySQL or MariaDB, which should I choose?","acceptedAnswer":{"@type":"Answer","text":"MariaDB is a fork of MySQL that stays drop-in compatible for almost every app, and both are available as managed engines on Kloudbean. WordPress, Laravel, and most PHP software run on either. Pick whichever your stack expects. With no preference, plain MySQL is the most widely documented starting point."}},
+{"@type":"Question","name":"Does managed MySQL lock me in?","acceptedAnswer":{"@type":"Answer","text":"No. It's standard MySQL, so your schema, queries, and data are fully portable. You can export the entire database with a normal mysqldump and move it elsewhere anytime. Managed hosting operates the database for you; it never takes ownership of your data."}},
+{"@type":"Question","name":"What causes the Too many connections error, and does managed fix it?","acceptedAnswer":{"@type":"Answer","text":"MySQL has a max_connections ceiling, and busy PHP sites hit it because each worker opens its own connection. The fix is right-sizing max_connections for the available RAM, sizing the InnoDB buffer pool, and caching repeat reads in Redis. Managed hosting sets defensible defaults and lets you resize the server, so you tune from a sane baseline rather than from scratch."}},
+{"@type":"Question","name":"How do I move my existing MySQL database to managed hosting?","acceptedAnswer":{"@type":"Answer","text":"Export the old database with mysqldump, import it into the managed one with the mysql client, then repoint your DATABASE_URL and redeploy. For a large or production database, Kloudbean offers free migration assistance to run the cutover with you and keep downtime minimal."}},
+{"@type":"Question","name":"Is managed MySQL more expensive than self-hosting?","acceptedAnswer":{"@type":"Answer","text":"On the sticker, yes. A managed database costs more than running MySQL on a server you already have. But it bundles the patching, backups, tuning, and monitoring you would otherwise do by hand, plus the risk reduction of professional operation. For production data, the real cost usually favours managed once your time and downtime risk are counted."}},
+{"@type":"Question","name":"Is managed MySQL good for WordPress and WooCommerce?","acceptedAnswer":{"@type":"Answer","text":"Yes. WordPress and WooCommerce are built on MySQL, so managed MySQL or MariaDB is a natural fit. Automatic backups and sane connection and buffer-pool settings matter a lot for stores, where a database stall means lost sales. Caching repeat reads in Redis on top keeps the database load down under traffic."}}
+]}
+]}
+</script>
+</body>
+</html>

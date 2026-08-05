@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Deploy Strapi to Production (Database + Secrets)</title>
+<meta name="description" content="Deploy Strapi to production the right way: swap SQLite for a managed Postgres or MySQL, set the required secrets, build the admin panel, and keep uploads in S3.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/deploy-strapi-app/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Deploy Strapi to Production (Database + Secrets)">
+<meta property="og:description" content="The honest guide to deploy Strapi to production: a real managed database instead of SQLite, the five secrets Strapi needs, building the admin panel, S3 uploads, and a reverse proxy.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Deployment · Headless CMS</span>
+  <h1>How to Deploy Strapi to Production Without Losing Your Content</h1>
+  <p class="byline">By Kloudbean Engineering · Headless, Not Homeless.</p>
+
+  <figure><img src="images/hero.png" alt="Deploy Strapi to production: the admin build and API in front of a managed Postgres database and S3 object storage, behind a reverse proxy with SSL"></figure>
+
+  <p class="lead">Strapi is a joy in development. You run <code>npm run develop</code>, the content-type builder opens, you model a few collections, and the REST and GraphQL APIs just appear. Then you go to deploy Strapi to production and the fun stops. The admin panel needs a build. Five secrets have to exist or the server refuses to boot. And that friendly default database? It's a SQLite file that quietly disappears on your next deploy. This is the complete, honest guide to getting Strapi live on a server you own, with a real database and uploads that survive.</p>
+
+  <div class="tldr">
+    <strong>How do I deploy Strapi to production?</strong>
+    <p>Move off SQLite to a managed PostgreSQL or MySQL, set the five required secrets (<code>APP_KEYS</code>, <code>API_TOKEN_SALT</code>, <code>ADMIN_JWT_SECRET</code>, <code>TRANSFER_TOKEN_SALT</code>, <code>JWT_SECRET</code>) as environment variables, build the admin panel with <code>NODE_ENV=production npm run build</code>, then run <code>npm run start</code>. Point your upload provider at S3-compatible object storage so media survives redeploys, and put Strapi behind a reverse proxy with SSL. Most Strapi deploy failures are a missing secret, a forgotten build, or SQLite, not a code bug.</p>
+  </div>
+
+  <h2>What Strapi actually is, and what it needs in production</h2>
+  <p>Strapi is an open-source Node.js headless CMS. You define content types in an admin panel, and Strapi hands you a REST API and a GraphQL API to read and write that content from any front end you like. React, Next.js, a mobile app, whatever. The CMS part runs on your infrastructure, which is the appeal. You own the data and the API.</p>
+  <p>Because it's a Node app, production Strapi hosting needs two things that dev mode papers over. A Node runtime to run the server, and a real database to hold your content. Locally, Strapi gives you both for free: it runs on your machine and writes to a SQLite file at <code>.tmp/data.db</code>. Zero config, instant start. Perfect for building. Wrong for production, and that gap is where most people get hurt.</p>
+
+  <h2>The mistake that eats a weekend: SQLite in production</h2>
+  <p>Here's the single most common way a Strapi launch goes sideways. You deploy with the default SQLite database still wired up, everything looks fine, you add a few entries through the admin. Then you push an update. Your content is gone.</p>
+  <p>SQLite stores everything in one file on the app server's local disk. On a lot of modern platforms that disk is ephemeral, meaning it gets wiped and rebuilt on every deploy or restart. So the file, and every article, user, and media reference in it, evaporates. Even on a persistent disk, SQLite locks the whole file for a single writer and can't be shared across a second app instance, so the moment you scale out you're stuck. My take, and I'll be blunt: SQLite is great in dev, and the wrong choice in production. Don't ship it past a demo.</p>
+  <p>The fix is to point Strapi at a client-server database that lives on its own, gets backed up, and can be reached by more than one app server. That means PostgreSQL or MySQL.</p>
+
+  <!-- ADD IMAGE: the Strapi content-type builder in the admin, showing a few collection types. Swap for a real screenshot: src -> images/strapi-content-types.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Strapi admin content-type builder with a couple of collection types modeled.</em><small>Shows what is at stake when SQLite gets wiped: your content model and entries.</small></span></figure>
+
+  <h2>The production shape, in one picture</h2>
+  <p>Before the steps, here's what you're actually building. Strapi (the Node app, serving both the built admin panel and the API) sits behind a reverse proxy that terminates SSL. Content goes to a managed database. Uploads go to object storage. Neither of those lives on the app server's disk.</p>
+
+  <figure>
+    <svg viewBox="0 0 780 388" role="img" aria-label="Strapi production topology. A browser or API client sends an HTTPS request to a reverse proxy on port 443 that terminates TLS and sets the public URL. The proxy forwards to the Strapi Node app on port 1337, which contains a built React admin panel and a REST plus GraphQL API. Strapi reads and writes content to a managed PostgreSQL or MySQL database on a private network, which has automatic backups, and stores uploads and media in S3-compatible object storage." style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <defs>
+        <marker id="sg" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5b6a86"></path></marker>
+        <marker id="sp" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#4F1AF3"></path></marker>
+        <marker id="sgr" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#40b75f"></path></marker>
+      </defs>
+
+      <text x="26" y="32" fill="#000f27" font-family="Poppins,sans-serif" font-size="17" font-weight="700">Strapi in production: admin build, API, managed data, object storage</text>
+
+      <!-- Client -->
+      <rect x="22" y="158" width="122" height="72" rx="12" fill="#000f27"></rect>
+      <text x="83" y="188" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Browser / client</text>
+      <text x="83" y="208" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="10.5">admin + API calls</text>
+
+      <!-- Proxy -->
+      <rect x="182" y="152" width="150" height="84" rx="12" fill="#fff" stroke="#000f27" stroke-width="1.5"></rect>
+      <text x="257" y="182" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Reverse proxy</text>
+      <text x="257" y="201" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">:443 · terminates TLS</text>
+      <text x="257" y="217" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">sets public URL</text>
+
+      <!-- Strapi container -->
+      <rect x="372" y="120" width="214" height="150" rx="14" fill="#fff" stroke="#4F1AF3" stroke-width="1.6"></rect>
+      <text x="479" y="142" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600" letter-spacing="0.8">STRAPI · NODE :1337</text>
+      <rect x="388" y="152" width="182" height="46" rx="10" fill="#4F1AF3"></rect>
+      <text x="479" y="172" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="12" font-weight="600">Admin panel</text>
+      <text x="479" y="188" text-anchor="middle" fill="#d8ccff" font-family="Poppins,sans-serif" font-size="10.5">built React bundle</text>
+      <rect x="388" y="206" width="182" height="46" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.3"></rect>
+      <text x="479" y="226" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12" font-weight="600">REST + GraphQL API</text>
+      <text x="479" y="242" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">reads + writes content</text>
+
+      <!-- DB cylinder -->
+      <g>
+        <ellipse cx="694" cy="96" rx="58" ry="12" fill="#6b3cff"></ellipse>
+        <path d="M636 96 v58 a58 12 0 0 0 116 0 v-58" fill="#4F1AF3"></path>
+        <ellipse cx="694" cy="96" rx="58" ry="12" fill="#6b3cff"></ellipse>
+        <text x="694" y="130" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="12" font-weight="600">Managed DB</text>
+        <text x="694" y="147" text-anchor="middle" fill="#d8ccff" font-family="Poppins,sans-serif" font-size="10">Postgres / MySQL</text>
+      </g>
+      <text x="694" y="176" text-anchor="middle" fill="#2f7d45" font-family="Poppins,sans-serif" font-size="10">backups · private net</text>
+
+      <!-- Object storage -->
+      <rect x="632" y="248" width="126" height="72" rx="12" fill="#fff" stroke="#40b75f" stroke-width="1.6"></rect>
+      <text x="695" y="278" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12" font-weight="600">Object storage</text>
+      <text x="695" y="297" text-anchor="middle" fill="#2f7d45" font-family="Poppins,sans-serif" font-size="10.5">uploads / media (S3)</text>
+
+      <!-- arrows -->
+      <line x1="144" y1="194" x2="180" y2="194" stroke="#5b6a86" stroke-width="2" marker-end="url(#sg)"></line>
+      <text x="162" y="186" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="9">https</text>
+
+      <line x1="332" y1="194" x2="370" y2="194" stroke="#4F1AF3" stroke-width="2" marker-end="url(#sp)"></line>
+      <text x="351" y="186" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="9">proxy</text>
+
+      <path d="M586 168 C616 168, 636 150, 654 138" fill="none" stroke="#4F1AF3" stroke-width="2" marker-end="url(#sp)"></path>
+      <text x="628" y="160" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="9">SQL</text>
+
+      <path d="M586 236 C614 244, 620 258, 630 268" fill="none" stroke="#40b75f" stroke-width="2" marker-end="url(#sgr)"></path>
+      <text x="626" y="232" text-anchor="middle" fill="#2f7d45" font-family="Poppins,sans-serif" font-size="9">uploads</text>
+
+      <text x="390" y="360" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">Content lives in the managed database, media lives in object storage. Neither sits on the app disk.</text>
+    </svg>
+    <figcaption>One Strapi process serves the built admin panel and the API, reading content from a managed database and pushing uploads to object storage, all behind a proxy that handles SSL.</figcaption>
+  </figure>
+
+  <h2>What database should Strapi use in production?</h2>
+  <p>Use PostgreSQL if you have no strong reason not to. It's the community default for production Strapi, it handles concurrency well, and it won't surprise you. MySQL and MariaDB are fully supported too, so if your team or your stack already leans that way, they're a fine choice. SQLite stays where it belongs: local dev.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Database</th><th>Strapi support</th><th>Use it for</th></tr></thead>
+    <tbody>
+      <tr><td><strong>SQLite</strong></td><td>Default, dev only</td><td>Local building and tests. Never production.</td></tr>
+      <tr><td><strong>PostgreSQL</strong></td><td>Fully supported, recommended</td><td>Most production Strapi apps. The safe default.</td></tr>
+      <tr><td><strong>MySQL / MariaDB</strong></td><td>Fully supported</td><td>Teams and stacks that already run MySQL.</td></tr>
+    </tbody>
+  </table>
+
+  <p>Strapi reads its database config from <code>config/database.js</code> (or <code>.ts</code>), and the sane pattern is to drive everything from environment variables so the same code runs against SQLite locally and Postgres in production:</p>
+<pre><code>// config/database.js
+module.exports = ({ env }) =&gt; ({
+  connection: {
+    client: env('DATABASE_CLIENT', 'postgres'),
+    connection: {
+      connectionString: env('DATABASE_URL'),
+      host: env('DATABASE_HOST', '127.0.0.1'),
+      port: env.int('DATABASE_PORT', 5432),
+      database: env('DATABASE_NAME', 'strapi'),
+      user: env('DATABASE_USERNAME', 'strapi'),
+      password: env('DATABASE_PASSWORD'),
+      ssl: env.bool('DATABASE_SSL', false),
+    },
+  },
+});</code></pre>
+  <p>Then the production values live in your environment, not the repo:</p>
+<pre><code># PostgreSQL
+DATABASE_CLIENT=postgres
+DATABASE_URL=postgresql://strapi:s3cret@10.0.0.5:5432/strapi
+
+# or MySQL
+DATABASE_CLIENT=mysql
+DATABASE_URL=mysql://strapi:s3cret@10.0.0.5:3306/strapi</code></pre>
+  <p>The connection details (host, port, name, user, password) come from your managed database. If you want the framework-agnostic version of this step, with Prisma, Django, Rails and the rest, it's covered in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">add a managed database to your app</a>, and there's a deeper dive on <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a>.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console Launch Database screen with managed PostgreSQL, MySQL, MariaDB and more, for a Strapi production database">
+    <figcaption>Launch a managed PostgreSQL or MySQL for Strapi. It's provisioned on a private network and backed up on a schedule.</figcaption>
+  </figure>
+
+  <h2>The five secrets Strapi won't boot without</h2>
+  <p>This one catches almost everyone on the first production run. Strapi requires a set of secrets, and if they're missing it doesn't warn and carry on, it refuses to start. The classic symptom is this exact error in your logs:</p>
+<pre><code>Middleware "strapi::session": App keys are required.</code></pre>
+  <p>That means <code>APP_KEYS</code> isn't set. In development Strapi wrote these values into your local <code>.env</code> when it created the project, so you never thought about them. In production you have to set them yourself, on purpose. The five you need:</p>
+  <ul>
+    <li><code>APP_KEYS</code> signs the session cookies. It's a comma-separated list of random keys.</li>
+    <li><code>API_TOKEN_SALT</code> salts the API tokens Strapi issues.</li>
+    <li><code>ADMIN_JWT_SECRET</code> signs admin panel login tokens.</li>
+    <li><code>JWT_SECRET</code> signs end-user tokens from the users-and-permissions plugin.</li>
+    <li><code>TRANSFER_TOKEN_SALT</code> salts data-transfer tokens.</li>
+  </ul>
+  <p>Generate real random values, not the placeholder <code>tobemodified</code> strings from the sample file. One command per secret:</p>
+<pre><code># run this five times, one value per secret
+openssl rand -base64 32
+
+# APP_KEYS wants a few comma-separated keys
+APP_KEYS=key1base64,key2base64
+API_TOKEN_SALT=...
+ADMIN_JWT_SECRET=...
+JWT_SECRET=...
+TRANSFER_TOKEN_SALT=...</code></pre>
+  <p>Running a recent Strapi 5 build? It also expects an <code>ENCRYPTION_KEY</code>, so generate one more while you're there. Set every one of these as an environment variable in your host, never committed to Git. If you commit a <code>.env</code> with real secrets, treat them as burned and rotate them. The why-and-how of secret handling is in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean Environment Variables editor holding the Strapi secrets APP_KEYS, JWT_SECRET and the database connection, kept out of the repository">
+    <figcaption>Set the Strapi secrets and the database connection as environment variables. There's a paste-env tab so you can drop them all in at once.</figcaption>
+  </figure>
+
+  <div class="note"><b>A pattern we see constantly:</b> a Strapi app that builds cleanly but crash-loops on boot. Nine times out of ten it's one missing secret or a database it can't reach, not a bug in your code. Read the first few lines of the error log before you touch anything else. Strapi usually names the exact problem.</div>
+
+  <h2>Building the Strapi admin panel</h2>
+  <p>The Strapi admin is a React application. In development, <code>npm run develop</code> serves it and hot-reloads as you edit content types. In production you don't run develop. You compile the admin into a static bundle once, then start the server that serves it. Two commands, in order:</p>
+<pre><code># 1. compile the admin panel (React) for production
+NODE_ENV=production npm run build
+
+# 2. start the server in production
+NODE_ENV=production npm run start</code></pre>
+  <p>Skip the build and you'll start the server fine, then open the admin URL to a blank page or a 404 on the JavaScript. That's the tell: the admin was never compiled. Set <code>NODE_ENV=production</code> so Strapi builds the optimized bundle and behaves as a production server.</p>
+  <p>One gotcha worth burning into memory. Your <code>config/server.js</code> controls the host, port, public URL, and proxy setting, and changing any of that requires rebuilding the admin. So if you update the public URL after the fact, run <code>npm run build</code> again or the admin keeps pointing at the old address. This trips people who tweak the URL as a quick fix and can't work out why nothing changed.</p>
+
+  <!-- ADD IMAGE: the runtime config panel with the Install, Build (npm run build) and Start (npm run start) commands and Node version filled in. Swap for a real screenshot: src -> images/strapi-runtime-config.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The runtime config panel: Install command, Build set to npm run build, Start set to npm run start, and the Node version.</em><small>This is where the admin build and the long-running server get defined.</small></span></figure>
+
+  <h2>Where do Strapi uploads go in production?</h2>
+  <p>Same trap as SQLite, different folder. Strapi's default upload provider writes files to <code>public/uploads</code> on the local disk. On ephemeral storage those images vanish on the next deploy, and across two app servers they aren't shared, so an upload on one box 404s on the other. If your CMS holds any media, and most do, this bites.</p>
+  <p>The fix is an S3-compatible upload provider. Install <code>@strapi/provider-upload-aws-s3</code>, then configure it in <code>config/plugins.js</code> to point at your bucket. The <code>endpoint</code> option is the important bit: it lets you target any S3-compatible object storage, not only AWS.</p>
+<pre><code>// config/plugins.js
+module.exports = ({ env }) =&gt; ({
+  upload: {
+    config: {
+      provider: 'aws-s3',
+      providerOptions: {
+        s3Options: {
+          endpoint: env('S3_ENDPOINT'),
+          region: env('S3_REGION'),
+          credentials: {
+            accessKeyId: env('S3_ACCESS_KEY_ID'),
+            secretAccessKey: env('S3_ACCESS_SECRET'),
+          },
+          params: { Bucket: env('S3_BUCKET') },
+        },
+      },
+    },
+  },
+});</code></pre>
+  <p>Now media survives deploys and is shared across every instance. Kloudbean gives you built-in S3-compatible buckets with full AWS S3 SDK compatibility, so the same config points straight at storage on your own account. The broader pattern, and why big files never belong on the app disk, is in <a href="https://www.kloudbean.com/blog/store-user-uploads-in-object-storage/">store user uploads in object storage</a>.</p>
+
+  <!-- ADD IMAGE: the Strapi media library showing uploaded images served from object storage. Swap for a real screenshot: src -> images/strapi-media-library.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Strapi media library with a few images, served from S3-compatible object storage.</em><small>Optional. Makes the uploads point concrete.</small></span></figure>
+
+  <h2>Running Strapi behind nginx or a reverse proxy</h2>
+  <p>In production you don't expose Strapi's port 1337 to the world. A reverse proxy sits in front on 443, terminates TLS, and forwards to Strapi. That gives you HTTPS and a clean domain. Two settings make Strapi behave correctly behind it, both in <code>config/server.js</code>:</p>
+<pre><code>// config/server.js
+module.exports = ({ env }) =&gt; ({
+  host: env('HOST', '0.0.0.0'),
+  port: env.int('PORT', 1337),
+  url: env('PUBLIC_URL', 'https://cms.example.com'),
+  proxy: true,
+  app: { keys: env.array('APP_KEYS') },
+});</code></pre>
+  <p>The <code>url</code> is your public HTTPS address. Strapi uses it to build absolute links for the admin and the API, so if it's wrong the admin loads from the wrong host or your media URLs point at <code>localhost</code>. Setting <code>proxy: true</code> tells Strapi it's behind a proxy so it trusts the forwarded protocol and reports HTTPS instead of the internal HTTP hop. On a managed host the proxy and the SSL certificate are handled for you, so you set the public URL and move on. If you want the mechanics, see <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">nginx reverse proxy for Node</a>. And remember: change the <code>url</code>, rebuild the admin.</p>
+
+  <h2>Your Strapi production deploy checklist</h2>
+  <p>Six things stand between a working dev project and a Strapi app you can trust in production. Run down this list before you point a domain at it.</p>
+  <table class="cmp">
+    <thead><tr><th>Step</th><th>Do this</th><th>Why it matters</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Database</strong></td><td>Provision managed Postgres or MySQL, set <code>DATABASE_*</code></td><td>SQLite loses your content on redeploy</td></tr>
+      <tr><td><strong>Secrets</strong></td><td>Set <code>APP_KEYS</code> and the other four as env vars</td><td>Strapi refuses to boot without them</td></tr>
+      <tr><td><strong>Build</strong></td><td><code>NODE_ENV=production npm run build</code></td><td>Compiles the admin React bundle</td></tr>
+      <tr><td><strong>Start</strong></td><td><code>npm run start</code> in production mode</td><td>Runs the API and serves the admin</td></tr>
+      <tr><td><strong>Uploads</strong></td><td>Point the upload provider at object storage</td><td>Local disk is ephemeral, media disappears</td></tr>
+      <tr><td><strong>Proxy + SSL</strong></td><td>Set <code>url</code>, put it behind a proxy with TLS</td><td>Admin and API links must be HTTPS and correct</td></tr>
+    </tbody>
+  </table>
+
+  <h2>How to deploy Strapi on a managed server (step by step)</h2>
+  <p>With the concepts clear, the actual deploy is short, because a managed server hands you the Node runtime, the reverse proxy, the firewall, and SSL already assembled. You bring the repo. Here's the path through the Kloudbean console. If you've deployed a plain Node service before, this will feel familiar; the sibling walkthrough is <a href="https://www.kloudbean.com/blog/deploy-express-app/">deploy an Express app to production</a>.</p>
+
+  <h3>1. Add the server and the Strapi app</h3>
+  <p>Create a server, pick a cloud (Kloudbean runs seven: AWS, Amazon Lightsail, Google Cloud, DigitalOcean, Vultr, Linode, and UpCloud), choose the Node.js stack and a size. 2 GB of RAM is a comfortable starting point for a single Strapi instance, since the admin build is not shy about memory. Then add your app under <strong>Applications</strong>.</p>
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean Add Application screen, adding a Strapi Node.js app to a managed server">
+    <figcaption>Add Application: Strapi is a Node app, so pick the Node.js stack. It can share a server with other apps if you want.</figcaption>
+  </figure>
+
+  <h3>2. Launch the managed database</h3>
+  <p>Open <strong>Launch Database</strong> and create a PostgreSQL (or MySQL). It provisions on a private network, gets automatic backups, and hands you the host, port, name, user, and password. Those go into your <code>DATABASE_*</code> env vars. Keeping the database off the public internet is not optional for a CMS that holds user data, and here it's the default.</p>
+
+  <h3>3. Set the secrets and the database connection</h3>
+  <p>In <strong>Runtime Configuration, Environment Variables</strong>, add the five Strapi secrets, the <code>DATABASE_*</code> values, your S3 upload credentials, <code>PUBLIC_URL</code>, and <code>NODE_ENV=production</code>. Use the paste-env tab to drop them in together. A single missing variable is the most common reason a Strapi deploy builds and then won't boot, so slow down and check them.</p>
+
+  <h3>4. Connect Git and deploy</h3>
+  <p>In <strong>Git Deployment</strong>, connect GitHub, paste the repo URL, pick a branch, and set the commands: install with <code>npm ci</code>, build with <code>npm run build</code>, start with <code>npm run start</code>. Hit deploy and the build log streams live, so you watch the admin compile instead of guessing. Turn on automated deployment and every push to that branch rebuilds and ships itself. Details in <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD auto-deploy from GitHub</a>.</p>
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean Git Deployment tab with the repository, branch, and the install, build, and start commands for Strapi">
+    <figcaption>Git Deployment: set install, build (npm run build), and start (npm run start), then deploy with live logs.</figcaption>
+  </figure>
+
+  <h3>5. Point a domain and turn on SSL</h3>
+  <p>Add your custom domain, point DNS at the server, and install a free auto-renewing SSL certificate. Set <code>PUBLIC_URL</code> to that HTTPS address and rebuild the admin so its links are correct. Open <code>/admin</code>, create your first admin user, and you're live.</p>
+
+  <!-- ADD IMAGE: the deployed Strapi admin login screen served over HTTPS on a custom domain. Swap for a real screenshot: src -> images/strapi-admin-live.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The live Strapi admin login on your custom domain, over HTTPS.</em><small>The payoff shot: the admin panel reachable at your public URL with a valid certificate.</small></span></figure>
+
+  <h2>A few things that will save you later</h2>
+  <p>Self-hosting Strapi is not hard, but a handful of habits keep it boring, which is what you want from production.</p>
+  <ul>
+    <li><strong>Run migrations and content-type changes carefully.</strong> Strapi writes schema based on your content types. Build them in a lower environment, not by editing types live in production.</li>
+    <li><strong>Give the database its own least-privilege user.</strong> Your Strapi user needs its schema and nothing more. It doesn't need superuser.</li>
+    <li><strong>Turn backups on, then test a restore.</strong> Automatic backups are worth little until you've proven you can restore one. Do it before you need it.</li>
+    <li><strong>Keep secrets rotated.</strong> Since they're env vars, rotating a leaked <code>ADMIN_JWT_SECRET</code> is a config change, not a redeploy of code.</li>
+  </ul>
+  <p>Backups, private networking, and free SSL come with the managed setup, so most of this is a matter of using what's already there rather than bolting it on later.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Your Strapi CMS, live on infrastructure you own.</p>
+    <p style="margin:0 0 .6em">Managed Postgres or MySQL, a Node runtime, S3-compatible storage for uploads, Git deploy with live build logs, automatic backups, and free auto-renewing SSL, all in one dashboard. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>; sizes and plans (from $8/mo, Enterprise custom) are on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Managed PostgreSQL and MySQL · Node runtime · S3-compatible object storage · Git deploy with live logs · Automatic backups · Private networking · Free SSL · Free migration</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I deploy Strapi to production?</h3>
+    <p>Move off SQLite to a managed PostgreSQL or MySQL, set the required secrets as environment variables, build the admin panel with <code>NODE_ENV=production npm run build</code>, then run <code>npm run start</code>. Point your upload provider at S3-compatible object storage, and put Strapi behind a reverse proxy with SSL. On a managed host you deploy from Git and the runtime, proxy, and certificate are handled for you.</p>
+
+    <h3>What database should Strapi use in production?</h3>
+    <p>PostgreSQL is the recommended default, and MySQL or MariaDB are fully supported if your stack prefers them. All three are client-server databases that live independently of the app, handle concurrency, and can be backed up. SQLite is fine for local development only. Set the connection through <code>DATABASE_*</code> environment variables so the same code runs in both places.</p>
+
+    <h3>Why should I not run Strapi on SQLite in production?</h3>
+    <p>SQLite stores everything in a single file on the app server's local disk. On ephemeral storage that file, and all your content, is wiped on every redeploy, and it can't be shared across a second app instance. That makes it impossible to scale out and dangerous for anything you care about. Switch to a managed Postgres or MySQL before real users arrive.</p>
+
+    <h3>What environment variables does Strapi need?</h3>
+    <p>At minimum Strapi needs <code>APP_KEYS</code>, <code>API_TOKEN_SALT</code>, <code>ADMIN_JWT_SECRET</code>, <code>JWT_SECRET</code>, and <code>TRANSFER_TOKEN_SALT</code>, plus your database connection variables. Recent Strapi 5 builds also expect an <code>ENCRYPTION_KEY</code>. Generate random values with a command like openssl rand base64 32, set them in your host's environment, and never commit them to Git.</p>
+
+    <h3>How do I build the Strapi admin panel?</h3>
+    <p>The admin is a React app that has to be compiled for production. Run <code>NODE_ENV=production npm run build</code> to produce the optimized bundle, then <code>npm run start</code> to serve it. If you skip the build, the admin URL loads a blank page or a 404 on its JavaScript. Note that changing the server config, including the public URL, requires rebuilding the admin.</p>
+
+    <h3>Where do Strapi uploads go in production?</h3>
+    <p>By default Strapi writes uploads to the public folder on local disk, which is ephemeral and not shared across instances, so media can disappear on redeploy. Install an S3-compatible upload provider and configure it in config plugins to point at your bucket. Set the endpoint option so it targets any S3-compatible storage, and media then survives deploys and scale-out.</p>
+
+    <h3>How do I run Strapi behind nginx or a reverse proxy?</h3>
+    <p>Put a proxy in front on port 443 to terminate TLS and forward to Strapi on port 1337. In config server, set <code>url</code> to your public HTTPS address so Strapi builds correct absolute links, and set proxy to true so it trusts the forwarded protocol. On a managed host the proxy and certificate are handled for you, so you mainly set the public URL and rebuild the admin.</p>
+
+    <h3>What causes the App keys are required error in Strapi?</h3>
+    <p>That error means <code>APP_KEYS</code> is not set in the environment. In development Strapi writes it into your local env file automatically, but in production you must set it yourself. Add <code>APP_KEYS</code> as a comma-separated list of random keys, along with the other required secrets, and Strapi will boot.</p>
+
+    <h3>Can I host Strapi on Kloudbean?</h3>
+    <p>Yes. Strapi runs on the managed Node.js runtime, with one-click managed PostgreSQL, MySQL, or MariaDB for its database, environment variables for the secrets, S3-compatible object storage for uploads, and Git deploy with live build logs. Backups, private networking, and free auto-renewing SSL come with the managed setup, and free migration help is available.</p>
+
+    <h3>Do I need Node in production, or can I export Strapi as a static site?</h3>
+    <p>Strapi is the backend, so it needs a running Node process and a database in production. It is not a static site generator. Your front end can be static and call Strapi's REST or GraphQL API, but the CMS itself has to run as a live server. That is why production Strapi hosting needs a Node runtime plus a managed database.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Own your headless CMS, from the admin build to the backups.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Deploy Strapi to Production Without Losing Your Content","description":"A complete, honest guide to deploy Strapi to production: swap SQLite for a managed PostgreSQL or MySQL, set the required secrets (APP_KEYS and more), build the admin panel, store uploads in S3-compatible object storage, and run behind a reverse proxy with SSL.","image":"https://www.kloudbean.com/blog/deploy-strapi-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/deploy-strapi-app/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I deploy Strapi to production?","acceptedAnswer":{"@type":"Answer","text":"Move off SQLite to a managed PostgreSQL or MySQL, set the required secrets as environment variables, build the admin panel with NODE_ENV=production npm run build, then run npm run start. Point your upload provider at S3-compatible object storage, and put Strapi behind a reverse proxy with SSL. On a managed host you deploy from Git and the runtime, proxy, and certificate are handled for you."}},
+{"@type":"Question","name":"What database should Strapi use in production?","acceptedAnswer":{"@type":"Answer","text":"PostgreSQL is the recommended default, and MySQL or MariaDB are fully supported if your stack prefers them. All three are client-server databases that live independently of the app, handle concurrency, and can be backed up. SQLite is fine for local development only. Set the connection through DATABASE variables so the same code runs in both places."}},
+{"@type":"Question","name":"Why should I not run Strapi on SQLite in production?","acceptedAnswer":{"@type":"Answer","text":"SQLite stores everything in a single file on the app server local disk. On ephemeral storage that file, and all your content, is wiped on every redeploy, and it cannot be shared across a second app instance. That makes it impossible to scale out and dangerous for anything you care about. Switch to a managed Postgres or MySQL before real users arrive."}},
+{"@type":"Question","name":"What environment variables does Strapi need?","acceptedAnswer":{"@type":"Answer","text":"At minimum Strapi needs APP_KEYS, API_TOKEN_SALT, ADMIN_JWT_SECRET, JWT_SECRET, and TRANSFER_TOKEN_SALT, plus your database connection variables. Recent Strapi 5 builds also expect an ENCRYPTION_KEY. Generate random values with a command like openssl rand base64 32, set them in your host environment, and never commit them to Git."}},
+{"@type":"Question","name":"How do I build the Strapi admin panel?","acceptedAnswer":{"@type":"Answer","text":"The admin is a React app that has to be compiled for production. Run NODE_ENV=production npm run build to produce the optimized bundle, then npm run start to serve it. If you skip the build, the admin URL loads a blank page or a 404 on its JavaScript. Note that changing the server config, including the public URL, requires rebuilding the admin."}},
+{"@type":"Question","name":"Where do Strapi uploads go in production?","acceptedAnswer":{"@type":"Answer","text":"By default Strapi writes uploads to the public folder on local disk, which is ephemeral and not shared across instances, so media can disappear on redeploy. Install an S3-compatible upload provider and configure it in config plugins to point at your bucket. Set the endpoint option so it targets any S3-compatible storage, and media then survives deploys and scale-out."}},
+{"@type":"Question","name":"How do I run Strapi behind nginx or a reverse proxy?","acceptedAnswer":{"@type":"Answer","text":"Put a proxy in front on port 443 to terminate TLS and forward to Strapi on port 1337. In config server, set url to your public HTTPS address so Strapi builds correct absolute links, and set proxy to true so it trusts the forwarded protocol. On a managed host the proxy and certificate are handled for you, so you mainly set the public URL and rebuild the admin."}},
+{"@type":"Question","name":"What causes the App keys are required error in Strapi?","acceptedAnswer":{"@type":"Answer","text":"That error means APP_KEYS is not set in the environment. In development Strapi writes it into your local env file automatically, but in production you must set it yourself. Add APP_KEYS as a comma-separated list of random keys, along with the other required secrets, and Strapi will boot."}},
+{"@type":"Question","name":"Can I host Strapi on Kloudbean?","acceptedAnswer":{"@type":"Answer","text":"Yes. Strapi runs on the managed Node.js runtime, with one-click managed PostgreSQL, MySQL, or MariaDB for its database, environment variables for the secrets, S3-compatible object storage for uploads, and Git deploy with live build logs. Backups, private networking, and free auto-renewing SSL come with the managed setup, and free migration help is available."}},
+{"@type":"Question","name":"Do I need Node in production, or can I export Strapi as a static site?","acceptedAnswer":{"@type":"Answer","text":"Strapi is the backend, so it needs a running Node process and a database in production. It is not a static site generator. Your front end can be static and call Strapi REST or GraphQL API, but the CMS itself has to run as a live server. That is why production Strapi hosting needs a Node runtime plus a managed database."}}
+]}
+]}
+</script>
+</body>
+</html>

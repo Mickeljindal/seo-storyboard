@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agency WordPress Hosting: The Operations Playbook for a Client Fleet</title>
+<meta name="description" content="Agency WordPress hosting is a fleet-operations problem, not a single-site one. A hands-on playbook: isolate clients, stage every change, hand out scoped access, and migrate cleanly, all from one console.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/agency-wordpress-hosting/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Agency WordPress Hosting: The Operations Playbook for a Client Fleet">
+<meta property="og:description" content="Run many client WordPress sites without the login juggling: isolation, staging, scoped access with subusers and UAC, clean migrations, and room for non-WordPress work.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Agency &amp; multi-app</span>
+  <h1>Agency WordPress Hosting: The Operations Playbook for a Client Fleet</h1>
+
+  <figure><img src="images/hero.png" alt="Agency WordPress hosting: one console running a fleet of isolated client sites"></figure>
+
+  <p class="lead">It's 5:12 on a Friday. A client texts that their contact form is dead. You open a browser, pick the wrong login, close it, find the right one, and start hunting for which of your thirty sites this even is. Running one WordPress site is easy. Running a fleet of them for paying clients is a different job, and most hosting is quietly built for the first one.</p>
+  <p>Good agency WordPress hosting is built for the second job: many client sites, one place to run them, and guardrails so a busy Tuesday for one client never turns into an outage for another. This is the operations playbook I wish more agencies read before they signed. Not a feature checklist. The actual jobs you do every week, and how to make each one boring.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>Treat it as fleet operations, not hosting. Isolate clients so one busy site can't drag down the rest, stage every change before it touches a live site, hand out scoped access with subusers and UAC instead of a shared master login, and keep migrations clean on the way in and the way out. Kloudbean puts the whole fleet in one console with staging, per-client backups, and free migration help.</p>
+  </div>
+
+  <h2>Why agency WordPress hosting is a fleet problem, not a site problem</h2>
+  <p>Here is what changes when you go from one site to forty. The work stops being about any single site being fast. It becomes about the fleet staying sane. Different clients, different plugins, different update cadences, different people who need to poke at them. The failure modes shift too.</p>
+  <p>One client installs a heavy plugin and pegs the CPU. If that client shares a box with five others, all six get slow, and now you're explaining a problem one client caused to five who didn't. A junior updates a plugin straight on production because there was no staging handy. A freelancer you gave "quick access" three months ago still has the keys to everything. And when you win a big client, onboarding their existing site turns into a weekend of copying files by hand. None of these are WordPress problems. They're operations problems, and the host either helps or gets in the way.</p>
+
+  <figure>
+    <svg viewBox="0 0 780 336" role="img" aria-label="Diagram: one agency console managing three isolated client WordPress sites, each with its own staging-to-live flow and scoped access" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="26" y="32" fill="#000f27" font-family="Poppins,sans-serif" font-size="15.5" font-weight="700">One console. Isolated clients. Every change staged first.</text>
+
+      <rect x="24" y="126" width="150" height="84" rx="14" fill="#000f27"/>
+      <text x="99" y="161" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="14.5" font-weight="600">Agency console</text>
+      <text x="99" y="182" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="11">one login</text>
+
+      <line x1="174" y1="150" x2="298" y2="92" stroke="#5b6a86" stroke-width="2"/>
+      <line x1="174" y1="168" x2="298" y2="174" stroke="#5b6a86" stroke-width="2"/>
+      <line x1="174" y1="186" x2="298" y2="258" stroke="#5b6a86" stroke-width="2"/>
+
+      <!-- Lane 1 -->
+      <rect x="298" y="56" width="456" height="72" rx="14" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5" stroke-dasharray="6 6"/>
+      <text x="312" y="50" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600" letter-spacing="1">ISOLATED</text>
+      <rect x="314" y="74" width="98" height="38" rx="8" fill="#f6f7fb" stroke="#5b6a86" stroke-width="1.2"/>
+      <text x="363" y="98" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">Staging</text>
+      <line x1="414" y1="93" x2="452" y2="93" stroke="#40b75f" stroke-width="2.4"/>
+      <path d="M452 93 l-9 -4 v8 z" fill="#40b75f"/>
+      <rect x="454" y="74" width="150" height="38" rx="8" fill="#ffffff" stroke="#000f27" stroke-width="1.4"/>
+      <text x="529" y="98" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12" font-weight="600">Client A · Live</text>
+      <rect x="626" y="76" width="112" height="34" rx="17" fill="#eaf7ee" stroke="#40b75f" stroke-width="1.2"/>
+      <text x="682" y="98" text-anchor="middle" fill="#2f8f4a" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600">scoped access</text>
+
+      <!-- Lane 2 -->
+      <rect x="298" y="138" width="456" height="72" rx="14" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5" stroke-dasharray="6 6"/>
+      <rect x="314" y="156" width="98" height="38" rx="8" fill="#f6f7fb" stroke="#5b6a86" stroke-width="1.2"/>
+      <text x="363" y="180" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">Staging</text>
+      <line x1="414" y1="175" x2="452" y2="175" stroke="#40b75f" stroke-width="2.4"/>
+      <path d="M452 175 l-9 -4 v8 z" fill="#40b75f"/>
+      <rect x="454" y="156" width="150" height="38" rx="8" fill="#ffffff" stroke="#000f27" stroke-width="1.4"/>
+      <text x="529" y="180" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12" font-weight="600">Client B · Live</text>
+      <rect x="626" y="158" width="112" height="34" rx="17" fill="#eaf7ee" stroke="#40b75f" stroke-width="1.2"/>
+      <text x="682" y="180" text-anchor="middle" fill="#2f8f4a" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600">scoped access</text>
+
+      <!-- Lane 3 -->
+      <rect x="298" y="220" width="456" height="72" rx="14" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5" stroke-dasharray="6 6"/>
+      <rect x="314" y="238" width="98" height="38" rx="8" fill="#f6f7fb" stroke="#5b6a86" stroke-width="1.2"/>
+      <text x="363" y="262" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">Staging</text>
+      <line x1="414" y1="257" x2="452" y2="257" stroke="#40b75f" stroke-width="2.4"/>
+      <path d="M452 257 l-9 -4 v8 z" fill="#40b75f"/>
+      <rect x="454" y="238" width="150" height="38" rx="8" fill="#ffffff" stroke="#000f27" stroke-width="1.4"/>
+      <text x="529" y="262" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12" font-weight="600">Client C · Live</text>
+      <rect x="626" y="240" width="112" height="34" rx="17" fill="#eaf7ee" stroke="#40b75f" stroke-width="1.2"/>
+      <text x="682" y="262" text-anchor="middle" fill="#2f8f4a" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600">scoped access</text>
+    </svg>
+    <figcaption>The whole fleet from one login: each client isolated in its own lane, every change pushed from staging to live, access scoped per person.</figcaption>
+  </figure>
+
+  <h2>Job 1: Isolate clients so one can't sink the rest</h2>
+  <p>This is the one agencies underrate until it bites. On cheap shared hosting, everybody lives in the same pool. So the moment one client runs a runaway import, a badly written cron, or just gets a genuine traffic spike, the neighbors feel it. You get to explain a slowdown you didn't cause.</p>
+  <p>The fix is blast-radius control. Give your heavier clients their own server so their bad day stays theirs. Lighter clients can share a box comfortably, each as its own isolated application with its own database and its own resources. You decide the grouping based on what each client actually needs, and you can move a client to their own server later without re-platforming them. If you want the deeper trade-off, the piece on <a href="https://www.kloudbean.com/blog/single-tenant-vs-multi-tenant/">single-tenant versus multi-tenant</a> lays it out. And when a single client's site genuinely outgrows one server, scaling it is the same job as scaling any <a href="https://www.kloudbean.com/blog/scalable-wordpress-hosting/">high-traffic WordPress site</a>.</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="The Kloudbean console: provisioning a server so a heavy client can be isolated from the rest of the fleet">
+    <figcaption>Provision a dedicated server for a heavy client, or group lighter ones together. Same console either way.</figcaption>
+  </figure>
+
+  <h2>Job 2: Stage every change before it touches a live site</h2>
+  <p>Nobody plans to break a client site. It happens because the plugin update looked routine and there was no safe place to try it. So make the safe place the default. Clone the site to <strong>staging</strong>, run the update or the redesign there, click through the pages that matter (checkout, contact form, the one weird template), then push it live once it holds up.</p>
+  <p>Kloudbean gives you one-click staging for WordPress (and Laravel, for the client work that isn't WordPress). The rule that saves weekends: if it's going on a live client site, it goes through staging first. Every time. The one occasion you skip it "because it's tiny" is the one that takes down a store on a Friday.</p>
+
+  <!-- ADD IMAGE: replace this slot with a real screenshot. src -> images/staging-push.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The staging screen for a client site, mid push-to-live, with the "create staging" or "push to live" control visible.</em><small>Author-supplied screenshot from your own dashboard.</small></span></figure>
+
+  <h2>Job 3: Hand out scoped access, not the master key</h2>
+  <p>Your team needs access. Your clients sometimes need a peek. Freelancers need in for a fortnight and then out. The wrong answer is one shared admin login in a shared password note, because that's how a departed contractor keeps access to everything and how a junior deletes the wrong thing.</p>
+  <p>The right answer is <strong>subusers with User Access Control</strong>. Give each person permissions scoped to exactly what their job needs, per resource and per action. A developer can deploy to one client's app without being able to touch the others. A client can see their own site and nothing else. A freelancer gets access to one project, and you revoke it cleanly when the invoice clears. Two more tools worth knowing: a <strong>Basic Auth gate</strong> in front of a staging site so a client preview isn't crawlable or public, and <strong>IP access control</strong> (allow or deny by address or CIDR) for locking admin down to your office and VPN.</p>
+
+  <!-- ADD IMAGE: replace this slot with a real screenshot. src -> images/uac-roles.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The subusers and User Access Control screen showing a team member granted access to one client site only.</em><small>Author-supplied screenshot from your own dashboard.</small></span></figure>
+
+  <h2>Job 4: Keep your brand in front, not your host's</h2>
+  <p>Your client hired you. They shouldn't be squinting at some other company's logo to figure out where their site lives. Keeping the relationship yours is partly a white-label question, and there's a fuller guide on <a href="https://www.kloudbean.com/blog/white-label-hosting-for-agencies/">white-label hosting for agencies</a> if that's the route you want.</p>
+  <p>But a lot of "looking like the agency, not the vendor" is really access design. When a client only ever sees their own site through a scoped login, and everything routine (backups, SSL, updates) just happens without a third party emailing them, the vendor stays invisible and you stay the point of contact. That's the practical version of white-labeling most agencies actually need day to day.</p>
+
+  <h2>Job 5: Onboard and offboard without the weekend</h2>
+  <p>Winning a client shouldn't cost you a Saturday. Migrating their existing WordPress site in should be a supported process, not a "download the files and good luck" email. Kloudbean includes <strong>free migration assistance</strong>, which is the difference between onboarding a client in an afternoon and dreading it.</p>
+  <p>And here's the part agencies forget to check until they want to leave a host: offboarding. Your clients' sites, databases, and uploads are theirs. You should be able to export them in standard formats and move on with no drama and no hostage situation. If a client parts ways with you, handing over a clean, portable site is professional. A host that makes that hard is making your reputation its captive. For the messy real-world version, see <a href="https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/">migrating hosting with zero downtime</a>.</p>
+
+  <h2>Job 6: Give the non-WordPress work a home too</h2>
+  <p>Agencies almost never stay purely WordPress. A client needs a Node app for a booking widget. Another wants a small Python API, or a static landing page for a campaign, or a standalone database behind a custom tool. A WordPress-only host pushes all of that onto yet another vendor and yet another invoice.</p>
+  <p>Because Kloudbean runs the whole stack (PHP for the WordPress and WooCommerce work, plus Node, Python, Ruby, Java, static sites, and six managed database engines), that work sits in the same console as your WordPress fleet. One login, one bill, one place your team already knows. If you're weighing the model itself, <a href="https://www.kloudbean.com/blog/reseller-hosting-vs-managed-cloud/">reseller hosting versus managed cloud</a> is the honest comparison, and <a href="https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/">how agencies host 20 client apps</a> shows the shape at scale.</p>
+
+  <h2>The agency operations matrix</h2>
+  <p>Same jobs, laid out so you can see what each one is really protecting you from:</p>
+  <table class="cmp">
+    <thead><tr><th>The job</th><th>What breaks without it</th><th>What handles it</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Isolate clients</strong></td><td>One client's spike slows five others</td><td>Own server for heavy clients; isolated apps for the rest</td></tr>
+      <tr><td><strong>Stage changes</strong></td><td>A routine update takes a live site down</td><td>One-click staging for WordPress and Laravel</td></tr>
+      <tr><td><strong>Scope access</strong></td><td>Shared logins; a contractor keeps the keys</td><td>Subusers plus UAC, Basic Auth gate, IP allow/deny</td></tr>
+      <tr><td><strong>Restore fast</strong></td><td>"We have a backup somewhere" during an outage</td><td>Automatic per-site backups you can actually restore</td></tr>
+      <tr><td><strong>Grow per client</strong></td><td>A migration every time a client gets bigger</td><td>Resize a single client's server, no re-platform</td></tr>
+      <tr><td><strong>Onboard / offboard</strong></td><td>A lost weekend per new client</td><td>Free migration in; clean standard export out</td></tr>
+      <tr><td><strong>Non-WP work</strong></td><td>Another vendor, another bill</td><td>Node, Python, static, and managed databases in one console</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Where agencies actually get burned</h2>
+  <p>After enough client sites, the same few mistakes show up again and again. Worth naming them so you can dodge them.</p>
+  <ul>
+    <li><strong>The shared master login.</strong> It feels efficient right up until someone leaves, or fat-fingers the wrong client. Scoped subusers cost you five minutes to set up and save you an incident.</li>
+    <li><strong>Staging skipped under deadline.</strong> The update that "obviously won't break anything" is exactly the one that does. If staging is a chore, people skip it. If it's one click, they don't.</li>
+    <li><strong>Media stuck on local disk.</strong> Uploads written to one server's disk quietly become a problem the day you move hosts or add a second node. Offloading media to <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">object storage</a> keeps it portable and shared.</li>
+    <li><strong>The reseller trap.</strong> Reselling someone's shared plans looks like a tidy markup until support tickets and noisy-neighbor slowdowns become your problem to explain. Managed cloud you actually control ages better. The <a href="https://www.kloudbean.com/blog/hosting-for-agencies-playbook/">hosting for agencies playbook</a> goes deeper here.</li>
+  </ul>
+
+  <h2>The honest boundary</h2>
+  <p>One caveat, the same for any managed WordPress hosting. These are Linux stacks. The platform keeps the servers, the WordPress stack, SSL, and backups healthy and patched, while your client sites, their content, and their data stay yours and your clients'. You're outsourcing the operations so your team spends its hours on client work instead of server work. That's the trade, and for an agency it's usually a good one.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">One roster, one console, zero login juggling.</p>
+    <p style="margin:0 0 .6em">Run your whole client fleet from one place at <a href="https://www.kloudbean.com/">kloudbean.com</a>: staging, scoped access, and room to grow. Plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">One console for every client · Per-site staging · Subusers and UAC · Automatic backups · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is agency WordPress hosting?</h3>
+    <p>It's hosting built for running many client WordPress sites at once, rather than one site well. In practice that means one console for the whole fleet, staging on every site, scoped team and client access, per-site backups with fast restore, per-client scaling, and room to host non-WordPress client work alongside it. The problem it solves is operational, not technical.</p>
+    <h3>How do I manage multiple client WordPress sites from one dashboard?</h3>
+    <p>Put every client site in a single console so you have one login instead of one per client. From there you provision servers, add each client site as its own application, and see health, backups, and staging for all of them in one place. That unified view is the baseline that makes roles, backups, and scaling manageable across a roster.</p>
+    <h3>How do I give a client or freelancer access to just their site?</h3>
+    <p>Use subusers with User Access Control. You create a subuser and scope their permissions to a single client's resources, per resource and per action, so a freelancer can work on one project without seeing the rest of your fleet. When the work ends, you revoke that access cleanly. A Basic Auth gate and IP allow or deny rules add another layer for previews and admin.</p>
+    <h3>Should every client site have staging?</h3>
+    <p>Yes, on every site, not just the premium ones. Agencies push changes constantly, and testing a plugin update or redesign on staging before it hits production is what prevents the broken-site call. If staging is an upsell or a manual chore, teams skip it under deadline pressure, which is exactly when things break.</p>
+    <h3>How do agencies stop one client's traffic spike from affecting others?</h3>
+    <p>By controlling the blast radius. Give heavier or higher-traffic clients their own server so their busy days stay contained, and group lighter clients together as isolated applications with their own databases. Because you can resize or move a client later, you match resources to each client without re-platforming them when they grow.</p>
+    <h3>Can I host non-WordPress client projects on the same platform?</h3>
+    <p>Yes. Beyond WordPress and WooCommerce, agencies often need a Node app, a Python API, a static microsite, or a standalone database for a client. Kloudbean runs those in the same console as your WordPress sites, with six managed database engines and object storage available, so that work stays alongside the fleet instead of on another vendor.</p>
+    <h3>Is reseller hosting or managed cloud better for an agency?</h3>
+    <p>It depends on how much control you want. Reselling shared plans is simple but you inherit noisy-neighbor slowdowns and support limits you can't fix. Managed cloud you control gives you isolation, staging, and scoped access you can actually stand behind. The comparison on reseller hosting versus managed cloud walks through where each one fits.</p>
+    <h3>How do I migrate existing client sites in without a painful weekend?</h3>
+    <p>Use the free migration assistance rather than copying files by hand. A supported migration moves the site, database, and uploads for you, so onboarding a new client is an afternoon, not a Saturday. And because your sites export in standard formats, offboarding a client later is just as clean.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Ship client work, not server work.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Agency WordPress Hosting: The Operations Playbook for a Client Fleet","description":"Agency WordPress hosting is a fleet-operations problem: isolate clients, stage every change, hand out scoped access with subusers and UAC, and migrate cleanly, all from one console.","image":"https://www.kloudbean.com/blog/agency-wordpress-hosting/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/agency-wordpress-hosting/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is agency WordPress hosting?","acceptedAnswer":{"@type":"Answer","text":"It's hosting built for running many client WordPress sites at once, rather than one site well. In practice that means one console for the whole fleet, staging on every site, scoped team and client access, per-site backups with fast restore, per-client scaling, and room to host non-WordPress client work alongside it. The problem it solves is operational, not technical."}},
+{"@type":"Question","name":"How do I manage multiple client WordPress sites from one dashboard?","acceptedAnswer":{"@type":"Answer","text":"Put every client site in a single console so you have one login instead of one per client. From there you provision servers, add each client site as its own application, and see health, backups, and staging for all of them in one place. That unified view is the baseline that makes roles, backups, and scaling manageable across a roster."}},
+{"@type":"Question","name":"How do I give a client or freelancer access to just their site?","acceptedAnswer":{"@type":"Answer","text":"Use subusers with User Access Control. You create a subuser and scope their permissions to a single client's resources, per resource and per action, so a freelancer can work on one project without seeing the rest of your fleet. When the work ends, you revoke that access cleanly. A Basic Auth gate and IP allow or deny rules add another layer for previews and admin."}},
+{"@type":"Question","name":"Should every client site have staging?","acceptedAnswer":{"@type":"Answer","text":"Yes, on every site, not just the premium ones. Agencies push changes constantly, and testing a plugin update or redesign on staging before it hits production is what prevents the broken-site call. If staging is an upsell or a manual chore, teams skip it under deadline pressure, which is exactly when things break."}},
+{"@type":"Question","name":"How do agencies stop one client's traffic spike from affecting others?","acceptedAnswer":{"@type":"Answer","text":"By controlling the blast radius. Give heavier or higher-traffic clients their own server so their busy days stay contained, and group lighter clients together as isolated applications with their own databases. Because you can resize or move a client later, you match resources to each client without re-platforming them when they grow."}},
+{"@type":"Question","name":"Can I host non-WordPress client projects on the same platform?","acceptedAnswer":{"@type":"Answer","text":"Yes. Beyond WordPress and WooCommerce, agencies often need a Node app, a Python API, a static microsite, or a standalone database for a client. Kloudbean runs those in the same console as your WordPress sites, with six managed database engines and object storage available, so that work stays alongside the fleet instead of on another vendor."}},
+{"@type":"Question","name":"Is reseller hosting or managed cloud better for an agency?","acceptedAnswer":{"@type":"Answer","text":"It depends on how much control you want. Reselling shared plans is simple but you inherit noisy-neighbor slowdowns and support limits you can't fix. Managed cloud you control gives you isolation, staging, and scoped access you can actually stand behind. The comparison on reseller hosting versus managed cloud walks through where each one fits."}},
+{"@type":"Question","name":"How do I migrate existing client sites in without a painful weekend?","acceptedAnswer":{"@type":"Answer","text":"Use the free migration assistance rather than copying files by hand. A supported migration moves the site, database, and uploads for you, so onboarding a new client is an afternoon, not a Saturday. And because your sites export in standard formats, offboarding a client later is just as clean."}}
+]}
+]}
+</script>
+</body>
+</html>

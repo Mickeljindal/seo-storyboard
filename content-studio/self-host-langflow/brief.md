@@ -1,0 +1,6 @@
+# Brief — Self-Host Langflow (myth-vs-reality)
+
+Cluster 2. Primary kw: self host langflow / run langflow / langflow deploy (rival consensus: "run langflow", "run langflow locally"). Intent: how-to/consideration.
+FORMAT: Myth-vs-reality (distinct from all prior formats). Opener = myths about self-hosting AI tooling. Langflow = open-source visual builder for LLM apps / RAG / agents (Python). Myths to bust: (1) "just for demos" -> reality: exposes real API endpoints your app calls; (2) "needs a huge GPU" -> reality: Langflow orchestrates; the MODEL is an API call or your own Ollama, so a ~2GB CPU server runs Langflow fine; (3) "keys safer in a vendor cloud" -> reality: self-host keeps provider API keys in YOUR env on YOUR server; (4) "pain in production" -> reality: Python app + a database for saved flows; standard deploy. What it needs: server, Python, DB (Postgres) for persistence, env for API keys -> env-vars.png. Honesty: Langflow orchestrates, doesn't replace model compute; managed=server/stack/SSL/backups, you own the app+flows+keys.
+Dashboard: env-vars.png (provider API keys).
+Slug: self-host-langflow. Links: self-host-ollama-open-webui, best-self-hosted-tools, pricing. Distinct byline.

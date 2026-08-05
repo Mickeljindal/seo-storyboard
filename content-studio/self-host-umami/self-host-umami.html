@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Self-Host Umami: Own Your Web Analytics</title>
+<meta name="description" content="Self-host Umami, the open-source, privacy-friendly Google Analytics alternative. Run the Umami Node app on a managed server with managed PostgreSQL, set DATABASE_URL and APP_SECRET, run the migrations, and drop the tracking script on your sites.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/self-host-umami/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Self-Host Umami: Own Your Web Analytics">
+<meta property="og:description" content="Why self-host Umami, the architecture (a Next.js Node app plus PostgreSQL), the env vars that matter, and how to deploy it on a managed Node server with managed PostgreSQL.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Self-hosted analytics</span>
+  <h1>How to Self-Host Umami: Own Your Web Analytics</h1>
+
+  <figure><img src="images/hero.png" alt="Self-host Umami: the open-source, privacy-friendly Google Analytics alternative running on a server you own"></figure>
+
+  <p class="lead">Umami is an open-source, privacy-friendly web analytics tool, and one of the cleanest Google Analytics alternatives you can actually run yourself. When you self-host Umami, the visitor data stays in a database you own, the tracking is cookieless, and the script that loads on your pages is tiny. This guide covers how to self-host Umami in production: the architecture, the database it needs, the environment variables that matter, and how to deploy it on a managed Node server backed by managed PostgreSQL.</p>
+
+  <p>I'll be straight with you. The tool itself is easy. The part people get wrong is the boring infrastructure around it, mostly the database. Get that right and self-hosted Umami will quietly collect your traffic for years.</p>
+
+  <div class="tldr">
+    <strong>Short version</strong>
+    <p>Umami is a Next.js app, so you run it on a managed Node server and back it with managed PostgreSQL, not a throwaway local database. Set <code>DATABASE_URL</code> and <code>APP_SECRET</code> as environment variables, let the build run Umami's migrations to create the schema, then paste the tracking script on your sites. Your analytics live in your own database. Cookieless, no sampling, no ad network sitting in the middle.</p>
+  </div>
+
+  <h2>The Google Analytics problem Umami solves</h2>
+  <p>Google Analytics 4 is free, and for a lot of teams that's the end of the conversation. Fair. But free has a shape to it, and once you've lived with GA4 for a while the shape starts to chafe.</p>
+  <p>The interface is heavy. The event model takes real effort to learn, and plenty of people give up and just check "users this week." On high-traffic properties GA4 samples your data, so the numbers are an estimate, not a count. It sets cookies and touches personal data, so you usually need a consent banner, and a chunk of visitors decline it, which puts holes in your reports. The data itself lives in Google's advertising cloud, a strange place to keep something you'd like to call yours.</p>
+  <p>Credit where it's due: GA4 is genuinely free and it plugs straight into Google Ads, which is hard to walk away from if you spend money there. That's the one honest reason to stay. Umami answers a different question: what if your analytics were a small app and a database you owned, instead of a tenant in an ad platform?</p>
+
+  <div class="note">
+    <b>Coming from Google Analytics?</b> You don't have to rip GA out on day one. Add the Umami script alongside your existing tag, watch both for a couple of weeks, and pull GA once you trust the Umami numbers. Running them in parallel is the calm way to switch.
+  </div>
+
+  <h2>Why self-host Umami (and who it's for)</h2>
+  <p>Self-hosting isn't ideological. It's a trade you make on purpose. Here's what you actually get when you self-host Umami rather than paste in a hosted tag:</p>
+  <ul>
+    <li><strong>You own the visitor data.</strong> Every pageview lands in your database, on your server. No third party gets a copy, and nobody's building an ad profile off your traffic.</li>
+    <li><strong>Cookieless by default, so it's GDPR-friendly.</strong> Umami doesn't set cookies and doesn't collect personal data out of the box. That design often means you can skip the cookie banner, though the compliance call is still yours (more on that in the FAQ).</li>
+    <li><strong>No sampling.</strong> Umami counts every event. What you see is what happened, not a modeled estimate, even on a busy day.</li>
+    <li><strong>A lightweight script.</strong> The Umami tracking script is roughly 2KB. Google's gtag is many times heavier. On mobile and slow connections that difference is real, and it's a difference your visitors feel.</li>
+    <li><strong>First-party by default.</strong> Because the script loads from your own domain, it dodges a lot of the ad blockers that quietly eat Google Analytics hits. Your counts get more honest, not less.</li>
+  </ul>
+  <p>The honest tradeoff: you're running a service now, a database to keep alive and a process to keep up. A managed platform takes most of that weight (server, OS, SSL, backups), so what's left is small.</p>
+
+  <h2>What you're running when you self-host Umami</h2>
+  <p>Umami is two things: a Node app and a database. The app is a Next.js application, so it runs anywhere Node runs. The database is where every event is stored, and Umami supports PostgreSQL or MySQL. For production I'd reach for managed PostgreSQL every time. It's well understood, it backs up cleanly, and it's the engine most Umami deployments run on.</p>
+  <p>Under the hood Umami uses Prisma to talk to the database, and it ships its schema as migrations. You don't design any tables. When the app builds, it applies those migrations and the database goes from empty to fully set up. The one thing you must not do is point it at some scratch database on the same box that gets wiped on a redeploy. That's the classic way people lose six months of history. Analytics only get more valuable with age, so the database is the part worth protecting from day one.</p>
+
+  <figure>
+    <svg viewBox="0 0 800 360" role="img" aria-label="Diagram: the Umami tracking script in a visitor browser sends pageviews to the Umami Node app on your server, which writes events to managed PostgreSQL over the private network" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="28" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">How a pageview travels when you self-host Umami</text>
+
+      <rect x="26" y="140" width="150" height="96" rx="12" fill="#000f27"/>
+      <text x="101" y="172" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Visitor browser</text>
+      <rect x="44" y="188" width="114" height="30" rx="7" fill="#4F1AF3"/>
+      <text x="101" y="208" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="12">script.js</text>
+      <text x="101" y="256" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">loads on your site</text>
+
+      <line x1="176" y1="188" x2="280" y2="188" stroke="#5b6a86" stroke-width="2"/>
+      <path d="M282 188 l-10 -5 v10 z" fill="#5b6a86"/>
+      <text x="228" y="176" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">pageview</text>
+
+      <rect x="250" y="96" width="506" height="212" rx="16" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5" stroke-dasharray="6 6"/>
+      <text x="268" y="120" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.5">YOUR SERVER · YOUR DATA</text>
+
+      <rect x="284" y="150" width="182" height="100" rx="12" fill="#4F1AF3"/>
+      <text x="375" y="186" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="15" font-weight="700">Umami</text>
+      <text x="375" y="207" text-anchor="middle" fill="#d9ccff" font-family="Poppins,sans-serif" font-size="11.5">Next.js / Node app</text>
+      <text x="375" y="278" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">on a managed Node server</text>
+
+      <line x1="468" y1="196" x2="566" y2="196" stroke="#40b75f" stroke-width="2"/>
+      <path d="M568 196 l-10 -5 v10 z" fill="#40b75f"/>
+      <text x="517" y="184" text-anchor="middle" fill="#40b75f" font-family="Poppins,sans-serif" font-size="11" font-weight="600">private network</text>
+
+      <ellipse cx="640" cy="160" rx="68" ry="14" fill="#40b75f"/>
+      <path d="M572 160 v70 a68 14 0 0 0 136 0 v-70" fill="#40b75f"/>
+      <ellipse cx="640" cy="160" rx="68" ry="14" fill="#5fce7d"/>
+      <text x="640" y="200" text-anchor="middle" fill="#04331a" font-family="Poppins,sans-serif" font-size="13" font-weight="700">Managed</text>
+      <text x="640" y="218" text-anchor="middle" fill="#04331a" font-family="Poppins,sans-serif" font-size="13" font-weight="700">PostgreSQL</text>
+      <text x="640" y="250" text-anchor="middle" fill="#0a4d28" font-family="Poppins,sans-serif" font-size="10.5">events stored here</text>
+    </svg>
+    <figcaption>The tracking script runs in your visitors' browsers and sends each pageview to the Umami app on your server. Umami writes every event to managed PostgreSQL over the private network. Nothing leaves for an ad network, and the data sits in a database you own.</figcaption>
+  </figure>
+
+  <h2>Self-hosted Umami vs Google Analytics vs Umami Cloud</h2>
+  <p>Three ways to run Umami-style analytics, side by side. The hosted options win on convenience. Self-hosting wins on ownership and cost predictability.</p>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>Self-hosted Umami</th><th>Google Analytics 4</th><th>Umami Cloud</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Data ownership</strong></td><td>Your database, your server</td><td>Google's advertising cloud</td><td>Umami's cloud account</td></tr>
+      <tr><td><strong>Privacy / cookies</strong></td><td>Cookieless, no personal data by default</td><td>Cookies, consent banner usually needed</td><td>Cookieless, no personal data by default</td></tr>
+      <tr><td><strong>Cost</strong></td><td>Flat server cost, unlimited events</td><td>Free</td><td>Paid by events, free hobby tier</td></tr>
+      <tr><td><strong>Sampling</strong></td><td>None, every event counts</td><td>Sampled at high volume</td><td>None</td></tr>
+      <tr><td><strong>Complexity</strong></td><td>You deploy and run it</td><td>Paste a snippet</td><td>Paste a snippet</td></tr>
+      <tr><td><strong>Who runs it</strong></td><td>You (a managed server does the heavy lifting)</td><td>Google</td><td>Umami</td></tr>
+    </tbody>
+  </table>
+  <p>If you want zero operations and you're tiny, Umami Cloud's free tier is a lovely place to start, and GA4 costs nothing. The moment data ownership, a predictable bill, or accurate high-volume counts matter more than a paste-and-forget setup, self-hosting is the better deal.</p>
+
+  <!-- To add your own screenshot here, replace this whole figure with a real <figure><img ...><figcaption>...</figcaption></figure>. Image path: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your live Umami dashboard showing real visitor numbers, so readers see the payoff.</em><small>A real shot of your own instance beats any stock chart.</small></span></figure>
+
+  <h2>Deploy Umami on a managed Node server</h2>
+  <p>Here's the production path end to end. Four steps, and the order matters: database first, then the app, then the secrets, then the deploy.</p>
+
+  <h3>1. Launch managed PostgreSQL</h3>
+  <p>Start with the database, because Umami needs it before it'll boot. Provision a managed PostgreSQL instance, create a database named <code>umami</code>, and grab its private-network host and credentials. Managed here means the engine is provisioned, patched, and backed up for you, and it sits on a private network your app can reach without exposing a public port.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console Launch Database screen used to provision managed PostgreSQL for a self-hosted Umami analytics instance">
+    <figcaption>Launch a managed PostgreSQL database first. Umami stores every event here, so this is the piece you'll back up and keep.</figcaption>
+  </figure>
+
+  <h3>2. Add the Umami Node app</h3>
+  <p>Next, add an application on the server as a Node app and point it at the Umami source (the official <code>umami-software/umami</code> repo, or your fork). This is where I want to be clear: there's no magic one-click Umami button here. You're running the real Umami Node app on a managed Node runtime, which is the honest version and the one that lets you update on your own terms. The <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploy a Node app</a> guide covers the general flow if you want the long form.</p>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean console Add Application screen where the Umami Next.js Node app is added to a managed server">
+    <figcaption>Add Application as a Node app, then connect the Umami repository. Umami is a standard Next.js app, so nothing exotic is required.</figcaption>
+  </figure>
+
+  <!-- To add your own screenshot here, replace this whole figure with a real <figure><img ...><figcaption>...</figcaption></figure>. Image path: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Umami GitHub repo page, or your fork, so readers know exactly what they're deploying.</em><small>Optional. Helps first-timers find the right source.</small></span></figure>
+
+  <h3>3. Set DATABASE_URL and APP_SECRET</h3>
+  <p>Umami is configured almost entirely through two environment variables. <code>DATABASE_URL</code> tells it where the database is, and <code>APP_SECRET</code> is the secret it uses to sign tokens. Set these in the console, not in a file you might commit.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console Environment Variables screen where the Umami DATABASE_URL and APP_SECRET are configured">
+    <figcaption>Runtime Configuration then Environment Variables: this is where DATABASE_URL and APP_SECRET live, safely out of your Git repo.</figcaption>
+  </figure>
+
+<pre><code># Umami needs a database and a secret, nothing exotic
+DATABASE_URL=postgresql://umami:long-random-password@10.0.0.5:5432/umami
+DATABASE_TYPE=postgresql
+APP_SECRET=a-long-random-string-you-generate-once</code></pre>
+
+  <p>A few things worth knowing here. The host in that connection string (<code>10.0.0.5</code> in the example) is the database's private-network address, not a public one. <code>DATABASE_TYPE</code> is usually inferred from the URL scheme, but setting it explicitly to <code>postgresql</code> removes any doubt. And <code>APP_SECRET</code> matters more than it looks: if you skip it, Umami derives one from your <code>DATABASE_URL</code>, which means the day you rotate the database password, every login token silently breaks. Set an explicit <code>APP_SECRET</code> once and never think about it again. Our <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a> guide goes deeper on the habit.</p>
+
+  <h3>4. Build, migrate, and deploy</h3>
+  <p>Now deploy. Connect the GitHub repo and let the platform build and start the app on every push, with the build logs streaming in the console so you can watch the migration run. The build step is where Umami's schema gets created: <code>npm run build</code> runs Prisma's <code>migrate deploy</code> under the hood, which turns your empty database into a fully set-up Umami database.</p>
+
+<pre><code># Build: this also runs Umami's Prisma migrations against DATABASE_URL
+npm install
+npm run build          # applies the schema via prisma migrate deploy
+
+# Start the app (Umami serves on port 3000 by default)
+npm start</code></pre>
+
+  <p>If you ever need to apply the schema by hand (a fresh database, or a manual check), that's the same command Umami runs for you:</p>
+
+<pre><code>npx prisma migrate deploy</code></pre>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean console Git deployment screen building and deploying the Umami Node app from GitHub with live build logs">
+    <figcaption>Connect GitHub and every push builds and deploys Umami, running the migrations as part of the build. The live logs show the schema being applied.</figcaption>
+  </figure>
+
+  <p>When the build finishes, add your domain, let the platform issue free SSL, and open the app. You'll land on the Umami login. That leads straight to the one step nobody should skip. See <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">auto-deploy from GitHub</a> for the full pipeline setup.</p>
+
+  <h3>Then change the default login</h3>
+  <p>Fresh Umami installs ship with a default account: username <code>admin</code>, password <code>umami</code>. That's public knowledge. If you leave it, anyone who finds your URL can walk into your dashboard. So the very first thing you do after the first successful login is change that password. This is the single most common self-hosted Umami mistake, and it takes about thirty seconds to avoid.</p>
+
+  <!-- To add your own screenshot here, replace this whole figure with a real <figure><img ...><figcaption>...</figcaption></figure>. Image path: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Umami profile screen where you change the default admin password on first login.</em><small>Reinforces the security step. Optional author shot.</small></span></figure>
+
+  <h2>Add the Umami tracking script to your sites</h2>
+  <p>With Umami running on your own domain, you add a website inside the dashboard, and it hands you a small script tag with that site's ID. Drop this into the <code>&lt;head&gt;</code> of the pages you want to track:</p>
+
+<pre><code>&lt;script
+  defer
+  src="https://analytics.example.com/script.js"
+  data-website-id="b3f1c2a4-your-site-id-here"&gt;&lt;/script&gt;</code></pre>
+
+  <p>Swap <code>analytics.example.com</code> for your Umami domain and the ID for the one Umami gives you. That's the whole integration. It's plain HTML, so it works everywhere: a WordPress theme header, a static site, a React or Vue app, a Laravel Blade layout, anything that renders a <code>&lt;head&gt;</code>. Because it loads from your own domain, it reads as first-party, which is exactly why fewer visitors block it.</p>
+
+  <h2>Security: the parts people skip</h2>
+  <p>Self-hosting means the security defaults are yours to set. None of this is hard, but skipping it is how a quiet analytics box becomes a problem.</p>
+  <ul>
+    <li><strong>Keep the database on the private network.</strong> Umami reaches PostgreSQL over the private address, and the database never needs a public port. Don't open one.</li>
+    <li><strong>Secrets in env vars, never in code.</strong> <code>APP_SECRET</code> and the database credentials live in the environment, not in a config file that could land in Git.</li>
+    <li><strong>Keep .env out of your repo.</strong> Add it to <code>.gitignore</code> before the first commit. A leaked <code>DATABASE_URL</code> is a leaked database.</li>
+    <li><strong>Least-privilege database user.</strong> The <code>umami</code> user needs access to the <code>umami</code> database and nothing else. Don't hand it a superuser role it will never use.</li>
+    <li><strong>SSL in front of the dashboard.</strong> Serve Umami over HTTPS so your admin login isn't crossing the network in the clear. Free certificates make this a non-decision.</li>
+    <li><strong>Back up the analytics database.</strong> Server-level backups protect the box; regular PostgreSQL dumps protect the data itself. The database is the one thing you can't recreate. Our <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a> has the sane defaults.</li>
+  </ul>
+  <p>The platform helps here too: a Shorewall firewall and Fail2ban come switched on, and SSL is free, so the baseline hardening is done before you touch anything.</p>
+
+  <h2>When Umami Cloud makes more sense</h2>
+  <p>I won't pretend self-hosting is always the answer. Stay on Umami Cloud, or even GA4, when the math points that way:</p>
+  <ul>
+    <li><strong>You're a hobby project.</strong> Umami Cloud's free tier covers a lot of small sites, and you get the same cookieless analytics with zero maintenance.</li>
+    <li><strong>You never want to run a service.</strong> A paste-in tag has no database to back up and no process to keep alive. That's a legitimate preference.</li>
+    <li><strong>You live inside Google Ads.</strong> If your marketing runs on Google's stack, GA4's free integration is genuinely hard to give up.</li>
+  </ul>
+  <p>The switch pays off when ownership, a flat bill, or accurate counts at real volume start to matter more than never touching a server.</p>
+
+  <p>Umami is a good gateway into running your own tools. The <a href="https://www.kloudbean.com/blog/best-self-hosted-tools/">best self-hosted tools</a> roundup is worth a read, <a href="https://www.kloudbean.com/blog/self-host-supabase/">self-hosting Supabase</a> is a natural next step for your backend, and <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a> covers what's running under Umami.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Analytics that stay yours.</p>
+    <p style="margin:0 0 .6em">Run the Umami Node app on a managed server, back it with managed PostgreSQL, and keep every pageview in a database you own. The OS, SSL, and backups are handled. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Managed Node runtime · Managed PostgreSQL · Private networking · Automatic backups · Free SSL · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Is Umami a good Google Analytics alternative?</h3>
+    <p>For most sites, yes. Umami gives you the numbers people actually check (pageviews, referrers, top pages, countries, devices) in a clean interface, without cookies or sampling. It won't replace GA4 if you depend on deep Google Ads integration, but for owning your traffic data it's one of the strongest self-hosted options going.</p>
+
+    <h3>What database does Umami need?</h3>
+    <p>Umami needs PostgreSQL or MySQL. It uses Prisma to talk to whichever you pick and ships its schema as migrations. For production, managed PostgreSQL is the safe choice: it backs up cleanly, runs on a private network, and is the engine most Umami deployments use.</p>
+
+    <h3>Is self-hosted Umami GDPR compliant?</h3>
+    <p>Umami's cookieless, no-personal-data design removes the biggest sources of trouble, which is a real head start. But no tool makes you automatically compliant. Compliance depends on how you configure it, what you track, and your own legal setup, so the responsibility stays with you as the site owner. Umami makes doing the right thing much easier; it doesn't do it for you.</p>
+
+    <h3>Do I need a cookie banner with Umami?</h3>
+    <p>Often you don't, because Umami doesn't set cookies or collect personal data by default, and cookie banners exist mainly to consent to cookies and tracking. That said, the final call depends on your jurisdiction and exactly what you collect. Many teams run Umami without a banner, but confirm it against your own legal requirements.</p>
+
+    <h3>How do I deploy Umami?</h3>
+    <p>Run the Umami Node app on a managed Node server and back it with managed PostgreSQL. Set DATABASE_URL and APP_SECRET as environment variables, let the build run the migrations to create the schema, add your domain with SSL, then paste the tracking script on your sites. Connecting a GitHub repo lets it rebuild and redeploy on every push.</p>
+
+    <h3>Is Umami free?</h3>
+    <p>The self-hosted version is free and open source, so the software costs nothing. What you pay for is the server and database you run it on. Umami also offers a paid hosted service, Umami Cloud, with a free tier for small sites if you'd rather not run anything yourself.</p>
+
+    <h3>What are DATABASE_URL and APP_SECRET in Umami?</h3>
+    <p>DATABASE_URL is the connection string Umami uses to reach your PostgreSQL or MySQL database, including the user, password, host, and database name. APP_SECRET is the secret Umami uses to sign login tokens. Always set an explicit APP_SECRET, because if you leave it out Umami derives one from your DATABASE_URL and your logins break the moment you rotate the database password.</p>
+
+    <h3>Does self-hosted Umami sample my data?</h3>
+    <p>No. Umami records every event, so your reports are a true count rather than a modeled estimate. That's a meaningful difference from Google Analytics, which samples data on high-traffic properties and can leave you reading approximations.</p>
+
+    <h3>Will ad blockers block my Umami tracking script?</h3>
+    <p>Far less than they block Google Analytics. Because you self-host, the script loads from your own domain and reads as first-party, so it slips past the blocklists that target well-known third-party trackers. You won't dodge every blocker, but your counts end up noticeably more accurate.</p>
+
+    <h3>Can I use MySQL instead of PostgreSQL for Umami?</h3>
+    <p>Yes. Umami supports both PostgreSQL and MySQL, and you choose by pointing DATABASE_URL at whichever you run. Either works well. PostgreSQL is the more common pick for new Umami deployments, and managed PostgreSQL keeps the operational side simple.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Engineering · Analytics that stay yours.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Self-Host Umami: Own Your Web Analytics","description":"Why self-host Umami, the open-source privacy-friendly Google Analytics alternative: the architecture, the database it needs, the env vars that matter, and how to deploy the Umami Node app on a managed server with managed PostgreSQL.","image":"https://www.kloudbean.com/blog/self-host-umami/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/self-host-umami/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Is Umami a good Google Analytics alternative?","acceptedAnswer":{"@type":"Answer","text":"For most sites, yes. Umami gives you the numbers people actually check (pageviews, referrers, top pages, countries, devices) in a clean interface, without cookies or sampling. It won't replace GA4 if you depend on deep Google Ads integration, but for owning your traffic data it's one of the strongest self-hosted options going."}},
+{"@type":"Question","name":"What database does Umami need?","acceptedAnswer":{"@type":"Answer","text":"Umami needs PostgreSQL or MySQL. It uses Prisma to talk to whichever you pick and ships its schema as migrations. For production, managed PostgreSQL is the safe choice: it backs up cleanly, runs on a private network, and is the engine most Umami deployments use."}},
+{"@type":"Question","name":"Is self-hosted Umami GDPR compliant?","acceptedAnswer":{"@type":"Answer","text":"Umami's cookieless, no-personal-data design removes the biggest sources of trouble, which is a real head start. But no tool makes you automatically compliant. Compliance depends on how you configure it, what you track, and your own legal setup, so the responsibility stays with you as the site owner. Umami makes doing the right thing much easier; it doesn't do it for you."}},
+{"@type":"Question","name":"Do I need a cookie banner with Umami?","acceptedAnswer":{"@type":"Answer","text":"Often you don't, because Umami doesn't set cookies or collect personal data by default, and cookie banners exist mainly to consent to cookies and tracking. That said, the final call depends on your jurisdiction and exactly what you collect. Many teams run Umami without a banner, but confirm it against your own legal requirements."}},
+{"@type":"Question","name":"How do I deploy Umami?","acceptedAnswer":{"@type":"Answer","text":"Run the Umami Node app on a managed Node server and back it with managed PostgreSQL. Set DATABASE_URL and APP_SECRET as environment variables, let the build run the migrations to create the schema, add your domain with SSL, then paste the tracking script on your sites. Connecting a GitHub repo lets it rebuild and redeploy on every push."}},
+{"@type":"Question","name":"Is Umami free?","acceptedAnswer":{"@type":"Answer","text":"The self-hosted version is free and open source, so the software costs nothing. What you pay for is the server and database you run it on. Umami also offers a paid hosted service, Umami Cloud, with a free tier for small sites if you'd rather not run anything yourself."}},
+{"@type":"Question","name":"What are DATABASE_URL and APP_SECRET in Umami?","acceptedAnswer":{"@type":"Answer","text":"DATABASE_URL is the connection string Umami uses to reach your PostgreSQL or MySQL database, including the user, password, host, and database name. APP_SECRET is the secret Umami uses to sign login tokens. Always set an explicit APP_SECRET, because if you leave it out Umami derives one from your DATABASE_URL and your logins break the moment you rotate the database password."}},
+{"@type":"Question","name":"Does self-hosted Umami sample my data?","acceptedAnswer":{"@type":"Answer","text":"No. Umami records every event, so your reports are a true count rather than a modeled estimate. That's a meaningful difference from Google Analytics, which samples data on high-traffic properties and can leave you reading approximations."}},
+{"@type":"Question","name":"Will ad blockers block my Umami tracking script?","acceptedAnswer":{"@type":"Answer","text":"Far less than they block Google Analytics. Because you self-host, the script loads from your own domain and reads as first-party, so it slips past the blocklists that target well-known third-party trackers. You won't dodge every blocker, but your counts end up noticeably more accurate."}},
+{"@type":"Question","name":"Can I use MySQL instead of PostgreSQL for Umami?","acceptedAnswer":{"@type":"Answer","text":"Yes. Umami supports both PostgreSQL and MySQL, and you choose by pointing DATABASE_URL at whichever you run. Either works well. PostgreSQL is the more common pick for new Umami deployments, and managed PostgreSQL keeps the operational side simple."}}
+]}
+]}
+</script>
+</body>
+</html>

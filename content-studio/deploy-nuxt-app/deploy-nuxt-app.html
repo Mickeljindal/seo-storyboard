@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Deploy a Nuxt App: SSR Server or Static Files</title>
+<meta name="description" content="Deploy a Nuxt app the right way. Nuxt 3 SSR builds to a Node server you run with node .output/server; nuxt generate makes static files. Here are both paths.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/deploy-nuxt-app/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Deploy a Nuxt App: SSR Server or Static Files">
+<meta property="og:description" content="Nuxt 3 ships two ways: an SSR Node server you run with node .output/server, or static files from nuxt generate. Pick the path, then follow the real commands.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Deploy Nuxt</span>
+  <h1>How to Deploy a Nuxt App: Server or Static, Decide That First</h1>
+
+  <figure><img src="images/hero.png" alt="Deploy a Nuxt app: the ssr flag decides between a Node server and static files"></figure>
+
+  <p class="lead">You're ready to deploy a Nuxt app, and the advice online splits into two camps that flatly contradict each other. One says drop your files on a static host and you're done. The other says run a Node server. Both are right. They're just talking about different Nuxt apps.</p>
+
+  <p>Nuxt 3 has one setting that decides your whole deploy: whether it renders on the server or ships as prebuilt static files. Get that straight and hosting Nuxt takes minutes. Miss it and you'll fight blank pages, 404s on refresh, or a server bill for files that never needed a server. This guide walks both paths with real commands: how to host a Nuxt SSR app as a live Node process on your own server, and how to deploy Nuxt static output to a CDN.</p>
+
+  <div class="tldr">
+    <strong>The short answer</strong>
+    <p>To deploy a Nuxt 3 SSR app to production, run <code>nuxt build</code> (Nitro writes a self-contained server to <code>.output/</code>), then start it with <code>node .output/server/index.mjs</code> on a server, listening on the assigned <code>PORT</code>. A reverse proxy handles SSL, a process manager like PM2 keeps it alive, and your database connects over environment variables. If you ran <code>nuxt generate</code> instead, you have static files in <code>.output/public/</code>: serve those from a CDN, no server needed.</p>
+  </div>
+
+  <h2>First, the only question that matters: SSR or static?</h2>
+  <p>Before you pick a host, answer one thing. Does your Nuxt app render pages on the server for every request, or did you prerender everything to HTML ahead of time? That single fork changes the build command, the output folder, what runs in production, and where it lives. So decide it before anything else. Honestly, most of the "I can't deploy my Nuxt app" threads are really "I didn't know which mode I was in."</p>
+
+  <p>There are three modes worth naming, though two of them deploy the same way:</p>
+  <table class="cmp">
+    <thead><tr><th>Mode</th><th>nuxt.config</th><th>Build command</th><th>Output</th><th>What runs in prod</th></tr></thead>
+    <tbody>
+      <tr><td><strong>SSR / universal</strong></td><td><code>ssr: true</code> (default)</td><td><code>nuxt build</code></td><td><code>.output/server</code></td><td>A Node process</td></tr>
+      <tr><td><strong>Static / prerendered</strong></td><td>any, plus generate</td><td><code>nuxt generate</code></td><td><code>.output/public</code></td><td>Nothing (files)</td></tr>
+      <tr><td><strong>SPA (client-only)</strong></td><td><code>ssr: false</code></td><td><code>nuxt generate</code></td><td><code>.output/public</code></td><td>Nothing (files)</td></tr>
+    </tbody>
+  </table>
+
+  <p>SSR is the default and the one people mean by "a Nuxt app." It renders each page on the server, sends real HTML, then hydrates in the browser. That needs a running process. The other two produce a folder of files, so they deploy like any static site. Here's the fork drawn out, because seeing it end to end is what makes the rest click.</p>
+
+  <figure>
+    <svg viewBox="0 0 780 400" role="img" aria-label="One Nuxt app forks on the ssr config option. With ssr true, nuxt build produces .output/server which runs as a Node process behind Nginx with SSL. With nuxt generate, you get .output/public static files served from a CDN with SSL and no server." style="width:100%;height:auto;font-family:'Poppins',sans-serif">
+      <defs>
+        <marker id="arh" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5b6a86"></path></marker>
+      </defs>
+      <rect x="1" y="1" width="778" height="398" rx="18" fill="#ffffff" stroke="#e6e9f2"></rect>
+      <text x="390" y="30" text-anchor="middle" font-size="16" font-weight="700" fill="#000f27">One Nuxt app, one config flag, two deploys</text>
+      <text x="390" y="51" text-anchor="middle" font-size="12.5" fill="#5b6a86">The ssr option decides whether you ship a running server or a folder of files.</text>
+
+      <!-- decision box -->
+      <rect x="24" y="156" width="152" height="80" rx="14" fill="#000f27"></rect>
+      <text x="100" y="190" text-anchor="middle" font-size="13.5" font-weight="600" fill="#ffffff">Your Nuxt 3 app</text>
+      <text x="100" y="212" text-anchor="middle" font-size="11" fill="#aab6d4" font-family="'JetBrains Mono',monospace">ssr: true / false?</text>
+
+      <!-- fork lines -->
+      <path d="M176 196 C 198 196, 198 113, 214 113" fill="none" stroke="#5b6a86" stroke-width="2" marker-end="url(#arh)"></path>
+      <path d="M176 196 C 198 196, 198 301, 214 301" fill="none" stroke="#5b6a86" stroke-width="2" marker-end="url(#arh)"></path>
+
+      <!-- SSR band -->
+      <text x="214" y="72" font-size="11" font-weight="600" fill="#4F1AF3" letter-spacing="1">SSR / UNIVERSAL (DEFAULT)</text>
+      <rect x="214" y="82" width="150" height="62" rx="11" fill="#4F1AF3"></rect>
+      <text x="289" y="110" text-anchor="middle" font-size="13.5" font-weight="600" fill="#ffffff">nuxt build</text>
+      <text x="289" y="129" text-anchor="middle" font-size="10.5" fill="#d8ccff">Nitro server bundle</text>
+      <line x1="364" y1="113" x2="394" y2="113" stroke="#5b6a86" stroke-width="2" marker-end="url(#arh)"></line>
+      <rect x="398" y="82" width="168" height="62" rx="11" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.6"></rect>
+      <text x="482" y="108" text-anchor="middle" font-size="12.5" font-weight="600" fill="#000f27" font-family="'JetBrains Mono',monospace">.output/server/</text>
+      <text x="482" y="127" text-anchor="middle" font-size="10.5" fill="#5b6a86" font-family="'JetBrains Mono',monospace">index.mjs</text>
+      <line x1="566" y1="113" x2="596" y2="113" stroke="#5b6a86" stroke-width="2" marker-end="url(#arh)"></line>
+      <rect x="600" y="78" width="156" height="70" rx="11" fill="#000f27"></rect>
+      <text x="678" y="104" text-anchor="middle" font-size="12.5" font-weight="600" fill="#ffffff">Node process</text>
+      <text x="678" y="122" text-anchor="middle" font-size="10" fill="#aab6d4">PM2 · Nginx :443 to :3000</text>
+      <text x="678" y="139" text-anchor="middle" font-size="10" fill="#40b75f">free SSL</text>
+
+      <!-- Static band -->
+      <text x="214" y="258" font-size="11" font-weight="600" fill="#2f7d45" letter-spacing="1">STATIC / PRERENDERED</text>
+      <rect x="214" y="270" width="150" height="62" rx="11" fill="#40b75f"></rect>
+      <text x="289" y="298" text-anchor="middle" font-size="13" font-weight="600" fill="#ffffff">nuxt generate</text>
+      <text x="289" y="317" text-anchor="middle" font-size="10.5" fill="#e7f6ec">prerender to HTML</text>
+      <line x1="364" y1="301" x2="394" y2="301" stroke="#5b6a86" stroke-width="2" marker-end="url(#arh)"></line>
+      <rect x="398" y="270" width="168" height="62" rx="11" fill="#ffffff" stroke="#40b75f" stroke-width="1.6"></rect>
+      <text x="482" y="296" text-anchor="middle" font-size="12.5" font-weight="600" fill="#000f27" font-family="'JetBrains Mono',monospace">.output/public/</text>
+      <text x="482" y="315" text-anchor="middle" font-size="10.5" fill="#5b6a86">static files</text>
+      <line x1="566" y1="301" x2="596" y2="301" stroke="#5b6a86" stroke-width="2" marker-end="url(#arh)"></line>
+      <rect x="600" y="266" width="156" height="70" rx="11" fill="#ffffff" stroke="#000f27" stroke-width="1.6"></rect>
+      <text x="678" y="292" text-anchor="middle" font-size="12" font-weight="600" fill="#000f27">Static host + CDN</text>
+      <text x="678" y="310" text-anchor="middle" font-size="10" fill="#2f7d45">no server · free SSL</text>
+      <text x="678" y="326" text-anchor="middle" font-size="10" fill="#5b6a86">visit analytics</text>
+    </svg>
+    <figcaption>Same codebase, one flag. SSR becomes a running Node process behind a proxy. Generate becomes a folder of files on a CDN.</figcaption>
+  </figure>
+
+  <div class="note"><b>My honest advice:</b> pick the mode on purpose, don't inherit it by accident. If your app has logins, personalized pages, a dashboard, or data that changes per request, you want SSR and you'll run a server. If it's a marketing site, docs, or a blog where every page is the same for everyone, prerender it and skip the server entirely. Choosing later means changing your host, so choose first. This is the whole ballgame, and it's the part tutorials skip.</div>
+
+  <h2>What nuxt build actually produces (meet Nitro)</h2>
+  <p>Nuxt 3 has a server engine underneath it called Nitro, and Nitro is the reason self-hosting Nuxt is pleasant. When you run <code>nuxt build</code> in the default SSR mode, Nitro compiles your app into a single self-contained folder:</p>
+  <pre><code>npm run build        # runs nuxt build
+
+# creates:
+#   .output/server/index.mjs   the Node server entry point
+#   .output/public/            static assets (client JS, CSS, images)
+#   .output/nitro.json         build metadata</code></pre>
+  <p>Two things about <code>.output</code> are genuinely nice. First, it's self-contained: Nitro bundles your server dependencies in, so you can run the server with plain Node and don't even need <code>node_modules</code> present in production. Second, the default target is the <code>node-server</code> preset, which is exactly what you want for a server you own. You can retarget Nitro at other platforms with <code>NITRO_PRESET</code>, but for a normal Node host, the default is correct. Leave it alone.</p>
+  <p>Not sure which mode your project is in right now? Build it and look at what appears:</p>
+  <pre><code>npm run build         # SSR:    creates .output/server/index.mjs
+npx nuxi generate     # static:  creates .output/public/ full of HTML</code></pre>
+  <p>See <code>.output/server/index.mjs</code>? You've got an SSR app, and the next section is yours. See a <code>.output/public</code> stuffed with real <code>.html</code> files and no server entry? You prerendered, so skip down to the static section.</p>
+
+  <h2>Deploy a Nuxt SSR app on a server you own</h2>
+  <p>An SSR Nuxt app is a Node process. That's the mental shift. It isn't a build folder you upload, it's a program that has to stay running, listening on a port, ready to render the next request. If you've read our <a href="https://www.kloudbean.com/blog/how-to-deploy-any-app/">universal deploy model</a>, this is the "run the artifact as a long-running process" move, and Nuxt fits it exactly. It's the same shape as <a href="https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/">deploying a Next.js app to your own server</a>, since Nuxt is to Vue what Next is to React.</p>
+  <p>Locally you'd start the built server like this:</p>
+  <pre><code>node .output/server/index.mjs
+# Nitro reads NITRO_PORT or PORT, and NITRO_HOST or HOST
+# defaults to http://localhost:3000</code></pre>
+  <p>The one rule that trips people: bind to the assigned port, don't hard-code one. Nitro already reads <code>PORT</code> from the environment, so on a managed host you usually change nothing. Your <code>package.json</code> scripts stay boring, which is the goal:</p>
+  <pre><code>{
+  "scripts": {
+    "build": "nuxt build",
+    "start": "node .output/server/index.mjs",
+    "generate": "nuxt generate"
+  }
+}</code></pre>
+  <p>In production you don't run <code>node</code> in a terminal and hope. A process manager (PM2 on Node hosts) supervises it, restarts it on a crash, and brings it back after a reboot. A reverse proxy sits in front on port 443, terminates SSL, and forwards to your app's port. On a managed server both of those are set up for you, so you connect a repo and set a few fields. Here's the flow on Kloudbean.</p>
+
+  <p>Add the app first. In <strong>Applications, Add Application</strong>, pick the Node.js stack. Nuxt runs as a standard Node app, so there's no special adapter to install and nothing exotic to configure. Give the build some headroom; Nuxt builds are memory-hungry, so 2 GB or more of RAM makes for a smoother first deploy.</p>
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean Add Application screen: adding a Nuxt SSR app on the Node.js stack">
+    <figcaption>Add Application: a Nuxt SSR app is just a Node app. Pick the stack and the platform sets up the process manager and proxy.</figcaption>
+  </figure>
+
+  <p>Now connect Git. In <strong>Code Delivery, Git Deployment</strong>, link GitHub over OAuth, paste your repo URL, choose a branch, and clone. Then set the runtime fields: the app directory (where your <code>package.json</code> lives), the port, the Node version (20 or newer for current Nuxt), and your commands. Install with <code>npm ci</code>, build with <code>npm run build</code>, start with <code>npm start</code>. Hit <strong>Pull &amp; Deploy</strong> and the build log streams live, so you watch clone, install, build, and boot go past in real time.</p>
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean Git Deployment tab: connect the repo, pick a branch, and set the Nuxt build and start commands">
+    <figcaption>Git Deployment: connect the repo, set install, build, and start. Every push can rebuild from here with live logs.</figcaption>
+  </figure>
+  <!-- ADD IMAGE: the runtime config panel with App Directory, Port, Node version, and the Install / Build / Start commands filled in for Nuxt. Swap for a real screenshot: src -> images/nuxt-runtime-config.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The runtime configuration panel: App Directory, Port, Node version, and Install npm ci, Build npm run build, Start npm start.</em><small>Shows exactly where the build artifact and the running process get defined.</small></span></figure>
+
+  <p>Last, make it findable. Add your custom domain in the app's domain settings, point DNS at the server, and install a free auto-renewing SSL certificate. The full walkthrough lives in <a href="https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/">custom domain and SSL for your app</a>. Turn on automated deployment and every <code>git push</code> to your branch rebuilds and ships itself. That's the same Git-to-live loop the per-seat platforms rent you, running on hardware you control.</p>
+
+  <h2>runtimeConfig: how Nuxt does environment variables</h2>
+  <p>This is where Nuxt genuinely differs from its cousins, and it's worth understanding because it removes a whole class of "I changed the env var and nothing happened" pain. Nuxt centralizes config in <code>runtimeConfig</code> inside <code>nuxt.config.ts</code>. Keys at the top level are server-only. Keys under <code>public</code> are exposed to the browser:</p>
+  <pre><code>export default defineNuxtConfig({
+  runtimeConfig: {
+    apiSecret: '',              // server-only
+    public: {
+      apiBase: '/api'          // sent to the client too
+    }
+  }
+})</code></pre>
+  <p>You override these at runtime with environment variables using the <code>NUXT_</code> prefix. The key has to already exist in <code>runtimeConfig</code> for the override to apply, which is the one gotcha to remember:</p>
+  <pre><code>NUXT_API_SECRET=super-secret-value
+NUXT_PUBLIC_API_BASE=https://api.example.com</code></pre>
+  <p>Then read it anywhere with <code>useRuntimeConfig()</code>:</p>
+  <pre><code>const config = useRuntimeConfig()
+// server code:  config.apiSecret
+// anywhere:     config.public.apiBase</code></pre>
+  <p>Here's the payoff, and the part that surprises people coming from Vite or Next. In an <strong>SSR</strong> app, Nuxt resolves <code>runtimeConfig</code> on the server at startup and hands the public values to the browser at render time. So changing a <code>NUXT_PUBLIC_</code> value takes effect after an env update and a restart. No rebuild. Compare that to a Vite SPA, where <a href="https://www.kloudbean.com/blog/deploy-vue-app/"><code>VITE_</code> variables bake into the bundle at build time</a>, or Next.js, where <code>NEXT_PUBLIC_</code> does the same. Nuxt SSR reads config later, which is a small quality-of-life win you feel every time you flip a URL. One caveat: for a <code>nuxt generate</code> static build, those public values are inlined when you generate, so there you do regenerate to change them. Static is static.</p>
+  <p>In the dashboard, set these under <strong>Runtime Configuration, Environment Variables</strong>. There's a <strong>Paste .env Content</strong> tab so you can drop your whole file in and convert it to key/value. Secrets like <code>apiSecret</code> stay on the server and never touch your repo, which is the entire point.</p>
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean environment variables editor with NUXT_ prefixed variables set for a Nuxt app">
+    <figcaption>Environment Variables: paste your .env, set NUXT_ and NUXT_PUBLIC_ values, save. For SSR they apply on restart, no rebuild.</figcaption>
+  </figure>
+  <!-- ADD IMAGE: your NUXT_ and NUXT_PUBLIC_ variables entered as key/value pairs in the dashboard before a deploy. Swap for a real screenshot: src -> images/nuxt-env-vars.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>NUXT_API_SECRET and NUXT_PUBLIC_API_BASE entered as key value pairs before a deploy.</em><small>Makes the server-only vs public split concrete.</small></span></figure>
+  <p>If any of this feels fuzzy, the difference between build-time and runtime config is worth twenty minutes: <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a> covers the whole model.</p>
+
+  <h2>Connecting a database or an API to your Nuxt server</h2>
+  <p>SSR earns its keep the moment your pages need data. Nuxt gives you a full server layer through Nitro: any file under <code>server/api/</code> becomes a real backend endpoint running in the same process as your pages. No separate service, no CORS between your front end and your own API.</p>
+  <pre><code>// server/api/users.get.ts
+export default defineEventHandler(async () =&gt; {
+  // reads DATABASE_URL from the environment
+  const users = await db.query('SELECT id, name FROM users')
+  return users
+})</code></pre>
+  <p>Whatever you reach for (Prisma, Drizzle, a plain <code>pg</code> client), the connection string lives in an env var, never in code. Put your data in a managed database beside the app so it survives redeploys and isn't sitting on the app server's disk. Kloudbean runs seven managed engines (PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Memcached, and Elasticsearch), each provisioned with backups and reachable over the private network, so the round trip from your Nuxt server to the database stays on the local network instead of the public internet. Feed its credentials into your environment variables and you're wired up. There's more on the pattern in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a>.</p>
+  <div class="note"><b>Run migrations in the build step, not by hand.</b> Add your migration command to the deploy, for example <code>npx prisma migrate deploy</code>, so the schema is in place before the app serves a request. A first deploy that boots against a database with no tables fails in a confusing way, and it's avoidable with one line.</div>
+
+  <h2>Deploy a static Nuxt site with nuxt generate</h2>
+  <p>If your app is content that's the same for everyone, prerender it and skip the server. This is the cheaper, calmer path, and for a marketing site or docs it's the right call.</p>
+  <pre><code>npx nuxi generate     # prerenders every route to .output/public/
+# then publish .output/public/ to a static host or object storage + CDN</code></pre>
+  <p>The output is plain HTML, CSS, and JavaScript. It needs no process to keep alive, no reverse proxy pointed at a port, nothing to restart at 3am. You publish the folder and a CDN serves it fast from close to each visitor. Kloudbean's free static site hosting fits this exactly: custom domains, free SSL, and built-in visit analytics, at no cost. And because every route is a real HTML file, you get the SEO of server-rendered pages without running a server.</p>
+  <p>When should you pick this over SSR? When your content doesn't change per user and doesn't need live data on load. Blogs, docs, landing pages, portfolios. The trade is that updating content means a rebuild and republish, which for a mostly-static site is a fine price. If your app is a mix, remember Nuxt can prerender some routes and render others on the server, but that hybrid setup wants a running server, so it lands back in the SSR path above.</p>
+  <!-- ADD IMAGE: the .output/public/ folder after nuxt generate, showing the prerendered .html files. Swap for a real screenshot: src -> images/nuxt-generate-output.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The .output/public/ folder after nuxt generate, with the prerendered HTML files visible.</em><small>A file-tree screenshot lands the "it's just files" point.</small></span></figure>
+
+  <h2>Where Nuxt SSR deploys actually break</h2>
+  <p>Most first deploys stumble, and the Nuxt-specific failures are predictable. Here's where to look before you start guessing.</p>
+  <p><strong>window is not defined.</strong> This is the classic SSR error, and it catches everyone once. Your code touches a browser-only global (<code>window</code>, <code>document</code>, <code>localStorage</code>) during server render, where those don't exist, and the server throws <code>ReferenceError: window is not defined</code>. The fix is to run that code only on the client. Guard it, or move it into <code>onMounted</code>, or wrap the component in <code>&lt;ClientOnly&gt;</code>:</p>
+  <pre><code>if (import.meta.client) {
+  // browser-only code runs here, never during SSR
+  const w = window.innerWidth
+}</code></pre>
+  <p><strong>Hydration mismatch.</strong> You'll see <code>Hydration completed but contains mismatches</code> in the console when the HTML the server rendered doesn't match what the client expects. Usual culprits: rendering <code>new Date()</code> or <code>Math.random()</code> that differ between server and client, or invalid HTML nesting like a block element inside a paragraph. It often looks fine but flickers or misbehaves. Render deterministic markup, and push time-sensitive or random bits to the client.</p>
+  <p><strong>A 503 right after deploy.</strong> A 503 means the proxy is up but your process isn't answering. Nine times out of ten it's the start command running <code>nuxt dev</code> instead of the built server, a missing env var the app reads at startup, or the app not listening on the assigned port. There's one more that bites Node apps generally: if the build failed because your build tooling sits in <code>devDependencies</code> and something set <code>NODE_ENV=production</code> before install ran, npm skipped those packages and the build never happened. Read the app's <code>app.error.log</code> first; it almost always names the real cause.</p>
+  <!-- ADD IMAGE: app.error.log open in the File Manager showing a window is not defined or hydration warning. Swap for a real screenshot: src -> images/nuxt-error-log.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>app.error.log open in the File Manager with a ReferenceError: window is not defined line highlighted.</em><small>Reinforces reading the log before guessing.</small></span></figure>
+
+  <h2>The honest limits</h2>
+  <p>Two things worth saying plainly. First, Kloudbean runs Nuxt as a <strong>Node app on Linux</strong>, which is exactly what Nuxt targets, so you're on the happy path. There's no Windows or .NET angle here, and you won't need one. Second, "managed" is a division of labor, not magic: the platform provisions the server, the Node runtime, the process manager, the proxy, SSL, and backups. You still own your code, your data, and your rendering decisions. That's the good split, and because underneath it's an ordinary Linux box, you can move hosts whenever you want.</p>
+  <p>The one real difference from an edge platform is geography. Your SSR server sits in the region you choose, not spread across a global edge. For most apps a well-placed server next to its database is plenty fast. If you serve a latency-sensitive audience worldwide, you can put <strong>Cloudflare Enterprise edge caching</strong> in front (a paid add-on, free on Enterprise) so responses cache at the edge while your app runs on hardware you own. Weighing the move off a serverless host? The <a href="https://www.kloudbean.com/blog/vercel-alternative-for-full-stack-apps/">Vercel alternative for full-stack apps</a> lays out the trade honestly.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Pick your Nuxt mode, then ship it.</p>
+    <p style="margin:0 0 .6em">Run a Nuxt SSR app as a live Node process, or host <code>nuxt generate</code> output as static files, both on Kloudbean, both in one dashboard with your databases and storage. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> from $8/mo, or talk to us about Enterprise. Sizes on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Node process for SSR · Free static site hosting · Custom domain + SSL · Managed databases · Git auto-deploy with live logs · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I deploy a Nuxt 3 app to production?</h3>
+    <p>Decide the mode first. For SSR (the default), run <code>nuxt build</code>, which writes a self-contained server to <code>.output/</code>, then start it with <code>node .output/server/index.mjs</code> on a server, bound to the assigned port. A process manager keeps it alive and a reverse proxy adds SSL. For a static site, run <code>nuxt generate</code> and publish <code>.output/public/</code> to a CDN.</p>
+
+    <h3>Is a built Nuxt app static files or a server?</h3>
+    <p>It depends on the mode. In the default SSR mode, <code>nuxt build</code> produces a Node server you run as a long-lived process. Only <code>nuxt generate</code> (or setting <code>ssr: false</code>) produces static files. So a standard Nuxt app is a server, not a folder, unless you deliberately prerender it.</p>
+
+    <h3>What command starts a Nuxt SSR server in production?</h3>
+    <p>Run <code>node .output/server/index.mjs</code> after <code>nuxt build</code>. Nitro reads the port from <code>NITRO_PORT</code> or <code>PORT</code> and the host from <code>NITRO_HOST</code> or <code>HOST</code>, defaulting to port 3000. On a managed host you set the start command once and the platform supervises the process for you.</p>
+
+    <h3>What is the .output folder in Nuxt?</h3>
+    <p>It is what Nitro produces when you build. <code>.output/server/index.mjs</code> is the Node server entry point, and <code>.output/public/</code> holds static assets. The output is self-contained, meaning Nitro bundles server dependencies in, so you can run it with plain Node without installing production modules separately.</p>
+
+    <h3>How do environment variables work in Nuxt?</h3>
+    <p>Define keys in <code>runtimeConfig</code> in your Nuxt config, then override them at runtime with environment variables using the <code>NUXT_</code> prefix, such as <code>NUXT_PUBLIC_API_BASE</code>. Read them with <code>useRuntimeConfig()</code>. For an SSR app the values resolve on the server, so public values can change with a restart and no rebuild. The key must exist in runtimeConfig for the override to apply.</p>
+
+    <h3>Do I need to rebuild Nuxt to change an environment variable?</h3>
+    <p>For an SSR app, no. Nuxt resolves public runtime config on the server, so updating a <code>NUXT_PUBLIC_</code> value and restarting is enough. That differs from a Vite SPA or Next.js, where public variables bake into the bundle at build time. For a static <code>nuxt generate</code> build, the values are inlined at generate time, so there you regenerate.</p>
+
+    <h3>Why does my Nuxt app throw window is not defined?</h3>
+    <p>Because browser-only globals like <code>window</code> and <code>document</code> do not exist during server-side rendering. Move that code so it runs only on the client: guard it with <code>import.meta.client</code>, use the <code>onMounted</code> lifecycle hook, or wrap the component in <code>ClientOnly</code>. Then the server render skips it and the browser runs it.</p>
+
+    <h3>What causes a hydration mismatch in Nuxt?</h3>
+    <p>A hydration mismatch happens when the HTML the server rendered does not match what the client produces on first render. Common causes are non-deterministic values like <code>new Date()</code> or <code>Math.random()</code>, and invalid HTML nesting. Render deterministic markup and push time-based or random content to the client to avoid the warning.</p>
+
+    <h3>Should I use nuxt build or nuxt generate?</h3>
+    <p>Use <code>nuxt build</code> when pages depend on live data, logins, or per-request rendering, since that needs a running server. Use <code>nuxt generate</code> when content is the same for every visitor, like a blog, docs, or a landing page, because prerendered files are cheaper and simpler to host. Choose the mode before you choose a host, since it changes the whole deploy.</p>
+
+    <h3>Can I run a Nuxt app and its API on the same server?</h3>
+    <p>Yes. Nuxt includes a server layer through Nitro, so files under <code>server/api/</code> run in the same process as your pages, with no separate service and no CORS between them. Launch a managed database on the same server, connect over environment variables, and you have the front end, API, and data on one box.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Platform Team · Nuxt renders on the server, so that's what you deploy.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Deploy a Nuxt App: Server or Static, Decide That First","description":"Deploy a Nuxt app the right way. A Nuxt 3 SSR app builds to a self-contained Node server you run with node .output/server/index.mjs; nuxt generate produces static files for a CDN. Real commands for both paths, plus runtimeConfig env vars, connecting a database, and the SSR errors that break first deploys.","image":"https://www.kloudbean.com/blog/deploy-nuxt-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/deploy-nuxt-app/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I deploy a Nuxt 3 app to production?","acceptedAnswer":{"@type":"Answer","text":"Decide the mode first. For SSR (the default), run nuxt build, which writes a self-contained server to .output/, then start it with node .output/server/index.mjs on a server, bound to the assigned port. A process manager keeps it alive and a reverse proxy adds SSL. For a static site, run nuxt generate and publish .output/public/ to a CDN."}},
+{"@type":"Question","name":"Is a built Nuxt app static files or a server?","acceptedAnswer":{"@type":"Answer","text":"It depends on the mode. In the default SSR mode, nuxt build produces a Node server you run as a long-lived process. Only nuxt generate (or setting ssr false) produces static files. So a standard Nuxt app is a server, not a folder, unless you deliberately prerender it."}},
+{"@type":"Question","name":"What command starts a Nuxt SSR server in production?","acceptedAnswer":{"@type":"Answer","text":"Run node .output/server/index.mjs after nuxt build. Nitro reads the port from NITRO_PORT or PORT and the host from NITRO_HOST or HOST, defaulting to port 3000. On a managed host you set the start command once and the platform supervises the process for you."}},
+{"@type":"Question","name":"What is the .output folder in Nuxt?","acceptedAnswer":{"@type":"Answer","text":"It is what Nitro produces when you build. The file .output/server/index.mjs is the Node server entry point, and .output/public/ holds static assets. The output is self-contained, meaning Nitro bundles server dependencies in, so you can run it with plain Node without installing production modules separately."}},
+{"@type":"Question","name":"How do environment variables work in Nuxt?","acceptedAnswer":{"@type":"Answer","text":"Define keys in runtimeConfig in your Nuxt config, then override them at runtime with environment variables using the NUXT_ prefix, such as NUXT_PUBLIC_API_BASE. Read them with useRuntimeConfig(). For an SSR app the values resolve on the server, so public values can change with a restart and no rebuild. The key must exist in runtimeConfig for the override to apply."}},
+{"@type":"Question","name":"Do I need to rebuild Nuxt to change an environment variable?","acceptedAnswer":{"@type":"Answer","text":"For an SSR app, no. Nuxt resolves public runtime config on the server, so updating a NUXT_PUBLIC_ value and restarting is enough. That differs from a Vite SPA or Next.js, where public variables bake into the bundle at build time. For a static nuxt generate build, the values are inlined at generate time, so there you regenerate."}},
+{"@type":"Question","name":"Why does my Nuxt app throw window is not defined?","acceptedAnswer":{"@type":"Answer","text":"Because browser-only globals like window and document do not exist during server-side rendering. Move that code so it runs only on the client: guard it with import.meta.client, use the onMounted lifecycle hook, or wrap the component in ClientOnly. Then the server render skips it and the browser runs it."}},
+{"@type":"Question","name":"What causes a hydration mismatch in Nuxt?","acceptedAnswer":{"@type":"Answer","text":"A hydration mismatch happens when the HTML the server rendered does not match what the client produces on first render. Common causes are non-deterministic values like new Date() or Math.random(), and invalid HTML nesting. Render deterministic markup and push time-based or random content to the client to avoid the warning."}},
+{"@type":"Question","name":"Should I use nuxt build or nuxt generate?","acceptedAnswer":{"@type":"Answer","text":"Use nuxt build when pages depend on live data, logins, or per-request rendering, since that needs a running server. Use nuxt generate when content is the same for every visitor, like a blog, docs, or a landing page, because prerendered files are cheaper and simpler to host. Choose the mode before you choose a host, since it changes the whole deploy."}},
+{"@type":"Question","name":"Can I run a Nuxt app and its API on the same server?","acceptedAnswer":{"@type":"Answer","text":"Yes. Nuxt includes a server layer through Nitro, so files under server/api/ run in the same process as your pages, with no separate service and no CORS between them. Launch a managed database on the same server, connect over environment variables, and you have the front end, API, and data on one box."}}
+]}
+]}
+</script>
+</body>
+</html>

@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Uptime Monitoring: Know Your Site Is Down Before Users Do</title>
+<meta name="description" content="Uptime monitoring done right: external checks, health-check endpoints, resource monitoring, and alerting that catches downtime before a customer ever has to tell you.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/uptime-monitoring/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Uptime Monitoring: Know Your Site Is Down Before Users Do">
+<meta property="og:description" content="External uptime checks, a real /health endpoint, resource monitoring, and alerting that doesn't cry wolf. How to know your site is down before your customers do.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Reliability &amp; monitoring</span>
+  <h1>Uptime Monitoring: How to Know Your Site Is Down Before a Customer Does</h1>
+
+  <figure><img src="images/hero.png" alt="Uptime monitoring: catching downtime before your users do, across external checks, health endpoints, and resources"></figure>
+
+  <p class="lead">The worst way to find out your site is down is a customer tweet. Or a Slack from your boss. By then you're losing money and trust, and debugging in a panic. Uptime monitoring flips that around, so a robot tells you first and you fix it before most people notice.</p>
+  <p>This is a practical guide to uptime monitoring: how to monitor server uptime, what website monitoring actually catches, what to watch, and how to alert without crying wolf. We'll walk the four layers from the outside in, show a real health-check endpoint, and land on where Kloudbean's server health view fits.</p>
+
+  <div class="tldr">
+    <strong>The short answer</strong>
+    <p>Uptime monitoring is a set of automated checks that watch whether your site and server are actually working, and alert you the moment they aren't. It runs in four layers: an external check on your URL, a health endpoint that proves your app and database respond, resource monitoring for CPU, memory, and disk, and response-time checks because slow is a kind of down. The skill isn't collecting metrics. It's alerting on the ones that matter.</p>
+  </div>
+
+  <h2>"It works on my screen" is not monitoring</h2>
+  <p>Loading your own site once a day proves almost nothing. You're probably hitting a cached page, in the one region where things are fine. Meanwhile the checkout throws 500s across Europe, or the certificate expired at midnight, or the disk filled and new orders stopped writing. You feel great. Your users are gone.</p>
+  <p>Monitoring is the smoke detector for your infrastructure. Here's the mindset that matters: if you learn about downtime from a user, your monitoring already failed, however pretty its graphs. The whole job is to be first.</p>
+
+  <figure>
+    <svg viewBox="0 0 820 322" role="img" aria-label="The four layers of uptime monitoring watched from the outside in: an external check hits the URL, a health endpoint proves the app answers, the app checks its database with a cheap query, and resource monitoring watches CPU, memory, and disk. Any failure rings one alert to you." xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <defs>
+        <marker id="up" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4F1AF3"/></marker>
+        <marker id="ug" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#40b75f"/></marker>
+      </defs>
+
+      <text x="26" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Four layers, watched from the outside in</text>
+      <text x="26" y="54" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">Each layer catches a failure the one before it can't see.</text>
+
+      <text x="150" y="86" text-anchor="middle" fill="#8a94a6" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600" letter-spacing="1.4">OUTSIDE</text>
+      <rect x="470" y="70" width="330" height="176" rx="16" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.4" stroke-dasharray="6 6"/>
+      <text x="486" y="90" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600" letter-spacing="1.4">YOUR SERVER</text>
+
+      <rect x="30" y="98" width="240" height="70" rx="12" fill="#000f27"/>
+      <text x="150" y="128" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="14.5" font-weight="600">1 · External check</text>
+      <text x="150" y="148" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="10.5">hits your URL every 60s · catches DNS, SSL, box down</text>
+
+      <rect x="486" y="104" width="298" height="42" rx="10" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.6"/>
+      <text x="500" y="123" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="700">2 · /health endpoint</text>
+      <text x="500" y="138" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10">proves the app answers, not just the port</text>
+
+      <rect x="486" y="152" width="298" height="42" rx="10" fill="#f3f0ff" stroke="#4F1AF3" stroke-width="1.2"/>
+      <text x="500" y="171" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="700">3 · App + database</text>
+      <text x="500" y="186" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10">a cheap SELECT 1 proves the DB is really reachable</text>
+
+      <rect x="486" y="200" width="298" height="38" rx="10" fill="#ffffff" stroke="#40b75f" stroke-width="1.6"/>
+      <text x="500" y="218" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="700">4 · Resources</text>
+      <text x="500" y="232" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10">CPU · memory · disk, before they take you down</text>
+
+      <line x1="270" y1="133" x2="478" y2="125" stroke="#4F1AF3" stroke-width="2.2" marker-end="url(#up)"/>
+
+      <g>
+        <path d="M150 214 c-22 0 -34 14 -34 34 v14 l-9 11 v5 h86 v-5 l-9 -11 v-14 c0 -20 -12 -34 -34 -34 z" fill="#4F1AF3"/>
+        <circle cx="150" cy="210" r="6" fill="#4F1AF3"/>
+        <path d="M140 288 a10 8 0 0 0 20 0 z" fill="#4F1AF3"/>
+        <path d="M96 232 q-10 8 -12 22" fill="none" stroke="#40b75f" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M204 232 q10 8 12 22" fill="none" stroke="#40b75f" stroke-width="2.4" stroke-linecap="round"/>
+      </g>
+      <text x="150" y="256" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600">ALERT</text>
+      <line x1="150" y1="168" x2="150" y2="196" stroke="#40b75f" stroke-width="2.2" stroke-dasharray="4 4" marker-end="url(#ug)"/>
+      <text x="150" y="308" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">any failure pages you, not your users</text>
+    </svg>
+    <figcaption>The four layers of uptime monitoring. An external check watches from outside, a health endpoint proves the app and its database respond, and resource monitoring catches slow-building trouble. Any one can ring the bell.</figcaption>
+  </figure>
+
+  <h2>The four layers of uptime monitoring</h2>
+  <p>People throw around "monitoring" like it's one thing. It's four jobs, each catching a failure the others miss. Skip a layer and you leave a gap where an outage can hide. Take them outside in.</p>
+
+  <h3>Layer 1: external uptime checks (website monitoring)</h3>
+  <p>An external uptime check lives somewhere else on the internet and hits your public URL every 30 or 60 seconds. If the request fails or times out, it alerts you. This is what most people mean by website monitoring, and tools like UptimeRobot, Pingdom, and Better Uptime all do a version of it.</p>
+  <p>Why external? Because it catches the failures your own server can't report. If the box is down it can't email you to say so, and if DNS breaks or the certificate expired, the server can think it's healthy while the outside world sees nothing. The good ones check from several locations, run <strong>synthetic monitoring</strong> that scripts a real journey (load, log in, add to cart) instead of just pinging the homepage, and post a public <strong>status page</strong>.</p>
+<pre><code># roughly what an external monitor runs against you, on repeat
+curl -fsS -m 10 https://example.com/health || notify "site down"</code></pre>
+  <p>Start here. If you add one piece of monitoring today, make it an external check on your main URL.</p>
+
+  <!-- ADD IMAGE: an external uptime monitor dashboard showing an up/down history bar and a response-time graph for a monitored URL. Swap for a real screenshot: src -> images/uptime-dashboard.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>An external uptime monitor showing an up/down history bar and a response-time graph for one URL.</em><small>The outside-in view: what your users actually experience, minute by minute.</small></span></figure>
+
+  <h3>Layer 2: health-check endpoints (the /health route)</h3>
+  <p>An external check that just loads your homepage has a blind spot. The web server can return a page while the app is broken underneath. The port is open and the process runs, but the database connection died an hour ago and every real request is failing. To the check that looks up. To your users it's an outage.</p>
+  <p>A <strong>health-check endpoint</strong> fixes this. It's a route your app exposes, by convention <code>/health</code> or <code>/healthz</code>, that does real work to confirm the app and its dependencies are alive, then returns 200 if healthy and a non-200 (usually 503) if not. A live database connection matters far more than "the process is running," so prove it with the cheapest possible query:</p>
+<pre><code>// /health: prove the app is up AND its database is reachable
+const express = require('express');
+const app = express();
+
+app.get('/health', async (req, res) => {
+  try {
+    await db.query('SELECT 1');          // cheapest possible round-trip to the DB
+    return res.status(200).json({ status: 'ok' });
+  } catch (err) {
+    // one dead dependency means this instance is NOT healthy
+    return res.status(503).json({ status: 'db_unreachable' });
+  }
+});
+
+app.listen(process.env.PORT || 3000);</code></pre>
+  <p>That <code>SELECT 1</code> is the point. It turns "is the app up?" into "can the app do its job?" Extend it to a Redis ping if you rely on one. One trap: don't make the endpoint so heavy it becomes the problem. Check what's essential and return fast.</p>
+
+  <h3>Layer 3: resource monitoring (CPU, memory, disk)</h3>
+  <p>The first two layers tell you the app is down now. Resource monitoring tells you it's about to be, which is more useful. Most outages build: a slow memory leak, a disk creeping toward full. Watch the resources and you fix things in business hours, not at 3am. Three metrics carry most of the weight:</p>
+  <ul>
+    <li><strong>Disk.</strong> The quiet killer. Logs and uploads pile up, the disk hits 100%, and the database can't write. One of the most common self-inflicted outages I've seen, and an alert at around 80% used prevents it.</li>
+    <li><strong>Memory.</strong> A leak climbs until the kernel's OOM killer shoots your process. A rising line over days is a warning you can act on.</li>
+    <li><strong>CPU.</strong> A brief spike is fine. A flat line at the top for an hour is a resize conversation.</li>
+  </ul>
+  <p>This is the view Kloudbean puts in the console: CPU, memory, and disk over time, per server, so watching resources doesn't mean building a separate metrics stack first.</p>
+
+  <figure>
+    <img src="../assets/console/server-health.png" alt="Server health metrics in the Kloudbean console showing CPU, memory, and disk usage over time">
+    <figcaption>Resource monitoring in the Kloudbean console. Watching CPU, memory, and disk over time is how you catch a filling disk or a memory leak before it becomes downtime.</figcaption>
+  </figure>
+
+  <h3>Layer 4: response time and error rate (slow is the new down)</h3>
+  <p>A site that takes twelve seconds to load is down for practical purposes. The user already left. So the fourth layer watches performance while the app is technically up. <strong>Response-time monitoring</strong> tracks latency at percentiles, not an average, since averages hide slow requests behind fast ones; a p95 that jumps from 200ms to 2 seconds is a real signal before anything errors. <strong>Error-rate monitoring</strong> tracks the share of requests returning 5xx, often the first sign of a bad deploy.</p>
+
+  <h2>How much downtime does 99.9% uptime actually allow?</h2>
+  <p>Once you're measuring, you can put a number on it. 99.9% uptime allows about 43 minutes of downtime a month, roughly nine hours a year, and still counts as kept. 99.99% cuts that to about 4 minutes. Don't chase five nines by reflex: a brochure site is fine at 99.9%, while a store bleeding sales wants 99.95% or better, which takes redundancy, not just monitoring. The full breakdown, and the fine print for what counts as down, is in <a href="https://www.kloudbean.com/blog/cloud-sla-explained/">what a 99.9% uptime SLA actually buys you</a>. Monitoring measures whether you're hitting the number. It doesn't raise it.</p>
+
+  <h2>Alerting without crying wolf</h2>
+  <p>This is where most monitoring setups quietly fail, and it's got nothing to do with metrics. A monitor that pings you for every one-second blip trains you to ignore it, and then the alert that mattered scrolls past at 2am with forty that didn't. A noisy monitor everyone has muted is worse than none. I'll die on that hill.</p>
+  <p>So be deliberate about what wakes a human. Require a couple of consecutive failures before paging, so one dropped packet doesn't set off a siren. And split alerts into "page me now" and "log it, I'll look later."</p>
+
+  <table class="cmp">
+    <thead><tr><th>Page a human immediately</th><th>Log it or notify quietly</th></tr></thead>
+    <tbody>
+      <tr><td>Site unreachable from 2+ locations, 2+ checks in a row</td><td>A single failed check that recovered on the next one</td></tr>
+      <tr><td><code>/health</code> returning 503 (a dependency is down)</td><td>A brief CPU spike that settled on its own</td></tr>
+      <tr><td>Disk over 90% used</td><td>Disk crossing 80% (act soon, not tonight)</td></tr>
+      <tr><td>Error rate spiking after a deploy</td><td>A slow request that self-corrected</td></tr>
+      <tr><td>SSL certificate expiring in under 3 days</td><td>Routine deploy and restart events</td></tr>
+    </tbody>
+  </table>
+
+  <p>Send the page-now list to a phone push or SMS, the rest to a Slack or email channel. If you're ignoring alerts, the answer is never a bigger dashboard. It's fewer, sharper ones.</p>
+
+  <!-- ADD IMAGE: an alert notification in Slack or on a phone showing a downtime alert with the failing check and timestamp. Swap for a real screenshot: src -> images/downtime-alert.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A downtime alert landing in Slack or as a phone push, showing which check failed and when.</em><small>The payoff: a robot tells you first, with enough detail to act.</small></span></figure>
+
+  <h2>How load balancers use health checks</h2>
+  <p>Your <code>/health</code> endpoint pulls double duty. A load balancer in front of your servers doesn't just split traffic. It polls the health check on each backend, and the moment one starts failing, it stops sending requests there. One instance dies, the balancer routes around it, and visitors never notice.</p>
+  <p>That's also how zero-downtime deploys work: a new version only gets real traffic once it passes its health check, so a bad build never gets promoted. Full mechanics in <a href="https://www.kloudbean.com/blog/cloud-load-balancer-explained/">how a cloud load balancer works</a>. On Kloudbean the Flexible Load Balancer is built into every account and works with application pools, so routing around a sick instance is a switch you flip.</p>
+
+  <figure>
+    <img src="../assets/console/flb-load-balancer.png" alt="The Flexible Load Balancer in the Kloudbean console distributing traffic across an application pool of healthy servers">
+    <figcaption>A load balancer polls each server's health check and quietly drops any that fail. The health endpoint you built for monitoring becomes the switch that keeps traffic on the living instances.</figcaption>
+  </figure>
+
+  <h2>What to watch for your specific stack</h2>
+  <p>The four layers are the frame. The details depend on what you run. A few failure modes bite so often they're worth a checklist, because each one is a real outage I've watched land on someone:</p>
+
+  <table class="cmp">
+    <thead><tr><th>Watch this</th><th>Why it bites</th><th>The signal to alert on</th></tr></thead>
+    <tbody>
+      <tr><td>SSL certificate expiry</td><td>An expired cert takes the whole site offline on a date you forgot. Silent until it happens.</td><td>Days until expiry, alert at 14 and 3 days</td></tr>
+      <tr><td>Disk space</td><td>Logs and uploads fill the disk, then writes and the database start failing.</td><td>Disk percent used, alert around 80%</td></tr>
+      <tr><td>Database connections</td><td>The pool exhausts, requests hang or error, and it looks like a total outage.</td><td>Active connections and query errors</td></tr>
+      <tr><td>Memory</td><td>A leak climbs until the OOM killer stops your process.</td><td>Memory percent trending up over days</td></tr>
+      <tr><td>The app process</td><td>A crashed process means every request fails, even though the server is fine.</td><td>Process up/down plus the <code>/health</code> status</td></tr>
+    </tbody>
+  </table>
+
+  <p>The certificate row deserves a callout. Expired SSL is one of the most common silent outages going, and it's fully avoidable with free auto-renewing certificates. The database row matters too, because "the site is down" is often an exhausted pool rather than a dead database. How to size one is in <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling explained</a>.</p>
+
+  <!-- ADD IMAGE: an SSL certificate status view showing the active certificate and its expiry date. Swap for a real screenshot: src -> images/ssl-expiry.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>An SSL certificate status view with the active cert and its expiry date.</em><small>Cert expiry is a silent, avoidable outage. A days-until-expiry check is cheap insurance.</small></span></figure>
+
+  <h2>Detection is only half the job</h2>
+  <p>Knowing you're down is worthless if you can't get back up, so pair monitoring with a tested recovery plan. The catch people miss: a backup you've never restored is a hope, not a plan, so run one real restore before you trust it. The routine is in <a href="https://www.kloudbean.com/blog/server-backups-guide/">the server backups guide</a>, and where monitoring sits in the whole system is in <a href="https://www.kloudbean.com/blog/how-cloud-hosting-works/">how cloud hosting works</a>.</p>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>Let me be precise. Kloudbean isn't an external uptime-monitoring service, and I won't pretend it is. For layer 1, the outside-in check on your public URL, use a dedicated monitoring tool. What Kloudbean handles is the inside view and the redundancy.</p>
+  <p>The console shows <strong>server health</strong>: CPU, memory, and disk over time, per server, so you can catch a filling disk or a memory leak early. The built-in <strong>Flexible Load Balancer</strong> works with application pools and routes traffic away from an instance that fails its health check. Free auto-renewing SSL takes the expired-certificate outage off your list, and automatic backups mean the recovery half is ready, all on one dashboard. Weighing where to run it? <a href="https://www.kloudbean.com/blog/digitalocean-vs-kloudbean/">DigitalOcean vs Kloudbean</a> covers the managed-versus-DIY tradeoff, and <a href="https://www.kloudbean.com/blog/what-is-a-managed-server/">what a managed server actually is</a> covers the rest.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Watch your servers from one place, and recover fast when it counts.</p>
+    <p style="margin:0 0 .6em">Server health metrics, a built-in load balancer with health-checked application pools, free auto-renewing SSL, and automatic backups, all on one dashboard. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Server health metrics · Built-in load balancer · Free SSL · Automatic backups · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is uptime monitoring?</h3>
+    <p>Automated checks that verify your site and server are working and alert you the moment they aren't. They combine an external check, a health endpoint, and resource monitoring, so you hear about downtime before your customers do.</p>
+    <h3>How do I monitor if my website is down?</h3>
+    <p>Point an external service like UptimeRobot, Pingdom, or Better Uptime at your public URL. It hits your site every 30 to 60 seconds from outside and alerts you on failure, catching outages your own server cannot report.</p>
+    <h3>What is a health check, and what is a /health endpoint?</h3>
+    <p>A health check confirms the app is actually working, not just that its port is open. A /health endpoint runs real work, like a cheap SELECT 1 against the database, and returns 200 when healthy or 503 when a dependency is down.</p>
+    <h3>What should I monitor?</h3>
+    <p>Reachability from outside, the app and its database via a health endpoint, resources over time (CPU, memory, disk), and performance (response time and error rate). Also watch SSL certificate expiry and disk space.</p>
+    <h3>What is a good uptime percentage?</h3>
+    <p>99.9% allows about 43 minutes of downtime a month; 99.99% cuts that to roughly 4 minutes but needs real redundancy. Match the target to the cost of an hour offline instead of chasing nines by reflex.</p>
+    <h3>How do I avoid alert fatigue?</h3>
+    <p>Require a couple of consecutive failures before paging, and split alerts into urgent pages and quiet notifications. Only real outages reach your phone; the rest go to a log. A monitor everyone ignores is worse than none.</p>
+    <h3>What is synthetic monitoring?</h3>
+    <p>It scripts a real user journey, like load, log in, and add to cart, and runs it on a schedule. It catches broken flows a simple up/down check misses, since a site can be reachable while a key action fails.</p>
+    <h3>Does Kloudbean include uptime monitoring?</h3>
+    <p>Kloudbean shows server health in the console (CPU, memory, and disk over time), and its built-in Flexible Load Balancer routes around instances that fail their health check. For external website monitoring, pair it with a dedicated uptime service.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Reliability · Know before your users do.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Uptime Monitoring: How to Know Your Site Is Down Before a Customer Does","description":"A practical guide to uptime monitoring: external checks, health-check endpoints, resource monitoring, response time, and alerting that catches downtime before your customers do.","image":"https://www.kloudbean.com/blog/uptime-monitoring/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/uptime-monitoring/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is uptime monitoring?","acceptedAnswer":{"@type":"Answer","text":"Automated checks that verify your site and server are working and alert you the moment they aren't. They combine an external check, a health endpoint, and resource monitoring, so you hear about downtime before your customers do."}},
+{"@type":"Question","name":"How do I monitor if my website is down?","acceptedAnswer":{"@type":"Answer","text":"Point an external service like UptimeRobot, Pingdom, or Better Uptime at your public URL. It hits your site every 30 to 60 seconds from outside and alerts you on failure, catching outages your own server cannot report."}},
+{"@type":"Question","name":"What is a health check, and what is a /health endpoint?","acceptedAnswer":{"@type":"Answer","text":"A health check confirms the app is actually working, not just that its port is open. A /health endpoint runs real work, like a cheap SELECT 1 against the database, and returns 200 when healthy or 503 when a dependency is down."}},
+{"@type":"Question","name":"What should I monitor?","acceptedAnswer":{"@type":"Answer","text":"Reachability from outside, the app and its database via a health endpoint, resources over time (CPU, memory, disk), and performance (response time and error rate). Also watch SSL certificate expiry and disk space."}},
+{"@type":"Question","name":"What is a good uptime percentage?","acceptedAnswer":{"@type":"Answer","text":"99.9% allows about 43 minutes of downtime a month; 99.99% cuts that to roughly 4 minutes but needs real redundancy. Match the target to the cost of an hour offline instead of chasing nines by reflex."}},
+{"@type":"Question","name":"How do I avoid alert fatigue?","acceptedAnswer":{"@type":"Answer","text":"Require a couple of consecutive failures before paging, and split alerts into urgent pages and quiet notifications. Only real outages reach your phone; the rest go to a log. A monitor everyone ignores is worse than none."}},
+{"@type":"Question","name":"What is synthetic monitoring?","acceptedAnswer":{"@type":"Answer","text":"It scripts a real user journey, like load, log in, and add to cart, and runs it on a schedule. It catches broken flows a simple up/down check misses, since a site can be reachable while a key action fails."}},
+{"@type":"Question","name":"Does Kloudbean include uptime monitoring?","acceptedAnswer":{"@type":"Answer","text":"Kloudbean shows server health in the console (CPU, memory, and disk over time), and its built-in Flexible Load Balancer routes around instances that fail their health check. For external website monitoring, pair it with a dedicated uptime service."}}
+]}
+]}
+</script>
+</body>
+</html>

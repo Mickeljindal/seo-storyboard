@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PostgreSQL Performance Tuning: A Practical Guide for App Developers</title>
+<meta name="description" content="A practical, engineer-level guide to PostgreSQL performance tuning: find slow Postgres queries with pg_stat_statements, read EXPLAIN ANALYZE, add the right Postgres index, keep autovacuum healthy, pool connections, and tune work_mem and shared_buffers on managed PostgreSQL.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/postgresql-performance-tuning/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="PostgreSQL Performance Tuning: A Practical Guide for App Developers">
+<meta property="og:description" content="Measure first, index second, tune knobs last. Find slow Postgres queries with pg_stat_statements, read EXPLAIN ANALYZE, add the right index, and keep autovacuum healthy.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Managed PostgreSQL</span>
+  <h1>PostgreSQL Performance Tuning for App Developers</h1>
+
+  <figure><img src="images/hero.png" alt="PostgreSQL performance tuning: from a slow sequential scan to a fast index scan"></figure>
+
+  <p class="lead">Your app was quick on day one. Now a page that loaded instantly hangs for a couple of seconds, and it's almost always the database. PostgreSQL performance tuning is the skill of finding out why, then fixing the real cause instead of guessing. This is the order of operations I'd hand a developer who owns a Django, Rails, Laravel, or Prisma app and just watched a query that flew at 10,000 rows fall over at five million: measure, index, keep autovacuum healthy, pool your connections, and only then reach for memory knobs or a bigger server.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>Measure before you tune. Turn on <code>pg_stat_statements</code> to find your slowest queries, run <code>EXPLAIN ANALYZE</code> to see why they're slow, and add an index on the columns you filter and join on. Keep autovacuum running so dead rows don't pile up, pool your connections so Postgres isn't drowning in them, and resize the server only when the box is genuinely maxed. In that order.</p>
+  </div>
+
+  <h2>Rule one: measure, don't guess</h2>
+  <p>The most common tuning mistake is cheap to make. Someone reads that <code>shared_buffers</code> should be a quarter of RAM, changes it, restarts, and the slow page is still slow. They tuned a knob before knowing what was slow. Postgres will tell you which queries hurt, if you ask it.</p>
+  <p>Start with <code>pg_stat_statements</code>, a standard extension that records each query's total and average time, how often it ran, and how many rows it touched. It loads at server start, commonly set for you on a managed box, then you enable it and query it whenever a page feels slow.</p>
+<pre><code>-- enable once, then query it any time a page feels slow
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+
+SELECT query, calls, mean_exec_time, rows
+FROM pg_stat_statements
+ORDER BY mean_exec_time DESC
+LIMIT 10;</code></pre>
+  <p>That's your ranked to-do list; the top query is where a fix buys the most. Sort by total time too (roughly <code>calls</code> times <code>mean_exec_time</code>) to catch the query that's quick on its own but runs ten thousand times a minute. Those add up to more pain than the slow report nobody runs.</p>
+
+  <!-- Author: replace this slot with a real screenshot. src -> images/pg-stat-statements.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A pg_stat_statements result sorted by mean_exec_time, with the worst query highlighted.</em><small>Blur any real table or column names before publishing.</small></span></figure>
+
+  <h2>Read the query plan with EXPLAIN and EXPLAIN ANALYZE</h2>
+  <p>Now ask Postgres how it plans to run that query. <code>EXPLAIN</code> shows the plan and cost estimate without running it. <code>EXPLAIN ANALYZE</code> runs it and prints real timings and row counts beside the estimates. Use <code>ANALYZE</code> when you can: the gap between estimated and actual rows is usually the whole story.</p>
+  <p>One caveat: <code>EXPLAIN ANALYZE</code> runs the statement for real. On an <code>UPDATE</code> or <code>DELETE</code>, wrap it in a transaction and roll back, or you'll change data while only trying to look at it.</p>
+<pre><code>-- safe to inspect a write: it executes, then you undo it
+BEGIN;
+EXPLAIN ANALYZE UPDATE orders SET status = 'shipped' WHERE id = 42;
+ROLLBACK;</code></pre>
+  <p>The distinction that matters most for app developers is a <strong>sequential scan vs index scan</strong>. A <code>Seq Scan</code> means Postgres read every row and threw away the ones that didn't match. Fine on a tiny table, brutal on a big one. An <code>Index Scan</code> means it used an index to jump straight to the matches.</p>
+  <p>Run <code>EXPLAIN ANALYZE</code> on a filter with no index and you'll see something like this:</p>
+<pre><code>EXPLAIN ANALYZE
+SELECT * FROM orders WHERE user_id = 42 AND created_at &gt; now() - interval '30 days';
+
+Seq Scan on orders  (cost=0.00..18334.00 rows=11 width=72)
+                    (actual time=0.398..96.190 rows=11 loops=1)
+  Filter: (user_id = 42 AND created_at &gt; (now() - interval '30 days'))
+  Rows Removed by Filter: 999989
+Planning Time: 0.093 ms
+Execution Time: 96.243 ms</code></pre>
+  <p>Read it inside out. <code>cost</code> is the planner's estimate in arbitrary units, <code>rows</code> is how many it expected, <code>actual time</code> is real clock time, and <code>loops</code> is how many times the step ran. The line that jumps out is <code>Rows Removed by Filter: 999989</code>. Postgres read a million rows to hand you eleven. That's a missing index shouting at you.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 402" role="img" aria-label="Diagram comparing a sequential scan without an index to an index scan with an index on user_id" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="28" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Same query, two very different journeys</text>
+
+      <!-- Lane A: without an index -->
+      <text x="28" y="64" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.5">WITHOUT AN INDEX</text>
+      <rect x="24" y="76" width="128" height="60" rx="12" fill="#000f27"/>
+      <text x="88" y="102" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Query</text>
+      <text x="88" y="121" text-anchor="middle" fill="#aeb6d4" font-family="JetBrains Mono,monospace" font-size="10.5">user_id = 42</text>
+      <line x1="152" y1="106" x2="192" y2="106" stroke="#5b6a86" stroke-width="2"/>
+      <path d="M192 106 l-9 -4 v8 z" fill="#5b6a86"/>
+      <rect x="194" y="76" width="104" height="60" rx="12" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="246" y="102" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Planner</text>
+      <text x="246" y="121" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10">no index</text>
+      <line x1="298" y1="106" x2="338" y2="106" stroke="#5b6a86" stroke-width="2"/>
+      <path d="M338 106 l-9 -4 v8 z" fill="#5b6a86"/>
+      <!-- table, all rows scanned -->
+      <rect x="340" y="72" width="196" height="70" rx="10" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
+      <rect x="340" y="72" width="196" height="70" rx="10" fill="#4F1AF3" fill-opacity="0.16"/>
+      <line x1="352" y1="92" x2="524" y2="92" stroke="#000f27" stroke-opacity="0.35" stroke-width="6"/>
+      <line x1="352" y1="104" x2="524" y2="104" stroke="#000f27" stroke-opacity="0.35" stroke-width="6"/>
+      <line x1="352" y1="116" x2="524" y2="116" stroke="#000f27" stroke-opacity="0.35" stroke-width="6"/>
+      <line x1="352" y1="128" x2="524" y2="128" stroke="#000f27" stroke-opacity="0.35" stroke-width="6"/>
+      <text x="438" y="160" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="11" font-weight="600">Seq Scan: reads every row</text>
+      <line x1="536" y1="106" x2="576" y2="106" stroke="#5b6a86" stroke-width="2"/>
+      <path d="M576 106 l-9 -4 v8 z" fill="#5b6a86"/>
+      <rect x="578" y="76" width="158" height="60" rx="12" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="657" y="101" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12" font-weight="600">5,000,000 rows</text>
+      <text x="657" y="122" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="700">~96 ms  slow</text>
+
+      <!-- divider -->
+      <line x1="24" y1="212" x2="736" y2="212" stroke="#e6e9f2" stroke-width="1.5"/>
+
+      <!-- Lane B: with an index -->
+      <text x="28" y="252" fill="#40b75f" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.5">WITH AN INDEX ON user_id</text>
+      <rect x="24" y="264" width="128" height="60" rx="12" fill="#000f27"/>
+      <text x="88" y="290" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Query</text>
+      <text x="88" y="309" text-anchor="middle" fill="#aeb6d4" font-family="JetBrains Mono,monospace" font-size="10.5">user_id = 42</text>
+      <line x1="152" y1="294" x2="192" y2="294" stroke="#5b6a86" stroke-width="2"/>
+      <path d="M192 294 l-9 -4 v8 z" fill="#5b6a86"/>
+      <rect x="194" y="264" width="104" height="60" rx="12" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="246" y="290" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Planner</text>
+      <text x="246" y="309" text-anchor="middle" fill="#40b75f" font-family="Poppins,sans-serif" font-size="10" font-weight="600">uses index</text>
+      <line x1="298" y1="294" x2="338" y2="294" stroke="#5b6a86" stroke-width="2"/>
+      <path d="M338 294 l-9 -4 v8 z" fill="#5b6a86"/>
+      <!-- index badge -->
+      <rect x="340" y="258" width="72" height="26" rx="8" fill="#40b75f"/>
+      <text x="376" y="276" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="10.5" font-weight="600">idx user_id</text>
+      <!-- table, two rows matched -->
+      <rect x="340" y="290" width="196" height="70" rx="10" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
+      <line x1="352" y1="308" x2="524" y2="308" stroke="#40b75f" stroke-width="6"/>
+      <line x1="352" y1="320" x2="524" y2="320" stroke="#40b75f" stroke-width="6"/>
+      <line x1="352" y1="332" x2="440" y2="332" stroke="#000f27" stroke-opacity="0.14" stroke-width="6"/>
+      <line x1="352" y1="344" x2="440" y2="344" stroke="#000f27" stroke-opacity="0.14" stroke-width="6"/>
+      <path d="M412 271 C 400 285, 395 295, 393 305" stroke="#40b75f" stroke-width="2" fill="none"/>
+      <path d="M393 305 l-4 -8 8 1 z" fill="#40b75f"/>
+      <line x1="536" y1="294" x2="576" y2="294" stroke="#40b75f" stroke-width="2"/>
+      <path d="M576 294 l-9 -4 v8 z" fill="#40b75f"/>
+      <rect x="578" y="264" width="158" height="60" rx="12" fill="#ffffff" stroke="#40b75f" stroke-width="1.5"/>
+      <text x="657" y="289" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12" font-weight="600">11 rows read</text>
+      <text x="657" y="310" text-anchor="middle" fill="#40b75f" font-family="Poppins,sans-serif" font-size="13" font-weight="700">~0.07 ms  fast</text>
+    </svg>
+    <figcaption>No index, and Postgres scans the whole table. Add an index on the column you filter by, and it jumps straight to the matching rows.</figcaption>
+  </figure>
+
+  <p>Add the index, run the same <code>EXPLAIN ANALYZE</code>, and the plan changes shape:</p>
+<pre><code>Index Scan using idx_orders_user_id on orders
+      (cost=0.42..8.61 rows=11 width=72)
+      (actual time=0.028..0.041 rows=11 loops=1)
+  Index Cond: (user_id = 42)
+Planning Time: 0.121 ms
+Execution Time: 0.068 ms</code></pre>
+  <p>Same eleven rows, but Postgres went straight to them. This is the highest-leverage move in <strong>Postgres query optimization</strong>, and it's why the method starts with measurement. You can't index what you haven't found.</p>
+
+  <!-- Author: replace this slot with a real screenshot. src -> images/explain-analyze-annotated.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>An annotated EXPLAIN ANALYZE plan pointing at Seq Scan, actual time, and Rows Removed by Filter.</em><small>Callout arrows help readers find each field.</small></span></figure>
+
+  <h2>The PostgreSQL performance tuning order of operations</h2>
+  <p>Not every lever is worth the same. Some take five minutes and cut a query by 99 percent. Others take an afternoon and buy you 10. Here's how I rank them by payoff against effort, for an app not yet at web scale.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Lever</th><th>What it fixes</th><th>Payoff vs effort</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Add a missing index</strong></td><td>Turns a full-table scan into a direct lookup</td><td>Huge payoff, low effort</td></tr>
+      <tr><td><strong>Fix N+1 queries</strong></td><td>Collapses hundreds of round trips into one</td><td>Huge payoff, low effort</td></tr>
+      <tr><td><strong>Pool connections</strong></td><td>Stops connection overload under real traffic</td><td>High payoff, low effort</td></tr>
+      <tr><td><strong>Rewrite the worst queries</strong></td><td>Reads fewer rows, drops bad joins and SELECT *</td><td>High payoff, medium effort</td></tr>
+      <tr><td><strong>Keep autovacuum healthy</strong></td><td>Prevents bloat and stale planner stats</td><td>Medium payoff, mostly leave it on</td></tr>
+      <tr><td><strong>Tune work_mem per query</strong></td><td>Speeds big sorts and hash joins</td><td>Medium payoff, needs care</td></tr>
+      <tr><td><strong>Adjust shared_buffers / effective_cache_size</strong></td><td>Better cache behavior and plan choices</td><td>Medium payoff, needs a restart and testing</td></tr>
+      <tr><td><strong>Resize the server</strong></td><td>More CPU and RAM for a genuinely maxed box</td><td>High payoff, costs money</td></tr>
+    </tbody>
+  </table>
+  <p>Look at the top and the bottom. Index first, touch <code>shared_buffers</code> last. Most of the slow Postgres I've looked at came down to a missing index or an N+1 loop, not hardware and not a config knob. Do only the top two rows and you'll fix most slow apps.</p>
+
+  <h2>Indexes done right (an index isn't free)</h2>
+  <p>An index is a sorted copy of one or more columns that lets Postgres find rows without reading the whole table. The default is a <strong>B-tree</strong>, and it's right for almost everything an app does: equality, ranges, <code>ORDER BY</code>, and most joins.</p>
+  <p>Add it without locking your table. A plain <code>CREATE INDEX</code> blocks writes until it finishes, which on a big live table means downtime. <code>CREATE INDEX CONCURRENTLY</code> builds it in the background without that write lock. It's slower and can't run inside a transaction, and the trade is usually worth it in production.</p>
+<pre><code>-- build on a live table without blocking writes
+CREATE INDEX CONCURRENTLY idx_orders_user_id ON orders (user_id);
+
+-- composite index: order matters. This serves
+-- "a user's orders, newest first" and "just this user's orders"
+CREATE INDEX idx_orders_user_created ON orders (user_id, created_at DESC);
+
+-- partial index: only index the rows you actually query
+CREATE INDEX idx_orders_open ON orders (user_id) WHERE status = 'open';</code></pre>
+  <p>A few things that trip people up:</p>
+  <ul>
+    <li><strong>Composite column order matters.</strong> An index on <code>(user_id, created_at)</code> helps a query that filters by <code>user_id</code>, or filters <code>user_id</code> then sorts by <code>created_at</code>. It does nothing for one that only filters <code>created_at</code>. Postgres reads a composite index left to right.</li>
+    <li><strong>Partial indexes stay small.</strong> If you only ever query open orders, index only open orders. Smaller index, less to maintain, more of it stays in memory.</li>
+    <li><strong>Covering indexes skip the table.</strong> Add returned columns with <code>INCLUDE</code> and Postgres answers from the index alone, an index-only scan. Great for a hot read.</li>
+  </ul>
+  <p>Now the honest part: an index isn't free. Every <code>INSERT</code>, <code>UPDATE</code>, and <code>DELETE</code> updates every index on the table, so ten indexes mean each write does ten times the bookkeeping. They cost disk and memory too. Index what you filter and join on, not every column. Deeper mechanics are in <a href="https://www.kloudbean.com/blog/database-indexing-explained/">database indexing explained</a>.</p>
+  <p><strong>Why is Postgres not using my index?</strong> Usually one of four reasons. Stats are stale, so run <code>ANALYZE</code>. You wrapped the column in a function like <code>WHERE lower(email) = ...</code>, which a plain index on <code>email</code> can't serve. The query returns a big fraction of the table, so a scan is genuinely cheaper and the planner is right. Or the types don't match. On a small table a <code>Seq Scan</code> really is faster, so trust the planner.</p>
+
+  <h2>Autovacuum and bloat: leave it on</h2>
+  <p>Postgres never overwrites a row in place. Because of how it handles concurrent readers and writers (MVCC), an <code>UPDATE</code> writes a new version of the row and marks the old one dead; a <code>DELETE</code> just marks it dead. Those dead rows, called dead tuples, sit in the table until something clears them. That something is <strong>autovacuum</strong>.</p>
+  <p>Autovacuum reclaims dead tuples so the table doesn't bloat, and refreshes the statistics the planner needs for good plans. Disable it because one vacuum caused a blip, and the table quietly bloats while the planner goes blind, so weeks later everything is slow for no obvious reason. Don't disable it. For a write-heavy table, make autovacuum run more often by lowering its scale factor instead of switching it off.</p>
+  <p>You can watch the damage build up:</p>
+<pre><code>SELECT relname, n_live_tup, n_dead_tup, last_autovacuum
+FROM pg_stat_user_tables
+ORDER BY n_dead_tup DESC
+LIMIT 10;</code></pre>
+  <p>If <code>n_dead_tup</code> is a large share of <code>n_live_tup</code> and <code>last_autovacuum</code> is ancient, that table needs attention. After a big bulk load or a mass delete, nudge it by hand:</p>
+<pre><code>VACUUM ANALYZE orders;</code></pre>
+  <p><code>VACUUM ANALYZE</code> reclaims space and refreshes stats in one go. Its heavy cousin <code>VACUUM FULL</code> rewrites the whole table and takes an exclusive lock, so save that for a real emergency, not a routine tune-up.</p>
+
+  <!-- Author: replace this slot with a real screenshot. src -> images/dead-tuples.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>pg_stat_user_tables showing n_dead_tup climbing on a busy table, then dropping after a vacuum.</em><small>A before and after pair tells the story well.</small></span></figure>
+
+  <h2>Connections and pooling</h2>
+  <p>Every Postgres connection is a real operating-system process with its own memory. That's robust, but connections aren't cheap, and Postgres was never built for thousands of them. <code>max_connections</code> is finite, often near 100, and blow past it and you get the error everyone eventually meets:</p>
+<pre><code>FATAL: sorry, too many clients already</code></pre>
+  <p>The instinct is to raise <code>max_connections</code>. Resist it. More connections means more memory on idle processes, and it multiplies your worst-case memory because each connection can grab <code>work_mem</code> for every sort or hash it runs. The fix is <strong>Postgres connection pooling</strong>: a small, reused set of connections that many requests share.</p>
+  <p>Your framework probably already pools: Prisma, the <code>pg</code> Pool in Node, SQLAlchemy, and ActiveRecord all keep one. Set a sane pool size per app instance rather than a connection per request. Running many app servers or anything serverless? Put a dedicated pooler in front (PgBouncer in transaction mode is the usual pick), so thousands of clients funnel down to a handful of real connections. A classic start is roughly two times your CPU cores; most apps need far fewer than they reach for. More in <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>.</p>
+
+  <h2>Memory settings, carefully</h2>
+  <p>These are the knobs people want to turn first and should turn last. On managed PostgreSQL the defaults already scale to your plan, so treat these as concepts you reach for when a query needs them, and a bigger plan raises the ceiling.</p>
+  <ul>
+    <li><strong>shared_buffers</strong> is how much RAM Postgres uses for its own cache of table and index pages. About 25 percent of the server's RAM is the usual starting point. It needs a restart to change, so on a managed box the practical lever is your plan size.</li>
+    <li><strong>effective_cache_size</strong> isn't an allocation. It's a hint about how much memory (Postgres plus the OS cache) is likely available for caching. Set it realistically, often half to three quarters of RAM, and the planner leans toward index scans.</li>
+    <li><strong>work_mem</strong> is the memory a single sort or hash may use. The gotcha that burns people: it's per operation, per connection, not one global budget. One complex query can use several multiples of <code>work_mem</code>, and every connection can do it at once. A generous global <code>work_mem</code> times a few hundred connections is how you run a box out of memory.</li>
+  </ul>
+  <p>So set <code>work_mem</code> modestly for everyone, then raise it just for the session that runs a heavy report:</p>
+<pre><code>-- bump it for this one big sort, not for the whole server
+SET work_mem = '128MB';
+SELECT ...  -- the heavy analytical query
+RESET work_mem;</code></pre>
+  <p>My honest take on <strong>work_mem shared_buffers</strong> and the rest: leave <code>shared_buffers</code> near the sensible default and change it last. You'll get more from one good index than from any memory knob you nudge.</p>
+
+  <h2>When the honest fix is a bigger server</h2>
+  <p>Sometimes the answer really is more hardware. If CPU sits pinned near 100 percent, RAM is exhausted so the cache can't hold your working set, or you're I/O bound after the queries are already tuned, the box is the bottleneck. On managed PostgreSQL you resize for more CPU and RAM without rebuilding anything, and backups and patching keep running.</p>
+  <p>But tune queries and indexes first. Bad SQL scales badly no matter the hardware. A missing index that scans five million rows scans them faster on a bigger box, then falls over again at ten million. Doubling your server to hide an N+1 loop is the most expensive way to not fix a bug. For read-heavy workloads, a <a href="https://www.kloudbean.com/blog/redis-caching-guide/">managed Redis cache</a> in front of your hottest reads often buys more headroom than a bigger database.</p>
+
+  <h2>Put it into practice on managed PostgreSQL</h2>
+  <p>The tuning above is plain Postgres; it works anywhere. What a managed platform changes is the ops around it. Provisioning, the private network, patching, and backups are handled, so your time goes to schema, queries, and indexes.</p>
+
+  <p><strong>1. Launch a managed PostgreSQL.</strong> Postgres is one of seven managed database engines here. In the DBS section, pick Postgres, name it, and it's provisioned on a private network with automatic backups on. You own the schema, queries, and data; the platform handles provisioning, patching, and backups.</p>
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed PostgreSQL database with automatic backups and private networking">
+    <figcaption>DBS then Launch Database: managed PostgreSQL, provisioned on a private network with backups running.</figcaption>
+  </figure>
+
+  <p><strong>2. Connect over the private network.</strong> Put the connection string in an environment variable, set your pool size there, and keep the database off the public internet. Your Node or Python app reads the variable and connects internally. Wiring up an app? <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">Deploying a Node app to a managed cloud</a> walks the path.</p>
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console environment variables screen holding the PostgreSQL connection string safely out of code">
+    <figcaption>Runtime configuration then Environment Variables: the connection string and pool size live here, never in your repo.</figcaption>
+  </figure>
+
+  <p><strong>3. Watch CPU and RAM while you measure.</strong> Keep the server health view open next to your <code>pg_stat_statements</code> results; together they tell you which fix you need. Slow while CPU sits idle means a query or index problem, so fix that. Pinned at 100 percent after you've already tuned means it's time to resize.</p>
+  <figure>
+    <img src="../assets/console/server-health.png" alt="The Kloudbean console server health view showing CPU and RAM usage to decide between tuning and resizing">
+    <figcaption>Server health: correlate slow queries with real CPU and RAM before you decide to tune or to resize.</figcaption>
+  </figure>
+
+  <p>Backups run automatically, but a backup you've never restored is a hope. Do a test restore before you need one. Here's how <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups</a> work.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Make Postgres earn its keep.</p>
+    <p style="margin:0 0 .6em">Managed PostgreSQL on Kloudbean gives you a real box on a private network, automatic backups, and one-click provisioning, so the only thing left to tune is your own queries. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> and see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Managed PostgreSQL · Automatic backups · Private networking · Resize as you grow · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I find slow Postgres queries?</h3>
+    <p>Enable the <code>pg_stat_statements</code> extension and query it, ordering by <code>mean_exec_time</code> for the slowest queries. Also sort by total time (calls times mean) to catch fast queries that run so often they add up. The top of that list is your ranked to-do list.</p>
+    <h3>How do I read EXPLAIN ANALYZE?</h3>
+    <p>Read the plan inside out. Compare the estimated <code>rows</code> to the <code>actual</code> rows, watch <code>actual time</code> for the real cost, and look for a <code>Seq Scan</code> on a big table or a large <code>Rows Removed by Filter</code>. A big estimate-versus-actual gap usually means stale stats or a missing index.</p>
+    <h3>Why is Postgres not using my index?</h3>
+    <p>Usually stale statistics (run <code>ANALYZE</code>), a function wrapped around the column that the index can't match, a query that returns a large fraction of the table so a scan is cheaper, or a type mismatch. On a small table a sequential scan is often fastest, and the planner is right to pick it.</p>
+    <h3>What is autovacuum and should I disable it?</h3>
+    <p>Autovacuum reclaims the dead rows that updates and deletes leave behind and refreshes the planner's statistics. Don't disable it. For a write-heavy table, make it run more aggressively rather than turning it off, because bloat and stale stats slow everything down.</p>
+    <h3>How many connections can Postgres handle?</h3>
+    <p>Each connection is a separate process, so the practical ceiling is in the low hundreds, and <code>max_connections</code> often defaults near 100. Use a connection pool so many requests share a small set of connections. A pooler like PgBouncer lets many clients funnel down to a few real ones.</p>
+    <h3>Should I increase shared_buffers?</h3>
+    <p>Usually not first. A common start is about 25 percent of RAM, and changing it needs a restart. You'll almost always get more speed from the right index than from raising <code>shared_buffers</code>, so index first and tune memory later.</p>
+    <h3>Do I need CREATE INDEX CONCURRENTLY?</h3>
+    <p>On a live table, yes. A plain <code>CREATE INDEX</code> locks the table against writes until it finishes, causing downtime on big tables. <code>CREATE INDEX CONCURRENTLY</code> builds it in the background without that lock. It's slower and can't run in a transaction, and that trade is worth it in production.</p>
+    <h3>Is a sequential scan always bad?</h3>
+    <p>No. On a small table, or when a query legitimately returns a large share of rows, a sequential scan beats bouncing through an index. It's only a problem when Postgres reads far more rows than it returns on a big table, which signals a missing index.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Database · Make Postgres earn its keep.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"PostgreSQL Performance Tuning for App Developers","description":"A practical, engineer-level guide to PostgreSQL performance tuning: find slow queries with pg_stat_statements, read EXPLAIN ANALYZE, add the right index, keep autovacuum healthy, pool connections, and tune work_mem and shared_buffers on managed PostgreSQL.","image":"https://www.kloudbean.com/blog/postgresql-performance-tuning/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/postgresql-performance-tuning/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I find slow Postgres queries?","acceptedAnswer":{"@type":"Answer","text":"Enable the pg_stat_statements extension and query it, ordering by mean_exec_time for the slowest queries. Also sort by total time (calls times mean) to catch fast queries that run so often they add up. The top of that list is your ranked to-do list."}},
+{"@type":"Question","name":"How do I read EXPLAIN ANALYZE?","acceptedAnswer":{"@type":"Answer","text":"Read the plan inside out. Compare the estimated rows to the actual rows, watch actual time for the real cost, and look for a sequential scan on a big table or a large Rows Removed by Filter. A big estimate versus actual gap usually means stale stats or a missing index."}},
+{"@type":"Question","name":"Why is Postgres not using my index?","acceptedAnswer":{"@type":"Answer","text":"Usually stale statistics (run ANALYZE), a function wrapped around the column that the index cannot match, a query that returns a large fraction of the table so a scan is cheaper, or a type mismatch. On a small table a sequential scan is often fastest, and the planner is right to pick it."}},
+{"@type":"Question","name":"What is autovacuum and should I disable it?","acceptedAnswer":{"@type":"Answer","text":"Autovacuum reclaims the dead rows that updates and deletes leave behind and refreshes the planner statistics. Do not disable it. For a write-heavy table, make it run more aggressively rather than turning it off, because bloat and stale stats slow everything down."}},
+{"@type":"Question","name":"How many connections can Postgres handle?","acceptedAnswer":{"@type":"Answer","text":"Each connection is a separate process, so the practical ceiling is in the low hundreds, and max_connections often defaults near 100. Use a connection pool so many requests share a small set of connections. A pooler like PgBouncer lets many clients funnel down to a few real ones."}},
+{"@type":"Question","name":"Should I increase shared_buffers?","acceptedAnswer":{"@type":"Answer","text":"Usually not first. A common start is about 25 percent of RAM, and changing it needs a restart. You will almost always get more speed from the right index than from raising shared_buffers, so index first and tune memory later."}},
+{"@type":"Question","name":"Do I need CREATE INDEX CONCURRENTLY?","acceptedAnswer":{"@type":"Answer","text":"On a live table, yes. A plain CREATE INDEX locks the table against writes until it finishes, causing downtime on big tables. CREATE INDEX CONCURRENTLY builds it in the background without that lock. It is slower and cannot run in a transaction, and that trade is worth it in production."}},
+{"@type":"Question","name":"Is a sequential scan always bad?","acceptedAnswer":{"@type":"Answer","text":"No. On a small table, or when a query legitimately returns a large share of rows, a sequential scan beats bouncing through an index. It is only a problem when Postgres reads far more rows than it returns on a big table, which signals a missing index."}}
+]}
+]}
+</script>
+</body>
+</html>

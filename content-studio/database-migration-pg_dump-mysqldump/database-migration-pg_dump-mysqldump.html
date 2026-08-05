@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Database Migration with pg_dump and mysqldump: Field Guide</title>
+<meta name="description" content="A practical database migration guide: move a PostgreSQL or MySQL database with pg_dump and mysqldump, plus the charset, owner, and cutover gotchas that quietly bite.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/database-migration-pg_dump-mysqldump/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Database Migration with pg_dump and mysqldump: Field Guide">
+<meta property="og:description" content="Move a PostgreSQL or MySQL database with pg_dump and mysqldump: real commands, the charset and owner gotchas nobody documents, and a safe cutover.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Databases &amp; storage</span>
+  <h1>Database Migration with pg_dump and mysqldump: A Field Guide</h1>
+
+  <figure><img src="images/hero.png" alt="Database migration with pg_dump and mysqldump: moving a PostgreSQL or MySQL database onto managed hosting"></figure>
+
+  <p class="lead">A database migration sounds scary until you've done a few. You're moving a PostgreSQL or MySQL database from one home to another. Off a platform you're outgrowing, away from a pricey managed service, onto hosting you actually control.</p>
+  <p>The tools haven't changed in years. <code>pg_dump</code> and <code>mysqldump</code> still do the heavy lifting, and they're rock solid. What trips people up isn't the dump. It's the charset that arrives scrambled, the owner role that doesn't exist on the new server, the app that swears the database is down when it's really pointed at the old host. This is the field guide: the exact commands to migrate a PostgreSQL database and a MySQL database, the gotchas nobody writes down, and how to cut over without losing a write.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>Export with <code>pg_dump</code> (Postgres) or <code>mysqldump</code> (MySQL), copy the dump to the new server, restore with <code>pg_restore</code>/<code>psql</code> or the <code>mysql</code> client, verify row counts, then flip your app's connection string. A plain dump and restore means a short write-freeze window, not true zero downtime. Test the whole run in staging first, and keep the old database read-only for a day as your rollback.</p>
+  </div>
+
+  <h2>The shape of every database migration</h2>
+  <p>Strip away the specifics and every database migration is the same six moves. Take a consistent copy of the source. Move that copy to where it's going. Load it. Check it landed intact. Point the app at the new database. Keep a way back if something's wrong.</p>
+  <p>Draw it once and the rest of this guide just fills in the flags:</p>
+
+  <figure>
+    <svg viewBox="0 0 780 384" role="img" aria-label="Database migration pipeline: old database to dump to transfer to restore to verify to cutover, with a rollback loop" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="26" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">One migration, six moves (and a way back)</text>
+
+      <!-- Row 1: 1 Old DB -> 2 Dump -> 3 Transfer -->
+      <!-- 1 Old DB (navy) -->
+      <rect x="18" y="64" width="204" height="80" rx="14" fill="#000f27"/>
+      <circle cx="42" cy="88" r="12" fill="#4F1AF3"/><text x="42" y="92" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="12" font-weight="700">1</text>
+      <text x="130" y="102" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="15" font-weight="600">Old database</text>
+      <text x="130" y="122" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="11">source you're leaving</text>
+
+      <!-- 2 Dump (purple) -->
+      <rect x="288" y="64" width="204" height="80" rx="14" fill="#4F1AF3"/>
+      <circle cx="312" cy="88" r="12" fill="#000f27"/><text x="312" y="92" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="12" font-weight="700">2</text>
+      <text x="400" y="102" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="15" font-weight="600">Dump</text>
+      <text x="400" y="122" text-anchor="middle" fill="#d8ccff" font-family="Poppins,sans-serif" font-size="11">pg_dump / mysqldump</text>
+
+      <!-- 3 Transfer (white) -->
+      <rect x="558" y="64" width="204" height="80" rx="14" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
+      <circle cx="582" cy="88" r="12" fill="#4F1AF3"/><text x="582" y="92" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="12" font-weight="700">3</text>
+      <text x="670" y="102" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="15" font-weight="600">Transfer</text>
+      <text x="670" y="122" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">gzip · stream · scp</text>
+
+      <!-- arrows row 1 -->
+      <line x1="222" y1="104" x2="284" y2="104" stroke="#5b6a86" stroke-width="2"/><path d="M284 104 l-9 -4 v8 z" fill="#5b6a86"/>
+      <line x1="492" y1="104" x2="554" y2="104" stroke="#5b6a86" stroke-width="2"/><path d="M554 104 l-9 -4 v8 z" fill="#5b6a86"/>
+      <!-- down arrow 3 -> 4 -->
+      <line x1="670" y1="144" x2="670" y2="228" stroke="#5b6a86" stroke-width="2"/><path d="M670 228 l-4 -9 h8 z" fill="#5b6a86"/>
+
+      <!-- Row 2: 4 Restore <- 5 Verify <- 6 Cutover -->
+      <!-- 4 Restore (purple) -->
+      <rect x="558" y="232" width="204" height="80" rx="14" fill="#4F1AF3"/>
+      <circle cx="582" cy="256" r="12" fill="#000f27"/><text x="582" y="260" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="12" font-weight="700">4</text>
+      <text x="670" y="270" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="15" font-weight="600">Restore</text>
+      <text x="670" y="290" text-anchor="middle" fill="#d8ccff" font-family="Poppins,sans-serif" font-size="11">pg_restore / mysql</text>
+
+      <!-- 5 Verify (green) -->
+      <rect x="288" y="232" width="204" height="80" rx="14" fill="#40b75f"/>
+      <circle cx="312" cy="256" r="12" fill="#04321a"/><text x="312" y="260" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="12" font-weight="700">5</text>
+      <text x="400" y="270" text-anchor="middle" fill="#04321a" font-family="Poppins,sans-serif" font-size="15" font-weight="700">Verify</text>
+      <text x="400" y="290" text-anchor="middle" fill="#0a4a28" font-family="Poppins,sans-serif" font-size="11">row counts &amp; spot checks</text>
+
+      <!-- 6 Cutover (navy) -->
+      <rect x="18" y="232" width="204" height="80" rx="14" fill="#000f27"/>
+      <circle cx="42" cy="256" r="12" fill="#40b75f"/><text x="42" y="260" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="12" font-weight="700">6</text>
+      <text x="130" y="270" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="15" font-weight="600">Cutover</text>
+      <text x="130" y="290" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="11">flip the connection string</text>
+
+      <!-- arrows row 2 (right to left) -->
+      <line x1="558" y1="272" x2="496" y2="272" stroke="#5b6a86" stroke-width="2"/><path d="M496 272 l9 -4 v8 z" fill="#5b6a86"/>
+      <line x1="288" y1="272" x2="226" y2="272" stroke="#5b6a86" stroke-width="2"/><path d="M226 272 l9 -4 v8 z" fill="#5b6a86"/>
+
+      <!-- rollback dashed loop 6 -> 1 up the left column -->
+      <line x1="120" y1="232" x2="120" y2="148" stroke="#40b75f" stroke-width="2" stroke-dasharray="5 5"/><path d="M120 148 l-4 9 h8 z" fill="#40b75f"/>
+      <text x="150" y="192" fill="#2e8b4f" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600">rollback: old DB stays read-only</text>
+    </svg>
+    <figcaption>Old database, dump, transfer, restore, verify, cutover. Writes are frozen from the final dump through verify. The old database stays read-only afterwards so you can roll back.</figcaption>
+  </figure>
+
+  <p>Standing up a brand-new database instead of moving one? The companion guide on <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a> covers that. This one assumes you already have data and want it somewhere else.</p>
+
+  <h2>One check before you start: tool versions</h2>
+  <p>Version skew is the quietest cause of a failed restore. For Postgres, run <code>pg_dump</code> and <code>pg_restore</code> from a client at least as new as the destination server. <code>pg_dump</code> reads older servers fine; the failure is the reverse, an old <code>pg_dump</code> against a newer one. For MySQL, dump with a <code>mysqldump</code> that matches your target, and remember MariaDB and MySQL are close cousins, not identical, so a dump from one can need a tweak to load into the other.</p>
+
+  <h2>Migrate a PostgreSQL database with pg_dump</h2>
+  <p>Two formats are worth knowing, and they solve different problems.</p>
+  <p><strong>Plain SQL</strong> is human-readable and dead simple: a text file of <code>CREATE TABLE</code> and <code>INSERT</code> that you load with <code>psql</code>. Great for small databases, or when you want to grep the dump.</p>
+<pre><code># dump to a plain .sql file
+pg_dump "postgresql://user:pass@old-host:5432/appdb" &gt; appdb.sql
+
+# restore by piping the file into psql on the new server
+psql "postgresql://user:pass@new-host:5432/appdb" &lt; appdb.sql</code></pre>
+  <p><strong>Custom format</strong> (<code>-Fc</code>) is the one I reach for on anything real. It's compressed, restores in parallel, and restores selectively (one table, schema only, whatever). You load it with <code>pg_restore</code>, not <code>psql</code>.</p>
+<pre><code># dump in compressed custom format
+pg_dump -Fc "postgresql://user:pass@old-host:5432/appdb" -f appdb.dump
+
+# restore with pg_restore (-j runs 4 parallel jobs)
+pg_restore -j 4 -d "postgresql://user:pass@new-host:5432/appdb" appdb.dump</code></pre>
+
+  <h3>The owner and privileges flags you'll almost always want</h3>
+  <p>Here's the classic. Your source has tables owned by a role called <code>appuser</code>. The new server has never heard of <code>appuser</code>. So the restore throws:</p>
+<pre><code>pg_restore: error: could not execute query: ERROR:  role "appuser" does not exist</code></pre>
+  <p>Two flags make that go away. <code>--no-owner</code> skips the <code>ALTER ... OWNER TO</code> lines, so objects end up owned by whoever runs the restore. <code>--no-privileges</code> skips the <code>GRANT</code>/<code>REVOKE</code> lines. On a fresh database where your app connects as one user, that's exactly what you want:</p>
+<pre><code>pg_dump -Fc --no-owner --no-privileges "$OLD_DATABASE_URL" -f appdb.dump
+pg_restore --no-owner --no-privileges -j 4 -d "$NEW_DATABASE_URL" appdb.dump</code></pre>
+
+  <h3>Reloading into a database that isn't empty</h3>
+  <p>Restoring on top of existing objects? <code>--clean --if-exists</code> drops each object before recreating it, and the guard stops it erroring on things that aren't there yet. Handy for a repeatable dry run. The tradeoff is real: <code>--clean</code> is destructive, so never aim it at data you care about.</p>
+<pre><code>pg_restore --clean --if-exists --no-owner -d "$NEW_DATABASE_URL" appdb.dump</code></pre>
+  <p>You can also split the job. <code>-s</code> dumps schema only, <code>-a</code> dumps data only. Loading schema first, then data, gives you a clean point to fix anything before the rows land:</p>
+<pre><code>pg_dump -s "$OLD_DATABASE_URL" &gt; schema.sql   # structure only
+pg_dump -a "$OLD_DATABASE_URL" &gt; data.sql     # rows only</code></pre>
+
+  <!-- ADD IMAGE: terminal running pg_dump then pg_restore end to end. Swap for a real screenshot: src -> images/pg-dump-restore.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal showing pg_dump on the old database, then pg_restore into the new one.</em><small>Makes the Postgres flow concrete.</small></span></figure>
+
+  <h2>Migrate a MySQL database with mysqldump</h2>
+  <p>The MySQL equivalent is <code>mysqldump</code>, and the naive version works for a tiny database:</p>
+<pre><code>mysqldump -h old-host -u root -p appdb &gt; appdb.sql
+mysql -h new-host -u root -p appdb &lt; appdb.sql</code></pre>
+  <p>But that naive version locks your tables and drops your stored routines. For anything on InnoDB (nearly everything today) use this shape instead:</p>
+<pre><code>mysqldump --single-transaction --routines --triggers --events \
+  --default-character-set=utf8mb4 \
+  -h old-host -u root -p appdb &gt; appdb.sql</code></pre>
+  <p>What each flag buys you:</p>
+  <ul>
+    <li><strong><code>--single-transaction</code></strong> takes a consistent snapshot in one transaction, so InnoDB tables aren't locked and your app keeps writing during the dump. This flag is the difference between a frozen site and a smooth export.</li>
+    <li><strong><code>--routines</code></strong> includes stored procedures and functions. Leave it off and they silently vanish.</li>
+    <li><strong><code>--triggers</code></strong> is on by default with a full dump, but naming it makes the intent obvious.</li>
+    <li><strong><code>--events</code></strong> brings scheduled events along. Easy to forget, annoying to notice missing later.</li>
+    <li><strong><code>--default-character-set=utf8mb4</code></strong> makes the dump speak full UTF-8. More on that below.</li>
+  </ul>
+  <p>Create the target database with the right charset first, then load into it:</p>
+<pre><code>-- on the new server, before restoring
+CREATE DATABASE appdb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;</code></pre>
+<pre><code>mysql --default-character-set=utf8mb4 -h new-host -u root -p appdb &lt; appdb.sql</code></pre>
+  <p>One note on GTIDs, kept light because most migrations don't need them. If your dump carries GTID metadata and the restore complains about it, add <code>--set-gtid-purged=OFF</code> for a plain move. You only want that GTID state when you're setting up replication, not when you're doing a one-time dump and restore.</p>
+  <p>Choosing between the two engines for a fresh start rather than moving an existing one? The <a href="https://www.kloudbean.com/blog/mysql-vs-postgresql/">MySQL vs PostgreSQL</a> breakdown is the honest side-by-side.</p>
+
+  <!-- ADD IMAGE: terminal running mysqldump with the single-transaction flags. Swap for a real screenshot: src -> images/mysqldump-flags.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal running mysqldump with single-transaction, routines, and utf8mb4 flags.</em><small>Shows the safe MySQL export.</small></span></figure>
+
+  <h2>The gotchas nobody documents</h2>
+  <p>The commands above are the easy 80%. This section is the other 20%, the part that turns a 20-minute job into a lost evening. Read it before you start, not after.</p>
+
+  <h3>Character set drift: latin1, utf8, and the emoji that becomes garbage</h3>
+  <p>This one bites MySQL migrations constantly. Older databases were often created as <code>latin1</code>, and MySQL's confusingly named <code>utf8</code> is only three bytes wide, so it can't hold an emoji or some CJK characters. The encoding you want is <code>utf8mb4</code>, the real four-byte UTF-8.</p>
+  <p>When the source's storage encoding and the dump's declared encoding disagree, you get mojibake. An accented name like <code>café</code> arrives as <code>cafÃ©</code>. Arabic and other non-Latin scripts turn into question marks. The fix: dump with <code>--default-character-set</code> set to what the source actually stored, create the target as <code>utf8mb4</code>, then check a known row after the restore. Pick a record with an accent, an emoji, or some Arabic and look at it. Row counts won't catch a charset problem. Only reading the data will.</p>
+
+  <h3>Definer errors on views, triggers, and procedures</h3>
+  <p>MySQL stamps a <code>DEFINER</code> onto views, triggers, and stored routines, usually something like <code>root@localhost</code>. Restore that on a server where the user doesn't exist and you hit:</p>
+<pre><code>ERROR 1449 (HY000): The user specified as a definer ('someuser'@'somehost') does not exist</code></pre>
+  <p>Two ways out. Create that user on the new server before restoring, or strip the <code>DEFINER</code> clauses from the dump. It's the MySQL cousin of the Postgres owner error, the same mistake: assuming the source's users exist on the destination. They don't until you make them.</p>
+
+  <h3>Giant dumps: don't write a 40GB file to disk</h3>
+  <p>On a large database a plain <code>.sql</code> file can be enormous, and writing it then copying it wastes time and disk. Compress it, or skip the file and stream straight from old to new:</p>
+<pre><code># compress on the way out
+pg_dump -Fc "$OLD_DATABASE_URL" | gzip &gt; appdb.dump.gz
+mysqldump --single-transaction appdb | gzip &gt; appdb.sql.gz
+
+# or stream directly, no intermediate file at all
+pg_dump "$OLD_DATABASE_URL" | psql "$NEW_DATABASE_URL"</code></pre>
+  <p>Streaming is fast, but it ties both ends together for the whole run. Network drops halfway? You start over. On a flaky link, a compressed file you can resume copying is safer. On a solid private network, streaming wins.</p>
+
+  <h3>Foreign keys, load order, and sequences that fall behind</h3>
+  <p>A full dump restores objects in dependency order, so foreign keys generally just work. Trouble starts with partial or data-only loads. In MySQL, loading rows in the wrong order trips constraints, so wrap a data-only load:</p>
+<pre><code>SET FOREIGN_KEY_CHECKS=0;
+-- load your data here
+SET FOREIGN_KEY_CHECKS=1;</code></pre>
+  <p>Postgres has a sharper edge with <strong>sequences</strong>. A full <code>pg_dump</code> sets each one with <code>setval</code>, so auto-incrementing IDs pick up where they left off. Do a data-only load, though, and the sequences can sit at 1, so your next insert collides with an existing primary key. Loaded data only? Reset the sequences afterwards. MySQL has the same problem with <code>AUTO_INCREMENT</code> on a partial load. Full dumps handle it, partial dumps make it your job.</p>
+
+  <h3>Extensions, and the schema that references something that isn't installed</h3>
+  <p>If your Postgres source uses PostGIS, pgvector, <code>uuid-ossp</code>, or any other extension, the target has to have it available before the restore can create the objects that depend on it:</p>
+<pre><code>CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS vector;</code></pre>
+  <p>Managed Postgres services enable a curated set of popular extensions. If your app leans on one, confirm it's supported on the destination before you commit. More in <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a>.</p>
+
+  <h3>Timezones and timestamp columns</h3>
+  <p>Postgres <code>timestamptz</code> stores a real instant and travels safely. Plain <code>timestamp</code> doesn't, and neither does MySQL's <code>DATETIME</code>. MySQL's <code>TIMESTAMP</code> converts to and from the session timezone, so servers set to different zones can shift those values by hours. For timezone-naive columns, set the same timezone on both ends, and spot-check a few known dates after.</p>
+
+  <h3>"The restore worked but the app can't connect"</h3>
+  <p>This one sends people into a panic for no reason. The dump loaded, counts match, and the app throws connection errors. Nine times out of ten it isn't the database. It's one of these:</p>
+  <ul>
+    <li>The app is still pointed at the <strong>old host</strong>. The connection string never got updated.</li>
+    <li>The new database requires <strong>SSL</strong> and the connection string is missing <code>sslmode=require</code> (Postgres) or the equivalent MySQL SSL setting.</li>
+    <li>The <strong>port or username</strong> differs from the old setup, so auth quietly fails.</li>
+    <li>You've opened <strong>more connections</strong> than the new database allows and hit its limit, which is really a <a href="https://www.kloudbean.com/blog/database-connection-pooling/">connection pooling</a> problem, not a migration one.</li>
+  </ul>
+  <p>Fix the environment variable, not the database. This is why the connection belongs in config, and <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a> goes deeper.</p>
+
+  <h2>Source scenario, the flags to use, the gotcha to watch</h2>
+  <p>Most migrations fall into a handful of shapes. Find yours, use the flags, watch the thing most likely to bite:</p>
+
+  <table class="cmp">
+    <thead><tr><th>Source scenario</th><th>Recommended tool &amp; flags</th><th>The one gotcha to watch</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Hosted Postgres (managed platform, Postgres cloud service, another host)</strong></td><td><code>pg_dump -Fc --no-owner --no-privileges</code>, restore with <code>pg_restore</code></td><td>Source owner roles don't exist on the target. Use <code>--no-owner</code>.</td></tr>
+      <tr><td><strong>Self-hosted Postgres, large database</strong></td><td><code>pg_dump -Fc</code> piped through gzip, or stream with <code>| psql</code></td><td>Version skew. Dump with the newer <code>pg_dump</code>.</td></tr>
+      <tr><td><strong>Managed or legacy MySQL</strong></td><td><code>mysqldump --single-transaction --routines --triggers --events</code></td><td>Charset drift from latin1. Set <code>--default-character-set</code>.</td></tr>
+      <tr><td><strong>WordPress or old MySQL with emoji / Arabic</strong></td><td><code>mysqldump --default-character-set=utf8mb4</code>, target created as utf8mb4</td><td>Double-encoding. Eyeball a known row after restore.</td></tr>
+      <tr><td><strong>MySQL with views, procedures, events</strong></td><td>dump with <code>--routines --triggers --events</code></td><td><code>DEFINER</code> user missing. Recreate it or strip the clause.</td></tr>
+      <tr><td><strong>Postgres using PostGIS / pgvector</strong></td><td>standard dump; <code>CREATE EXTENSION</code> on target first</td><td>Extension not installed on the destination.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>The cutover: flipping without losing writes</h2>
+  <p>Copying the data is the easy half. Switching production onto the new database without dropping a write is where the care goes.</p>
+  <p><strong>Do a full dry run first.</strong> Migrate into the new database while the old one is still live, then run your app against it in <strong>staging</strong>. Sign in, create a record, run your tests. This flushes out the charset, owner, and extension problems above while nothing's at stake. Never let the production cutover be the first time your dump has been restored.</p>
+  <p>When staging looks right, the real cutover goes like this:</p>
+  <ol>
+    <li>Put the old database into <strong>read-only</strong> mode (or take a short maintenance window) so no new writes sneak in while you copy.</li>
+    <li>Take a <strong>final dump</strong> and restore it into the new database.</li>
+    <li><strong>Verify</strong> row counts and spot-check a few records (next section).</li>
+    <li><strong>Flip the connection string</strong> in your environment variables and redeploy.</li>
+    <li><strong>Monitor</strong> logs and error rates for a few minutes. Watch for connection and auth errors first.</li>
+    <li>Leave the old database <strong>read-only</strong> for a day or two. That's your rollback: if something's wrong, point the connection string back and you've lost nothing.</li>
+  </ol>
+  <p>Making a database read-only is a one-liner on either engine:</p>
+<pre><code>-- Postgres
+ALTER DATABASE appdb SET default_transaction_read_only = on;
+
+-- MySQL
+SET GLOBAL read_only = ON;</code></pre>
+
+  <div class="note"><b>Honest about downtime.</b> A dump-and-restore migration always has a write-freeze window, as long as the final dump, restore, and verify take. For a small database that's minutes. True zero downtime means logical replication that streams changes to the new database until you cut over, and that's a real project with real moving parts. My take: for most small and medium apps, a short maintenance window at a quiet hour beats building a replication pipeline you'll run exactly once. Reach for replication when a few frozen minutes genuinely isn't acceptable, not by default.</div>
+
+  <h2>Verify before you trust it</h2>
+  <p>A restore that exits with status zero is not proof the data is intact. Check it properly.</p>
+  <p><strong>Compare row counts.</strong> Approximate counts are quick and catch a table that didn't load at all:</p>
+<pre><code>-- Postgres, per-table live row estimate
+SELECT relname, n_live_tup
+FROM pg_stat_user_tables
+ORDER BY n_live_tup DESC;
+
+-- MySQL, per-table estimate
+SELECT table_name, table_rows
+FROM information_schema.tables
+WHERE table_schema = 'appdb'
+ORDER BY table_rows DESC;</code></pre>
+  <p>Those are estimates, so for the tables that really matter, run an exact <code>SELECT count(*)</code> on both databases and confirm they match.</p>
+  <p><strong>Spot-check the actual data.</strong> Open a handful of specific rows, especially anything with accents, emoji, or non-Latin text. This is the only check that catches charset damage.</p>
+  <p><strong>Run the app against it in staging.</strong> Point your staging app at the new database and exercise the real flows: sign up, log in, place an order, whatever your app does. If the app is happy and the counts match, you're clear to cut over. The connection wiring lives in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a>.</p>
+
+  <h2>Where the target database comes from</h2>
+  <p>All of this needs somewhere to land. On Kloudbean you launch the destination from one dashboard: managed <strong>PostgreSQL, MySQL, and MariaDB</strong> are three of seven engines (Redis, Memcached, Elasticsearch, and MongoDB round out the set). Pick one, name it, create it. A minute or two later it's provisioned, patched, and being backed up.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed PostgreSQL, MySQL, or MariaDB database as the migration target">
+    <figcaption>Launch the target database in a click, then point pg_restore or the mysql client at it.</figcaption>
+  </figure>
+
+  <p>Two things make a migration here less nerve-wracking. The database sits on a <strong>private network</strong>, reachable by your app internally instead of exposed to the internet, which is also the fastest path for streaming a big dump across. And <strong>automatic backups</strong> start immediately, so the moment your data lands you have a restore point, a safety net most people bolt on later, if ever. More in the <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a>.</p>
+
+  <figure>
+    <img src="../assets/console/manage-backups.png" alt="The Kloudbean console showing automatic backups on a managed database, giving an immediate restore point after migration">
+    <figcaption>Automatic backups mean the freshly migrated database has a restore point from minute one.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: the connection details panel where the new DATABASE_URL is shown. Swap for a real screenshot: src -> images/connection-string.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The new connection details you paste into your app's environment variables.</em><small>Ties the cutover step to the console.</small></span></figure>
+
+  <p>Rather not run the cutover alone? Kloudbean offers <strong>free migration assistance</strong>: send your source details and the team helps move it, which is genuinely useful for a large or production database where the freeze window has to be short. A <strong>free trial</strong> lets you stand up the target, dry-run, and verify before committing. For the engine deep-dives, see <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">managed MySQL hosting</a> and <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Land your database on hosting you control.</p>
+    <p style="margin:0 0 .6em">Launch managed PostgreSQL, MySQL, or MariaDB in a click, on a private network with automatic backups from minute one. Not sure about the cutover? Free migration assistance can run it with you. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">One-click databases · Automatic backups · Private networking · Free migration · Free trial · Simple Git deploy</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I migrate a PostgreSQL database with pg_dump?</h3>
+    <p>Run <code>pg_dump -Fc --no-owner --no-privileges</code> on the source, copy the dump over, and restore with <code>pg_restore -d</code> against the new database. Verify row counts, then repoint your connection string. A plain <code>pg_dump &gt; file.sql</code> with a <code>psql &lt; file.sql</code> restore works fine for small databases.</p>
+
+    <h3>What's the difference between pg_dump and pg_dumpall?</h3>
+    <p><code>pg_dump</code> exports one database; <code>pg_dumpall</code> exports a whole cluster, including roles and tablespaces. To move a single app database, use <code>pg_dump</code>. If you also need the roles, run <code>pg_dumpall --globals-only</code> separately, or recreate the app user by hand.</p>
+
+    <h3>Does mysqldump lock tables during the dump?</h3>
+    <p>By default it locks tables while the dump runs. For InnoDB, add <code>--single-transaction</code> to take a consistent snapshot without locking, so your app keeps writing during the export. That one flag is the difference between a frozen site and a smooth dump.</p>
+
+    <h3>How do I migrate a database without downtime?</h3>
+    <p>A plain dump-and-restore always has a short write-freeze window while you take the final dump, load it, and verify. True zero downtime needs logical replication, which is a real project. For most small and medium apps, a short maintenance window at a quiet hour is simpler and safer.</p>
+
+    <h3>Why does my restore fail with a definer or owner error?</h3>
+    <p>Because the dump references a user that doesn't exist on the new server. In Postgres you see role does not exist; fix it with <code>--no-owner --no-privileges</code>. In MySQL you see error 1449 about a definer; create that user on the target first, or strip the DEFINER clauses from the dump.</p>
+
+    <h3>How do I fix character set issues after a MySQL migration?</h3>
+    <p>Charset problems come from a mismatch between what the source stored and what the dump declared, often an old latin1 database. Dump with <code>--default-character-set</code> matching the source, create the target as <code>utf8mb4</code>, and load with the same flag. Then read a row with accents or emoji, because row counts won't catch this.</p>
+
+    <h3>pg_dump plain SQL or custom format, which should I use?</h3>
+    <p>Plain SQL is readable and simple, loaded with <code>psql</code>, and fine for small databases. Custom format (<code>-Fc</code>) is compressed, restores in parallel with <code>pg_restore</code>, and lets you restore selectively. Use custom format for anything sizeable; reach for plain SQL when you want to grep the dump.</p>
+
+    <h3>How do I verify a database migration worked?</h3>
+    <p>Compare row counts with an exact <code>SELECT count(*)</code> on the tables that matter. Spot-check specific rows, especially any with accents, emoji, or non-Latin text, since only reading the data catches charset damage. Then run your app against the new database in staging before you cut over.</p>
+
+    <h3>Can Kloudbean help migrate my database?</h3>
+    <p>Yes. You launch a managed PostgreSQL, MySQL, or MariaDB target from the dashboard, on a private network with automatic backups from the start. Kloudbean also offers free migration assistance to help move a large or production database and keep the freeze window short. A free trial lets you dry-run first.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · Moving Data Without Downtime.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Database Migration with pg_dump and mysqldump: A Field Guide","description":"A practical guide to migrating a PostgreSQL or MySQL database with pg_dump and mysqldump: real commands, the charset, owner, and cutover gotchas nobody documents, and how to verify and cut over safely.","image":"https://www.kloudbean.com/blog/database-migration-pg_dump-mysqldump/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/database-migration-pg_dump-mysqldump/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I migrate a PostgreSQL database with pg_dump?","acceptedAnswer":{"@type":"Answer","text":"Run pg_dump -Fc --no-owner --no-privileges on the source, copy the dump over, and restore with pg_restore -d against the new database. Verify row counts, then repoint your connection string. A plain pg_dump to a .sql file with a psql restore works fine for small databases."}},
+{"@type":"Question","name":"What's the difference between pg_dump and pg_dumpall?","acceptedAnswer":{"@type":"Answer","text":"pg_dump exports one database; pg_dumpall exports a whole cluster, including roles and tablespaces. To move a single app database, use pg_dump. If you also need the roles, run pg_dumpall --globals-only separately, or recreate the app user by hand."}},
+{"@type":"Question","name":"Does mysqldump lock tables during the dump?","acceptedAnswer":{"@type":"Answer","text":"By default it locks tables while the dump runs. For InnoDB, add --single-transaction to take a consistent snapshot without locking, so your app keeps writing during the export. That one flag is the difference between a frozen site and a smooth dump."}},
+{"@type":"Question","name":"How do I migrate a database without downtime?","acceptedAnswer":{"@type":"Answer","text":"A plain dump-and-restore always has a short write-freeze window while you take the final dump, load it, and verify. True zero downtime needs logical replication, which is a real project. For most small and medium apps, a short maintenance window at a quiet hour is simpler and safer."}},
+{"@type":"Question","name":"Why does my restore fail with a definer or owner error?","acceptedAnswer":{"@type":"Answer","text":"Because the dump references a user that doesn't exist on the new server. In Postgres you see role does not exist; fix it with --no-owner --no-privileges. In MySQL you see error 1449 about a definer; create that user on the target first, or strip the DEFINER clauses from the dump."}},
+{"@type":"Question","name":"How do I fix character set issues after a MySQL migration?","acceptedAnswer":{"@type":"Answer","text":"Charset problems come from a mismatch between what the source stored and what the dump declared, often an old latin1 database. Dump with --default-character-set matching the source, create the target as utf8mb4, and load with the same flag. Then read a row with accents or emoji, because row counts won't catch this."}},
+{"@type":"Question","name":"pg_dump plain SQL or custom format, which should I use?","acceptedAnswer":{"@type":"Answer","text":"Plain SQL is readable and simple, loaded with psql, and fine for small databases. Custom format (-Fc) is compressed, restores in parallel with pg_restore, and lets you restore selectively. Use custom format for anything sizeable; reach for plain SQL when you want to grep the dump."}},
+{"@type":"Question","name":"How do I verify a database migration worked?","acceptedAnswer":{"@type":"Answer","text":"Compare row counts with an exact SELECT count(*) on the tables that matter. Spot-check specific rows, especially any with accents, emoji, or non-Latin text, since only reading the data catches charset damage. Then run your app against the new database in staging before you cut over."}},
+{"@type":"Question","name":"Can Kloudbean help migrate my database?","acceptedAnswer":{"@type":"Answer","text":"Yes. You launch a managed PostgreSQL, MySQL, or MariaDB target from the dashboard, on a private network with automatic backups from the start. Kloudbean also offers free migration assistance to help move a large or production database and keep the freeze window short. A free trial lets you dry-run first."}}
+]}
+]}
+</script>
+</body>
+</html>

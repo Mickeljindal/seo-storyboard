@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PM2 Process Manager: A Practical Guide for Node.js in Production</title>
+<meta name="description" content="A hands-on PM2 process manager guide for Node.js: why bare node app.js dies in production, PM2 cluster mode across CPU cores, pm2 start, ecosystem.config.js, zero-downtime pm2 reload, logs, max_memory_restart, and pm2 startup so it survives reboots.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/pm2-process-manager-guide/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="PM2 Process Manager: A Practical Guide for Node.js in Production">
+<meta property="og:description" content="Why you need the PM2 process manager, cluster mode across every CPU core, the ecosystem.config.js file, zero-downtime reloads, logs, memory limits, and surviving reboots. Real commands and config.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Node.js · PM2 Process Manager</span>
+  <h1>PM2 Process Manager: Keep Your Node.js App Alive in Production</h1>
+  <p class="byline">By Kloudbean Engineering · Keep the Node process up.</p>
+
+  <figure><img src="images/hero.png" alt="The PM2 process manager keeping a Node.js app alive: cluster workers across CPU cores behind one port, auto-restart on crash"></figure>
+
+  <p class="lead">Your Node.js app runs fine with <code>node app.js</code> right up until the moment it doesn't. It throws an unhandled exception and stays dead. The server reboots for a kernel patch and nothing comes back. You paid for four cores and it pins one. The PM2 process manager fixes all of that, and this is the practical guide to using it well: <code>pm2 start</code>, cluster mode across every core, the ecosystem config file, zero-downtime reloads, logs, memory limits, and making the whole thing survive a reboot.</p>
+
+  <div class="tldr">
+    <strong>Short version</strong>
+    <p>The PM2 process manager keeps your Node.js app running: it restarts the process on crash, runs a copy on every CPU core in cluster mode, reloads new code with zero downtime, and (once you run <code>pm2 startup</code> and <code>pm2 save</code>) brings everything back after a reboot. Define it once in an <code>ecosystem.config.js</code> file, commit that to your repo, and you stop babysitting the process.</p>
+  </div>
+
+  <h2>Why bare <code>node app.js</code> isn't a production setup</h2>
+  <p>Running <code>node app.js</code> in an SSH session is perfect for a demo and wrong for production. Here's what goes wrong, and every one of these is a real outage someone has slept through.</p>
+  <ul>
+    <li><strong>One unhandled exception and it's gone.</strong> A rejected promise nobody caught, a bad request that throws deep in a handler. The process exits and stays exited. Nothing restarts it, so your "live" site is a blank connection error until a human notices.</li>
+    <li><strong>It doesn't come back after a reboot.</strong> Your provider patches the kernel and reboots the VM at 4am. sshd comes up, your app does not. You wake to a dead site with no crash to point at, because nothing crashed. Nothing ran.</li>
+    <li><strong>It uses a single core.</strong> Node runs your JavaScript on one thread per process. A four-core server running one <code>node</code> process leaves three cores idle while the fourth sits at 100 percent under load. You're paying for hardware you can't reach.</li>
+    <li><strong>Close the terminal, close the app.</strong> Started it over SSH without a supervisor? It's a child of your shell. Log out, it gets a hangup, it dies with you.</li>
+  </ul>
+  <p>A process manager turns that terminal command into a service. It keeps the process up, restarts it on crash, starts it on boot, and runs a copy on every core behind one port. My honest take after plenty of Node deploys gone sideways: never run bare <code>node app.js</code> in prod.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 400" role="img" aria-label="PM2 in cluster mode. Incoming traffic hits a single port, the PM2 master load-balances it across one Node worker per CPU core, and when a worker crashes PM2 restarts it automatically while the other workers keep serving requests." style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <defs>
+        <marker id="pm2a" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#4F1AF3"></path></marker>
+        <marker id="pm2g" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#40b75f"></path></marker>
+        <marker id="pm2m" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5b6a86"></path></marker>
+      </defs>
+      <text x="28" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="17" font-weight="700">One port in, every core working</text>
+      <text x="28" y="56" fill="#5b6a86" font-family="JetBrains Mono,monospace" font-size="12.5">pm2 start app.js -i max</text>
+
+      <!-- traffic / port -->
+      <rect x="24" y="160" width="150" height="80" rx="12" fill="#000f27"></rect>
+      <text x="99" y="193" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Incoming traffic</text>
+      <text x="99" y="215" text-anchor="middle" fill="#8ea3ff" font-family="JetBrains Mono,monospace" font-size="13" font-weight="600">port :3000</text>
+
+      <!-- arrow traffic -> pm2 -->
+      <line x1="174" y1="200" x2="284" y2="200" stroke="#5b6a86" stroke-width="2" marker-end="url(#pm2m)"></line>
+
+      <!-- pm2 master -->
+      <rect x="288" y="160" width="176" height="80" rx="14" fill="#4F1AF3"></rect>
+      <text x="376" y="193" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="14" font-weight="700">PM2 (cluster)</text>
+      <text x="376" y="215" text-anchor="middle" fill="#d8ccff" font-family="Poppins,sans-serif" font-size="11">master · load-balances</text>
+
+      <!-- workers -->
+      <rect x="576" y="72" width="160" height="46" rx="10" fill="#000f27"></rect>
+      <text x="656" y="92" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="12" font-weight="600">worker 1</text>
+      <text x="656" y="108" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="10">CPU core 1</text>
+
+      <rect x="576" y="130" width="160" height="46" rx="10" fill="#000f27"></rect>
+      <text x="656" y="150" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="12" font-weight="600">worker 2</text>
+      <text x="656" y="166" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="10">CPU core 2</text>
+
+      <rect x="576" y="188" width="160" height="46" rx="10" fill="#000f27"></rect>
+      <text x="656" y="208" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="12" font-weight="600">worker 3</text>
+      <text x="656" y="224" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="10">CPU core 3</text>
+
+      <!-- worker 4: crashing / restarting -->
+      <rect x="576" y="246" width="160" height="46" rx="10" fill="#fff" stroke="#40b75f" stroke-width="2" stroke-dasharray="5 4"></rect>
+      <text x="656" y="266" text-anchor="middle" fill="#2f7d45" font-family="Poppins,sans-serif" font-size="12" font-weight="600">worker 4</text>
+      <text x="656" y="282" text-anchor="middle" fill="#40b75f" font-family="Poppins,sans-serif" font-size="10">crashed, respawning</text>
+
+      <!-- arrows pm2 -> workers -->
+      <line x1="464" y1="188" x2="572" y2="95" stroke="#4F1AF3" stroke-width="1.8" marker-end="url(#pm2a)"></line>
+      <line x1="464" y1="194" x2="572" y2="153" stroke="#4F1AF3" stroke-width="1.8" marker-end="url(#pm2a)"></line>
+      <line x1="464" y1="206" x2="572" y2="211" stroke="#4F1AF3" stroke-width="1.8" marker-end="url(#pm2a)"></line>
+      <line x1="464" y1="212" x2="572" y2="269" stroke="#4F1AF3" stroke-width="1.8" marker-end="url(#pm2g)"></line>
+
+      <!-- auto-restart loop under worker 4 -->
+      <path d="M636 292 C614 322, 614 352, 656 352 C698 352, 698 322, 676 294" fill="none" stroke="#40b75f" stroke-width="1.8" marker-end="url(#pm2g)"></path>
+      <text x="656" y="374" text-anchor="middle" fill="#2f7d45" font-family="Poppins,sans-serif" font-size="10.5">auto-restart on crash</text>
+
+      <text x="28" y="300" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11.5">Four workers, one</text>
+      <text x="28" y="318" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11.5">shared port. One dies,</text>
+      <text x="28" y="336" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11.5">PM2 respawns it, the</text>
+      <text x="28" y="354" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11.5">rest keep serving.</text>
+    </svg>
+    <figcaption>PM2 cluster mode: one worker per CPU core behind a single port. A worker crashes, PM2 restarts it, the rest keep serving.</figcaption>
+  </figure>
+
+  <h2>First steps with the PM2 process manager: <code>pm2 start</code></h2>
+  <p>PM2 installs from npm and becomes the thing that owns your process. Global install, then hand it your entry file:</p>
+<pre><code>npm install -g pm2
+
+# start your app under PM2 (single process)
+pm2 start app.js --name api
+
+# or start it in cluster mode: one worker per CPU core
+pm2 start app.js -i max --name api</code></pre>
+  <p>That <code>-i max</code> does the heavy lifting. It reads the core count and forks that many workers, all sharing one port, all load-balanced by PM2. No <code>cluster</code> module, no code change.</p>
+  <p>You can point PM2 at whatever your app starts with: a TypeScript build's <code>dist/server.js</code>, an <code>npm start</code> script, a binary. But you'll want <code>pm2 start ecosystem.config.js</code> long term. Typing flags by hand doesn't scale past day one.</p>
+
+  <!-- ADD IMAGE: terminal output of pm2 list showing the app online across several workers with uptime and restart counts. Swap for a real screenshot: src -> images/pm2-list.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal running pm2 list: the app online across several workers, with uptime and restart counts per worker.</em><small>Makes cluster mode concrete at a glance.</small></span></figure>
+
+  <h2>Define it once: the <code>ecosystem.config.js</code> file</h2>
+  <p>Flags on the command line get forgotten and drift between machines. The fix is a config file that lives with your code. Create <code>ecosystem.config.js</code> in your repo root:</p>
+<pre><code>// ecosystem.config.js
+module.exports = {
+  apps: [{
+    name: 'api',
+    script: 'app.js',
+    instances: 'max',            // one worker per CPU core
+    exec_mode: 'cluster',        // enable the built-in load balancer
+    max_memory_restart: '300M',  // recycle a worker if it leaks past 300M
+    env: {
+      NODE_ENV: 'development',
+      PORT: 3000
+    },
+    env_production: {
+      NODE_ENV: 'production',
+      PORT: 3000
+    }
+  }]
+};</code></pre>
+  <p>Now the whole setup is one command, and every environment runs the same way:</p>
+<pre><code>pm2 start ecosystem.config.js --env production</code></pre>
+  <p>The <code>env</code> blocks are for non-secret config like <code>NODE_ENV</code> and <code>PORT</code>. Real secrets (your database URL, API keys) don't belong in a committed file; keep those in the environment on the server. The fields that matter most are <code>instances</code> and <code>exec_mode: 'cluster'</code> for multi-core, and <code>max_memory_restart</code>, your seatbelt against a slow leak.</p>
+
+  <!-- ADD IMAGE: pm2 monit split view showing per-process CPU and memory bars. Swap for a real screenshot: src -> images/pm2-monit.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The pm2 monit dashboard: live CPU and memory bars for each worker, side by side.</em><small>Shows the live monitoring view described below.</small></span></figure>
+
+  <h2>PM2 cluster mode: how many instances should you run?</h2>
+  <p>Cluster mode is the reason most people reach for PM2. <code>instances: 'max'</code> (or <code>-i max</code>) forks one worker per CPU core and load-balances across them. On a four-core box that's four workers sharing port 3000, so all four cores do work. Usually the right default, and a real throughput win for a CPU-bound API.</p>
+  <p>Usually. Not always. Two things to weigh before you paste <code>max</code> everywhere.</p>
+  <p>First, headroom. On a small server, <code>instances: -1</code> means "all cores but one," leaving a core for the OS and everything else on the box. On a one-core plan, <code>max</code> gives you a single worker anyway, so cluster mode adds nothing beyond the crash-recovery you already get.</p>
+  <p>Second, the one people trip on: each worker is a full, separate Node process with its own memory and its own database connection pool. If your app opens a pool of 10 connections and PM2 runs 4 workers, that's 40 connections to your database, not 10. Multiply workers by pool size and check it against what your database allows. On a small managed Postgres with a connection cap, four hungry workers can hit the ceiling and you'll see "too many connections." Size the per-worker pool with the total in mind. More in <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>.</p>
+  <p>One caveat that causes real bugs: cluster mode assumes your app is stateless between requests. Keep sessions in a plain object and each worker gets its own copy, so a user logs in on worker 1, hits worker 3 next, and they're logged out. Push shared state into Redis or your database. Same for uploads: with multiple workers, only one ends up with the file.</p>
+
+  <h2>The commands you'll actually use</h2>
+  <p>PM2 has a big CLI, but the day-to-day is a short list. Here are the ones worth committing to muscle memory, and when each is the right call.</p>
+  <table class="cmp">
+    <thead>
+      <tr><th>Command</th><th>What it does</th><th>When to use</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>pm2 start app.js -i max</code></td><td>Starts the app in cluster mode, one worker per core</td><td>First launch, or start from <code>ecosystem.config.js</code></td></tr>
+      <tr><td><code>pm2 list</code></td><td>Table of every app: status, uptime, restarts, CPU, memory</td><td>Quick health check</td></tr>
+      <tr><td><code>pm2 logs</code></td><td>Tails stdout and stderr for all apps, or one by name</td><td>Watching output, chasing an error live</td></tr>
+      <tr><td><code>pm2 monit</code></td><td>Live terminal dashboard of CPU and memory per process</td><td>Watching a leak or load in real time</td></tr>
+      <tr><td><code>pm2 restart api</code></td><td>Kills every worker and starts fresh (brief downtime)</td><td>A hard reset, or picking up a change reload can't</td></tr>
+      <tr><td><code>pm2 reload api</code></td><td>Rolling restart, one worker at a time, no dropped requests (cluster mode)</td><td>Shipping new code with zero downtime</td></tr>
+      <tr><td><code>pm2 stop api</code></td><td>Stops the app but keeps it in the list</td><td>Taking something offline without deleting it</td></tr>
+      <tr><td><code>pm2 delete api</code></td><td>Stops and removes it from PM2 entirely</td><td>Retiring an app</td></tr>
+      <tr><td><code>pm2 save</code></td><td>Snapshots the current process list for resurrect on boot</td><td>After changes, paired with <code>pm2 startup</code></td></tr>
+      <tr><td><code>pm2 startup</code></td><td>Generates the init script so PM2 restarts on reboot</td><td>Once, at setup</td></tr>
+    </tbody>
+  </table>
+  <p>The one distinction to internalize: <strong>restart is not reload.</strong> <code>pm2 restart</code> kills all the workers and starts them again, so there's a short but real window where nothing serves. <code>pm2 reload</code> replaces them one at a time, so a live worker is always taking requests. Restart for a clean slate, reload for routine deploys.</p>
+
+  <h2>Zero-downtime reloads with <code>pm2 reload</code></h2>
+  <p>This is the feature people miss most when they leave PM2. In cluster mode, <code>pm2 reload api</code> does a rolling restart: spin up a fresh worker, wait for it, retire an old one, walk the pool that way. The pool is never empty, so a deploy doesn't drop live requests.</p>
+<pre><code>pm2 reload api                 # rolling, zero-downtime (cluster mode)
+pm2 reload ecosystem.config.js # reload everything defined in the config</code></pre>
+  <p>Here's the caveat the tutorials skip. Reload is only <em>truly</em> zero-downtime if your app shuts a worker down cleanly. When PM2 retires a worker it sends <code>SIGINT</code>, waits, then force-kills it. If a worker is midway through a slow request when the force-kill lands, that request gets chopped. So handle the signal, stop accepting new connections, and let the in-flight ones finish:</p>
+<pre><code>const server = app.listen(process.env.PORT || 3000);
+
+process.on('SIGINT', () =&gt; {
+  server.close(() =&gt; process.exit(0)); // stop new requests, drain the rest
+});</code></pre>
+  <p>PM2's default grace window (<code>kill_timeout</code>) is 1600ms. If your requests can run longer, bump it so PM2 waits before the hard kill. If your app needs a beat before it's ready for traffic, have PM2 wait for a ready signal:</p>
+<pre><code>// in ecosystem.config.js, per app
+kill_timeout: 5000,     // give slow requests up to 5s to drain
+wait_ready: true,       // hold traffic until the worker signals ready
+listen_timeout: 8000    // ...but don't wait forever
+
+// then in your app, once it's actually listening:
+process.send &amp;&amp; process.send('ready');</code></pre>
+  <p>Two things reload won't solve. Long-lived stateful connections (WebSockets, SSE) still drop when their worker retires; the socket was pinned to that process. And reload runs new code against your existing database, so a breaking schema change can still take the app down. Process-level zero downtime is only one piece, covered in <a href="https://www.kloudbean.com/blog/zero-downtime-deployments/">zero-downtime deployments</a>.</p>
+
+  <!-- ADD IMAGE: terminal showing pm2 reload walking through workers one by one with a checkmark per worker. Swap for a real screenshot: src -> images/pm2-reload.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal running pm2 reload: workers cycling one at a time, each going online before the next retires.</em><small>Shows the rolling restart in action.</small></span></figure>
+
+  <h2>Logs, monitoring, and memory limits</h2>
+  <p>Once the app is up, you want two things: to see what it's saying, and to know it isn't quietly bloating. PM2 covers both.</p>
+  <p><strong>Logs.</strong> PM2 captures stdout and stderr to files and gives you a tail:</p>
+<pre><code>pm2 logs                # tail everything
+pm2 logs api            # just this app, both streams
+pm2 logs api --lines 200
+pm2 flush               # truncate the log files when they get noisy</code></pre>
+  <p>There's a trap: by default those log files grow forever, and a full disk takes your app down with them. I've seen a healthy app "mysteriously" die that was really a PM2 log filling the root partition. Install the rotation module once and forget it:</p>
+<pre><code>pm2 install pm2-logrotate</code></pre>
+  <p><strong>Memory.</strong> Long-running Node processes tend to creep upward. <code>max_memory_restart: '300M'</code> tells PM2 to recycle a worker once it crosses that line. It's a seatbelt, not a fix: it stops a leak from dragging the box down and buys time, but go find the leak. In cluster mode PM2 recycles one worker at a time, so the app stays up.</p>
+  <p><strong>Watching live.</strong> <code>pm2 monit</code> gives you a terminal dashboard with per-process CPU and memory, the fastest way to catch a worker misbehaving or confirm every core is pulling weight.</p>
+
+  <h2>Make it survive reboots: <code>pm2 startup</code> and <code>pm2 save</code></h2>
+  <p>This is the step people skip, and the one that bites hardest: everything works for weeks, then a maintenance reboot wipes it out. PM2 does not come back on its own. You wire it into the init system, and it's two commands.</p>
+<pre><code>pm2 startup     # prints a sudo command tailored to your init system
+# paste and run the sudo line it gives you
+
+pm2 start ecosystem.config.js --env production   # start your apps
+pm2 save        # snapshot the current process list</code></pre>
+  <p><code>pm2 startup</code> generates the init script (a systemd unit, on most modern Linux) that launches PM2 at boot. <code>pm2 save</code> writes the process list to a dump file PM2 reads on startup and resurrects. Order matters: run <code>pm2 save</code> <em>after</em> your apps are up, and again whenever the list changes. Miss it and PM2 comes back at boot managing nothing.</p>
+  <p>Then prove it. Reboot the server on purpose and run <code>pm2 list</code> once it's back. App online? Done. Trusting this without testing it is how the 4am story starts.</p>
+
+  <!-- ADD IMAGE: terminal showing the sudo command that pm2 startup prints, and pm2 save confirming the process list was written. Swap for a real screenshot: src -> images/pm2-startup.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The output of pm2 startup with its sudo line, followed by pm2 save confirming the dump was written.</em><small>The two commands that make PM2 survive a reboot.</small></span></figure>
+
+  <h2>Run the PM2 process manager on Kloudbean's managed Node runtime</h2>
+  <p>Everything above is what you do on a raw server where you own the supervisor. On Kloudbean's managed Node runtime the platform runs your app under PM2 for you, and PM2 multi-process is supported, so you get crash-restart and cluster mode across cores without hand-writing an init script. You still think in standard PM2 terms; the plumbing and the deploy are just handled.</p>
+
+  <p><strong>1. Add a Node application.</strong> Pick the Node.js runtime and set your start command. This is where the managed stack takes over supervising the process, and where PM2 multi-process is available when one core stops being enough.</p>
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean Add Application screen: adding a Node.js app and setting its runtime and start command">
+    <figcaption>Add Application: choose the Node stack and set the start command. The managed runtime supervises the process with PM2, multi-process supported.</figcaption>
+  </figure>
+
+  <p><strong>2. Deploy from Git.</strong> Connect your GitHub repo and let managed CI/CD build and deploy on every push, with the build log streaming live. You're not SSHing in to run <code>pm2 start</code> by hand each deploy; the pipeline builds and the platform keeps the process alive. Setup is in <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD auto-deploy from GitHub</a>.</p>
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean Git deployment screen: connect a repo and deploy a Node app through managed CI/CD">
+    <figcaption>Deploy from Git: managed CI/CD builds and ships on push, with live build logs, so shipping is just a commit.</figcaption>
+  </figure>
+
+  <p><strong>3. Watch it across workers.</strong> The server health view shows CPU, memory, and disk, so you can see whether cluster mode is spreading load and catch a climbing memory line before it pages you. It's the <code>pm2 monit</code> view, minus the SSH session.</p>
+  <figure>
+    <img src="../assets/console/server-health.png" alt="The Kloudbean server health view: CPU, memory, and disk for a Node app kept alive by the managed process manager">
+    <figcaption>Server health: confirm every core is working and keep an eye on memory, without tailing logs over SSH.</figcaption>
+  </figure>
+
+  <p>One boundary, because people ask: cluster mode uses the cores on the server you already have. It is not autoscaling, and a standard managed app won't grow servers by itself. When one box runs out of cores, the next step is more instances behind the built-in Flexible Load Balancer. For most apps, right-sizing one server and using all its cores is plenty. Setting up from scratch? Start with <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploying a Node app to managed cloud</a>, or the <a href="https://www.kloudbean.com/blog/deploy-express-app/">deploy an Express app</a> walkthrough.</p>
+
+  <h2>PM2 or systemd?</h2>
+  <p>PM2 isn't the only way to supervise Node. systemd, the init system already on your Linux box, does the same core job with no extra dependency (but no cluster mode). If you're weighing the two, we compared them in <a href="https://www.kloudbean.com/blog/pm2-vs-systemd/">PM2 vs systemd</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Keep the Node process up without hand-rolling a supervisor.</p>
+    <p style="margin:0 0 .6em">Deploy from Git, let the managed Node runtime run your app under PM2 (multi-process supported), watch health in one dashboard, and add a managed database and free SSL when you need them. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>; sizes and plans (from $8/mo, Enterprise custom) are on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">PM2 multi-process · Cluster mode across cores · Git deploy with live logs · Managed databases · Free auto-renewing SSL · Private networking · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is PM2 used for?</h3>
+    <p>PM2 is a process manager for Node.js. It keeps your app running: it restarts the process on crash, starts it on boot, collects logs, runs a copy on every CPU core in cluster mode, and reloads new code with zero downtime. It turns a fragile <code>node app.js</code> into a supervised service.</p>
+
+    <h3>How do I start a Node app with PM2?</h3>
+    <p>Install it with <code>npm install -g pm2</code>, then run <code>pm2 start app.js --name api</code> for a single process, or <code>pm2 start app.js -i max</code> for one worker per CPU core. For anything real, put the settings in an <code>ecosystem.config.js</code> file and run <code>pm2 start ecosystem.config.js</code>.</p>
+
+    <h3>What is PM2 cluster mode?</h3>
+    <p>Cluster mode forks your Node app into multiple worker processes and load-balances connections across them, so a multi-core server actually uses all its cores. You enable it with <code>exec_mode: cluster</code> and <code>instances: max</code>, or <code>pm2 start app.js -i max</code>. Your app needs to be stateless between requests for it to behave correctly.</p>
+
+    <h3>What is the difference between pm2 restart and pm2 reload?</h3>
+    <p><code>pm2 restart</code> kills every worker and starts them again, so there's a brief window where nothing is serving. <code>pm2 reload</code> replaces workers one at a time in cluster mode, so there's always a live worker taking requests and no downtime. Use restart for a clean slate, reload for routine deploys.</p>
+
+    <h3>How do I keep a Node app running after a reboot?</h3>
+    <p>PM2 does not survive a reboot on its own. Run <code>pm2 startup</code> once, which prints a sudo command you paste back to register PM2 with the init system, then start your apps and run <code>pm2 save</code> to snapshot the process list. On the next boot PM2 resurrects the saved apps. Test it by rebooting on purpose.</p>
+
+    <h3>How many PM2 instances should I run?</h3>
+    <p><code>instances: max</code> runs one worker per CPU core, a solid default for a CPU-bound app. On a small box, consider <code>instances: -1</code> to leave one core free for the system. Remember each worker holds its own database connection pool, so workers times pool size is your real connection count, and it needs to fit inside your database limit.</p>
+
+    <h3>How do I view PM2 logs?</h3>
+    <p>Run <code>pm2 logs</code> to tail every app, or <code>pm2 logs api</code> for one app's stdout and stderr. Add <code>--lines 200</code> to see recent history. Install <code>pm2-logrotate</code> with <code>pm2 install pm2-logrotate</code> so the log files rotate instead of growing until they fill the disk.</p>
+
+    <h3>What does max_memory_restart do?</h3>
+    <p><code>max_memory_restart</code> tells PM2 to restart a worker automatically when it crosses a memory threshold, for example <code>300M</code>. It's a safety net against a slow memory leak dragging the server down, not a cure for the leak itself. In cluster mode PM2 recycles one worker at a time, so the app stays up while it happens.</p>
+
+    <h3>Do I need PM2 on managed hosting?</h3>
+    <p>You don't have to install and wire it up yourself. On Kloudbean's managed Node runtime the platform runs your app under PM2, so it restarts on crash and comes back after a reboot without you configuring an init script. PM2 multi-process is supported for cluster mode, and pushes deploy through managed CI/CD.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Keep the Node process up, use every core, and own the box it runs on.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"PM2 Process Manager: Keep Your Node.js App Alive in Production","description":"A practical PM2 process manager guide for Node.js: why bare node app.js dies in production, PM2 cluster mode across CPU cores, pm2 start, ecosystem.config.js, zero-downtime pm2 reload, logs, max_memory_restart, and pm2 startup so the app survives reboots.","image":"https://www.kloudbean.com/blog/pm2-process-manager-guide/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/pm2-process-manager-guide/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is PM2 used for?","acceptedAnswer":{"@type":"Answer","text":"PM2 is a process manager for Node.js. It keeps your app running: it restarts the process on crash, starts it on boot, collects logs, runs a copy on every CPU core in cluster mode, and reloads new code with zero downtime. It turns a fragile node app.js into a supervised service."}},
+{"@type":"Question","name":"How do I start a Node app with PM2?","acceptedAnswer":{"@type":"Answer","text":"Install it with npm install -g pm2, then run pm2 start app.js --name api for a single process, or pm2 start app.js -i max for one worker per CPU core. For anything real, put the settings in an ecosystem.config.js file and run pm2 start ecosystem.config.js."}},
+{"@type":"Question","name":"What is PM2 cluster mode?","acceptedAnswer":{"@type":"Answer","text":"Cluster mode forks your Node app into multiple worker processes and load-balances connections across them, so a multi-core server actually uses all its cores. You enable it with exec_mode cluster and instances max, or pm2 start app.js -i max. Your app needs to be stateless between requests for it to behave correctly."}},
+{"@type":"Question","name":"What is the difference between pm2 restart and pm2 reload?","acceptedAnswer":{"@type":"Answer","text":"pm2 restart kills every worker and starts them again, so there is a brief window where nothing is serving. pm2 reload replaces workers one at a time in cluster mode, so there is always a live worker taking requests and no downtime. Use restart for a clean slate, reload for routine deploys."}},
+{"@type":"Question","name":"How do I keep a Node app running after a reboot?","acceptedAnswer":{"@type":"Answer","text":"PM2 does not survive a reboot on its own. Run pm2 startup once, which prints a sudo command you paste back to register PM2 with the init system, then start your apps and run pm2 save to snapshot the process list. On the next boot PM2 resurrects the saved apps. Test it by rebooting on purpose."}},
+{"@type":"Question","name":"How many PM2 instances should I run?","acceptedAnswer":{"@type":"Answer","text":"instances max runs one worker per CPU core, a solid default for a CPU-bound app. On a small box, consider instances -1 to leave one core free for the system. Remember each worker holds its own database connection pool, so workers times pool size is your real connection count, and it needs to fit inside your database limit."}},
+{"@type":"Question","name":"How do I view PM2 logs?","acceptedAnswer":{"@type":"Answer","text":"Run pm2 logs to tail every app, or pm2 logs api for one app stdout and stderr. Add --lines 200 to see recent history. Install pm2-logrotate with pm2 install pm2-logrotate so the log files rotate instead of growing until they fill the disk."}},
+{"@type":"Question","name":"What does max_memory_restart do?","acceptedAnswer":{"@type":"Answer","text":"max_memory_restart tells PM2 to restart a worker automatically when it crosses a memory threshold, for example 300M. It is a safety net against a slow memory leak dragging the server down, not a cure for the leak itself. In cluster mode PM2 recycles one worker at a time, so the app stays up while it happens."}},
+{"@type":"Question","name":"Do I need PM2 on managed hosting?","acceptedAnswer":{"@type":"Answer","text":"You do not have to install and wire it up yourself. On Kloudbean managed Node runtime the platform runs your app under PM2, so it restarts on crash and comes back after a reboot without you configuring an init script. PM2 multi-process is supported for cluster mode, and pushes deploy through managed CI/CD."}}
+]}
+]}
+</script>
+</body>
+</html>

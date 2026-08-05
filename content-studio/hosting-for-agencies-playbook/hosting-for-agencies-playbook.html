@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Agency Hosting Playbook: Run Client Sites Like a Pro</title>
+<meta name="description" content="Hosting for an agency is a process you run, not a purchase. This agency hosting playbook covers account structure, per-client isolation, UAC scoped access, staging, backups, billing, and clean offboarding.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/hosting-for-agencies-playbook/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="The Agency Hosting Playbook: Run Client Sites Like a Pro">
+<meta property="og:description" content="The operational agency hosting playbook: account structure, per-client isolation, scoped access, staging, backups, billing margin, and clean offboarding.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Agency &amp; multi-app</span>
+  <h1>The Agency Hosting Playbook: Run Client Sites Like a Pro</h1>
+
+  <figure><img src="images/hero.png" alt="The agency hosting playbook: a repeatable process for running client sites"></figure>
+
+  <p class="lead">Most agencies buy hosting. The good ones run it. That one word is the whole difference between holding forty client sites calmly and living one login away from a bad afternoon.</p>
+  <p>This is the agency hosting playbook I wish more shops had before their client roster got big. It's a process, with a setup you do once and a per-client routine you repeat forever. Work through it top to bottom the first time. After that you're just running the checklist. We'll cover account structure, real per-client isolation, scoped access for your team and your clients, staging, backups, billing that protects your margin, and how to hand a site back without burning the relationship.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>Run everything from one account, name things consistently, and give people scoped access instead of shared passwords. Put each client in its own isolated app or server (never one shared reseller box). Standardize a per-client onboarding checklist: isolate, stage, SSL, backups, DNS, secrets, access, launch check. Test a restore before you need it. And keep offboarding clean, because the client's site and data are theirs.</p>
+  </div>
+
+  <h2>Buy hosting, or run it? Run it.</h2>
+  <p>Here is the mental flip that fixes almost everything. Stop thinking of hosting as a product you resell and start thinking of it as an operation you run for clients. An operation has structure. It has a setup, a routine, a cadence, and an exit. Skip the structure and you get the classic agency mess: a pile of separate logins, live edits with no staging, backups nobody has ever restored, and a client offboarding that turns into a fight.</p>
+  <p>None of that is a hosting problem. It's a process problem. So let's build the process.</p>
+
+  <h2>One account, many walled-off clients</h2>
+  <p>Before the phases, picture the shape you're aiming for. One control plane, your agency account, fanning out to client environments that can't touch each other. Same login for you. Full isolation between them.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 404" role="img" aria-label="Diagram: one agency account fanning out to isolated per-client environments" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="30" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Your agency control plane, one login, many isolated clients</text>
+
+      <!-- control plane -->
+      <rect x="34" y="150" width="188" height="110" rx="16" fill="#000f27"/>
+      <text x="128" y="192" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="15" font-weight="600">Agency account</text>
+      <text x="128" y="214" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="11.5">one dashboard</text>
+      <text x="128" y="232" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="11.5">subusers + UAC roles</text>
+
+      <!-- scoped access label -->
+      <text x="300" y="70" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.3">SCOPED ACCESS PER CLIENT</text>
+
+      <!-- client cards -->
+      <g font-family="Poppins,sans-serif">
+        <!-- A -->
+        <rect x="470" y="74" width="256" height="60" rx="12" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5" stroke-dasharray="6 5"/>
+        <text x="486" y="100" fill="#000f27" font-size="14" font-weight="600">Client A</text>
+        <text x="486" y="120" fill="#5b6a86" font-size="11">own app · staging · backups</text>
+        <rect x="686" y="92" width="18" height="14" rx="2.5" fill="#40b75f"/>
+        <path d="M689 92 v-5 a6 6 0 0 1 12 0 v5" fill="none" stroke="#40b75f" stroke-width="2"/>
+        <!-- B -->
+        <rect x="470" y="150" width="256" height="60" rx="12" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5" stroke-dasharray="6 5"/>
+        <text x="486" y="176" fill="#000f27" font-size="14" font-weight="600">Client B</text>
+        <text x="486" y="196" fill="#5b6a86" font-size="11">own database · own SSL</text>
+        <rect x="686" y="168" width="18" height="14" rx="2.5" fill="#40b75f"/>
+        <path d="M689 168 v-5 a6 6 0 0 1 12 0 v5" fill="none" stroke="#40b75f" stroke-width="2"/>
+        <!-- C -->
+        <rect x="470" y="226" width="256" height="60" rx="12" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5" stroke-dasharray="6 5"/>
+        <text x="486" y="252" fill="#000f27" font-size="14" font-weight="600">Client C</text>
+        <text x="486" y="272" fill="#5b6a86" font-size="11">own system user · isolated</text>
+        <rect x="686" y="244" width="18" height="14" rx="2.5" fill="#40b75f"/>
+        <path d="M689 244 v-5 a6 6 0 0 1 12 0 v5" fill="none" stroke="#40b75f" stroke-width="2"/>
+        <!-- N -->
+        <rect x="470" y="302" width="256" height="60" rx="12" fill="#f0eefe" stroke="#b9a9f6" stroke-width="1.5" stroke-dasharray="6 5"/>
+        <text x="486" y="328" fill="#000f27" font-size="14" font-weight="600">Client N</text>
+        <text x="486" y="348" fill="#5b6a86" font-size="11">and the rest of the roster</text>
+      </g>
+
+      <!-- connectors -->
+      <g stroke="#4F1AF3" stroke-width="2" fill="none">
+        <path d="M222 190 C 360 150, 380 104, 468 104"/>
+        <path d="M222 200 C 360 190, 390 180, 468 180"/>
+        <path d="M222 210 C 360 235, 390 256, 468 256"/>
+        <path d="M222 220 C 360 300, 390 332, 468 332"/>
+      </g>
+      <g fill="#4F1AF3">
+        <path d="M468 104 l-9 -4 v8 z"/>
+        <path d="M468 180 l-9 -4 v8 z"/>
+        <path d="M468 256 l-9 -4 v8 z"/>
+        <path d="M468 332 l-9 -4 v8 z"/>
+      </g>
+    </svg>
+    <figcaption>One agency account (subusers + UAC), fanning out to isolated per-client environments. Same login for you, walls between them.</figcaption>
+  </figure>
+
+  <h2>Phase 1: The foundation you build once</h2>
+  <p>Do this before your first client site. It's an afternoon of setup that saves a decision on every client you ever add.</p>
+  <ul>
+    <li><strong>One central account.</strong> Every client site, server, and database lives under a single login. This is the biggest lever for staying sane, and it's the thing agencies most often get wrong by spreading work across five providers.</li>
+    <li><strong>A naming convention you'll actually keep.</strong> Pick a pattern and never deviate. Something like <code>acme-prod</code>, <code>acme-staging</code>, <code>acme-db</code>. Future-you, scanning a list of forty things at 9pm, will be grateful.</li>
+    <li><strong>Roles, not shared passwords.</strong> Set up subusers with scoped permissions from day one. A designer who only needs staging shouldn't be able to delete a production server. This is what <a href="https://www.kloudbean.com/blog/single-tenant-vs-multi-tenant/">real isolation</a> looks like at the people layer.</li>
+    <li><strong>A default stack and size.</strong> Decide your standard starter spec so spinning up a new client is a known quantity, not a fresh debate each time.</li>
+  </ul>
+
+  <p>On that third point, here's a sample access map. Adapt the roles to your team, but the principle holds: least privilege, granted per resource.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Role</th><th>Can do</th><th>Cannot do</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Owner (you)</strong></td><td>Everything: servers, billing, access</td><td>Nothing off-limits</td></tr>
+      <tr><td><strong>Senior dev</strong></td><td>Deploy, manage apps and databases</td><td>Touch billing, delete servers</td></tr>
+      <tr><td><strong>Designer</strong></td><td>Staging, files, content</td><td>Production deploys, server actions</td></tr>
+      <tr><td><strong>Client (subuser)</strong></td><td>View their own site and reports</td><td>See other clients, change infra</td></tr>
+    </tbody>
+  </table>
+  <p>That last row matters more than it looks. Scoped client access means a client logs in and sees their site, and only their site. No other client's name is anywhere near it.</p>
+
+  <h2>Phase 2: The per-client onboarding checklist</h2>
+  <p>This is the routine you run every single time you take on a site. Make it muscle memory. The tenth client should feel exactly as smooth as the first, because you ran the same list.</p>
+  <ul>
+    <li><strong>Isolate the client.</strong> Put the site in its own app (its own system user and web root) or its own server if it's heavy. Never drop a new client into a shared pile where they can read a neighbor's files.</li>
+    <li><strong>Set up staging.</strong> Kloudbean has one-click staging for WordPress and Laravel, so you can show the client a change before it hits their live site.</li>
+    <li><strong>Turn on SSL.</strong> Free certificate, HTTPS live, auto-renewing. Confirm it, don't assume it.</li>
+    <li><strong>Enable backups</strong> and write down the schedule.</li>
+    <li><strong>Point the domain</strong> and verify DNS actually resolves before you tell anyone it's live.</li>
+    <li><strong>Set secrets in the environment</strong>, never in the repo. If you're fuzzy on this, <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a> is the five-minute read.</li>
+    <li><strong>Grant scoped access</strong> to the client (view-only, usually) and the right teammates by role.</li>
+    <li><strong>Run a launch check.</strong> Click through the live site. Test the contact form, a login, a checkout. The client will, so you should first.</li>
+  </ul>
+
+  <!-- ADD IMAGE: swap for a real console screenshot. src -> ../assets/console/add-application.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Add Application screen: dropping a new client app onto the agency server in its own isolated space.</em><small>Real screenshot at ../assets/console/add-application.png</small></span></figure>
+
+  <h2>The shared reseller box is where agencies get burned</h2>
+  <p>I'll be blunt about this one, because I've seen it go wrong too many times. The old reseller model, one box with everyone's sites crammed into shared space, feels cheap and simple right up until it isn't. One client's hacked plugin becomes everyone's incident. One runaway process slows every site you host. And when a client wants to leave, untangling their stuff from the shared heap is a genuine chore.</p>
+  <p>Per-client isolation costs a little more thought up front and saves you the 2am pages later. Here's the honest comparison.</p>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>Shared reseller box</th><th>App or server per client</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Isolation</strong></td><td>Weak: shared space and users</td><td>Strong: own user, files, database</td></tr>
+      <tr><td><strong>One client hacked</strong></td><td>Risk spreads to neighbors</td><td>Contained to that client</td></tr>
+      <tr><td><strong>Noisy neighbor</strong></td><td>Everyone slows down</td><td>Cap and move the heavy one</td></tr>
+      <tr><td><strong>Per-client restore</strong></td><td>Awkward, all-or-nothing</td><td>Roll back one site cleanly</td></tr>
+      <tr><td><strong>Offboarding</strong></td><td>Untangle from the pile</td><td>Export and hand over</td></tr>
+    </tbody>
+  </table>
+  <p>If you want the full mechanics of running many isolated apps efficiently, that's its own guide: <a href="https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/">how agencies host 20+ client apps</a>. And there's a broader take on when to consolidate versus split in <a href="https://www.kloudbean.com/blog/host-multiple-apps-one-server/">hosting multiple apps on one server</a>.</p>
+
+  <h2>Phase 3: The care cadence</h2>
+  <p>Hosting well is a light, regular rhythm, not a one-time launch. Set a cadence and hold to it.</p>
+  <ul>
+    <li><strong>Updates on staging first.</strong> Test plugin, theme, and dependency updates on staging, then promote. Updating straight on production is how a Tuesday turns into a fire drill.</li>
+    <li><strong>Actually restore a backup now and then.</strong> An untested backup is a hope, not a backup. Restore one to staging occasionally and confirm it's real.</li>
+    <li><strong>Watch uptime.</strong> Knowing a site is down before the client emails you is half of what "support" even means to them.</li>
+    <li><strong>Keep a short per-client log.</strong> What's installed, any quirks, who the contact is. So anyone on the team can pick up a site cold.</li>
+  </ul>
+
+  <h2>Phase 4: Media and off-server backups belong in object storage</h2>
+  <p>Client sites pile up files fast. Media libraries, downloads, user uploads. Those don't belong scattered on the app server, and your backups definitely don't belong on the same box they're supposed to protect.</p>
+
+  <figure>
+    <img src="../assets/console/s3-buckets.png" alt="The Kloudbean console: client media and off-server backups in S3-compatible object storage">
+    <figcaption>Client media and off-server backups live in object storage. Durable, fast behind a CDN, and off the app box.</figcaption>
+  </figure>
+
+  <p>Built-in <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage</a> gives client media a durable home that survives a server rebuild and serves quickly. Just as important, store backups <em>off</em> the server they cover. A backup sitting on the box that failed isn't a backup, it's a souvenir. There's a fuller treatment in the <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a>.</p>
+
+  <h2>Phase 5: Billing and margin</h2>
+  <p>Hosting should make you money, not quietly cost you time you never bill. Pick a model and price the work, not just the server.</p>
+  <ul>
+    <li><strong>Bundle it into a retainer.</strong> Hosting becomes part of a monthly care plan next to maintenance and support. Clients like the simplicity and you stop itemizing infrastructure.</li>
+    <li><strong>Or bill it through with a margin.</strong> You pay the platform cost and charge a clear fee above it. Simple and transparent.</li>
+    <li><strong>Keep costs predictable.</strong> Flat, understandable platform pricing is what lets you set a client price with confidence. Surprise overages eat margin and trust at the same time.</li>
+  </ul>
+  <p>You're selling management, updates, monitoring, and a person who answers when something breaks. That's worth more than a raw server, so charge for it.</p>
+
+  <h2>Phase 6: Offboard cleanly, because their data is theirs</h2>
+  <p>Sometimes a client leaves. How you handle that day says more about your agency than any pitch deck. Treat it as an ethics test you pass every time.</p>
+  <ul>
+    <li><strong>Hand over cleanly.</strong> Give them the files and a database export, or migrate the site to wherever they're going. Their site and data belong to them. Don't hold either hostage, ever.</li>
+    <li><strong>Revoke access</strong> and remove the site from your account once handover is confirmed.</li>
+    <li><strong>Keep a final backup for a short window</strong>, in case they need something after the move.</li>
+  </ul>
+  <p>A clean exit earns referrals and the occasional returning client. A messy one follows you around the local business community for years.</p>
+
+  <!-- ADD IMAGE: empty slot for an author-supplied visual. src -> images/offboarding-handover.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A simple handover checklist or an export-and-migrate flow for a departing client.</em><small>Optional: your own graphic or a screenshot of an export step.</small></span></figure>
+
+  <h2>Where agencies get burned (learn from other people's scars)</h2>
+  <p>Nearly every agency hosting horror story traces back to a skipped phase. Separate logins that multiply into chaos. Live edits with no staging. Backups nobody tested. Shared admin passwords instead of scoped roles. A rushed offboarding that torches a relationship. Every one of those has a phase above that prevents it. The playbook is the fix.</p>
+  <p>One more that stings: putting all your best clients on the same machine. If that box has a bad day, so does your entire top tier of revenue at once. Spread the important ones.</p>
+
+  <h2>How agency hosting maps to Kloudbean</h2>
+  <p>You can run this playbook anywhere in theory. It's a lot easier when the platform is built for it. Here's the honest fit, feature by feature, no fluff:</p>
+  <ul>
+    <li><strong>One dashboard for the whole roster.</strong> Servers, apps, managed databases, object storage, and load balancing under a single login, across seven clouds (AWS, Lightsail, Google Cloud, DigitalOcean, Vultr, Linode, UpCloud). Pick the cloud and region per client.</li>
+    <li><strong>Real per-client isolation.</strong> Each app gets its own system user and space. Give each client its own database from six managed engines (MySQL, MariaDB, PostgreSQL, Redis, Elasticsearch, MongoDB).</li>
+    <li><strong>Scoped access built in.</strong> Subusers and User Access Control give per-resource, per-action permissions, so team roles and client view-only access are a settings screen, not a workaround.</li>
+    <li><strong>Staging, SSL, and backups.</strong> One-click staging for WordPress and Laravel, free auto-renewing SSL, and automatic backups.</li>
+    <li><strong>Git deploys per app.</strong> Connect a repo and ship on push with <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">managed CI/CD</a>, with live build logs. Shipping one client's update never touches another's uptime.</li>
+    <li><strong>Free migration help</strong> to move the first clients over, so adopting this isn't a lost weekend.</li>
+  </ul>
+
+  <!-- ADD IMAGE: swap for a real console screenshot. src -> ../assets/console/git-deployment.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Git Deployment screen: shipping one client's app from its repo without touching the rest of the roster.</em><small>Real screenshot at ../assets/console/git-deployment.png</small></span></figure>
+
+  <p>The honest boundary, since you're the custodian of other people's sites: this is managed Linux hosting. The platform keeps the servers, stack, SSL, and backups healthy. Your clients' code and data always stay theirs (and yours). Running hosting like a pro means owning the process, never locking up the content. If enterprise clients need Kubernetes, autoscaling, a private VPC, or an audit trail, those live on the enterprise tier.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Run the whole client roster like a process, not a prayer.</p>
+    <p style="margin:0 0 .6em">One account, real isolation, scoped access, and room to grow. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">One dashboard · Per-client isolation · Subusers + UAC · Staging · Automatic backups · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How should an agency manage hosting for many clients?</h3>
+    <p>Run it as a process, not a purchase. Keep one central account, use a naming convention, grant scoped roles instead of shared passwords, and run the same per-client onboarding checklist every time (isolate, stage, SSL, backups, DNS, secrets, access, launch check). Add a light care cadence and a clean offboarding routine. That structure is what lets a small team hold dozens of sites calmly.</p>
+    <h3>What should be on an agency's client onboarding checklist?</h3>
+    <p>Isolate the site in its own app or server, set up staging, turn on SSL, enable backups, point DNS, set secrets in the environment, grant scoped access by role, and run a launch check that confirms forms, logins, and payments work. Running the identical list every time keeps the tenth client as smooth as the first.</p>
+    <h3>Is it safe to host multiple clients on one server?</h3>
+    <p>Yes, when they're properly isolated. Each app should get its own system user, web root, process, and database, so one client can't read or crash another. The shared risk that remains is a server-level failure, which you cover with tested per-app backups and by not stacking all your highest-value clients on a single machine.</p>
+    <h3>How do I give clients and teammates the right access?</h3>
+    <p>Use subusers and User Access Control to grant per-resource, per-action permissions. A designer gets staging, a senior dev gets deploys and databases, and a client gets view-only on their own site. Nobody sees another client's resources, and nobody gets more power than their job needs.</p>
+    <h3>Where should agencies store client media and backups?</h3>
+    <p>In S3-compatible object storage. It gives client media a durable home that survives server rebuilds and serves fast behind a CDN, and it keeps the app server lean. Store backups off the server they protect, because a backup on the box that failed isn't recoverable when you need it most.</p>
+    <h3>How do agencies actually make money on hosting?</h3>
+    <p>Charge for the management, not just the server. Bundle hosting into a retainer or bill it through with a margin, and keep platform costs predictable so your pricing stays stable. You're providing updates, monitoring, staging, and support on top of infrastructure, and that bundle is worth more than the raw server cost.</p>
+    <h3>What's the right way to offboard a client's site?</h3>
+    <p>Hand it over cleanly. Provide the files and a database export, or migrate the site to the client's new host, then revoke access and remove it from your account. Keep a final backup for a short window in case they need something. The site and data are theirs, so never hold them hostage. A clean exit protects your reputation and earns referrals.</p>
+    <h3>Do I need to be a sysadmin to run agency hosting this way?</h3>
+    <p>No. On a managed platform the patching, security hardening, SSL renewals, and backups are handled for you. You run the client-facing process (onboarding, staging, deploys, support) from one dashboard, and the heavy ops stay off your plate. That's the point of managed hosting for an agency.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · Field notes for agencies running the whole client roster.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"The Agency Hosting Playbook: Run Client Sites Like a Pro","description":"The operational agency hosting playbook: account structure, per-client isolation, scoped access with UAC, staging, backups, billing margin, and clean offboarding.","image":"https://www.kloudbean.com/blog/hosting-for-agencies-playbook/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/hosting-for-agencies-playbook/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How should an agency manage hosting for many clients?","acceptedAnswer":{"@type":"Answer","text":"Run it as a process, not a purchase. Keep one central account, use a naming convention, grant scoped roles instead of shared passwords, and run the same per-client onboarding checklist every time (isolate, stage, SSL, backups, DNS, secrets, access, launch check). Add a light care cadence and a clean offboarding routine. That structure is what lets a small team hold dozens of sites calmly."}},
+{"@type":"Question","name":"What should be on an agency's client onboarding checklist?","acceptedAnswer":{"@type":"Answer","text":"Isolate the site in its own app or server, set up staging, turn on SSL, enable backups, point DNS, set secrets in the environment, grant scoped access by role, and run a launch check that confirms forms, logins, and payments work. Running the identical list every time keeps the tenth client as smooth as the first."}},
+{"@type":"Question","name":"Is it safe to host multiple clients on one server?","acceptedAnswer":{"@type":"Answer","text":"Yes, when they're properly isolated. Each app should get its own system user, web root, process, and database, so one client can't read or crash another. The shared risk that remains is a server-level failure, which you cover with tested per-app backups and by not stacking all your highest-value clients on a single machine."}},
+{"@type":"Question","name":"How do I give clients and teammates the right access?","acceptedAnswer":{"@type":"Answer","text":"Use subusers and User Access Control to grant per-resource, per-action permissions. A designer gets staging, a senior dev gets deploys and databases, and a client gets view-only on their own site. Nobody sees another client's resources, and nobody gets more power than their job needs."}},
+{"@type":"Question","name":"Where should agencies store client media and backups?","acceptedAnswer":{"@type":"Answer","text":"In S3-compatible object storage. It gives client media a durable home that survives server rebuilds and serves fast behind a CDN, and it keeps the app server lean. Store backups off the server they protect, because a backup on the box that failed isn't recoverable when you need it most."}},
+{"@type":"Question","name":"How do agencies actually make money on hosting?","acceptedAnswer":{"@type":"Answer","text":"Charge for the management, not just the server. Bundle hosting into a retainer or bill it through with a margin, and keep platform costs predictable so your pricing stays stable. You're providing updates, monitoring, staging, and support on top of infrastructure, and that bundle is worth more than the raw server cost."}},
+{"@type":"Question","name":"What's the right way to offboard a client's site?","acceptedAnswer":{"@type":"Answer","text":"Hand it over cleanly. Provide the files and a database export, or migrate the site to the client's new host, then revoke access and remove it from your account. Keep a final backup for a short window in case they need something. The site and data are theirs, so never hold them hostage. A clean exit protects your reputation and earns referrals."}},
+{"@type":"Question","name":"Do I need to be a sysadmin to run agency hosting this way?","acceptedAnswer":{"@type":"Answer","text":"No. On a managed platform the patching, security hardening, SSL renewals, and backups are handled for you. You run the client-facing process (onboarding, staging, deploys, support) from one dashboard, and the heavy ops stay off your plate. That's the point of managed hosting for an agency."}}
+]}
+]}
+</script>
+</body>
+</html>

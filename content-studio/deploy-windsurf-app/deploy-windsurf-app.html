@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deploy a Windsurf App: Does It Build From a Clean Clone?</title>
+<meta name="description" content="Windsurf's Cascade agent runs commands and edits broadly, so your local state drifts from the repo. Before you deploy a Windsurf app, prove it builds from a clean clone. Here's the readiness test and the deploy.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/deploy-windsurf-app/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Deploy a Windsurf App: Does It Build From a Clean Clone?">
+<meta property="og:description" content="It ran in Cascade. That's not the same as building on a server. The clean-room test that predicts a green deploy for your Windsurf app, then the managed-server steps.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Shipping a Windsurf app</span>
+  <h1>Deploy a Windsurf App: Does It Build From a Clean Clone?</h1>
+
+  <figure><img src="images/hero.png" alt="Deploy a Windsurf app — proving the build is reproducible before shipping to a server you own"></figure>
+
+  <p class="lead">Windsurf is Codeium's agentic IDE, a VS Code fork where the Cascade agent writes and refactors real files across your project and runs terminal commands as it works. That leaves you with ordinary local code you own, in Git. It also leaves you a subtler problem than a browser builder does. To deploy a Windsurf app you need it to build somewhere that isn't your laptop, and your laptop has been quietly collecting state that Cascade created: a package it installed, a file it left untracked, an environment only you have.</p>
+
+  <p>So the question that actually predicts a clean deploy isn't "does it run for me?" It's "does it build from a fresh checkout of the repo?" Answer that first and the deploy is boring. This is a short readiness pass built around that one test, then the managed-server steps. For the shared basics every AI-built app needs (ports, env vars, databases), I'll point you at the pillar instead of repeating all of it here.</p>
+
+  <div class="tldr">
+    <strong>Short version</strong>
+    <p>Before deploying, prove the build is reproducible: clone your repo into a fresh folder, run a clean install, and build. If that works, the server will too. Commit your lockfile, pin your Node or Python version, then launch a server, connect the repo, set your build and start commands, and deploy.</p>
+  </div>
+
+  <h2>Why "it works in Cascade" isn't the same as deploying a Windsurf app</h2>
+  <p>Cascade is powerful because it doesn't just suggest code, it acts. It installs packages, runs migrations, generates files, and edits across your project without waiting for you to type each command. Genuinely useful. The side effect is that your working directory slowly fills with state that isn't fully captured by what's committed to Git. A dependency the agent installed but never added to <code>package.json</code>. A build artifact sitting untracked. A tool that happens to be on your <code>PATH</code>.</p>
+  <p>When you run the app locally, all of that invisible state is present, so it works. A server has none of it. It clones your repository into an empty directory and builds from exactly what's committed, nothing more. That's the whole gap in one sentence: local success proves the app runs in your accumulated environment, not that a clean machine can rebuild it. Reproduce it on your own terms first, or the server will do it for you at the worst moment.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 264" role="img" aria-label="A bridge from the Windsurf preview on your laptop to production, carrying five planks: secrets in env vars, a managed database, a real build step, a domain with SSL, and an always-on process" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="30" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="17" font-weight="700">The bridge from preview to production</text>
+      <text x="30" y="55" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12.5">Cascade gets it running for you. These five planks make it run for everyone.</text>
+
+      <line x1="24" y1="252" x2="736" y2="252" stroke="#e0e4ef" stroke-width="2"/>
+
+      <!-- left tower: Windsurf local -->
+      <rect x="40" y="150" width="124" height="102" rx="12" fill="#000f27"/>
+      <text x="102" y="190" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="14" font-weight="600">Windsurf</text>
+      <text x="102" y="209" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="10.5">local · Cascade</text>
+      <text x="102" y="231" text-anchor="middle" fill="#8ee0a6" font-family="Poppins,sans-serif" font-size="10.5">it runs for you</text>
+
+      <!-- right tower: production -->
+      <rect x="596" y="150" width="124" height="102" rx="12" fill="#ffffff" stroke="#40b75f" stroke-width="2"/>
+      <text x="658" y="190" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="14" font-weight="600">Production</text>
+      <text x="658" y="209" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">a server you own</text>
+      <text x="658" y="231" text-anchor="middle" fill="#2f7d45" font-family="Poppins,sans-serif" font-size="10.5">runs for everyone</text>
+
+      <!-- travel arrow -->
+      <line x1="196" y1="138" x2="558" y2="138" stroke="#9aa4bf" stroke-width="1.5" stroke-dasharray="5 5"/>
+      <path d="M558 138 l-9 -4 v8 z" fill="#9aa4bf"/>
+
+      <!-- gap hatch under the deck -->
+      <g stroke="#e0e4ef" stroke-width="1.5">
+        <line x1="210" y1="217" x2="230" y2="250"/>
+        <line x1="270" y1="217" x2="290" y2="250"/>
+        <line x1="330" y1="217" x2="350" y2="250"/>
+        <line x1="390" y1="217" x2="410" y2="250"/>
+        <line x1="450" y1="217" x2="470" y2="250"/>
+        <line x1="510" y1="217" x2="530" y2="250"/>
+      </g>
+
+      <!-- bridge deck -->
+      <rect x="164" y="152" width="432" height="64" rx="10" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5"/>
+      <g stroke="#e6e9f2" stroke-width="1">
+        <line x1="250" y1="154" x2="250" y2="214"/>
+        <line x1="337" y1="154" x2="337" y2="214"/>
+        <line x1="423" y1="154" x2="423" y2="214"/>
+        <line x1="510" y1="154" x2="510" y2="214"/>
+      </g>
+
+      <!-- plank 1 -->
+      <circle cx="207" cy="170" r="7" fill="#40b75f"/>
+      <path d="M203.5 170 l2.5 2.5 l4 -5" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="207" y="193" text-anchor="middle" fill="#1c2536" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600">Secrets</text>
+      <text x="207" y="206" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10">in env vars</text>
+
+      <!-- plank 2 -->
+      <circle cx="294" cy="170" r="7" fill="#40b75f"/>
+      <path d="M290.5 170 l2.5 2.5 l4 -5" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="294" y="193" text-anchor="middle" fill="#1c2536" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600">A managed</text>
+      <text x="294" y="206" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10">database</text>
+
+      <!-- plank 3 -->
+      <circle cx="380" cy="170" r="7" fill="#40b75f"/>
+      <path d="M376.5 170 l2.5 2.5 l4 -5" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="380" y="193" text-anchor="middle" fill="#1c2536" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600">A real</text>
+      <text x="380" y="206" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10">build step</text>
+
+      <!-- plank 4 -->
+      <circle cx="466" cy="170" r="7" fill="#40b75f"/>
+      <path d="M462.5 170 l2.5 2.5 l4 -5" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="466" y="193" text-anchor="middle" fill="#1c2536" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600">Domain</text>
+      <text x="466" y="206" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10">+ SSL</text>
+
+      <!-- plank 5 -->
+      <circle cx="553" cy="170" r="7" fill="#40b75f"/>
+      <path d="M549.5 170 l2.5 2.5 l4 -5" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="553" y="193" text-anchor="middle" fill="#1c2536" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600">Always-on</text>
+      <text x="553" y="206" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10">process</text>
+    </svg>
+    <figcaption>Windsurf's preview hides five things production needs. Cross each plank (env vars, a managed database, a build step, a domain with SSL, an always-on process) and the deploy is boring.</figcaption>
+  </figure>
+
+  <h2>The clean-room test</h2>
+  <p>Here's the check that catches most of it before you touch a console. Clone your repo into a throwaway folder, somewhere it can't see your project's <code>node_modules</code> or <code>.env</code>, and build it the way the server will:</p>
+  <pre><code># pretend to be the server: a fresh clone, nothing borrowed
+cd /tmp
+git clone https://github.com/you/your-app.git clean-check
+cd clean-check
+
+# install strictly from the lockfile, then build and start
+npm ci
+npm run build
+npm start</code></pre>
+  <p>Two things make this honest. The <code>/tmp</code> location means the clone can't quietly reuse packages or config from your real project folder. And <code>npm ci</code> installs strictly from the lockfile and refuses to run if the lockfile is missing or out of sync, which is exactly the failure a server would hit. If this builds and starts, your deploy will too. If it doesn't, congratulations, you just found your deploy failure on your own machine, for free, with a real error message to read instead of a 503. Python's the same idea with a fresh virtualenv:</p>
+  <pre><code>python -m venv .venv &amp;&amp; source .venv/bin/activate
+pip install -r requirements.txt</code></pre>
+
+  <!-- IMAGE SLOT: swap this figure for a real figure + img (src -> images/your-file.png) + figcaption -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal running the clean-room test: git clone into /tmp, then npm ci and npm run build finishing green.</em><small>The core move of the whole guide. A real terminal shot lands it.</small></span></figure>
+
+  <h2>The readiness checklist</h2>
+  <p>The clean-room test surfaces most problems, but here's what it's really checking, so you know what to fix when a row fails.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Check</th><th>How to confirm</th><th>Why it matters</th></tr></thead>
+    <tbody>
+      <tr><td>Lockfile committed</td><td><code>git ls-files | grep -E "lock|requirements"</code> lists it</td><td>A clean install reproduces the exact versions you tested</td></tr>
+      <tr><td>Runtime pinned</td><td><code>engines</code> in <code>package.json</code>, a <code>.nvmrc</code>, or <code>runtime.txt</code></td><td>The server builds on your version, not whatever's default</td></tr>
+      <tr><td>Builds without your .env</td><td>the clean clone builds with no secrets present</td><td>Missing config shows up now, not as a 503 later</td></tr>
+      <tr><td>Binds the assigned port</td><td>no hard-coded <code>3000</code> or <code>8000</code>; reads <code>process.env.PORT</code></td><td>The platform picks the port; a fixed one never sees traffic</td></tr>
+      <tr><td>No global-only deps</td><td>the fresh <code>npm ci</code> has everything it needs</td><td>Cascade may have installed a tool globally that isn't in <code>package.json</code></td></tr>
+    </tbody>
+  </table>
+
+  <p>The first two rows are worth doing deliberately. Commit the lockfile (<code>package-lock.json</code>, <code>pnpm-lock.yaml</code>, <code>yarn.lock</code>, or a pinned <code>requirements.txt</code>), and pin the runtime so the server doesn't quietly build on a different Node major than you did:</p>
+  <pre><code>// package.json
+{ "engines": { "node": "20.x" } }</code></pre>
+
+  <h2>The quick fixes the clean room will flag</h2>
+  <p>When the test fails, it's usually one of the same handful of things every AI-built app hits. Told briefly here, because the <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploy an AI-built app</a> pillar covers each in depth:</p>
+  <ul>
+    <li><strong>A hard-coded port.</strong> If Cascade wrote <code>app.listen(3000)</code>, change it to <code>process.env.PORT</code>. The full list of localhost assumptions is in the <a href="https://www.kloudbean.com/blog/deploy-cursor-app/">localhost-trap writeup</a>.</li>
+    <li><strong>Local <code>.env</code> values.</strong> They live on your machine; they have to be set on the server. The runtime-versus-build-time details are in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a>.</li>
+    <li><strong>A local or dev database.</strong> Swap it for a managed one and point a connection string at it. See <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database</a>.</li>
+  </ul>
+  <p>One nice trick that plays to Windsurf's strength: before you deploy, ask Cascade to run the clean-room test for you and report what broke. It can read your whole codebase, so it'll tell you the exact install, build, and start commands, which environment variables the code actually reads, and whether a port is hard-coded anywhere. That conversation removes most first-deploy surprises.</p>
+
+  <h2>Deploy it on a server you own</h2>
+  <p>Clean clone builds green? Push it to GitHub and take it to production. In the <a href="https://www.kloudbean.com/">Kloudbean</a> console, click <strong>Add Server</strong>, pick a <strong>Cloud Provider</strong>, choose the stack Cascade built in (Node.js for a Node, Next, or Vue app; a Python stack works too), pick the nearest datacenter, and give it 2–4 GB for build headroom. <strong>Launch Now</strong> gives you a configured server in a few minutes, runtime and process manager and firewall and SSL included.</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="Kloudbean Add Server screen: choosing a cloud provider, application stack, datacenter, and server size">
+    <figcaption>Add Server: provider, stack, size, launch. The process manager keeps your app always-on, no config.</figcaption>
+  </figure>
+
+  <p>Open the app, go to <strong>Application Administration → Deploy Code</strong>, connect GitHub, paste your repository URL, choose the branch, and <strong>Clone Repository</strong>. Fill the runtime fields with the exact commands that just worked in your clean-room test: <strong>App Directory</strong>, <strong>Port</strong>, <strong>runtime version</strong>, and your <strong>Install / Build / Start</strong> commands. Because you validated them against a fresh clone, they'll behave the same here. Click <strong>Pull &amp; Deploy</strong> and the build log streams live.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="Kloudbean Deploy Code / Git Deployment screen: connect a repo, set the runtime fields, and Pull and Deploy">
+    <figcaption>Deploy Code, then Git Deployment: the same install, build, and start commands from your clean-room test.</figcaption>
+  </figure>
+
+  <p>If your app stores data, launch a managed <strong>Postgres</strong> or <strong>MySQL</strong> from <strong>DBS → Launch Database</strong> and import your local schema. Then, in <strong>Runtime Configuration → Environment Variables</strong>, paste your <code>.env</code> via <strong>Paste .env Content</strong>, convert to key/value, and set the real values, pointing the database URL at the instance you just launched.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="Kloudbean environment variables editor with a paste .env content tab and key value list">
+    <figcaption>Environment variables live in the console, never in the repo. The clean-room test already told you which ones the app needs.</figcaption>
+  </figure>
+
+  <p>Add your custom domain under <strong>Domain Aliases</strong>, point DNS at the server, install a free <strong>Let's Encrypt</strong> certificate, and turn on <strong>automated deployment</strong> so every push rebuilds and ships. Your loop becomes: build with Cascade, commit, push, and production updates itself, on <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">a server you own</a>. Whatever framework Cascade built in, the flow is identical; only the Install/Build/Start commands and runtime change.</p>
+
+  <!-- IMAGE SLOT: swap this figure for a real figure + img (src -> images/your-file.png) + figcaption -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your Windsurf app live on its custom domain with the SSL padlock in the address bar.</em><small>The payoff shot.</small></span></figure>
+
+  <h2>If it 503s anyway</h2>
+  <p>If you ran the clean-room test, a <strong>503</strong> is now unlikely, and when it happens it's almost always a missing environment variable or a database URL still pointing at your local machine. Read <code>app.error.log</code> at <code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs</code>; the reason is named there. The full <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">503 playbook</a> has the rest.</p>
+
+  <h2>The honest limits</h2>
+  <p>Kloudbean runs Linux stacks: Node, Python, PHP, Ruby, and Java, with frameworks like React, Next.js, Vue, Django, and Laravel on top. That spans what Windsurf typically builds. It isn't for Windows/.NET/IIS. "Managed" means the server, stack, SSL, backups, and patching are handled; you own and maintain the application. Since Cascade already hands you real, owned code, this is just the matching home for running it, and a full-stack build lands its front end, API, and database on <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">the one server</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">If it builds clean, it ships clean.</p>
+    <p style="margin:0">Take your Windsurf app to production at <a href="https://www.kloudbean.com/">kloudbean.com</a>, with a free trial and your first migration done for you. Plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I deploy an app I built in Windsurf?</h3>
+    <p>Confirm the build is reproducible with the clean-room test, then push to GitHub and deploy on Kloudbean: launch a server, connect the repo in Deploy Code, set your install/build/start commands, add a database and environment variables, and point your domain with SSL. Windsurf produces standard code, so it deploys like any app.</p>
+
+    <h3>Why does my Windsurf app build locally but fail on the server?</h3>
+    <p>Because your local machine has state the repo doesn't. Cascade may have installed a package globally, left a dependency out of <code>package.json</code>, or built against a runtime version the server doesn't use. The server builds from a clean clone, so reproduce that: clone into a fresh folder, run <code>npm ci</code>, and build. Whatever fails there is your deploy bug.</p>
+
+    <h3>What is the clean-room test?</h3>
+    <p>Cloning your repo into an empty folder (like <code>/tmp</code>), running a strict install (<code>npm ci</code> or <code>pip install -r requirements.txt</code>), and building. It mimics exactly what the server does, so it catches missing lockfiles, unpinned runtimes, and global dependencies before you deploy rather than after.</p>
+
+    <h3>Do I need to export anything from Windsurf?</h3>
+    <p>No. Windsurf edits real local files, so there's nothing to export. Your code is already on your machine and, ideally, in Git. Push it to GitHub and deploy from there.</p>
+
+    <h3>Does it matter which framework Cascade used?</h3>
+    <p>Not for the flow. Node, Next.js, Vue, and Python all deploy the same way through Deploy Code. Only the install, build, and start commands and the runtime version differ, which is exactly what your clean-room test already confirmed.</p>
+
+    <h3>How do my environment variables get to the server?</h3>
+    <p>You move them. Paste your local <code>.env</code> into Runtime Configuration, Environment Variables using the Paste .env Content tab, convert to key/value, and save. Point the database values at your new managed database, and never commit the <code>.env</code> itself.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Deploy a Windsurf App: Does It Build From a Clean Clone?","description":"Windsurf's Cascade agent runs commands and edits broadly, so your local state drifts from the repo. Before you deploy a Windsurf app, prove it builds from a clean clone. Here's the readiness test and the deploy.","image":"https://www.kloudbean.com/blog/deploy-windsurf-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/deploy-windsurf-app/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I deploy an app I built in Windsurf?","acceptedAnswer":{"@type":"Answer","text":"Confirm the build is reproducible with the clean-room test, then push to GitHub and deploy on Kloudbean: launch a server, connect the repo in Deploy Code, set your install/build/start commands, add a database and environment variables, and point your domain with SSL. Windsurf produces standard code, so it deploys like any app."}},
+{"@type":"Question","name":"Why does my Windsurf app build locally but fail on the server?","acceptedAnswer":{"@type":"Answer","text":"Because your local machine has state the repo doesn't. Cascade may have installed a package globally, left a dependency out of package.json, or built against a runtime version the server doesn't use. The server builds from a clean clone, so reproduce that: clone into a fresh folder, run npm ci, and build. Whatever fails there is your deploy bug."}},
+{"@type":"Question","name":"What is the clean-room test?","acceptedAnswer":{"@type":"Answer","text":"Cloning your repo into an empty folder (like /tmp), running a strict install (npm ci or pip install -r requirements.txt), and building. It mimics exactly what the server does, so it catches missing lockfiles, unpinned runtimes, and global dependencies before you deploy rather than after."}},
+{"@type":"Question","name":"Do I need to export anything from Windsurf?","acceptedAnswer":{"@type":"Answer","text":"No. Windsurf edits real local files, so there is nothing to export. Your code is already on your machine and, ideally, in Git. Push it to GitHub and deploy from there."}},
+{"@type":"Question","name":"Does it matter which framework Cascade used?","acceptedAnswer":{"@type":"Answer","text":"Not for the flow. Node, Next.js, Vue, and Python all deploy the same way through Deploy Code. Only the install, build, and start commands and the runtime version differ, which is exactly what your clean-room test already confirmed."}},
+{"@type":"Question","name":"How do my environment variables get to the server?","acceptedAnswer":{"@type":"Answer","text":"You move them. Paste your local .env into Runtime Configuration, Environment Variables using the Paste .env Content tab, convert to key/value, and save. Point the database values at your new managed database, and never commit the .env itself."}}
+]}
+]}
+</script>
+</body>
+</html>

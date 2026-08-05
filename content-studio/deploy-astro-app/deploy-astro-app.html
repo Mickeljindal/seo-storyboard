@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deploy an Astro App: Static vs Server vs Hybrid (Pick the Right One)</title>
+<meta name="description" content="How to deploy an Astro app in every mode. Static builds to files on a CDN, server needs a Node adapter and a live process, hybrid mixes both. Pick the right mode and stop your dynamic pages coming back blank.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/deploy-astro-app/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Deploy an Astro App: Static vs Server vs Hybrid">
+<meta property="og:description" content="Astro's output setting decides the deploy. Static ships files to a CDN, server runs a Node process, hybrid does both per route. Here's how to ship each, plus the blank-page trap that catches everyone.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">App deployment</span>
+  <h1>Astro Static vs Server: Which One Are You Actually Deploying?</h1>
+
+  <figure><img src="images/hero.png" alt="Deploy an Astro app: static files or a live server, decided by one config line"></figure>
+
+  <p class="lead">Astro has a trick most frameworks skip. The same codebase can build into two completely different things.</p>
+  <p>One way, you get a folder of static HTML and no server at all. The other way, you get a live server that renders pages on demand. So "how do I deploy an Astro app" has no single answer. It depends on which mode you built, and that one detail changes everything about the deploy: where it runs, what it costs, and how it scales. Get it wrong and your dynamic pages ship blank. Let's make sure you pick right.</p>
+
+  <div class="tldr">
+    <strong>Short answer</strong>
+    <p>Your <code>astro.config.mjs</code> <code>output</code> value decides the deploy. <code>output: 'static'</code> (the default) builds a <code>dist/</code> folder of files you host on object storage plus a CDN, cheap and serverless. <code>output: 'server'</code> (with an adapter like <code>@astrojs/node</code>) builds a Node app you run as a live process on a server. Hybrid keeps most pages static and renders a few per route. Ship static as files, server as a Node process, and never deploy server-rendered routes as static or they come back empty.</p>
+  </div>
+
+  <h2>The one line that decides your entire deploy</h2>
+  <p>Before you think about hosts, open <code>astro.config.mjs</code> and read the <code>output</code> line. That value, not your host, decides what you're deploying.</p>
+  <pre><code>// astro.config.mjs
+import { defineConfig } from 'astro/config';
+
+export default defineConfig({
+  output: 'static', // the default: prerender every page to HTML at build
+});</code></pre>
+  <p>Three values, three very different deploys:</p>
+  <ul>
+    <li><code>output: 'static'</code> prerenders every page to HTML at build time. The result is plain files. No server runs in production.</li>
+    <li><code>output: 'server'</code> builds a server that renders pages per request. You also add an <strong>adapter</strong> (for a normal Node server, that's <code>@astrojs/node</code>) so Astro knows what kind of server to build.</li>
+    <li><strong>Hybrid</strong> is mostly static, with specific routes opted in to render on the server. In current Astro you get this by running <code>output: 'server'</code> and marking the static pages <code>export const prerender = true</code>, or the reverse. (Older Astro had a separate <code>hybrid</code> mode. Same idea, one flag moved.)</li>
+  </ul>
+  <p>Check that line first. Everything below follows from it.</p>
+
+  <figure>
+    <svg viewBox="0 0 780 340" role="img" aria-label="Astro output modes and where each one runs: static to a CDN, hybrid to a CDN plus a Node process, server to an always-on Node server" style="width:100%;height:auto;font-family:'Poppins',sans-serif">
+      <rect x="1" y="1" width="778" height="338" rx="18" fill="#ffffff" stroke="#e6e9f2"></rect>
+      <text x="390" y="28" text-anchor="middle" font-size="15" font-weight="700" fill="#000f27">One config line, three deploy targets</text>
+      <text x="140" y="54" text-anchor="middle" font-size="11" letter-spacing="0.08em" fill="#5b6a86">YOU SET (astro.config.mjs)</text>
+      <text x="405" y="54" text-anchor="middle" font-size="11" letter-spacing="0.08em" fill="#5b6a86">BUILD OUTPUT</text>
+      <text x="656" y="54" text-anchor="middle" font-size="11" letter-spacing="0.08em" fill="#5b6a86">WHERE IT RUNS</text>
+
+      <!-- Row 1: static (green) -->
+      <rect x="24" y="70" width="232" height="58" rx="10" fill="#40b75f"></rect>
+      <text x="140" y="95" text-anchor="middle" font-size="14" font-weight="600" fill="#ffffff" font-family="'JetBrains Mono',monospace">output: 'static'</text>
+      <text x="140" y="114" text-anchor="middle" font-size="11" fill="#e7f6ec">the default</text>
+      <path d="M258 99 H294" stroke="#40b75f" stroke-width="2"></path>
+      <path d="M294 93 L304 99 L294 105 Z" fill="#40b75f"></path>
+      <rect x="300" y="70" width="210" height="58" rx="10" fill="#ffffff" stroke="#40b75f" stroke-width="1.5"></rect>
+      <text x="405" y="104" text-anchor="middle" font-size="13.5" fill="#1c2536" font-family="'JetBrains Mono',monospace">dist/ (static HTML)</text>
+      <path d="M512 99 H548" stroke="#40b75f" stroke-width="2"></path>
+      <path d="M548 93 L558 99 L548 105 Z" fill="#40b75f"></path>
+      <rect x="556" y="70" width="200" height="58" rx="10" fill="#ffffff" stroke="#40b75f" stroke-width="1.5"></rect>
+      <text x="656" y="95" text-anchor="middle" font-size="13.5" font-weight="600" fill="#000f27">Object storage + CDN</text>
+      <text x="656" y="114" text-anchor="middle" font-size="11.5" fill="#5b6a86">no server to run</text>
+
+      <!-- Row 2: hybrid (purple) -->
+      <rect x="24" y="150" width="232" height="58" rx="10" fill="#4F1AF3"></rect>
+      <text x="140" y="175" text-anchor="middle" font-size="14" font-weight="600" fill="#ffffff" font-family="'JetBrains Mono',monospace">hybrid</text>
+      <text x="140" y="194" text-anchor="middle" font-size="11" fill="#e4ddff">prerender per route</text>
+      <path d="M258 179 H294" stroke="#4F1AF3" stroke-width="2"></path>
+      <path d="M294 173 L304 179 L294 185 Z" fill="#4F1AF3"></path>
+      <rect x="300" y="150" width="210" height="58" rx="10" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5"></rect>
+      <text x="405" y="184" text-anchor="middle" font-size="12.5" fill="#1c2536" font-family="'JetBrains Mono',monospace">dist/client + dist/server</text>
+      <path d="M512 179 H548" stroke="#4F1AF3" stroke-width="2"></path>
+      <path d="M548 173 L558 179 L548 185 Z" fill="#4F1AF3"></path>
+      <rect x="556" y="150" width="200" height="58" rx="10" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5"></rect>
+      <text x="656" y="175" text-anchor="middle" font-size="13.5" font-weight="600" fill="#000f27">CDN + a Node process</text>
+      <text x="656" y="194" text-anchor="middle" font-size="11.5" fill="#5b6a86">static bulk, live routes</text>
+
+      <!-- Row 3: server (navy) -->
+      <rect x="24" y="234" width="232" height="72" rx="10" fill="#000f27"></rect>
+      <text x="140" y="264" text-anchor="middle" font-size="14" font-weight="600" fill="#ffffff" font-family="'JetBrains Mono',monospace">output: 'server'</text>
+      <text x="140" y="285" text-anchor="middle" font-size="11.5" fill="#aab6d4">+ @astrojs/node</text>
+      <path d="M258 270 H294" stroke="#000f27" stroke-width="2"></path>
+      <path d="M294 264 L304 270 L294 276 Z" fill="#000f27"></path>
+      <rect x="300" y="234" width="210" height="72" rx="10" fill="#ffffff" stroke="#000f27" stroke-width="1.5"></rect>
+      <text x="405" y="274" text-anchor="middle" font-size="12.5" fill="#1c2536" font-family="'JetBrains Mono',monospace">dist/server/entry.mjs</text>
+      <path d="M512 270 H548" stroke="#000f27" stroke-width="2"></path>
+      <path d="M548 264 L558 270 L548 276 Z" fill="#000f27"></path>
+      <rect x="556" y="234" width="200" height="72" rx="10" fill="#ffffff" stroke="#000f27" stroke-width="1.5"></rect>
+      <text x="656" y="264" text-anchor="middle" font-size="13.5" font-weight="600" fill="#000f27">Always-on Node server</text>
+      <text x="656" y="285" text-anchor="middle" font-size="11.5" fill="#5b6a86">listens on a port</text>
+    </svg>
+    <figcaption>The <code>output</code> value flows all the way to the host. Static lands on a CDN, server lands on a Node process, hybrid does both.</figcaption>
+  </figure>
+
+  <!-- Author: swap this slot for a real screenshot. src -> images/astro-config-output.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your astro.config.mjs open in the editor with the output line highlighted.</em><small>An editor screenshot lands the point fast.</small></span></figure>
+
+  <h2>The blank-page trap: shipping server routes as static</h2>
+  <p>This is the number one way an Astro deploy goes wrong, and it's sneaky because it works perfectly in development.</p>
+  <p>Here's the pattern we see a lot. A site starts as a blog or a marketing page, so it's on <code>output: 'static'</code> (the default). Weeks later someone bolts on a contact form that posts to an API route, or a page that reads <code>Astro.request</code>, or a dashboard that fetches per-user data. Locally, <code>npm run dev</code> runs a full dev server, so the new dynamic bits work great. Then they build, publish the <code>dist/</code> files, and the form does nothing. The API route 404s. The "live" page shows whatever data existed at build time, frozen. Sometimes just a blank.</p>
+  <p>Why? Because a static build has no server behind it to run that code. Astro can only prerender a dynamic route to a single snapshot at build time, or skip it. There's no process in production to handle a real request. The fix is to tell Astro you need a server:</p>
+  <pre><code>// an API endpoint that must run per request
+// src/pages/api/subscribe.js
+export const prerender = false;
+
+export async function POST({ request }) {
+  const data = await request.formData();
+  // this needs a live server to execute
+  return new Response(JSON.stringify({ ok: true }));
+}</code></pre>
+  <p>The moment a route sets <code>prerender = false</code> (or you flip the whole project to <code>output: 'server'</code>), you're no longer deploying files. You're deploying a Node app, and it needs an adapter and a running process. Miss that step and the build might not even warn you loudly. It just quietly bakes what it can and moves on. So the rule is simple: if any route needs request-time logic, you're in server or hybrid territory, and the deploy target changes with it.</p>
+
+  <h2>Static vs server, head to head</h2>
+  <table class="cmp">
+    <thead><tr><th></th><th><code>output: 'static'</code></th><th><code>output: 'server'</code></th></tr></thead>
+    <tbody>
+      <tr><td><strong>What the build makes</strong></td><td>A folder of HTML, CSS, and JS files</td><td>A Node server app</td></tr>
+      <tr><td><strong>Runs in production</strong></td><td>Nothing. Files are just served.</td><td>An always-on Node process</td></tr>
+      <tr><td><strong>Hosted on</strong></td><td>Object storage plus a CDN</td><td>A server, like any Node app</td></tr>
+      <tr><td><strong>Adapter needed</strong></td><td>None</td><td>Yes (<code>@astrojs/node</code>, etc.)</td></tr>
+      <tr><td><strong>Cost</strong></td><td>Lowest. Storage and bandwidth.</td><td>Higher. You run a server.</td></tr>
+      <tr><td><strong>Scaling</strong></td><td>Basically free. The CDN handles it.</td><td>Bigger server, or a load balancer</td></tr>
+      <tr><td><strong>Per-request content</strong></td><td>No (baked at build)</td><td>Yes (rendered live)</td></tr>
+      <tr><td><strong>Best for</strong></td><td>Blogs, docs, marketing, content</td><td>Dashboards, auth, live data, form handlers</td></tr>
+    </tbody>
+  </table>
+  <p>Static is cheaper, simpler, and scales for free, but it can't decide anything at request time. Server does the dynamic work, at the cost of a process you keep alive and pay for around the clock. Neither is "better." They're for different jobs.</p>
+
+  <h2>When static is all you need (and it usually is)</h2>
+  <p>I'll say it plainly: most Astro sites are content, and content doesn't need a running server. Blogs, docs, marketing pages, portfolios, changelogs. If your pages look the same for every visitor and only change when you rebuild, static is the right answer. Reaching for server mode because it feels more capable is a common and expensive mistake. You'd be paying for a process to sit idle and re-render pages that never change.</p>
+  <p>Deploying the static build is refreshingly boring:</p>
+  <pre><code>npm run build   # Astro writes your whole site into dist/
+# dist/ is now plain HTML, CSS, and JS. Publish it.</code></pre>
+  <p>Publish that <code>dist/</code> folder to object storage, put a CDN in front, and you're done. There's no app server to keep alive, nothing to patch, and a traffic spike is the CDN's problem, not yours. On Kloudbean this is the <strong>free static site hosting</strong> path: point it at your repo, set the build, publish <code>dist/</code>, then add a custom domain with free SSL. You even get built-in visit analytics without bolting on a third-party script. Connect the Git repo once and every push rebuilds and republishes:</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean console connecting a Git repo so each push rebuilds and republishes the static Astro site">
+    <figcaption>Static or server, connecting the repo means every push runs the build with live logs. For static Astro, the output is your <code>dist/</code> folder.</figcaption>
+  </figure>
+
+  <p>Point the domain, let the platform issue SSL, and the site is live. Here's the deeper walkthrough on <a href="https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/">custom domain and SSL setup</a>, and on wiring up <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">auto-deploy from GitHub</a> so you never hand-upload a build again.</p>
+
+  <!-- Author: swap this slot for a real screenshot. src -> images/astro-static-live.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your static Astro site live in the browser with a custom domain and the SSL padlock.</em><small>The payoff shot. Show the green lock.</small></span></figure>
+
+  <h2>When you actually need a server (and how to deploy it)</h2>
+  <p>Server mode earns its keep when content has to be decided at request time: a logged-in view, a page reading live data, a form that processes on the backend, an API endpoint. If that's you, the good news is there's nothing Astro-specific to fear. A server-mode Astro build is a Node app, and you deploy it like any Node app.</p>
+  <p>First, add the adapter. This is the step people forget:</p>
+  <pre><code>npx astro add node
+# which installs @astrojs/node and sets your config to something like:</code></pre>
+  <pre><code>// astro.config.mjs
+import { defineConfig } from 'astro/config';
+import node from '@astrojs/node';
+
+export default defineConfig({
+  output: 'server',
+  adapter: node({ mode: 'standalone' }),
+});</code></pre>
+  <p>Then build and start the generated server. In standalone mode the entry point is <code>dist/server/entry.mjs</code>, and it reads <code>HOST</code> and <code>PORT</code> from the environment, so bind it to the port your platform assigns:</p>
+  <pre><code>npm run build                         # writes dist/server + dist/client
+HOST=0.0.0.0 PORT=$PORT node ./dist/server/entry.mjs</code></pre>
+  <p>On Kloudbean you add it as an application on a server, set that start command, and the platform supervises the process, restarting it if it crashes. This is exactly the flow in the <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploy a Node app guide</a>, and it applies unchanged to server-mode Astro.</p>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean console adding a server-mode Astro app as an application on a server">
+    <figcaption>Server-mode Astro is a Node app. Add it as an application, set the start command, and the platform keeps the process alive.</figcaption>
+  </figure>
+
+  <p>One thing to get right: the port. If you hard-code a port instead of reading <code>$PORT</code>, the process can start but never receive traffic, and you get the classic 503. If that bites you, the <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">503-after-deploy fix</a> walks through it. Any secrets or config the server needs (a database URL, an API key) go in environment variables, set in the dashboard, not committed to the repo:</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console environment variables screen for a server-mode Astro app">
+    <figcaption>Server-side config and secrets live in environment variables, read at runtime by the Node process.</figcaption>
+  </figure>
+
+  <p>More on doing this safely in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>. And if your server-mode app needs to persist anything, that's when you reach for a real datastore rather than a file on disk. Here's how to <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">add a managed database to your app</a>.</p>
+
+  <!-- Author: swap this slot for a real screenshot. src -> images/astro-server-terminal.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your terminal running node ./dist/server/entry.mjs and the log line showing it listening on the assigned port.</em><small>Proof the process booted.</small></span></figure>
+
+  <h2>Hybrid: static by default, dynamic only where you mark it</h2>
+  <p>Hybrid is the pragmatic middle, and often the smartest pick. Most of your pages prerender to static files (fast, cheap), and you opt individual routes into server rendering. In current Astro you run <code>output: 'server'</code> and mark the pages that should stay static:</p>
+  <pre><code>// src/pages/about.astro  (a page that never changes per visitor)
+export const prerender = true;
+
+// src/pages/account.astro  (must render live, per user)
+export const prerender = false;</code></pre>
+  <p>You still deploy it as a Node app, because some routes need a server. But the bulk of your pages are served as static output, so you keep most of the speed while the dynamic bits stay dynamic. If you're not sure you need full SSR, this lets you keep almost everything static and opt in one route at a time. Start static, mark the one page that needs data, done.</p>
+
+  <h2>A word on why Astro stays light either way</h2>
+  <p>Worth knowing, because it shapes what you deploy: Astro ships <strong>zero JavaScript by default</strong>. Pages are plain HTML unless you explicitly mark a component as an interactive "island," and only those islands send JS to the browser. So a typical Astro page is mostly HTML with a few small interactive spots, not a heavy bundle. Your <code>output: 'static'</code> build stays lean, which means less to serve and faster loads from the CDN. Server mode stays light for the same reason. There's no giant client runtime riding along either way. Content collections, if you use them, are resolved at build time and work in both modes, so they don't change the deploy target on their own.</p>
+
+  <div class="note"><b>Coming from Vercel or Netlify?</b> Those platforms auto-detect an Astro adapter and hide the server behind their own runtime, which is genuinely convenient. The tradeoff is you don't really own the process or its pricing. On Kloudbean the server-mode app is a plain Node process on a server you control, in the same dashboard as your databases, storage, and static sites. If Vue is also in your stack, the same static-vs-server split applies. Here's <a href="https://www.kloudbean.com/blog/deploy-vue-app/">deploying a Vue app</a>, and <a href="https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/">a Next.js app on your own server</a> if you're mixing frameworks.</div>
+
+  <h2>So which mode should you deploy?</h2>
+  <p>Default to static. It's cheaper, simpler, and scales without effort, and for the content-heavy sites Astro excels at, it's everything you need. Reach for server (or hybrid) only when a page must be decided at request time. And because switching is one config line plus an adapter, you're never locked in. Start static. If a feature later needs the server, add the adapter, mark that route, redeploy. You don't have to pick perfectly up front, and you don't have to change hosts to change your mind.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">One project, two ways to ship. Your call.</p>
+    <p style="margin:0 0 .6em">Deploy your Astro site static or server on Kloudbean, and switch modes later without switching hosts. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Free static hosting · Custom domain + SSL · Built-in visit analytics · Node process for SSR · Git auto-deploy with live build logs · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I deploy an Astro app?</h3>
+    <p>It depends on your <code>output</code> setting. With <code>output: 'static'</code> (the default), <code>npm run build</code> produces a <code>dist/</code> folder of static files you publish to object storage behind a CDN. With <code>output: 'server'</code>, the build produces a Node app you deploy like any Node application, running the generated entry with a start command bound to the assigned port.</p>
+    <h3>What's the difference between Astro static and server mode?</h3>
+    <p>Static prerenders every page to HTML at build time. No server runs, and you host plain files on a CDN cheaply. Server mode renders pages per request from a live Node process, which supports dynamic per-request content but means running an actual server. The <code>output</code> config line sets which one you get.</p>
+    <h3>Why are my Astro dynamic pages blank or 404 after deploying?</h3>
+    <p>Almost always because you deployed a route that needs the server as if it were static. If a page or API route reads request data or fetches live data, it needs <code>output: 'server'</code> (or <code>prerender = false</code> on that route) plus an adapter like <code>@astrojs/node</code>, then a running process. A static build has no server to execute that code, so the route ships empty or frozen at its build-time snapshot.</p>
+    <h3>Do I need an adapter to deploy Astro?</h3>
+    <p>Only for server or hybrid mode. Static needs no adapter, since the build is just files. For a Node server you add <code>@astrojs/node</code> (via <code>npx astro add node</code>), which tells Astro to build a server it can run as a process.</p>
+    <h3>Which Astro output mode should I use?</h3>
+    <p>Default to static. It's cheaper, simpler, and scales for free, and it suits the content sites Astro is built for. Use server or hybrid only when you need content decided at request time, like logged-in pages, live data, or form handlers. Hybrid keeps most pages static and renders just the dynamic routes.</p>
+    <h3>How do I deploy a server-rendered Astro app?</h3>
+    <p>Add the Node adapter, run <code>npm run build</code>, and start the generated server (in standalone mode that's <code>node ./dist/server/entry.mjs</code>) bound to the assigned <code>$PORT</code>. Deploy it as an application on a server the platform keeps running, and put any secrets in environment variables. It's the same flow as any Node app.</p>
+    <h3>Can I switch an Astro site from static to server later?</h3>
+    <p>Yes, and this is one of Astro's real strengths. It's one config change plus adding an adapter, so you can start fully static and move to hybrid or server the day a feature needs request-time rendering. You don't have to change hosts to do it.</p>
+    <h3>Where do content collections and images fit in the deploy?</h3>
+    <p>Content collections are resolved at build time, so they work the same in static and server mode and don't change your deploy target. Large images and user uploads are better kept in object storage than committed to the repo, which keeps your build lean and your files served from a CDN.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Static when you can, a server when you must.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Astro Static vs Server: Which One Are You Actually Deploying?","description":"How to deploy an Astro app in every mode. Static builds to files on a CDN, server needs a Node adapter and a live process, hybrid mixes both. Pick the right mode and stop dynamic pages coming back blank.","image":"https://www.kloudbean.com/blog/deploy-astro-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/deploy-astro-app/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I deploy an Astro app?","acceptedAnswer":{"@type":"Answer","text":"It depends on your output setting. With output: static (the default), npm run build produces a dist/ folder of static files you publish to object storage behind a CDN. With output: server, the build produces a Node app you deploy like any Node application, running the generated entry with a start command bound to the assigned port."}},
+{"@type":"Question","name":"What is the difference between Astro static and server mode?","acceptedAnswer":{"@type":"Answer","text":"Static prerenders every page to HTML at build time. No server runs, and you host plain files on a CDN cheaply. Server mode renders pages per request from a live Node process, which supports dynamic per-request content but means running an actual server. The output config line sets which one you get."}},
+{"@type":"Question","name":"Why are my Astro dynamic pages blank or 404 after deploying?","acceptedAnswer":{"@type":"Answer","text":"Almost always because you deployed a route that needs the server as if it were static. If a page or API route reads request data or fetches live data, it needs output: server (or prerender = false on that route) plus an adapter like the Node adapter, then a running process. A static build has no server to execute that code, so the route ships empty or frozen at its build-time snapshot."}},
+{"@type":"Question","name":"Do I need an adapter to deploy Astro?","acceptedAnswer":{"@type":"Answer","text":"Only for server or hybrid mode. Static needs no adapter, since the build is just files. For a Node server you add the Node adapter (via npx astro add node), which tells Astro to build a server it can run as a process."}},
+{"@type":"Question","name":"Which Astro output mode should I use?","acceptedAnswer":{"@type":"Answer","text":"Default to static. It is cheaper, simpler, and scales for free, and it suits the content sites Astro is built for. Use server or hybrid only when you need content decided at request time, like logged-in pages, live data, or form handlers. Hybrid keeps most pages static and renders just the dynamic routes."}},
+{"@type":"Question","name":"How do I deploy a server-rendered Astro app?","acceptedAnswer":{"@type":"Answer","text":"Add the Node adapter, run npm run build, and start the generated server (in standalone mode that is node ./dist/server/entry.mjs) bound to the assigned PORT. Deploy it as an application on a server the platform keeps running, and put any secrets in environment variables. It is the same flow as any Node app."}},
+{"@type":"Question","name":"Can I switch an Astro site from static to server later?","acceptedAnswer":{"@type":"Answer","text":"Yes, and this is one of Astro's real strengths. It is one config change plus adding an adapter, so you can start fully static and move to hybrid or server the day a feature needs request-time rendering. You do not have to change hosts to do it."}},
+{"@type":"Question","name":"Where do content collections and images fit in the deploy?","acceptedAnswer":{"@type":"Answer","text":"Content collections are resolved at build time, so they work the same in static and server mode and do not change your deploy target. Large images and user uploads are better kept in object storage than committed to the repo, which keeps your build lean and your files served from a CDN."}}
+]}
+]}
+</script>
+</body>
+</html>

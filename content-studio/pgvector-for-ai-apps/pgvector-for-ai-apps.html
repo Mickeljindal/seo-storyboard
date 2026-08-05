@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pgvector: Use Postgres as a Vector Database for AI Apps</title>
+<meta name="description" content="pgvector turns Postgres into a vector database for AI apps: store embeddings next to your data and run semantic search or RAG with one database, not two.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/pgvector-for-ai-apps/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="pgvector: Use Postgres as a Vector Database for AI Apps">
+<meta property="og:description" content="Store embeddings in Postgres with pgvector, run semantic search and RAG, and skip the separate vector database. Real SQL, HNSW vs IVFFlat, and the honest tradeoffs.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">AI &amp; databases</span>
+  <h1>pgvector: Use Postgres as a Vector Database for AI Apps</h1>
+
+  <figure><img src="images/hero.png" alt="pgvector: using Postgres as a vector database for AI apps"></figure>
+
+  <p class="lead">You're adding AI features to your app. Semantic search, a chatbot that knows your own docs, maybe recommendations. And everywhere you look, the advice is the same: go buy a dedicated vector database. Most apps don't need one. Postgres already does vector search through an extension called <strong>pgvector</strong>, which stores your embeddings right next to your relational data. One database instead of two. This guide teaches pgvector properly, then shows the one case where a separate vector store still earns its place.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p><strong>pgvector</strong> is a PostgreSQL extension that adds a <code>vector</code> column type and distance operators, so Postgres can store embeddings and run similarity search. For most apps, well under a few million vectors, that's all you need: keep vectors beside your rows, filter by user and similarity in one query, and skip the second system. Add an HNSW or IVFFlat index once the table grows. Reach for a dedicated vector database when you genuinely outgrow Postgres.</p>
+  </div>
+
+  <h2>What is pgvector?</h2>
+  <p>pgvector is an open-source extension for PostgreSQL that teaches the database two new tricks. First, a <code>vector</code> data type for storing embeddings. Second, a set of distance operators for measuring how close two vectors are. Install it, and a plain Postgres table can hold a 1536-dimension embedding in a column beside a user's name, a SKU, or a document's text.</p>
+  <p>No separate service. Your existing SQL, client library, and backups all still work, because it's just another column in just another table. Postgres becomes a vector database without becoming a different database, and that matters more than it sounds.</p>
+
+  <h2>What embeddings and vector search actually are</h2>
+  <p>Before the SQL, the concept, because it's simpler than the jargon makes it sound. An embedding is a list of numbers that represents the meaning of something: a sentence, an image, a product. You feed text to an embedding model, OpenAI's <code>text-embedding-3-small</code> or an open one you run yourself, and it hands back an array of floats. Say 1536 of them. That array is a point in high-dimensional space, and similar things land near each other. "How do I get a refund?" and "What's your return policy?" sit close together even though they share almost no words. That's the leap over keyword search: it matches meaning, not spelling.</p>
+  <p>Vector search is just finding the nearest points to a query point. You embed the user's question into the same space, then ask the database for the rows whose vectors sit closest, measured with a distance function, most often cosine distance. That's the whole idea.</p>
+
+  <!-- ADD IMAGE: a 2D scatter plot showing embedding clusters (support questions grouped, product names grouped). Swap for a real diagram: src -> images/embedding-space.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A simple 2D scatter showing similar sentences clustering together in embedding space.</em><small>Makes the "similar things sit close" idea visual.</small></span></figure>
+
+  <h2>Do you actually need a dedicated vector database?</h2>
+  <p>Here's my honest position, and it'll annoy a few people: most apps adding AI search do not need a dedicated vector database. Pinecone, Weaviate, Milvus, Qdrant, and the rest are genuinely good, and at very large scale or extreme query volume they pull ahead. But "very large scale" is bigger than most teams assume. If you're holding well under a few million vectors, and most apps are, Postgres with pgvector handles it comfortably.</p>
+  <p>So what does a separate vector database actually cost you? Not just the monthly bill. It's a second system to run and secure, and a second copy of your data that has to stay in sync with your source of truth. Your app writes a row to Postgres, then writes its embedding to the vector store, and now you own a consistency problem. What if the first write succeeds and the second fails, or a row gets deleted in Postgres but its vector lingers? You end up maintaining reconciliation jobs nobody enjoys.</p>
+  <p>Keep the vectors in Postgres and those problems disappear. The row and its embedding commit in the same transaction, so they're never out of step. You can filter by an ordinary column and by similarity in a single query (closest support articles for <em>this</em> user's language, say). One database to operate and back up, one connection string. That's a real architectural win, not a slogan.</p>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>Postgres + pgvector</th><th>Dedicated vector DB</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Systems to run</strong></td><td>One (you already have it)</td><td>Two, plus the sync between them</td></tr>
+      <tr><td><strong>Consistency</strong></td><td>Row and vector commit together</td><td>You keep two stores in sync</td></tr>
+      <tr><td><strong>Filter + similarity</strong></td><td>One SQL query with a WHERE</td><td>Metadata filtering, often more limited</td></tr>
+      <tr><td><strong>Joins to real data</strong></td><td>Native SQL joins</td><td>Fetch IDs, then query Postgres anyway</td></tr>
+      <tr><td><strong>Best scale</strong></td><td>Thousands to a few million vectors</td><td>Tens of millions and up, high QPS</td></tr>
+      <tr><td><strong>Ops + cost</strong></td><td>One bill, one thing to back up</td><td>Extra service, extra spend, extra ops</td></tr>
+    </tbody>
+  </table>
+
+  <figure>
+    <svg viewBox="0 0 760 360" role="img" aria-label="Two databases kept in sync versus one Postgres with pgvector holding rows and embeddings together" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="34" y="40" fill="#000f27" font-family="Poppins,sans-serif" font-size="13.5" font-weight="700">App DB + separate vector DB</text>
+      <text x="470" y="40" fill="#000f27" font-family="Poppins,sans-serif" font-size="13.5" font-weight="700">One Postgres with pgvector</text>
+      <line x1="380" y1="56" x2="380" y2="320" stroke="#c9d0e3" stroke-width="1.5" stroke-dasharray="5 6"/>
+
+      <!-- left: two systems -->
+      <text x="194" y="108" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11" font-weight="600">sync + reconcile</text>
+      <line x1="170" y1="130" x2="216" y2="130" stroke="#5b6a86" stroke-width="2"/>
+      <path d="M216 130 l-9 -4 v8 z" fill="#5b6a86"/>
+      <line x1="216" y1="150" x2="170" y2="150" stroke="#5b6a86" stroke-width="2"/>
+      <path d="M170 150 l9 -4 v8 z" fill="#5b6a86"/>
+
+      <ellipse cx="110" cy="140" rx="54" ry="11" fill="#1b2a4a"/>
+      <path d="M56 140 v56 a54 11 0 0 0 108 0 v-56" fill="#000f27"/>
+      <ellipse cx="110" cy="140" rx="54" ry="11" fill="#1b2a4a"/>
+      <text x="110" y="176" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">App DB</text>
+      <text x="110" y="193" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="10.5">rows, users, docs</text>
+
+      <ellipse cx="280" cy="140" rx="54" ry="11" fill="#6b3cff"/>
+      <path d="M226 140 v56 a54 11 0 0 0 108 0 v-56" fill="#4F1AF3"/>
+      <ellipse cx="280" cy="140" rx="54" ry="11" fill="#6b3cff"/>
+      <text x="280" y="176" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Vector DB</text>
+      <text x="280" y="193" text-anchor="middle" fill="#d8ccff" font-family="Poppins,sans-serif" font-size="10.5">embeddings</text>
+
+      <text x="194" y="248" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11.5">two copies of the truth</text>
+      <text x="194" y="266" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11.5">to keep consistent</text>
+
+      <!-- right: one postgres -->
+      <ellipse cx="575" cy="132" rx="96" ry="16" fill="#eef6f0" stroke="#40b75f" stroke-width="1.5"/>
+      <path d="M479 132 v112 a96 16 0 0 0 192 0 v-112" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
+      <ellipse cx="575" cy="132" rx="96" ry="16" fill="#eef6f0" stroke="#40b75f" stroke-width="1.5"/>
+      <rect x="502" y="150" width="146" height="40" rx="9" fill="#000f27"/>
+      <text x="575" y="175" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">rows · users · SKUs</text>
+      <rect x="502" y="198" width="146" height="40" rx="9" fill="#4F1AF3"/>
+      <text x="575" y="223" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">vector(1536) column</text>
+      <text x="575" y="286" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600">one transaction · one backup · real joins</text>
+    </svg>
+    <figcaption>Two databases means a sync-and-reconcile problem. Postgres with pgvector keeps rows and embeddings in one place, committed together.</figcaption>
+  </figure>
+
+  <div class="note"><b>Coming from Pinecone or a dedicated vector store?</b> You don't have to rip it out overnight. But if you added it because "everyone said I needed a vector database," check whether a single Postgres would do the job with less to run.</div>
+
+  <h2>How to store embeddings in Postgres with pgvector</h2>
+  <p>Enough theory. Here's the actual SQL. First, enable the extension and create a table with a vector column, its dimension matching your embedding model (1536 for OpenAI's <code>text-embedding-3-small</code>).</p>
+
+<pre><code>-- turn Postgres into a vector store
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- your real columns AND the embedding, side by side
+CREATE TABLE document (
+  id         bigserial PRIMARY KEY,
+  user_id    bigint NOT NULL,
+  content    text   NOT NULL,
+  embedding  vector(1536)     -- 1536 dims to match the model
+);</code></pre>
+
+  <p>Notice that <code>user_id</code> and <code>content</code> live in the same row as the embedding. That's the point. Now insert a row. The vector comes back from your model as an array of floats, and you store it as-is.</p>
+
+<pre><code>-- the row and its embedding go in together, one INSERT
+INSERT INTO document (user_id, content, embedding)
+VALUES (42,
+        'Refunds are processed within 5 business days.',
+        '[0.0123, -0.0456, 0.0789, ...]');   -- vector from your model</code></pre>
+
+  <p>Then search. To find the chunks closest to a question, embed it and order by distance. pgvector gives you three distance operators; you'll almost always use cosine:</p>
+  <ul>
+    <li><code>&lt;=&gt;</code> cosine distance (the usual choice for text embeddings)</li>
+    <li><code>&lt;-&gt;</code> Euclidean, or L2, distance</li>
+    <li><code>&lt;#&gt;</code> negative inner product</li>
+  </ul>
+
+<pre><code>-- the 5 rows nearest to the question's embedding
+SELECT id, content
+FROM document
+ORDER BY embedding &lt;=&gt; '[0.011, -0.043, 0.080, ...]'
+LIMIT 5;</code></pre>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed PostgreSQL database, the engine that runs pgvector">
+    <figcaption>pgvector runs on standard PostgreSQL. Launch a managed Postgres, then enable the extension on it.</figcaption>
+  </figure>
+
+  <p>Now the query a separate vector database makes awkward and Postgres makes trivial: similarity <em>and</em> a normal filter, in one round trip. Search only this user's documents, ranked by closeness.</p>
+
+<pre><code>-- similarity AND a plain WHERE, one query, one round trip
+SELECT id, content
+FROM document
+WHERE user_id = 42                 -- ordinary relational filter
+ORDER BY embedding &lt;=&gt; $1         -- $1 = the query embedding
+LIMIT 5;</code></pre>
+
+  <p>Try doing that cleanly across two systems. You can't, not without fetching IDs from one and re-querying the other. That's a big part of why vectors in Postgres feel calmer. The app wiring is the same as any database, a <code>DATABASE_URL</code> in an env var; the full walkthrough is in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">how to add a managed database to your app</a>.</p>
+
+  <!-- ADD IMAGE: a psql session running the nearest-neighbour query and returning ranked rows. Swap for a real screenshot: src -> images/psql-vector-query.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A psql session running the ORDER BY distance query and showing ranked results.</em><small>Proof the query works end to end.</small></span></figure>
+
+  <h2>Indexing pgvector for speed: HNSW or IVFFlat?</h2>
+  <p>By default, that <code>ORDER BY embedding &lt;=&gt; ...</code> query does an exact search. It compares the query vector against every row and returns the true nearest neighbours. For a few thousand rows that's genuinely fine, and the results are exact. Don't add an index before you need one.</p>
+  <p>But a sequential scan gets slower as the table grows. Once you're into tens or hundreds of thousands of vectors, you add an approximate nearest neighbour (ANN) index. "Approximate" is the tradeoff: it returns the nearest neighbours <em>almost</em> always, swapping a sliver of recall for a big speedup. pgvector offers two.</p>
+
+<pre><code>-- HNSW: builds a graph, great recall and speed, more memory
+CREATE INDEX ON document
+USING hnsw (embedding vector_cosine_ops);
+
+-- IVFFlat: buckets the vectors; build it AFTER you have data
+CREATE INDEX ON document
+USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);</code></pre>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>HNSW</th><th>IVFFlat</th></tr></thead>
+    <tbody>
+      <tr><td><strong>How it works</strong></td><td>Navigable graph of vectors</td><td>Partitions vectors into lists</td></tr>
+      <tr><td><strong>Recall / quality</strong></td><td>Higher, tunable</td><td>Good, depends on list count</td></tr>
+      <tr><td><strong>Query speed</strong></td><td>Fast, even at scale</td><td>Fast once tuned</td></tr>
+      <tr><td><strong>Build time + memory</strong></td><td>Slower build, more RAM</td><td>Quicker build, lighter</td></tr>
+      <tr><td><strong>Needs data first?</strong></td><td>No</td><td>Yes, train on existing rows</td></tr>
+      <tr><td><strong>Reach for it when</strong></td><td>You want the best recall and can spare memory</td><td>You want a cheap index and can tune lists</td></tr>
+    </tbody>
+  </table>
+
+  <p>My default is HNSW. It gives excellent recall out of the box and stays fast as the table grows, and the extra memory is usually a fair trade. IVFFlat is lighter and builds faster, but it wants to be built after you've loaded data (it trains on the existing rows), and you have to pick a sensible <code>lists</code> value. One rule that saves headaches: build the index once real data is in, not on an empty table.</p>
+
+  <!-- ADD IMAGE: EXPLAIN ANALYZE output before and after adding the HNSW index, showing the speedup. Swap for a real screenshot: src -> images/explain-hnsw.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>EXPLAIN ANALYZE for the same query before and after the HNSW index.</em><small>Shows the sequential scan turning into an index scan.</small></span></figure>
+
+  <h2>Can I use pgvector for RAG?</h2>
+  <p>Yes, and it's the most common reason people install it. Retrieval-augmented generation (RAG) is how you get an LLM to answer from <em>your</em> content instead of guessing. pgvector is the retrieval half. The flow is short:</p>
+  <ul>
+    <li><strong>Chunk</strong> your documents into pieces of a few hundred words each.</li>
+    <li><strong>Embed</strong> every chunk with your embedding model.</li>
+    <li><strong>Store</strong> the chunk text and its vector in a pgvector table.</li>
+    <li><strong>Retrieve</strong> at query time: embed the user's question, run the top-k similarity query, get the closest chunks.</li>
+    <li><strong>Generate</strong>: hand those chunks to the LLM as context and let it answer, grounded in your data.</li>
+  </ul>
+  <p>That's it. The database's whole job is step four, the top-k lookup you already saw. Because it's Postgres, you can scope retrieval with a WHERE (only this customer's knowledge base, only published articles) in the same query, which is exactly the filtering real RAG apps need. Shipping an AI feature end to end? Pair this with <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploying an AI-built app to production</a>.</p>
+
+  <h2>Where pgvector stops being the right tool</h2>
+  <p>I've argued hard for Postgres, so let me be honest about its edges. pgvector is excellent up to a point, and past it a specialised engine can win. A few real limits:</p>
+  <ul>
+    <li><strong>Very large scale.</strong> At tens of millions of vectors with high queries per second, purpose-built vector databases are engineered for that and will often beat a general-purpose Postgres. Use the right tool for that world.</li>
+    <li><strong>Index memory.</strong> HNSW indexes live in memory and grow with your data and dimensions, so size your instance for the index, not just the table.</li>
+    <li><strong>Dimensions matter.</strong> Bigger embeddings capture more nuance but cost more storage, more memory, and slower distance math. Pick the smallest model that hits your quality bar.</li>
+    <li><strong>You still need a model.</strong> Postgres stores and searches vectors, it does not create them. Embeddings come from a model you call, OpenAI or an open one you host, and that step lives in your app.</li>
+  </ul>
+  <p>Start on Postgres, measure, and move only if you actually hit a wall. Premature "we need a vector database" is a classic case of solving a scale problem you don't have yet.</p>
+
+  <h2>Running pgvector on a managed Postgres</h2>
+  <p>So where does this land in practice? pgvector is a standard PostgreSQL extension, so the real question is where your Postgres runs. On <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a>, one of Kloudbean's seven managed database engines, you get the database provisioned, patched, backed up, and kept on a <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">private network</a> with controlled access. Your app reaches it over that private network with a connection string in an environment variable, the same as any Postgres.</p>
+  <p>One honest note, because I won't oversell it: enabling the pgvector extension depends on your specific Postgres setup and version, so check availability for your instance rather than assuming it's turned on. Kloudbean doesn't sell a separate "vector database" product, and it doesn't need to. Run one managed Postgres, keep your app data and your embeddings together, and back the whole thing up as a unit.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console storing the Postgres DATABASE_URL as an environment variable for a pgvector-backed app">
+    <figcaption>One database, one connection string. Store <code>DATABASE_URL</code> as an env var, never in code.</figcaption>
+  </figure>
+
+<pre><code># one database for app data AND vectors, one connection string
+DATABASE_URL=postgresql://appuser:s3cret@10.0.0.5:5432/appdb</code></pre>
+
+  <p>From there it's ordinary Postgres work. Your ORM connects the usual way (here's <a href="https://www.kloudbean.com/blog/connect-prisma-to-a-managed-database/">connecting Prisma to a managed database</a>), you handle load with <a href="https://www.kloudbean.com/blog/database-connection-pooling/">connection pooling</a>, and you cache the hot reads. Redis and Postgres do different jobs, so if you're weighing them, see <a href="https://www.kloudbean.com/blog/when-to-use-redis-vs-postgres/">when to use Redis vs Postgres</a>. Still choosing an engine? <a href="https://www.kloudbean.com/blog/mysql-vs-postgresql/">MySQL vs PostgreSQL</a> covers it (short version for AI work: Postgres, because pgvector).</p>
+
+  <!-- ADD IMAGE: your app's chat UI answering from retrieved chunks, with the source documents cited. Swap for a real screenshot: src -> images/rag-answer.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>An app answering a question using chunks retrieved from pgvector, with sources listed.</em><small>Shows the payoff: grounded answers from your own data.</small></span></figure>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Keep your vectors where your data already lives.</p>
+    <p style="margin:0 0 .6em">Run a managed PostgreSQL for your app data and your embeddings together, with automatic backups, private networking, and free migration help. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed PostgreSQL · Automatic backups · Private networking · Free migration · Free trial · Simple Git deploy</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is pgvector?</h3>
+    <p>pgvector is an open-source PostgreSQL extension that adds a <code>vector</code> column type and distance operators. With it enabled, a normal Postgres table can store embeddings and run similarity search, turning Postgres into a vector database with no separate system to run.</p>
+    <h3>Do I need a dedicated vector database?</h3>
+    <p>Usually not. If your app holds well under a few million vectors, Postgres with pgvector handles semantic search comfortably and you avoid running and syncing a second system. Dedicated vector databases earn their keep at very large scale or extreme query volume.</p>
+    <h3>Is Postgres good enough for vector search?</h3>
+    <p>For most apps, yes. pgvector does exact search on small tables and approximate (ANN) indexes like HNSW and IVFFlat on larger ones, staying fast into the millions of vectors. The real edge is combining similarity with ordinary SQL filters and joins in one query.</p>
+    <h3>pgvector vs Pinecone: which should I use?</h3>
+    <p>Use pgvector when you already run Postgres and want one database, transactional consistency, and SQL filtering alongside similarity. Consider Pinecone or another dedicated vector database when you outgrow Postgres, at tens of millions of vectors or very high query volume. Start with pgvector and move only if you hit a wall.</p>
+    <h3>What index should I use, HNSW or IVFFlat?</h3>
+    <p>HNSW is the strong default: excellent recall and fast queries, at the cost of a slower build and more memory. IVFFlat is lighter and builds faster, but create it after loading data and tune the list count. Small tables may need no index at all.</p>
+    <h3>How do I store embeddings in Postgres?</h3>
+    <p>Run <code>CREATE EXTENSION vector</code>, then create a table with a <code>vector(N)</code> column where N matches your model, such as 1536. Generate the embedding with your model and INSERT it like any value. It lives in the same row as your normal columns.</p>
+    <h3>Can I use pgvector for RAG?</h3>
+    <p>Yes, it's a main reason people install it. You chunk documents, embed each chunk, and store the text and vector in pgvector. At query time you embed the question, fetch the top-k nearest chunks, and pass them to the LLM as context.</p>
+    <h3>What distance should I use, cosine or L2?</h3>
+    <p>For most text embeddings, cosine distance is standard, since it compares direction rather than magnitude. pgvector also supports Euclidean (L2) distance and inner product. Match the distance to what your embedding model was trained with, and use the matching index operator class.</p>
+    <h3>How many vectors can pgvector handle?</h3>
+    <p>Comfortably into the millions on a right-sized instance, especially with an HNSW index. The practical limits are index memory and query latency, which scale with row count and dimensions. Look at a specialised engine around tens of millions of vectors with heavy traffic.</p>
+    <h3>Is pgvector available on managed Postgres or Kloudbean?</h3>
+    <p>pgvector is the standard PostgreSQL vector extension, and Kloudbean offers managed PostgreSQL with backups, private networking, and controlled access. Whether the extension can be enabled depends on your specific Postgres setup and version, so check availability for your instance. Kloudbean does not sell a separate vector database product.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · Vectors, in your database.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"pgvector: Use Postgres as a Vector Database for AI Apps","description":"pgvector turns Postgres into a vector database for AI apps: store embeddings next to your data and run semantic search or RAG with one database, not two. Real SQL, HNSW vs IVFFlat, and the honest tradeoffs.","image":"https://www.kloudbean.com/blog/pgvector-for-ai-apps/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/pgvector-for-ai-apps/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is pgvector?","acceptedAnswer":{"@type":"Answer","text":"pgvector is an open-source PostgreSQL extension that adds a vector column type and distance operators. With it enabled, a normal Postgres table can store embeddings and run similarity search, turning Postgres into a vector database with no separate system to run."}},
+{"@type":"Question","name":"Do I need a dedicated vector database?","acceptedAnswer":{"@type":"Answer","text":"Usually not. If your app holds well under a few million vectors, Postgres with pgvector handles semantic search comfortably and you avoid running and syncing a second system. Dedicated vector databases earn their keep at very large scale or extreme query volume."}},
+{"@type":"Question","name":"Is Postgres good enough for vector search?","acceptedAnswer":{"@type":"Answer","text":"For most apps, yes. pgvector does exact search on small tables and approximate (ANN) indexes like HNSW and IVFFlat on larger ones, staying fast into the millions of vectors. The real edge is combining similarity with ordinary SQL filters and joins in one query."}},
+{"@type":"Question","name":"pgvector vs Pinecone: which should I use?","acceptedAnswer":{"@type":"Answer","text":"Use pgvector when you already run Postgres and want one database, transactional consistency, and SQL filtering alongside similarity. Consider Pinecone or another dedicated vector database when you outgrow Postgres, at tens of millions of vectors or very high query volume. Start with pgvector and move only if you hit a wall."}},
+{"@type":"Question","name":"What index should I use, HNSW or IVFFlat?","acceptedAnswer":{"@type":"Answer","text":"HNSW is the strong default: excellent recall and fast queries, at the cost of a slower build and more memory. IVFFlat is lighter and builds faster, but create it after loading data and tune the list count. Small tables may need no index at all."}},
+{"@type":"Question","name":"How do I store embeddings in Postgres?","acceptedAnswer":{"@type":"Answer","text":"Run CREATE EXTENSION vector, then create a table with a vector(N) column where N matches your model, such as 1536. Generate the embedding with your model and INSERT it like any value. It lives in the same row as your normal columns."}},
+{"@type":"Question","name":"Can I use pgvector for RAG?","acceptedAnswer":{"@type":"Answer","text":"Yes, it's a main reason people install it. You chunk documents, embed each chunk, and store the text and vector in pgvector. At query time you embed the question, fetch the top-k nearest chunks, and pass them to the LLM as context."}},
+{"@type":"Question","name":"What distance should I use, cosine or L2?","acceptedAnswer":{"@type":"Answer","text":"For most text embeddings, cosine distance is standard, since it compares direction rather than magnitude. pgvector also supports Euclidean (L2) distance and inner product. Match the distance to what your embedding model was trained with, and use the matching index operator class."}},
+{"@type":"Question","name":"How many vectors can pgvector handle?","acceptedAnswer":{"@type":"Answer","text":"Comfortably into the millions on a right-sized instance, especially with an HNSW index. The practical limits are index memory and query latency, which scale with row count and dimensions. Look at a specialised engine around tens of millions of vectors with heavy traffic."}},
+{"@type":"Question","name":"Is pgvector available on managed Postgres or Kloudbean?","acceptedAnswer":{"@type":"Answer","text":"pgvector is the standard PostgreSQL vector extension, and Kloudbean offers managed PostgreSQL with backups, private networking, and controlled access. Whether the extension can be enabled depends on your specific Postgres setup and version, so check availability for your instance. Kloudbean does not sell a separate vector database product."}}
+]}
+]}
+</script>
+</body>
+</html>

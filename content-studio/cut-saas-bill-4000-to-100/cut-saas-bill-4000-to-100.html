@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How One Team Cut a $4,000 Hosting Bill to $100</title>
+<meta name="description" content="An illustrative teardown of how a scattered SaaS-and-cloud bill balloons to $4,000 — and how consolidating hosting, databases and per-project costs onto one owned server collapses it. The honest math, and what it can't cut.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/cut-saas-bill-4000-to-100/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How One Team Cut a $4,000 Hosting Bill to $100">
+<meta property="og:description" content="An illustrative before-and-after teardown: where a $4,000 SaaS hosting bill actually hides, and how consolidating onto one owned server collapses it — honestly.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Cost teardown · ownership</span>
+  <h1>How One Team Cut a $4,000 Hosting Bill to $100</h1>
+
+  <figure><img src="images/hero.png" alt="How one team cut a $4,000 hosting bill to $100 by consolidating onto one owned server"></figure>
+
+  <p class="lead">The bill never arrives as one shock. It creeps. A plan bump here because you added a teammate. A database tier upgrade there because you crossed a row limit. A second project on its own plan. An add-on for logs, another for preview environments, a usage overage in a month that went well. Each charge looked reasonable the day it appeared. Then one afternoon you total them up and the number is genuinely startling. This is a teardown of how that happens, and the honest way to cut a SaaS hosting bill by consolidating the pieces onto one server you own. Fair warning up front: the numbers here are an illustrative worked example, not a real customer's invoice.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>Big hosting bills are rarely one big charge. They're a metered, per-seat, per-project stack that crept up one reasonable line at a time. The lever that changes the math is consolidating hosting, databases, and multiple projects onto one flat-rate server you own. It won't cancel the genuine third-party SaaS you actually use (email, analytics, auth), and it won't help much if you're tiny. For a growing team paying three kinds of multiplier on the same infrastructure, it turns a bill that scales with everything into one flat number you control. The figures below are illustrative.</p>
+  </div>
+
+  <div class="note"><b>Read the numbers as a worked example.</b> No named customer, no real invoice, no promised price. These are realistic, publicly-typical pricing shapes assembled to show <em>where the money hides</em> and why consolidation collapses it. Your figure depends entirely on your traffic and stack.</div>
+
+  <h2>An illustrative $4,000 bill, drawn to scale</h2>
+  <p>First, the picture. On the left is the scattered infrastructure stack, each metered line drawn to its size. On the right is what replaces it: one flat-rate server. Same app, same traffic, wildly different bill. The genuine third-party SaaS sits outside this chart on purpose, because it doesn't move.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 460" width="100%" role="img" aria-label="An illustrative before-and-after cost comparison. The BEFORE bar is a tall stack of separate metered infrastructure charges totalling about 3,460 dollars a month: serverless and edge platform with team seats and usage 1,300, a second and third project on their own plans 700, managed Postgres climbing tiers 480, logs and metrics 360, object storage and egress 240, preview and staging add-on 200, and managed Redis 180. The AFTER bar is a single short green bar of about 100 dollars a month for one flat-rate server. A note states third-party SaaS such as email, analytics, and auth is separate and unchanged on both sides, and the numbers are illustrative.">
+      <rect x="1" y="1" width="718" height="458" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="360" y="32" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="17" font-weight="700" fill="#000f27">Where the bill hides: scattered infra vs one server</text>
+
+      <!-- headers -->
+      <text x="135" y="74" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="700" letter-spacing="0.08em" fill="#8a94ab">BEFORE</text>
+      <text x="615" y="74" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="700" letter-spacing="0.08em" fill="#2f9e52">AFTER</text>
+
+      <!-- baseline -->
+      <line x1="60" y1="400" x2="680" y2="400" stroke="#c9d0e3" stroke-width="1.5"/>
+
+      <!-- BEFORE stacked bar -->
+      <g stroke="#fff" stroke-width="1">
+        <rect x="80" y="284" width="110" height="116" fill="#4F1AF3"/>
+        <rect x="80" y="221" width="110" height="63" fill="#5a2af0"/>
+        <rect x="80" y="178" width="110" height="43" fill="#7b57e6"/>
+        <rect x="80" y="146" width="110" height="32" fill="#d98324"/>
+        <rect x="80" y="124" width="110" height="22" fill="#e0a24a"/>
+        <rect x="80" y="106" width="110" height="18" fill="#5b6a86"/>
+        <rect x="80" y="90" width="110" height="16" fill="#8a94ab"/>
+      </g>
+      <text x="135" y="420" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="700" fill="#000f27">≈ $3,460/mo</text>
+
+      <!-- legend -->
+      <g font-family="Poppins,Arial,sans-serif" font-size="12" fill="#1c2536">
+        <rect x="212" y="102" width="12" height="12" rx="2" fill="#4F1AF3"/><text x="230" y="112">Serverless / edge (seats + usage) <tspan font-weight="700">$1,300</tspan></text>
+        <rect x="212" y="132" width="12" height="12" rx="2" fill="#5a2af0"/><text x="230" y="142">Projects 2 &amp; 3 (own plans) <tspan font-weight="700">$700</tspan></text>
+        <rect x="212" y="162" width="12" height="12" rx="2" fill="#7b57e6"/><text x="230" y="172">Managed Postgres (tier creep) <tspan font-weight="700">$480</tspan></text>
+        <rect x="212" y="192" width="12" height="12" rx="2" fill="#d98324"/><text x="230" y="202">Logs + metrics / APM <tspan font-weight="700">$360</tspan></text>
+        <rect x="212" y="222" width="12" height="12" rx="2" fill="#e0a24a"/><text x="230" y="232">Object storage + egress <tspan font-weight="700">$240</tspan></text>
+        <rect x="212" y="252" width="12" height="12" rx="2" fill="#5b6a86"/><text x="230" y="262">Preview / staging add-on <tspan font-weight="700">$200</tspan></text>
+        <rect x="212" y="282" width="12" height="12" rx="2" fill="#8a94ab"/><text x="230" y="292">Managed Redis <tspan font-weight="700">$180</tspan></text>
+      </g>
+
+      <!-- consolidate arrow -->
+      <g stroke="#40b75f" stroke-width="2.5" fill="#40b75f">
+        <path d="M470 330 L548 372"/><path d="M540 364 L551 359 L551 374 Z"/>
+      </g>
+      <text x="500" y="322" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" font-weight="600" fill="#2f9e52">consolidate</text>
+
+      <!-- AFTER bar -->
+      <rect x="560" y="386" width="110" height="14" fill="#40b75f" stroke="#2f9e52" stroke-width="1"/>
+      <text x="615" y="378" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#2f9e52">≈ $100</text>
+      <text x="615" y="420" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" fill="#5b6a86">one flat-rate server</text>
+
+      <text x="360" y="446" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#8a94ab">Illustrative. Third-party SaaS (email, analytics, auth) is separate and unchanged on both sides.</text>
+    </svg>
+    <figcaption>Drawn to scale on one axis. The tall stack is what consolidation collapses; the short green bar is what's left.</figcaption>
+  </figure>
+
+  <h2>The $4,000, line by line</h2>
+  <p>Saying "$4,000 on hosting" hides the truth. Laid out honestly, an illustrative bill like this splits into infrastructure you're renting in an expensive shape, plus genuine services you'd pay for anywhere:</p>
+  <table class="cmp">
+    <thead><tr><th>Line item</th><th>How it bills</th><th>Illustrative $/mo</th></tr></thead>
+    <tbody>
+      <tr><td>Serverless / edge platform</td><td>Per seat, times the team, plus usage overages</td><td>$1,300</td></tr>
+      <tr><td>Projects 2 &amp; 3</td><td>Each app on its own paid plan</td><td>$700</td></tr>
+      <tr><td>Managed Postgres</td><td>Started free, climbed tiers on rows and connections</td><td>$480</td></tr>
+      <tr><td>Logs + metrics / APM</td><td>Retention and host-based pricing</td><td>$360</td></tr>
+      <tr><td>Object storage + egress</td><td>Storage plus per-GB bandwidth out</td><td>$240</td></tr>
+      <tr><td>Preview / staging</td><td>Paid add-on per environment</td><td>$200</td></tr>
+      <tr><td>Managed Redis</td><td>Separate metered cache tier</td><td>$180</td></tr>
+      <tr><td><strong>Infrastructure subtotal</strong></td><td><strong>The part that consolidates</strong></td><td><strong>$3,460</strong></td></tr>
+      <tr><td>Third-party SaaS</td><td>Email, analytics, auth, error tracking (stays)</td><td>~$540</td></tr>
+    </tbody>
+  </table>
+  <p>That last row matters, because it's the part consolidation won't erase. Add it to the infrastructure and you're near the $4,000 headline. But roughly $3,460 of it is infrastructure rented in the most expensive possible shape, and that's the part we can collapse.</p>
+
+  <h2>Where the money actually hides: three multipliers</h2>
+  <p>Here's the grounded pattern, and it's the thing that surprises people most when they audit a crept-up bill: the biggest number is rarely the raw compute. It's the multipliers stacking on top of it. Modern platforms are priced to grow with your success in three directions at once.</p>
+  <ul>
+    <li><strong>Per seat.</strong> Each teammate adds cost, whether or not they ever touch infrastructure. Stop paying per-seat hosting and one whole axis disappears.</li>
+    <li><strong>Per project.</strong> Each app is its own plan, so shipping a second and third thing multiplies the base cost instead of sharing it.</li>
+    <li><strong>Per usage.</strong> Requests, function invocations, bandwidth, database rows and connections, build minutes. Every good month costs more.</li>
+  </ul>
+  <p>None of these is a scam. They're rational ways for a platform to charge. But stacked together, your bill scales with your team size, your ambition, and your traffic simultaneously. That's three multipliers on one base, and a team growing on all three axes feels it fast.</p>
+
+  <h2>How consolidating cuts the SaaS hosting bill</h2>
+  <p>The move that changes the math is collapsing the <em>infrastructure</em> portion (hosting, database, and the per-project multiplication) onto a single server you own at a flat monthly price. Flat-rate app hosting removes the multipliers, not just the price. On a managed server it looks like this:</p>
+  <ul>
+    <li><strong>One server, flat price,</strong> no matter how many requests arrive or how many teammates log in to deploy. No per-seat tax on infrastructure.</li>
+    <li><strong>The database sits next to the app</strong> on the same box, a managed Postgres or MySQL you launch from <strong>DBS &#8594; Launch Database</strong>, not a separately metered service climbing tiers.</li>
+    <li><strong>Several apps on one server.</strong> The second and third project become additional applications on the server you already pay for, each with its own domain and database, not three separate plans.</li>
+    <li><strong>Staging is just another app</strong> on the same server, not a paid add-on per environment.</li>
+  </ul>
+  <p>That's where the pile collapses. When hosting stops being per-seat, the database stops being a metered tier, and three projects stop being three plans, the infrastructure line goes from "scales with everything" to "one predictable number." In this example, a single well-sized server in the low hundreds a month replaced the whole infrastructure stack, and because the traffic fit comfortably on one box, the effective figure landed near $100. The roughly $540 of genuine third-party SaaS didn't move, because it never should.</p>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean console Add Application screen, adding a second or third app to a server you already pay for instead of buying another plan">
+    <figcaption>Add Application. Project two and three are extra apps on the server you already own, each with its own domain, not another monthly plan.</figcaption>
+  </figure>
+
+  <h2>What consolidation honestly won't fix</h2>
+  <p>It's a lever, not magic, so here's the straight talk:</p>
+  <ul>
+    <li><strong>Real third-party SaaS stays.</strong> Email delivery, analytics, an external auth provider, error tracking. If you use them, you keep paying for them. Moving servers doesn't touch those subscriptions.</li>
+    <li><strong>Traffic still has to fit.</strong> The price is flat because it's a fixed-size server. If your traffic genuinely needs a bigger box or a load balancer, you size up and the number rises. Still predictable, not frozen at $100 forever.</li>
+    <li><strong>At tiny scale, flat can cost more.</strong> One low-traffic app can be cheaper on a hobby or free tier than on any always-on server. Consolidation pays off when you have several things, a team, or enough usage that metered pricing has turned against you.</li>
+    <li><strong>You now own a server.</strong> Managed means the OS, stack, SSL, and backups are handled. The application is still yours to maintain. A fair trade, not a free lunch.</li>
+  </ul>
+  <p>So don't migrate a single sleepy app for the drama of it. The math only bites once the metered stack has grown teeth.</p>
+
+  <h2>Where people get this wrong</h2>
+  <p>The most common mistake is expecting the flat server to swallow the whole bill, then feeling cheated when the email and analytics invoices keep arriving. That's not a failure of consolidation; those were never infrastructure. Separate the two piles cleanly and the win is obvious and honest, rather than overpromised.</p>
+  <p>The other one is watching only the big, obvious line (the compute plan) while the quiet meters do the damage. Egress fees, per-connection database charges, and log retention rarely show up as a single scary number. They bleed. When we help teams audit, the surprise is almost never the server; it's the sum of the small metered things nobody was watching. Consolidation helps precisely because it turns that scatter of meters into one flat line you can actually see.</p>
+
+  <h2>But isn't one server riskier?</h2>
+  <p>Fair objection, so let's meet it head-on. Spreading your stack across many managed platforms does buy a kind of resilience: if one service has a bad day, the others don't. Consolidating concentrates that. But the trade is more even than it looks. A managed server comes with backups, monitoring, and a process manager that restarts your app if it falls over. And the multi-platform setup has its own hidden fragility: more vendors means more separate outages that can hit you, more billing relationships to manage, and more places for a misconfiguration to hide. If uptime is genuinely critical, you don't abandon consolidation, you scale it deliberately with a load balancer and more than one instance, which a managed server supports without re-architecting your app. For most small teams, one well-backed-up server is more reliable than a sprawl of tiers nobody is actively watching. Concentration isn't automatically risk; unmanaged sprawl carries its own.</p>
+
+  <h2>Why predictable beats cheapest</h2>
+  <p>Here's my actual opinion, after watching a lot of these bills. The goal isn't the lowest possible number. It's a number you can forecast. A flat server costs the same in a quiet month and a viral one, so you can budget it, and a launch that goes well doesn't arrive with a usage-overage hangover. For a small team, a bill you can predict at the start of the month and recognize at the end of it is worth more than shaving off the last few dollars. Cheapest is a trap when "cheapest" also means "unknowable until the invoice lands."</p>
+
+  <!-- ADD IMAGE: swap for a real <figure> with an <img> (src -> images/bill-before-after.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>A simple before/after of the monthly total: a long itemized invoice with many line items next to a one-line flat server charge.</em><small>Reinforces the teardown; use a mocked or anonymized example, no real vendor names or account data.</small></span></figure>
+
+  <h2>Run the teardown on your own bill</h2>
+  <p>You don't need a $4,000 bill for this to matter. Pull up your last invoice and sort every line into two piles:</p>
+  <ol>
+    <li><strong>Infrastructure you're renting:</strong> hosting, database, per-project plans, preview environments, logs, bandwidth. This is the pile a flat server can collapse.</li>
+    <li><strong>Genuine third-party services:</strong> email, analytics, auth, error tracking you'd keep on any host. This pile stays, so leave it alone.</li>
+  </ol>
+  <p>Add up pile one. If it's a meaningful number, and if you're running more than one app, on a team, with real traffic, it usually is, the case makes itself. If it's small, you've just confirmed you're fine where you are, which is also a useful answer. Either way you now know your real infrastructure spend as a single figure, which is more than most teams can say before they do this. The <a href="https://www.kloudbean.com/blog/how-to-cut-your-cloud-bill/">cut your cloud bill guide</a> goes deeper on the exercise, and <a href="https://www.kloudbean.com/blog/cloud-hosting-pricing-explained/">cloud hosting pricing explained</a> unpacks the metered shapes.</p>
+
+  <!-- ADD IMAGE: swap for a real <figure> with an <img> (src -> images/two-piles-worksheet.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>The "two piles" worksheet: invoice lines sorted into "infrastructure (consolidates)" and "third-party SaaS (stays)" columns.</em></span></figure>
+
+  <h2>How the consolidation actually happens</h2>
+  <p>The practical path is undramatic, which is the point. You launch a managed server, deploy each app from its Git repo, move each app's database onto a managed instance on that server, port the environment variables, and cut each domain over with SSL. Apps that lived on three platforms now live on one, behind their own domains, sharing a server you pay for once. Do it one app at a time so nothing goes dark, and decommission each old plan only after its app is confirmed live on the new box. The <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploy walkthrough</a> covers the steps, running the whole stack on <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">one server</a> explains the architecture, and the agencies who do this at scale describe the same pattern in <a href="https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/">hosting 20 client apps</a>.</p>
+
+  <h2>The honest limits</h2>
+  <p>Kloudbean runs <strong>Linux</strong> web stacks: Node, PHP, Python, and frameworks like React, Next.js, Vue, Laravel, Django, and WordPress. That covers what most modern and vibe-coded apps are built on. It isn't for Windows, .NET, or IIS workloads. "Managed" means the server, stack, SSL, and backups are handled while you own your application and data. And to say it once, plainly: consolidation cuts the infrastructure you're overpaying for, not the third-party SaaS you genuinely use. If your unmanaged VPS bill looks cheap by comparison, the <a href="https://www.kloudbean.com/blog/the-real-cost-of-unmanaged-vps/">real cost of an unmanaged VPS</a> is worth reading before you decide, and side projects have their own math in <a href="https://www.kloudbean.com/blog/cost-of-running-a-side-project/">the cost of running a side project</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">A bill you own, not one that owns you.</p>
+    <p style="margin:0">See what a flat, owned server would cost you on <a href="https://www.kloudbean.com/pricing/">pricing</a>, or start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> with your first migration done for you.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Can I really cut my hosting bill from $4,000 to $100?</h3>
+    <p>The numbers here are illustrative, not a guarantee. Your figure depends on your traffic and stack. The real mechanism is consolidating hosting, databases, and multiple per-project plans onto one flat-rate server, which removes the per-seat, per-project, and much of the usage-based cost. How far it drops depends on how much of your bill was that kind of infrastructure.</p>
+    <h3>Will consolidating cancel all my subscriptions?</h3>
+    <p>No. Genuine third-party SaaS stays: transactional email, analytics, external auth, error tracking. Consolidation collapses the infrastructure you rent (hosting, database, per-project plans, preview environments), not services you'd use on any host.</p>
+    <h3>Does one server really host several apps?</h3>
+    <p>Yes. Each app runs as its own application on the server, with its own domain and database, so a second or third project doesn't need a separate plan. It shares the server you already pay for.</p>
+    <h3>When is consolidation not worth it?</h3>
+    <p>When you run a single low-traffic app whose current bill is tiny. A hobby or free tier can beat an always-on server at very small scale. The savings appear when you have several apps, a team, or enough usage that metered pricing has turned expensive.</p>
+    <h3>Is a flat server always the cheapest option?</h3>
+    <p>Not always the absolute cheapest, but usually the most predictable. It costs the same in quiet and busy months, so you can budget it, and for a growing team that predictability is often worth more than the lowest possible line item.</p>
+    <h3>What actually made the bill so high in the first place?</h3>
+    <p>Usually the multipliers, not the compute. Per-seat pricing, per-project plans, and usage meters (bandwidth, database connections, log retention) stack on top of each other, so the bill grows with team size, number of apps, and traffic at the same time. Consolidation removes the per-seat and per-project multipliers and folds the rest into one flat server.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How One Team Cut a $4,000 Hosting Bill to $100","description":"An illustrative before-and-after teardown: where a $4,000 SaaS hosting bill hides, and how consolidating hosting, databases and per-project costs onto one owned server collapses it, and what it can't.","image":"https://www.kloudbean.com/blog/cut-saas-bill-4000-to-100/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/cut-saas-bill-4000-to-100/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Can I really cut my hosting bill from $4,000 to $100?","acceptedAnswer":{"@type":"Answer","text":"The numbers here are illustrative, not a guarantee. Your figure depends on your traffic and stack. The real mechanism is consolidating hosting, databases, and multiple per-project plans onto one flat-rate server, which removes the per-seat, per-project, and much of the usage-based cost. How far it drops depends on how much of your bill was that kind of infrastructure."}},
+{"@type":"Question","name":"Will consolidating cancel all my subscriptions?","acceptedAnswer":{"@type":"Answer","text":"No. Genuine third-party SaaS stays: transactional email, analytics, external auth, error tracking. Consolidation collapses the infrastructure you rent (hosting, database, per-project plans, preview environments), not services you would use on any host."}},
+{"@type":"Question","name":"Does one server really host several apps?","acceptedAnswer":{"@type":"Answer","text":"Yes. Each app runs as its own application on the server, with its own domain and database, so a second or third project does not need a separate plan. It shares the server you already pay for."}},
+{"@type":"Question","name":"When is consolidation not worth it?","acceptedAnswer":{"@type":"Answer","text":"When you run a single low-traffic app whose current bill is tiny. A hobby or free tier can beat an always-on server at very small scale. The savings appear when you have several apps, a team, or enough usage that metered pricing has turned expensive."}},
+{"@type":"Question","name":"Is a flat server always the cheapest option?","acceptedAnswer":{"@type":"Answer","text":"Not always the absolute cheapest, but usually the most predictable. It costs the same in quiet and busy months, so you can budget it, and for a growing team that predictability is often worth more than the lowest possible line item."}},
+{"@type":"Question","name":"What actually made the bill so high in the first place?","acceptedAnswer":{"@type":"Answer","text":"Usually the multipliers, not the compute. Per-seat pricing, per-project plans, and usage meters (bandwidth, database connections, log retention) stack on top of each other, so the bill grows with team size, number of apps, and traffic at the same time. Consolidation removes the per-seat and per-project multipliers and folds the rest into one flat server."}}
+]}
+]}
+</script>
+</body>
+</html>

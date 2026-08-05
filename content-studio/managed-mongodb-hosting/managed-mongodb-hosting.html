@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Managed MongoDB Hosting: When to Use It, and When Not To</title>
+<meta name="description" content="Managed MongoDB hosting: what MongoDB is best for, when not to use it, connection strings, Mongoose and PyMongo drivers, indexing, and a MongoDB Atlas alternative you own.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/managed-mongodb-hosting/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Managed MongoDB Hosting: When to Use It, and When Not To">
+<meta property="og:description" content="What MongoDB is good for, when a relational database is the better call, the mongodb:// connection string, Mongoose and PyMongo, indexing, and an Atlas alternative you control.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Managed databases</span>
+  <h1>Managed MongoDB Hosting: When to Use It, and When Not To</h1>
+
+  <figure><img src="images/hero.png" alt="Managed MongoDB hosting, a document database run for you"></figure>
+
+  <p class="lead">If you built on MongoDB Atlas, or your Node app already imports Mongoose, you know the appeal. Throw a JSON-like object at the database and it just stores it. No migration, no rigid schema. Managed MongoDB hosting keeps that convenience and hands the operations to someone else: the server, the patching, a private network, and automatic backups are all handled, and you get a <code>mongodb://</code> connection string to point your app at. This guide covers what MongoDB actually is, the data it's genuinely good for, the far more common case where a relational database would serve you better, and how to connect and model an app once you've picked it.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>Managed MongoDB hosting is the MongoDB engine run as a service: provisioned, patched, kept on a private network, and backed up, with a connection string you drop into an environment variable. Reach for MongoDB when your data is genuinely document-shaped, like content, catalogs with varying fields, or event and activity logs. For most apps built around relationships and joins, a relational database like Postgres or MySQL is the better default. Think of it as a MongoDB Atlas alternative you run on infrastructure you control.</p>
+  </div>
+
+  <h2>What is MongoDB, really?</h2>
+  <p>MongoDB is a document database. Instead of rows in tables, it stores <strong>documents</strong>: JSON-like objects (BSON on disk, which is just binary JSON with a few extra types) grouped into <strong>collections</strong>. A document can hold nested objects and arrays, so a whole order, with its line items, can live inside one record instead of being spread across three tables.</p>
+  <p>The headline feature is a <strong>flexible schema</strong>. Two documents in the same collection don't have to look alike. You can add a field to one record without touching the others and without a migration. That's genuinely freeing early on, when you're not sure what the data looks like yet.</p>
+  <p>Here's a single order as MongoDB sees it. One self-contained document, no joins required to read it back:</p>
+<pre><code>{
+  "_id": ObjectId("665f1a2c9b1e4a0012ab34cd"),
+  "customer": "Ada Lovelace",
+  "status": "shipped",
+  "items": [
+    { "sku": "KB-01", "qty": 2 },
+    { "sku": "KB-07", "qty": 1 }
+  ],
+  "total": 48.00
+}</code></pre>
+  <p>That shape is the whole pitch. When your data really does cluster like this, reading and writing it as one blob is fast and natural. When it doesn't, you spend your days fighting the model. So the question that decides everything comes next.</p>
+
+  <figure>
+<svg viewBox="0 0 760 380" width="100%" role="img" aria-label="The same customer-and-orders data shown as normalized relational tables versus a single nested MongoDB document" style="border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+  <text x="28" y="40" fill="#000f27" font-family="Poppins,sans-serif" font-size="17" font-weight="700">Same data, two shapes</text>
+
+  <text x="28" y="72" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="12" font-weight="600" letter-spacing="1.5">RELATIONAL: TABLES + JOIN</text>
+
+  <rect x="28" y="90" width="150" height="86" rx="10" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
+  <rect x="28" y="90" width="150" height="26" rx="10" fill="#000f27"/>
+  <text x="103" y="108" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="12" font-weight="600">users</text>
+  <text x="40" y="138" fill="#5b6a86" font-family="JetBrains Mono,monospace" font-size="11.5">id  name</text>
+  <line x1="28" y1="146" x2="178" y2="146" stroke="#e6e9f2"/>
+  <text x="40" y="164" fill="#1c2536" font-family="JetBrains Mono,monospace" font-size="11.5">1   Ada</text>
+
+  <rect x="28" y="214" width="220" height="112" rx="10" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
+  <rect x="28" y="214" width="220" height="26" rx="10" fill="#000f27"/>
+  <text x="138" y="232" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="12" font-weight="600">orders</text>
+  <text x="40" y="262" fill="#5b6a86" font-family="JetBrains Mono,monospace" font-size="11.5">id  user_id  total</text>
+  <line x1="28" y1="270" x2="248" y2="270" stroke="#e6e9f2"/>
+  <text x="40" y="288" fill="#1c2536" font-family="JetBrains Mono,monospace" font-size="11.5">1   1        48.00</text>
+  <text x="40" y="308" fill="#1c2536" font-family="JetBrains Mono,monospace" font-size="11.5">2   1        12.00</text>
+
+  <path d="M178 150 C 214 150, 214 252, 120 214" fill="none" stroke="#4F1AF3" stroke-width="1.6" stroke-dasharray="4 4"/>
+  <text x="196" y="194" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600">JOIN on user_id</text>
+
+  <circle cx="360" cy="205" r="20" fill="#ffffff" stroke="#c9d0e3"/>
+  <text x="360" y="210" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="13" font-weight="700">vs</text>
+
+  <text x="418" y="72" fill="#40b75f" font-family="Poppins,sans-serif" font-size="12" font-weight="600" letter-spacing="1.5">DOCUMENT: ONE NESTED RECORD</text>
+  <rect x="418" y="90" width="314" height="236" rx="12" fill="#ffffff" stroke="#40b75f" stroke-width="1.6"/>
+  <g font-family="JetBrains Mono,monospace" font-size="12.5">
+    <text x="438" y="122" fill="#5b6a86">{</text>
+    <text x="454" y="146" fill="#1c2536">"name": "Ada",</text>
+    <text x="454" y="170" fill="#1c2536">"orders": [</text>
+    <text x="470" y="194" fill="#1c2536">{ "total": 48.00 },</text>
+    <text x="470" y="218" fill="#1c2536">{ "total": 12.00 }</text>
+    <text x="454" y="242" fill="#1c2536">]</text>
+    <text x="438" y="266" fill="#5b6a86">}</text>
+  </g>
+  <text x="438" y="300" fill="#40b75f" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600">no join: the orders live inside the customer</text>
+</svg>
+<figcaption>The same customer and orders as normalized relational tables (a join stitches them together) versus one self-contained MongoDB document. Pick the shape your data actually has.</figcaption>
+  </figure>
+
+  <h2>When MongoDB is the right call, and when it isn't</h2>
+  <p>This is the section most MongoDB guides skip, and it's the one that matters. MongoDB is a specialist tool. It shines on document-shaped data and struggles the moment your data is really a web of relationships. Here's how I'd split it:</p>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>Reach for MongoDB</th><th>Reach for Postgres or MySQL</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Data shape</strong></td><td>Documents with varying, nested fields</td><td>Rows and columns with clear relationships</td></tr>
+      <tr><td><strong>Typical apps</strong></td><td>CMS content, product catalogs, event and activity logs, telemetry, per-user config</td><td>Users, orders, products, bookings, ledgers, most CRUD apps</td></tr>
+      <tr><td><strong>Schema</strong></td><td>Still changing fast, differs per record</td><td>Stable, shared across records, enforced</td></tr>
+      <tr><td><strong>Joins</strong></td><td>Rare; data is mostly self-contained</td><td>Frequent; you query across entities</td></tr>
+      <tr><td><strong>Transactions</strong></td><td>Occasional</td><td>Central to correctness (money, inventory)</td></tr>
+    </tbody>
+  </table>
+
+  <p>My honest take, and I'll state it plainly: don't reach for MongoDB by default. It became the trendy pick years ago, and a lot of apps ended up on it that had no document-shaped data at all. Pick MongoDB because your data is documents, not because a tutorial used it or because "NoSQL" sounds modern. Content platforms, catalogs where every product has different attributes, logs and events that you append and rarely join. That's its home turf. A booking system with users, rooms, payments, and reviews all pointing at each other is not.</p>
+
+  <h2>The trap: choosing MongoDB for relational data</h2>
+  <p>Here's where teams get burned, and it's almost always the same three ways.</p>
+  <p><strong>Reinventing joins with <code>$lookup</code>.</strong> MongoDB can join collections with the <code>$lookup</code> aggregation stage. But if nearly every query needs one, that's the database telling you your data is relational. You've picked the document tool and are now doing relational work the hard way, with more code and slower reads than a plain <code>JOIN</code> would give you.</p>
+  <p><strong>Hitting the 16MB document ceiling.</strong> A single BSON document maxes out at 16MB. That sounds enormous until you embed an ever-growing array, say every comment on a post, or every event for a user, inside one parent document. It grows quietly, then one day a write fails because the document won't fit. The fix is to reference instead of embed for anything unbounded, but people learn that the expensive way.</p>
+  <p><strong>Letting "flexible schema" become "inconsistent schema."</strong> No enforced schema is a feature in month one and a liability in month twelve. You end up with five documents in five slightly different shapes and application code full of defensive checks for fields that might or might not exist. Flexibility without any discipline is just mess you pay for later.</p>
+  <p>None of this means MongoDB is bad. It means it's opinionated about the data it wants. Give it documents and it's a joy. Give it a relational schema in disguise and it fights you the whole way. If that last paragraph described your app, read <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a> or the full <a href="https://www.kloudbean.com/blog/mysql-vs-postgresql/">MySQL vs PostgreSQL</a> breakdown before you commit.</p>
+
+  <h2>What does managed MongoDB hosting actually manage?</h2>
+  <p>Running MongoDB yourself is real work. You patch it, you configure the bind address so it isn't exposed to the whole internet (a mistake that has leaked a lot of databases over the years), you set up authentication, and you own the backups. Managed MongoDB hosting takes that operational load off your plate. On Kloudbean the database is:</p>
+  <ul>
+    <li><strong>Provisioned in a click</strong>, ready to connect a minute or two later.</li>
+    <li><strong>Patched and maintained</strong>, so you're not tracking MongoDB point releases yourself.</li>
+    <li><strong>On a private network (VPC)</strong>, reachable by your app internally instead of sitting open on the public internet.</li>
+    <li><strong>Backed up automatically</strong>, with restore when you need it.</li>
+  </ul>
+  <p>It's the middle ground between fully self-hosted MongoDB (all yours to run) and a closed cloud you can't leave. The data stays yours, exportable with a plain <code>mongodump</code> anytime, which is exactly what makes it a real <strong>MongoDB Atlas alternative</strong> rather than another lock-in. MongoDB is one of seven managed engines here, alongside PostgreSQL, MySQL, MariaDB, Redis, Memcached, and Elasticsearch, so if you later decide your data was relational after all, the switch is a dashboard away. You also pick the cloud underneath it, from DigitalOcean to AWS to Google Cloud; if you're weighing where to run it, <a href="https://www.kloudbean.com/blog/digitalocean-vs-kloudbean/">DigitalOcean vs Kloudbean</a> is a fair place to start.</p>
+
+  <h2>Launch a managed MongoDB</h2>
+  <p>Open the <strong>DBS</strong> section and hit <strong>Launch Database</strong>. Pick <strong>MongoDB</strong> from the engine list, name it, and create it. A couple of minutes later it's provisioned, secured on the private network, and already being backed up.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console Launch Database screen with MongoDB among the managed engine choices">
+    <figcaption>DBS then Launch Database: choose MongoDB from the seven managed engines, and it arrives provisioned and backed up.</figcaption>
+  </figure>
+
+  <p>You'll get the connection details: host, port (MongoDB's default is <code>27017</code>), database name, username, and password. Keep them handy for the next step, and keep them out of your code.</p>
+
+  <div class="note"><b>Coming from MongoDB Atlas?</b> Your data moves with a standard <code>mongodump</code> and <code>mongorestore</code>, then you repoint the connection string. Same engine, same tools, just running on infrastructure you control. The migration commands are further down.</div>
+
+  <h2>Connecting your app: the mongodb:// connection string</h2>
+  <p>Your app should read its connection from the <strong>environment</strong>, never from a value typed into the source. Open <strong>Runtime Configuration</strong> then <strong>Environment Variables</strong> and add it. Most MongoDB drivers look for <code>MONGODB_URI</code>, though the name is up to you:</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console Environment Variables panel holding the MongoDB connection string safely outside the code">
+    <figcaption>Runtime Configuration then Environment Variables: the MongoDB connection string lives here, never in your repository.</figcaption>
+  </figure>
+
+<pre><code># MongoDB connection string, set as an env var (never in code)
+MONGODB_URI=mongodb://appuser:s3cret@10.0.0.5:27017/appdb
+
+# some stacks read a generic name instead
+DATABASE_URL=mongodb://appuser:s3cret@10.0.0.5:27017/appdb</code></pre>
+
+  <p>Because the credentials live in the environment, they never land in your Git history, and you can rotate a password without touching code. There's more on this in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">how to add a managed database to your app</a>, which covers the app-side wiring for every engine.</p>
+
+  <h3>Node.js with Mongoose</h3>
+  <p>Mongoose is the popular Node ODM. It gives you a schema and models on top of MongoDB, which, as we'll get to, is a good idea even though the database doesn't require one:</p>
+<pre><code>// db.js: connect once at startup
+const mongoose = require("mongoose");
+await mongoose.connect(process.env.MONGODB_URI);
+
+// models/user.js: a schema, even though Mongo won't force one
+const userSchema = new mongoose.Schema({
+  email:     { type: String, required: true, unique: true },
+  name:      String,
+  createdAt: { type: Date, default: Date.now },
+  // document-shaped data embedded right here
+  addresses: [{ label: String, city: String, postcode: String }]
+});
+
+const User = mongoose.model("User", userSchema);</code></pre>
+
+  <h3>Python with PyMongo or Motor</h3>
+  <p>PyMongo is the official synchronous driver. Motor is its async sibling, the one you want with FastAPI:</p>
+<pre><code># PyMongo (synchronous)
+from pymongo import MongoClient
+import os
+client = MongoClient(os.environ["MONGODB_URI"])
+db = client.appdb
+db.users.insert_one({"email": "ada@example.com", "name": "Ada"})
+
+# Motor (async, FastAPI-friendly)
+from motor.motor_asyncio import AsyncIOMotorClient
+client = AsyncIOMotorClient(os.environ["MONGODB_URI"])
+db = client.appdb</code></pre>
+
+  <p>Every ecosystem has an official driver, and they all read the same connection string. Here are the common ones:</p>
+
+  <table class="cmp">
+    <thead><tr><th>Stack</th><th>Driver or ODM</th><th>Reads</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Node.js</strong></td><td>Mongoose (ODM) or the official <code>mongodb</code> driver</td><td><code>MONGODB_URI</code></td></tr>
+      <tr><td><strong>Python (sync)</strong></td><td>PyMongo</td><td><code>MONGODB_URI</code></td></tr>
+      <tr><td><strong>Python (async)</strong></td><td>Motor</td><td><code>MONGODB_URI</code></td></tr>
+      <tr><td><strong>Go</strong></td><td>Official <code>mongo-go-driver</code></td><td><code>MONGODB_URI</code></td></tr>
+      <tr><td><strong>Java</strong></td><td>Official MongoDB Java driver</td><td><code>MONGODB_URI</code></td></tr>
+      <tr><td><strong>PHP / Laravel</strong></td><td>mongodb extension (+ Laravel MongoDB)</td><td><code>MONGODB_URI</code></td></tr>
+    </tbody>
+  </table>
+
+  <!-- ADD IMAGE: a MongoDB collection viewed in Compass or a GUI, showing a few documents with different shapes. Swap for a real screenshot: src -> images/mongo-collection.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Concrete hint: a collection open in MongoDB Compass showing a few documents with slightly different fields.</em><small>Makes "flexible schema" concrete.</small></span></figure>
+
+  <h2>Modeling documents: a schema even when the database doesn't demand one</h2>
+  <p>MongoDB won't force a schema on you. That doesn't mean you should skip designing one. The single most useful modeling decision in MongoDB is <strong>embed versus reference</strong>, and it's worth getting right early:</p>
+  <ul>
+    <li><strong>Embed</strong> when the child data is read together with the parent and owned by it, and it won't grow without bound. An order and its line items. A blog post and its tags. One read gets everything.</li>
+    <li><strong>Reference</strong> when the data is shared across documents, or grows without limit. A user's activity feed. Comments on a viral post. Store those as their own documents and keep an id, so you never march toward that 16MB ceiling.</li>
+  </ul>
+  <p>A quick rule I lean on: embed what you always fetch together, reference what grows forever. And even with a flexible engine, put a shape on your data with schema validation or an ODM like Mongoose. Future-you, staring at five variants of the same document at 2am, will be grateful.</p>
+
+  <h2>Indexing: the difference between fast and a full collection scan</h2>
+  <p>This is the performance lesson every MongoDB app learns eventually, ideally before production. Without an index, a query scans <em>every document</em> in the collection (a COLLSCAN). That's invisible at a thousand documents and painful at a million. Add indexes on the fields you filter and sort on:</p>
+<pre><code>// unique index on email, enforced by the database, not just the app
+db.users.createIndex({ email: 1 }, { unique: true })
+
+// compound index for a common query + sort pattern
+db.orders.createIndex({ userId: 1, createdAt: -1 })
+
+// did this query use an index, or scan the whole collection?
+db.orders.find({ userId: 123 }).explain("executionStats")</code></pre>
+  <p>MongoDB indexes the <code>_id</code> field for you automatically. Everything else is on you. Run <code>explain("executionStats")</code> on any query that feels slow and look at whether it hit an index or scanned the collection. A single well-placed compound index is usually the biggest speedup you'll find.</p>
+
+  <!-- ADD IMAGE: terminal output of explain() showing an index scan versus a collection scan. Swap for a real screenshot: src -> images/mongo-explain.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Concrete hint: terminal showing explain() output, an index scan next to a slow COLLSCAN.</em><small>Backs up the indexing section.</small></span></figure>
+
+  <h2>Migrating off MongoDB Atlas (or any Mongo)</h2>
+  <p>Already have data on Atlas, a self-hosted box, or another provider? It's all the same MongoDB underneath, so a move is a plain dump and restore:</p>
+<pre><code># dump everything from the old database (Atlas or anywhere)
+mongodump --uri="mongodb+srv://user:pass@cluster.mongodb.net/appdb" --out=dump/
+
+# restore into your managed MongoDB
+mongorestore --uri="mongodb://appuser:s3cret@10.0.0.5:27017/appdb" dump/</code></pre>
+  <p>Then repoint <code>MONGODB_URI</code> at the new database and redeploy. Because it's standard MongoDB with standard tools, there's no proprietary format to fight, which is the point of an Atlas alternative you actually control. If you'd rather not run the cutover yourself, Kloudbean's <strong>free migration assistance</strong> can do it with you.</p>
+
+  <!-- ADD IMAGE: terminal running mongodump then mongorestore end to end. Swap for a real screenshot: src -> images/mongo-migrate.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Concrete hint: terminal running mongodump on the old cluster then mongorestore into the new managed MongoDB.</em><small>Makes the migration steps concrete.</small></span></figure>
+
+  <h2>Security and backups, without the checklist fatigue</h2>
+  <p>A database holds the data you least want leaked, so a few basics aren't optional:</p>
+  <ul>
+    <li><strong>Keep it off the public internet.</strong> On Kloudbean MongoDB sits on a private network, reachable by your app internally. Exposed MongoDB instances have been a classic breach source; not exposing yours removes the whole category.</li>
+    <li><strong>Use a dedicated, least-privilege user.</strong> Your app's user needs access to its database and nothing more.</li>
+    <li><strong>Never commit connection strings.</strong> Keep them in environment variables, keep <code>.env</code> in <code>.gitignore</code>.</li>
+    <li><strong>Turn backups on, then test a restore.</strong> Automatic backups run for you. Restoring one before a crisis, so you know the path works, is the step people skip. More on that in the <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a>.</li>
+  </ul>
+
+  <h2>How managed MongoDB scales</h2>
+  <p>Start simple. A single managed instance carries most apps a long way, and the first scaling move is almost always to <strong>resize the server</strong> for more CPU, RAM, and storage. Beyond that, MongoDB's own scaling story is <strong>replica sets</strong> for availability (copies that keep serving if one node dies) and <strong>sharding</strong> for spreading a very large dataset across machines. Those are advanced setups you grow into, not day-one decisions. Before any of it, caching your hottest reads in <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis</a> is usually the cheapest win, because the query that never reaches MongoDB is the fastest one. If you're weighing running it all yourself against a managed instance, <a href="https://www.kloudbean.com/blog/managed-database-vs-self-managed/">managed database vs self-managed</a> lays out the real tradeoffs.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Run MongoDB on infrastructure you control.</p>
+    <p style="margin:0 0 .6em">Launch a managed MongoDB with automatic backups, a private network, and free migration help, connected with one environment variable, on the same dashboard as your app. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">One-click MongoDB · Automatic backups · Private networking · Free migration · Free trial · From $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is managed MongoDB hosting?</h3>
+    <p>It's the MongoDB engine provided as a ready-to-use service. The platform provisions, patches, backs up, and monitors the database, and you get a mongodb:// connection string to point your app at. It's standard MongoDB, so your drivers, queries, and tools work unchanged. Only the operating of the database is handled for you.</p>
+    <h3>When should I use MongoDB instead of a relational database?</h3>
+    <p>Use MongoDB when your data is genuinely document-shaped: content, catalogs where records have different fields, event and activity logs, or a schema that's still changing fast. For apps built around relationships and joins, like users, orders, and products referencing each other, a relational database such as PostgreSQL or MySQL is usually the better default. Pick MongoDB for the data shape, not because it's trendy.</p>
+    <h3>Is MongoDB free? What does managed hosting cost?</h3>
+    <p>MongoDB's Community edition is free to run. What managed hosting charges for isn't the engine, it's the always-on server plus the operation around it: patching, backups, monitoring, and keeping it safely off the public internet. On Kloudbean, plans start from $8/mo, with Enterprise on custom pricing. Check the pricing page for current numbers.</p>
+    <h3>How do I connect my app to MongoDB?</h3>
+    <p>Store the mongodb:// connection string in an environment variable (most drivers read MONGODB_URI) rather than in code, then connect with your language's driver: Mongoose or the official mongodb driver for Node, PyMongo or Motor for Python, and official drivers elsewhere. Keeping the string in the environment keeps credentials out of Git and easy to rotate.</p>
+    <h3>Is this a MongoDB Atlas alternative?</h3>
+    <p>Yes. It's the same MongoDB engine, so you export from Atlas with mongodump, restore with mongorestore, and repoint your connection string. The difference is the database runs on infrastructure you control, on a private network, with your data exportable anytime. Free migration assistance can run the cutover with you.</p>
+    <h3>Do I need a schema with MongoDB?</h3>
+    <p>Technically no, MongoDB won't force one. Practically, yes, you should impose a shape with schema validation or an ODM like Mongoose. A flexible schema is a gift early on, but with no discipline it drifts into inconsistent documents and defensive application code. Design the schema even though the database doesn't demand it.</p>
+    <h3>What is the 16MB document limit?</h3>
+    <p>A single MongoDB document maxes out at 16MB. You hit it by embedding an unbounded, ever-growing array inside one document, such as every comment on a post. The fix is to reference that data as separate documents instead of embedding it. Embed what you always read together; reference what grows without limit.</p>
+    <h3>How does MongoDB scale?</h3>
+    <p>First by resizing the server for more CPU, RAM, and storage, which carries most apps a long way. MongoDB's native scaling is replica sets for availability and sharding to spread a very large dataset across machines, both advanced setups you grow into rather than start with. Caching hot reads in managed Redis is often the cheapest first win.</p>
+    <h3>Can I move my data out later?</h3>
+    <p>Yes. It's standard MongoDB, so mongodump exports everything and you can restore it anywhere. There's no proprietary format and no lock-in. Managed hosting operates the database for you; the data always remains yours to take.</p>
+    <h3>MongoDB or PostgreSQL for my app?</h3>
+    <p>If your data is document-shaped and you rarely join across records, MongoDB fits well. If your data is relational, with entities referencing each other and joins in most queries, PostgreSQL is the stronger choice and its JSONB type even covers the occasional document-shaped field. When in doubt for a general app, a relational database is the safer default.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Database Team · Pick MongoDB for documents, not for hype.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Managed MongoDB Hosting: When to Use It, and When Not To","description":"What MongoDB is good for, when a relational database is the better call, the mongodb connection string, Mongoose and PyMongo drivers, indexing, and a MongoDB Atlas alternative you control.","image":"https://www.kloudbean.com/blog/managed-mongodb-hosting/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/managed-mongodb-hosting/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is managed MongoDB hosting?","acceptedAnswer":{"@type":"Answer","text":"It's the MongoDB engine provided as a ready-to-use service. The platform provisions, patches, backs up, and monitors the database, and you get a mongodb connection string to point your app at. It's standard MongoDB, so your drivers, queries, and tools work unchanged. Only the operating of the database is handled for you."}},
+{"@type":"Question","name":"When should I use MongoDB instead of a relational database?","acceptedAnswer":{"@type":"Answer","text":"Use MongoDB when your data is genuinely document-shaped: content, catalogs where records have different fields, event and activity logs, or a schema that's still changing fast. For apps built around relationships and joins, like users, orders, and products referencing each other, a relational database such as PostgreSQL or MySQL is usually the better default. Pick MongoDB for the data shape, not because it's trendy."}},
+{"@type":"Question","name":"Is MongoDB free? What does managed hosting cost?","acceptedAnswer":{"@type":"Answer","text":"MongoDB's Community edition is free to run. What managed hosting charges for isn't the engine, it's the always-on server plus the operation around it: patching, backups, monitoring, and keeping it safely off the public internet. On Kloudbean, plans start from $8/mo, with Enterprise on custom pricing. Check the pricing page for current numbers."}},
+{"@type":"Question","name":"How do I connect my app to MongoDB?","acceptedAnswer":{"@type":"Answer","text":"Store the mongodb connection string in an environment variable (most drivers read MONGODB_URI) rather than in code, then connect with your language's driver: Mongoose or the official mongodb driver for Node, PyMongo or Motor for Python, and official drivers elsewhere. Keeping the string in the environment keeps credentials out of Git and easy to rotate."}},
+{"@type":"Question","name":"Is this a MongoDB Atlas alternative?","acceptedAnswer":{"@type":"Answer","text":"Yes. It's the same MongoDB engine, so you export from Atlas with mongodump, restore with mongorestore, and repoint your connection string. The difference is the database runs on infrastructure you control, on a private network, with your data exportable anytime. Free migration assistance can run the cutover with you."}},
+{"@type":"Question","name":"Do I need a schema with MongoDB?","acceptedAnswer":{"@type":"Answer","text":"Technically no, MongoDB won't force one. Practically, yes, you should impose a shape with schema validation or an ODM like Mongoose. A flexible schema is a gift early on, but with no discipline it drifts into inconsistent documents and defensive application code. Design the schema even though the database doesn't demand it."}},
+{"@type":"Question","name":"What is the 16MB document limit?","acceptedAnswer":{"@type":"Answer","text":"A single MongoDB document maxes out at 16MB. You hit it by embedding an unbounded, ever-growing array inside one document, such as every comment on a post. The fix is to reference that data as separate documents instead of embedding it. Embed what you always read together; reference what grows without limit."}},
+{"@type":"Question","name":"How does MongoDB scale?","acceptedAnswer":{"@type":"Answer","text":"First by resizing the server for more CPU, RAM, and storage, which carries most apps a long way. MongoDB's native scaling is replica sets for availability and sharding to spread a very large dataset across machines, both advanced setups you grow into rather than start with. Caching hot reads in managed Redis is often the cheapest first win."}},
+{"@type":"Question","name":"Can I move my data out later?","acceptedAnswer":{"@type":"Answer","text":"Yes. It's standard MongoDB, so mongodump exports everything and you can restore it anywhere. There's no proprietary format and no lock-in. Managed hosting operates the database for you; the data always remains yours to take."}},
+{"@type":"Question","name":"MongoDB or PostgreSQL for my app?","acceptedAnswer":{"@type":"Answer","text":"If your data is document-shaped and you rarely join across records, MongoDB fits well. If your data is relational, with entities referencing each other and joins in most queries, PostgreSQL is the stronger choice and its JSONB type even covers the occasional document-shaped field. When in doubt for a general app, a relational database is the safer default."}}
+]}
+]}
+</script>
+</body>
+</html>

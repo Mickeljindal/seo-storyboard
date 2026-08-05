@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Deploy a Fastify App to Production (Node + PM2)</title>
+<meta name="description" content="Deploy a Fastify app to production: bind host 0.0.0.0, read config from env, sit behind nginx with trustProxy, log with pino, and shut down gracefully with app.close().">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/deploy-fastify-app/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Deploy a Fastify App to Production (Node + PM2)">
+<meta property="og:description" content="The Fastify-specific things that differ from your laptop: bind 0.0.0.0, config via env, a reverse proxy with trustProxy, the built-in pino logger, and a graceful shutdown. The honest production guide.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Deployment · Fastify</span>
+  <h1>How to Deploy a Fastify App to Production</h1>
+  <p class="byline">By Kloudbean Engineering · Fast By Default, Live By Design.</p>
+
+  <figure><img src="images/hero.png" alt="Deploy a Fastify app to production: an HTTPS request hits a reverse proxy, which forwards to Fastify bound on 0.0.0.0, logging with pino and closing gracefully, then to a managed database"></figure>
+
+  <p class="lead">So you want to deploy a Fastify app to production. Locally it flies. You run <code>node server.js</code>, hit <code>localhost:3000</code>, the routes answer in single-digit milliseconds, and Fastify earns the name. Then you ship it and get a 502, or the process boots and nothing reaches it. The code is almost never the problem. Fastify in production is a short list of things that differ from a laptop: which host it binds, where config comes from, the proxy in front, keeping the process alive, and closing without dropping requests.</p>
+
+  <div class="tldr">
+    <strong>How do I deploy a Fastify app to production?</strong>
+    <p>Bind the server with <code>app.listen({ port: Number(process.env.PORT) || 3000, host: '0.0.0.0' })</code>, because Fastify defaults to localhost only and that is why it 502s behind a proxy. Read config from <code>process.env</code>, set <code>trustProxy: true</code> so it behaves behind nginx, keep the built-in pino logger writing JSON to stdout, and handle <code>SIGTERM</code> by calling <code>app.close()</code>. Then deploy from Git, run it under PM2, wire in a managed database, and attach a domain with free SSL. Most Fastify deploy failures are config, not code.</p>
+  </div>
+
+  <h2>The one line that fixes most Fastify deploys</h2>
+  <p>Start with the single most common Fastify production mistake. Fastify does not bind to all network interfaces by default. It binds to <code>localhost</code> (<code>127.0.0.1</code>) only. That is a deliberate, safe default from the Fastify team, and it is the exact reason your app "works locally" then answers nothing in a container or behind a reverse proxy.</p>
+  <p>The sequence: your app boots, the log says it is listening, but it is on the loopback address, which only accepts connections from the same machine. The proxy sits one hop away, tries to connect, gets <code>ECONNREFUSED</code>, and the browser sees a 502. Nothing crashed. It is just listening where the proxy cannot reach.</p>
+  <pre><code>// works on your laptop, unreachable behind a proxy or in a container
+await app.listen({ port: 3000 })              // binds to 127.0.0.1 only
+
+// reachable by the proxy, health checks, containers
+await app.listen({ port: 3000, host: '0.0.0.0' })</code></pre>
+  <p>This is the big difference from Express, and it trips up people moving over. A plain <code>app.listen(port)</code> in Express binds to all interfaces. The same instinct in Fastify binds to localhost, so the habit that always worked silently breaks. If you take one thing from this guide, take the host. We cover the Express side in <a href="https://www.kloudbean.com/blog/deploy-express-app/">deploy an Express app</a>, and this default is the reason a Fastify migration surprises people.</p>
+
+  <figure>
+    <svg viewBox="0 0 780 320" role="img" aria-label="A single request path. A browser sends an HTTPS request on port 443 to a reverse proxy, which terminates TLS and sets X-Forwarded headers, then forwards to a Fastify app. If Fastify is bound to 127.0.0.1 the proxy is refused and the user gets a 502. If Fastify is bound to 0.0.0.0 on the assigned port it is reachable, logs JSON with pino to stdout, closes gracefully on SIGTERM, and talks to a managed database over the private network." style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <defs>
+        <marker id="fg" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5b6a86"></path></marker>
+        <marker id="fp" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#4F1AF3"></path></marker>
+        <marker id="fgr" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#40b75f"></path></marker>
+      </defs>
+
+      <text x="28" y="32" fill="#000f27" font-family="Poppins,sans-serif" font-size="17" font-weight="700">One request path, and the host that makes or breaks it</text>
+      <text x="28" y="53" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12.5">TLS ends at the proxy. Fastify just has to be reachable on the port the proxy forwards to.</text>
+
+      <!-- main path -->
+      <rect x="28" y="78" width="118" height="60" rx="12" fill="#000f27"></rect>
+      <text x="87" y="104" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">Browser</text>
+      <text x="87" y="122" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="10.5">HTTPS : 443</text>
+
+      <rect x="196" y="72" width="170" height="72" rx="12" fill="#fff" stroke="#000f27" stroke-width="1.5"></rect>
+      <text x="281" y="98" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">Reverse proxy</text>
+      <text x="281" y="116" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">terminates TLS</text>
+      <text x="281" y="132" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">sets X-Forwarded-*</text>
+
+      <rect x="416" y="66" width="196" height="84" rx="12" fill="#4F1AF3"></rect>
+      <text x="514" y="92" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="13" font-weight="700">Fastify app</text>
+      <text x="514" y="111" text-anchor="middle" fill="#e4dcff" font-family="Poppins,sans-serif" font-size="10.5">host 0.0.0.0 : PORT</text>
+      <text x="514" y="127" text-anchor="middle" fill="#e4dcff" font-family="Poppins,sans-serif" font-size="10.5">pino to stdout</text>
+      <text x="514" y="143" text-anchor="middle" fill="#e4dcff" font-family="Poppins,sans-serif" font-size="10.5">SIGTERM to app.close()</text>
+
+      <rect x="662" y="78" width="94" height="60" rx="12" fill="#fff" stroke="#40b75f" stroke-width="1.8"></rect>
+      <text x="709" y="102" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12" font-weight="600">Managed</text>
+      <text x="709" y="120" text-anchor="middle" fill="#2f7d45" font-family="Poppins,sans-serif" font-size="11">database</text>
+
+      <line x1="146" y1="108" x2="194" y2="108" stroke="#5b6a86" stroke-width="2" marker-end="url(#fg)"></line>
+      <line x1="366" y1="108" x2="414" y2="108" stroke="#4F1AF3" stroke-width="2" marker-end="url(#fp)"></line>
+      <text x="390" y="100" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="9.5">forwards</text>
+      <line x1="612" y1="108" x2="660" y2="108" stroke="#40b75f" stroke-width="2" marker-end="url(#fgr)"></line>
+      <text x="636" y="100" text-anchor="middle" fill="#2f7d45" font-family="Poppins,sans-serif" font-size="9.5">private net</text>
+
+      <!-- the fork: wrong vs right host -->
+      <line x1="28" y1="182" x2="752" y2="182" stroke="#e6e9f2" stroke-width="1"></line>
+      <text x="28" y="208" fill="#000f27" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">The fork that decides everything: which host Fastify binds</text>
+
+      <rect x="28" y="222" width="352" height="72" rx="12" fill="#fff" stroke="#c25959" stroke-width="1.5" stroke-dasharray="6 5"></rect>
+      <text x="46" y="247" fill="#000f27" font-family="JetBrains Mono,monospace" font-size="12" font-weight="600">listen({ port })</text>
+      <text x="46" y="267" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">binds 127.0.0.1, proxy gets ECONNREFUSED</text>
+      <text x="46" y="284" fill="#c25959" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600">result: 502, unreachable</text>
+
+      <rect x="400" y="222" width="352" height="72" rx="12" fill="#fff" stroke="#40b75f" stroke-width="1.8"></rect>
+      <text x="418" y="247" fill="#000f27" font-family="JetBrains Mono,monospace" font-size="12" font-weight="600">listen({ port, host: '0.0.0.0' })</text>
+      <text x="418" y="267" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">binds all interfaces, proxy connects</text>
+      <text x="418" y="284" fill="#2f7d45" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600">result: reachable, 200 OK</text>
+    </svg>
+    <figcaption>Fastify binds to localhost unless you tell it otherwise. Behind a proxy or in a container, that one option is the difference between a live URL and a 502.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: a terminal showing the Fastify boot line, "Server listening at http://0.0.0.0:3000". Swap for a real screenshot: src -> images/fastify-listening.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal showing the Fastify boot line: Server listening at http://0.0.0.0:3000, proving it is on all interfaces and not just loopback.</em><small>The fastest way to confirm the host fix worked.</small></span></figure>
+
+  <h2>A production-ready Fastify server, in one file</h2>
+  <p>Here is a Fastify server ready to leave your laptop. It reads its port from the environment, binds all interfaces, trusts the proxy, keeps logging on, and exits loudly if it fails to start. Just the defaults turned production-safe.</p>
+  <pre><code>// server.js
+const Fastify = require('fastify')
+
+const app = Fastify({
+  logger: true,        // built-in pino logger, JSON to stdout
+  trustProxy: true     // correct req.ip and protocol behind a proxy
+})
+
+app.get('/healthz', async () =&gt; ({ status: 'ok' }))
+
+const start = async () =&gt; {
+  try {
+    await app.listen({
+      port: Number(process.env.PORT) || 3000,
+      host: '0.0.0.0'
+    })
+  } catch (err) {
+    app.log.error(err)
+    process.exit(1)
+  }
+}
+start()</code></pre>
+  <p>One note on syntax, because tutorials disagree. Modern Fastify (v4 and v5) takes an options object: <code>listen({ port, host })</code>. Older guides show the positional <code>listen(3000, '0.0.0.0')</code>, which is deprecated. Copy an old snippet and that alone can be why your host setting is ignored.</p>
+
+  <h3>Read config from the environment, never hard-code it</h3>
+  <p>Your port, database URL, and API keys belong in <code>process.env</code>, read at runtime, not in the repo. A secret committed to Git is a secret in every clone and CI log once it leaks. The <code>Number(process.env.PORT) || 3000</code> pattern matters most: production hands you a port and the proxy forwards to it, so grabbing 3000 regardless is how you end up talking past the proxy. The deeper version, with validation, is in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a>.</p>
+
+  <h3>Turn on trustProxy so nginx does not lie to your app</h3>
+  <p>Behind a proxy, every request reaches Fastify from <code>127.0.0.1</code>, over plain HTTP, on an internal port. Left alone, Fastify believes exactly that: <code>request.ip</code> is the proxy, <code>request.protocol</code> is <code>http</code>, and an IP-based rate limiter thinks all traffic comes from one address. One option fixes it.</p>
+  <pre><code>// read the real client IP and protocol from X-Forwarded-* headers
+const app = Fastify({ trustProxy: true })</code></pre>
+  <p>With <code>trustProxy</code> on, Fastify reads the real client from <code>X-Forwarded-For</code> and the real scheme from <code>X-Forwarded-Proto</code>. Skip it and you ship secure cookies that will not stick over HTTPS. The why behind the proxy layer, and how to wire it up, is in <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">nginx as a reverse proxy for Node</a>.</p>
+
+  <h3>Use the pino logger Fastify already ships with</h3>
+  <p>A genuine Fastify perk: it bundles pino, a fast JSON logger, exposed as <code>app.log</code>. No bolting on morgan or winston like a bare Express app. Logging is off by default, so set <code>logger: true</code> and it writes structured JSON to stdout, which is what you want in production.</p>
+  <pre><code>// production: structured JSON to stdout
+const app = Fastify({ logger: true })
+
+// development only: pretty, colorized, human-readable
+const app = Fastify({
+  logger: { transport: { target: 'pino-pretty' } }
+})</code></pre>
+  <p>Keep pino-pretty out of production. It is slower, and its whole point is a nicer terminal for a human watching live. In production, raw JSON to stdout is the right call, and the platform captures it.</p>
+
+  <div class="note"><b>Coming from Express?</b> Most of your instincts carry over: read the port from env, sit behind a proxy, keep the process alive. Three things differ. Fastify binds to localhost by default (Express binds to all interfaces), Fastify has logging built in, and Fastify sets the proxy through <code>trustProxy: true</code> at construction rather than <code>app.set('trust proxy')</code>. Learn those three and the rest is the Node deploy you already know.</div>
+
+  <h2>Graceful shutdown: close Fastify without dropping requests</h2>
+  <p>Every deploy replaces the running version. The platform sends <code>SIGTERM</code>, waits a beat, then starts the new process. Ignore that signal and Fastify gets killed mid-request: in-flight responses drop, the database pool never closes cleanly, a half-finished write stays half-finished. Handle it and a redeploy becomes invisible.</p>
+  <p>Fastify makes this pleasant. <code>app.close()</code> returns a promise, stops accepting new connections, and runs every <code>onClose</code> hook you registered. A quiet built-in helps too: while closing, Fastify answers new requests with a 503 by default (the <code>return503OnClosing</code> option), so a load balancer routes away from a draining instance instead of hanging.</p>
+  <pre><code>// close the DB pool (and anything else) when Fastify shuts down
+app.addHook('onClose', async () =&gt; {
+  await pool.end()
+})
+
+// drain on SIGTERM / SIGINT, then exit
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.on(signal, async () =&gt; {
+    app.log.info(`${signal} received, shutting down`)
+    await app.close()   // stops new requests, runs onClose hooks
+    process.exit(0)
+  })
+}</code></pre>
+  <p>Register the pool cleanup as an <code>onClose</code> hook and it runs whenever the app closes. This turns a redeploy from a burst of failed requests into a clean handover, and it is the app-side half of <a href="https://www.kloudbean.com/blog/zero-downtime-deployments/">zero-downtime deployments</a>.</p>
+
+  <div class="note"><b>Plugins and boot order.</b> Fastify loads plugins asynchronously through its <code>register</code> and encapsulation model, so a decorator or DB connection added in a plugin is not ready the instant the file runs. Either <code>await app.ready()</code> before using it, or just <code>await app.listen(...)</code>, which waits for the plugin tree first. If a route throws because <code>app.db</code> is undefined at boot, this ordering is usually why.</div>
+
+  <h2>Keeping a Fastify app alive with PM2</h2>
+  <p>A Fastify process that runs once and exits is a script, not a service. In production it needs a supervisor that restarts it on a crash and after a reboot. That is PM2. One unhandled exception at 3am becomes a one-second restart instead of an outage nobody noticed until morning.</p>
+  <p>Node runs on a single thread, so one process uses one core. When one core is not enough, PM2 cluster mode runs a worker per core behind the same port, and Fastify clusters cleanly because it is stateless-friendly.</p>
+  <pre><code># one Fastify worker per CPU core
+pm2 start server.js -i max --name my-fastify-api</code></pre>
+  <p>Start single, cluster when your metrics ask. One trap the moment you cluster: anything in process memory stops being shared. An in-memory cache, a local rate limiter, a <code>Map</code> of sessions now has one copy per worker, so a user hits worker A and their session lives on worker B. Move that state into managed Redis, and keep uploads in object storage, not the app disk. On choosing a supervisor, we compared the options in <a href="https://www.kloudbean.com/blog/pm2-vs-systemd/">PM2 vs systemd</a>. Founder opinion: most Fastify APIs never need Kubernetes or autoscaling. A right-sized box, then a bigger one, carries you a long way.</p>
+
+  <!-- ADD IMAGE: pm2 list output showing the Fastify app online with uptime and restart count. Swap for a real screenshot: src -> images/pm2-list.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal running pm2 list: the Fastify app online, with its uptime and restart count.</em><small>Optional. Makes the process-manager point concrete.</small></span></figure>
+
+  <h2>Wiring in a managed database</h2>
+  <p>Most Fastify apps are an API in front of a database, so this matters more than the framework. Move data off any local file before you have users. A SQLite file or a JSON store on the app disk works right up until your first redeploy or your second worker, then it is gone or out of sync. Create a managed engine, take its connection string, and read it from the environment.</p>
+  <pre><code>const { Pool } = require('pg')
+
+// one shared pool, not a new connection per request
+const pool = new Pool({ connectionString: process.env.DATABASE_URL })</code></pre>
+  <p>Two things early. Use a connection pool, because Fastify is fast enough to open sockets faster than the database tolerates, and a handler that dials its own connection per request exhausts the limit under load. And keep the database on the private network, not a public port. The full walkthrough is in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">add a managed database to your app</a>, and sizing a pool is in <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>.</p>
+
+  <h2>How to deploy a Fastify app on a managed server</h2>
+  <p>Concepts done. Here is the path on <a href="https://www.kloudbean.com/">Kloudbean</a>, where the reverse proxy, PM2, and SSL come already assembled. Fastify is a Node framework, so it runs on the managed Node runtime like any other Node app.</p>
+  <p>Click <strong>Add Server</strong>, pick a cloud (Kloudbean runs seven: AWS, Amazon Lightsail, Google Cloud, DigitalOcean, Vultr, Linode, and UpCloud), choose the <strong>Node.js</strong> stack, a region near your users, and a size. 2 GB is a comfortable start for a single API. Running your Fastify API next to a front end or a worker? Add each under <strong>Applications</strong>, <strong>Add Application</strong>. Multiple apps per server is first-class here, not a workaround.</p>
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean Add Application screen: adding a Fastify Node.js app to a server and choosing its stack">
+    <figcaption>Add Application: your Fastify API and its front end can share one server, each with its own space and config.</figcaption>
+  </figure>
+  <p>Now connect Git. In <strong>Git Deployment</strong>, link GitHub, paste the repository URL, choose a branch, and clone. Then fill the runtime config, where the earlier decisions become fields:</p>
+  <ul>
+    <li><strong>App Directory:</strong> the folder holding your <code>package.json</code>.</li>
+    <li><strong>Port:</strong> the port your app reads from <code>process.env.PORT</code>. The proxy forwards here, so it must match.</li>
+    <li><strong>Node version:</strong> match what you built on. Node 20+ is a safe default for current Fastify.</li>
+    <li><strong>Install / Build / Start:</strong> usually <code>npm ci</code>, an optional build if you use TypeScript, then <code>node server.js</code>.</li>
+  </ul>
+  <p>Hit <strong>Pull &amp; Deploy</strong> and the build log streams live, so you watch clone, install, and boot scroll past. Turn on automated deployment and every push ships itself, with the deploy recorded. That is the continuous-deploy loop the big platforms sell, on a box you own, detailed in <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD auto-deploy from GitHub</a>.</p>
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean Git Deployment tab: repository URL, branch, and the install, build, and start commands for a Fastify app">
+    <figcaption>Git Deployment: connect the repo, set install, build, and start, and the port, then Pull and Deploy.</figcaption>
+  </figure>
+  <!-- ADD IMAGE: the runtime configuration panel filled in for Fastify, showing App Directory, Port, Node version, and the Install and Start commands. Swap for a real screenshot: src -> images/fastify-runtime-config.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The runtime config panel filled in for Fastify: App Directory, Port set to what process.env.PORT reads, Node version, and node server.js as the start command.</em><small>This is where your port and start command get pinned down.</small></span></figure>
+  <p>Env vars go under <strong>Runtime Configuration, Environment Variables</strong>, with a <strong>Paste .env Content</strong> tab to drop the whole file in at once. A missing variable is the most common reason a Fastify app builds but will not boot, so copy them all. Then add your domain, point DNS at the server, and install a free auto-renewing SSL certificate. The proxy already terminates TLS on 443 and forwards to your Fastify port, so once DNS resolves the API is live over HTTPS.</p>
+
+  <!-- ADD IMAGE: the live build log streaming npm ci and the Fastify boot line during a deploy. Swap for a real screenshot: src -> images/fastify-build-logs.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Build and Deployment History with a deploy expanded and live logs streaming npm ci and the Fastify listening line.</em><small>Shows the live-logs payoff moment.</small></span></figure>
+
+  <h2>Fastify vs Express: what differs at deploy time</h2>
+  <p>Both are Node HTTP frameworks and both deploy the same way at a high level: read the port, sit behind a proxy, stay alive under a supervisor. The differences are small but real, and each has bitten someone on a first Fastify deploy.</p>
+  <table class="cmp">
+    <thead><tr><th>Concern</th><th>Express</th><th>Fastify</th></tr></thead>
+    <tbody>
+      <tr><td>Default listen host</td><td><code>0.0.0.0</code> (all interfaces)</td><td><code>127.0.0.1</code> (localhost only)</td></tr>
+      <tr><td>Start the server</td><td><code>app.listen(port, '0.0.0.0')</code></td><td><code>app.listen({ port, host: '0.0.0.0' })</code></td></tr>
+      <tr><td>Logging</td><td>add morgan or winston</td><td>built-in pino, set <code>logger: true</code></td></tr>
+      <tr><td>Trust the proxy</td><td><code>app.set('trust proxy', 1)</code></td><td><code>trustProxy: true</code> at construction</td></tr>
+      <tr><td>Plugin boot</td><td>synchronous middleware</td><td>async register, <code>await app.ready()</code></td></tr>
+      <tr><td>Graceful close</td><td>wire <code>server.close()</code> yourself</td><td><code>app.close()</code> promise plus <code>onClose</code> hooks</td></tr>
+    </tbody>
+  </table>
+  <p>Is Fastify worth it? On raw JSON throughput it benchmarks noticeably higher than Express, which is the reputation it earned. Honestly, most real apps are bound by the database, not the framework, so the practical win is smaller than a hello-world benchmark suggests. Pick Fastify for schema validation, the plugin model, and the built-in logger, not for a number on a chart. Deploying a TypeScript framework instead? The compile step is in <a href="https://www.kloudbean.com/blog/deploy-nestjs-app/">deploy a NestJS app</a>.</p>
+
+  <h2>A Fastify production checklist</h2>
+  <p>Run this before you call it shipped.</p>
+  <ul>
+    <li><strong>Host:</strong> <code>app.listen({ ..., host: '0.0.0.0' })</code>. The big one.</li>
+    <li><strong>Port:</strong> from <code>process.env.PORT</code>, matching your deploy config.</li>
+    <li><strong>trustProxy:</strong> <code>true</code>, so IP, protocol, and secure cookies are correct behind the proxy.</li>
+    <li><strong>Logging:</strong> <code>logger: true</code> for JSON to stdout. No pino-pretty in production.</li>
+    <li><strong>Graceful shutdown:</strong> <code>SIGTERM</code> calls <code>app.close()</code>, with an <code>onClose</code> hook that ends the DB pool.</li>
+    <li><strong>Config:</strong> secrets and the database URL in env vars, never in Git.</li>
+    <li><strong>Process manager:</strong> PM2 keeps it alive and restarts on crash.</li>
+    <li><strong>Database:</strong> managed engine, pooled connections, on the private network.</li>
+    <li><strong>State:</strong> sessions and cache in Redis, uploads in object storage, if you cluster.</li>
+    <li><strong>TLS:</strong> a domain with auto-renewing SSL, proxy terminating on 443.</li>
+  </ul>
+
+  <h2>Where Fastify deploys actually break</h2>
+  <p>First deploys break in predictable places. Read the app error log before touching code, because it usually names the cause.</p>
+  <ul>
+    <li><strong>Reachable locally, 502 in prod.</strong> Almost always the host. You bound to <code>127.0.0.1</code>. Add <code>host: '0.0.0.0'</code>.</li>
+    <li><strong>Boots then exits.</strong> A missing env var throws at startup and the supervisor keeps restarting a process that cannot stay up.</li>
+    <li><strong>Wrong port.</strong> The app listens on 3000 while the proxy forwards elsewhere. Read <code>process.env.PORT</code> and make the numbers agree.</li>
+    <li><strong>Route throws at boot.</strong> A plugin decorator or DB connection was used before <code>app.ready()</code>. Await readiness, or await listen.</li>
+    <li><strong>Redeploys drop requests.</strong> No <code>SIGTERM</code> handler, so the old process dies mid-flight. Add the <code>app.close()</code> handler above.</li>
+  </ul>
+  <p>The log lives at a predictable path on the managed stack, and a Node crash writes its stack trace there:</p>
+  <pre><code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/app.error.log</code></pre>
+  <p>Fix the one thing it names and deploy again. The overwhelming majority of Fastify deploy failures are configuration, not route handlers. So when it breaks, check the host, the port, and the env vars before rereading your business logic. It is faster, and usually right.</p>
+
+  <h2>What you own, and what is handled</h2>
+  <p>Kloudbean runs Fastify on Linux managed cloud: the Node runtime, PM2, the reverse proxy, SSL, and backups are maintained on whichever of the seven clouds you pick. It is Linux stacks, not Windows or .NET, and Fastify is a Node framework, so it fits cleanly. "Managed" means the platform keeps the server and stack healthy while you own the app: your routes, your data, your config. It is a standard Linux box running standard Node, so you can move hosts anytime, with no per-app tax as you add more.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Your Fastify API, live on a server you own.</p>
+    <p style="margin:0 0 .6em">Deploy from Git, let PM2 keep it up, wire in a managed database, and get free auto-renewing SSL, without hand-rolling a proxy config. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>; sizes and plans (from $8/mo, Enterprise custom) are on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Seven clouds, one dashboard · Git deploy with live logs · PM2 process management · Seven managed databases · Private networking · Free auto-renewing SSL · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I deploy a Fastify app to production?</h3>
+    <p>Bind the server to host 0.0.0.0 on the port from process.env.PORT, set trustProxy so it behaves behind a proxy, keep the built-in pino logger writing JSON to stdout, and handle SIGTERM by calling app.close(). Then push to GitHub, launch a managed Node server, deploy from the repo with your install and start commands, add env vars and a managed database, and point a domain with SSL. PM2 keeps the process alive and the reverse proxy sends HTTPS traffic to it.</p>
+
+    <h3>Why is my Fastify app unreachable or 502 in production?</h3>
+    <p>The usual cause is the host. Fastify binds to 127.0.0.1 by default, so behind a proxy or in a container the proxy cannot reach it and you get a 502 with no crash. Change the listen call to include host 0.0.0.0. If that is not it, check for a missing env var that throws on boot or a port mismatch between your app and the deploy config.</p>
+
+    <h3>What host should Fastify listen on in production?</h3>
+    <p>Listen on 0.0.0.0 so the server accepts connections on all interfaces, which is what a reverse proxy, a container network, and health checks need. Fastify defaults to localhost only, which is safe locally but unreachable once anything else has to connect. Use app.listen with port and host 0.0.0.0 together.</p>
+
+    <h3>Fastify vs Express: which is better for production?</h3>
+    <p>Both deploy the same way at a high level, so the choice is about the framework, not hosting. Fastify benchmarks higher on raw JSON throughput and ships schema validation and a pino logger built in, while Express has the larger ecosystem and more tutorials. Most real apps are database-bound, so the throughput gap matters less than the developer experience. The one deploy difference to remember is that Fastify binds to localhost by default and Express binds to all interfaces.</p>
+
+    <h3>How do I run Fastify behind nginx?</h3>
+    <p>Have nginx terminate TLS on 443 and forward to the port your Fastify app listens on, then set trustProxy true when you construct Fastify. That makes request.ip and request.protocol reflect the real client from the X-Forwarded headers instead of the proxy. On managed hosting the proxy is already configured, so you mainly set trustProxy and read the assigned port from the environment.</p>
+
+    <h3>How do I do a graceful shutdown in Fastify?</h3>
+    <p>Listen for SIGTERM and SIGINT and call app.close(), which stops accepting new connections and runs your onClose hooks. Register an onClose hook to end the database pool so nothing is left open. Fastify also answers new requests with a 503 while it is closing by default, so a load balancer can route away from a draining instance. This is what makes redeploys invisible instead of dropping in-flight requests.</p>
+
+    <h3>Do I need PM2 to run Fastify?</h3>
+    <p>You need some supervisor so the app restarts on a crash and comes back after a reboot, and PM2 is the common choice for Node. It also runs cluster mode, one worker per CPU core behind the same port, which Fastify handles cleanly because it is stateless-friendly. On Kloudbean PM2 is part of the managed stack, so you do not install or babysit it.</p>
+
+    <h3>How do I read environment variables in Fastify?</h3>
+    <p>Read them straight from process.env at runtime, for example Number(process.env.PORT) for the port and process.env.DATABASE_URL for the database. Keep a local .env file for development and out of Git, and set the same keys as real environment variables on the server in production. The code does not change, only where the values come from.</p>
+
+    <h3>How do I set up logging in Fastify for production?</h3>
+    <p>Fastify ships with the pino logger, so set logger true when you create the instance and it writes structured JSON to stdout. Let the platform collect stdout rather than writing your own log files. Keep pino-pretty for local development only, because it is slower and exists to make logs readable for a human watching a terminal.</p>
+
+    <h3>Do I need Docker to deploy a Fastify app?</h3>
+    <p>No. A single Fastify app is one Node process, and a managed server runs it directly, restarts it on crash, and puts it behind a proxy with SSL. Docker and Kubernetes solve orchestration across many services at scale. For shipping one API they are extra moving parts you do not need yet.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Bind the host, trust the proxy, close gracefully, and own the box it runs on.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Deploy a Fastify App to Production","description":"A practical guide to deploy a Fastify app to production: bind host 0.0.0.0 (Fastify defaults to localhost), read config from env, set trustProxy behind nginx, use the built-in pino logger, and shut down gracefully with app.close(), then deploy from Git with PM2, a managed database, and free auto-renewing SSL.","image":"https://www.kloudbean.com/blog/deploy-fastify-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/deploy-fastify-app/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I deploy a Fastify app to production?","acceptedAnswer":{"@type":"Answer","text":"Bind the server to host 0.0.0.0 on the port from process.env.PORT, set trustProxy so it behaves behind a proxy, keep the built-in pino logger writing JSON to stdout, and handle SIGTERM by calling app.close(). Then push to GitHub, launch a managed Node server, deploy from the repo with your install and start commands, add env vars and a managed database, and point a domain with SSL. PM2 keeps the process alive and the reverse proxy sends HTTPS traffic to it."}},
+{"@type":"Question","name":"Why is my Fastify app unreachable or 502 in production?","acceptedAnswer":{"@type":"Answer","text":"The usual cause is the host. Fastify binds to 127.0.0.1 by default, so behind a proxy or in a container the proxy cannot reach it and you get a 502 with no crash. Change the listen call to include host 0.0.0.0. If that is not it, check for a missing env var that throws on boot or a port mismatch between your app and the deploy config."}},
+{"@type":"Question","name":"What host should Fastify listen on in production?","acceptedAnswer":{"@type":"Answer","text":"Listen on 0.0.0.0 so the server accepts connections on all interfaces, which is what a reverse proxy, a container network, and health checks need. Fastify defaults to localhost only, which is safe locally but unreachable once anything else has to connect. Use app.listen with port and host 0.0.0.0 together."}},
+{"@type":"Question","name":"Fastify vs Express: which is better for production?","acceptedAnswer":{"@type":"Answer","text":"Both deploy the same way at a high level, so the choice is about the framework, not hosting. Fastify benchmarks higher on raw JSON throughput and ships schema validation and a pino logger built in, while Express has the larger ecosystem and more tutorials. Most real apps are database-bound, so the throughput gap matters less than the developer experience. The one deploy difference to remember is that Fastify binds to localhost by default and Express binds to all interfaces."}},
+{"@type":"Question","name":"How do I run Fastify behind nginx?","acceptedAnswer":{"@type":"Answer","text":"Have nginx terminate TLS on 443 and forward to the port your Fastify app listens on, then set trustProxy true when you construct Fastify. That makes request.ip and request.protocol reflect the real client from the X-Forwarded headers instead of the proxy. On managed hosting the proxy is already configured, so you mainly set trustProxy and read the assigned port from the environment."}},
+{"@type":"Question","name":"How do I do a graceful shutdown in Fastify?","acceptedAnswer":{"@type":"Answer","text":"Listen for SIGTERM and SIGINT and call app.close(), which stops accepting new connections and runs your onClose hooks. Register an onClose hook to end the database pool so nothing is left open. Fastify also answers new requests with a 503 while it is closing by default, so a load balancer can route away from a draining instance. This is what makes redeploys invisible instead of dropping in-flight requests."}},
+{"@type":"Question","name":"Do I need PM2 to run Fastify?","acceptedAnswer":{"@type":"Answer","text":"You need some supervisor so the app restarts on a crash and comes back after a reboot, and PM2 is the common choice for Node. It also runs cluster mode, one worker per CPU core behind the same port, which Fastify handles cleanly because it is stateless-friendly. On Kloudbean PM2 is part of the managed stack, so you do not install or babysit it."}},
+{"@type":"Question","name":"How do I read environment variables in Fastify?","acceptedAnswer":{"@type":"Answer","text":"Read them straight from process.env at runtime, for example Number(process.env.PORT) for the port and process.env.DATABASE_URL for the database. Keep a local .env file for development and out of Git, and set the same keys as real environment variables on the server in production. The code does not change, only where the values come from."}},
+{"@type":"Question","name":"How do I set up logging in Fastify for production?","acceptedAnswer":{"@type":"Answer","text":"Fastify ships with the pino logger, so set logger true when you create the instance and it writes structured JSON to stdout. Let the platform collect stdout rather than writing your own log files. Keep pino-pretty for local development only, because it is slower and exists to make logs readable for a human watching a terminal."}},
+{"@type":"Question","name":"Do I need Docker to deploy a Fastify app?","acceptedAnswer":{"@type":"Answer","text":"No. A single Fastify app is one Node process, and a managed server runs it directly, restarts it on crash, and puts it behind a proxy with SSL. Docker and Kubernetes solve orchestration across many services at scale. For shipping one API they are extra moving parts you do not need yet."}}
+]}
+]}
+</script>
+</body>
+</html>

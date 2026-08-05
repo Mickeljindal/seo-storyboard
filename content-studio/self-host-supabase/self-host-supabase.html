@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Self-Host Supabase and Actually Own Your Data</title>
+<meta name="description" content="Self-hosting Supabase gives you Postgres, auth, storage, and auto-generated APIs on infrastructure you control. What Supabase really is, when to self-host Supabase, the keys that matter, and the one-click way to run it.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/self-host-supabase/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Self-Host Supabase and Actually Own Your Data">
+<meta property="og:description" content="What Supabase actually is, why self-hosting is really a data-ownership decision, the keys that matter, and the one-click way to run the whole stack.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Self-hosted tools</span>
+  <h1>How to Self-Host Supabase and Actually Own Your Data</h1>
+
+  <figure><img src="images/hero.png" alt="Self-host Supabase: Postgres, auth, storage and auto APIs on a server you own"></figure>
+
+  <p class="lead">Supabase gives you a whole backend in one product: a Postgres database with authentication, file storage, realtime updates, and REST APIs generated straight from your tables. The part people forget is that all of it is open source. So you can self-host Supabase on a server you own, keep every user record in your region, and stop watching a usage meter tick. This is the honest version of how that works, and when it's worth it.</p>
+
+  <p>I'll say the awkward thing early. Supabase is the most involved tool to self-host in this category, because it isn't one app. It's a handful of services that run together. That's very manageable, especially with a one-click install, but you should know what you're actually running.</p>
+
+  <div class="tldr">
+    <strong>Short version</strong>
+    <p>Supabase is Postgres with auth, storage, realtime, and auto-generated APIs bundled around it, all open source. Self-hosting means running that stack on your own server so your data and your costs stay under your control. On Kloudbean you can launch Supabase in one click, and the managed server underneath handles the OS, SSL, and server backups while you keep the keys. Self-host when data ownership or predictable cost matters. Stay on hosted Supabase for a quick prototype.</p>
+  </div>
+
+  <h2>What Supabase actually is</h2>
+  <p>Most people meet Supabase as "the open-source Firebase alternative," which is true but hides the useful detail. Under the hood it's a set of services, each doing one job, all pointed at a single Postgres database:</p>
+  <ul>
+    <li><strong>PostgreSQL</strong> is the core. Your users, your rows, your relationships. Everything else orbits it.</li>
+    <li><strong>Auth (GoTrue)</strong> handles sign-ups, logins, and tokens.</li>
+    <li><strong>PostgREST</strong> turns your tables into a REST API automatically, no endpoint code required.</li>
+    <li><strong>Realtime</strong> streams row changes to clients over websockets.</li>
+    <li><strong>Storage</strong> handles file uploads and serving.</li>
+    <li><strong>Kong</strong> is the gateway that sits in front and routes every request to the right service.</li>
+    <li><strong>Studio</strong> is the admin dashboard you click around in.</li>
+  </ul>
+  <p>You don't wire these up by hand. Supabase publishes an official <code>docker-compose</code> stack that starts them together, and a one-click deploy does the same thing for you. The mental model that matters: everything is a satellite around one Postgres database.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 360" role="img" aria-label="Diagram: Supabase is a set of services (Auth, auto REST API, Realtime, Storage) behind a Kong gateway, all pointed at one PostgreSQL database" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="30" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Supabase is a stack wrapped around one Postgres database</text>
+      <rect x="24" y="150" width="112" height="62" rx="12" fill="#000f27"/>
+      <text x="80" y="177" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Your app</text>
+      <text x="80" y="195" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="10.5">browser / client</text>
+      <line x1="136" y1="181" x2="178" y2="181" stroke="#5b6a86" stroke-width="2"/>
+      <path d="M178 181 l-9 -4 v8 z" fill="#5b6a86"/>
+      <rect x="186" y="60" width="550" height="286" rx="16" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5" stroke-dasharray="6 6"/>
+      <text x="202" y="84" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.5">SUPABASE · SELF-HOSTED</text>
+      <rect x="202" y="100" width="46" height="228" rx="10" fill="#4F1AF3"/>
+      <text x="225" y="214" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600" transform="rotate(-90 225 214)">Kong gateway</text>
+      <g font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">
+        <rect x="288" y="104" width="156" height="40" rx="9" fill="#ffffff" stroke="#000f27" stroke-width="1.3"/><text x="366" y="129" text-anchor="middle" fill="#000f27">Auth (GoTrue)</text>
+        <rect x="288" y="152" width="156" height="40" rx="9" fill="#ffffff" stroke="#000f27" stroke-width="1.3"/><text x="366" y="177" text-anchor="middle" fill="#000f27">Auto REST API</text>
+        <rect x="288" y="200" width="156" height="40" rx="9" fill="#ffffff" stroke="#000f27" stroke-width="1.3"/><text x="366" y="225" text-anchor="middle" fill="#000f27">Realtime</text>
+        <rect x="288" y="248" width="156" height="40" rx="9" fill="#ffffff" stroke="#000f27" stroke-width="1.3"/><text x="366" y="273" text-anchor="middle" fill="#000f27">Storage</text>
+      </g>
+      <g stroke="#c9b8ff" stroke-width="2">
+        <line x1="248" y1="124" x2="288" y2="124"/>
+        <line x1="248" y1="172" x2="288" y2="172"/>
+        <line x1="248" y1="220" x2="288" y2="220"/>
+        <line x1="248" y1="268" x2="288" y2="268"/>
+      </g>
+      <g>
+        <ellipse cx="622" cy="150" rx="66" ry="14" fill="#40b75f"/>
+        <path d="M556 150 v72 a66 14 0 0 0 132 0 v-72" fill="#40b75f"/>
+        <ellipse cx="622" cy="150" rx="66" ry="14" fill="#5fce7d"/>
+        <text x="622" y="192" text-anchor="middle" fill="#04331a" font-family="Poppins,sans-serif" font-size="14.5" font-weight="700">PostgreSQL</text>
+        <text x="622" y="210" text-anchor="middle" fill="#0a4d28" font-family="Poppins,sans-serif" font-size="10.5">your data lives here</text>
+      </g>
+      <g stroke="#40b75f" stroke-width="2">
+        <line x1="444" y1="124" x2="558" y2="150"/>
+        <line x1="444" y1="172" x2="556" y2="176"/>
+        <line x1="444" y1="220" x2="558" y2="200"/>
+        <line x1="444" y1="268" x2="558" y2="214"/>
+      </g>
+    </svg>
+    <figcaption>Requests hit the Kong gateway, fan out to Auth, the auto REST API, Realtime, and Storage, and every one of them reads and writes the same Postgres. Back up that database and you've backed up Supabase.</figcaption>
+  </figure>
+
+  <h2>Why self-host Supabase at all?</h2>
+  <p>Hosted Supabase is good. Genuinely good. So the reason to move isn't that the software gets better when you run it yourself. It's the same software. What changes is who holds the keys and who sends the invoice. Four reasons actually push teams to self-host Supabase, and they're worth being honest about.</p>
+  <ul>
+    <li><strong>You want to own the data.</strong> User records, auth tokens, uploaded files. Self-hosting keeps all of it on a server you control, not a third party's account. For a lot of teams that's the entire motivation.</li>
+    <li><strong>Predictable cost at scale.</strong> Hosted plans grow with usage: rows, storage, monthly active users, bandwidth. A flat server doesn't care how many users you have. Once you're past a certain size, a box you rent for a fixed price is cheaper and roomier than a plan that keeps nudging you upward.</li>
+    <li><strong>Data residency.</strong> If a rule says your users' data must stay in a specific country, self-hosting lets you put the server exactly there and prove it.</li>
+    <li><strong>No lock-in.</strong> It's plain Postgres and open-source services. You can move it, dump it, or inspect it whenever you want. Nothing proprietary to escape later.</li>
+  </ul>
+  <p>My honest take: if you're prototyping, none of this matters yet and you should stay on hosted. The move makes sense the moment your data or your bill becomes something you need to control rather than hope about.</p>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>Hosted Supabase</th><th>Self-hosted Supabase</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Setup effort</strong></td><td>Click a project, done in a minute</td><td>One-click install, then set your keys</td></tr>
+      <tr><td><strong>Who holds the data</strong></td><td>Supabase's cloud account</td><td>Your server, your region</td></tr>
+      <tr><td><strong>Cost shape</strong></td><td>Scales with rows, storage, users, bandwidth</td><td>Flat server price, regardless of usage</td></tr>
+      <tr><td><strong>Data residency</strong></td><td>Their available regions</td><td>Any region you can rent a server in</td></tr>
+      <tr><td><strong>You maintain</strong></td><td>Almost nothing</td><td>Stack updates and database backups</td></tr>
+      <tr><td><strong>Best for</strong></td><td>Prototypes, small apps, hands-off teams</td><td>Data ownership, residency, cost at scale</td></tr>
+    </tbody>
+  </table>
+
+  <!-- To add your own screenshot here, replace this whole figure with a real <figure><img ...><figcaption>...</figcaption></figure>. Image path: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your Supabase Cloud usage page, the meter that got you looking at self-hosting.</em><small>Grounds the cost argument. Optional.</small></span></figure>
+
+  <h2>The honest tradeoff nobody mentions</h2>
+  <p>Here's where most "self-host everything" posts oversell it, so I won't. When you self-host Supabase, you take on the operations. You'll update the stack now and then. You must keep the Postgres database backed up. If something breaks at an odd hour, it's your server.</p>
+  <p>A managed platform softens that a lot, but it doesn't erase it. On Kloudbean the underlying server is handled for you: the OS, the firewall, free SSL, and server-level backups all come with the box, and the one-click install stands the Supabase stack up without you assembling anything. What stays yours is the Supabase project and its data, the part you wanted to own. So the trade is real but small.</p>
+
+  <h2>The one-click path (and the managed Postgres option)</h2>
+  <p>The fastest way to a running Supabase you own is the one-click app. Add an application, pick Supabase, and the platform provisions the whole stack on your server. No <code>docker-compose</code> wrangling, no assembling services by hand.</p>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean console Add Application screen where Supabase can be deployed in one click onto your own server">
+    <figcaption>Add Application: launch Supabase in one click, and the whole stack comes up on a server you control.</figcaption>
+  </figure>
+
+  <p>There's a second path. If you actually want a plain, standalone <strong>managed PostgreSQL</strong> for your own app (not the full Supabase bundle), Kloudbean runs that as its own product, backed up and on a private network. That's the route many people take when they realize they used Supabase mostly for its database. The <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">add a managed database</a> guide walks through it, and there's a dedicated <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a> page too.</p>
+
+  <!-- To add your own screenshot here, replace this whole figure with a real <figure><img ...><figcaption>...</figcaption></figure>. Image path: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Supabase Studio running on your own domain, showing the table editor with your project's tables.</em><small>Proof it's live on your server. Optional author shot.</small></span></figure>
+
+  <h2>The keys that actually matter</h2>
+  <p>This is the step people skip, and it's the one that gets them hacked. Supabase is held together by a set of secrets, and the official example file ships with placeholder values that are public knowledge. Running on those defaults is like leaving the front door open with a sign pointing to it. Change every one of these before a single real record goes in:</p>
+  <ul>
+    <li><strong><code>POSTGRES_PASSWORD</code></strong>: your database password. Make it long and random.</li>
+    <li><strong><code>JWT_SECRET</code></strong>: signs every auth token. Everything trusts it, so keep it secret and keep it stable.</li>
+    <li><strong><code>ANON_KEY</code> and <code>SERVICE_ROLE_KEY</code></strong>: the public and admin API keys, both derived from your JWT secret. Regenerate them so they match the secret you set.</li>
+    <li><strong>Dashboard username and password</strong>: so your Studio isn't sitting open to anyone who finds the URL.</li>
+  </ul>
+  <p>These go in your environment variables on the server, never in code that could land in a Git repo:</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console Environment Variables screen where Supabase secrets are stored safely instead of in the code repository">
+    <figcaption>Runtime Configuration then Environment Variables: Supabase's keys live here, out of your repo.</figcaption>
+  </figure>
+
+<pre><code># Change every one of these before real data goes in
+POSTGRES_PASSWORD=a-long-random-string
+JWT_SECRET=a-long-random-secret-at-least-40-chars
+ANON_KEY=regenerated-to-match-your-jwt-secret
+SERVICE_ROLE_KEY=regenerated-to-match-your-jwt-secret
+DASHBOARD_USERNAME=your-admin-user
+DASHBOARD_PASSWORD=another-strong-password</code></pre>
+  <p>Set them, save, restart the stack so it picks them up. Boring work. Also the single most important thing you'll do here. If you read one section twice, make it this one. More on the general habit in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>.</p>
+
+  <h2>Moving a Supabase Cloud project across</h2>
+  <p>Not starting fresh? Because Supabase is Postgres underneath, bringing your Cloud project over is an ordinary database migration, not a special export format. You dump the Cloud database and load it into your own instance:</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console Launch Database screen used when migrating Supabase Postgres data to a database you own">
+    <figcaption>The same Launch Database flow that provisions managed Postgres is where a migrated Supabase dataset can land if you go the standalone route.</figcaption>
+  </figure>
+
+<pre><code># Export from your Supabase Cloud project (it's just Postgres)
+pg_dump "postgresql://postgres:PASSWORD@db.PROJECT.supabase.co:5432/postgres" &gt; supabase-dump.sql
+
+# Import into your self-hosted instance's database
+psql "postgresql://postgres:PASSWORD@localhost:5432/postgres" &lt; supabase-dump.sql</code></pre>
+  <p>Tables, rows, and relationships come across intact, because it's the same engine on both ends. Storage files (your uploads) move separately: copy them into your self-hosted Storage bucket. Do it while the Cloud project is still live, verify row counts and a few real queries on the new instance, then flip your app's URL over. Keep the Cloud project around until the new one is serving real traffic.</p>
+
+  <!-- To add your own screenshot here, replace this whole figure with a real <figure><img ...><figcaption>...</figcaption></figure>. Image path: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Terminal showing pg_dump finishing and psql loading the rows into your own instance.</em><small>A real terminal shot here beats a paragraph.</small></span></figure>
+
+  <h2>Your database is the whole ballgame</h2>
+  <p>Burn this into memory: the Postgres database is everything. Users, content, relationships, all of it lives there. Which means your backup story is really a database backup story. Server-level backups protect the box, and those come with the platform. On top of that you want regular dumps of the Postgres database itself, kept somewhere safe, set up on day one rather than the day after you wish you had them. Lose the server and you can rebuild it. Lose the database and there's nothing to rebuild from. Our <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a> covers the sane defaults.</p>
+
+  <h2>When hosted Supabase still wins</h2>
+  <p>I'm not going to tell you self-hosting is always right, because it isn't. Stay on hosted Supabase when:</p>
+  <ul>
+    <li><strong>You're prototyping.</strong> The free tier is generous and you should spend your energy on the product, not the plumbing.</li>
+    <li><strong>You're small and happy.</strong> If your usage fits comfortably inside a plan and the bill isn't stinging, there's no prize for moving.</li>
+    <li><strong>You never want to touch a server.</strong> That's a completely valid choice, and it's exactly what hosted exists for.</li>
+  </ul>
+  <p>The decision isn't ideological. It's about whether ownership and predictable cost are worth a little operational responsibility yet. For a weekend project, no. For the app that's becoming your business, usually yes.</p>
+
+  <h2>The Lovable connection</h2>
+  <p>Worth calling out, because it catches people by surprise. If you built your app with <strong>Lovable</strong>, there's a strong chance it already uses Supabase for its database and auth. That makes this article your natural next step: instead of staying tied to a hosted Supabase project, you can move the backend onto infrastructure you own and take the frontend with it. We wrote the specifics up in <a href="https://www.kloudbean.com/blog/lovable-self-hosted-alternative/">the Lovable self-hosted alternative</a> and <a href="https://www.kloudbean.com/blog/move-lovable-app-off-vercel/">moving a Lovable app off Vercel</a>. And if you're weighing other tools to run yourself, the <a href="https://www.kloudbean.com/blog/best-self-hosted-tools/">best self-hosted tools</a> roundup and the sibling <a href="https://www.kloudbean.com/blog/self-host-n8n/">self-host n8n</a> guide are good company.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Own the backend, keep the keys.</p>
+    <p style="margin:0 0 .6em">Launch Supabase in one click on a server you control, with the OS, SSL, and server backups handled and your data in your region. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">One-click Supabase · Managed PostgreSQL · Private networking · Automatic backups · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Is self-hosting Supabase hard?</h3>
+    <p>It's the most involved tool in this category because it's several services, not one app. But you're not building from scratch. Supabase ships an official docker-compose stack, and a one-click deploy stands the whole thing up for you. The real work is setting your secrets correctly, which takes a few minutes.</p>
+
+    <h3>What server size do I need for self-hosted Supabase?</h3>
+    <p>Plan for at least 2 GB of RAM, and more once you have real traffic, because you're running Postgres plus several services at once. Under-size it and things get flaky under load. Starting a little bigger and resizing later is the easy path.</p>
+
+    <h3>What's the most common self-hosting mistake?</h3>
+    <p>Leaving the default keys from the example environment file. POSTGRES_PASSWORD, JWT_SECRET, ANON_KEY, and SERVICE_ROLE_KEY are all public in that template, so you must change them before storing real data. This one mistake causes most self-hosted Supabase security incidents.</p>
+
+    <h3>Can I move my Supabase Cloud project to my own server?</h3>
+    <p>Yes. Supabase is Postgres underneath, so you export with pg_dump and import into your own instance with psql, then copy your Storage files across and point your app at the new URL. Do it while the Cloud project is still live and verify before you switch over. Free migration assistance can handle the move for you.</p>
+
+    <h3>Does self-hosted Supabase include auth and storage?</h3>
+    <p>Yes. Self-hosted Supabase is the same software as the hosted version, so you get auth, storage, realtime, the auto-generated REST API, and Studio. Nothing is held back for the paid cloud, apart from a few managed conveniences you're now handling yourself.</p>
+
+    <h3>Is self-hosted Supabase cheaper than Supabase Cloud?</h3>
+    <p>Past a certain size, usually yes. Hosted pricing scales with rows, storage, active users, and bandwidth, while a self-hosted server is a flat cost no matter how much you use it. For a small app the hosted free tier is hard to beat. For a growing one, the flat server tends to win.</p>
+
+    <h3>What do I need to back up?</h3>
+    <p>The PostgreSQL database, above everything else. It holds your users, content, and relationships. Keep regular database dumps in addition to the server-level backups the platform provides, because the database is the one thing you can't recreate from nothing.</p>
+
+    <h3>I built my app on Lovable, which uses Supabase. Can I self-host that?</h3>
+    <p>Yes, and it's a common move. Lovable apps often use Supabase for the database and auth, so self-hosting Supabase lets you own that backend and run the frontend on the same server. See our Lovable self-hosted alternative guide for the full path.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Own the database, own the backend.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Self-Host Supabase and Actually Own Your Data","description":"What Supabase actually is, why self-hosting is a data-ownership decision, the keys that matter, migrating from Supabase Cloud, and the one-click way to run the whole stack.","image":"https://www.kloudbean.com/blog/self-host-supabase/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/self-host-supabase/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Is self-hosting Supabase hard?","acceptedAnswer":{"@type":"Answer","text":"It's the most involved tool in this category because it's several services, not one app. But you're not building from scratch. Supabase ships an official docker-compose stack, and a one-click deploy stands the whole thing up for you. The real work is setting your secrets correctly, which takes a few minutes."}},
+{"@type":"Question","name":"What server size do I need for self-hosted Supabase?","acceptedAnswer":{"@type":"Answer","text":"Plan for at least 2 GB of RAM, and more once you have real traffic, because you're running Postgres plus several services at once. Under-size it and things get flaky under load. Starting a little bigger and resizing later is the easy path."}},
+{"@type":"Question","name":"What's the most common self-hosting mistake?","acceptedAnswer":{"@type":"Answer","text":"Leaving the default keys from the example environment file. POSTGRES_PASSWORD, JWT_SECRET, ANON_KEY, and SERVICE_ROLE_KEY are all public in that template, so you must change them before storing real data. This one mistake causes most self-hosted Supabase security incidents."}},
+{"@type":"Question","name":"Can I move my Supabase Cloud project to my own server?","acceptedAnswer":{"@type":"Answer","text":"Yes. Supabase is Postgres underneath, so you export with pg_dump and import into your own instance with psql, then copy your Storage files across and point your app at the new URL. Do it while the Cloud project is still live and verify before you switch over. Free migration assistance can handle the move for you."}},
+{"@type":"Question","name":"Does self-hosted Supabase include auth and storage?","acceptedAnswer":{"@type":"Answer","text":"Yes. Self-hosted Supabase is the same software as the hosted version, so you get auth, storage, realtime, the auto-generated REST API, and Studio. Nothing is held back for the paid cloud, apart from a few managed conveniences you're now handling yourself."}},
+{"@type":"Question","name":"Is self-hosted Supabase cheaper than Supabase Cloud?","acceptedAnswer":{"@type":"Answer","text":"Past a certain size, usually yes. Hosted pricing scales with rows, storage, active users, and bandwidth, while a self-hosted server is a flat cost no matter how much you use it. For a small app the hosted free tier is hard to beat. For a growing one, the flat server tends to win."}},
+{"@type":"Question","name":"What do I need to back up?","acceptedAnswer":{"@type":"Answer","text":"The PostgreSQL database, above everything else. It holds your users, content, and relationships. Keep regular database dumps in addition to the server-level backups the platform provides, because the database is the one thing you can't recreate from nothing."}},
+{"@type":"Question","name":"I built my app on Lovable, which uses Supabase. Can I self-host that?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it's a common move. Lovable apps often use Supabase for the database and auth, so self-hosting Supabase lets you own that backend and run the frontend on the same server. See our Lovable self-hosted alternative guide for the full path."}}
+]}
+]}
+</script>
+</body>
+</html>

@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Docker Container Hosting: Where to Run It (and When You Don't Need Docker)</title>
+<meta name="description" content="A plain-English guide to Docker container hosting: what a container really is, a real Dockerfile and compose example, where to run one container vs many, and the honest question of whether you need Docker at all.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/docker-container-hosting/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Docker Container Hosting: Where to Run It (and When You Don't Need Docker)">
+<meta property="og:description" content="What a container really is, a real Dockerfile, where one container vs many should live, and the honest question most guides skip: do you actually need Docker?">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Docker &amp; containers</span>
+  <h1>Docker Container Hosting Without the Kubernetes Detour</h1>
+
+  <figure><img src="images/hero.png" alt="Docker container hosting: where to run a container, and whether you need Docker at all"></figure>
+
+  <p class="lead">You've got a Dockerfile, the container runs fine on your laptop, and now it needs a real home. This is where a lot of people take a wrong turn. They hear "containers in production" and assume it means Kubernetes, so they lose a week to cluster management for an app that a single server would have run happily.</p>
+  <p>Docker container hosting doesn't have to be complicated. The right home depends on how many containers you run and how independently they scale, and for most projects the answer is refreshingly small. This is the honest version: what a container actually is, a real Dockerfile and compose file, where a container should live, and the question most guides skip. Do you even need Docker?</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>A container is your app plus its runtime and dependencies packaged into one image, so it runs the same everywhere. Hosting it means running that image somewhere always-on. One container? Run it on a server. A few? Use managed services for the database and cache, or a <code>docker compose</code> stack on one box. Many services scaling independently across machines? That's when Kubernetes earns its keep, and it's a bigger team's problem. And plenty of standard apps don't need Docker at all, because a managed runtime deploys them straight from Git.</p>
+  </div>
+
+  <h2>What a container actually is</h2>
+  <p>Strip away the whale logo and a container is a simple idea. You take your app, its language runtime, its libraries, and a slice of the operating system it expects, and you package all of it into a single <strong>image</strong>. That image is a frozen, self-contained snapshot. A <strong>container</strong> is just that image running as an isolated process on a host.</p>
+  <p>The payoff is that "works on my machine" stops being a shrug. The image carries its environment with it, so the same thing that ran on your laptop runs on the server, on a teammate's machine, and in CI, byte for byte. No more chasing a missing system library or a Node version mismatch at 2am.</p>
+  <p>One nuance people miss: a container isn't a virtual machine. It doesn't boot a whole guest OS. It shares the host's Linux kernel and isolates at the process level, which is why containers start in a fraction of a second and you can run several on a modest box. Here's the picture that makes the rest click:</p>
+
+  <figure>
+    <svg viewBox="0 0 760 344" role="img" aria-label="Diagram: one Docker image built from a Dockerfile is stamped into multiple identical, isolated container instances that all run on a single Linux host." style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="30" y="36" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">One image, stamped into identical running copies</text>
+
+      <!-- the image (blueprint) -->
+      <rect x="280" y="60" width="200" height="82" rx="12" fill="#000f27"/>
+      <text x="380" y="90" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="14.5" font-weight="600">Docker image</text>
+      <line x1="300" y1="106" x2="460" y2="106" stroke="#33436a" stroke-width="1"/>
+      <line x1="300" y1="116" x2="460" y2="116" stroke="#33436a" stroke-width="1"/>
+      <line x1="300" y1="126" x2="460" y2="126" stroke="#33436a" stroke-width="1"/>
+      <text x="380" y="120" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="11">built from your Dockerfile</text>
+      <text x="380" y="136" text-anchor="middle" fill="#6b7aa0" font-family="Poppins,sans-serif" font-size="10">code + runtime + deps, frozen in layers</text>
+
+      <!-- fan-out arrows -->
+      <line x1="380" y1="142" x2="175" y2="196" stroke="#4F1AF3" stroke-width="2"/>
+      <path d="M175 196 l4 -11 6 6 z" fill="#4F1AF3"/>
+      <line x1="380" y1="142" x2="380" y2="196" stroke="#4F1AF3" stroke-width="2"/>
+      <path d="M380 196 l-5 -9 10 0 z" fill="#4F1AF3"/>
+      <line x1="380" y1="142" x2="585" y2="196" stroke="#4F1AF3" stroke-width="2"/>
+      <path d="M585 196 l-10 -1 4 -10 z" fill="#4F1AF3"/>
+
+      <!-- three identical containers -->
+      <g font-family="Poppins,sans-serif">
+        <rect x="90" y="198" width="170" height="74" rx="12" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
+        <circle cx="112" cy="222" r="5" fill="#40b75f"/><text x="126" y="227" fill="#000f27" font-size="13.5" font-weight="600">container</text>
+        <text x="105" y="252" fill="#5b6a86" font-size="10.5">identical, isolated copy</text>
+
+        <rect x="295" y="198" width="170" height="74" rx="12" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
+        <circle cx="317" cy="222" r="5" fill="#40b75f"/><text x="331" y="227" fill="#000f27" font-size="13.5" font-weight="600">container</text>
+        <text x="310" y="252" fill="#5b6a86" font-size="10.5">identical, isolated copy</text>
+
+        <rect x="500" y="198" width="170" height="74" rx="12" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
+        <circle cx="522" cy="222" r="5" fill="#40b75f"/><text x="536" y="227" fill="#000f27" font-size="13.5" font-weight="600">container</text>
+        <text x="515" y="252" fill="#5b6a86" font-size="10.5">identical, isolated copy</text>
+      </g>
+
+      <!-- host baseline -->
+      <rect x="60" y="288" width="640" height="44" rx="10" fill="#eef1f8" stroke="#40b75f" stroke-width="1.5"/>
+      <text x="380" y="315" text-anchor="middle" fill="#1c2536" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Host · one Linux server (shared kernel)</text>
+    </svg>
+    <figcaption>Build once into an image, run it as many identical, isolated containers on a single host. They share the kernel, so they're light and start fast.</figcaption>
+  </figure>
+
+  <h2>A Dockerfile, in plain terms</h2>
+  <p>The Dockerfile is the recipe for the image. It says which base to start from, what to copy in, what to install, and what command to run. A minimal one for a Node app:</p>
+<pre><code># Dockerfile
+FROM node:20-slim
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --omit=dev
+COPY . .
+EXPOSE 3000
+CMD ["node", "server.js"]</code></pre>
+  <p>Build it into an image, then run the image as a container:</p>
+<pre><code>docker build -t myapp .
+docker run -d --env-file .env -p 3000:3000 myapp</code></pre>
+
+  <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>Terminal: docker build then docker run, the image building in layers and the container starting.</em><small>Shows the local build-and-run loop. Optional.</small></span></figure>
+
+  <p>That <code>--env-file .env</code> matters. Your secrets and config should be passed in at run time, not baked into the image. An image can end up in a registry or a teammate's laptop, and you don't want a database password riding along inside it. Same rule as everywhere else: config in the environment, not the artifact. We cover the whole pattern in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a>.</p>
+
+  <h2>docker compose, when you have a few pieces</h2>
+  <p>One container is the common case. But say your app also wants a Postgres and a Redis alongside it in development. Running three <code>docker run</code> commands by hand gets old fast. <code>docker compose</code> describes the whole set in one file and starts them together:</p>
+<pre><code># docker-compose.yml
+services:
+  app:
+    build: .
+    ports: ["3000:3000"]
+    environment:
+      DATABASE_URL: postgres://app:secret@db:5432/app
+    depends_on: [db, redis]
+  db:
+    image: postgres:16
+    volumes: ["dbdata:/var/lib/postgresql/data"]
+    environment:
+      POSTGRES_PASSWORD: secret
+  redis:
+    image: redis:7
+
+volumes:
+  dbdata:</code></pre>
+<pre><code>docker compose up -d</code></pre>
+  <p>Compose is a joy for local development, because it spins up a whole stack that matches production with one command. In production it's fine for a small app on a single server. It is not orchestration, and that's the point. It's the calm middle ground between "one container" and "a cluster."</p>
+
+  <h2>The honest question: do you actually need Docker?</h2>
+  <p>Here's the part the whale-branded tutorials skip. Docker is genuinely useful, and it's also frequently cargo-culted. If your app is a standard Node, Python, PHP, Ruby, or Java app, a managed platform can run it straight from your repository, handle the runtime, and keep it alive, with no Dockerfile for you to write or maintain.</p>
+  <p>My honest opinion after watching a lot of people ship: reach for Docker when you have a real reason, not because a blog post implied you're unprofessional without it. The reasons that actually justify it:</p>
+  <ul>
+    <li><strong>Awkward system dependencies.</strong> Your app needs a specific system library, a native binary, ImageMagick, ffmpeg, an odd runtime version. Packaging that into an image is cleaner than fighting the host.</li>
+    <li><strong>Local dev parity for a multi-service app.</strong> A team that wants one <code>compose up</code> to boot the whole stack identically on every laptop gets real value.</li>
+    <li><strong>You already maintain the Dockerfile.</strong> If it exists and works, keep it. No need to rip it out.</li>
+  </ul>
+  <p>And the times it's just overhead: a plain web app with ordinary dependencies, a solo project, a prototype you want live this afternoon. There, a Dockerfile is a file to maintain and a build to debug for no benefit you'll feel. Here's the trade laid out plainly:</p>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>The Docker path</th><th>A native managed runtime</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Environment</strong></td><td>You define it in a Dockerfile you maintain</td><td>Provided and patched for you</td></tr>
+      <tr><td><strong>Build</strong></td><td>You build the image (locally or in CI)</td><td>Built from your Git repo on push</td></tr>
+      <tr><td><strong>Best when</strong></td><td>Unusual system deps, multi-service parity</td><td>Standard Node/Python/PHP/Ruby/Java apps</td></tr>
+      <tr><td><strong>Overhead</strong></td><td>A file and a build pipeline to look after</td><td>Almost none; you push code</td></tr>
+      <tr><td><strong>Portability</strong></td><td>Runs anywhere Docker runs</td><td>Standard code, runs on any Linux host</td></tr>
+    </tbody>
+  </table>
+  <p>Neither is "more professional." They're different tools. Containers are a tool, not a rite of passage.</p>
+
+  <h2>Docker container hosting, from one container to many</h2>
+  <p>Match the machinery to the count. Most people are further left on this scale than the internet makes them feel.</p>
+
+  <h3>One container</h3>
+  <p>Run it on a server. That's the whole answer. A single containerized app does not need orchestration. You run the image on an always-on Linux box, keep the process supervised so it restarts on crash, and put a domain and SSL in front. If someone insists a single container needs a cluster, they're selling you complexity you can skip. A long-running worker with no inbound web traffic, a chat bot or a queue consumer, is the same shape (one process on a server); the <a href="https://www.kloudbean.com/blog/discord-bot-hosting/">always-on bot hosting guide</a> walks that worker variant end to end.</p>
+
+  <h3>A few containers (app + database + cache)</h3>
+  <p>Two clean options, neither of them Kubernetes. Either run your app and use <strong>managed services</strong> for the stateful pieces (a managed database, a managed Redis) rather than running those in containers you babysit, which is usually the better call. Or run a <code>docker compose</code> stack on one server if you genuinely want everything containerized. Both keep you on a single box. If those are several distinct apps rather than one app's dependencies, <a href="https://www.kloudbean.com/blog/host-multiple-apps-one-server/">hosting multiple apps on one server</a> covers keeping them cleanly isolated.</p>
+
+  <h3>Many services that must scale independently</h3>
+  <p>Now orchestration earns its place. Many services, each scaling on its own, self-healing across several machines, rolling out continuously: that's what Kubernetes is built for, and it's genuinely good at it. But be honest about whether you're there. The number of projects that <em>think</em> they need Kubernetes dwarfs the number that do. Most small apps don't need it, and I'll say that plainly. Reach for orchestration when doing without it actually hurts, not preemptively.</p>
+
+  <h2>How this works on Kloudbean</h2>
+  <p>Kloudbean's angle is a little different from the container-first platforms, and it's worth being precise, because there's a lot of hand-waving out there. You get a managed Linux server that you fully control. Two honest paths sit on top of it.</p>
+  <p><strong>The native path, which most people should use.</strong> Kloudbean runs managed runtimes for Node, Python, PHP, Ruby, and Java. Connect a Git repo and it builds and deploys your app on every push, streams the build log live, keeps the process running, and puts SSL in front. No Dockerfile to write or maintain. For a standard app, that removes the very reason a lot of people reached for Docker in the first place.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean console Git deployment screen: connect a repo and deploy a Node, Python, PHP, Ruby, or Java app from Git, no Dockerfile required">
+    <figcaption>The native path: connect a repo and Kloudbean builds and deploys your app from Git on every push. No Dockerfile needed for a standard app.</figcaption>
+  </figure>
+
+  <p><strong>The do-it-yourself container path.</strong> Because it's a real server you control, you can SSH in, install Docker, and run your own containers or a <code>docker compose</code> stack, exactly as you would on any Linux box. You manage those containers yourself. That's the honest boundary worth stating clearly: running your containers is something you do on the server, not a one-click managed build button. If a Dockerfile is central to how you work, you're free to use it. If it isn't, the native runtime is less to maintain.</p>
+
+  <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>Terminal over SSH on the server: docker compose up bringing a small stack online.</em><small>Shows the DIY container path on a server you control. Optional.</small></span></figure>
+
+  <p>Either path, the same rule holds for state. Your database goes in a <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed database</a> and your files go in <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">object storage</a>, so nothing important lives inside a container. And if you're truly at the scale that needs Kubernetes, autoscaling, and orchestration across many machines, that's Kloudbean's enterprise territory, set up for you, not a switch a solo developer should be flipping alone.</p>
+
+  <h2>The rule that outranks every hosting choice</h2>
+  <p>Wherever your container lands, one principle matters more than the hosting decision itself: <strong>containers are disposable.</strong> A container can be stopped, replaced, or rebuilt at any moment, and that's a feature. But it means anything written <em>inside</em> a container is gone when it's replaced.</p>
+  <p>So your persistent data has to live outside the container. Your database goes in a managed database, not inside the app container. User uploads go to object storage, not the container's disk. Any file you must keep gets a real volume, never the ephemeral filesystem. Get this right and you can redeploy and restart freely with zero data loss. Get it wrong and a routine redeploy quietly wipes something you needed. A common mistake we see: a container writing uploads to a local folder, then losing every file the next time it's replaced. Treat the container as replaceable and the data as precious, kept somewhere the container isn't.</p>
+
+  <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>Simple sketch: an app container with arrows out to a managed database and object storage, state living outside the container.</em></span></figure>
+
+  <h2>What about free Docker hosting?</h2>
+  <p>People search for free Docker hosting, and it's a fair thing to want. Just know the catch: a container still needs a home that stays on. Free tiers that sleep idle apps will stop your container between requests, which is fine for a demo and a problem for anything real. For learning and throwaway projects, free is great, and <a href="https://www.kloudbean.com/blog/free-app-hosting-options/">free app hosting options</a> covers the honest set. For something you actually depend on, a small always-on server costs about what <a href="https://www.kloudbean.com/blog/cost-of-running-a-side-project/">running a side project</a> should, and it doesn't nap on you.</p>
+
+  <h2>The honest limits</h2>
+  <p>Underneath all of this, it's Linux. A container is your app running on a Linux host, and Kloudbean gives you that host plus managed runtimes, managed databases, and object storage around it. "Managed" means the server, the stack, SSL, patching, and backups are handled, while your image, your code, and your data stay yours to move whenever you like. What you won't find here is a one-click managed Kubernetes for general accounts (orchestration at that scale is an enterprise setup), or a Windows container stack. For running a container, or skipping Docker entirely on a standard app, a server you control covers it without the cluster tax.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Use exactly as much machinery as you need. No more.</p>
+    <p style="margin:0 0 .6em">Run a standard app straight from Git with no Dockerfile, or take a Linux server you control and run your own containers on it. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; sizes and plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Managed runtimes · Git deploy · Managed databases · Object storage · A server you own · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Where should I host a Docker container?</h3>
+    <p>For a single container, run it on an always-on server. No orchestration needed. For a few containers (app plus a database and cache), use managed services for the stateful pieces with your app as a container, or a <code>docker compose</code> stack on one server. Save Kubernetes for many services that must scale independently across machines, which is a larger team's problem.</p>
+    <h3>Do I need Kubernetes to run Docker containers?</h3>
+    <p>No, not for most projects. Kubernetes is built for many services scaling independently across multiple machines. A single container runs fine on one server, and a few containers run fine with compose or managed services. Adopt Kubernetes only when managing many services by hand becomes a real, present pain, not before.</p>
+    <h3>Does Kloudbean build and run my Dockerfile for me?</h3>
+    <p>Not as a managed one-click pipeline. The managed, hands-off path on Kloudbean is the native runtimes: connect a Git repo and it builds and runs your Node, Python, PHP, Ruby, or Java app with no Dockerfile. If you want to use Docker, you get a full Linux server you control, so you can SSH in, install Docker, and run your own containers or a compose stack yourself.</p>
+    <h3>Do I even need Docker for my app?</h3>
+    <p>Often not. Docker gives you a reproducible environment, which is valuable for unusual system dependencies or multi-service local parity. But a standard Node, Python, or PHP app can deploy straight from your repository on a managed runtime with no Dockerfile at all. Use Docker when it earns its keep, skip it when a plain deploy does the job.</p>
+    <h3>How do I deploy a single Docker container to production?</h3>
+    <p>Run the image on an always-on server, pass config in with an env file rather than baking secrets into the image, keep the process supervised so it restarts on crash, and put a domain and SSL in front. Keep persistent data in a managed database and files in object storage so a redeploy never wipes them.</p>
+    <h3>Can I run several containers on one server?</h3>
+    <p>Yes. <code>docker compose</code> defines and runs several linked containers together on a single server, which is the natural setup for a small multi-container app. Alternatively, run your app as a container and use managed services for the database and cache. Either keeps you on one box without a cluster.</p>
+    <h3>Where does a container's data go so it survives a redeploy?</h3>
+    <p>Outside the container. A container's own filesystem is disposable, so anything written inside is lost when it's replaced. Put your database in a managed database, user uploads in object storage, and any file you must keep on a real volume. Then you can redeploy freely without losing data.</p>
+    <h3>Is free Docker hosting good enough for a real app?</h3>
+    <p>For learning and throwaway demos, sure. For anything you depend on, be careful: free tiers that sleep idle apps will stop your container between requests, so it won't stay reliably online. A small always-on server is inexpensive and keeps the container running around the clock.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · The server is yours. Docker is your call.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Docker Container Hosting Without the Kubernetes Detour","description":"A plain-English guide to Docker container hosting: what a container really is, a real Dockerfile and compose example, where to run one container vs many, and the honest question of whether you need Docker at all.","image":"https://www.kloudbean.com/blog/docker-container-hosting/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/docker-container-hosting/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Where should I host a Docker container?","acceptedAnswer":{"@type":"Answer","text":"For a single container, run it on an always-on server. No orchestration needed. For a few containers (app plus a database and cache), use managed services for the stateful pieces with your app as a container, or a docker compose stack on one server. Save Kubernetes for many services that must scale independently across machines, which is a larger team's problem."}},
+{"@type":"Question","name":"Do I need Kubernetes to run Docker containers?","acceptedAnswer":{"@type":"Answer","text":"No, not for most projects. Kubernetes is built for many services scaling independently across multiple machines. A single container runs fine on one server, and a few containers run fine with compose or managed services. Adopt Kubernetes only when managing many services by hand becomes a real, present pain, not before."}},
+{"@type":"Question","name":"Does Kloudbean build and run my Dockerfile for me?","acceptedAnswer":{"@type":"Answer","text":"Not as a managed one-click pipeline. The managed, hands-off path on Kloudbean is the native runtimes: connect a Git repo and it builds and runs your Node, Python, PHP, Ruby, or Java app with no Dockerfile. If you want to use Docker, you get a full Linux server you control, so you can SSH in, install Docker, and run your own containers or a compose stack yourself."}},
+{"@type":"Question","name":"Do I even need Docker for my app?","acceptedAnswer":{"@type":"Answer","text":"Often not. Docker gives you a reproducible environment, which is valuable for unusual system dependencies or multi-service local parity. But a standard Node, Python, or PHP app can deploy straight from your repository on a managed runtime with no Dockerfile at all. Use Docker when it earns its keep, skip it when a plain deploy does the job."}},
+{"@type":"Question","name":"How do I deploy a single Docker container to production?","acceptedAnswer":{"@type":"Answer","text":"Run the image on an always-on server, pass config in with an env file rather than baking secrets into the image, keep the process supervised so it restarts on crash, and put a domain and SSL in front. Keep persistent data in a managed database and files in object storage so a redeploy never wipes them."}},
+{"@type":"Question","name":"Can I run several containers on one server?","acceptedAnswer":{"@type":"Answer","text":"Yes. docker compose defines and runs several linked containers together on a single server, which is the natural setup for a small multi-container app. Alternatively, run your app as a container and use managed services for the database and cache. Either keeps you on one box without a cluster."}},
+{"@type":"Question","name":"Where does a container's data go so it survives a redeploy?","acceptedAnswer":{"@type":"Answer","text":"Outside the container. A container's own filesystem is disposable, so anything written inside is lost when it's replaced. Put your database in a managed database, user uploads in object storage, and any file you must keep on a real volume. Then you can redeploy freely without losing data."}},
+{"@type":"Question","name":"Is free Docker hosting good enough for a real app?","acceptedAnswer":{"@type":"Answer","text":"For learning and throwaway demos, sure. For anything you depend on, be careful: free tiers that sleep idle apps will stop your container between requests, so it won't stay reliably online. A small always-on server is inexpensive and keeps the container running around the clock."}}
+]}
+]}
+</script>
+</body>
+</html>

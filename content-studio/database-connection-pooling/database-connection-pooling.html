@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Database Connection Pooling: How to Fix 'Too Many Connections'</title>
+<meta name="description" content="Database connection pooling explained: why connections are expensive, what causes the 'too many connections' error, how to size a connection pool, and when you need PgBouncer.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/database-connection-pooling/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Database Connection Pooling: How to Fix 'Too Many Connections'">
+<meta property="og:description" content="Why connections are expensive, what triggers 'too many connections', how to size a pool, PgBouncer transaction vs session pooling, and the serverless connection storm.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Database performance</span>
+  <h1>Database Connection Pooling: How to Fix 'Too Many Connections'</h1>
+  <p class="byline">By Kloudbean Infrastructure Team · Open few connections, reuse them well.</p>
+
+  <figure><img src="images/hero.png" alt="Database connection pooling: many app workers funnel into a small set of reused database connections"></figure>
+
+  <p class="lead">Your app was fine yesterday. Then traffic ticked up, and the logs filled with one line: <code>FATAL: sorry, too many clients already</code>. The database didn't run out of CPU. It didn't run out of disk. It ran out of connections. That's what <strong>database connection pooling</strong> solves, and it's the fix most teams reach for far too late, usually mid-incident.</p>
+  <p>This guide is the practical version. Why a connection costs so much, what that error means, and how to fix it at three levels: the driver pool in your app, a dedicated pooler like PgBouncer when many instances share one database, and the serverless connection storm. Real config and the sizing math nobody shows you.</p>
+
+  <div class="tldr">
+    <strong>What is database connection pooling, and when do I need it?</strong>
+    <p>A connection pool keeps a small set of database connections open and reuses them, instead of opening a fresh one for every request. You need it the moment your app runs more than a couple of concurrent workers, or the second you see <code>too many connections</code>. Fix it at three levels: a driver pool in your app (pg <code>Pool</code>, HikariCP, SQLAlchemy), a dedicated pooler like PgBouncer when many app instances hit one database, and a pooler in front of serverless functions to tame connection storms.</p>
+  </div>
+
+  <h2>Why one database connection costs more than you think</h2>
+  <p>People treat a connection like it's free. It isn't. In <strong>PostgreSQL</strong>, every connection is a separate backend <em>process</em> the server forks and keeps alive. Each one carries its own memory for sorts, joins, and caches, so a few hundred mostly-idle connections still burn real RAM and add scheduling overhead. That's before a single query runs. And the default ceiling is low: a stock Postgres ships with <code>max_connections = 100</code>.</p>
+  <p>MySQL is a little lighter. It uses a thread per connection rather than a full process, but each thread still holds per-connection buffers and counts against a limit (the default <code>max_connections</code> is 151). Same shape of problem, smaller constant.</p>
+  <p>Then there's the setup tax. Opening a connection means a TCP handshake, authentication, and often a TLS negotiation. Do that once and reuse it: cheap. Do it on every request and a query that should take 5 milliseconds spends more time just saying hello. This is the core reason <strong>PostgreSQL connection pooling</strong> matters more than for most databases: processes are heavier than threads, so wasting them hurts sooner.</p>
+
+  <h2>The error everyone pastes into Google</h2>
+  <p>Here are the strings people search at 2am, and what each one is really telling you:</p>
+  <ul>
+    <li><strong>Postgres:</strong> <code>FATAL: sorry, too many clients already</code> and its cousin <code>FATAL: remaining connection slots are reserved for non-replication superuser connections</code>.</li>
+    <li><strong>MySQL:</strong> <code>ERROR 1040 (HY000): Too many connections</code>.</li>
+  </ul>
+  <p>All of them mean the same thing. The database hit <code>max_connections</code> and started refusing new ones. Your app throws 500s, health checks fail, and it looks like the database fell over. It didn't. It's full, mostly of connections sitting idle, doing nothing but holding a slot.</p>
+  <p>Here's the trap. This almost never shows up in development, where one process opens one connection. It shows up the day you scale out or hit a traffic spike. And it gets misread constantly: the database looks slow, so someone optimizes queries for an afternoon. Wrong layer entirely.</p>
+  <p>An opinion, from watching a lot of these go sideways: most "the database is slow under load" incidents aren't slow queries at all. They're connection exhaustion. The query that looks slow is really just a fast query waiting in line for a free connection that never comes. Check your connection count before you touch a single index.</p>
+
+  <!-- ADD IMAGE: the real error in your logs so readers recognize it. Swap for a real screenshot: src -> images/too-many-connections-log.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The "too many connections" line in your own database or app logs, so readers match it to what they see.</em><small>Optional: swap for your log or alert screenshot.</small></span></figure>
+
+  <h2>What database connection pooling actually does</h2>
+  <p>A pool is a set of already-open connections kept warm and ready. Instead of open, query, close on every request, your app <em>borrows</em> a connection, runs its query, and hands it back. It stays open for the next request that needs it. Reuse, not reopen.</p>
+  <p>The important part is the cap. A pool has a maximum size, and that limit is the whole point: your app never opens more than N connections, so it can't exhaust the database on its own. When a spike arrives, extra requests wait a few milliseconds for a connection to free up instead of stampeding the server. A small, busy pool protects the database. A giant pool just moves the stampede.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 380" width="100%" role="img" aria-labelledby="pool-title" xmlns="http://www.w3.org/2000/svg">
+      <title id="pool-title">Many app workers open pooled clients that funnel through a pooler into a few real database connections</title>
+      <rect x="0" y="0" width="760" height="380" fill="#f6f7fb"></rect>
+      <text x="26" y="32" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Many workers in, a few real connections out</text>
+
+      <!-- app tier group -->
+      <rect x="14" y="52" width="168" height="290" rx="14" fill="none" stroke="#4F1AF3" stroke-width="1.4" stroke-dasharray="6 6"></rect>
+      <text x="22" y="70" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600" letter-spacing="1">APP TIER &middot; MANY WORKERS</text>
+
+      <!-- worker boxes -->
+      <rect x="26" y="80" width="144" height="36" rx="9" fill="#000f27"></rect>
+      <text x="98" y="103" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12.5" font-weight="500">App worker</text>
+      <rect x="26" y="128" width="144" height="36" rx="9" fill="#000f27"></rect>
+      <text x="98" y="151" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12.5" font-weight="500">App worker</text>
+      <rect x="26" y="176" width="144" height="36" rx="9" fill="#000f27"></rect>
+      <text x="98" y="199" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12.5" font-weight="500">App worker</text>
+      <rect x="26" y="224" width="144" height="36" rx="9" fill="#000f27"></rect>
+      <text x="98" y="247" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12.5" font-weight="500">App worker</text>
+      <rect x="26" y="272" width="144" height="36" rx="9" fill="#000f27"></rect>
+      <text x="98" y="295" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12.5" font-weight="500">App worker</text>
+      <text x="98" y="330" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">hundreds of clients</text>
+
+      <!-- pooler -->
+      <rect x="312" y="150" width="176" height="104" rx="16" fill="#ffffff" stroke="#4F1AF3" stroke-width="2.5"></rect>
+      <text x="400" y="188" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="15" font-weight="600">Connection pool</text>
+      <text x="400" y="210" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600">pg Pool &middot; HikariCP &middot; PgBouncer</text>
+      <text x="400" y="230" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">keeps a few open, reuses them</text>
+
+      <!-- db cylinder -->
+      <g>
+        <ellipse cx="648" cy="158" rx="58" ry="12" fill="#4F1AF3"></ellipse>
+        <path d="M590 158 v72 a58 12 0 0 0 116 0 v-72" fill="#4F1AF3"></path>
+        <ellipse cx="648" cy="158" rx="58" ry="12" fill="#6b3cff"></ellipse>
+        <text x="648" y="200" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="14" font-weight="600">Database</text>
+        <text x="648" y="219" text-anchor="middle" fill="#d8ccff" font-family="Poppins,sans-serif" font-size="10.5">Postgres / MySQL</text>
+      </g>
+      <text x="648" y="268" text-anchor="middle" fill="#2f9d4e" font-family="Poppins,sans-serif" font-size="11" font-weight="600">bounded by max_connections</text>
+
+      <!-- arrows workers -> pooler (converging) -->
+      <line x1="170" y1="98" x2="308" y2="184" stroke="#5b6a86" stroke-width="1.8" marker-end="url(#a)"></line>
+      <line x1="170" y1="146" x2="308" y2="194" stroke="#5b6a86" stroke-width="1.8" marker-end="url(#a)"></line>
+      <line x1="170" y1="194" x2="308" y2="202" stroke="#5b6a86" stroke-width="1.8" marker-end="url(#a)"></line>
+      <line x1="170" y1="242" x2="308" y2="210" stroke="#5b6a86" stroke-width="1.8" marker-end="url(#a)"></line>
+      <line x1="170" y1="290" x2="308" y2="220" stroke="#5b6a86" stroke-width="1.8" marker-end="url(#a)"></line>
+
+      <!-- arrows pooler -> db (a few) -->
+      <text x="500" y="146" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600">a few real connections</text>
+      <line x1="488" y1="188" x2="588" y2="178" stroke="#4F1AF3" stroke-width="2.4" marker-end="url(#p)"></line>
+      <line x1="488" y1="202" x2="586" y2="202" stroke="#4F1AF3" stroke-width="2.4" marker-end="url(#p)"></line>
+      <line x1="488" y1="216" x2="588" y2="226" stroke="#4F1AF3" stroke-width="2.4" marker-end="url(#p)"></line>
+
+      <defs>
+        <marker id="a" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 Z" fill="#5b6a86"></path></marker>
+        <marker id="p" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0 0 L7 3 L0 6 Z" fill="#4F1AF3"></path></marker>
+      </defs>
+    </svg>
+    <figcaption>The funnel: many client connections from your app workers collapse through a pool into a small, bounded set of real database connections.</figcaption>
+  </figure>
+
+  <h2>Level 1: the driver pool, and how to size it</h2>
+  <p>Start here, because for most apps this is the entire fix. Nearly every driver and ORM can pool for you, and many do by default. You just have to set the size on purpose instead of leaving it to luck.</p>
+
+  <h3>node-postgres (pg)</h3>
+<pre><code>import { Pool } from "pg";
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 10,                     // max open connections for THIS instance
+  idleTimeoutMillis: 30000,    // close idle connections after 30s
+  connectionTimeoutMillis: 5000
+});
+
+// borrow, query, return: the pool handles it
+export const query = (text, params) =&gt; pool.query(text, params);</code></pre>
+
+  <h3>SQLAlchemy (Python)</h3>
+<pre><code>from sqlalchemy import create_engine
+
+engine = create_engine(
+    os.environ["DATABASE_URL"],
+    pool_size=10,        # kept-open connections
+    max_overflow=5,      # extra burst connections when busy
+    pool_pre_ping=True,  # drop dead connections instead of erroring
+    pool_recycle=1800,   # recycle after 30 min
+)</code></pre>
+
+  <h3>HikariCP (Java / Spring Boot)</h3>
+<pre><code># application.properties
+spring.datasource.hikari.maximum-pool-size=10
+spring.datasource.hikari.minimum-idle=2
+spring.datasource.hikari.connection-timeout=5000
+spring.datasource.hikari.idle-timeout=600000</code></pre>
+
+  <p>A quick reference for the pool knob that matters in each stack:</p>
+  <table class="cmp">
+    <thead><tr><th>Stack</th><th>Pool setting</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Node (pg)</strong></td><td><code>max</code> on <code>Pool</code></td><td>Per process. Reuse one pool, don't make one per request.</td></tr>
+      <tr><td><strong>Python (SQLAlchemy)</strong></td><td><code>pool_size</code> + <code>max_overflow</code></td><td>Real ceiling is the sum of both.</td></tr>
+      <tr><td><strong>Java (HikariCP)</strong></td><td><code>maximumPoolSize</code></td><td>The default connection pool in Spring Boot.</td></tr>
+      <tr><td><strong>Go (database/sql)</strong></td><td><code>SetMaxOpenConns</code></td><td>Unset means unlimited. Always set it.</td></tr>
+      <tr><td><strong>Django</strong></td><td><code>CONN_MAX_AGE</code></td><td>Persistent connection per worker. Multiplies by worker count.</td></tr>
+      <tr><td><strong>Rails</strong></td><td><code>pool</code> in <code>database.yml</code></td><td>Per process. Match it to your thread count.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>The connection pool size math nobody shows you</h3>
+  <p>This is where teams get burned. Your total connections is not your pool size. It's the pool size multiplied by every process talking to the database:</p>
+<pre><code>total connections = pool_size  x  app instances  x  worker processes
+
+# real example
+4 servers  x  4 workers each  x  pool of 10  =  160 connections
+# Postgres default max_connections = 100  -->  you are already over the limit</code></pre>
+  <p>Read that twice, because it explains most outages of this kind. Four modest servers with a "reasonable" pool of 10 quietly need 160 connections, and a default Postgres tops out at 100. Nobody set out to open 160. The multiplication did it.</p>
+  <p>So what's a good <strong>connection pool size</strong>? Smaller than your instinct. A well-known starting point from the HikariCP project is roughly <code>(CPU cores x 2) + effective spindles</code>, near 9 or 10 on a 4-core box. That feels too low the first time you see it, but a small pool kept fully busy beats a huge one that thrashes the database. Treat any formula as a starting line, then measure and adjust. Workloads vary.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed PostgreSQL or MySQL database">
+    <figcaption>A managed PostgreSQL or MySQL on a private network with automatic backups. Your driver pool connects to it like any Postgres or MySQL.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: show your app's pool config or the connection count graph after tuning. Swap for a real screenshot: src -> images/pool-config.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your pool settings in code, or a graph of active connections dropping after you set a sane pool size.</em><small>Optional: swap for your own screenshot.</small></span></figure>
+
+  <h2>Level 2: a dedicated pooler (PgBouncer) when many instances share one database</h2>
+  <p>Driver pools have a ceiling. Picture 20 app instances, each with a pool of 10. That's 200 connections wanted, and you can't sensibly shrink each pool to 1. When many separate processes hammer one Postgres, you put a dedicated pooler <em>between</em> them and the database. <strong>PgBouncer</strong> is the standard choice: tiny and battle-tested. It holds a small set of real server connections and multiplexes thousands of client connections onto them.</p>
+  <p>PgBouncer has two modes, and picking the wrong one causes subtle bugs:</p>
+  <table class="cmp">
+    <thead><tr><th></th><th>Session pooling</th><th>Transaction pooling</th></tr></thead>
+    <tbody>
+      <tr><td><strong>A server connection is held</strong></td><td>For the client's whole session</td><td>Only for one transaction, then returned</td></tr>
+      <tr><td><strong>Multiplexing</strong></td><td>Modest</td><td>Very high (thousands of clients onto dozens)</td></tr>
+      <tr><td><strong>Best for</strong></td><td>Long-lived clients, admin tools</td><td>Web apps with many short requests</td></tr>
+      <tr><td><strong>Watch out for</strong></td><td>Uses more connections</td><td>Breaks session state: server-side prepared statements, <code>SET</code>, <code>LISTEN/NOTIFY</code>, session advisory locks</td></tr>
+    </tbody>
+  </table>
+  <p>For a typical web app, <strong>transaction pooling</strong> is the big win. It's how a pooler turns thousands of client connections into a few dozen real ones. The catch, and it's a real one: because a connection isn't tied to one client, anything relying on session state can misbehave. In practice you disable server-side prepared statements in your driver and avoid session-level features. A minimal config:</p>
+<pre><code># pgbouncer.ini
+[databases]
+appdb = host=10.0.0.5 port=5432 dbname=appdb
+
+[pgbouncer]
+listen_addr = 127.0.0.1
+listen_port = 6432
+pool_mode = transaction
+max_client_conn = 1000       # clients PgBouncer will accept
+default_pool_size = 20        # real connections it opens to Postgres</code></pre>
+  <p>Then your app points at PgBouncer's port instead of Postgres directly. Keep that connection string in an environment variable, not in code (more on that in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>):</p>
+<pre><code># was: ...@10.0.0.5:5432/appdb   (straight to Postgres)
+DATABASE_URL=postgresql://appuser:s3cret@127.0.0.1:6432/appdb</code></pre>
+  <p>One thing to be clear about: PgBouncer is a tool <em>you</em> run on your server, in front of your database. It isn't bundled with the database. On the MySQL side, ProxySQL fills a similar role. Both sit in your infrastructure as a technique you choose, so you keep full control of the pooling behavior.</p>
+
+  <!-- ADD IMAGE: PgBouncer proof it's working. Swap for a real screenshot: src -> images/pgbouncer-show-pools.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>PgBouncer's SHOW POOLS output: many client connections mapped onto a small default_pool_size.</em><small>Optional: swap for your own terminal shot.</small></span></figure>
+
+  <div class="note"><b>On serverless?</b> Read the next section first. Serverless plus a raw connection to Postgres is the most common way to hit <code>too many connections</code>, and the driver pool you just tuned won't help.</div>
+
+  <h2>Level 3: the serverless connection storm</h2>
+  <p>Serverless breaks the driver-pool model in a way that surprises people. On Lambda, Vercel functions, or Cloud Functions, each function instance is isolated and short-lived. A pool inside one instance can't be shared with the hundreds of others the platform spins up under load. So your neat pool is really one tiny pool per instance, times however many exist right now.</p>
+  <p>Then a spike hits, the platform scales to hundreds of concurrent instances, and each opens its own connection. That's a connection storm, and it blows through <code>max_connections</code> almost instantly. This is the well-known pain of pairing serverless with a relational database, and why "how do I <strong>pool a serverless database</strong>" is such a common question.</p>
+  <p>The fixes, best first:</p>
+  <ul>
+    <li><strong>Put an external pooler in front.</strong> PgBouncer in transaction mode between the functions and Postgres collapses thousands of connections onto a few real ones. The standard move for serverless plus Postgres.</li>
+    <li><strong>Use an HTTP or data-proxy layer.</strong> Some setups expose the database over an HTTP driver so functions never hold a raw TCP connection. It sidesteps the storm by design.</li>
+    <li><strong>Keep each function's pool tiny.</strong> Max of 1, with an aggressive idle timeout so a cooling instance releases its connection fast. A patch, not a cure.</li>
+  </ul>
+  <p>My honest take: if you're running serverless functions against Postgres at any real traffic, a pooler in front isn't optional. Plan for it on day one. The flip side is worth naming too. An always-on app server sidesteps this entirely, because one long-running process keeps one healthy pool, no storm to fight.</p>
+
+  <figure>
+    <img src="../assets/console/server-health.png" alt="The Kloudbean console server health view showing CPU, RAM, and resource pressure">
+    <figcaption>Watch resource pressure here. When an app "slows down" under load, check active connections alongside CPU and RAM before blaming the queries.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: a before/after of active DB connections once a pooler is in place. Swap for a real screenshot: src -> images/connections-before-after.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Active connection count before and after adding a pooler, showing the drop from hundreds to a bounded few.</em><small>Optional: swap for your own monitoring shot.</small></span></figure>
+
+  <h2>How this maps to a managed database</h2>
+  <p>Pooling is a technique you implement, not a product you buy. On Kloudbean you launch a managed <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">PostgreSQL</a> or <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">MySQL</a> that's provisioned, kept on a <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">private network</a>, and backed up automatically. The pooling lives in your app: your driver's pool for the common case of one always-on server, or PgBouncer and ProxySQL on your server when many instances share one database. You keep full control of the pool behavior.</p>
+  <p>Because a Kloudbean app runs as a long-lived process rather than per-request serverless, a normal driver pool covers most apps cleanly and never triggers the storm. A bigger database is a resize, not a migration. And it's worth separating two problems: pooling fixes <em>connection</em> pressure, while read volume is a different axis, the job of <a href="https://www.kloudbean.com/blog/database-read-replicas-scaling/">read replicas</a>. Caching hot reads in <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis</a> takes load off the database (and its connections) before you scale anything. The full picture of wiring a database into your app lives in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">A managed database that pools cleanly.</p>
+    <p style="margin:0 0 .6em">Run a managed PostgreSQL or MySQL on an always-on server where a normal driver pool just works, no connection storm to fight. Automatic backups, private networking, and free migration help, all on one dashboard. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed PostgreSQL &amp; MySQL · Automatic backups · Private networking · Resize on demand · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is database connection pooling, and when do I need it?</h3>
+    <p>Connection pooling keeps a small set of database connections open and reuses them across requests, instead of opening and closing a new connection every time. You need it once your app runs more than a couple of concurrent workers, or the moment you see a "too many connections" error. Most drivers and ORMs can pool for you once you set the pool size deliberately.</p>
+    <h3>What causes the "sorry, too many clients already" error in Postgres?</h3>
+    <p>It means Postgres has reached its max_connections limit and is refusing new connections. Usually it's not one greedy process but many: the pool size multiplied by every app instance and worker process talking to the database. It tends to appear under load or after you scale out, not in development, which is why it surprises people.</p>
+    <h3>What is a good connection pool size?</h3>
+    <p>Smaller than most people expect. A common starting point from the HikariCP project is roughly CPU cores times two, plus effective spindles, which on a 4-core box is around 9 or 10 per instance. A small, fully-busy pool usually beats a large one that thrashes the database. Treat any formula as a starting line, then measure your real concurrency and adjust.</p>
+    <h3>What is PgBouncer, and do I need it?</h3>
+    <p>PgBouncer is a lightweight connection pooler that sits between your app and PostgreSQL, holding a few real server connections and multiplexing many client connections onto them. You need it when many separate app instances share one database and their combined driver pools would exceed max_connections. For a single always-on app server, a driver pool alone is often enough.</p>
+    <h3>Transaction pooling vs session pooling, what's the difference?</h3>
+    <p>In session pooling a real server connection is tied to a client for its whole session, which is safe but uses more connections. In transaction pooling the connection returns to the pool after each transaction, which multiplexes far more aggressively and suits web apps. Transaction mode can break session-level features like server-side prepared statements and LISTEN/NOTIFY, so configure your driver for it.</p>
+    <h3>How do I pool connections for a serverless database?</h3>
+    <p>Put an external pooler like PgBouncer in transaction mode between your functions and Postgres, so hundreds of short-lived function connections collapse onto a few real ones. Alternatively use an HTTP or data-proxy layer so functions never hold raw connections. Serverless breaks the normal driver pool because each function instance is isolated and can't share a pool with the others.</p>
+    <h3>Does connection pooling work with both PostgreSQL and MySQL?</h3>
+    <p>Yes. Both have driver-level pools and both hit a max_connections limit, so pooling helps either way. PostgreSQL feels the pain sooner because each connection is a separate backend process, while MySQL uses a lighter thread per connection. For dedicated poolers, PgBouncer is standard for Postgres and ProxySQL is common for MySQL.</p>
+    <h3>Is connection pooling the same as a read replica?</h3>
+    <p>No, they solve different problems. Pooling limits how many connections your app opens, which fixes connection exhaustion. A read replica adds read capacity by serving SELECTs from a synced copy of the database. If your bottleneck is too many connections, pool first. If it's read volume, that's a read replica question, and they can be used together.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Fewer connections, more headroom.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Database Connection Pooling: How to Fix 'Too Many Connections'","description":"Database connection pooling explained: why connections are expensive, what causes the too many connections error, how to size a connection pool, PgBouncer transaction vs session pooling, and the serverless connection storm.","image":"https://www.kloudbean.com/blog/database-connection-pooling/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/database-connection-pooling/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is database connection pooling, and when do I need it?","acceptedAnswer":{"@type":"Answer","text":"Connection pooling keeps a small set of database connections open and reuses them across requests, instead of opening and closing a new connection every time. You need it once your app runs more than a couple of concurrent workers, or the moment you see a too many connections error. Most drivers and ORMs can pool for you once you set the pool size deliberately."}},
+{"@type":"Question","name":"What causes the sorry, too many clients already error in Postgres?","acceptedAnswer":{"@type":"Answer","text":"It means Postgres has reached its max_connections limit and is refusing new connections. Usually it is not one greedy process but many: the pool size multiplied by every app instance and worker process talking to the database. It tends to appear under load or after you scale out, not in development, which is why it surprises people."}},
+{"@type":"Question","name":"What is a good connection pool size?","acceptedAnswer":{"@type":"Answer","text":"Smaller than most people expect. A common starting point from the HikariCP project is roughly CPU cores times two, plus effective spindles, which on a 4-core box is around 9 or 10 per instance. A small, fully-busy pool usually beats a large one that thrashes the database. Treat any formula as a starting line, then measure your real concurrency and adjust."}},
+{"@type":"Question","name":"What is PgBouncer, and do I need it?","acceptedAnswer":{"@type":"Answer","text":"PgBouncer is a lightweight connection pooler that sits between your app and PostgreSQL, holding a few real server connections and multiplexing many client connections onto them. You need it when many separate app instances share one database and their combined driver pools would exceed max_connections. For a single always-on app server, a driver pool alone is often enough."}},
+{"@type":"Question","name":"Transaction pooling vs session pooling, what is the difference?","acceptedAnswer":{"@type":"Answer","text":"In session pooling a real server connection is tied to a client for its whole session, which is safe but uses more connections. In transaction pooling the connection returns to the pool after each transaction, which multiplexes far more aggressively and suits web apps. Transaction mode can break session-level features like server-side prepared statements and LISTEN NOTIFY, so configure your driver for it."}},
+{"@type":"Question","name":"How do I pool connections for a serverless database?","acceptedAnswer":{"@type":"Answer","text":"Put an external pooler like PgBouncer in transaction mode between your functions and Postgres, so hundreds of short-lived function connections collapse onto a few real ones. Alternatively use an HTTP or data-proxy layer so functions never hold raw connections. Serverless breaks the normal driver pool because each function instance is isolated and cannot share a pool with the others."}},
+{"@type":"Question","name":"Does connection pooling work with both PostgreSQL and MySQL?","acceptedAnswer":{"@type":"Answer","text":"Yes. Both have driver-level pools and both hit a max_connections limit, so pooling helps either way. PostgreSQL feels the pain sooner because each connection is a separate backend process, while MySQL uses a lighter thread per connection. For dedicated poolers, PgBouncer is standard for Postgres and ProxySQL is common for MySQL."}},
+{"@type":"Question","name":"Is connection pooling the same as a read replica?","acceptedAnswer":{"@type":"Answer","text":"No, they solve different problems. Pooling limits how many connections your app opens, which fixes connection exhaustion. A read replica adds read capacity by serving SELECTs from a synced copy of the database. If your bottleneck is too many connections, pool first. If it is read volume, that is a read replica question, and they can be used together."}}
+]}
+]}
+</script>
+</body>
+</html>

@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Managed vs Unmanaged Hosting: Who Actually Runs the Server?</title>
+<meta name="description" content="Managed vs unmanaged hosting comes down to one question: who runs the server? The honest split of who does what, the hidden cost of a cheap VPS, and how to choose.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Managed vs Unmanaged Hosting: Who Actually Runs the Server?">
+<meta property="og:description" content="The responsibility split behind managed vs unmanaged hosting, the cost a cheap VPS hides, and how to choose on purpose.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Hosting fundamentals</span>
+  <h1>Managed vs Unmanaged Hosting: Who Actually Runs the Server?</h1>
+
+  <figure><img src="images/hero.png" alt="Managed vs unmanaged hosting, showing who operates each layer of the server"></figure>
+
+  <p class="lead">Cheap VPS: a few dollars a month. Managed plan: several times that, for what looks like the exact same box. So why would anyone pay more?</p>
+  <p>Because managed vs unmanaged hosting isn't two prices for one product. It's two different jobs, and only one of them lands on your desk. On an unmanaged server you're the sysadmin. On a managed one, someone else is. That single fact explains the price gap, the marketing pages, and most of the regret people feel three months in when a cert expires on a Sunday. Let's split it apart honestly, so you buy the job you actually want instead of the number that looked good.</p>
+
+  <div class="tldr">
+    <strong>Short answer</strong>
+    <p>Unmanaged hosting rents you a raw server and hands you every operations task on it: patching, SSL, firewall, backups, monitoring, and the 2am pager. Managed hosting runs all of that for you on the same class of machine, so you touch your app, not the OS. Cheap on the invoice and expensive in your hours, versus a higher invoice that buys those hours (and the risk) back. Choose based on whose problem the server should be.</p>
+  </div>
+
+  <h2>So what is managed vs unmanaged hosting, really?</h2>
+  <p>Forget feature lists for a second. There's one question underneath all of it: <strong>who runs the server?</strong></p>
+  <p>Unmanaged means you get a virtual machine, an operating system, and an IP address. That's the whole delivery. Everything above the bare OS is your job. You install the web server and the runtime, you configure the firewall, you issue and renew SSL, you patch the kernel, you arrange backups, and you're the one who wakes up when it falls over. You're renting compute, and only compute.</p>
+  <p>Managed means the same underlying machine, but the operating work is done for you. The platform installs and maintains the stack, keeps the OS patched, sets up and renews SSL, runs backups, and watches the server's health. You interact with your application. The Linux box underneath still exists, you just don't have to babysit it.</p>
+
+  <h2>The responsibility split, in one picture</h2>
+  <p>Here's the whole argument as a diagram. Same stack, top to bottom. The only thing that changes between the two columns is who owns each layer.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 560" width="100%" role="img" aria-label="Diagram comparing who operates each layer on unmanaged versus managed hosting. On unmanaged, you operate the runtime, web server and SSL, OS and patching, firewall, backups, and monitoring, while the provider runs only the physical server and network. On managed, the platform operates all of those layers and you keep only your app and data. Both sides: you always own your app and data.">
+      <rect x="1" y="1" width="718" height="558" rx="16" fill="#ffffff" stroke="#e6e9f2"/>
+      <text x="360" y="34" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="17" font-weight="700" fill="#000f27">Who operates each layer?</text>
+      <text x="152" y="64" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="14" font-weight="700" fill="#4F1AF3">UNMANAGED VPS</text>
+      <text x="152" y="82" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#5b6a86">you are the sysadmin</text>
+      <text x="568" y="64" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="14" font-weight="700" fill="#000f27">MANAGED HOSTING</text>
+      <text x="568" y="82" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#5b6a86">the platform runs it</text>
+
+      <!-- Row 0: app + data -->
+      <rect x="28" y="100" width="248" height="40" rx="8" fill="#40b75f"/>
+      <text x="152" y="125" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#ffffff">You own</text>
+      <text x="360" y="125" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#1c2536">Your app + data</text>
+      <rect x="444" y="100" width="248" height="40" rx="8" fill="#40b75f"/>
+      <text x="568" y="125" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#ffffff">You own</text>
+
+      <!-- Row 1: runtime -->
+      <rect x="28" y="148" width="248" height="40" rx="8" fill="#4F1AF3"/>
+      <text x="152" y="173" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#ffffff">You</text>
+      <text x="360" y="173" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#1c2536">Runtime / stack</text>
+      <rect x="444" y="148" width="248" height="40" rx="8" fill="#000f27"/>
+      <text x="568" y="173" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#ffffff">Platform</text>
+
+      <!-- Row 2: web server + SSL -->
+      <rect x="28" y="196" width="248" height="40" rx="8" fill="#4F1AF3"/>
+      <text x="152" y="221" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#ffffff">You</text>
+      <text x="360" y="221" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#1c2536">Web server + SSL</text>
+      <rect x="444" y="196" width="248" height="40" rx="8" fill="#000f27"/>
+      <text x="568" y="221" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#ffffff">Platform</text>
+
+      <!-- Row 3: OS + patching -->
+      <rect x="28" y="244" width="248" height="40" rx="8" fill="#4F1AF3"/>
+      <text x="152" y="269" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#ffffff">You</text>
+      <text x="360" y="269" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#1c2536">OS + security patches</text>
+      <rect x="444" y="244" width="248" height="40" rx="8" fill="#000f27"/>
+      <text x="568" y="269" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#ffffff">Platform</text>
+
+      <!-- Row 4: firewall -->
+      <rect x="28" y="292" width="248" height="40" rx="8" fill="#4F1AF3"/>
+      <text x="152" y="317" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#ffffff">You</text>
+      <text x="360" y="317" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#1c2536">Firewall + hardening</text>
+      <rect x="444" y="292" width="248" height="40" rx="8" fill="#000f27"/>
+      <text x="568" y="317" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#ffffff">Platform</text>
+
+      <!-- Row 5: backups -->
+      <rect x="28" y="340" width="248" height="40" rx="8" fill="#4F1AF3"/>
+      <text x="152" y="365" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#ffffff">You</text>
+      <text x="360" y="365" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#1c2536">Backups + restore</text>
+      <rect x="444" y="340" width="248" height="40" rx="8" fill="#000f27"/>
+      <text x="568" y="365" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#ffffff">Platform</text>
+
+      <!-- Row 6: monitoring -->
+      <rect x="28" y="388" width="248" height="40" rx="8" fill="#4F1AF3"/>
+      <text x="152" y="413" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#ffffff">You</text>
+      <text x="360" y="413" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#1c2536">Monitoring + on-call</text>
+      <rect x="444" y="388" width="248" height="40" rx="8" fill="#000f27"/>
+      <text x="568" y="413" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#ffffff">Platform</text>
+
+      <!-- Row 7: hardware -->
+      <rect x="28" y="436" width="248" height="40" rx="8" fill="#000f27"/>
+      <text x="152" y="461" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#ffffff">Provider</text>
+      <text x="360" y="461" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#1c2536">Server + network</text>
+      <rect x="444" y="436" width="248" height="40" rx="8" fill="#000f27"/>
+      <text x="568" y="461" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#ffffff">Provider</text>
+
+      <!-- legend -->
+      <rect x="28" y="505" width="15" height="15" rx="3" fill="#40b75f"/>
+      <text x="49" y="517" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#5b6a86">You own (code + data)</text>
+      <rect x="240" y="505" width="15" height="15" rx="3" fill="#4F1AF3"/>
+      <text x="261" y="517" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#5b6a86">You operate</text>
+      <rect x="404" y="505" width="15" height="15" rx="3" fill="#000f27"/>
+      <text x="425" y="517" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#5b6a86">Platform / provider operates</text>
+    </svg>
+    <figcaption>Unmanaged shades almost the whole stack purple: that's you. Managed flips those layers to the platform. Either way, the green stays yours.</figcaption>
+  </figure>
+
+  <h2>Who does what: the full breakdown</h2>
+  <p>The diagram in words, task by task. Same server underneath both columns. What differs is the name next to each chore.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Task</th><th>Unmanaged (on you)</th><th>Managed (on the platform)</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Provision + harden the OS</strong></td><td>You spin it up, lock it down</td><td>Launched and hardened for you</td></tr>
+      <tr><td><strong>Install the stack</strong></td><td>Web server, runtime, database, by hand</td><td>Preinstalled and configured</td></tr>
+      <tr><td><strong>Firewall + intrusion blocking</strong></td><td>You write and maintain the rules</td><td>Shorewall firewall + Fail2ban, on by default</td></tr>
+      <tr><td><strong>SSL certificates</strong></td><td>You issue and renew them</td><td>Free SSL, issued and auto-renewed</td></tr>
+      <tr><td><strong>OS + security patching</strong></td><td>You patch, or you stay exposed</td><td>Patched for you</td></tr>
+      <tr><td><strong>Backups + restores</strong></td><td>You script them, and test them</td><td>Automatic backups</td></tr>
+      <tr><td><strong>Monitoring + uptime</strong></td><td>You watch it</td><td>Watched for you</td></tr>
+      <tr><td><strong>Incident response, 2am</strong></td><td>Your phone rings</td><td>The platform handles the infra side</td></tr>
+      <tr><td><strong>Your app code + data</strong></td><td>Yours</td><td>Still yours</td></tr>
+    </tbody>
+  </table>
+  <p>Read the last row twice. Ownership of your code and data never moves. Managed hosting outsources the operations, not the thing you actually built. That distinction matters more than any feature comparison, and we'll come back to it.</p>
+
+  <h2>What an unmanaged VPS really asks of you</h2>
+  <p>People underestimate this because the hard part isn't day one. Standing a server up is a fun afternoon. The cost is the long tail of small, boring, non-negotiable jobs that never stop. Skip one and it bites, usually at the worst time.</p>
+  <p>A normal unmanaged Saturday looks like this:</p>
+  <pre><code># the stuff that's now yours, forever
+sudo apt update &amp;&amp; sudo apt upgrade -y   # OS + security patches
+sudo certbot renew                        # before the cert expires
+sudo ufw status                           # firewall still sane?
+df -h                                     # is the disk about to fill up?
+journalctl -u nginx --since "1 hour ago"  # why did it 502?</code></pre>
+  <p>Now the failure modes, because these are the ones we see people hit. Forget one <code>certbot renew</code> and the certificate lapses, and every visitor gets a browser wall reading <code>NET::ERR_CERT_DATE_INVALID</code>. Let logs pile up and the disk hits 100%, so the database refuses writes with <code>No space left on device</code> and the app starts throwing 500s. Skip a kernel patch and you're the unpatched box a scanner finds. None of these are exotic. They're the ordinary tax of owning a server, and on an unmanaged plan the tax collector is you. If a lapsed cert is what brought you here, we wrote up the fixes in <a href="https://www.kloudbean.com/blog/fix-ssl-certificate-errors/">SSL certificate errors</a>.</p>
+
+  <!-- ADD IMAGE: swap for a real <figure> with an <img> (src -> images/terminal-ops.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal mid-maintenance: apt upgrade running, or a Certbot renewal, or df showing a disk near full.</em><small>Makes the invisible ops work feel real.</small></span></figure>
+
+  <p>And here's the honest part most sales pages won't say: none of that is hard, exactly. It's just relentless, and it competes for the same hours you'd rather spend shipping. If you enjoy it, that's a genuine perk of unmanaged, not a downside. If you don't, it's a slow leak.</p>
+
+  <h2>What managed hosting takes off your plate</h2>
+  <p>Managed flips every purple box in that diagram to the platform. On Kloudbean specifically, you still pick the raw cloud (DigitalOcean, Vultr, Linode, AWS, AWS Lightsail, Google Cloud, or UpCloud), so you're on tier-1 infrastructure. The difference is the layer on top. You launch a server and it comes up hardened, with a Shorewall firewall and Fail2ban already running, free SSL ready to issue, and automatic backups turned on.</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="The Kloudbean console launching a managed server on a choice of cloud provider">
+    <figcaption>Pick the cloud, the size, the region. It comes up patched and firewalled, not a bare OS you now have to secure.</figcaption>
+  </figure>
+
+  <p>Then you deploy your app by pointing at it, not by hand-configuring Nginx and a systemd unit at midnight.</p>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean console deploying an application without configuring the operating system">
+    <figcaption>Add an application; the platform covers the gap between bare Linux and a live, HTTPS-served app.</figcaption>
+  </figure>
+
+  <p>The backups run on a schedule (do go test a restore before you need one, that's the step everybody skips, and there's a walkthrough in the <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a>). Your database sits on a <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">private network</a> rather than out on the public internet where scanners live. When you want to ship changes, you wire up <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">Git auto-deploy</a> and push. That gap between "bare Linux" and "running app served over HTTPS" is the thing you're paying for. It's a different product that happens to sit on the same hardware, not a markup on the same one.</p>
+
+  <h2>IaaS, PaaS, and the managed middle</h2>
+  <p>You'll bump into these two acronyms, and they map cleanly onto this whole discussion:</p>
+  <ul>
+    <li><strong>IaaS (Infrastructure as a Service)</strong> is the raw layer. Unmanaged VMs from DigitalOcean, Vultr, Linode, or AWS EC2. You get infrastructure and you operate it.</li>
+    <li><strong>PaaS (Platform as a Service)</strong> is the far end. You hand over code and the platform runs it, abstracting the server away almost entirely. Convenient, until you need to see what's actually happening or move somewhere else.</li>
+  </ul>
+  <p>Managed hosting sits in the middle, and that middle is where most teams are happiest. You still get a real server you can log into, unlike a pure PaaS black box, but the platform operates it for you, unlike raw IaaS. Control and visibility without signing up to be a full-time sysadmin.</p>
+
+  <h2>The cost the pricing page doesn't show</h2>
+  <p>Back to that price gap. The difference between a five-dollar VPS and a managed plan isn't hardware. It's your time, plus risk. On the unmanaged box you personally do the setup, the patching, the renewals, the backups, and the incident response. Put a number on your hour, multiply by the hours those jobs actually take across a year, and the cheap server stops looking cheap. Add the tail risk (one botched upgrade or one missing backup can cost you data, which is the expensive kind of mistake) and the math shifts further.</p>
+
+  <!-- ADD IMAGE: swap for a real <figure> with an <img> (src -> images/cost-math.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>A back-of-envelope sum: the cheap VPS sticker plus your hourly rate times ops hours, set next to one flat managed price.</em><small>Shows where the true cost actually lands.</small></span></figure>
+  <p>Managed hosting is, in plain terms, buying those hours and that risk back. We ran the full breakdown in <a href="https://www.kloudbean.com/blog/the-real-cost-of-unmanaged-vps/">the real cost of an unmanaged VPS</a>, and the short version is that "cheap" and "expensive" swap places once your time is on the ledger. If your hours are better spent building, managed wins on real cost even while it loses on sticker. If the fiddling is the point, unmanaged wins. Both can be true.</p>
+
+  <h2>When unmanaged is genuinely the right call</h2>
+  <p>Let me be fair here, because unmanaged gets unfairly dunked on. It's the correct choice in real situations, and not just for hobbyists.</p>
+  <p>Go unmanaged when you have the ops skill and you <em>want</em> the control: a custom kernel, an unusual stack, a specific tuning profile, something a managed layer would get in the way of. Go unmanaged when you're learning Linux on purpose and the hands-on part is the whole point. Go unmanaged for a throwaway box, a lab, a thing where a wipe costs you nothing. In all of those, the lowest sticker price and total root-level control are exactly what you want, and paying for management would just be paying someone to not do a job you'd happily do yourself. No argument from me.</p>
+
+  <h2>When to go managed</h2>
+  <p>Go managed when the server is a means, not the goal. When you're shipping a product and every hour on patching is an hour not on features. When "who fixes it at 2am" needs an answer that isn't only you. When you're perfectly capable of running the box but have decided your attention is worth more elsewhere, which, for the record, is the choice a lot of strong engineers quietly make. Managed isn't the beginner option. It's often the experienced one, made by people who know exactly how much work they're handing off.</p>
+  <p>Three honest questions settle most cases. Is administering servers a good use of your time? Do you want the pager when it breaks on a weekend? Are you shipping, or learning the craft? Shipping and time-poor leans managed. Learning and control-hungry leans unmanaged. There's no universal right answer, only the one that fits your situation, and the point is to choose it on purpose rather than on the sticker.</p>
+
+  <p>One boundary, whichever way you lean: this is the Linux world, not Windows or .NET and IIS stacks. With managed hosting the server, stack, SSL, and backups are handled for you, and your app and its data stay yours to export any day. You outsource the operations, never the ownership. That's a good trade for most people running something that matters.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Keep the control. Drop the sysadmin shift.</p>
+    <p style="margin:0 0 .6em">Launch a real server on the cloud you choose, hardened and backed up from minute one, and deploy by pushing code. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, or see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">7 clouds &middot; Free SSL &middot; Automatic backups &middot; Firewall + Fail2ban built in &middot; Free migration help &middot; Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What's the difference between managed and unmanaged hosting?</h3>
+    <p>Unmanaged hosting gives you a raw server and leaves all the operations to you: stack setup, patching, SSL, firewall, backups, and monitoring. Managed hosting runs that work for you on the same kind of server, so you interact with your application instead of the operating system. The price gap reflects that labor and risk, not the hardware.</p>
+
+    <h3>Is a cheap DigitalOcean, Vultr, or Linode server unmanaged?</h3>
+    <p>Yes. Basic instances from DigitalOcean, Vultr, and Linode are unmanaged infrastructure (IaaS). They're excellent raw servers at a low price, with all operating and maintenance work left to you. That's the model, and it's exactly why they're inexpensive. A managed platform can run on top of those same clouds and take the operations over.</p>
+
+    <h3>Is managed hosting worth the extra cost?</h3>
+    <p>It's worth it when your time is better spent building than administering servers. The higher price buys back the hours you'd otherwise spend on setup, patching, SSL, backups, and incident response, plus the risk of a bad upgrade or a missing backup. If you enjoy or want that work, unmanaged is cheaper. If you don't, managed usually wins on real cost.</p>
+
+    <h3>What does "managed" actually include?</h3>
+    <p>Typically the operating system, the stack (web server, runtime, database), OS and security patching, SSL issuance and renewal, firewall and intrusion blocking, automatic backups, and health monitoring. On Kloudbean that means a Shorewall firewall and Fail2ban on by default, free SSL, and automatic backups from launch. Your app code and data stay yours.</p>
+
+    <h3>What is IaaS vs PaaS, and where does managed hosting fit?</h3>
+    <p>IaaS is raw infrastructure you operate yourself (unmanaged VMs). PaaS abstracts the server away entirely and just runs your code. Managed hosting sits between them: a real server you can log into and reason about, but operated for you. You get the control of infrastructure with most of the convenience of a platform.</p>
+
+    <h3>Do I need to know Linux to use managed hosting?</h3>
+    <p>No. Managed hosting handles the Linux administration, so you don't need those skills to run a production app. Plenty of people who do know Linux still choose managed to save time. It's a decision about where to spend your attention, not a measure of ability.</p>
+
+    <h3>Who fixes it when the server goes down at 2am?</h3>
+    <p>On an unmanaged VPS, you do. It's your box, your pager, your night. On managed hosting the platform handles the infrastructure side (the server, the stack, the patching that prevents a lot of those incidents in the first place), so a bad night doesn't automatically become your bad night.</p>
+
+    <h3>Can I move from an unmanaged VPS to managed hosting without rebuilding?</h3>
+    <p>Usually yes. Your app and its data are standard and portable, so moving to managed hosting is a migration, not a rewrite. You bring the code, restore or import the data, and repoint your domain. Kloudbean also offers free migration assistance if you'd rather not run the move yourself.</p>
+
+    <h3>Does managed hosting mean I lose root access and control?</h3>
+    <p>You keep control of what matters: your application, your data, your deploys, and your configuration. Managed hosting takes over the operations underneath, which is the point. If you specifically need deep, unusual control over the OS or a custom kernel, that's one of the real cases where unmanaged is the better fit.</p>
+  </div>
+
+  <p class="byline">Kloudbean &middot; Own the app, skip the pager.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Managed vs Unmanaged Hosting: Who Actually Runs the Server?","description":"The responsibility split behind managed vs unmanaged hosting, the cost a cheap VPS hides, and how to choose on purpose.","image":"https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What's the difference between managed and unmanaged hosting?","acceptedAnswer":{"@type":"Answer","text":"Unmanaged hosting gives you a raw server and leaves all the operations to you: stack setup, patching, SSL, firewall, backups, and monitoring. Managed hosting runs that work for you on the same kind of server, so you interact with your application instead of the operating system. The price gap reflects that labor and risk, not the hardware."}},
+{"@type":"Question","name":"Is a cheap DigitalOcean, Vultr, or Linode server unmanaged?","acceptedAnswer":{"@type":"Answer","text":"Yes. Basic instances from DigitalOcean, Vultr, and Linode are unmanaged infrastructure (IaaS). They are excellent raw servers at a low price, with all operating and maintenance work left to you. That is the model, and it is exactly why they are inexpensive. A managed platform can run on top of those same clouds and take the operations over."}},
+{"@type":"Question","name":"Is managed hosting worth the extra cost?","acceptedAnswer":{"@type":"Answer","text":"It is worth it when your time is better spent building than administering servers. The higher price buys back the hours you would otherwise spend on setup, patching, SSL, backups, and incident response, plus the risk of a bad upgrade or a missing backup. If you enjoy or want that work, unmanaged is cheaper. If you don't, managed usually wins on real cost."}},
+{"@type":"Question","name":"What does managed actually include?","acceptedAnswer":{"@type":"Answer","text":"Typically the operating system, the stack (web server, runtime, database), OS and security patching, SSL issuance and renewal, firewall and intrusion blocking, automatic backups, and health monitoring. On Kloudbean that means a Shorewall firewall and Fail2ban on by default, free SSL, and automatic backups from launch. Your app code and data stay yours."}},
+{"@type":"Question","name":"What is IaaS vs PaaS, and where does managed hosting fit?","acceptedAnswer":{"@type":"Answer","text":"IaaS is raw infrastructure you operate yourself (unmanaged VMs). PaaS abstracts the server away entirely and just runs your code. Managed hosting sits between them: a real server you can log into and reason about, but operated for you. You get the control of infrastructure with most of the convenience of a platform."}},
+{"@type":"Question","name":"Do I need to know Linux to use managed hosting?","acceptedAnswer":{"@type":"Answer","text":"No. Managed hosting handles the Linux administration, so you don't need those skills to run a production app. Plenty of people who do know Linux still choose managed to save time. It is a decision about where to spend your attention, not a measure of ability."}},
+{"@type":"Question","name":"Who fixes it when the server goes down at 2am?","acceptedAnswer":{"@type":"Answer","text":"On an unmanaged VPS, you do. It is your box, your pager, your night. On managed hosting the platform handles the infrastructure side (the server, the stack, the patching that prevents a lot of those incidents in the first place), so a bad night doesn't automatically become your bad night."}},
+{"@type":"Question","name":"Can I move from an unmanaged VPS to managed hosting without rebuilding?","acceptedAnswer":{"@type":"Answer","text":"Usually yes. Your app and its data are standard and portable, so moving to managed hosting is a migration, not a rewrite. You bring the code, restore or import the data, and repoint your domain. Kloudbean also offers free migration assistance if you would rather not run the move yourself."}},
+{"@type":"Question","name":"Does managed hosting mean I lose root access and control?","acceptedAnswer":{"@type":"Answer","text":"You keep control of what matters: your application, your data, your deploys, and your configuration. Managed hosting takes over the operations underneath, which is the point. If you specifically need deep, unusual control over the OS or a custom kernel, that is one of the real cases where unmanaged is the better fit."}}
+]}
+]}
+</script>
+</body>
+</html>

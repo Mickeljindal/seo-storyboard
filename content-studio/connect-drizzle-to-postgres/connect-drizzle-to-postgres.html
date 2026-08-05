@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Connect Drizzle to Postgres: Managed, Production-Ready</title>
+<meta name="description" content="Connect Drizzle to Postgres for production: pick a driver (node-postgres or postgres.js), pass DATABASE_URL from env, define a TypeScript schema, and run drizzle-kit generate and migrate against a managed database.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/connect-drizzle-to-postgres/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Connect Drizzle to Postgres: Managed, Production-Ready">
+<meta property="og:description" content="Pick a driver, pass DATABASE_URL from env, define a TypeScript schema, and run drizzle-kit generate and migrate against a managed PostgreSQL.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Databases &amp; ORMs</span>
+  <h1>How to Connect Drizzle to Postgres (and Ship It to Production)</h1>
+
+  <p class="byline">By the Kloudbean Database Team · Drizzle stays thin so Postgres can do the heavy lifting.</p>
+
+  <figure><img src="images/hero.png" alt="Connect Drizzle ORM to a managed Postgres database for production"></figure>
+
+  <p class="lead">You built the app with Drizzle ORM and it runs fine on localhost. Then production shows up and the real question lands: how do you connect Drizzle to Postgres on a database that survives a redeploy and actually gets backed up? Drizzle is deliberately thin, a type-safe layer sitting right on top of SQL, so connecting it to a managed PostgreSQL is mostly about picking a driver and pointing it at a <code>DATABASE_URL</code>. This guide does exactly that: real TypeScript, migrations that hold up in production, and the one connection gotcha that tends to surface at 2am.</p>
+
+  <div class="tldr">
+    <strong>How do I connect Drizzle ORM to a managed Postgres?</strong>
+    <p>Pick a driver (node-postgres, the <code>pg</code> Pool, or postgres.js), read your <code>DATABASE_URL</code> from an environment variable, and wrap the client in <code>drizzle()</code>. Define your tables in a TypeScript schema, then run <code>drizzle-kit generate</code> to create the SQL migration and <code>drizzle-kit migrate</code> to apply it. That's a production-ready Drizzle setup on a managed PostgreSQL, backed up and off the public internet.</p>
+  </div>
+
+  <h2>Connect Drizzle to Postgres in four moves</h2>
+  <p>Drizzle isn't a heavy ORM that hides SQL from you. It's a query builder and schema toolkit that stays close to the database, which means "connecting" it is refreshingly boring. Four moves, in order:</p>
+  <ol>
+    <li><strong>Pick a driver.</strong> Drizzle doesn't talk to Postgres directly. It rides on top of <code>pg</code> (node-postgres) or postgres.js.</li>
+    <li><strong>Pass the connection.</strong> Read <code>DATABASE_URL</code> from the environment and hand the client to <code>drizzle()</code>.</li>
+    <li><strong>Describe your tables in TypeScript.</strong> Your schema file is the source of truth, in code.</li>
+    <li><strong>Generate and run migrations.</strong> <code>drizzle-kit generate</code> writes the SQL, <code>drizzle-kit migrate</code> applies it.</li>
+  </ol>
+  <p>Here's the whole shape on one canvas: the build-time path that turns your TypeScript schema into a migrated database, and the runtime path your queries take through the driver pool.</p>
+
+  <figure>
+    <svg viewBox="0 0 780 340" role="img" aria-label="Drizzle schema flows through drizzle-kit generate and migrate into a managed Postgres, and runtime queries flow through the driver pool" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="28" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">From a TypeScript schema to a real Postgres, then queries at runtime</text>
+
+      <text x="28" y="72" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.2">BUILD TIME · drizzle-kit</text>
+      <rect x="24" y="84" width="150" height="60" rx="12" fill="#000f27"/>
+      <text x="99" y="112" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="14" font-weight="600">schema.ts</text>
+      <text x="99" y="130" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="11">TypeScript</text>
+
+      <rect x="214" y="84" width="150" height="60" rx="12" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5"/>
+      <text x="289" y="110" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="13" font-weight="600">generate</text>
+      <text x="289" y="129" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">writes .sql</text>
+
+      <rect x="404" y="84" width="150" height="60" rx="12" fill="#4F1AF3"/>
+      <text x="479" y="110" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">migrate</text>
+      <text x="479" y="129" text-anchor="middle" fill="#d8ccff" font-family="Poppins,sans-serif" font-size="10.5">applies schema</text>
+
+      <line x1="174" y1="114" x2="209" y2="114" stroke="#5b6a86" stroke-width="2"/>
+      <path d="M209 114 l-9 -4 v8 z" fill="#5b6a86"/>
+      <line x1="364" y1="114" x2="399" y2="114" stroke="#5b6a86" stroke-width="2"/>
+      <path d="M399 114 l-9 -4 v8 z" fill="#5b6a86"/>
+      <line x1="554" y1="118" x2="628" y2="150" stroke="#4F1AF3" stroke-width="2"/>
+      <path d="M628 150 l-11 -2 2 -8 z" fill="#4F1AF3"/>
+
+      <text x="28" y="210" fill="#40b75f" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.2">RUNTIME · your app</text>
+      <rect x="24" y="222" width="150" height="64" rx="12" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="99" y="249" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="14" font-weight="600">app query</text>
+      <text x="99" y="268" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">db.select() ...</text>
+
+      <rect x="214" y="222" width="180" height="64" rx="12" fill="#ffffff" stroke="#40b75f" stroke-width="1.5"/>
+      <text x="304" y="249" text-anchor="middle" fill="#1c2536" font-family="Poppins,sans-serif" font-size="13" font-weight="600">drizzle(pool)</text>
+      <text x="304" y="268" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">pg / postgres.js</text>
+
+      <line x1="174" y1="254" x2="209" y2="254" stroke="#5b6a86" stroke-width="2"/>
+      <path d="M209 254 l-9 -4 v8 z" fill="#5b6a86"/>
+      <line x1="394" y1="252" x2="628" y2="198" stroke="#40b75f" stroke-width="2"/>
+      <path d="M628 198 l-11 2 2 8 z" fill="#40b75f"/>
+
+      <g>
+        <ellipse cx="690" cy="150" rx="60" ry="13" fill="#6b3cff"/>
+        <path d="M630 150 v54 a60 13 0 0 0 120 0 v-54" fill="#4F1AF3"/>
+        <ellipse cx="690" cy="150" rx="60" ry="13" fill="#6b3cff"/>
+        <text x="690" y="176" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Managed</text>
+        <text x="690" y="194" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Postgres</text>
+      </g>
+    </svg>
+    <figcaption>Build time: schema.ts to drizzle-kit generate to migrate to a managed Postgres. Runtime: your queries go through the driver pool to the same database.</figcaption>
+  </figure>
+
+  <h2>Step 1: Pick a driver (node-postgres or postgres.js)</h2>
+  <p>This is the step people skip past, then get confused when <code>drizzle()</code> asks for a client. Drizzle ORM and PostgreSQL don't speak to each other directly. You bring a driver, and Drizzle wraps it. For Postgres you've got two mainstream choices:</p>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>node-postgres (<code>pg</code>)</th><th>postgres.js</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Drizzle import</strong></td><td><code>drizzle-orm/node-postgres</code></td><td><code>drizzle-orm/postgres-js</code></td></tr>
+      <tr><td><strong>Reputation</strong></td><td>The boring, battle-tested default</td><td>Newer, fast, tidy API</td></tr>
+      <tr><td><strong>Pooling</strong></td><td>Built-in <code>Pool</code> (default max 10)</td><td>Pools by default, <code>max</code> option</td></tr>
+      <tr><td><strong>Good when</strong></td><td>You want the most widely used option</td><td>You like its query and type ergonomics</td></tr>
+    </tbody>
+  </table>
+
+  <p>My honest take: for most apps it doesn't matter, so pick <code>pg</code> and move on. It's the one nearly every tutorial, Stack Overflow answer, and AI code generator assumes, which means fewer surprises when something goes sideways. Reach for postgres.js if you specifically like its API. Here's the <code>pg</code> setup:</p>
+
+<pre><code>// db.ts (node-postgres / pg driver)
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 10,                 // cap connections; more on why below
+});
+
+export const db = drizzle(pool);</code></pre>
+
+  <p>And the postgres.js version, which is nearly identical:</p>
+
+<pre><code>// db.ts (postgres.js driver)
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+
+const client = postgres(process.env.DATABASE_URL!, { max: 10 });
+export const db = drizzle(client);</code></pre>
+
+  <p>Coming from a fuller ORM and weighing your options? Prisma is the other big one in this space, and there's a parallel walkthrough for <a href="https://www.kloudbean.com/blog/connect-prisma-to-a-managed-database/">connecting Prisma to a managed database</a>. Drizzle's pitch is that it stays close to SQL and ships less runtime, so you feel the database instead of a thick abstraction over it.</p>
+
+  <h2>Step 2: Pass DATABASE_URL from the environment</h2>
+  <p>Notice both snippets read <code>process.env.DATABASE_URL</code>. That's on purpose. Your Drizzle DATABASE_URL should live in an environment variable, never typed into the source and never committed. On Kloudbean you set it under Runtime Configuration, Environment Variables, and the app reads it at boot:</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console Environment Variables screen, where the Drizzle DATABASE_URL is stored instead of in code">
+    <figcaption>Runtime Configuration, Environment Variables: the connection string lives here, out of the repo and easy to rotate.</figcaption>
+  </figure>
+
+<pre><code># set in Runtime Configuration, Environment Variables (not in code)
+DATABASE_URL=postgresql://appuser:s3cret@10.0.0.5:5432/appdb
+
+# reaching the DB over the public internet instead of a private network? add SSL:
+DATABASE_URL=postgresql://appuser:s3cret@db.example.com:5432/appdb?sslmode=require</code></pre>
+
+  <p>Because the credentials sit in the environment, they stay out of your Git history and you can rotate a password without touching code. There's a fuller treatment in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>.</p>
+
+  <div class="note"><b>Do I need SSL?</b> A managed Postgres reached over the public internet usually expects TLS, so append <code>?sslmode=require</code> to the URL or set the driver's ssl option. On Kloudbean the database sits on a private network and your app connects to it internally, so the common setup is a plain internal connection with no public exposure at all. If you do need it in code, pg takes <code>ssl: { rejectUnauthorized: false }</code> and postgres.js takes <code>ssl: 'require'</code>.</div>
+
+  <h2>Step 3: Define your schema in TypeScript</h2>
+  <p>This is the part that makes Drizzle feel good. Your tables are TypeScript, so your column types flow straight into your query results with no code generation step. A small <code>schema.ts</code>:</p>
+
+<pre><code>// schema.ts
+import { pgTable, serial, text, timestamp, boolean } from "drizzle-orm/pg-core";
+
+export const users = pgTable("users", {
+  id:        serial("id").primaryKey(),
+  email:     text("email").notNull().unique(),
+  name:      text("name"),
+  active:    boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});</code></pre>
+
+  <p>Pass that schema into <code>drizzle()</code> and you also unlock the relational query API (<code>db.query.users.findMany()</code>), plus fully typed results:</p>
+
+<pre><code>import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+import * as schema from "./schema";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const db = drizzle(pool, { schema });</code></pre>
+
+  <!-- ADD IMAGE: your editor showing schema.ts with the inferred row type on hover. Swap for a real screenshot: src -> images/drizzle-schema-types.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your editor showing schema.ts with the inferred row type on hover.</em><small>Shows off the type-safety payoff.</small></span></figure>
+
+  <h2>Step 4: Generate and run migrations with drizzle-kit</h2>
+  <p>A fresh database is empty. Your schema in TypeScript has to become tables in Postgres, and that's what <code>drizzle-kit</code> does. Point it at your schema with a small config file:</p>
+
+<pre><code>// drizzle.config.ts
+import { defineConfig } from "drizzle-kit";
+
+export default defineConfig({
+  schema: "./src/schema.ts",
+  out: "./drizzle",
+  dialect: "postgresql",
+  dbCredentials: { url: process.env.DATABASE_URL! },
+});</code></pre>
+
+  <p>Then the two commands you'll run constantly, plus the one you should be careful with:</p>
+
+<pre><code># 1. turn the current TS schema into a versioned SQL migration file
+npx drizzle-kit generate
+
+# 2. apply any pending migrations to the database
+npx drizzle-kit migrate
+
+# prototyping only: shove the schema straight into the DB, no migration file
+npx drizzle-kit push</code></pre>
+
+  <p>Here's an actual opinion, not a hedge: use <strong>generate then migrate</strong> for anything with real users. It leaves a reviewable, version-controlled SQL file per change, which is exactly what you want when a migration goes wrong at 2am and you need to see what ran. <code>drizzle-kit push</code> is a lovely convenience while you're still throwing the schema around in early dev, but it isn't a deploy strategy. Pushing against a production database can quietly alter or drop columns with no migration history to point at afterward. Great for a scratch project. Wrong for the one holding customer data.</p>
+
+  <p>On deploy, run migrations before the app starts serving traffic. Drizzle gives you a programmatic migrator so you can wire it into a start step:</p>
+
+<pre><code>// migrate.ts (run on deploy, before the app takes traffic)
+import { drizzle } from "drizzle-orm/node-postgres";
+import { migrate } from "drizzle-orm/node-postgres/migrator";
+import { Pool } from "pg";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 1 });
+await migrate(drizzle(pool), { migrationsFolder: "./drizzle" });
+await pool.end();</code></pre>
+
+  <p>Drop that into your build or start command and schema changes ship with the code that needs them. If you're wiring up automatic deploys, the <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">Git deploy guide</a> shows where the migrate step belongs in the pipeline.</p>
+
+  <!-- ADD IMAGE: terminal output of drizzle-kit generate then drizzle-kit migrate applying a migration. Swap for a real screenshot: src -> images/drizzle-kit-migrate.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Terminal running drizzle-kit generate then drizzle-kit migrate.</em><small>Makes the migration flow concrete.</small></span></figure>
+
+  <h2>A real query, end to end</h2>
+  <p>With the client wired and the schema migrated, queries are type-safe the whole way through. Insert a row and read it back:</p>
+
+<pre><code>// query.ts
+import { eq } from "drizzle-orm";
+import { db } from "./db";
+import { users } from "./schema";
+
+// insert and get the row back, typed
+const [created] = await db
+  .insert(users)
+  .values({ email: "ada@example.com", name: "Ada" })
+  .returning();
+
+// read it back; `found` is typed from the schema, no casting
+const found = await db
+  .select()
+  .from(users)
+  .where(eq(users.email, "ada@example.com"));</code></pre>
+
+  <p>If <code>found</code> comes back empty on a fresh deploy, or you see <code>error: relation "users" does not exist</code>, that's almost always migrations that never ran. The tables aren't there yet. Run the migrate step and try again.</p>
+
+  <h2>Where the DATABASE_URL comes from: launch a managed Postgres</h2>
+  <p>All of the above assumes you have a real Postgres to point at. On Kloudbean you open the DBS section, hit Launch Database, and pick PostgreSQL from the managed engines. A minute or two later it's provisioned, patched, sitting on a private network, and already being backed up. You copy the host, port, database, user, and password into your <code>DATABASE_URL</code>.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="Launching a managed PostgreSQL database in the Kloudbean console to connect Drizzle to">
+    <figcaption>DBS, Launch Database: managed PostgreSQL provisioned, backed up, and ready for a Drizzle connection.</figcaption>
+  </figure>
+
+  <p>Why managed rather than a Postgres you babysit yourself? Because Drizzle being thin means the database is doing the real work, and you don't want to be the one paging yourself over patches, backups, and disk alerts. If you want the deeper reasoning on the engine itself, JSONB, extensions, and what you're actually paying for, that's in <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a>. For the broader picture of wiring any framework to a managed database, start at <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">how to add a managed database to your app</a>.</p>
+
+  <!-- ADD IMAGE: the connection details panel after launching the database, with host and port visible. Swap for a real screenshot: src -> images/db-connection-details.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The connection details panel after launch: host, port, database, user.</em><small>Shows exactly what feeds the DATABASE_URL.</small></span></figure>
+
+  <h2>Connections are finite: size your pool</h2>
+  <p>This is the gotcha I promised, and it's the same one that bites every Postgres client, Drizzle included. Postgres backs each connection with its own server-side process, so there's a hard ceiling set by <code>max_connections</code>. It ships at 100 by default. Blow past it and you get:</p>
+
+<pre><code>FATAL: sorry, too many clients already</code></pre>
+
+  <p>How does an app get there? Usually one of two ways. Either lots of app instances each open a generous pool, or a serverless function opens a fresh connection on every invocation and they pile up faster than they close. The node-postgres <code>Pool</code> defaults to a max of 10, which is sane for a single always-on server, but ten instances at ten connections each is already 100, and you've hit the wall.</p>
+
+  <p>The fixes, in order of how often you'll need them:</p>
+  <ul>
+    <li><strong>Size the pool to the server.</strong> Set <code>max</code> deliberately. On one always-on app server a pool of 10 to 20 is usually plenty, and it reuses connections instead of opening a new one per request. That reuse is the quiet advantage of a long-running server over serverless.</li>
+    <li><strong>One pool per process, created once.</strong> Instantiate <code>drizzle(pool)</code> at module scope, not inside a request handler. A new Pool on every request is how the count explodes.</li>
+    <li><strong>Serverless needs a pooler.</strong> If you're on functions, put a connection pooler (PgBouncer is the usual pick) in front of Postgres, or use a driver mode built for it. To be clear about what Kloudbean does and doesn't do here: there's no magic built-in pooler doing this for you. Pooling is your driver's pool on an always-on server, or a pooler you run. The concept is worth understanding properly, and it's covered in <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>.</li>
+    <li><strong>Read-heavy? Spread the reads.</strong> Once a single instance is genuinely maxed, <a href="https://www.kloudbean.com/blog/database-read-replicas-scaling/">read replicas</a> take read traffic off the primary. And caching the hottest reads with a managed Redis in front of Postgres is often the cheapest win of all, because the query that never reaches the database is the fastest one.</li>
+  </ul>
+
+  <div class="note"><b>Founder note.</b> Drizzle is intentionally a thin layer over SQL, which is a feature, not a shortcut. It means the managed Postgres underneath is doing the heavy lifting, so treat it like it matters. Size your pool. Add indexes on the columns you filter and join on. Run <code>EXPLAIN</code> on the slow query before you reach for a bigger server. Drizzle won't paper over a missing index, and honestly, you wouldn't want an ORM that pretended it could.</div>
+
+  <h2>Where this usually breaks</h2>
+  <p>A short field guide to the failures that cost people an evening:</p>
+  <ul>
+    <li><strong>Forgot to migrate on deploy.</strong> The app boots, the first query hits a table that doesn't exist, and you get <code>relation "..." does not exist</code>. Make the migrate step part of deploy.</li>
+    <li><strong>Used <code>push</code> in production.</strong> A schema tweak silently drops a column, and there's no migration file to audit. Keep push in dev; use generate and migrate everywhere real.</li>
+    <li><strong>Hard-coded the connection string.</strong> It ends up in Git, then in a screenshot, then in an incident. Read it from <code>DATABASE_URL</code>.</li>
+    <li><strong>New Pool per request.</strong> Connections climb until Postgres refuses new ones. One pool, created once, at module scope.</li>
+    <li><strong>SSL mismatch.</strong> Connecting over the public internet without <code>sslmode=require</code>, or with a stray ssl option on a private connection that doesn't want one. Match the setting to how you're actually reaching the database.</li>
+  </ul>
+  <p>None of these are Drizzle's fault, and that's kind of the point. Most deploy failures are configuration, not code.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Give your Drizzle app a Postgres that's actually production-ready.</p>
+    <p style="margin:0 0 .6em">Launch a managed PostgreSQL, drop the connection string into one environment variable, and run your migrations. Automatic backups, a private network, and free migration help, on the same server as your app. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans from $8/mo on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">One-click PostgreSQL · Automatic backups · Private networking · Env vars in the UI · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I connect Drizzle ORM to a managed Postgres?</h3>
+    <p>Pick a driver (node-postgres or postgres.js), read your DATABASE_URL from an environment variable, and pass the client to drizzle(). Define your tables in a TypeScript schema file, then run drizzle-kit generate to create the SQL migration and drizzle-kit migrate to apply it. The database itself is a managed PostgreSQL you launch first, which arrives provisioned, backed up, and on a private network.</p>
+    <h3>Should I use node-postgres (pg) or postgres.js with Drizzle?</h3>
+    <p>Both work well and Drizzle supports each with a dedicated import. Pick node-postgres (pg) if you want the most widely used, battle-tested option, which is what most examples and code generators assume. Pick postgres.js if you prefer its API and type ergonomics. For the majority of apps the choice makes no practical difference, so pg is a fine default.</p>
+    <h3>What is the difference between drizzle-kit generate, migrate, and push?</h3>
+    <p>generate reads your TypeScript schema and writes a versioned SQL migration file. migrate applies any pending migration files to the database. push skips the files and applies the schema straight to the database, which is handy for prototyping but risky in production because it can alter or drop columns with no reviewable history. Use generate and migrate for anything with real users.</p>
+    <h3>Do I need SSL to connect Drizzle to a managed Postgres?</h3>
+    <p>It depends on how you reach the database. Over the public internet a managed Postgres usually expects TLS, so add sslmode=require to the DATABASE_URL or set the driver ssl option. When your app connects over a private network, as it does on Kloudbean, the common setup is a plain internal connection with no public exposure, so SSL is often not needed for that path.</p>
+    <h3>How do I set DATABASE_URL for Drizzle?</h3>
+    <p>Store it as an environment variable rather than hard-coding it. On Kloudbean you add it under Runtime Configuration, Environment Variables, and both the app and drizzle-kit read process.env.DATABASE_URL. Keeping it in the environment keeps credentials out of your code and Git history, and lets you rotate the password without a code change.</p>
+    <h3>Does Drizzle need a connection pooler for serverless?</h3>
+    <p>Often yes. Postgres has a max_connections ceiling (100 by default), and serverless functions tend to open connections faster than they close them, which triggers the too many clients error. Put a pooler such as PgBouncer in front of Postgres, or use a driver mode designed for serverless. On an always-on server the driver pool reuses connections naturally and you rarely hit this.</p>
+    <h3>How do I run Drizzle migrations on deploy?</h3>
+    <p>Use Drizzle's programmatic migrator from drizzle-orm and call migrate() against a small connection before the app serves traffic, or run npx drizzle-kit migrate as part of your build or start step. The goal is that schema changes ship with the code that depends on them, so you never deploy an app that expects a table the database does not have yet.</p>
+    <h3>Can I use Drizzle with an existing Postgres database?</h3>
+    <p>Yes. Run drizzle-kit introspect (also called pull) to read an existing database and generate a matching TypeScript schema and initial migration. From there you manage further changes with generate and migrate as usual. This is the normal path when you are adding Drizzle to an app that already has a populated Postgres.</p>
+    <h3>Is Drizzle production-ready for Postgres?</h3>
+    <p>Yes. Drizzle is a thin, type-safe layer over SQL, so in production the real work is done by Postgres and your driver, both of which are mature. The practices that make a Drizzle setup production-ready are the same as for any Postgres client: read the connection from an env var, run migrations on deploy, size your pool, and add the right indexes.</p>
+    <h3>Prisma or Drizzle for Postgres?</h3>
+    <p>Both are solid. Drizzle stays close to SQL, ships less runtime, and defines the schema in TypeScript, which many developers prefer for control and transparency. Prisma offers a higher-level, generated client that some teams find faster to start with. If you are weighing them, there is a companion guide on connecting Prisma to a managed database, and either one runs happily on a managed PostgreSQL.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Type-safe schema on top, a managed Postgres doing the work underneath.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Connect Drizzle to Postgres (and Ship It to Production)","description":"Connect Drizzle to Postgres for production: pick a driver (node-postgres or postgres.js), pass DATABASE_URL from env, define a TypeScript schema, and run drizzle-kit generate and migrate against a managed PostgreSQL.","image":"https://www.kloudbean.com/blog/connect-drizzle-to-postgres/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/connect-drizzle-to-postgres/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I connect Drizzle ORM to a managed Postgres?","acceptedAnswer":{"@type":"Answer","text":"Pick a driver (node-postgres or postgres.js), read your DATABASE_URL from an environment variable, and pass the client to drizzle(). Define your tables in a TypeScript schema file, then run drizzle-kit generate to create the SQL migration and drizzle-kit migrate to apply it. The database itself is a managed PostgreSQL you launch first, which arrives provisioned, backed up, and on a private network."}},
+{"@type":"Question","name":"Should I use node-postgres (pg) or postgres.js with Drizzle?","acceptedAnswer":{"@type":"Answer","text":"Both work well and Drizzle supports each with a dedicated import. Pick node-postgres (pg) if you want the most widely used, battle-tested option, which is what most examples and code generators assume. Pick postgres.js if you prefer its API and type ergonomics. For the majority of apps the choice makes no practical difference, so pg is a fine default."}},
+{"@type":"Question","name":"What is the difference between drizzle-kit generate, migrate, and push?","acceptedAnswer":{"@type":"Answer","text":"generate reads your TypeScript schema and writes a versioned SQL migration file. migrate applies any pending migration files to the database. push skips the files and applies the schema straight to the database, which is handy for prototyping but risky in production because it can alter or drop columns with no reviewable history. Use generate and migrate for anything with real users."}},
+{"@type":"Question","name":"Do I need SSL to connect Drizzle to a managed Postgres?","acceptedAnswer":{"@type":"Answer","text":"It depends on how you reach the database. Over the public internet a managed Postgres usually expects TLS, so add sslmode=require to the DATABASE_URL or set the driver ssl option. When your app connects over a private network, as it does on Kloudbean, the common setup is a plain internal connection with no public exposure, so SSL is often not needed for that path."}},
+{"@type":"Question","name":"How do I set DATABASE_URL for Drizzle?","acceptedAnswer":{"@type":"Answer","text":"Store it as an environment variable rather than hard-coding it. On Kloudbean you add it under Runtime Configuration, Environment Variables, and both the app and drizzle-kit read process.env.DATABASE_URL. Keeping it in the environment keeps credentials out of your code and Git history, and lets you rotate the password without a code change."}},
+{"@type":"Question","name":"Does Drizzle need a connection pooler for serverless?","acceptedAnswer":{"@type":"Answer","text":"Often yes. Postgres has a max_connections ceiling (100 by default), and serverless functions tend to open connections faster than they close them, which triggers the too many clients error. Put a pooler such as PgBouncer in front of Postgres, or use a driver mode designed for serverless. On an always-on server the driver pool reuses connections naturally and you rarely hit this."}},
+{"@type":"Question","name":"How do I run Drizzle migrations on deploy?","acceptedAnswer":{"@type":"Answer","text":"Use Drizzle's programmatic migrator from drizzle-orm and call migrate() against a small connection before the app serves traffic, or run npx drizzle-kit migrate as part of your build or start step. The goal is that schema changes ship with the code that depends on them, so you never deploy an app that expects a table the database does not have yet."}},
+{"@type":"Question","name":"Can I use Drizzle with an existing Postgres database?","acceptedAnswer":{"@type":"Answer","text":"Yes. Run drizzle-kit introspect (also called pull) to read an existing database and generate a matching TypeScript schema and initial migration. From there you manage further changes with generate and migrate as usual. This is the normal path when you are adding Drizzle to an app that already has a populated Postgres."}},
+{"@type":"Question","name":"Is Drizzle production-ready for Postgres?","acceptedAnswer":{"@type":"Answer","text":"Yes. Drizzle is a thin, type-safe layer over SQL, so in production the real work is done by Postgres and your driver, both of which are mature. The practices that make a Drizzle setup production-ready are the same as for any Postgres client: read the connection from an env var, run migrations on deploy, size your pool, and add the right indexes."}},
+{"@type":"Question","name":"Prisma or Drizzle for Postgres?","acceptedAnswer":{"@type":"Answer","text":"Both are solid. Drizzle stays close to SQL, ships less runtime, and defines the schema in TypeScript, which many developers prefer for control and transparency. Prisma offers a higher-level, generated client that some teams find faster to start with. If you are weighing them, there is a companion guide on connecting Prisma to a managed database, and either one runs happily on a managed PostgreSQL."}}
+]}
+]}
+</script>
+</body>
+</html>

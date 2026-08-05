@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DigitalOcean App Platform Alternative: Own the Server</title>
+<meta name="description" content="Looking for a DigitalOcean App Platform alternative? Keep the git-push convenience, gain shell access, seven managed databases, and your whole stack in one dashboard.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/digitalocean-app-platform-alternative/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="DigitalOcean App Platform Alternative: Own the Server">
+<meta property="og:description" content="Where DigitalOcean App Platform's PaaS model starts to pinch, and how a managed server keeps the git-push deploy while giving you real control and more services in one place.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">App Platform alternative</span>
+  <h1>A DigitalOcean App Platform Alternative for When You Outgrow the Box</h1>
+
+  <figure><img src="images/hero.png" alt="DigitalOcean App Platform alternative: a managed server that keeps the git-push deploy and gives you real control"></figure>
+
+  <p class="lead">You didn't go looking for a DigitalOcean App Platform alternative on day one. App Platform was easy. You pushed a repo, it detected the buildpack, and your app was live before lunch. Then the app grew a background worker, a cache, a second database, and a config the platform didn't have a switch for. That's the point where a PaaS starts feeling less like a shortcut and more like a fence. This is the honest version of that decision: where App Platform genuinely fits, where the PaaS box gets tight, and what you gain by moving to a managed server you actually control.</p>
+
+  <div class="tldr">
+    <strong>Short answer</strong>
+    <p>DigitalOcean App Platform is a fine PaaS for simple apps and static sites. It gets restrictive when you need shell access, custom runtime tweaks, or several services that each become a separate billed add-on. The strongest DigitalOcean App Platform alternative isn't another PaaS. It's a managed server that keeps the git-push deploy, hands you shell access, and puts your databases, storage, load balancer, and cron in one dashboard. Kloudbean does that on seven clouds, DigitalOcean included.</p>
+  </div>
+
+  <h2>What DigitalOcean App Platform actually is (and when it's the right call)</h2>
+  <p>Credit where it's due. App Platform is DigitalOcean's Platform-as-a-Service, and it nails the thing PaaS is supposed to nail: you connect a Git repo, it builds your code with a buildpack (or runs your container), and it serves the result without you touching a server. Under the hood it uses Cloud Native Buildpacks, the same lineage Heroku made popular, so most mainstream stacks build with zero config. Static sites, small APIs, a front end with a bit of backend glue. For those, it's genuinely quick and pleasant. No OS to patch, no web server to configure, no SSL to renew by hand.</p>
+  <p>So let me be clear before the pivot: if your app is small and fits the PaaS shape, App Platform is a reasonable place to keep it. You should not migrate off a thing that works just because a blog told you to. The reason people search for an alternative isn't that App Platform is bad. It's that their app stopped being small.</p>
+  <p>A PaaS makes one big trade on your behalf. It hides the server so you never have to think about it. That's the whole value. And it's also the whole limitation, because the day you need to think about the server, the abstraction is standing in your way.</p>
+
+  <h2>Where the PaaS box starts to pinch</h2>
+  <p>Every PaaS, App Platform included, draws a line around what you're allowed to do. Inside the line, life is easy. Outside it, you're stuck. Here's where growing apps tend to hit that line, and why each one actually matters.</p>
+  <p><strong>No server to reach into.</strong> On a PaaS you don't own the box. You can't SSH in, install a system package the buildpack skipped, tail a log your way, or run a one-off migration against production at 2am. Some platforms offer a console into the running container, which helps, but it isn't owning a server. The first time you need something the platform didn't anticipate, you feel the wall.</p>
+  <p><strong>Buildpack and runtime constraints.</strong> Buildpacks are magic until they aren't. They detect your language and build it with sensible defaults, great until you need a specific system library, a custom build step, or a runtime flag the platform doesn't expose. Then you're fighting the buildpack instead of shipping. The convenient path is the only path.</p>
+  <p><strong>Services show up as separate billed add-ons.</strong> This is the one that surprises people at invoice time. A real app needs a database, maybe a cache, object storage, a worker, a scheduled job. On a PaaS those tend to arrive as separate components or products, each metered on its own. It's a familiar pattern: a team bolts on a managed database here, an object store there, a worker and a cron component on top, and slowly rebuilds a full server out of add-ons, at a bill higher than one server would have cost. Each piece is reasonable alone. Added up, you've paid a premium to dodge a server you'd have been fine running.</p>
+  <p><strong>One cloud, one model.</strong> App Platform runs on DigitalOcean, full stop. That's fine until you want a different region a provider doesn't offer, or a client mandates a specific cloud, or you just want the option to move without a rewrite. A PaaS is a lovely place to live and an awkward place to leave.</p>
+  <p>None of this makes App Platform a bad product. These are the normal, well-understood tradeoffs of choosing a PaaS over a server. The question is whether your app has crossed the line where those trades stopped paying off.</p>
+
+  <!-- ADD IMAGE: show a component list where the app, a managed database, and add-on services are each billed separately. Swap for a real screenshot: src -> images/paas-components.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A PaaS component or resource list where the app plus a separate managed database plus add-on services are each metered on their own line.</em><small>Grounds the add-on-sprawl point in something real. Author supplies.</small></span></figure>
+
+  <figure>
+    <svg viewBox="0 0 720 470" width="100%" role="img" aria-label="Diagram comparing two models. On the left, a PaaS box hides the server: your app sits on top of a locked server, OS, and runtime layer you cannot reach, while the database, object storage, and cron sit outside the box as separate billed add-ons connected across a network and a separate bill. On the right, a managed server you control: your app with shell and SSH access sits in one box, the OS, SSL, patching, and backups are handled, and the database, object storage, load balancer, and cron jobs all live inside the same box and dashboard.">
+      <rect x="1" y="1" width="718" height="468" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="360" y="30" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="16" font-weight="700" fill="#000f27">Two ways to run the same growing app</text>
+      <line x1="360" y1="46" x2="360" y2="452" stroke="#e6e9f2" stroke-width="1" stroke-dasharray="5 5"/>
+
+      <!-- LEFT: PaaS -->
+      <text x="184" y="66" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="700" letter-spacing="1" fill="#4F1AF3">PAAS: THE SERVER IS HIDDEN</text>
+      <rect x="44" y="80" width="286" height="150" rx="12" fill="#faf9ff" stroke="#c9c0f5"/>
+      <text x="60" y="99" font-family="Poppins,Arial,sans-serif" font-size="10" font-weight="700" letter-spacing=".5" fill="#8a7cf0">PLATFORM</text>
+      <rect x="60" y="108" width="254" height="40" rx="8" fill="#4F1AF3"/>
+      <text x="187" y="133" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="600" fill="#fff">Your app</text>
+      <rect x="60" y="156" width="254" height="60" rx="8" fill="#eef0f5" stroke="#b9c0d4" stroke-dasharray="4 3"/>
+      <text x="187" y="180" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">Server, OS, runtime</text>
+      <text x="187" y="199" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#7c879e">no shell, platform-owned</text>
+
+      <text x="184" y="256" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#8a7cf0">across a network and a separate bill</text>
+      <g stroke="#c9c0f5" stroke-width="1.5" fill="none" stroke-dasharray="4 4">
+        <line x1="100" y1="262" x2="86" y2="300"/>
+        <line x1="187" y1="262" x2="187" y2="300"/>
+        <line x1="274" y1="262" x2="288" y2="300"/>
+      </g>
+      <g font-family="Poppins,Arial,sans-serif" font-size="11.5" font-weight="600" fill="#000f27">
+        <rect x="44" y="302" width="90" height="52" rx="8" fill="#fff" stroke="#e6e9f2"/><text x="89" y="326" text-anchor="middle">Database</text><text x="89" y="343" text-anchor="middle" font-size="10" font-weight="700" fill="#c07a1e">add-on $</text>
+        <rect x="142" y="302" width="90" height="52" rx="8" fill="#fff" stroke="#e6e9f2"/><text x="187" y="326" text-anchor="middle">Storage</text><text x="187" y="343" text-anchor="middle" font-size="10" font-weight="700" fill="#c07a1e">add-on $</text>
+        <rect x="240" y="302" width="90" height="52" rx="8" fill="#fff" stroke="#e6e9f2"/><text x="285" y="326" text-anchor="middle">Cron</text><text x="285" y="343" text-anchor="middle" font-size="10" font-weight="700" fill="#c07a1e">add-on $</text>
+      </g>
+      <text x="184" y="418" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-style="italic" fill="#5b6a86">Convenient. Capped. Billed in pieces.</text>
+
+      <!-- RIGHT: managed server -->
+      <text x="536" y="66" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="700" letter-spacing="1" fill="#40b75f">MANAGED SERVER YOU CONTROL</text>
+      <rect x="392" y="80" width="286" height="274" rx="12" fill="#eaf7ef" stroke="#cdebd6"/>
+      <text x="408" y="99" font-family="Poppins,Arial,sans-serif" font-size="10" font-weight="700" letter-spacing=".5" fill="#2f9350">ONE SERVER, ONE DASHBOARD</text>
+      <rect x="408" y="108" width="254" height="40" rx="8" fill="#000f27"/>
+      <text x="535" y="133" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="600" fill="#fff">Your app + shell / SSH</text>
+      <rect x="408" y="156" width="254" height="38" rx="8" fill="#fff" stroke="#cdebd6"/>
+      <text x="535" y="180" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" font-weight="600" fill="#000f27">OS &#183; SSL &#183; patching &#183; backups: handled</text>
+      <g font-family="Poppins,Arial,sans-serif" font-size="11.5" font-weight="600" fill="#000f27">
+        <rect x="408" y="202" width="123" height="40" rx="8" fill="#fff" stroke="#cdebd6"/><text x="469" y="227" text-anchor="middle">Database</text>
+        <rect x="539" y="202" width="123" height="40" rx="8" fill="#fff" stroke="#cdebd6"/><text x="600" y="227" text-anchor="middle">Object storage</text>
+        <rect x="408" y="250" width="123" height="40" rx="8" fill="#fff" stroke="#cdebd6"/><text x="469" y="275" text-anchor="middle">Load balancer</text>
+        <rect x="539" y="250" width="123" height="40" rx="8" fill="#fff" stroke="#cdebd6"/><text x="600" y="275" text-anchor="middle">Cron jobs</text>
+      </g>
+      <text x="535" y="316" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#5b6a86">same box, local network, one plan</text>
+      <text x="536" y="418" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-style="italic" fill="#40b75f">You're inside the box. Everything in one place.</text>
+    </svg>
+    <figcaption>Left: a PaaS hides the server and pushes each extra service out to a separate billed add-on. Right: a managed server you control, with the toil handled for you and the whole stack in one dashboard. Both ship apps. One fits better as the app grows.</figcaption>
+  </figure>
+
+  <h2>The twist: a managed-server alternative can still run on DigitalOcean</h2>
+  <p>Here's the part that makes this comparison slightly odd, and worth reading. The alternative isn't a rival cloud. <a href="https://www.kloudbean.com/">Kloudbean</a> is a managed-hosting platform that provisions servers on seven providers, and DigitalOcean is one of them. So you can move off App Platform and still run on DigitalOcean infrastructure if you like it. You just trade the PaaS abstraction for a managed server you actually own.</p>
+  <p>That's a different thing from comparing App Platform to a raw Droplet. A raw Droplet is the empty-box, do-it-all-yourself option, and we cover that head to head in <a href="https://www.kloudbean.com/blog/digitalocean-vs-kloudbean/">DigitalOcean vs Kloudbean</a>. This page is about the middle path most people actually want: the convenience of a PaaS with the control of a server, minus the full sysadmin burden. If you're new to the term, <a href="https://www.kloudbean.com/blog/what-is-a-managed-server/">what is a managed server</a> explains the model in plain language.</p>
+  <p>The short version: a managed server is a real Linux box you can SSH into, but the platform handles the OS, the web stack, SSL, patching, and backups. You get to reach into the server when you need to, and you get to ignore it when you don't. App Platform only offers the second half of that.</p>
+
+  <h2>DigitalOcean App Platform vs Kloudbean, feature by feature</h2>
+  <p>Same job, two models. This table is meant to be fair, so read the App Platform column as "the normal PaaS trade," not "the broken option."</p>
+
+  <table class="cmp">
+    <thead><tr><th>The job</th><th>DigitalOcean App Platform (PaaS)</th><th>Kloudbean (managed server)</th></tr></thead>
+    <tbody>
+      <tr><td>Deploy model</td><td>Git push or container, buildpack-based</td><td>Managed CI/CD from Git with live build logs</td></tr>
+      <tr><td>Server control / SSH</td><td>Abstracted; container-level access only</td><td>Full shell / SSH on a server you own</td></tr>
+      <tr><td>Runtime config</td><td>What the app spec exposes</td><td>Node and Python runtime config in the UI, plus the server</td></tr>
+      <tr><td>Databases</td><td>Separate managed database product, billed on its own</td><td>7 engines launched next to the app, same dashboard</td></tr>
+      <tr><td>Object storage</td><td>Spaces, a separate DO product</td><td>Built-in S3-compatible buckets + managed GCS</td></tr>
+      <tr><td>Load balancing</td><td>Platform-managed</td><td>Built-in Flexible Load Balancer, enable when needed</td></tr>
+      <tr><td>Scheduled jobs</td><td>A jobs component</td><td>Cron jobs from the UI on the same server</td></tr>
+      <tr><td>Cloud choice</td><td>DigitalOcean only</td><td>7 clouds, including DigitalOcean</td></tr>
+      <tr><td>Portability</td><td>Tied to the platform's model</td><td>Standard Linux + standard code, move anytime</td></tr>
+      <tr><td>Dashboard scope</td><td>The app and its components</td><td>Servers, apps, DBs, storage, load balancer, staging, cron</td></tr>
+      <tr><td>Best for</td><td>Simple apps, static sites, quick deploys</td><td>Growing apps that want control and more services in one place</td></tr>
+    </tbody>
+  </table>
+
+  <h2>You keep the git push. You gain the server.</h2>
+  <p>The fear that stops most people from leaving a PaaS is losing the deploy flow. They assume "own a server" means shell scripts and a fragile deploy you babysit. It doesn't have to. The git-push convenience is worth keeping, and a managed server keeps it.</p>
+  <p>On Kloudbean you connect a GitHub repo, set the build and start commands, and turn on auto-deploy. Every push builds and ships, with live build logs streaming in the console so you can watch it happen and read the error if it fails. That's the App Platform reflex, preserved. The full walkthrough lives in <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD auto-deploy from GitHub</a>.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="Kloudbean console Git Deployment tab: connect the repo, set the runtime and build and start commands, and Pull and Deploy">
+    <figcaption>Git Deployment in Kloudbean: connect GitHub, set the runtime with the build and start commands, then Pull and Deploy. Auto-deploy on push after that, with live build logs.</figcaption>
+  </figure>
+
+  <p>The difference shows up right after the build. On a PaaS, the buildpack ran a build and start command you mostly didn't see. On a managed server those same two commands are yours, written down and editable, and the app runs as a long-lived process on a box you can open.</p>
+
+  <pre><code># the same two commands a buildpack ran for you, now explicit and yours:
+npm ci &amp;&amp; npm run build     # build command
+npm start                     # start command, a long-lived process on your server</code></pre>
+
+  <p>And because it's a real server, you get the runtime knobs App Platform didn't expose. Set the Node or Python version and runtime config in the UI, or open a shell and do the thing the platform never had a button for.</p>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="Kloudbean Add Application screen for creating an app on a managed server with runtime selection and control">
+    <figcaption>Add Application: pick the runtime and create the app on a server you control. From here you set runtime config in the UI, or SSH in for anything the UI doesn't cover.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: show live build logs streaming during a deploy. Swap for a real screenshot: src -> images/build-logs.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Live build logs streaming in the console during a deploy, so a reader sees the git-push experience is intact.</em><small>Reinforces that you keep the PaaS deploy feel. Author supplies.</small></span></figure>
+
+  <h2>Everything else the app needs, in the same dashboard</h2>
+  <p>This is the real payoff, and it's the thing a PaaS structurally can't match. On App Platform, the app is the product and everything else is an add-on you attach and pay for separately. On a managed server, the database, the cache, the object storage, the load balancer, and the cron jobs are all just things you run on your own box, in one login.</p>
+  <p>Databases are the clearest example. Instead of provisioning a separate metered database product and reaching it across the network, you launch a managed database on the same server as the app. Kloudbean gives you seven engines: MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB. Because the database sits on the same box, the app reaches it over 127.0.0.1 instead of a public endpoint, which usually means lower latency and one less network surface to lock down. They're backed up automatically too. There's a full guide in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">add a managed database to your app</a>.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="Kloudbean Launch Database screen for creating a managed PostgreSQL or MySQL instance next to the application">
+    <figcaption>Launch a managed database next to the app. The connection string points at localhost on the same box, not out to a separate metered service.</figcaption>
+  </figure>
+
+  <p>The same logic covers the rest. File uploads or a home for backups? Built-in <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage</a> and managed Google Cloud Storage buckets are right there, no separate product to wire up. Spreading traffic across app instances? The Flexible Load Balancer is built into every account, off by default, on when you want it. A nightly job? Cron from the UI, no SSH required. Staging for WordPress and Laravel, subusers with granular access control, automatic backups, free auto-renewing SSL: all in the same console. That's the difference between "an app host" and "a place to run your whole stack."</p>
+
+  <h2>Moving off App Platform without a rewrite</h2>
+  <p>Migrating off a PaaS sounds scary and usually isn't, because your app is just standard code in a Git repo. Nothing about App Platform rewrote your application. The move is mostly re-pointing three things: the repo, the build and start commands, and the environment variables.</p>
+  <p>Step one, add a server (pick DigitalOcean if you want to stay on the same infrastructure, or any of the other six clouds). Step two, connect the same GitHub repo and set the same build and start commands your buildpack used. Step three, launch a managed database on the server and re-point your connection string. Step four, copy your environment variables into the console. One detail people miss: App Platform apps usually listen on port 8080, and your app reads that from the environment. On a managed server the app still reads <code>process.env.PORT</code>, so keep it in your config rather than hard-coding a port. Getting env vars right is worth a read: <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>.</p>
+
+  <pre><code># the env you set in the App Platform app spec, moved to the managed server:
+DATABASE_URL=postgres://kb_user:pass@127.0.0.1:5432/appdb
+NODE_ENV=production
+PORT=8080          # your app reads process.env.PORT, do not hard-code it</code></pre>
+
+  <p>That's the shape of it. Point a temporary domain at the new server first, click through the app, watch the logs, and only move your real DNS once everything's green. Kloudbean also offers free migration assistance, so if the app has moving parts you'd rather not untangle alone, someone helps you move it. There's a free trial too, so you can stand the whole thing up beside your live App Platform app and cut over only once it's verified. No big-bang risk.</p>
+
+  <!-- ADD IMAGE: show the App Platform app spec env vars next to the same values entered in the Kloudbean console. Swap for a real screenshot: src -> images/env-migration.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>An App Platform app spec (env vars, run command) beside the same values entered in the Kloudbean console, to show how direct the move is.</em><small>Makes the migration feel concrete and low-risk. Author supplies.</small></span></figure>
+
+  <h2>So which one should you pick?</h2>
+  <p>Time for a real opinion, because a fair comparison still has to land somewhere. Most small apps do not need to leave App Platform. If you're running a static site, a light API, or a side project that fits neatly in the PaaS shape, the abstraction is a gift and you should enjoy it. Leaving would cost you effort for control you're not using.</p>
+  <p>But the calculus flips when three things are true: you need to reach into the server, you're running more than a service or two, and you're tired of the add-on meter. That's when PaaS convenience stops being free and starts being a tax. A managed server gives you the same easy deploy, plus the shell, plus every service in one predictable plan. My blunt take: the day you're pricing out a separate managed database, a separate object store, and a separate worker on a PaaS, you've already outgrown it. You're paying PaaS prices to reassemble a server. Just run the server, and let someone manage it.</p>
+  <p>If you want to see how the managed-server model stacks up more broadly, <a href="https://www.kloudbean.com/blog/best-managed-cloud-hosting/">best managed cloud hosting</a> lays out the full picture across providers.</p>
+
+  <h2>The honest limits</h2>
+  <p>A few boundaries, because you'd find them anyway. Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and the frameworks on top like React, Vue, Angular, Laravel, Django, and WordPress. It's not for Windows, .NET, or IIS. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups; you own and maintain your application and its data. And on autoscaling: App Platform has its own autoscaling inside its model, so if fully automatic scaling is central to your app, weigh that honestly. On Kloudbean, autoscaling and Kubernetes are enterprise or custom setups, not a switch on a standard plan. For most apps you scale by resizing the server or adding instances behind the load balancer, which is plenty. Because it's standard Linux and standard code underneath, you can leave whenever you want. The exit door is part of the design.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Keep the git push. Get the server back.</p>
+    <p style="margin:0">Move your app off App Platform to a managed server on DigitalOcean, or six other clouds, at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Git deploy with live build logs, one-click managed databases, S3-compatible storage, built-in load balancer, automatic backups, free SSL, free migration, and a free trial. Plans start from $8/mo on <a href="https://www.kloudbean.com/pricing/">pricing</a>, with custom Enterprise setups on request.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is a good DigitalOcean App Platform alternative?</h3>
+    <p>For an app that outgrew the PaaS shape, the strongest DigitalOcean App Platform alternative is a managed server rather than another PaaS. You keep git-push deploys but gain shell access, runtime control, and your databases, storage, and cron in one dashboard. Kloudbean provides that model and can run on DigitalOcean or six other clouds.</p>
+
+    <h3>What's the difference between App Platform and Droplets?</h3>
+    <p>App Platform is DigitalOcean's PaaS: it builds and runs your code and hides the server from you. A Droplet is a raw Linux virtual machine you set up and maintain entirely yourself. A managed server sits between them, giving you a real server you can control while the platform handles the OS, SSL, patching, and backups.</p>
+
+    <h3>Does Kloudbean run on DigitalOcean?</h3>
+    <p>Yes. DigitalOcean is one of the seven clouds Kloudbean can provision on, alongside AWS, AWS Lightsail, Google Cloud, Linode, Vultr, and UpCloud. So you can leave App Platform and still keep your app on DigitalOcean infrastructure, just as a managed server you own instead of a PaaS abstraction.</p>
+
+    <h3>Can I get SSH access, unlike App Platform?</h3>
+    <p>Yes. A managed server is a real Linux box, so you get shell and SSH access for the things a PaaS never let you do: install a system package, run a one-off migration, tail a log, or debug a process directly. You also get runtime config for Node and Python in the UI, so you don't have to open a shell for routine changes.</p>
+
+    <h3>How do I move my app off App Platform?</h3>
+    <p>Your app is standard code in a Git repo, so the move is mostly re-pointing. Add a server, connect the same repo, set the same build and start commands, launch a managed database and update the connection string, then copy your environment variables into the console. Kloudbean offers free migration assistance and a free trial, so you can verify the new setup before cutting over.</p>
+
+    <h3>Is App Platform or a managed server cheaper?</h3>
+    <p>It depends on how many services your app needs. For a single small app, a PaaS can be cheaper. Once you're paying for a separate managed database, object storage, and a worker as individual add-ons, those meters add up and a managed server that bundles everything into one plan often costs less. Kloudbean plans start from $8/mo, with custom Enterprise pricing.</p>
+
+    <h3>Will I lose the git-push deploy I like about App Platform?</h3>
+    <p>No. You connect a GitHub repo, set the build and start commands, and enable auto-deploy so every push builds and ships, with live build logs in the console. It's the same reflex you have on App Platform. The difference is what sits underneath: a server you can open, not a black box.</p>
+
+    <h3>Can I run a database next to my app instead of a separate add-on?</h3>
+    <p>Yes, and that's a core reason to switch. You launch a managed database on the same server as the app and reach it over the local network, instead of provisioning a separate metered database product. Kloudbean supports seven engines: MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB, all backed up automatically.</p>
+
+    <h3>Does a managed server autoscale like App Platform?</h3>
+    <p>Not in the same automatic way for standard plans, so it's fair to flag. App Platform has its own autoscaling inside its model. On Kloudbean, autoscaling and Kubernetes are enterprise or custom setups. For most apps you scale by resizing the server or adding instances behind the built-in load balancer, which handles real growth without a PaaS bill.</p>
+
+    <h3>What kinds of apps can I host on a managed server?</h3>
+    <p>Linux web stacks: Node, PHP, Python, Ruby, and Java, plus frameworks like React, Vue, Angular, Laravel, Django, and WordPress. That covers almost everything people deploy on App Platform. It isn't for Windows, .NET, or IIS. You own the app and data; the platform manages the server, stack, SSL, patching, and backups.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Beyond the App Platform Box.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"A DigitalOcean App Platform Alternative for When You Outgrow the Box","description":"Where DigitalOcean App Platform's PaaS model starts to pinch, and how a managed server keeps the git-push deploy while giving you shell access, seven managed databases, built-in storage and load balancing, and your whole stack in one dashboard on seven clouds.","image":"https://www.kloudbean.com/blog/digitalocean-app-platform-alternative/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/digitalocean-app-platform-alternative/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is a good DigitalOcean App Platform alternative?","acceptedAnswer":{"@type":"Answer","text":"For an app that outgrew the PaaS shape, the strongest DigitalOcean App Platform alternative is a managed server rather than another PaaS. You keep git-push deploys but gain shell access, runtime control, and your databases, storage, and cron in one dashboard. Kloudbean provides that model and can run on DigitalOcean or six other clouds."}},
+{"@type":"Question","name":"What's the difference between App Platform and Droplets?","acceptedAnswer":{"@type":"Answer","text":"App Platform is DigitalOcean's PaaS: it builds and runs your code and hides the server from you. A Droplet is a raw Linux virtual machine you set up and maintain entirely yourself. A managed server sits between them, giving you a real server you can control while the platform handles the OS, SSL, patching, and backups."}},
+{"@type":"Question","name":"Does Kloudbean run on DigitalOcean?","acceptedAnswer":{"@type":"Answer","text":"Yes. DigitalOcean is one of the seven clouds Kloudbean can provision on, alongside AWS, AWS Lightsail, Google Cloud, Linode, Vultr, and UpCloud. So you can leave App Platform and still keep your app on DigitalOcean infrastructure, just as a managed server you own instead of a PaaS abstraction."}},
+{"@type":"Question","name":"Can I get SSH access, unlike App Platform?","acceptedAnswer":{"@type":"Answer","text":"Yes. A managed server is a real Linux box, so you get shell and SSH access for the things a PaaS never let you do: install a system package, run a one-off migration, tail a log, or debug a process directly. You also get runtime config for Node and Python in the UI, so you do not have to open a shell for routine changes."}},
+{"@type":"Question","name":"How do I move my app off App Platform?","acceptedAnswer":{"@type":"Answer","text":"Your app is standard code in a Git repo, so the move is mostly re-pointing. Add a server, connect the same repo, set the same build and start commands, launch a managed database and update the connection string, then copy your environment variables into the console. Kloudbean offers free migration assistance and a free trial, so you can verify the new setup before cutting over."}},
+{"@type":"Question","name":"Is App Platform or a managed server cheaper?","acceptedAnswer":{"@type":"Answer","text":"It depends on how many services your app needs. For a single small app, a PaaS can be cheaper. Once you are paying for a separate managed database, object storage, and a worker as individual add-ons, those meters add up and a managed server that bundles everything into one plan often costs less. Kloudbean plans start from $8/mo, with custom Enterprise pricing."}},
+{"@type":"Question","name":"Will I lose the git-push deploy I like about App Platform?","acceptedAnswer":{"@type":"Answer","text":"No. You connect a GitHub repo, set the build and start commands, and enable auto-deploy so every push builds and ships, with live build logs in the console. It is the same reflex you have on App Platform. The difference is what sits underneath: a server you can open, not a black box."}},
+{"@type":"Question","name":"Can I run a database next to my app instead of a separate add-on?","acceptedAnswer":{"@type":"Answer","text":"Yes, and that is a core reason to switch. You launch a managed database on the same server as the app and reach it over the local network, instead of provisioning a separate metered database product. Kloudbean supports seven engines: MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB, all backed up automatically."}},
+{"@type":"Question","name":"Does a managed server autoscale like App Platform?","acceptedAnswer":{"@type":"Answer","text":"Not in the same automatic way for standard plans, so it is fair to flag. App Platform has its own autoscaling inside its model. On Kloudbean, autoscaling and Kubernetes are enterprise or custom setups. For most apps you scale by resizing the server or adding instances behind the built-in load balancer, which handles real growth without a PaaS bill."}},
+{"@type":"Question","name":"What kinds of apps can I host on a managed server?","acceptedAnswer":{"@type":"Answer","text":"Linux web stacks: Node, PHP, Python, Ruby, and Java, plus frameworks like React, Vue, Angular, Laravel, Django, and WordPress. That covers almost everything people deploy on App Platform. It is not for Windows, .NET, or IIS. You own the app and data; the platform manages the server, stack, SSL, patching, and backups."}}
+]}
+]}
+</script>
+</body>
+</html>

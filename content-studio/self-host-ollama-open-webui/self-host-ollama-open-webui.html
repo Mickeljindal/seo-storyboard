@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Self-Host Ollama and Open WebUI: Your Own Private AI Chat</title>
+<meta name="description" content="Self-host Ollama and Open WebUI to run a private AI chat on your own server, where prompts never leave your box and there's no per-token bill. What each piece does, the hardware that actually matters, and the one-click way to run it.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/self-host-ollama-open-webui/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Self-Host Ollama and Open WebUI: Your Own Private AI Chat">
+<meta property="og:description" content="Run a private AI chat on a server you own. What Ollama and Open WebUI each do, the hardware that actually matters, and the one-click way to run it.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Self-hosted tools</span>
+  <h1>Self-Host Ollama and Open WebUI: Your Own Private AI Chat</h1>
+
+  <figure><img src="images/hero.png" alt="Self-host Ollama and Open WebUI: a private AI chat on a server you own"></figure>
+
+  <p class="lead">Every prompt your team pastes into a public AI tool is data leaving the building. Sometimes that's fine. Sometimes it's customer records, unreleased code, or a strategy doc, and it really isn't. That's the case for a private AI chat: self-host Ollama and Open WebUI, and the model runs on your server while the conversations stay there. This walks through what each piece does, the one thing that genuinely matters (hardware), and where people get it wrong.</p>
+
+  <div class="tldr">
+    <strong>Short version</strong>
+    <p>Ollama is the runtime that serves open AI models on your server. Open WebUI is the ChatGPT-style interface in front of it. Together they're a private AI chat where prompts and history never leave your box and there's no per-token bill. On Kloudbean, Open WebUI with the DeepSeek model deploys in one click, with the model runtime on a server you size. Self-host for privacy, control, and cost at volume, not to beat the biggest hosted models on a small box.</p>
+  </div>
+
+  <h2>The two pieces: Ollama and Open WebUI</h2>
+  <p>People say "self-host Ollama" and "self-host Open WebUI" as if they're one thing. They're two, and knowing which does what saves a lot of confusion.</p>
+  <ul>
+    <li><strong>Ollama is the engine.</strong> It downloads open models and serves them, exposing them on a local port. You talk to it with simple commands (<code>ollama pull</code>, <code>ollama run</code>) or over its local API. One job, done well: run models.</li>
+    <li><strong>Open WebUI is the face.</strong> It's the chat your team actually uses: conversations, history, multiple models, user accounts. It connects to the model runtime over a local port on the same server, so that link never touches the public internet.</li>
+  </ul>
+  <p>On Kloudbean the one-click app is <strong>Open WebUI with DeepSeek</strong>, an open model, already wired together. The chat interface is the part you deploy in a click; the model runtime sits on the server behind it, serving the model locally. The point is the same either way: everything runs on your box.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 380" role="img" aria-label="Two topologies compared: a private setup where user, Open WebUI, and the Ollama runtime all live on your server so nothing leaves, versus a public API where your prompts travel across the internet to a third-party AI cloud" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="30" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Where do your prompts actually go?</text>
+      <rect x="20" y="54" width="344" height="300" rx="16" fill="#ffffff" stroke="#40b75f" stroke-width="1.6" stroke-dasharray="6 6"/>
+      <text x="38" y="82" fill="#40b75f" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600" letter-spacing="1.2">PRIVATE · ON YOUR SERVER</text>
+      <rect x="112" y="96" width="160" height="44" rx="10" fill="#000f27"/>
+      <text x="192" y="123" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">You / your team</text>
+      <line x1="192" y1="140" x2="192" y2="166" stroke="#5b6a86" stroke-width="2"/><path d="M192 166 l-4 -9 h8 z" fill="#5b6a86"/>
+      <rect x="92" y="168" width="200" height="44" rx="10" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5"/>
+      <text x="192" y="195" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Open WebUI · chat</text>
+      <line x1="192" y1="212" x2="192" y2="238" stroke="#5b6a86" stroke-width="2"/><path d="M192 238 l-4 -9 h8 z" fill="#5b6a86"/>
+      <rect x="92" y="240" width="200" height="50" rx="10" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="192" y="262" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Ollama runtime</text>
+      <text x="192" y="280" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">DeepSeek / Llama model</text>
+      <path d="M186 314 v-4 a6 6 0 0 1 12 0 v4" fill="none" stroke="#40b75f" stroke-width="2"/>
+      <rect x="182" y="314" width="20" height="15" rx="2" fill="#40b75f"/>
+      <text x="220" y="326" text-anchor="start" fill="#0a4d28" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600">nothing leaves this box</text>
+      <rect x="396" y="54" width="344" height="300" rx="16" fill="#ffffff" stroke="#cdd4e6" stroke-width="1.6"/>
+      <text x="414" y="82" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600" letter-spacing="1.2">PUBLIC AI API</text>
+      <rect x="418" y="150" width="120" height="48" rx="10" fill="#000f27"/>
+      <text x="478" y="179" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Your app</text>
+      <line x1="560" y1="100" x2="560" y2="300" stroke="#5b6a86" stroke-width="1.4" stroke-dasharray="5 5"/>
+      <text x="560" y="316" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">the internet</text>
+      <text x="568" y="140" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600">prompt &#8594;</text>
+      <line x1="538" y1="174" x2="594" y2="174" stroke="#4F1AF3" stroke-width="2"/><path d="M594 174 l-9 -4 v8 z" fill="#4F1AF3"/>
+      <rect x="598" y="148" width="128" height="52" rx="10" fill="#ffffff" stroke="#5b6a86" stroke-width="1.3"/>
+      <text x="662" y="171" text-anchor="middle" fill="#1c2536" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">Third-party</text>
+      <text x="662" y="188" text-anchor="middle" fill="#1c2536" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">AI cloud</text>
+      <text x="568" y="344" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">prompts and data leave your control</text>
+    </svg>
+    <figcaption>Left: user, chat, and model all sit on one server you own, so prompts never leave. Right: a hosted API sends every prompt across the internet to someone else's cloud. That gap is the whole reason to self-host.</figcaption>
+  </figure>
+
+  <h2>Why self-host Ollama and Open WebUI</h2>
+  <p>Four reasons, and I'll rank them by how often they're the real motive:</p>
+  <ul>
+    <li><strong>Privacy.</strong> Prompts, responses, and history stay on your server. Nothing is sent to an outside AI provider, because the model is running locally. For teams handling anything sensitive, this is the whole game.</li>
+    <li><strong>No per-token bill.</strong> A hosted API charges for every token in and out. A local model charges nothing per token. You pay for the server, then use it as hard as you like.</li>
+    <li><strong>You pick the models.</strong> Open models improve constantly. Swapping one for another is a download, not a contract. You're not tied to a single vendor's roadmap or pricing.</li>
+    <li><strong>Control.</strong> No rate limits you didn't set, no model deprecations sprung on you.</li>
+  </ul>
+  <p>My honest position: privacy and control are the reasons that hold up. "It'll be cheaper" is true only at real volume, because the server (especially with a GPU) is not free. More on that below.</p>
+
+  <h2>The one decision that matters: hardware</h2>
+  <p>Every other self-hosted tool in this category is light. This one isn't, and pretending otherwise sets you up to fail. Models need memory to load and compute to think. Size the server right and it feels great. Under-size it and it's painfully slow.</p>
+  <p>Here's the honest, jargon-free version. Treat these as rough guides, not promises, since exact needs vary by model and how it's quantized:</p>
+
+  <table class="cmp">
+    <thead><tr><th>What you run</th><th>Roughly needs</th><th>Feels like</th></tr></thead>
+    <tbody>
+      <tr><td>A small model (about 7B), CPU only</td><td>8 GB RAM</td><td>Works, but replies come slowly</td></tr>
+      <tr><td>A small model with a GPU</td><td>GPU plus 8 to 16 GB</td><td>Fast, snappy replies</td></tr>
+      <tr><td>A mid model (about 13B)</td><td>16 GB or more, GPU strongly preferred</td><td>Better answers, needs the muscle</td></tr>
+      <tr><td>A large model (30B and up)</td><td>Serious GPU memory</td><td>Best quality, real hardware cost</td></tr>
+    </tbody>
+  </table>
+  <p>The rule of thumb: CPU-only is fine for trying it out and for light, patient use. A GPU is what makes it feel instant. Pick your model to match your server, not the other way around, and size the memory (and GPU, where available) up front:</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="The Kloudbean console Add Server screen where you pick memory and resources sized to the AI model you plan to run">
+    <figcaption>Add Server: size the memory (and GPU, where available) to the model you plan to run, then resize later if you want more.</figcaption>
+  </figure>
+
+  <p>Start modest, run a small model, see how it feels, and scale up if you want it faster or smarter. Learning on a small box beats over-buying on day one, and moving to a bigger box later is a resize, not a rebuild.</p>
+
+  <!-- To add your own screenshot here, replace this whole figure with a real <figure><img ...><figcaption>...</figcaption></figure>. Image path: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Terminal running ollama pull for a model, then the model responding to a first prompt.</em><small>Shows the runtime working before the chat UI goes on top.</small></span></figure>
+
+  <h2>What a local model is good at, and where it isn't</h2>
+  <p>Set expectations right and you'll be happy. Expect it to beat the biggest commercial models and you won't. A small-to-mid open model on your own server is genuinely good at the everyday stuff: drafting and rewriting text, summarizing documents, answering questions about your own material, helping with code, classifying or extracting data, powering internal chat where privacy is the point. That's most of what teams actually use AI for.</p>
+  <p>Where it lags is the frontier. The hardest reasoning and the broadest world knowledge still favor the largest hosted models, which run on hardware you would not put in one box. So the split many teams land on is simple: private model for anything sensitive or high-volume, and a hosted model only for the occasional heavy lift. If you're building AI features into a product rather than just chatting, the <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploy an AI-built app</a> guide picks up there, and <a href="https://www.kloudbean.com/blog/self-host-langflow/">self-hosting Langflow</a> is the natural next tool.</p>
+
+  <h2>The one-click path: Open WebUI with DeepSeek</h2>
+  <p>You don't have to assemble this by hand. Add an application, choose Open WebUI with DeepSeek, and the platform stands up the chat interface with an open model behind it on your server, free SSL included.</p>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean console Add Application screen where Open WebUI with DeepSeek deploys in one click onto your own server">
+    <figcaption>Add Application: deploy Open WebUI with DeepSeek in one click, with the model runtime on the server you sized.</figcaption>
+  </figure>
+
+  <p>From there you reach it at <code>chat.yourcompany.com</code> with a login, and you can pull additional open models through the runtime whenever you like.</p>
+
+  <!-- To add your own screenshot here, replace this whole figure with a real <figure><img ...><figcaption>...</figcaption></figure>. Image path: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Open WebUI chat running on your own domain, mid-conversation, with a model picker visible.</em><small>The payoff shot: a private ChatGPT-style chat that's yours.</small></span></figure>
+
+  <h2>Where people get this wrong</h2>
+  <p>I've watched the same handful of mistakes turn a promising setup into "this is useless." None of them are hard to avoid once you know them:</p>
+  <ul>
+    <li><strong>Under-sizing the box.</strong> Running a mid model on a tiny CPU server, then concluding local AI is slow. It's not slow. The server was too small. Match the model to the hardware.</li>
+    <li><strong>Expecting frontier quality from a 7B model.</strong> A small local model is a capable assistant, not the largest hosted model. Judge it on the everyday tasks, not on the hardest reasoning puzzle you can invent.</li>
+    <li><strong>Leaving it open to the internet.</strong> A chat UI with no login, reachable by anyone who finds the URL, is a data leak waiting to happen. Put it behind a domain with SSL and real accounts before you share the link.</li>
+    <li><strong>Forgetting it's still a server.</strong> Your conversations and settings live in storage on the box. It needs <a href="https://www.kloudbean.com/blog/server-backups-guide/">backups</a> like anything else you'd miss.</li>
+  </ul>
+
+  <h2>Give your team access, safely</h2>
+  <p>Open WebUI has real user accounts, so you don't hand everyone the same door. Make yourself admin, add teammates, and put the whole thing behind your domain with SSL so logins are encrypted. For an extra layer, keep it on a private network so the model runtime isn't exposed at all; here's <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">what a VPC is</a> and why it helps. Now it's a shared internal tool with the data staying in-house. For a lot of companies, that's the entire reason to self-host this.</p>
+
+  <!-- To add your own screenshot here, replace this whole figure with a real <figure><img ...><figcaption>...</figcaption></figure>. Image path: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Open WebUI admin panel showing user accounts and roles for a team.</em><small>Proof it's a shared tool, not a single-user toy.</small></span></figure>
+
+  <h2>Is it actually cheaper?</h2>
+  <p>Sometimes, and it's worth being straight about when. A per-token API is cheap when you barely use it and expensive under heavy, constant use. A server is flat: pay monthly, run it as hard as you like. So at real volume the local box wins, especially for high-throughput jobs like summarizing or classifying at scale. At light use, a hosted API is often cheaper than a capable server, and a GPU is a real expense. Don't self-host purely to save money on a few chats a week. It's the same flat-versus-metered logic behind <a href="https://www.kloudbean.com/blog/self-host-n8n/">self-hosting n8n</a>.</p>
+
+  <h2>What stays private, and what you own</h2>
+  <p>The point of all this is privacy, so let's be precise. Prompts, responses, and chat history live on your server. Nothing goes to a third-party AI provider, because the model runs locally. That's genuinely different from calling a hosted API.</p>
+  <p>What you own is the setup: the server, the models you pull, and the updates. The platform keeps the box itself healthy, meaning the OS, networking, free SSL, and server-level backups, and lets you pick the memory (and GPU, where offered) the models need. You bring the models. You keep the conversations. If you're assembling a wider set of tools you run yourself, the <a href="https://www.kloudbean.com/blog/best-self-hosted-tools/">best self-hosted tools</a> roundup and the <a href="https://www.kloudbean.com/blog/self-host-supabase/">self-host Supabase</a> guide pair well with this one.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">A ChatGPT-style assistant that keeps its mouth shut.</p>
+    <p style="margin:0 0 .6em">Deploy Open WebUI with DeepSeek in one click on a memory-ready server, with the model runtime on a box you size and control. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">One-click Open WebUI · Your models, your server · No per-token bill · Private networking · Free SSL · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Can I really run a private ChatGPT on my own server?</h3>
+    <p>Yes. Ollama runs open models locally and Open WebUI gives you a ChatGPT-style chat on top, both on your server, so prompts and history never leave it. It won't match the very largest commercial models unless you have serious hardware, but for most everyday use it's more than enough.</p>
+
+    <h3>Do I need a GPU to self-host Ollama?</h3>
+    <p>No, but it helps a lot. A small model runs on a CPU-only server with around 8 GB of RAM, it just answers more slowly. A GPU makes replies feel instant. Start on CPU to try it, and add a GPU if speed matters for how you'll actually use it.</p>
+
+    <h3>How much RAM do local models need?</h3>
+    <p>As a rough guide: about 8 GB for a small (7B) model, 16 GB or more for a mid-size one, and much more for large models. Match the model to a server you're comfortable paying for, and scale up only if you need better speed or answers.</p>
+
+    <h3>What's the difference between Ollama and Open WebUI?</h3>
+    <p>Ollama is the runtime that downloads and serves the models. Open WebUI is the chat interface your team uses, sitting in front of the runtime. You need both for a full private AI chat: one to run the model, one to talk to it comfortably.</p>
+
+    <h3>Is my data really private?</h3>
+    <p>Yes. The model runs locally, so nothing is sent to an outside AI provider, and conversations stay in Open WebUI's storage on your server. Keep it behind a login and SSL, and ideally on a private network, and it stays that way. This is the core reason teams self-host it.</p>
+
+    <h3>Is a local model as good as GPT-4 or GPT-5?</h3>
+    <p>Not at the frontier. The largest hosted models still lead on the hardest reasoning and broadest knowledge. But for drafting, summarizing, coding help, and internal chat, a good open model is plenty. The smart pattern is a local model for the bulk of the work and a hosted model only for the occasional heavy lift.</p>
+
+    <h3>How do I give my team access?</h3>
+    <p>Open WebUI has built-in user accounts. Add teammates, keep yourself as admin, and put it behind your domain with SSL so access is private and encrypted. That turns it from a single-user toy into a shared internal tool.</p>
+
+    <h3>Is self-hosting cheaper than a paid AI API?</h3>
+    <p>At real volume, usually yes, because the server is a flat cost while an API charges per token. At light or occasional use, a hosted API is often cheaper than paying for a capable server, and a GPU is a genuine expense. Privacy can justify the server on its own, but don't self-host purely to save money on a few chats a week.</p>
+
+    <h3>What is DeepSeek, and can I run other models?</h3>
+    <p>DeepSeek is an open model that ships with the one-click Open WebUI deploy, so you have a working chat immediately. You're not locked to it. Through the runtime you can pull other open models and switch between them, keeping whichever fit your hardware and answer well.</p>
+
+    <h3>Do I still need to back up an AI chat server?</h3>
+    <p>Yes. Your conversations, users, and settings live in storage on the server, so it needs backups like any other app you'd hate to lose. Server-level backups come with the platform; make sure they're on before the setup becomes something your team relies on.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Your prompts never leave the room.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Self-Host Ollama and Open WebUI: Your Own Private AI Chat","description":"Self-host Ollama and Open WebUI for a private AI chat on your own server: what each piece does, the hardware that actually matters, where people get it wrong, and the one-click way to run Open WebUI with DeepSeek.","image":"https://www.kloudbean.com/blog/self-host-ollama-open-webui/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/self-host-ollama-open-webui/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Can I really run a private ChatGPT on my own server?","acceptedAnswer":{"@type":"Answer","text":"Yes. Ollama runs open models locally and Open WebUI gives you a ChatGPT-style chat on top, both on your server, so prompts and history never leave it. It won't match the very largest commercial models unless you have serious hardware, but for most everyday use it's more than enough."}},
+{"@type":"Question","name":"Do I need a GPU to self-host Ollama?","acceptedAnswer":{"@type":"Answer","text":"No, but it helps a lot. A small model runs on a CPU-only server with around 8 GB of RAM, it just answers more slowly. A GPU makes replies feel instant. Start on CPU to try it, and add a GPU if speed matters for how you'll actually use it."}},
+{"@type":"Question","name":"How much RAM do local models need?","acceptedAnswer":{"@type":"Answer","text":"As a rough guide: about 8 GB for a small (7B) model, 16 GB or more for a mid-size one, and much more for large models. Match the model to a server you're comfortable paying for, and scale up only if you need better speed or answers."}},
+{"@type":"Question","name":"What's the difference between Ollama and Open WebUI?","acceptedAnswer":{"@type":"Answer","text":"Ollama is the runtime that downloads and serves the models. Open WebUI is the chat interface your team uses, sitting in front of the runtime. You need both for a full private AI chat: one to run the model, one to talk to it comfortably."}},
+{"@type":"Question","name":"Is my data really private?","acceptedAnswer":{"@type":"Answer","text":"Yes. The model runs locally, so nothing is sent to an outside AI provider, and conversations stay in Open WebUI's storage on your server. Keep it behind a login and SSL, and ideally on a private network, and it stays that way. This is the core reason teams self-host it."}},
+{"@type":"Question","name":"Is a local model as good as GPT-4 or GPT-5?","acceptedAnswer":{"@type":"Answer","text":"Not at the frontier. The largest hosted models still lead on the hardest reasoning and broadest knowledge. But for drafting, summarizing, coding help, and internal chat, a good open model is plenty. The smart pattern is a local model for the bulk of the work and a hosted model only for the occasional heavy lift."}},
+{"@type":"Question","name":"How do I give my team access?","acceptedAnswer":{"@type":"Answer","text":"Open WebUI has built-in user accounts. Add teammates, keep yourself as admin, and put it behind your domain with SSL so access is private and encrypted. That turns it from a single-user toy into a shared internal tool."}},
+{"@type":"Question","name":"Is self-hosting cheaper than a paid AI API?","acceptedAnswer":{"@type":"Answer","text":"At real volume, usually yes, because the server is a flat cost while an API charges per token. At light or occasional use, a hosted API is often cheaper than paying for a capable server, and a GPU is a genuine expense. Privacy can justify the server on its own, but don't self-host purely to save money on a few chats a week."}},
+{"@type":"Question","name":"What is DeepSeek, and can I run other models?","acceptedAnswer":{"@type":"Answer","text":"DeepSeek is an open model that ships with the one-click Open WebUI deploy, so you have a working chat immediately. You're not locked to it. Through the runtime you can pull other open models and switch between them, keeping whichever fit your hardware and answer well."}},
+{"@type":"Question","name":"Do I still need to back up an AI chat server?","acceptedAnswer":{"@type":"Answer","text":"Yes. Your conversations, users, and settings live in storage on the server, so it needs backups like any other app you'd hate to lose. Server-level backups come with the platform; make sure they're on before the setup becomes something your team relies on."}}
+]}
+]}
+</script>
+</body>
+</html>

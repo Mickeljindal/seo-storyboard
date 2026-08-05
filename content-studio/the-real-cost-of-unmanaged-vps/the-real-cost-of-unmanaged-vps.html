@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Real Cost of an Unmanaged VPS (It's Not the Sticker Price)</title>
+<meta name="description" content="The real cost of an unmanaged VPS is the sticker plus every hour you spend keeping it alive: setup, patching, backups, monitoring, and the 2am incident. Here's the honest total-cost-of-ownership math, with illustrative numbers.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/the-real-cost-of-unmanaged-vps/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="The Real Cost of an Unmanaged VPS (It's Not the Sticker Price)">
+<meta property="og:description" content="Add the hidden line items below the waterline (setup, patching, backups, monitoring, and the 2am fix) and the cheap VPS math changes. The honest breakdown.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">vs Competitors</span>
+  <h1>The Real Cost of an Unmanaged VPS (It's Not the Sticker Price)</h1>
+
+  <figure><img src="images/hero.png" alt="The real cost of an unmanaged VPS: the sticker price is only the tip"></figure>
+
+  <p class="lead">A cheap unmanaged VPS is one of the most seductive numbers in hosting. A few dollars a month for a real server with root access, so how could managed hosting justify charging several times more for what looks like the same box?</p>
+
+  <p>Because it isn't the same box. It's the same box plus a job, and the job never shows up on the pricing page. The real cost of an unmanaged VPS is the sticker plus every hour you spend keeping it alive. Let's do the math nobody prints, put honest, illustrative figures on the invisible parts, and see what that cheap server actually costs. Sometimes it's still the right call. But you should know the real number first.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>The sticker on an unmanaged VPS covers raw compute, nothing else. Setup, patching, SSL renewals, backups, monitoring, and incident response are all your job, and your time has a price even when no invoice shows it. Count a handful of hours a month at any sensible rate and a "cheap" VPS quietly costs far more than the sticker. Managed hosting costs more on paper because it deletes that list. Numbers here are illustrative.</p>
+  </div>
+
+  <h2>The sticker price is the down payment</h2>
+  <p>Start with what you actually see. The entry-tier instances that made cheap hosting famous, the ones people mean when they say "just grab a cheap VPS," sit at a few dollars a month. Call it, illustratively, five dollars. That price is real, and it's a genuinely great deal for raw compute. Credit where it's due: the big infrastructure providers (DigitalOcean, Vultr, Linode and friends) turned a server into a commodity you can rent for pocket change, and for the right use that's fantastic.</p>
+  <p>But raw compute isn't a running application. It's an empty room. Everything that turns that room into a live, secure, backed-up site is missing from the number. The sticker is a down payment. The rest of the bill arrives in hours.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 420" role="img" aria-label="An iceberg showing the real cost of an unmanaged VPS: a small sticker price above the waterline, and the large hidden mass of setup, patching, security, backups, monitoring and the 2am incident below it" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <rect x="30" y="28" width="700" height="122" fill="#eef4fc"/>
+      <rect x="30" y="150" width="700" height="242" fill="#d6e4f6"/>
+      <line x1="30" y1="150" x2="730" y2="150" stroke="#8fb0dd" stroke-width="1.5" stroke-dasharray="7 5"/>
+      <text x="700" y="166" text-anchor="end" fill="#5a79a6" font-family="Poppins,sans-serif" font-size="11" font-style="italic">waterline</text>
+
+      <text x="251" y="52" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">a few $ / mo (illustrative)</text>
+      <text x="251" y="72" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="700">The sticker price</text>
+      <polygon points="215,150 251,96 288,150" fill="#f4f8ff" stroke="#6f93c9" stroke-width="1.5"/>
+
+      <polygon points="185,150 315,150 366,238 340,338 251,392 158,336 150,232 172,190" fill="#12305f" stroke="#2a4f86" stroke-width="1.5"/>
+      <ellipse cx="250" cy="150" rx="96" ry="8" fill="#ffffff" fill-opacity="0.35"/>
+      <g font-family="Poppins,sans-serif" font-size="12" fill="#eaf1ff" text-anchor="middle">
+        <text x="250" y="190">Initial setup</text>
+        <text x="250" y="216">Patching + updates</text>
+        <text x="250" y="242">Security hardening</text>
+        <text x="250" y="268">Backups you test</text>
+        <text x="250" y="294">Monitoring + alerts</text>
+        <text x="250" y="320" font-weight="700">The 2am incident</text>
+        <text x="250" y="346">Opportunity cost</text>
+      </g>
+
+      <rect x="440" y="196" width="286" height="128" rx="12" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5"/>
+      <text x="458" y="224" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="13" font-weight="700">The honest total</text>
+      <text x="458" y="248" fill="#1c2536" font-family="Poppins,sans-serif" font-size="12.5">= the sticker price</text>
+      <text x="458" y="270" fill="#1c2536" font-family="Poppins,sans-serif" font-size="12.5">+ setup, patching, backups,</text>
+      <text x="458" y="288" fill="#1c2536" font-family="Poppins,sans-serif" font-size="12.5">&#160;&#160;&#160;monitoring, the 2am fix</text>
+      <text x="458" y="310" fill="#1c2536" font-family="Poppins,sans-serif" font-size="12.5">+ the hours you don't get back</text>
+    </svg>
+    <figcaption>The unmanaged VPS iceberg. The price you see is the tip. The work you own is everything under the waterline.</figcaption>
+  </figure>
+
+  <h2>The hidden costs of an unmanaged VPS, below the waterline</h2>
+  <p>Here's the work the sticker leaves out, the mass under the surface. None of it is hard, exactly. It's just time, and time has a price even when the invoice pretends it doesn't.</p>
+  <ul>
+    <li><strong>Initial setup.</strong> Install and configure the web server, language runtime, database, and firewall, harden SSH, and get your app deployed. First time, realistically a few hours.</li>
+    <li><strong>SSL certificates.</strong> Install them and set auto-renewal. Cheap in dollars, but it's on you the day one silently fails and the browser starts screaming at your users. (If that ever happens, <a href="https://www.kloudbean.com/blog/fix-ssl-certificate-errors/">fixing SSL certificate errors</a> is a rabbit hole of its own.)</li>
+    <li><strong>Security patching.</strong> The OS and stack need regular updates. Skip them and you're the soft target. Do them and it's recurring time, plus the occasional broken dependency at the worst moment.</li>
+    <li><strong>Backups.</strong> Set them up, store them off the box, and (the part everyone skips) actually test that they restore. A backup you've never restored is a rumor. There's a proper method in the <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a>.</li>
+    <li><strong>Monitoring.</strong> Something has to tell you the disk is full or the site is down before your users do. That's another thing to set up, and then to actually watch.</li>
+    <li><strong>Incident response.</strong> When it falls over, and eventually something will, you are the on-call engineer. At 2am. On a holiday. This is the line item that hurts most and appears on no invoice.</li>
+  </ul>
+
+  <!-- Author: swap this slot for a real image. Empty slot, supply your own. src -> images/2am-terminal.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A photo or mockup that says "on-call": a terminal full of red errors at 2am, or a phone showing a downtime alert.</em><small>Drives home the incident-response line item.</small></span></figure>
+
+  <h2>Put a number on your time</h2>
+  <p>This is where the sticker quietly becomes something else. Assign your time even a modest value and add the hours. Slot in your own rate, these are just round examples to show the shape.</p>
+  <table class="cmp">
+    <thead><tr><th>Task</th><th>Rough hrs/mo</th><th>At $30/hr*</th><th>At $60/hr*</th></tr></thead>
+    <tbody>
+      <tr><td>Patching &amp; updates</td><td>1.5</td><td>$45</td><td>$90</td></tr>
+      <tr><td>Backups &amp; checks</td><td>1</td><td>$30</td><td>$60</td></tr>
+      <tr><td>Monitoring &amp; tuning</td><td>1</td><td>$30</td><td>$60</td></tr>
+      <tr><td>Incident response (avg.)</td><td>1.5</td><td>$45</td><td>$90</td></tr>
+      <tr><td><strong>Time subtotal</strong></td><td><strong>~5 hrs</strong></td><td><strong>$150</strong></td><td><strong>$300</strong></td></tr>
+    </tbody>
+  </table>
+  <p><small>* Illustrative rates and hours. Your numbers will differ; the point is the model, not the exact figure.</small></p>
+  <p>Add the few-dollar server and that "cheap" VPS is really running somewhere in the low hundreds a month once your time is counted, and that's a calm month with only average firefighting. The first month, with multi-hour setup on top, is worse. My honest opinion after watching this play out many times: a five-dollar VPS was never five dollars. It's five dollars plus every hour it takes to keep alive, and for anyone whose hours are worth more than a rounding error, that math usually loses.</p>
+
+  <!-- Author: swap this slot for a real image. Empty slot, supply your own. src -> images/napkin-math.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A napkin-math sketch of hours times your hourly rate, or a calendar full of recurring maintenance tasks.</em><small>Makes the your-time subtotal concrete.</small></span></figure>
+
+  <h2>Where it really bites: the month you skip a step</h2>
+  <p>That table only counts routine time. It ignores the tail, and the tail is where cheap turns expensive. Skip one security patch and catch a compromise. Miss one backup check and discover the restore doesn't work on the day you need it. Take one extended outage during your busiest hour. Any single one of those can cost more than a year of management fees in an afternoon, in lost revenue, cleanup, and trust you don't get back. Managed hosting is partly insurance against exactly that day, and insurance always looks overpriced right up until the moment it isn't.</p>
+
+  <h2>Unmanaged vs managed, honestly</h2>
+  <p>Now line it up against managed hosting, which folds most of that work into the fee.</p>
+  <table class="cmp">
+    <thead><tr><th></th><th>Unmanaged VPS</th><th>Managed hosting</th></tr></thead>
+    <tbody>
+      <tr><td>Server</td><td>a few $/mo*</td><td>Included in plan</td></tr>
+      <tr><td>Setup</td><td>Your hours</td><td>Done for you</td></tr>
+      <tr><td>Patching &amp; security</td><td>Your hours</td><td>Handled (Shorewall + Fail2ban baseline)</td></tr>
+      <tr><td>SSL</td><td>You install and renew</td><td>Automatic and free</td></tr>
+      <tr><td>Backups</td><td>You build and test</td><td>Included, automatic</td></tr>
+      <tr><td>2am incident</td><td>You</td><td>The platform</td></tr>
+      <tr><td><strong>Real monthly cost</strong></td><td><strong>Sticker + your time</strong></td><td><strong>Plan price, hours back</strong></td></tr>
+    </tbody>
+  </table>
+  <p>Managed costs more on the sticker precisely because it removes the rows below the first one. You're not paying a premium for the same thing. You're paying to delete the list. And a fair worry, that "managed" means giving up control, mostly doesn't hold: it's Linux either way, your app and data stay yours to export, and you still pick the underlying provider from several clouds. More on that trade in <a href="https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/">managed vs unmanaged hosting</a> and <a href="https://www.kloudbean.com/blog/managed-database-vs-self-managed/">managed vs self-managed databases</a>.</p>
+
+  <h2>See the size and the rate up front</h2>
+  <p>If you go managed, the useful move is to size the actual server you need and see the rate before you provision, rather than guessing and truing up later.</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="The Kloudbean console: pick a cloud provider and server size and see the price before you provision, with management included">
+    <figcaption>Pick the provider and size, see the cost, provision. Management is baked into the number, so there aren't invisible hours hiding behind it.</figcaption>
+  </figure>
+
+  <!-- Author: swap this slot for a real image. To use a console shot: src -> ../assets/console/add-application.png. Or supply your own: src -> images/deploy-step.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The add-application or Git deployment screen, showing the app going live without any manual server setup.</em><small>Console screenshot: add-application.png or git-deployment.png fits here.</small></span></figure>
+
+  <h2>When a cheap VPS still wins</h2>
+  <p>Honesty cuts both ways, so here's when unmanaged genuinely is the better buy.</p>
+  <ul>
+    <li><strong>You're learning, or you enjoy it.</strong> If server administration is the point, a homelab, a course, a box you tinker with, then the "cost" is the value. Don't pay someone to remove the fun.</li>
+    <li><strong>It's throwaway.</strong> A short experiment, a scratch server, something you'll delete next week. Not worth managing.</li>
+    <li><strong>Your time genuinely is free here.</strong> If you'd otherwise be idle and you like the work, the time math changes in the VPS's favor.</li>
+  </ul>
+  <p>For a real product that needs to stay up, though, the calculation almost always favors buying those hours back. Your attention is the scarce resource, not five dollars. If you're still weighing it, <a href="https://www.kloudbean.com/blog/free-tier-vs-cheap-vps/">free tier vs cheap VPS</a> and <a href="https://www.kloudbean.com/blog/cost-of-running-a-side-project/">what a side project really costs</a> come at the same question from other angles, and <a href="https://www.kloudbean.com/blog/how-to-cut-your-cloud-bill/">cutting your cloud bill</a> covers trimming whatever you land on.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">See the all-in number, not the down payment.</p>
+    <p style="margin:0 0 .6em">Size the server you actually need at <a href="https://www.kloudbean.com/">kloudbean.com</a>, with setup, patching, free SSL, and automatic backups included, across seven clouds and one dashboard. Plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>, and migration is free.</p>
+    <p style="margin:0">Managed setup · Automatic patching · Free SSL · Automatic backups · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What's the real cost of an unmanaged VPS?</h3>
+    <p>The server itself is a few dollars a month, but that only buys raw compute. Once you value the handful of hours a month spent on patching, backups, monitoring, and incident response, the real cost climbs into the low hundreds at typical hourly rates. The sticker ignores your time entirely. These figures are illustrative, but the shape is consistent.</p>
+    <h3>Why is managed hosting more expensive than a cheap VPS?</h3>
+    <p>Because the cheap price only covers the box. Managed hosting includes the work an unmanaged VPS leaves to you: setup, patching, SSL, backups, monitoring, and incident response. You're paying to remove that job, not paying more for the same server. On the sticker it looks pricier; on the all-in number it often isn't.</p>
+    <h3>What are the hidden costs of a cheap VPS?</h3>
+    <p>Initial setup (a few hours the first time), SSL install and renewal, recurring security patching, building and testing backups, setting up monitoring, and being on-call for incidents. None are individually huge, but together they're several hours a month, plus the tail risk of a breach or an outage when you skip one.</p>
+    <h3>Is a cheap VPS ever the right choice?</h3>
+    <p>Yes. For learning, hobby projects, homelabs, or throwaway experiments, where the administration is either the point or not worth outsourcing, a cheap VPS is a great buy. For a production app that must stay up, buying those hours back with managed hosting usually costs less in real terms.</p>
+    <h3>Do cheap VPS providers include backups and security?</h3>
+    <p>Generally not by default. Basic instances are unmanaged, so backups, security patching, and monitoring are add-ons or your responsibility to set up and maintain. That's exactly what makes the sticker cheap, and exactly what makes the true cost higher than it looks.</p>
+    <h3>How many hours a month does a VPS actually take?</h3>
+    <p>For a calm month, figure a handful of hours across patching, backup checks, monitoring, and the occasional fix. Some months are near zero. Then one month something breaks and it's an evening. Averaged out, a few hours a month is a fair illustrative estimate for a small production box.</p>
+    <h3>How do I compare VPS cost to managed hosting fairly?</h3>
+    <p>Add your time to the VPS side. Estimate the monthly hours for setup, patching, backups, monitoring, and incidents, multiply by what an hour of yours is worth, and add the server price. Compare that all-in figure to the managed plan, which already includes that work. Compare totals, not stickers.</p>
+    <h3>What happens if I skip patching or backups on a VPS?</h3>
+    <p>You trade routine time for tail risk. Skip patching and you become the easy target for automated attacks. Skip backup testing and you find out the restore is broken on the worst possible day. Either can cost more in one incident than a year of management fees, which is why managed hosting is partly insurance.</p>
+    <h3>Does managed hosting mean I lose control of my server?</h3>
+    <p>Not really. It's Linux underneath either way, your app and data stay yours to export whenever you like, and you still choose the underlying cloud provider from several options. Managed means the platform handles the server, stack, SSL, backups, and patching. It doesn't take your code or lock your data away.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · The sticker price is a down payment.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"The Real Cost of an Unmanaged VPS (It's Not the Sticker Price)","description":"The real cost of an unmanaged VPS is the sticker plus every hour you spend keeping it alive: setup, patching, backups, monitoring, and the 2am incident. The honest total-cost-of-ownership math, with illustrative numbers.","image":"https://www.kloudbean.com/blog/the-real-cost-of-unmanaged-vps/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/the-real-cost-of-unmanaged-vps/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What's the real cost of an unmanaged VPS?","acceptedAnswer":{"@type":"Answer","text":"The server itself is a few dollars a month, but that only buys raw compute. Once you value the handful of hours a month spent on patching, backups, monitoring, and incident response, the real cost climbs into the low hundreds at typical hourly rates. The sticker ignores your time entirely. These figures are illustrative, but the shape is consistent."}},
+{"@type":"Question","name":"Why is managed hosting more expensive than a cheap VPS?","acceptedAnswer":{"@type":"Answer","text":"Because the cheap price only covers the box. Managed hosting includes the work an unmanaged VPS leaves to you: setup, patching, SSL, backups, monitoring, and incident response. You are paying to remove that job, not paying more for the same server. On the sticker it looks pricier; on the all-in number it often isn't."}},
+{"@type":"Question","name":"What are the hidden costs of a cheap VPS?","acceptedAnswer":{"@type":"Answer","text":"Initial setup (a few hours the first time), SSL install and renewal, recurring security patching, building and testing backups, setting up monitoring, and being on-call for incidents. None are individually huge, but together they are several hours a month, plus the tail risk of a breach or an outage when you skip one."}},
+{"@type":"Question","name":"Is a cheap VPS ever the right choice?","acceptedAnswer":{"@type":"Answer","text":"Yes. For learning, hobby projects, homelabs, or throwaway experiments, where the administration is either the point or not worth outsourcing, a cheap VPS is a great buy. For a production app that must stay up, buying those hours back with managed hosting usually costs less in real terms."}},
+{"@type":"Question","name":"Do cheap VPS providers include backups and security?","acceptedAnswer":{"@type":"Answer","text":"Generally not by default. Basic instances are unmanaged, so backups, security patching, and monitoring are add-ons or your responsibility to set up and maintain. That is exactly what makes the sticker cheap, and exactly what makes the true cost higher than it looks."}},
+{"@type":"Question","name":"How many hours a month does a VPS actually take?","acceptedAnswer":{"@type":"Answer","text":"For a calm month, figure a handful of hours across patching, backup checks, monitoring, and the occasional fix. Some months are near zero. Then one month something breaks and it is an evening. Averaged out, a few hours a month is a fair illustrative estimate for a small production box."}},
+{"@type":"Question","name":"How do I compare VPS cost to managed hosting fairly?","acceptedAnswer":{"@type":"Answer","text":"Add your time to the VPS side. Estimate the monthly hours for setup, patching, backups, monitoring, and incidents, multiply by what an hour of yours is worth, and add the server price. Compare that all-in figure to the managed plan, which already includes that work. Compare totals, not stickers."}},
+{"@type":"Question","name":"What happens if I skip patching or backups on a VPS?","acceptedAnswer":{"@type":"Answer","text":"You trade routine time for tail risk. Skip patching and you become the easy target for automated attacks. Skip backup testing and you find out the restore is broken on the worst possible day. Either can cost more in one incident than a year of management fees, which is why managed hosting is partly insurance."}},
+{"@type":"Question","name":"Does managed hosting mean I lose control of my server?","acceptedAnswer":{"@type":"Answer","text":"Not really. It is Linux underneath either way, your app and data stay yours to export whenever you like, and you still choose the underlying cloud provider from several options. Managed means the platform handles the server, stack, SSL, backups, and patching. It does not take your code or lock your data away."}}
+]}
+]}
+</script>
+</body>
+</html>

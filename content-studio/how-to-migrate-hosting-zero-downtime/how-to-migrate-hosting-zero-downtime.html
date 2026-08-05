@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Migrate Hosting With Zero Downtime: A Step-by-Step Playbook</title>
+<meta name="description" content="Migrate hosting with zero downtime by running old and new in parallel. Lower the DNS TTL first, build and test the new host privately, delta-sync the data, flip DNS, then retire the old host. The full playbook with real commands.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Migrate Hosting With Zero Downtime: A Step-by-Step Playbook">
+<meta property="og:description" content="The parallel-run migration playbook: lower TTL, build and test the new host, delta-sync, flip DNS, keep the old host through propagation. Real commands, real gotchas.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">vs Competitors</span>
+  <h1>How to Migrate to a New Host With Zero Downtime</h1>
+
+  <figure><img src="images/hero.png" alt="Migrate hosting with zero downtime: a parallel-run playbook"></figure>
+
+  <p class="lead">Migrations feel scary for exactly one reason. Downtime. The fear is you'll flip a switch, something won't be ready, and your site sits dark while you sweat over a terminal. But downtime during a migration isn't inevitable. It's almost always the result of doing the steps in the wrong order, not of moving hosts at all.</p>
+  <p>Get the order right and you can migrate hosting with zero downtime. Your visitors never notice, because the old site keeps serving until the new one is fully proven and traffic quietly moves across. This is the parallel-run playbook, phase by phase, with the real commands and the gotchas that actually bite. Follow it top to bottom and you stay online the entire time.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>Lower your DNS TTL a day early. Build and test the new host in parallel while the old one keeps serving. Do a first data sync, then a final delta sync at cutover. Flip DNS. Keep the old host live through propagation, then decommission it. The secret to zero downtime is parallel-run plus a low TTL, never a big-bang cutover where you tear down the old before the new is proven.</p>
+  </div>
+
+  <h2>Why zero-downtime migration is about order, not luck</h2>
+  <p>Almost every "the migration took us down" story is the same story. Someone pointed DNS at a new server that wasn't quite ready, or tore down the old host too soon, or forgot the TTL was set to a full day so the switch dragged on for hours. That's a big-bang cutover: flip everything at once and pray.</p>
+  <p>Parallel-run is the opposite, and honestly it's the only approach I'd trust on a site people are paying for. You stand up the new host <em>next to</em> the old one. Both exist at the same time. The old keeps taking real traffic while you build, load data, and test the new one in private. Only when the new host passes as if it were already live do you move traffic, and even then the old one stays up as a safety net. Nothing gets torn down until the new thing has clearly won.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 400" role="img" aria-label="A swimlane showing the old host serving live traffic the whole time while the new host is built and tested in parallel, then a DNS flip with a lowered TTL moves traffic to the new host, both serve during propagation, and the old host retires afterward" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="30" y="30" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Parallel-run cutover: nobody goes dark</text>
+      <text x="30" y="50" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11.5">Old host serves the whole time. New host is built and tested alongside it, then traffic flips.</text>
+
+      <!-- propagation band -->
+      <rect x="470" y="98" width="155" height="204" fill="#eef0fb"/>
+      <text x="547" y="296" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">both serve during propagation</text>
+
+      <!-- TTL badge -->
+      <rect x="66" y="82" width="252" height="24" rx="12" fill="#ffffff" stroke="#40b75f"/>
+      <text x="80" y="98" fill="#2e8c48" font-family="Poppins,sans-serif" font-size="11" font-weight="600">TTL lowered to 300s, a day early</text>
+
+      <!-- flip line -->
+      <line x1="470" y1="100" x2="470" y2="302" stroke="#000f27" stroke-width="2" stroke-dasharray="5 5"/>
+      <text x="470" y="126" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="11.5" font-weight="700">DNS FLIP</text>
+
+      <!-- OLD lane -->
+      <text x="60" y="150" fill="#2e8c48" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1">OLD HOST</text>
+      <rect x="60" y="158" width="565" height="46" rx="10" fill="#40b75f"/>
+      <text x="330" y="186" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">serving live traffic the whole time</text>
+      <rect x="629" y="158" width="71" height="46" rx="10" fill="#d3e8da" stroke="#b6d6c2"/>
+      <text x="664" y="186" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">retired</text>
+
+      <!-- traffic arrow -->
+      <path d="M486 206 Q 500 232 540 252" stroke="#4F1AF3" stroke-width="2" fill="none"/>
+      <path d="M540 252 l-10 -1 l5 -7 z" fill="#4F1AF3"/>
+      <text x="556" y="238" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="10.5">traffic moves</text>
+
+      <!-- NEW lane -->
+      <text x="60" y="250" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1">NEW HOST</text>
+      <rect x="60" y="258" width="404" height="46" rx="10" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5" stroke-dasharray="6 6"/>
+      <text x="262" y="286" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="12.5">building + private testing</text>
+      <rect x="476" y="258" width="224" height="46" rx="10" fill="#4F1AF3"/>
+      <text x="588" y="286" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">serving</text>
+
+      <!-- bottom caption -->
+      <text x="380" y="344" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11.5">Old serves until DNS moves each visitor to the tested new host. No dark period.</text>
+      <text x="380" y="366" text-anchor="middle" fill="#8a93a8" font-family="Poppins,sans-serif" font-size="10.5">Low TTL means the flip propagates in minutes, not hours.</text>
+    </svg>
+    <figcaption>The two hosts overlap on purpose. The old one is your safety net right through DNS propagation.</figcaption>
+  </figure>
+
+  <h2>Phase 0: Prep (do this a day early)</h2>
+  <p>The single most important zero-downtime trick happens <em>before</em> migration day, not on it:</p>
+  <ul>
+    <li><strong>Lower your DNS TTL.</strong> Find your domain's DNS records and drop the TTL (time to live) to something small. 300 seconds (5 minutes) is a common choice. Do this <strong>at least a day ahead</strong>, so the old, longer TTL has expired in caches everywhere by cutover time. This one step is what turns the final switch from a multi-hour wait into a few minutes.</li>
+    <li><strong>Inventory what you're moving.</strong> Write it down: application code, the database, uploaded files, environment variables and secrets, cron jobs, background workers. Migrations go wrong because someone forgets a piece, not because they fumble a big one.</li>
+    <li><strong>Note your current versions.</strong> Language runtime, database engine and version, key extensions. You want the new home to match, so nothing behaves differently after the move.</li>
+  </ul>
+  <p>Ten minutes of inventory here saves the "oh no, the cron jobs" moment on cutover day. And the TTL change genuinely has to happen first, because a TTL is a promise you made to the world's DNS caches yesterday. You can't shorten it retroactively.</p>
+
+  <!-- ADD IMAGE: a DNS provider record editor with the TTL field lowered to 300 seconds. src -> images/dns-ttl-lowered.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your DNS provider's record editor with the TTL field set to 300 seconds.</em><small>The one prep step that makes the later flip fast.</small></span></figure>
+
+  <h2>Phase 1: Stand up the new host (in parallel)</h2>
+  <p>Build the destination while the old site keeps running, untouched. Nothing here affects live traffic yet, so there's no clock ticking.</p>
+  <ul>
+    <li><strong>Provision the new server</strong> and deploy your application code by connecting your Git repository.</li>
+  </ul>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean console: connect a repo and deploy the app on the new host before cutover">
+    <figcaption>Deploy the app on the new host straight from your repo, while the old site keeps serving.</figcaption>
+  </figure>
+
+  <ul>
+    <li><strong>Copy every environment variable and secret</strong> to match the old host. This is the step most likely to be missed, and a missing secret is a silent failure you won't catch until something tries to use it.</li>
+    <li><strong>Recreate cron jobs and background workers</strong> so scheduled tasks and queues exist on the new side too.</li>
+    <li><strong>Provision the database</strong> at the matching engine and version, ready to receive data.</li>
+  </ul>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console: setting environment variables on the new host to match the old one">
+    <figcaption>Copy the environment one variable at a time. A single missing secret is the classic post-migration bug.</figcaption>
+  </figure>
+
+  <p>At the end of Phase 1 the new host is a complete, empty copy of your setup. Running, reachable by you, but not yet holding your data or seeing a single real visitor.</p>
+
+  <h2>Phase 2: Move the data (first pass)</h2>
+  <p>Now load the data. This first pass can be slow, and that's completely fine, because it's happening in the background while the old site serves normally.</p>
+<pre><code># PostgreSQL: dump from the old host, load into the new
+pg_dump "$OLD_DATABASE_URL" &gt; dump.sql
+psql "$NEW_DATABASE_URL" &lt; dump.sql
+
+# MySQL / MariaDB
+mysqldump -h OLD_HOST -u USER -p appdb &gt; dump.sql
+mysql -h NEW_HOST -u USER -p appdb &lt; dump.sql</code></pre>
+  <p>Then move the files. Sync uploads and any user-generated content across, or (better) point both hosts at the same object storage so there's nothing to sync at all:</p>
+<pre><code># rsync uploaded files to the new host
+rsync -avz ./uploads/ user@NEW_HOST:/var/www/app/uploads/</code></pre>
+  <p>If you'd rather stop syncing files forever, moving uploads to <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage</a> means both the old and new app read from the same bucket, and this whole step disappears.</p>
+
+  <h2>Phase 3: Test the new host <em>before</em> anyone uses it</h2>
+  <p>This is the phase people skip and then regret. Test the new site as thoroughly as you can <strong>without</strong> touching public DNS.</p>
+  <ul>
+    <li><strong>Preview through your hosts file.</strong> Point your own machine at the new server's IP for the real domain, or use a temporary URL the platform gives you. Now you see the new site exactly as visitors will, but only you can:</li>
+  </ul>
+<pre><code># /etc/hosts on your machine only (revert this after testing)
+203.0.113.10   example.com www.example.com</code></pre>
+  <ul>
+    <li><strong>Click through everything.</strong> Homepage, logins, forms, checkout, admin, uploads, email sending. Confirm the database connection works and data reads and writes correctly.</li>
+    <li><strong>Get SSL ready now.</strong> Issue the certificate on the new host for your domain <em>before</em> the flip, so HTTPS works the instant traffic arrives. Verify it:</li>
+  </ul>
+<pre><code># confirm HTTPS responds and check the cert dates on the new host
+curl -sI https://example.com | head -n 1
+openssl s_client -connect example.com:443 -servername example.com &lt;/dev/null 2&gt;/dev/null | openssl x509 -noout -dates</code></pre>
+  <ul>
+    <li><strong>Fix anything broken now,</strong> while it costs nothing. The old site is still the live one, so a bug you find here is a non-event.</li>
+  </ul>
+  <p>Only move on when the new host passes as if it were already live. This phase is your safety net. Setting up the domain and certificate is covered step by step in <a href="https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/">custom domain and SSL for your app</a>.</p>
+
+  <!-- ADD IMAGE: a browser previewing the new host via a hosts-file entry, with the real domain in the address bar. src -> images/hosts-file-preview.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A browser showing the new host under the real domain, via a hosts-file entry.</em><small>Proof you can test privately before the public flip.</small></span></figure>
+
+  <h2>Phase 4: The cutover</h2>
+  <p>Now the actual switch. Because of your prep, it's quick and calm rather than a white-knuckle moment.</p>
+  <ul>
+    <li><strong>Do a final delta sync.</strong> Re-sync the database and files one last time to capture anything that changed since Phase 2 (new orders, new signups, fresh uploads). Briefly pausing writes on the old site during this final sync guarantees nothing is lost in the gap. This is the fix for <em>database drift</em>, the data that piles up on the old host while you were testing.</li>
+    <li><strong>Flip the DNS</strong> to point at the new server's IP. Because you lowered the TTL in Phase 0, the change propagates in minutes, not hours.</li>
+    <li><strong>Watch both hosts.</strong> Traffic shifts gradually as DNS updates around the world. Keep an eye on the new host's logs for errors as the first real visitors land.</li>
+  </ul>
+  <p>There's no dark period. The old host answers until DNS moves each visitor over to the new one, which you already tested and know is ready.</p>
+
+  <!-- ADD IMAGE: a DNS record editor with the A record being pointed at the new server's IP. src -> images/dns-flip-a-record.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The A record being repointed to the new server's IP at cutover.</em><small>The actual flip, made fast by the low TTL from Phase 0.</small></span></figure>
+
+  <h2>Phase 5: After the switch</h2>
+  <ul>
+    <li><strong>Keep the old host running</strong> for a few days. DNS caches linger, so a handful of stragglers may still hit the old server until propagation fully completes. Leaving it up means those visitors are served too, instead of hitting a dead address.</li>
+    <li><strong>Confirm SSL</strong> is valid on the new host and set to auto-renew.</li>
+    <li><strong>Then decommission</strong> the old host, once traffic there has dropped to zero and you've confirmed the new one is healthy.</li>
+  </ul>
+  <p>Done. If you followed the order, your visitors experienced one continuously working website. They never saw the seam.</p>
+
+  <h2>The gotchas that actually bite</h2>
+  <p>These are the specific traps that turn a smooth migration into a bad afternoon. All avoidable:</p>
+  <ul>
+    <li><strong>DNS TTL and propagation.</strong> The number one cause of a slow cutover is forgetting to lower the TTL first. If it's still set to 86400 (a day), your flip takes up to a day to finish. Lower it early, always.</li>
+    <li><strong>Database drift during cutover.</strong> Real users keep writing to the old database while you test the new one. Without a final delta sync (and a brief write pause during it), you lose whatever came in during the gap. Do the delta sync last, right before the flip.</li>
+    <li><strong>SSL not ready before the flip.</strong> If the certificate isn't issued on the new host before DNS points at it, the first visitors get a scary browser warning. Issue and verify the cert during Phase 3, not after.</li>
+    <li><strong>Mixed content.</strong> Old sites often hard-code <code>http://</code> asset URLs or an old domain. After the move those can break or trigger "not secure" warnings. Grep for them before you flip:</li>
+  </ul>
+<pre><code># find hard-coded http links or the old domain in your code
+grep -rn "http://" ./src
+grep -rn "old-domain.com" .</code></pre>
+
+  <h2>Migrating from Heroku (or any PaaS)</h2>
+  <p>If you're doing a Heroku migration specifically, the phases are identical, with one extra thing to watch. A PaaS bundles managed add-ons (Postgres, Redis, a scheduler, workers) that feel invisible until you leave. The most common miss when people migrate from Heroku is forgetting one of those add-ons existed at all.</p>
+  <p>So during your Phase 0 inventory, list every add-on, not just the app. On the new side you recreate each as a real service: a <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">managed database</a> for your Postgres, a managed Redis for your cache and queues, cron jobs for the scheduler. Then it's the same parallel-run cutover as everything else. The app code barely changes, because it was reading a <code>DATABASE_URL</code> from the environment the whole time.</p>
+
+  <h2>Where Kloudbean fits (and the free part)</h2>
+  <p>A migration is a logistics exercise, not a lock-in trap. No good host holds your code or data hostage, and this whole playbook works leaving any host for any other. That said, a few things make the parallel-run approach easier on Kloudbean, and I'd be doing you a disservice not to mention them.</p>
+  <p>You can build the new home on any of <strong>seven clouds</strong> (AWS, Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, UpCloud), deploy from Git with live build logs, and provision a matching <a href="https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/">managed database</a> with automatic <a href="https://www.kloudbean.com/blog/server-backups-guide/">backups</a> and free SSL, all from one dashboard. And the honest headline for a migration article: <strong>free migration assistance</strong>. You don't have to solo the cutover. If a delta sync or a DNS flip makes you nervous, the team will run it with you. There's related reading in <a href="https://www.kloudbean.com/blog/cloud-sla-explained/">what a cloud SLA really means</a> and the myths piece on <a href="https://www.kloudbean.com/blog/managed-cloud-hosting-myths/">managed cloud hosting</a> if lock-in was the worry keeping you put.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Test in private, cut over clean.</p>
+    <p style="margin:0 0 .6em">Stand up your new home on any of seven clouds, sync your data, and flip when you're ready, with free migration help so you don't do it alone. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Seven clouds · Managed databases · Automatic backups · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I migrate hosting without downtime?</h3>
+    <p>Build and fully test the new host before touching public DNS, then switch. The order is: lower your DNS TTL a day early, provision and deploy on the new host in parallel, copy the data, test privately through a hosts-file entry, do a final delta sync, then flip DNS. The old site keeps serving until traffic moves to the proven new one.</p>
+    <h3>Why do I need to lower the DNS TTL before migrating?</h3>
+    <p>TTL controls how long DNS answers stay cached. If it's high (say a day), your cutover could take that long to propagate. Lowering it to around 300 seconds a day ahead means the switch takes minutes. You have to do it early, because you can't shorten a TTL that caches already picked up.</p>
+    <h3>How do I avoid losing data during the cutover?</h3>
+    <p>Do an initial data copy early, then a final delta sync at cutover to capture anything that changed since. Briefly pausing writes on the old site during that final sync guarantees no new orders or signups are missed. This is what prevents database drift. Then flip DNS.</p>
+    <h3>Should I keep the old host running after switching?</h3>
+    <p>Yes, for a few days. DNS changes propagate gradually and some caches linger, so a few visitors may still reach the old server. Keeping it live means they're served normally until propagation completes. Decommission it only once traffic there has stopped and the new host looks healthy.</p>
+    <h3>Can I migrate a database to a new host without downtime?</h3>
+    <p>Yes. Load the bulk of the data ahead of time with pg_dump or mysqldump while the old site runs, then do a quick final sync of just the changes at cutover. Matching the database engine and version on the new host first avoids behavior differences. The heavy copy happens in the background, so it doesn't affect the live site.</p>
+    <h3>How do I migrate from Heroku?</h3>
+    <p>Use the same parallel-run playbook, and pay special attention to add-ons. List every managed service Heroku gave you (Postgres, Redis, scheduler, workers) during inventory, then recreate each as a real service on the new host. Because your app reads its connections from environment variables, the code barely changes. Then run the normal cutover.</p>
+    <h3>How long does DNS propagation take?</h3>
+    <p>With a low TTL set in advance (around 300 seconds), most resolvers pick up the new record within minutes. Without lowering it first, propagation can take as long as the old TTL, up to a full day. That's precisely why lowering the TTL a day early is the first step in the playbook.</p>
+    <h3>Does Kloudbean help with migration?</h3>
+    <p>Yes. Kloudbean offers free migration assistance, so you don't have to run the cutover alone. You can build the new host on any of seven clouds, deploy from Git, and provision a managed database with automatic backups and free SSL, then the team can help with the data sync and DNS flip if you want a hand.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · Switch hosts, keep the lights on.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Migrate to a New Host With Zero Downtime","description":"The parallel-run migration playbook: lower TTL, build and test the new host, delta-sync the data, flip DNS, keep the old host through propagation, then decommission. Real commands and real gotchas.","image":"https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I migrate hosting without downtime?","acceptedAnswer":{"@type":"Answer","text":"Build and fully test the new host before touching public DNS, then switch. The order is: lower your DNS TTL a day early, provision and deploy on the new host in parallel, copy the data, test privately through a hosts-file entry, do a final delta sync, then flip DNS. The old site keeps serving until traffic moves to the proven new one."}},
+{"@type":"Question","name":"Why do I need to lower the DNS TTL before migrating?","acceptedAnswer":{"@type":"Answer","text":"TTL controls how long DNS answers stay cached. If it's high (say a day), your cutover could take that long to propagate. Lowering it to around 300 seconds a day ahead means the switch takes minutes. You have to do it early, because you can't shorten a TTL that caches already picked up."}},
+{"@type":"Question","name":"How do I avoid losing data during the cutover?","acceptedAnswer":{"@type":"Answer","text":"Do an initial data copy early, then a final delta sync at cutover to capture anything that changed since. Briefly pausing writes on the old site during that final sync guarantees no new orders or signups are missed. This is what prevents database drift. Then flip DNS."}},
+{"@type":"Question","name":"Should I keep the old host running after switching?","acceptedAnswer":{"@type":"Answer","text":"Yes, for a few days. DNS changes propagate gradually and some caches linger, so a few visitors may still reach the old server. Keeping it live means they're served normally until propagation completes. Decommission it only once traffic there has stopped and the new host looks healthy."}},
+{"@type":"Question","name":"Can I migrate a database to a new host without downtime?","acceptedAnswer":{"@type":"Answer","text":"Yes. Load the bulk of the data ahead of time with pg_dump or mysqldump while the old site runs, then do a quick final sync of just the changes at cutover. Matching the database engine and version on the new host first avoids behavior differences. The heavy copy happens in the background, so it doesn't affect the live site."}},
+{"@type":"Question","name":"How do I migrate from Heroku?","acceptedAnswer":{"@type":"Answer","text":"Use the same parallel-run playbook, and pay special attention to add-ons. List every managed service Heroku gave you (Postgres, Redis, scheduler, workers) during inventory, then recreate each as a real service on the new host. Because your app reads its connections from environment variables, the code barely changes. Then run the normal cutover."}},
+{"@type":"Question","name":"How long does DNS propagation take?","acceptedAnswer":{"@type":"Answer","text":"With a low TTL set in advance (around 300 seconds), most resolvers pick up the new record within minutes. Without lowering it first, propagation can take as long as the old TTL, up to a full day. That's precisely why lowering the TTL a day early is the first step in the playbook."}},
+{"@type":"Question","name":"Does Kloudbean help with migration?","acceptedAnswer":{"@type":"Answer","text":"Yes. Kloudbean offers free migration assistance, so you don't have to run the cutover alone. You can build the new host on any of seven clouds, deploy from Git, and provision a managed database with automatic backups and free SSL, then the team can help with the data sync and DNS flip if you want a hand."}}
+]}
+]}
+</script>
+</body>
+</html>

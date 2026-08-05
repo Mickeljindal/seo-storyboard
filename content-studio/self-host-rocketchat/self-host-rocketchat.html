@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Self-Host Rocket.Chat, the Open-Source Slack Alternative</title>
+<meta name="description" content="Self-host Rocket.Chat in production: why it beats per-seat SaaS chat, the MongoDB replica set requirement people miss, the MONGO_URL and ROOT_URL that matter, and deploying the Rocket.Chat Node app on a managed server with managed MongoDB.">
+<meta name="author" content="Kloudbean Engineering">
+<link rel="canonical" href="https://www.kloudbean.com/blog/self-host-rocketchat/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Self-Host Rocket.Chat, the Open-Source Slack Alternative">
+<meta property="og:description" content="Own your team's chat history. The honest guide to self-hosted Rocket.Chat: the MongoDB replica set nobody warns you about, the env vars that matter, and running it on a managed Node server.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Self-hosted tools</span>
+  <h1>How to Self-Host Rocket.Chat, the Open-Source Slack Alternative</h1>
+
+  <figure><img src="images/hero.png" alt="Self-host Rocket.Chat: the open-source team chat app running on a managed Node server backed by managed MongoDB"></figure>
+
+  <p class="lead">Rocket.Chat is an open-source team chat platform, a self-hosted alternative to Slack and Microsoft Teams that runs on infrastructure you control. When you self-host Rocket.Chat, your team's messages, files, and history live on a server you own instead of a vendor's cloud, and you stop paying a per-seat fee that climbs every time you hire someone. There's a catch almost nobody flags up front. Rocket.Chat is a Node app that leans hard on MongoDB, and it wants that MongoDB running as a replica set. Get that one detail right and the rest is ordinary Node deployment.</p>
+
+  <p>I'll be straight with you: the messaging app is the easy part. The database underneath is what trips people, so this guide spends real time there. A flaky self-hosted Rocket.Chat that keeps dropping its realtime connection is almost always a MongoDB story.</p>
+
+  <div class="tldr">
+    <strong>Short version</strong>
+    <p>Run the Rocket.Chat Node app on a managed Node server, and back it with managed MongoDB configured as a replica set (Rocket.Chat reads changes through the oplog and change streams, which a standalone MongoDB can't provide). Set <code>MONGO_URL</code> and <code>ROOT_URL</code> through environment variables, put SSL and a reverse proxy that forwards websocket upgrades in front, and give the box real RAM. It's a Meteor app, so 2 GB is a floor, not a target.</p>
+  </div>
+
+  <h2>The Slack problem this actually solves</h2>
+  <p>Slack is excellent software. That's not the argument. The argument is the invoice and where your conversations live.</p>
+  <p>Three things push teams to look elsewhere. First, pricing is per user, per month, so your bill grows with headcount whether or not those people say much. Second, message history gets capped on lower tiers, so older threads age out of reach. Third, every message and file sits in a vendor's cloud under their account and their retention rules, not yours.</p>
+  <p>Rocket.Chat answers all three by being open source and self-hostable. You run it, so history is as long as your disk allows, the cost is your server rather than a seat count, and the data sits wherever you put the machine. That's the whole pitch for self-hosted Rocket.Chat.</p>
+
+  <h2>Why self-host Rocket.Chat</h2>
+  <p>The reasons line up cleanly.</p>
+  <ul>
+    <li><strong>You own the chat history and the files.</strong> Every message, upload, and channel lives in your MongoDB, on your server. Nobody gates it behind a plan or deletes it on a schedule you didn't set.</li>
+    <li><strong>No per-seat tax on growth.</strong> A self-hosted server costs the same whether 12 people use it or 120. You're paying for a machine, not for chairs, and for a growing team that math flips in your favour fast.</li>
+    <li><strong>Data residency and compliance.</strong> If a rule says your team's communications must stay in a specific country, you put the server there and can point to it. That's an easier conversation with an auditor than a SaaS region setting.</li>
+    <li><strong>Custom integrations and bots.</strong> Rocket.Chat has incoming and outgoing webhooks, a REST API, slash commands, and an app framework. Wire it into your own systems without waiting on a vendor to build the connector.</li>
+    <li><strong>It runs on your infra.</strong> Same server, same network, same backups as the rest of your stack. One less external account to secure and audit.</li>
+  </ul>
+  <p>The honest tradeoff: you're now the one who keeps it running. Updates, backups, and the 2am restart are yours. A managed platform shrinks that job but doesn't delete it. If you never want to touch a server, hosted Slack is the calmer life, and that's fine.</p>
+
+  <h2>The requirement almost everyone misses: MongoDB has to be a replica set</h2>
+  <p>This is the section I most want you to read. Rocket.Chat stores everything in MongoDB, which people expect. What surprises them: a plain, standalone MongoDB isn't enough.</p>
+  <p>Rocket.Chat is a realtime app. Send a message and everyone in the channel should see it instantly, no refresh. To do that, Rocket.Chat watches MongoDB for changes as they happen, using change streams (and, on older setups, oplog tailing). Both are built on the <strong>oplog</strong>, the operations log MongoDB only maintains when it runs as a <strong>replica set</strong>. No replica set, no oplog. No oplog, no reliable realtime.</p>
+  <p>So skip the throwaway standalone MongoDB. Rocket.Chat wants a replica set and it will tell you so, usually by working fine in a demo and then misbehaving under real use: messages that arrive late or only after a refresh, presence that lies, a log full of retries. People burn a whole day chasing a "Rocket.Chat bug" that was a MongoDB config all along.</p>
+  <p>Here's the honest framing. A replica set is a MongoDB concept, not a Kloudbean button. Managed MongoDB gives you the database with backups, private networking, and controlled access handled for you. Turning it into a replica set (even a single-node one, which is fine for smaller teams) is a MongoDB step you arrange at the database layer, by initializing the set and giving Rocket.Chat a <code>MONGO_URL</code> that names it. Plan for it from the start rather than bolting it on later. Our <a href="https://www.kloudbean.com/blog/managed-mongodb-hosting/">managed MongoDB hosting</a> guide and the <a href="https://www.kloudbean.com/blog/connect-mongoose-to-mongodb/">MongoDB connection</a> walkthrough cover the connection-string mechanics in more depth.</p>
+
+  <p>Two more traps sit right next to the replica set, and they cause most of the remaining tickets:</p>
+  <ul>
+    <li><strong>Under-provisioned RAM.</strong> Rocket.Chat is built on Meteor, and the Node process is memory-hungry. Squeeze it onto a tiny instance and you'll watch it get OOM-killed or thrash under a modest load. Give it headroom.</li>
+    <li><strong>A wrong <code>ROOT_URL</code>.</strong> Rocket.Chat builds absolute links and its websocket address from <code>ROOT_URL</code>. Set it to <code>http://localhost:3000</code> and forget, and the app loads while login redirects, avatars, and the realtime connection quietly break. It has to match the real public address, scheme included.</li>
+  </ul>
+
+  <figure>
+    <svg viewBox="0 0 780 400" role="img" aria-label="Diagram: web and mobile clients connect over HTTPS and websockets to the Rocket.Chat Node app on a managed server, which talks over a private network to managed MongoDB running as a replica set" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="28" y="36" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">How a self-hosted Rocket.Chat fits together</text>
+
+      <!-- clients -->
+      <text x="26" y="96" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.4">YOUR TEAM</text>
+      <rect x="24" y="110" width="128" height="52" rx="11" fill="#000f27"/>
+      <text x="88" y="141" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Web app</text>
+      <rect x="24" y="190" width="128" height="52" rx="11" fill="#000f27"/>
+      <text x="88" y="221" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Mobile app</text>
+
+      <!-- clients to app arrow -->
+      <line x1="152" y1="176" x2="250" y2="176" stroke="#4F1AF3" stroke-width="2.4"/>
+      <path d="M250 176 l-10 -5 v10 z" fill="#4F1AF3"/>
+      <text x="201" y="166" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600">HTTPS + WSS</text>
+      <text x="201" y="198" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10">SSL + reverse proxy</text>
+
+      <!-- rocket.chat app -->
+      <rect x="252" y="104" width="214" height="150" rx="16" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.6" stroke-dasharray="6 6"/>
+      <text x="270" y="128" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600" letter-spacing="1.3">MANAGED NODE SERVER</text>
+      <text x="359" y="162" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="17" font-weight="700">Rocket.Chat</text>
+      <text x="359" y="184" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">Node / Meteor app</text>
+      <text x="359" y="212" text-anchor="middle" fill="#1c2536" font-family="JetBrains Mono,monospace" font-size="11.5">PORT=3000</text>
+      <text x="359" y="232" text-anchor="middle" fill="#1c2536" font-family="JetBrains Mono,monospace" font-size="11.5">ROOT_URL sets links</text>
+
+      <!-- app to mongo arrow -->
+      <line x1="466" y1="176" x2="520" y2="176" stroke="#40b75f" stroke-width="2.4"/>
+      <path d="M520 176 l-10 -5 v10 z" fill="#40b75f"/>
+      <text x="493" y="166" text-anchor="middle" fill="#2f8f4a" font-family="Poppins,sans-serif" font-size="9.5" font-weight="600">private net</text>
+
+      <!-- mongodb replica set container -->
+      <rect x="520" y="92" width="240" height="248" rx="16" fill="#ffffff" stroke="#40b75f" stroke-width="1.6" stroke-dasharray="6 6"/>
+      <text x="536" y="116" fill="#2f8f4a" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600" letter-spacing="1.1">MANAGED MONGODB · REPLICA SET rs0</text>
+
+      <!-- three cylinders -->
+      <g>
+        <ellipse cx="573" cy="150" rx="26" ry="9" fill="#5fce7d"/>
+        <path d="M547 150 v56 a26 9 0 0 0 52 0 v-56" fill="#40b75f"/>
+        <ellipse cx="573" cy="150" rx="26" ry="9" fill="#5fce7d"/>
+        <text x="573" y="228" text-anchor="middle" fill="#04331a" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600">Primary</text>
+      </g>
+      <g>
+        <ellipse cx="640" cy="158" rx="24" ry="8" fill="#8fe0a4"/>
+        <path d="M616 158 v48 a24 8 0 0 0 48 0 v-48" fill="#5fce7d"/>
+        <ellipse cx="640" cy="158" rx="24" ry="8" fill="#8fe0a4"/>
+        <text x="640" y="228" text-anchor="middle" fill="#04331a" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600">Secondary</text>
+      </g>
+      <g>
+        <ellipse cx="706" cy="158" rx="24" ry="8" fill="#8fe0a4"/>
+        <path d="M682 158 v48 a24 8 0 0 0 48 0 v-48" fill="#5fce7d"/>
+        <ellipse cx="706" cy="158" rx="24" ry="8" fill="#8fe0a4"/>
+        <text x="706" y="228" text-anchor="middle" fill="#04331a" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600">Secondary</text>
+      </g>
+
+      <rect x="540" y="262" width="200" height="56" rx="10" fill="#eafaef" stroke="#40b75f" stroke-width="1"/>
+      <text x="640" y="286" text-anchor="middle" fill="#04331a" font-family="Poppins,sans-serif" font-size="12" font-weight="600">oplog + change streams</text>
+      <text x="640" y="304" text-anchor="middle" fill="#2f8f4a" font-family="Poppins,sans-serif" font-size="10.5">what makes realtime work</text>
+    </svg>
+    <figcaption>Clients reach the Rocket.Chat Node app over HTTPS and websockets through your SSL-terminating proxy. The app talks to managed MongoDB over a private network. The replica set is what produces the oplog and change streams Rocket.Chat needs for instant messaging.</figcaption>
+  </figure>
+
+  <!-- To add your own screenshot here, replace this whole figure with a real <figure><img ...><figcaption>...</figcaption></figure>. Image path: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A mongo shell showing rs.status() with the replica set reporting a healthy primary.</em><small>Proof the replica set is live before Rocket.Chat connects.</small></span></figure>
+
+  <h2>Self-hosted Rocket.Chat vs Slack, honestly</h2>
+  <p>Both are good at different things. Here's the fair version.</p>
+  <table class="cmp">
+    <thead><tr><th></th><th>Self-hosted Rocket.Chat</th><th>Slack / hosted chat SaaS</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Data ownership</strong></td><td>Your server, your MongoDB, your region</td><td>Vendor's cloud and account</td></tr>
+      <tr><td><strong>Cost model</strong></td><td>Flat server price, any team size</td><td>Per user, per month, grows with headcount</td></tr>
+      <tr><td><strong>Message history</strong></td><td>As long as your disk allows</td><td>Often capped on lower tiers</td></tr>
+      <tr><td><strong>Integrations</strong></td><td>Webhooks, REST API, your own bots</td><td>Rich app directory, less low-level control</td></tr>
+      <tr><td><strong>Who runs it</strong></td><td>You (lighter on a managed platform)</td><td>The vendor, fully</td></tr>
+      <tr><td><strong>Ease of start</strong></td><td>Some setup, MongoDB replica set to plan</td><td>Zero-ops, polished, running in minutes</td></tr>
+    </tbody>
+  </table>
+  <p>Credit where it's due: Slack's onboarding is frictionless and there's nothing to operate. If that's what you value most, stay. If ownership, flat cost, and full history matter more, keep reading.</p>
+
+  <h2>Deploying Rocket.Chat: the actual steps</h2>
+  <p>You're running two things that talk to each other: managed MongoDB (as a replica set) and the Rocket.Chat Node app. Do them in this order.</p>
+
+  <ol>
+    <li><strong>Provision managed MongoDB first.</strong> Launch a MongoDB database, note its private-network address, and create a dedicated Rocket.Chat user with a strong password. This is also where you arrange the replica set, since Rocket.Chat's connection string names it.</li>
+    <li><strong>Create the Node application for Rocket.Chat.</strong> Add an application on the managed Node runtime. This runs the Rocket.Chat server bundle. It isn't a one-click Rocket.Chat installer; you're running the Rocket.Chat Node app on a managed runtime, which is the honest and flexible way to do it.</li>
+    <li><strong>Set the environment variables.</strong> <code>MONGO_URL</code>, <code>ROOT_URL</code>, and <code>PORT</code> go in the Environment Variables screen, never in code.</li>
+    <li><strong>Point your domain and turn on SSL.</strong> Map <code>chat.example.com</code> to the app, issue a free certificate, and make sure the proxy forwards websocket upgrades.</li>
+    <li><strong>Start it and create the admin.</strong> On first boot Rocket.Chat runs a setup wizard where you create the admin account and name the workspace.</li>
+  </ol>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console Launch Database screen used to provision managed MongoDB for Rocket.Chat">
+    <figcaption>Step 1: launch managed MongoDB. Backups and private networking come with it; the replica set is the MongoDB-level piece you arrange so Rocket.Chat gets its oplog.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean console Add Application screen where the Rocket.Chat Node app is created on the managed Node runtime">
+    <figcaption>Step 2: add the application on the managed Node runtime. This is the process that serves Rocket.Chat.</figcaption>
+  </figure>
+
+  <p>If you deploy from a Git repository, managed CI/CD can build and start the app on every push. The <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploy a Node app</a> guide covers that flow end to end.</p>
+
+  <!-- To add your own screenshot here, replace this whole figure with a real <figure><img ...><figcaption>...</figcaption></figure>. Image path: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Rocket.Chat setup wizard running on your own domain right after first boot.</em><small>The moment it's live and you create the admin account.</small></span></figure>
+
+  <h2>The config that matters: MONGO_URL, ROOT_URL, PORT</h2>
+  <p>These few lines decide whether your Rocket.Chat is stable or flaky. Set them in the Environment Variables screen and restart so the app picks them up.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console Environment Variables screen holding Rocket.Chat's MONGO_URL and ROOT_URL out of the code repository">
+    <figcaption>Step 3: Rocket.Chat's connection string and public URL live here, in Runtime Configuration then Environment Variables, out of your repo.</figcaption>
+  </figure>
+
+<pre><code># Rocket.Chat's core environment variables
+
+# The database. Note ?replicaSet=rs0, the part people forget.
+MONGO_URL=mongodb://rc_user:STRONG_PASS@10.0.0.5:27017/rocketchat?replicaSet=rs0
+
+# Only needed if you tail the oplog directly (older setups).
+# It points at the 'local' database where the oplog lives.
+MONGO_OPLOG_URL=mongodb://rc_user:STRONG_PASS@10.0.0.5:27017/local?replicaSet=rs0&amp;authSource=admin
+
+# The public address users hit. Must match your real domain and scheme.
+ROOT_URL=https://chat.example.com
+
+# The port the Node process listens on behind your proxy.
+PORT=3000</code></pre>
+
+  <p>A couple of notes so this doesn't bite you. The <code>10.0.0.5</code> stands in for your MongoDB's private-network address, so database traffic never leaves your infrastructure. <code>MONGO_OPLOG_URL</code> is optional on modern Rocket.Chat, which prefers change streams; if you set it, point it at the <code>local</code> database and keep the <code>replicaSet</code> name consistent. And <code>ROOT_URL</code> is <code>https://</code>, not <code>http://</code>, because SSL terminates at the proxy in front.</p>
+
+  <p>Rocket.Chat starts as a normal Node process (the entry point is <code>main.js</code> in the built server bundle), and the managed runtime keeps it alive and restarts it if it exits. For keeping secrets like <code>MONGO_URL</code> out of your codebase, see <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>.</p>
+
+  <h2>SSL and the websocket detail that breaks realtime</h2>
+  <p>Rocket.Chat's instant messaging rides on websockets. If the reverse proxy in front doesn't forward the connection-upgrade headers, the app loads fine and then feels broken: messages lag, the client reconnects, presence flickers. The fix is making the proxy upgrade the connection. In nginx terms:</p>
+
+<pre><code># The proxy in front of Rocket.Chat must forward the websocket upgrade
+proxy_http_version 1.1;
+proxy_set_header Upgrade $http_upgrade;
+proxy_set_header Connection "upgrade";
+proxy_set_header Host $host;
+proxy_set_header X-Forwarded-Proto $scheme;</code></pre>
+
+  <figure>
+    <img src="../assets/console/ssl-certificate.png" alt="The Kloudbean console SSL certificate screen issuing a free certificate for the Rocket.Chat chat domain">
+    <figcaption>Step 4: issue a free SSL certificate for <code>chat.example.com</code>. With SSL on and websockets upgraded, <code>ROOT_URL</code> should use <code>https://</code>.</figcaption>
+  </figure>
+
+  <!-- To add your own screenshot here, replace this whole figure with a real <figure><img ...><figcaption>...</figcaption></figure>. Image path: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Browser devtools network tab showing the Rocket.Chat websocket upgraded to wss and staying open.</em><small>The quickest way to confirm realtime actually works.</small></span></figure>
+
+  <h2>Locking it down</h2>
+  <p>A team chat server holds your most candid internal conversations, so treat security as part of the deploy, not a later chore.</p>
+  <ul>
+    <li><strong>Keep MongoDB on the private network.</strong> The database should never be reachable from the public internet. App-to-database traffic stays inside your infrastructure, and the baseline Shorewall firewall plus Fail2ban keep the front door sensible.</li>
+    <li><strong>Feed <code>MONGO_URL</code> through env, never code.</strong> The connection string holds your database password. It belongs in Environment Variables, not a repo where it leaks in a commit.</li>
+    <li><strong>Use a least-privilege database user.</strong> Give Rocket.Chat a user scoped to its own <code>rocketchat</code> database, not an admin account that can touch everything.</li>
+    <li><strong>Serve everything over HTTPS, websockets included.</strong> With SSL terminating at the proxy and <code>ROOT_URL</code> set to <code>https://</code>, both page loads and the realtime connection are encrypted.</li>
+    <li><strong>Set a strong admin and lock down registration.</strong> After the wizard, disable open sign-ups or restrict them to your email domain so strangers can't create accounts.</li>
+    <li><strong>Back up the chat database.</strong> Your entire history is in MongoDB. Server-level backups protect the box; database backups protect the conversations. Set both on day one. The <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a> covers sane defaults.</li>
+  </ul>
+
+  <h2>Giving it room to run</h2>
+  <p>Rocket.Chat wants real RAM. It's a memory-hungry Meteor app. Plan for at least 2 GB for a small team, and 4 GB or more once history and daily traffic build up. MongoDB wants its own memory too, so run it as its own managed database, not crammed onto the same box.</p>
+  <p>When usage grows, the levers are simple. Resize the server up; vertical headroom is the fastest win for a memory-hungry app like this. Keep the proxy configured for websockets so realtime scales with your users, and lean on the replica set for reliability under load. Rocket.Chat is also picky about MongoDB versions, so check the release notes for your version and match a supported MongoDB rather than grabbing the newest on instinct.</p>
+
+  <p>Running other tools yourself too? The <a href="https://www.kloudbean.com/blog/best-self-hosted-tools/">best self-hosted tools</a> roundup is a good map, and the sibling <a href="https://www.kloudbean.com/blog/self-host-supabase/">self-host Supabase</a> guide walks a similar own-your-data path for a backend.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Own your team chat, top to bottom.</p>
+    <p style="margin:0 0 .6em">Run the Rocket.Chat Node app on a managed server, backed by managed MongoDB with backups and private networking handled, your history in your region and your bill flat. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Managed Node runtime · Managed MongoDB · Private networking · Free SSL · Automatic backups · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Is Rocket.Chat a good Slack alternative?</h3>
+    <p>For teams that want to own their data and avoid per-seat pricing, yes. Rocket.Chat covers the core Slack workflow: channels, direct messages, threads, file sharing, search, and integrations. What you trade for ownership is that you run it yourself, though a managed platform makes that far lighter. Slack still wins on zero-ops polish if that's your priority.</p>
+
+    <h3>Does Rocket.Chat need MongoDB?</h3>
+    <p>Yes. MongoDB is Rocket.Chat's only supported database, and it stores everything: users, channels, messages, and file metadata. You can't swap it for Postgres or MySQL. The real decision is where MongoDB runs, and a managed MongoDB with backups and private networking is the sensible answer for production.</p>
+
+    <h3>Why does Rocket.Chat need a MongoDB replica set?</h3>
+    <p>Rocket.Chat delivers messages in realtime by watching MongoDB for changes through change streams and the oplog. Both only exist when MongoDB runs as a replica set. On a standalone MongoDB there's no oplog, so realtime becomes unreliable and messages arrive late or only after a refresh. Even a single-node replica set satisfies the requirement.</p>
+
+    <h3>Is self-hosted Rocket.Chat free?</h3>
+    <p>The software is. Rocket.Chat's Community Edition is open source and free to run, with no per-user license. You pay for the server and database it runs on, a flat infrastructure cost rather than a per-seat fee. Paid Enterprise features exist, but they aren't required to run a full team chat.</p>
+
+    <h3>How much RAM does Rocket.Chat need?</h3>
+    <p>Plan for at least 2 GB for a small team, and 4 GB or more as history and traffic grow, because it's a memory-hungry Meteor app. MongoDB wants its own memory on top of that, so keep the database on its own managed instance. If Rocket.Chat feels sluggish or restarts under load, RAM is the first thing to check.</p>
+
+    <h3>How do I deploy Rocket.Chat?</h3>
+    <p>Provision managed MongoDB as a replica set, run the Rocket.Chat Node app on a managed Node server, set MONGO_URL and ROOT_URL through environment variables, and put SSL plus a websocket-aware reverse proxy in front. Then start it and finish the admin setup wizard. It isn't a one-click installer, but the steps are straightforward once the database is right.</p>
+
+    <h3>What is MONGO_URL in Rocket.Chat?</h3>
+    <p>MONGO_URL is the environment variable that tells Rocket.Chat how to reach its database. It's a standard MongoDB connection string, and it must include the replicaSet name, for example mongodb://user:pass@10.0.0.5:27017/rocketchat?replicaSet=rs0. Point it at your database's private-network address so traffic never crosses the public internet.</p>
+
+    <h3>Why is my Rocket.Chat ROOT_URL breaking links or websockets?</h3>
+    <p>ROOT_URL must exactly match the public address users hit, scheme included. Rocket.Chat builds its links and websocket connection from it, so a value like http://localhost:3000 on a real deployment causes broken redirects and a failing realtime connection. Set it to your real https domain, for example https://chat.example.com, and restart.</p>
+
+    <h3>Can I migrate from Slack to Rocket.Chat?</h3>
+    <p>Yes. Rocket.Chat has an importer that ingests a standard Slack export, bringing across channels and message history. Export from Slack, import into your self-hosted Rocket.Chat, then invite your team. Free migration assistance can help with the server and database side if you'd rather not do the plumbing yourself.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Engineering · Own your team chat.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Self-Host Rocket.Chat, the Open-Source Slack Alternative","description":"Self-host Rocket.Chat in production: why it beats per-seat SaaS chat, the MongoDB replica set requirement people miss, the MONGO_URL and ROOT_URL that matter, and deploying the Rocket.Chat Node app on a managed server with managed MongoDB.","image":"https://www.kloudbean.com/blog/self-host-rocketchat/images/hero.png","author":{"@type":"Organization","name":"Kloudbean Engineering","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/self-host-rocketchat/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Is Rocket.Chat a good Slack alternative?","acceptedAnswer":{"@type":"Answer","text":"For teams that want to own their data and avoid per-seat pricing, yes. Rocket.Chat covers the core Slack workflow: channels, direct messages, threads, file sharing, search, and integrations. What you trade for ownership is that you run it yourself, though a managed platform makes that far lighter. Slack still wins on zero-ops polish if that is your priority."}},
+{"@type":"Question","name":"Does Rocket.Chat need MongoDB?","acceptedAnswer":{"@type":"Answer","text":"Yes. MongoDB is Rocket.Chat's only supported database, and it stores everything: users, channels, messages, and file metadata. You cannot swap it for Postgres or MySQL. The real decision is where MongoDB runs, and a managed MongoDB with backups and private networking is the sensible answer for production."}},
+{"@type":"Question","name":"Why does Rocket.Chat need a MongoDB replica set?","acceptedAnswer":{"@type":"Answer","text":"Rocket.Chat delivers messages in realtime by watching MongoDB for changes through change streams and the oplog. Both only exist when MongoDB runs as a replica set. On a standalone MongoDB there is no oplog, so realtime becomes unreliable and messages arrive late or only after a refresh. Even a single-node replica set satisfies the requirement."}},
+{"@type":"Question","name":"Is self-hosted Rocket.Chat free?","acceptedAnswer":{"@type":"Answer","text":"The software is. Rocket.Chat's Community Edition is open source and free to run, with no per-user license. You pay for the server and database it runs on, a flat infrastructure cost rather than a per-seat fee. Paid Enterprise features exist, but they are not required to run a full team chat."}},
+{"@type":"Question","name":"How much RAM does Rocket.Chat need?","acceptedAnswer":{"@type":"Answer","text":"Plan for at least 2 GB for a small team, and 4 GB or more as history and traffic grow, because it is a memory-hungry Meteor app. MongoDB wants its own memory on top of that, so keep the database on its own managed instance. If Rocket.Chat feels sluggish or restarts under load, RAM is the first thing to check."}},
+{"@type":"Question","name":"How do I deploy Rocket.Chat?","acceptedAnswer":{"@type":"Answer","text":"Provision managed MongoDB as a replica set, run the Rocket.Chat Node app on a managed Node server, set MONGO_URL and ROOT_URL through environment variables, and put SSL plus a websocket-aware reverse proxy in front. Then start it and finish the admin setup wizard. It is not a one-click installer, but the steps are straightforward once the database is right."}},
+{"@type":"Question","name":"What is MONGO_URL in Rocket.Chat?","acceptedAnswer":{"@type":"Answer","text":"MONGO_URL is the environment variable that tells Rocket.Chat how to reach its database. It is a standard MongoDB connection string, and it must include the replicaSet name, for example mongodb://user:pass@10.0.0.5:27017/rocketchat?replicaSet=rs0. Point it at your database's private-network address so traffic never crosses the public internet."}},
+{"@type":"Question","name":"Why is my Rocket.Chat ROOT_URL breaking links or websockets?","acceptedAnswer":{"@type":"Answer","text":"ROOT_URL must exactly match the public address users hit, scheme included. Rocket.Chat builds its links and websocket connection from it, so a value like http://localhost:3000 on a real deployment causes broken redirects and a failing realtime connection. Set it to your real https domain, for example https://chat.example.com, and restart."}},
+{"@type":"Question","name":"Can I migrate from Slack to Rocket.Chat?","acceptedAnswer":{"@type":"Answer","text":"Yes. Rocket.Chat has an importer that ingests a standard Slack export, bringing across channels and message history. Export from Slack, import into your self-hosted Rocket.Chat, then invite your team. Free migration assistance can help with the server and database side if you would rather not do the plumbing yourself."}}
+]}
+]}
+</script>
+</body>
+</html>

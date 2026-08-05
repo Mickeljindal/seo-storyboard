@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CDN Explained: How a Content Delivery Network Really Works</title>
+<meta name="description" content="CDN explained in plain English: what a content delivery network is, how edge caching works, what it speeds up, what it can't, and whether you need one.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/cdn-explained/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CDN Explained: How a Content Delivery Network Really Works">
+<meta property="og:description" content="What a CDN is, how edge caching and cache hits work, what it speeds up, what it can't, and whether you actually need one.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Edge &amp; delivery</span>
+  <h1>CDN Explained: What a Content Delivery Network Actually Does</h1>
+
+  <figure><img src="images/hero.png" alt="CDN explained: how a content delivery network caches content at the edge, close to users"></figure>
+
+  <p class="lead">Your server can be blisteringly fast and your site can still feel slow in Sydney, in Sao Paulo, in Mumbai. The reason is physics. Data moving through fiber covers roughly 200,000 kilometers a second, so a request that has to cross an ocean and come back burns tens of milliseconds before your code runs a single line.</p>
+  <p>A CDN is how you stop paying that tax on every visit. This is CDN explained without the fog: what a content delivery network really is, how edge caching works underneath, what it genuinely speeds up, and the honest cases where it does nothing at all. If you run a WordPress site, a React app, a Laravel store, or a plain static site, this is the layer that decides how fast you feel to someone far away.</p>
+
+  <div class="tldr">
+    <strong>The short answer</strong>
+    <p>A CDN, or content delivery network, is a global network of edge servers that cache copies of your static content close to your users. When someone visits, the nearest edge server answers instead of your origin, so images, scripts, and pages load faster and your server does less work. It speeds up cacheable content, not dynamic or per-user responses.</p>
+  </div>
+
+  <h2>What is a CDN?</h2>
+  <p>A CDN, a content delivery network, is a fleet of servers spread across the world whose one job is to keep copies of your content close to the people asking for it. Each location is called a point of presence, or PoP. Instead of every visitor reaching all the way back to your one server, they hit the nearest edge server, which already holds a cached copy and hands it straight back.</p>
+  <p>Your own server, the one running your app and your database, is the <strong>origin</strong>. The CDN sits in front of it. On a good day, most visitors never touch your origin at all, because the edge answers on its behalf. That's the whole trick.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 274" role="img" aria-label="A visitor sends a request to the nearest CDN edge server. On a cache hit the edge returns the cached copy immediately. On a cache miss the edge fetches the content from the distant origin server, caches it, and then serves it. Two other points of presence show the wider global edge network." xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <defs>
+        <marker id="cg" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#40b75f"/></marker>
+        <marker id="cp" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4F1AF3"/></marker>
+      </defs>
+      <text x="26" y="30" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">One request, answered at the edge</text>
+      <text x="286" y="40" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600" letter-spacing="1.2">GLOBAL EDGE NETWORK · POINTS OF PRESENCE</text>
+
+      <rect x="286" y="52" width="300" height="200" rx="16" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5" stroke-dasharray="6 6"/>
+
+      <rect x="300" y="86" width="112" height="44" rx="11" fill="#ffffff" stroke="#000f27" stroke-width="1.2"/>
+      <text x="356" y="113" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600">Edge PoP</text>
+      <rect x="452" y="86" width="112" height="44" rx="11" fill="#ffffff" stroke="#000f27" stroke-width="1.2"/>
+      <text x="508" y="113" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600">Edge PoP</text>
+
+      <rect x="300" y="160" width="176" height="70" rx="13" fill="#ffffff" stroke="#4F1AF3" stroke-width="2.2"/>
+      <text x="388" y="189" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="13.5" font-weight="700">Nearest edge PoP</text>
+      <text x="388" y="209" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">holds the cached copy</text>
+
+      <rect x="24" y="176" width="120" height="66" rx="12" fill="#000f27"/>
+      <text x="84" y="205" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="14" font-weight="600">Visitor</text>
+      <text x="84" y="223" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="10.5">far from origin</text>
+
+      <rect x="624" y="176" width="112" height="72" rx="12" fill="#ffffff" stroke="#000f27" stroke-width="1.6"/>
+      <text x="680" y="205" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="700">Origin</text>
+      <text x="680" y="223" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10">app + database</text>
+
+      <line x1="146" y1="197" x2="298" y2="187" stroke="#4F1AF3" stroke-width="2.2" marker-end="url(#cp)"/>
+      <text x="150" y="182" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10">request</text>
+      <line x1="298" y1="212" x2="146" y2="222" stroke="#40b75f" stroke-width="2.4" marker-end="url(#cg)"/>
+      <text x="152" y="240" fill="#2f9e50" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600">cache HIT: cached copy, fast</text>
+
+      <line x1="476" y1="190" x2="622" y2="198" stroke="#4F1AF3" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#cp)"/>
+      <text x="486" y="180" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600">cache MISS: pull from origin</text>
+      <line x1="622" y1="222" x2="478" y2="226" stroke="#40b75f" stroke-width="1.8" stroke-dasharray="5 5" marker-end="url(#cg)"/>
+      <text x="486" y="244" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10">edge caches it for next time</text>
+    </svg>
+    <figcaption>The nearest edge answers most requests from cache. On a miss, it fetches once from the distant origin, caches the copy, and every visitor after that gets the fast path.</figcaption>
+  </figure>
+
+  <h2>How does a CDN work? Cache hits, misses, and the origin pull</h2>
+  <p>The mechanics are simpler than the marketing makes them sound. Edge caching comes down to two outcomes for every request.</p>
+  <p><strong>Cache hit.</strong> The nearest edge already has a fresh copy of what you asked for, so it returns it right away. No trip to your origin. This is the fast path, and once the cache warms up it's most of your traffic.</p>
+  <p><strong>Cache miss.</strong> The edge doesn't have it, or the copy it had has expired. So the edge fetches the content from your origin once, hands it to that visitor, and keeps a copy for the next person. The first visitor pays the full distance. Everyone after them gets the hit.</p>
+  <p>You can watch this happen in about ten seconds. Most CDNs stamp a response header you can read. A value of <code>X-Cache: HIT</code> means the edge served it; <code>MISS</code> means it had to go back to origin. Run <code>curl -I</code> against the same asset twice and you'll usually see a miss, then a hit.</p>
+
+  <!-- ADD IMAGE: browser DevTools Network tab (or a curl output) showing the X-Cache HIT response header on a cached asset. Swap for a real screenshot: src -> images/x-cache-header.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>DevTools Network tab (or a curl -I output) showing an X-Cache response header with a value of HIT on a cached file.</em><small>Proof the edge answered without touching your origin.</small></span></figure>
+
+  <h2>TTL and cache headers: who decides how long a copy lives?</h2>
+  <p>The origin stays in charge. It sends cache headers telling the edge how long a copy may live before checking back. That lifetime is the TTL, time to live, a number of seconds.</p>
+<pre><code># The origin sends cache headers that tell the CDN what to do
+Cache-Control: public, max-age=3600, s-maxage=86400
+
+#   max-age    how long a browser keeps its own copy (seconds)
+#   s-maxage   how long the shared CDN edge keeps the copy
+#   public     safe to cache and reuse for everyone
+
+# A validator lets the edge re-check cheaply instead of re-downloading
+ETag: "a1b2c3d4"
+#   the edge asks "still good?"; origin replies 304 Not Modified if unchanged
+
+# Who answered the request? Read the response header:
+#   X-Cache: HIT    served straight from the edge
+#   X-Cache: MISS   the edge had to fetch from your origin first</code></pre>
+  <p>Set the TTL too short and the edge keeps re-fetching, so you throw away most of the benefit. Set it too long and visitors see stale content after you ship a change. The clean fix for that second problem is fingerprinting: build your files with a hash in the name, like <code>app.9f2c1.js</code>, so a new build gets a new URL. Then you can cache those assets almost forever, and the short-lived HTML that points to them is the only thing that needs to expire quickly.</p>
+
+  <!-- ADD IMAGE: response headers for a static asset, showing Cache-Control with a max-age and an ETag. Swap for a real screenshot: src -> images/cache-headers.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Response headers for a static asset: Cache-Control with max-age and s-maxage, plus an ETag value.</em><small>Where the origin tells the edge how long to keep each copy.</small></span></figure>
+
+  <h2>What a CDN speeds up, and what it can't</h2>
+  <p>A CDN is a caching layer. It's excellent at content that's the same for everyone and changes rarely. It does nothing for content that's unique to each request.</p>
+  <p>Static assets are the sweet spot: images, CSS, JavaScript bundles, fonts, video. Public pages that look identical for every visitor cache well too, with a sensible TTL. But a logged-in dashboard, a shopping cart, a live price, an account page? Those are different for every user, so the edge can't reuse one copy. They fall through to your origin every time.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Content type</th><th>Example</th><th>Cacheable at the edge?</th></tr></thead>
+    <tbody>
+      <tr><td>Static asset</td><td>image, CSS, JS bundle, font, video</td><td>Yes, easily. Long TTL</td></tr>
+      <tr><td>Public HTML page</td><td>a blog post, a landing page, same for all</td><td>Yes, with a shorter TTL</td></tr>
+      <tr><td>Per-user HTML</td><td>a logged-in dashboard or profile</td><td>No, it differs per visitor</td></tr>
+      <tr><td>Dynamic API / JSON</td><td>cart contents, live prices, search</td><td>Rarely, and only for seconds</td></tr>
+      <tr><td>Authenticated response</td><td>account settings, private data</td><td>No, always hits the origin</td></tr>
+    </tbody>
+  </table>
+
+  <p>The classic mistake is caching HTML that has no business being cached. Cache a logged-in page too aggressively and the edge can hand User B a copy of User A's account page. That isn't a speed win, it's a data leak. Personalized responses belong at the origin, and you keep the edge off them with a header like <code>Cache-Control: private, no-store</code>. I've seen this exact bug ship to production more than once, and it's always because someone put a blanket cache rule on <code>/</code> without thinking about who's logged in.</p>
+
+  <!-- ADD IMAGE: a CDN analytics view showing the share of requests served from cache vs the share that reached the origin. Swap for a real screenshot: src -> images/cache-analytics.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A cache analytics panel: percentage of requests served from the edge versus those that fell through to the origin.</em><small>A healthy static site sits mostly on the cache-hit side.</small></span></figure>
+
+  <h2>CDN vs load balancer: not the same job</h2>
+  <p>People blur these two together constantly, so let's split them apart. A CDN caches content at the edge and serves it from near the visitor. A load balancer spreads live requests across several backend servers for scale and redundancy. One is about distance and caching. The other is about capacity and survival.</p>
+  <p>They're happy running together: a CDN out front serving cached assets, and a load balancer behind it spreading the dynamic requests that actually reach your app. If that second half is new to you, here's <a href="https://www.kloudbean.com/blog/cloud-load-balancer-explained/">how a cloud load balancer works</a>, and the wider picture of <a href="https://www.kloudbean.com/blog/how-cloud-hosting-works/">how cloud hosting works</a> from DNS to database shows where both of them sit in the path.</p>
+
+  <h2>Do I need a CDN?</h2>
+  <p>Straight answer: it depends on where your users are and what you serve.</p>
+  <p>You want one if your audience is spread across regions, or your site is heavy on static assets like images and video, or you get sharp traffic spikes a single origin would struggle to absorb. A global storefront or a media-heavy publication feels the difference on the first page load. A CDN also blunts a lot of junk traffic at the edge before it reaches you, which is why it overlaps with <a href="https://www.kloudbean.com/blog/ddos-protection-explained/">how DDoS protection works</a>.</p>
+  <p>You probably don't need one yet if your users sit in one region, close to your server, and your traffic is steady. If everyone's in Germany and your server is in Frankfurt, a CDN is a small tiebreaker, not a transformation. Put your origin in the right region first. That's usually free, and it matters more than people expect. Where your server physically lives is its own decision, covered in <a href="https://www.kloudbean.com/blog/data-residency-explained/">data residency, explained</a>.</p>
+
+  <h2>The honest limit: a CDN won't fix a slow origin</h2>
+  <p>This is the line I repeat most, so I'll say it plainly. A CDN makes a far static asset fast. It does not make a far database fast.</p>
+  <p>If your pages are slow because a query takes two seconds, or your server is undersized, or your app makes thirty round trips to the database to render one page, the edge can't rescue you. Every uncacheable request still travels to your origin and waits on your slow code. Caching hides distance. It doesn't hide bad performance. Fix the origin first, then let the CDN make the fast thing global. In that order. If your slow origin is WordPress, start with <a href="https://www.kloudbean.com/blog/speed-up-wordpress/">speeding up WordPress</a> before you reach for the edge.</p>
+
+  <h2>How the edge fits on Kloudbean</h2>
+  <p>Kloudbean doesn't ask you to bolt a separate CDN onto your stack by hand. Cloudflare Enterprise edge caching is available as a paid add-on on any site, and it's included for Enterprise accounts. Route your domain through it and your static content serves from Cloudflare's global edge, close to your visitors, while your origin keeps the dynamic work.</p>
+
+  <figure>
+    <img src="../assets/console/cloudflare.png" alt="Enabling Cloudflare Enterprise edge caching for a site in the Kloudbean console">
+    <figcaption>Cloudflare Enterprise edge caching is an add-on you enable per site, and it's included on Enterprise accounts. The edge fronts your static content while the origin keeps doing the dynamic work.</figcaption>
+  </figure>
+
+  <p>The philosophy matches the rest of the platform: servers, managed databases, object storage, and the edge in front of them, from one dashboard instead of four vendors and four bills. Standard plans start from $8/mo, and Enterprise is custom pricing, so check the <a href="https://www.kloudbean.com/pricing/">pricing page</a> for current numbers. If you're weighing hosts, <a href="https://www.kloudbean.com/blog/best-managed-cloud-hosting/">what makes the best managed cloud hosting</a> lays out what actually matters.</p>
+
+  <figure>
+    <img src="../assets/console/dashboard.png" alt="The Kloudbean dashboard showing servers, applications, databases, and storage in one place">
+    <figcaption>Origin and edge, servers and databases, all under one login instead of scattered across separate products.</figcaption>
+  </figure>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Fix the origin, then make it global.</p>
+    <p style="margin:0 0 .6em">Run your app on a well-placed managed server, then put Cloudflare Enterprise edge caching in front of it, all from one dashboard. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> and compare plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">One dashboard · 7 clouds · Managed databases · Cloudflare edge caching · Free SSL · Automatic backups · Free migration</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is a CDN in simple terms?</h3>
+    <p>A CDN, or content delivery network, is a group of servers spread around the world that keep cached copies of your content close to your visitors. When someone loads your site, the nearest edge server hands back the copy it already has instead of making the request travel all the way to your one origin server. The result is faster loads for people far from where your site is hosted, and less work for your own server.</p>
+    <h3>How does a CDN actually work?</h3>
+    <p>Every request ends in one of two outcomes. On a cache hit, the nearest edge server already has a fresh copy and returns it immediately, with no trip to your origin. On a cache miss, the edge fetches the content from your origin once, serves it, and stores a copy so the next visitor gets a hit. Cache headers from your origin decide how long each copy is allowed to live before the edge checks back.</p>
+    <h3>What is the difference between a CDN and my web host or origin server?</h3>
+    <p>Your origin server, provided by your web host, is where your app and database actually run and where content is created. A CDN sits in front of it and only stores cached copies of content it has already seen. The origin is the source of truth. The CDN is a fast, distributed copy of the cacheable parts, kept close to users so most requests never reach the origin at all.</p>
+    <h3>Does a CDN speed up a dynamic or logged-in site?</h3>
+    <p>Only the cacheable parts. Static assets like images, CSS, and scripts get faster everywhere. But pages that differ per user, such as a logged-in dashboard, a cart, or an account page, cannot be safely cached and still travel to your origin every time. A CDN is powerful for public, unchanging content and largely irrelevant for personalized responses.</p>
+    <h3>Do I need a CDN for a small website?</h3>
+    <p>Often not yet. If your visitors are mostly in one region and sit close to your server, and your traffic is modest, a CDN is a minor tiebreaker rather than a transformation. Putting your origin in the right region usually helps more and costs nothing. Reach for a CDN when your audience is global, your site is heavy on images or video, or you face sharp traffic spikes.</p>
+    <h3>What is edge caching?</h3>
+    <p>Edge caching means storing copies of your content on servers at the edge of the network, in many locations worldwide, so each visitor is served from the one nearest them. The edge is simply the layer closest to users, as opposed to your central origin. It's the mechanism a CDN uses to cut the physical distance a request has to travel, which is what actually reduces load time.</p>
+    <h3>What is the difference between a CDN and a load balancer?</h3>
+    <p>A CDN caches content at global edge locations and serves it from near each visitor, which is about distance and speed. A load balancer spreads live requests across several backend servers, which is about capacity and redundancy. They solve different problems and often work together: a CDN handling cached assets out front, and a load balancer distributing the dynamic requests that reach your app behind it.</p>
+    <h3>Will a CDN fix my slow website?</h3>
+    <p>Only if the slowness comes from distance to static content. A CDN makes a far static asset fast, but it cannot make a slow database or an undersized server fast. If your pages are slow because of heavy queries or inefficient code, every uncacheable request still hits your origin and waits. Fix the origin performance first, then use the CDN to make the fast content global.</p>
+    <h3>What are cache hits and cache misses?</h3>
+    <p>A cache hit is when the edge server already has a fresh copy of what was requested and can return it without contacting your origin. A cache miss is when it does not, so it fetches from the origin, serves the visitor, and stores a copy for next time. A high hit ratio means most traffic is served from the edge, which is the whole point. You can often see which happened in an X-Cache response header.</p>
+    <h3>Does Kloudbean include a CDN?</h3>
+    <p>Kloudbean offers Cloudflare Enterprise edge caching as a paid add-on on any site, and it is included for Enterprise accounts. You route your domain through it and your static content serves from Cloudflare's global edge, while your origin on Kloudbean keeps handling the dynamic work. Servers, databases, storage, and the edge are all managed from one dashboard rather than separate vendors.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Edge · Cache it close, and the distance stops mattering.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"CDN Explained: What a Content Delivery Network Actually Does","description":"CDN explained in plain English: what a content delivery network is, how edge caching and cache hits work, what it speeds up, what it can't, and whether you need one.","image":"https://www.kloudbean.com/blog/cdn-explained/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/cdn-explained/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is a CDN in simple terms?","acceptedAnswer":{"@type":"Answer","text":"A CDN, or content delivery network, is a group of servers spread around the world that keep cached copies of your content close to your visitors. When someone loads your site, the nearest edge server hands back the copy it already has instead of making the request travel all the way to your one origin server. The result is faster loads for people far from where your site is hosted, and less work for your own server."}},
+{"@type":"Question","name":"How does a CDN actually work?","acceptedAnswer":{"@type":"Answer","text":"Every request ends in one of two outcomes. On a cache hit, the nearest edge server already has a fresh copy and returns it immediately, with no trip to your origin. On a cache miss, the edge fetches the content from your origin once, serves it, and stores a copy so the next visitor gets a hit. Cache headers from your origin decide how long each copy is allowed to live before the edge checks back."}},
+{"@type":"Question","name":"What is the difference between a CDN and my web host or origin server?","acceptedAnswer":{"@type":"Answer","text":"Your origin server, provided by your web host, is where your app and database actually run and where content is created. A CDN sits in front of it and only stores cached copies of content it has already seen. The origin is the source of truth. The CDN is a fast, distributed copy of the cacheable parts, kept close to users so most requests never reach the origin at all."}},
+{"@type":"Question","name":"Does a CDN speed up a dynamic or logged-in site?","acceptedAnswer":{"@type":"Answer","text":"Only the cacheable parts. Static assets like images, CSS, and scripts get faster everywhere. But pages that differ per user, such as a logged-in dashboard, a cart, or an account page, cannot be safely cached and still travel to your origin every time. A CDN is powerful for public, unchanging content and largely irrelevant for personalized responses."}},
+{"@type":"Question","name":"Do I need a CDN for a small website?","acceptedAnswer":{"@type":"Answer","text":"Often not yet. If your visitors are mostly in one region and sit close to your server, and your traffic is modest, a CDN is a minor tiebreaker rather than a transformation. Putting your origin in the right region usually helps more and costs nothing. Reach for a CDN when your audience is global, your site is heavy on images or video, or you face sharp traffic spikes."}},
+{"@type":"Question","name":"What is edge caching?","acceptedAnswer":{"@type":"Answer","text":"Edge caching means storing copies of your content on servers at the edge of the network, in many locations worldwide, so each visitor is served from the one nearest them. The edge is simply the layer closest to users, as opposed to your central origin. It is the mechanism a CDN uses to cut the physical distance a request has to travel, which is what actually reduces load time."}},
+{"@type":"Question","name":"What is the difference between a CDN and a load balancer?","acceptedAnswer":{"@type":"Answer","text":"A CDN caches content at global edge locations and serves it from near each visitor, which is about distance and speed. A load balancer spreads live requests across several backend servers, which is about capacity and redundancy. They solve different problems and often work together: a CDN handling cached assets out front, and a load balancer distributing the dynamic requests that reach your app behind it."}},
+{"@type":"Question","name":"Will a CDN fix my slow website?","acceptedAnswer":{"@type":"Answer","text":"Only if the slowness comes from distance to static content. A CDN makes a far static asset fast, but it cannot make a slow database or an undersized server fast. If your pages are slow because of heavy queries or inefficient code, every uncacheable request still hits your origin and waits. Fix the origin performance first, then use the CDN to make the fast content global."}},
+{"@type":"Question","name":"What are cache hits and cache misses?","acceptedAnswer":{"@type":"Answer","text":"A cache hit is when the edge server already has a fresh copy of what was requested and can return it without contacting your origin. A cache miss is when it does not, so it fetches from the origin, serves the visitor, and stores a copy for next time. A high hit ratio means most traffic is served from the edge, which is the whole point. You can often see which happened in an X-Cache response header."}},
+{"@type":"Question","name":"Does Kloudbean include a CDN?","acceptedAnswer":{"@type":"Answer","text":"Kloudbean offers Cloudflare Enterprise edge caching as a paid add-on on any site, and it is included for Enterprise accounts. You route your domain through it and your static content serves from Cloudflare's global edge, while your origin on Kloudbean keeps handling the dynamic work. Servers, databases, storage, and the edge are all managed from one dashboard rather than separate vendors."}}
+]}
+]}
+</script>
+</body>
+</html>

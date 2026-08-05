@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connect TypeORM to a Database in Production (Postgres, MySQL)</title>
+<meta name="description" content="Connect TypeORM to a database in production: build a DataSource from env, define entities, run migrations, keep synchronize false, and size the connection pool.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/connect-typeorm-to-a-database/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Connect TypeORM to a Database in Production (Postgres, MySQL)">
+<meta property="og:description" content="The production wiring for TypeORM: a DataSource from env, entities, migrations, synchronize false, connection pool sizing, and SSL versus the private network.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Node ORMs in production</span>
+  <h1>How to Connect TypeORM to a Database in Production</h1>
+
+  <p class="byline">By the Kloudbean Node Team · TypeORM, wired to prod.</p>
+
+  <figure><img src="images/hero.png" alt="Connect TypeORM to a managed PostgreSQL or MySQL database in production"></figure>
+
+  <p class="lead">TypeORM feels great on your laptop. You add a decorator, restart, and the table just appears. Then you connect TypeORM to a database in production and that same convenience turns into a foot-gun. This guide covers the whole production wiring: a real <code>DataSource</code> built from environment variables, entities and migrations, the connection pool, and the one setting that quietly deletes columns if you leave it on. TypeORM with PostgreSQL and MySQL, real code you can paste.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>To connect TypeORM to a database in production, build a <code>DataSource</code> that reads your connection string from <code>process.env</code>, list your entities and a <code>migrations</code> glob, and set <code>synchronize: false</code>. Manage schema changes with <code>typeorm migration:generate</code> and <code>migration:run</code> instead of auto-sync. Cap the pool with <code>poolSize</code> or <code>extra.max</code> so many processes don't exhaust the database, and reach the database over a private network so you rarely need public SSL at all.</p>
+  </div>
+
+  <h2>What is a TypeORM DataSource?</h2>
+  <p>Everything starts with the <code>DataSource</code>. Older TypeORM used <code>createConnection()</code>; since 0.3 the <code>DataSource</code> is the object holding your connection settings, entities, migrations, and the driver's connection pool. You create it once, call <code>initialize()</code> once, and share it for the life of the process.</p>
+
+  <p>Here's a production-shaped DataSource that reads a single connection string from the environment:</p>
+
+<pre><code>// data-source.ts
+import "reflect-metadata";
+import { DataSource } from "typeorm";
+import { User } from "./entities/User";
+
+export const AppDataSource = new DataSource({
+  type: "postgres",                 // or "mysql"
+  url: process.env.DATABASE_URL,    // one connection string, from the env
+  entities: [User],
+  migrations: ["dist/migrations/*.js"],
+  synchronize: false,               // never true in production
+  logging: false,
+});</code></pre>
+
+  <p>That <code>import "reflect-metadata"</code> line at the top isn't decoration. TypeORM reads your decorators through it, so without it your entities misbehave. Import it once, first thing.</p>
+
+  <p>Prefer discrete fields over a URL? TypeORM takes host, port, user, and password just as happily, the shape you'll reach for when the database hands you separate values:</p>
+
+<pre><code>export const AppDataSource = new DataSource({
+  type: "postgres",
+  host: process.env.DB_HOST,
+  port: Number(process.env.DB_PORT ?? 5432),   // 5432 Postgres, 3306 MySQL
+  username: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,
+  entities: [User],
+  migrations: ["dist/migrations/*.js"],
+  synchronize: false,
+});</code></pre>
+
+  <p>Then initialize it before your app serves a request:</p>
+
+<pre><code>// index.ts
+import { AppDataSource } from "./data-source";
+
+await AppDataSource.initialize();
+console.log("Data Source ready");</code></pre>
+
+  <p>Both forms describe the same thing: a Node process, one DataSource holding a pool, a database at the other end. Keep the private network in that picture.</p>
+
+  <figure>
+    <svg viewBox="0 0 780 250" role="img" aria-label="A Node process holds one TypeORM DataSource with a connection pool, which reaches a managed Postgres or MySQL over a private network" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="28" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">One DataSource, one pool, a private path to the database</text>
+
+      <rect x="28" y="70" width="180" height="120" rx="14" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="118" y="104" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="14" font-weight="600">Node process</text>
+      <text x="118" y="126" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11.5">initialize() once</text>
+      <rect x="52" y="140" width="132" height="36" rx="9" fill="#4F1AF3"/>
+      <text x="118" y="163" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">AppDataSource</text>
+
+      <rect x="270" y="86" width="188" height="88" rx="14" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5"/>
+      <text x="364" y="118" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="14" font-weight="600">connection pool</text>
+      <text x="364" y="140" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11.5">poolSize / extra.max</text>
+      <text x="364" y="158" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11.5">reused, not per-request</text>
+
+      <line x1="208" y1="130" x2="266" y2="130" stroke="#5b6a86" stroke-width="2"/>
+      <path d="M266 130 l-10 -4 v8 z" fill="#5b6a86"/>
+
+      <rect x="502" y="70" width="30" height="120" rx="8" fill="#eaf7ef" stroke="#40b75f" stroke-width="1.4"/>
+      <text x="517" y="138" text-anchor="middle" fill="#1c7a3f" font-family="Poppins,sans-serif" font-size="11" font-weight="600" transform="rotate(-90 517 138)">private network</text>
+      <line x1="458" y1="130" x2="500" y2="130" stroke="#40b75f" stroke-width="2"/>
+      <path d="M500 130 l-10 -4 v8 z" fill="#40b75f"/>
+
+      <ellipse cx="648" cy="98" rx="66" ry="15" fill="#6b3cff"/>
+      <path d="M582 98 v92 a66 15 0 0 0 132 0 v-92" fill="#4F1AF3"/>
+      <ellipse cx="648" cy="98" rx="66" ry="15" fill="#6b3cff"/>
+      <text x="648" y="140" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13.5" font-weight="600">Managed</text>
+      <text x="648" y="159" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13.5" font-weight="600">Postgres / MySQL</text>
+      <line x1="532" y1="130" x2="580" y2="130" stroke="#40b75f" stroke-width="2"/>
+      <path d="M580 130 l-10 -4 v8 z" fill="#40b75f"/>
+
+      <text x="28" y="226" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="13">The pool lives in the DataSource. On a private network the database has no public address to attack.</text>
+    </svg>
+    <figcaption>One DataSource per process holds the pool. It reaches the managed database over a private network, not the open internet.</figcaption>
+  </figure>
+
+  <div class="note"><b>Coming from Prisma or Drizzle?</b> Same production ideas, different config surface. See <a href="https://www.kloudbean.com/blog/connect-prisma-to-a-managed-database/">connect Prisma to a managed database</a> and <a href="https://www.kloudbean.com/blog/connect-drizzle-to-postgres/">connect Drizzle to Postgres</a>. TypeORM's distinctive bits are the decorated entity classes and the <code>synchronize</code> setting below.</div>
+
+  <h2>Defining TypeORM entities</h2>
+  <p>An entity is a class with decorators that map to a table. TypeORM developers know this part, so I'll keep it short. A small <code>User</code>:</p>
+
+<pre><code>// entities/User.ts
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from "typeorm";
+
+@Entity()
+export class User {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column({ unique: true })
+  email: string;
+
+  @Column({ nullable: true })
+  name: string;
+
+  @Column({ default: true })
+  active: boolean;
+
+  @CreateDateColumn()
+  createdAt: Date;
+}</code></pre>
+
+  <p>One production note about the <code>entities</code> array. In dev people use a glob like <code>src/**/*.ts</code>. In production you run compiled JavaScript, so the glob has to point at <code>dist</code> and <code>.js</code>, or you import the classes directly as above. Get it wrong and TypeORM finds zero entities, then throws <code>EntityMetadataNotFoundError: No metadata for "User" was found.</code> Importing classes explicitly is the boring, reliable choice.</p>
+
+  <!-- ADD IMAGE: your editor showing entities/User.ts with the decorators. Swap for a real screenshot: src -> images/typeorm-entity.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your editor open on entities/User.ts, decorators visible.</em><small>Grounds the entity-to-table idea.</small></span></figure>
+
+  <h2>The synchronize trap: never use synchronize true in production</h2>
+  <p>This is the single most important line in the whole article, so I'll be blunt. <strong>Set <code>synchronize: false</code> in production. Always.</strong></p>
+
+  <p>Here's what <code>synchronize: true</code> actually does. On every boot TypeORM compares your entities to the live database and alters the database to match. New property? It adds the column. Renamed one? TypeORM doesn't see a rename. It sees an old column mapping to nothing and a new one that does, so it drops the old column and creates the new. The data in it is gone. No prompt, no migration file, no undo.</p>
+
+  <p>On your laptop that's a lovely feature. You iterate fast, the schema keeps up. Against a table of real customer rows, it's a way to lose data on a routine deploy: a harmless-looking rename ships, sync runs on boot, and the column is gone. A common way TypeORM apps get burned. The fix costs nothing. Turn it off and drive schema changes with migrations.</p>
+
+  <figure>
+    <svg viewBox="0 0 780 340" role="img" aria-label="Left: synchronize true auto-alters the schema on boot and can drop a column and lose data. Right: synchronize false with migrations generates reviewable SQL that runs safely on deploy" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="28" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Same entity change, two very different outcomes</text>
+
+      <!-- danger panel -->
+      <rect x="24" y="56" width="356" height="256" rx="14" fill="#fff5f5" stroke="#b23b3b" stroke-width="1.4"/>
+      <text x="44" y="84" fill="#b23b3b" font-family="Poppins,sans-serif" font-size="13.5" font-weight="700">synchronize: true</text>
+      <text x="44" y="103" fill="#8a4a4a" font-family="Poppins,sans-serif" font-size="11.5">fine in dev, dangerous in prod</text>
+
+      <rect x="44" y="118" width="316" height="34" rx="9" fill="#ffffff" stroke="#000f27" stroke-width="1.2"/>
+      <text x="202" y="140" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12.5">rename a property on an entity</text>
+      <rect x="44" y="160" width="316" height="34" rx="9" fill="#ffffff" stroke="#000f27" stroke-width="1.2"/>
+      <text x="202" y="182" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12.5">app boots, TypeORM syncs</text>
+      <rect x="44" y="202" width="316" height="34" rx="9" fill="#ffffff" stroke="#b23b3b" stroke-width="1.2"/>
+      <text x="202" y="224" text-anchor="middle" fill="#b23b3b" font-family="Poppins,sans-serif" font-size="12.5">drops old column, adds new one</text>
+      <rect x="44" y="244" width="316" height="46" rx="9" fill="#b23b3b"/>
+      <text x="202" y="266" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">column data gone</text>
+      <text x="202" y="282" text-anchor="middle" fill="#f4d4d4" font-family="Poppins,sans-serif" font-size="11">no prompt, no undo</text>
+
+      <!-- safe panel -->
+      <rect x="400" y="56" width="356" height="256" rx="14" fill="#f2fbf5" stroke="#40b75f" stroke-width="1.4"/>
+      <text x="420" y="84" fill="#1c7a3f" font-family="Poppins,sans-serif" font-size="13.5" font-weight="700">synchronize: false + migrations</text>
+      <text x="420" y="103" fill="#3f7a55" font-family="Poppins,sans-serif" font-size="11.5">the production path</text>
+
+      <rect x="420" y="118" width="316" height="34" rx="9" fill="#ffffff" stroke="#000f27" stroke-width="1.2"/>
+      <text x="578" y="140" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12.5">rename a property on an entity</text>
+      <rect x="420" y="160" width="316" height="34" rx="9" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.2"/>
+      <text x="578" y="182" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="12.5">migration:generate writes SQL</text>
+      <rect x="420" y="202" width="316" height="34" rx="9" fill="#ffffff" stroke="#000f27" stroke-width="1.2"/>
+      <text x="578" y="224" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12.5">you review the SQL, edit if needed</text>
+      <rect x="420" y="244" width="316" height="46" rx="9" fill="#40b75f"/>
+      <text x="578" y="266" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">migration:run on deploy</text>
+      <text x="578" y="282" text-anchor="middle" fill="#eafaef" font-family="Poppins,sans-serif" font-size="11">reviewable and reversible</text>
+    </svg>
+    <figcaption>With sync on, a rename can drop a column on boot. With migrations, the same change becomes a reviewable SQL file you apply on deploy.</figcaption>
+  </figure>
+
+  <h2>How do I run TypeORM migrations?</h2>
+  <p>Migrations are versioned SQL files TypeORM tracks in a <code>migrations</code> table. You generate one by diffing entities against the database, commit it to Git, and run it on deploy. Three commands do almost everything.</p>
+
+  <p>With TypeScript, the cleanest setup is a few package.json scripts that point the CLI at your DataSource. Modern TypeORM ships <code>typeorm-ts-node-commonjs</code> for exactly this:</p>
+
+<pre><code>// package.json
+{
+  "scripts": {
+    "typeorm": "typeorm-ts-node-commonjs -d ./src/data-source.ts",
+    "migration:generate": "npm run typeorm -- migration:generate ./src/migrations/Change",
+    "migration:run": "npm run typeorm -- migration:run",
+    "migration:revert": "npm run typeorm -- migration:revert"
+  }
+}</code></pre>
+
+  <p>Then the day-to-day flow:</p>
+
+<pre><code># 1. change an entity, then diff it into a new migration file
+npm run migration:generate
+
+# 2. apply pending migrations (this is the one you run on deploy)
+npm run migration:run
+
+# 3. roll back the most recent migration if something's wrong
+npm run migration:revert</code></pre>
+
+  <p>Generate locally, review the SQL it produced (the step people skip, and the whole point of migrations), commit the file, and let production run it. If TypeORM prints <code>No changes in database schema were found - cannot generate a migration</code>, your entities already match the database. Nothing to do.</p>
+
+  <p>Two ways to trigger the run on deploy. Call <code>npm run migration:run</code> as an explicit deploy step, which I prefer because it's visible in the logs. Or let the DataSource run pending migrations itself on startup:</p>
+
+<pre><code>export const AppDataSource = new DataSource({
+  // ...
+  migrationsRun: true,   // run pending migrations automatically on initialize()
+});</code></pre>
+
+  <p><code>migrationsRun</code> is convenient, but with several instances booting at once you get multiple migrations racing. For one instance it's fine. For anything bigger, run migrations as a dedicated step before the new version takes traffic. On Kloudbean's managed CI/CD you drop <code>npm run migration:run</code> into the deploy step and watch it stream in the live build logs.</p>
+
+  <!-- ADD IMAGE: deploy logs showing migration:run applying a migration. Swap for a real screenshot: src -> images/migration-run-logs.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Deploy logs with migration:run applying a pending migration.</em><small>Shows migrations running as part of deploy.</small></span></figure>
+
+  <h2>Configuring the TypeORM connection pool</h2>
+  <p>TypeORM doesn't invent its own pool. It uses the underlying driver's pool: <code>pg</code> for Postgres, <code>mysql2</code> for MySQL. Your job is to cap it at a number you actually chose. The simple option is <code>poolSize</code>, which maps to the driver's max:</p>
+
+<pre><code>export const AppDataSource = new DataSource({
+  type: "postgres",
+  url: process.env.DATABASE_URL,
+  poolSize: 10,                 // cap the pool at 10 connections
+});</code></pre>
+
+  <p>Need finer control, or a driver-specific option? Pass it through <code>extra</code>, which TypeORM hands straight to the driver. For <code>pg</code>:</p>
+
+<pre><code>extra: {
+  max: 10,                      // pg Pool max connections
+  connectionTimeoutMillis: 10000,
+  idleTimeoutMillis: 30000,
+}</code></pre>
+
+  <p>For MySQL the equivalent is <code>connectionLimit</code>:</p>
+
+<pre><code>extra: { connectionLimit: 10 }</code></pre>
+
+  <p>Why bother? A database has a hard ceiling on total connections. Postgres defaults to 100, and every connection is a real server-side process. Once they're all taken, the next query gets <code>sorry, too many clients already</code> and your app looks down even though the code is fine.</p>
+
+  <p>Here's the multiplier that catches Node developers: the pool is per process, and Node apps run several. Use PM2 cluster mode with four workers and that's four pools, so a "pool of 10" is really 40 connections. Add a second server, 80. Easy to forget: <code>workers &times; poolSize &times; servers</code> has to stay comfortably under the database's ceiling. Pick the size on purpose. The deeper mechanics, including when to add PgBouncer, are in <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>.</p>
+
+  <figure>
+    <img src="../assets/console/server-health.png" alt="The Kloudbean server health view showing CPU, RAM and disk, useful when tuning a TypeORM connection pool">
+    <figcaption>Server health (CPU, RAM, disk) in the Kloudbean console. Watch resource use as you tune pool size and worker count.</figcaption>
+  </figure>
+
+  <h2>Connecting over SSL, and why the private network wins</h2>
+  <p>If your database sits behind a public endpoint, the connection should be encrypted, and many managed providers require it. TypeORM passes SSL options through <code>extra</code>:</p>
+
+<pre><code>extra: {
+  ssl: { rejectUnauthorized: false },   // see the caveat below
+}</code></pre>
+
+  <p>A word on <code>rejectUnauthorized: false</code>, since it's everywhere and isn't free. It tells the driver to accept the certificate without checking it against a trusted CA, which clears the handshake error but stops you confirming you reached the real database. The stricter version supplies the provider's CA and keeps verification on:</p>
+
+<pre><code>import { readFileSync } from "fs";
+
+extra: {
+  ssl: {
+    rejectUnauthorized: true,
+    ca: readFileSync(process.env.DB_CA_CERT_PATH!).toString(),
+  },
+}</code></pre>
+
+  <p>An opinion I'll defend: the cleanest way to handle database SSL is to not need it. If your app and database share a private network, the database never gets a public address, so there's nothing exposed to the internet to encrypt. On Kloudbean the app reaches the database internally, so the usual setup is a plain internal connection, no public SSL to configure. Fewer moving parts, smaller attack surface.</p>
+
+  <h2>Keep the connection string in the environment</h2>
+  <p>Every snippet reads <code>process.env</code>, and that's deliberate. The connection string is a secret, and secrets don't belong in your source, your Git history, or a Slack screenshot. On Kloudbean you set them under Runtime Configuration, Environment Variables, and the app reads them at boot.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console Environment Variables screen where the TypeORM DATABASE_URL is stored instead of in code">
+    <figcaption>Runtime Configuration, Environment Variables: the TypeORM DATABASE_URL lives here, out of the repo and easy to rotate.</figcaption>
+  </figure>
+
+<pre><code># set in Runtime Configuration, Environment Variables (not in code)
+DATABASE_URL=postgresql://appuser:s3cret@10.0.0.5:5432/appdb</code></pre>
+
+  <p>Keeping it in the environment means you can rotate a leaked password without a code change, and nobody accidentally commits prod credentials. Fuller treatment, including per-environment values, in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>.</p>
+
+  <h2>Using TypeORM with NestJS</h2>
+  <p>On NestJS the ideas above don't change, only the wiring does. Instead of a bare <code>DataSource</code> you register <code>TypeOrmModule.forRoot</code> (or <code>forRootAsync</code> when you need config injected). Same two production settings: read from the env, and <code>synchronize: false</code>.</p>
+
+<pre><code>// app.module.ts
+import { Module } from "@nestjs/common";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { User } from "./entities/user.entity";
+
+@Module({
+  imports: [
+    TypeOrmModule.forRoot({
+      type: "postgres",
+      url: process.env.DATABASE_URL,
+      entities: [User],
+      migrations: ["dist/migrations/*.js"],
+      synchronize: false,
+      autoLoadEntities: true,
+    }),
+  ],
+})
+export class AppModule {}</code></pre>
+
+  <p>NestJS is a Node framework, so it runs on the managed Node runtime like any Express or Fastify app. The full walkthrough is in <a href="https://www.kloudbean.com/blog/deploy-nestjs-app/">deploy a NestJS app</a>.</p>
+
+  <h2>TypeORM vs Prisma vs Drizzle</h2>
+  <p>People connecting TypeORM to a database are often quietly asking if they picked the right tool. Fair question. Honest one-line-each, no gushing:</p>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>TypeORM</th><th>Prisma</th><th>Drizzle</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Schema lives in</strong></td><td>Decorated TS classes</td><td>schema.prisma DSL</td><td>Plain TS objects</td></tr>
+      <tr><td><strong>Feel</strong></td><td>Full classic ORM</td><td>Generated typed client</td><td>Thin, SQL-first</td></tr>
+      <tr><td><strong>Migrations</strong></td><td><code>migration:generate</code> / <code>run</code></td><td><code>migrate dev</code> / <code>deploy</code></td><td><code>drizzle-kit generate</code> / <code>migrate</code></td></tr>
+      <tr><td><strong>Prod foot-gun</strong></td><td><code>synchronize: true</code></td><td><code>migrate dev</code> in prod</td><td><code>push</code> in prod</td></tr>
+      <tr><td><strong>Reach for it when</strong></td><td>You want decorators, NestJS, an established ORM</td><td>You want a polished generated client</td><td>You want to feel the SQL</td></tr>
+    </tbody>
+  </table>
+
+  <p>TypeORM's strength is being a mature, full ORM with first-class decorator and NestJS support, plus a huge base of existing code and answers to lean on. Already invested? Stay. Weighing the field? The sibling guides go deep on each: <a href="https://www.kloudbean.com/blog/connect-prisma-to-a-managed-database/">Prisma</a> and <a href="https://www.kloudbean.com/blog/connect-drizzle-to-postgres/">Drizzle</a>. All three run on the same managed Postgres or MySQL, so the database choice is independent of the ORM.</p>
+
+  <h2>Where TypeORM breaks in production</h2>
+  <p>Almost every TypeORM production problem comes down to configuration, not the library. A short field guide to the usual evening-killers:</p>
+  <ul>
+    <li><strong>Left <code>synchronize: true</code> on.</strong> The big one. A deploy quietly alters or drops columns. Set it <code>false</code> and use migrations.</li>
+    <li><strong>Entities glob points at <code>.ts</code> in production.</strong> You ship <code>.js</code>, TypeORM finds nothing, and you get <code>EntityMetadataNotFoundError</code>. Point globs at <code>dist</code> or import the classes.</li>
+    <li><strong>Forgot <code>import "reflect-metadata"</code>.</strong> Decorator metadata never loads and entities misbehave. Import it first, at the entry point.</li>
+    <li><strong>Never ran migrations.</strong> First query hits a missing table: <code>QueryFailedError: relation "user" does not exist</code>. Make <code>migration:run</code> part of deploy.</li>
+    <li><strong>No pool cap with PM2 cluster.</strong> Four workers times a default pool, times two servers, and you meet <code>sorry, too many clients already</code>. Do the multiplication.</li>
+    <li><strong>Committed the <code>.env</code>.</strong> The real connection string lands in Git forever. Keep it in the environment.</li>
+  </ul>
+  <p>One more, quieter: eager relations. Load a list of users and, because a relation is eager or you passed <code>relations</code> broadly, you can fire a query per row without noticing. That's the classic N+1, and TypeORM makes it comfortable to trip over. Slow list endpoint? Check there first. Full breakdown in <a href="https://www.kloudbean.com/blog/n-plus-one-query-problem/">the N+1 query problem</a>.</p>
+
+  <h2>Connect TypeORM to a managed database on Kloudbean</h2>
+  <p>Everything above assumes a real database on the other end: always-on, backed up, patched, on a private network rather than open to the world. That's a managed database, near enough exactly.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="Launching a managed PostgreSQL or MySQL database in the Kloudbean console to connect a TypeORM app to">
+    <figcaption>DBS, Launch Database: pick PostgreSQL, MySQL, or MariaDB and it arrives provisioned, patched, and backed up.</figcaption>
+  </figure>
+
+  <p>The flow is short. Launch a managed PostgreSQL, MySQL, or MariaDB, copy the host, port, database, user, and password into your environment variables, then deploy your Node or NestJS app on the same server so the two share a private network. Point your DataSource at it and run your migrations. One dashboard for the app, the database, the backups, and the env vars, no separate providers to stitch together. The framework-agnostic pillar is <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">add a managed database to your app</a>, and the engine deep-dive is <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a>.</p>
+
+  <!-- ADD IMAGE: the connection details panel after launching the database, host and port visible. Swap for a real screenshot: src -> images/db-connection-details.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The connection details panel after launch: host, port, database, user.</em><small>Shows exactly what feeds the DataSource.</small></span></figure>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Give your TypeORM app a database built for production.</p>
+    <p style="margin:0 0 .6em">Launch managed PostgreSQL or MySQL, drop the connection string into one environment variable, set <code>synchronize: false</code>, and run your migrations on a private network with automatic backups. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans from $8/mo on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">One-click databases · Automatic backups · Private networking · Env vars in the UI · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I connect TypeORM to a database in production?</h3>
+    <p>Create a DataSource that reads your connection string from an environment variable, list your entities and a migrations glob that points at your compiled output, and set synchronize to false. Call initialize once when the app starts. Run your migrations on deploy, cap the connection pool, and reach the database over a private network so it has no public exposure.</p>
+    <h3>What is a TypeORM DataSource?</h3>
+    <p>The DataSource is the object that holds your connection settings, entities, migrations, and the driver connection pool. Since TypeORM 0.3 it replaces the older createConnection call. You create one DataSource, call initialize once, and share it for the life of the process rather than creating a new one per request.</p>
+    <h3>Should I use synchronize in production?</h3>
+    <p>No. synchronize true makes TypeORM alter the database to match your entities on every boot, and a renamed property is seen as a dropped column plus a new one, which loses data with no prompt and no undo. It is convenient in local development but dangerous against real data. Set synchronize false in production and manage schema changes with migrations.</p>
+    <h3>How do I run TypeORM migrations?</h3>
+    <p>Change an entity, then run typeorm migration:generate to diff it into a new SQL migration file. Review the generated SQL, commit it, and run typeorm migration:run to apply pending migrations, typically as a deploy step. Use migration:revert to roll back the most recent one. You can also set migrationsRun true to apply pending migrations automatically on initialize.</p>
+    <h3>How do I configure the TypeORM connection pool?</h3>
+    <p>TypeORM uses the underlying driver pool, so set poolSize for a simple cap, or pass driver options through extra, such as max for the pg driver or connectionLimit for mysql2. Choose the number deliberately, because the pool is per process. If you run PM2 cluster mode or several servers, multiply workers by pool size by servers and keep the total under the database connection ceiling.</p>
+    <h3>How do I connect TypeORM to a database over SSL?</h3>
+    <p>Pass SSL options through the extra field, for example ssl with rejectUnauthorized. Setting rejectUnauthorized to false stops handshake errors but skips certificate verification, so the stricter option is to supply the provider CA and keep verification on. When the app and database share a private network, as on Kloudbean, the common setup is a plain internal connection with no public SSL to configure.</p>
+    <h3>TypeORM vs Prisma, which should I use?</h3>
+    <p>TypeORM is a mature full ORM built around decorated entity classes with strong NestJS support, so it fits teams that want a classic ORM and a large existing ecosystem. Prisma offers a generated, typed client that some teams find quicker to start with. Both are solid and both run on the same managed Postgres or MySQL, so pick on developer preference rather than database support.</p>
+    <h3>How do I use TypeORM with NestJS?</h3>
+    <p>Register TypeOrmModule.forRoot, or forRootAsync when you need injected config, with the same production settings: read the connection from the environment and keep synchronize false. Use autoLoadEntities so registered entities are picked up. NestJS is a Node framework, so it deploys on a managed Node runtime like any other Node app.</p>
+    <h3>Why does TypeORM say EntityMetadataNotFound or relation does not exist?</h3>
+    <p>EntityMetadataNotFoundError usually means TypeORM did not load your entities, often because the entities glob points at .ts files while production runs compiled .js, or because reflect-metadata was not imported. A relation does not exist error usually means migrations never ran, so the table is missing. Point globs at your compiled output or import entities directly, and run migrations on deploy.</p>
+    <h3>Does TypeORM work with both PostgreSQL and MySQL?</h3>
+    <p>Yes. Set type to postgres or mysql and provide the matching connection details, and the entity and repository code you write stays the same. A few native types and behaviors differ between the engines, but your DataSource, entities, and migration commands do not change. Both are available as managed engines, alongside MariaDB.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Decorators up top, a managed database doing the real work underneath.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Connect TypeORM to a Database in Production","description":"Connect TypeORM to a database in production: build a DataSource from env, define entities, run migrations, keep synchronize false, and size the connection pool.","image":"https://www.kloudbean.com/blog/connect-typeorm-to-a-database/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/connect-typeorm-to-a-database/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I connect TypeORM to a database in production?","acceptedAnswer":{"@type":"Answer","text":"Create a DataSource that reads your connection string from an environment variable, list your entities and a migrations glob that points at your compiled output, and set synchronize to false. Call initialize once when the app starts. Run your migrations on deploy, cap the connection pool, and reach the database over a private network so it has no public exposure."}},
+{"@type":"Question","name":"What is a TypeORM DataSource?","acceptedAnswer":{"@type":"Answer","text":"The DataSource is the object that holds your connection settings, entities, migrations, and the driver connection pool. Since TypeORM 0.3 it replaces the older createConnection call. You create one DataSource, call initialize once, and share it for the life of the process rather than creating a new one per request."}},
+{"@type":"Question","name":"Should I use synchronize in production?","acceptedAnswer":{"@type":"Answer","text":"No. synchronize true makes TypeORM alter the database to match your entities on every boot, and a renamed property is seen as a dropped column plus a new one, which loses data with no prompt and no undo. It is convenient in local development but dangerous against real data. Set synchronize false in production and manage schema changes with migrations."}},
+{"@type":"Question","name":"How do I run TypeORM migrations?","acceptedAnswer":{"@type":"Answer","text":"Change an entity, then run typeorm migration:generate to diff it into a new SQL migration file. Review the generated SQL, commit it, and run typeorm migration:run to apply pending migrations, typically as a deploy step. Use migration:revert to roll back the most recent one. You can also set migrationsRun true to apply pending migrations automatically on initialize."}},
+{"@type":"Question","name":"How do I configure the TypeORM connection pool?","acceptedAnswer":{"@type":"Answer","text":"TypeORM uses the underlying driver pool, so set poolSize for a simple cap, or pass driver options through extra, such as max for the pg driver or connectionLimit for mysql2. Choose the number deliberately, because the pool is per process. If you run PM2 cluster mode or several servers, multiply workers by pool size by servers and keep the total under the database connection ceiling."}},
+{"@type":"Question","name":"How do I connect TypeORM to a database over SSL?","acceptedAnswer":{"@type":"Answer","text":"Pass SSL options through the extra field, for example ssl with rejectUnauthorized. Setting rejectUnauthorized to false stops handshake errors but skips certificate verification, so the stricter option is to supply the provider CA and keep verification on. When the app and database share a private network, as on Kloudbean, the common setup is a plain internal connection with no public SSL to configure."}},
+{"@type":"Question","name":"TypeORM vs Prisma, which should I use?","acceptedAnswer":{"@type":"Answer","text":"TypeORM is a mature full ORM built around decorated entity classes with strong NestJS support, so it fits teams that want a classic ORM and a large existing ecosystem. Prisma offers a generated, typed client that some teams find quicker to start with. Both are solid and both run on the same managed Postgres or MySQL, so pick on developer preference rather than database support."}},
+{"@type":"Question","name":"How do I use TypeORM with NestJS?","acceptedAnswer":{"@type":"Answer","text":"Register TypeOrmModule.forRoot, or forRootAsync when you need injected config, with the same production settings: read the connection from the environment and keep synchronize false. Use autoLoadEntities so registered entities are picked up. NestJS is a Node framework, so it deploys on a managed Node runtime like any other Node app."}},
+{"@type":"Question","name":"Why does TypeORM say EntityMetadataNotFound or relation does not exist?","acceptedAnswer":{"@type":"Answer","text":"EntityMetadataNotFoundError usually means TypeORM did not load your entities, often because the entities glob points at .ts files while production runs compiled .js, or because reflect-metadata was not imported. A relation does not exist error usually means migrations never ran, so the table is missing. Point globs at your compiled output or import entities directly, and run migrations on deploy."}},
+{"@type":"Question","name":"Does TypeORM work with both PostgreSQL and MySQL?","acceptedAnswer":{"@type":"Answer","text":"Yes. Set type to postgres or mysql and provide the matching connection details, and the entity and repository code you write stays the same. A few native types and behaviors differ between the engines, but your DataSource, entities, and migration commands do not change. Both are available as managed engines, alongside MariaDB."}}
+]}
+]}
+</script>
+</body>
+</html>

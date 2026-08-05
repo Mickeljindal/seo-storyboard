@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI-Built App Security Checklist: Secure Your Vibe-Coded App</title>
+<meta name="description" content="An AI-built app security checklist for vibe-coded apps from Lovable, Bolt, Cursor, and v0. The real holes generated code ships with, the risk each one carries, and the exact fix.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/ai-built-app-security-checklist/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="AI-Built App Security Checklist: Secure Your Vibe-Coded App">
+<meta property="og:description" content="The security holes AI-generated apps ship with, and the exact fix for each: secrets, exposed databases, weak auth, no validation, CORS, CVEs, HTTPS, rate limits, backups.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Security &middot; AI builders</span>
+  <h1>The AI-Built App Security Checklist: Secure Your Vibe-Coded App</h1>
+  <p class="byline">By Kloudbean Security &middot; The gap between an AI app that works and one that's safe to ship.</p>
+
+  <figure><img src="images/hero.png" alt="AI-built app security checklist: the risky defaults generated code ships with, and the hardened fixes"></figure>
+
+  <p class="lead">Lovable, Bolt, Cursor, Replit, v0. These tools will hand you a working app in an afternoon, and honestly, most of the time the code is fine. What they don't hand you is a security review. This AI-built app security checklist walks the real holes generated code tends to ship with, why each one is dangerous, and the exact fix. If you've been quietly wondering "is my AI app secure," start here.</p>
+
+  <div class="tldr">
+    <strong>How do I secure an app built with an AI tool?</strong>
+    <p>Work the same short list every time. Move secrets out of the client and out of Git into server-side environment variables. Keep the database off the public internet. Add real authentication and server-side access checks. Validate every input. Lock down CORS. Patch dependency CVEs. Force HTTPS. Add rate limiting. Turn on backups. AI writes code that works. Making it safe is your job, and it's mostly this checklist.</p>
+  </div>
+
+  <h2>Why AI-built apps ship with security holes</h2>
+  <p>Start with the honest version, because it's not what people expect. AI coding tools aren't insecure by design. They're just aimed at a different target. Their whole job is to get you a working preview fast, so they optimize for "it runs," not "it survives an attacker." A threat model isn't in the prompt. So the app works on the first try and quietly carries a handful of the same gaps, over and over.</p>
+  <p>That's the mental shift. Generated code optimizes for working. Security is on you. Not because the tool failed, but because nobody told the model your app would one day hold real users' data on the open internet.</p>
+  <p>A founder-level note worth saying plainly: the most common way an AI-built app gets breached is boring. It's not an exotic zero-day. It's an API key sitting in the front-end bundle or committed to a public Git repo, found by an automated scanner within minutes. Bots watch new commits for exactly this. Fix the boring stuff first and you've closed most of your real risk.</p>
+  <p>One more frame that saves a lot of confusion. Hosting security is a split. The platform hardens the infrastructure under your app, and you own the code and data inside it. That's the <a href="https://www.kloudbean.com/blog/secure-compliant-hosting/">shared-responsibility model</a>, and this checklist is mostly your side of that line. If you haven't shipped the app yet, the <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">full guide to deploying an AI-built app to production</a> covers the going-live steps this list assumes.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 486" role="img" aria-label="The AI-built app attack surface. Left column, what generated code ships: secrets in the client or Git, a database reachable from the browser, stubbed or missing auth, unvalidated input, and plain HTTP with permissive CORS. Right column, the hardened version: secrets in server env vars, the database behind an API on a private network, real auth with two-factor, validated and parameterized input with security headers, and HTTPS with tight CORS." style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <defs>
+        <marker id="kbArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0 0 L10 5 L0 10 z" fill="#4F1AF3"/>
+        </marker>
+      </defs>
+      <text x="28" y="32" fill="#000f27" font-family="Poppins,sans-serif" font-size="17" font-weight="700">The AI-built app attack surface</text>
+      <text x="28" y="53" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12.5">What generated code tends to ship (left), and the version that survives real users (right).</text>
+
+      <!-- Left card: risky -->
+      <rect x="22" y="72" width="312" height="396" rx="14" fill="#000f27"/>
+      <text x="42" y="102" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12.5" font-weight="700" letter-spacing="1">SHIPS LIKE THIS</text>
+      <text x="42" y="120" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="11">optimized for "it works"</text>
+
+      <!-- Right card: hardened -->
+      <rect x="426" y="72" width="312" height="396" rx="14" fill="#ffffff" stroke="#40b75f" stroke-width="2"/>
+      <text x="446" y="102" fill="#000f27" font-family="Poppins,sans-serif" font-size="12.5" font-weight="700" letter-spacing="1">HARDEN IT TO THIS</text>
+      <text x="446" y="120" fill="#2f7d45" font-family="Poppins,sans-serif" font-size="11">optimized for "it's safe"</text>
+
+      <!-- Row template: icon + two lines each side, arrow across -->
+      <!-- Row 1: Secrets, center 168 -->
+      <circle cx="52" cy="166" r="6" fill="#4F1AF3"/>
+      <text x="70" y="164" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Secrets</text>
+      <text x="70" y="180" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="11">API keys in the client or Git</text>
+      <line x1="342" y1="166" x2="418" y2="166" stroke="#4F1AF3" stroke-width="2" marker-end="url(#kbArrow)"/>
+      <circle cx="456" cy="166" r="9" fill="#ffffff" stroke="#40b75f" stroke-width="1.8"/>
+      <path d="M451.5 166 l3 3 l5.5 -7" fill="none" stroke="#40b75f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="474" y="164" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="600">In server env vars</text>
+      <text x="474" y="180" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">rotated, out of Git</text>
+
+      <!-- Row 2: Database, center 228 -->
+      <circle cx="52" cy="226" r="6" fill="#4F1AF3"/>
+      <text x="70" y="224" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Database</text>
+      <text x="70" y="240" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="11">reachable from the browser</text>
+      <line x1="342" y1="226" x2="418" y2="226" stroke="#4F1AF3" stroke-width="2" marker-end="url(#kbArrow)"/>
+      <circle cx="456" cy="226" r="9" fill="#ffffff" stroke="#40b75f" stroke-width="1.8"/>
+      <path d="M451.5 226 l3 3 l5.5 -7" fill="none" stroke="#40b75f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="474" y="224" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Behind an API</text>
+      <text x="474" y="240" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">on a private network</text>
+
+      <!-- Row 3: Auth, center 288 -->
+      <circle cx="52" cy="286" r="6" fill="#4F1AF3"/>
+      <text x="70" y="284" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Auth</text>
+      <text x="70" y="300" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="11">stubbed or missing checks</text>
+      <line x1="342" y1="286" x2="418" y2="286" stroke="#4F1AF3" stroke-width="2" marker-end="url(#kbArrow)"/>
+      <circle cx="456" cy="286" r="9" fill="#ffffff" stroke="#40b75f" stroke-width="1.8"/>
+      <path d="M451.5 286 l3 3 l5.5 -7" fill="none" stroke="#40b75f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="474" y="284" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Real auth + 2FA</text>
+      <text x="474" y="300" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">checks on the server</text>
+
+      <!-- Row 4: Input, center 348 -->
+      <circle cx="52" cy="346" r="6" fill="#4F1AF3"/>
+      <text x="70" y="344" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Input</text>
+      <text x="70" y="360" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="11">trusted, unescaped</text>
+      <line x1="342" y1="346" x2="418" y2="346" stroke="#4F1AF3" stroke-width="2" marker-end="url(#kbArrow)"/>
+      <circle cx="456" cy="346" r="9" fill="#ffffff" stroke="#40b75f" stroke-width="1.8"/>
+      <path d="M451.5 346 l3 3 l5.5 -7" fill="none" stroke="#40b75f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="474" y="344" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Validated + parameterized</text>
+      <text x="474" y="360" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">security headers set</text>
+
+      <!-- Row 5: Transport, center 408 -->
+      <circle cx="52" cy="406" r="6" fill="#4F1AF3"/>
+      <text x="70" y="404" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Transport</text>
+      <text x="70" y="420" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="11">plain HTTP, CORS wide open</text>
+      <line x1="342" y1="406" x2="418" y2="406" stroke="#4F1AF3" stroke-width="2" marker-end="url(#kbArrow)"/>
+      <circle cx="456" cy="406" r="9" fill="#ffffff" stroke="#40b75f" stroke-width="1.8"/>
+      <path d="M451.5 406 l3 3 l5.5 -7" fill="none" stroke="#40b75f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="474" y="404" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="600">HTTPS + tight CORS</text>
+      <text x="474" y="420" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">free auto-renewing SSL</text>
+
+      <text x="384" y="452" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">Same app. Same code. One column is a demo, the other is production.</text>
+    </svg>
+    <figcaption>The attack surface an AI-built app ships with, and the hardened version. The checklist below is how you get from the left column to the right.</figcaption>
+  </figure>
+
+  <h2>The AI-built app security checklist, item by item</h2>
+  <p>Nine checks. Each one is a symptom you can look for, the risk it creates, and the fix. Work top to bottom. The first three close the most common breaches, so if you only have an hour, do those.</p>
+
+  <h3>1. Secrets and API keys hard-coded in the client or committed to Git</h3>
+  <p><strong>Symptom:</strong> an <code>OPENAI_API_KEY</code>, a Stripe secret, or a database password sitting in a React component, a config file, or your commit history. Anything prefixed <code>VITE_</code> or <code>NEXT_PUBLIC_</code> is shipped to the browser too, where anyone can read it in devtools.</p>
+  <p><strong>Risk:</strong> this is the number-one AI-app breach. A leaked key is a blank cheque. Someone runs up your OpenAI bill, drains your Stripe account, or reads your whole database. Scanners crawl public repos for key patterns and hit within minutes of a push.</p>
+  <p><strong>Fix:</strong> move every secret to server-side environment variables, never the client. In the Kloudbean console that's Runtime Configuration, Environment Variables (there's a Paste .env tab). Then rotate any key that ever touched your code or Git, because a key that leaked once is burned. If a secret is in your history, scrub it; deleting the file in a new commit is not enough. Full walkthrough in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>.</p>
+  <pre><code># Server-side only. Never in client code, never committed.
+OPENAI_API_KEY=sk-...
+STRIPE_SECRET_KEY=sk_live_...
+DATABASE_URL=postgresql://appuser:secret@10.0.0.5:5432/appdb</code></pre>
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console Environment Variables editor, where API keys and secrets live server-side instead of in the code">
+    <figcaption>Secrets belong here, in server-side environment variables, not in the front-end bundle or the repo.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: show a leaked key example. A .env or a front-end file with a real-looking API key, then the same key moved to server env vars. Swap for a real screenshot: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Before and after: an API key hard-coded in a front-end file, then the same key moved into server-side environment variables.</em><small>Blur any real values.</small></span></figure>
+
+  <h3>2. Database credentials or the database itself exposed to the browser</h3>
+  <p><strong>Symptom:</strong> the browser connects straight to the database, or the database has a public IP and a password. Some generated apps wire the front end directly to a data layer to skip building an API.</p>
+  <p><strong>Risk:</strong> if the browser can reach your database, so can everyone. A public database with a weak password gets found by scanners in hours, and then your data is copied, encrypted for ransom, or wiped.</p>
+  <p><strong>Fix:</strong> put an API between the browser and the data, and keep the database off the public internet. On Kloudbean the app talks to a managed database over a private network (VPC), so the database isn't sitting on the open web. Give the app a least-privilege database user, not a superuser. The how-to is in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a>.</p>
+
+  <h3>3. Missing or weak authentication and broken access control</h3>
+  <p><strong>Symptom:</strong> auth is stubbed ("TODO: check the user"), or it exists on the login screen but the API endpoints don't actually verify who's calling. A classic tell: you can change an <code>id</code> in a URL and see someone else's data.</p>
+  <p><strong>Risk:</strong> broken access control is the most common serious web vulnerability there is. If your server trusts the client to say "I'm allowed," anyone can lie. AI tools love to scaffold a pretty login and leave the enforcement half-built.</p>
+  <p><strong>Fix:</strong> enforce auth on the server, on every protected route, and check that the logged-in user actually owns the record they're asking for. Don't trust a hidden field or a front-end role flag. For your Kloudbean account itself, turn on two-factor auth, and if a team touches the app, use subusers with User Access Control so each person gets only the access their job needs.</p>
+  <figure>
+    <img src="../assets/console/user-2fa-security.png" alt="The Kloudbean console two-factor authentication and account security screen">
+    <figcaption>Two-factor on the account, real access checks in the app. A stolen password alone shouldn't open anything.</figcaption>
+  </figure>
+
+  <h3>4. No input validation, which opens the door to injection and XSS</h3>
+  <p><strong>Symptom:</strong> user input goes straight into a database query, an HTML page, or a shell command with no checking. String-concatenated SQL is the giveaway.</p>
+  <p><strong>Risk:</strong> SQL injection lets an attacker read or destroy your database through a form field. Cross-site scripting (XSS) lets them run code in your users' browsers and steal sessions. Both are old, both are still everywhere, and generated code frequently skips the guardrails.</p>
+  <p><strong>Fix:</strong> validate and sanitize every input on the server. Use parameterized queries or an ORM so data is never concatenated into SQL. Escape output before it hits the page. And set HTTP security headers (a Content-Security-Policy, HSTS, and friends) so the browser helps defend your users. The <a href="https://www.kloudbean.com/blog/security-headers-guide/">security headers guide</a> has the exact headers and values.</p>
+  <pre><code>// Vulnerable: user input concatenated into SQL
+db.query("SELECT * FROM users WHERE email = '" + email + "'");
+
+// Safe: parameterized, the driver handles escaping
+db.query("SELECT * FROM users WHERE email = $1", [email]);</code></pre>
+
+  <!-- ADD IMAGE: a simple diagram or code shot contrasting a string-concatenated query with a parameterized one. Swap for a real screenshot: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Side by side: a string-concatenated query (vulnerable) next to a parameterized query (safe).</em><small>Or a browser console showing a blocked inline script from a CSP.</small></span></figure>
+
+  <h3>5. Overly permissive CORS</h3>
+  <p><strong>Symptom:</strong> your API sets <code>Access-Control-Allow-Origin: *</code>, or reflects any origin back. AI tools reach for the wildcard because it makes the "why won't my front end talk to my API" error disappear.</p>
+  <p><strong>Risk:</strong> a wildcard tells every website on the internet that it's welcome to call your API from a victim's browser. Combined with weak auth, that's a real path to data theft.</p>
+  <p><strong>Fix:</strong> allow only the origins you actually use. Your production domain, maybe localhost while you develop. Nothing else.</p>
+  <pre><code>// Overly permissive: every origin allowed
+app.use(cors());
+
+// Locked down: only your app
+app.use(cors({ origin: "https://yourapp.com" }));</code></pre>
+
+  <h3>6. Dependency CVEs in the generated package.json</h3>
+  <p><strong>Symptom:</strong> the app pulls in dozens of packages you never chose, some pinned to old versions with known vulnerabilities (CVEs).</p>
+  <p><strong>Risk:</strong> a patched server won't save you from a hole in a library you shipped. Attackers scan for known-vulnerable versions because it's easy and it works.</p>
+  <p><strong>Fix:</strong> run your language's audit and update what it flags. Do it before launch, then on a schedule. If you ship containers, scan the image too.</p>
+  <pre><code># Node
+npm audit
+npm audit fix
+
+# Python
+pip-audit</code></pre>
+
+  <h3>7. No HTTPS</h3>
+  <p><strong>Symptom:</strong> the app is served over plain <code>http://</code>, or the certificate expired and nobody noticed.</p>
+  <p><strong>Risk:</strong> without HTTPS, logins, session cookies, and form data travel as plain text that anyone on the network path can read. Browsers also flag the site as "Not secure," which quietly kills trust.</p>
+  <p><strong>Fix:</strong> serve everything over HTTPS and force a redirect from HTTP. On Kloudbean you install a free Let's Encrypt certificate that renews itself, so there's no expiry to forget. This one is genuinely easy, so there's no excuse to skip it.</p>
+  <figure>
+    <img src="../assets/console/ssl-certificate.png" alt="The Kloudbean console SSL certificate screen with a free, auto-renewing HTTPS certificate for a domain">
+    <figcaption>Free, auto-renewing SSL. Turn it on, force HTTPS, and never think about an expired certificate again.</figcaption>
+  </figure>
+
+  <h3>8. No rate limiting or brute-force protection</h3>
+  <p><strong>Symptom:</strong> a login endpoint or an API that will happily accept ten thousand requests a minute from one address.</p>
+  <p><strong>Risk:</strong> without limits, attackers brute-force passwords, scrape data, and run up your bill. AI-generated apps almost never include rate limiting out of the box.</p>
+  <p><strong>Fix:</strong> two layers. At the server level, every Kloudbean server ships with a Shorewall firewall and Fail2ban already on, which bans an IP that keeps failing to log in (the signature of a brute-force bot). At the app level, add rate limiting to sensitive endpoints, especially login and password reset. BitNinja is available as an added layer on higher plans if you want more, but the firewall and Fail2ban are the floor you already stand on.</p>
+  <figure>
+    <img src="../assets/console/firewall.png" alt="The Kloudbean console firewall screen showing Shorewall and Fail2ban enabled by default, with BitNinja as an added option">
+    <figcaption>Shorewall and Fail2ban are on from the first minute. BitNinja is an optional extra, not the baseline.</figcaption>
+  </figure>
+
+  <h3>9. No backups</h3>
+  <p><strong>Symptom:</strong> nothing is making a restorable copy of your data. A bad migration or one wrong <code>DELETE</code> would be permanent.</p>
+  <p><strong>Risk:</strong> ransomware, a fat-fingered query, or a broken deploy can erase everything, and "everything" includes your users' data. Recovery without a backup is often just an apology.</p>
+  <p><strong>Fix:</strong> turn on automatic backups, and here's the part almost everyone skips: restore one on purpose, once, before you actually need it. A backup you've never restored is a hope, not a plan.</p>
+
+  <!-- ADD IMAGE: the backups screen or a restore-in-progress view. Swap for a real screenshot: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The backups view: automatic backups enabled, and a restore point being tested.</em><small>Reinforces "test a restore before you need it."</small></span></figure>
+
+  <h2>The checklist at a glance</h2>
+  <p>The whole list in one grid. Scan it, find what matches your app, and jump back up to the fix.</p>
+  <table class="cmp">
+    <thead><tr><th>What AI-generated code often ships</th><th>Why it's risky</th><th>The fix</th></tr></thead>
+    <tbody>
+      <tr><td>Secrets in client code or Git</td><td>Leaked key, drained account, exposed data</td><td>Server-side env vars, rotate, scrub history</td></tr>
+      <tr><td>Database reachable from the browser</td><td>Anyone can read or wipe your data</td><td>API in front, private network, least-privilege user</td></tr>
+      <tr><td>Auth stubbed or not enforced</td><td>Broken access control, users see each other's data</td><td>Enforce on the server, verify ownership, add 2FA</td></tr>
+      <tr><td>Input trusted as-is</td><td>SQL injection and XSS</td><td>Validate, parameterize, escape, set security headers</td></tr>
+      <tr><td>CORS set to a wildcard</td><td>Any site can call your API</td><td>Allow only your real origins</td></tr>
+      <tr><td>Old, vulnerable dependencies</td><td>Known CVEs attackers scan for</td><td>npm audit / pip-audit, then update</td></tr>
+      <tr><td>Plain HTTP</td><td>Credentials readable in transit</td><td>Free auto-renewing SSL, force HTTPS</td></tr>
+      <tr><td>No rate limiting</td><td>Brute-force and scraping</td><td>Fail2ban baseline plus app-level limits</td></tr>
+      <tr><td>No backups</td><td>One mistake erases everything</td><td>Automatic backups, and test a restore</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Who secures what: the shared-responsibility line</h2>
+  <p>Here's the boundary that keeps you sane. Your host hardens the infrastructure. You harden the app. A good managed platform hands you the outer layers already switched on, so you can spend your effort where only you can: the code the AI wrote.</p>
+  <p>On Kloudbean, the platform side is a real starting position. A Shorewall firewall and Fail2ban on by default. Free auto-renewing SSL. Private networking so the database stays off the open web. Two-factor auth, subusers, and User Access Control. Automatic backups. Environment-variable storage so secrets never live in code. That covers items 1, 2, 7, 8, and 9 on the infrastructure side, and gives you the tools for 3.</p>
+  <p>What no host can do for you: write safe application logic. Auth enforcement, input validation, CORS rules, and keeping your dependencies patched are yours, because they live inside the code. And a straight answer on compliance, since hosting pages love to blur it: no platform makes your application compliant on its own, and nobody can honestly promise your app a certification just by hosting it. The platform supplies the infrastructure controls an auditor wants to see; you own everything above the app boundary. The full split, including how GDPR, PCI, and SOC 2 map to it, is in the <a href="https://www.kloudbean.com/blog/secure-compliant-hosting/">secure, compliant hosting guide</a>.</p>
+
+  <h2>A 10-minute hardening pass</h2>
+  <p>If you do nothing else today, do these. In order.</p>
+  <ul>
+    <li>Search your codebase for <code>sk-</code>, <code>key</code>, <code>secret</code>, and <code>password</code>. Move every hit into server-side env vars, then rotate the keys.</li>
+    <li>Confirm your database has no public IP and the browser can't reach it directly.</li>
+    <li>Check that every protected API route verifies the user on the server, not just the UI.</li>
+    <li>Turn on HTTPS and force the redirect from HTTP.</li>
+    <li>Run <code>npm audit</code> or <code>pip-audit</code> and fix anything high or critical.</li>
+    <li>Replace any <code>cors()</code> wildcard with your real origin.</li>
+    <li>Turn on two-factor auth for your hosting account, and confirm backups are running.</li>
+  </ul>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Ship your AI-built app on a base that arrives hardened.</p>
+    <p style="margin:0 0 .6em">Spend your time on the app-level security only you can own, while the infrastructure comes secured out of the box. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, plans from $8/mo on <a href="https://www.kloudbean.com/pricing/">pricing</a> (Enterprise is custom; always verify current details there).</p>
+    <p style="margin:0">Firewall + Fail2ban baseline &middot; Free auto-renewing SSL &middot; Private networking &middot; Server-side env vars &middot; 2FA + UAC &middot; Automatic backups</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I secure an app built with an AI tool?</h3>
+    <p>Work a fixed checklist. Move secrets to server-side environment variables and rotate any that leaked, keep the database off the public internet behind an API, enforce authentication and access checks on the server, validate every input and use parameterized queries, lock CORS to your real origins, patch dependency CVEs, force HTTPS, add rate limiting, and turn on backups. AI writes working code; making it safe is your side of the work.</p>
+    <h3>Are AI-generated apps secure by default?</h3>
+    <p>Not usually, and that's not a knock on the tools. AI coding tools optimize for a working preview, not a threat model, so generated apps tend to ship with the same handful of gaps: exposed secrets, weak auth, no input validation. The code often works fine. Security is the part left to you, and it's mostly the items on this checklist.</p>
+    <h3>My API key is in my front-end code. Is that bad?</h3>
+    <p>Yes, and it's the most common AI-app breach there is. Anything shipped to the browser can be read by anyone, so a key in front-end code is effectively public. Move it to a server-side environment variable, have your server make the API call, and rotate the exposed key right away because it should be treated as compromised.</p>
+    <h3>How do I secure a Lovable, Bolt, or Cursor app?</h3>
+    <p>The same way regardless of which tool built it. Get secrets out of the client and out of Git, put the database behind an API on a private network, enforce auth on the server, validate input, and turn on HTTPS and backups. The tool that generated the code doesn't change the checklist; the gaps these apps ship with are remarkably consistent.</p>
+    <h3>Do AI coding tools write insecure code on purpose?</h3>
+    <p>No. They aim to produce something that runs, and they're good at it. Security requires knowing how the app will be attacked in production, which isn't part of generating a working preview. So the result works but skips guardrails like input validation, access checks, and CORS limits. Treat the AI as a fast first draft, then apply the checklist.</p>
+    <h3>How do I check my dependencies for vulnerabilities?</h3>
+    <p>Run your language's audit tool. For Node, <code>npm audit</code> lists known CVEs and <code>npm audit fix</code> updates what it safely can. For Python, use <code>pip-audit</code>. Do it before launch and on a schedule after, and if you ship containers, scan the image as well. Patching your own dependencies is your responsibility, not the host's.</p>
+    <h3>Does my AI-built app really need HTTPS?</h3>
+    <p>Yes, always, with no exceptions. Without HTTPS, logins and session cookies travel as plain text that anyone on the network can read, and browsers label the site "Not secure." It's also one of the easiest fixes on the list: install a free, auto-renewing certificate and force the redirect from HTTP.</p>
+    <h3>How do I stop brute-force attacks on my login?</h3>
+    <p>Use two layers. At the server level, a firewall plus Fail2ban bans addresses that repeatedly fail to log in, and on Kloudbean both are on by default. At the app level, add rate limiting to sensitive endpoints like login and password reset so a single client can't hammer them. Together they shut down most automated guessing.</p>
+    <h3>Is my database safe if it works from my app?</h3>
+    <p>Working and safe aren't the same thing. If the database has a public IP or the browser connects to it directly, it's exposed even though the app functions. Put an API between the browser and the data, keep the database on a private network, and give the app a least-privilege user. Scanners find public databases within hours.</p>
+    <h3>Whose job is security, mine or the hosting platform's?</h3>
+    <p>It's shared. The platform hardens the infrastructure: firewall, SSL, private networking, backups, access controls. You own the application: your code, secrets, auth logic, input validation, and dependencies. No host can secure the code the AI wrote for you, and no host can make your app compliant on its own. This checklist is mostly your side of that line.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Security &middot; The gap between an AI app that works and one that's safe to ship.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"The AI-Built App Security Checklist: Secure Your Vibe-Coded App","description":"An AI-built app security checklist for vibe-coded apps from Lovable, Bolt, Cursor, and v0: the security holes generated code ships with, the risk each carries, and the exact fix.","image":"https://www.kloudbean.com/blog/ai-built-app-security-checklist/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/ai-built-app-security-checklist/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I secure an app built with an AI tool?","acceptedAnswer":{"@type":"Answer","text":"Work a fixed checklist. Move secrets to server-side environment variables and rotate any that leaked, keep the database off the public internet behind an API, enforce authentication and access checks on the server, validate every input and use parameterized queries, lock CORS to your real origins, patch dependency CVEs, force HTTPS, add rate limiting, and turn on backups. AI writes working code; making it safe is your side of the work."}},
+{"@type":"Question","name":"Are AI-generated apps secure by default?","acceptedAnswer":{"@type":"Answer","text":"Not usually, and that is not a knock on the tools. AI coding tools optimize for a working preview, not a threat model, so generated apps tend to ship with the same handful of gaps: exposed secrets, weak auth, no input validation. The code often works fine. Security is the part left to you, and it is mostly the items on this checklist."}},
+{"@type":"Question","name":"My API key is in my front-end code. Is that bad?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it is the most common AI-app breach there is. Anything shipped to the browser can be read by anyone, so a key in front-end code is effectively public. Move it to a server-side environment variable, have your server make the API call, and rotate the exposed key right away because it should be treated as compromised."}},
+{"@type":"Question","name":"How do I secure a Lovable, Bolt, or Cursor app?","acceptedAnswer":{"@type":"Answer","text":"The same way regardless of which tool built it. Get secrets out of the client and out of Git, put the database behind an API on a private network, enforce auth on the server, validate input, and turn on HTTPS and backups. The tool that generated the code does not change the checklist; the gaps these apps ship with are remarkably consistent."}},
+{"@type":"Question","name":"Do AI coding tools write insecure code on purpose?","acceptedAnswer":{"@type":"Answer","text":"No. They aim to produce something that runs, and they are good at it. Security requires knowing how the app will be attacked in production, which is not part of generating a working preview. So the result works but skips guardrails like input validation, access checks, and CORS limits. Treat the AI as a fast first draft, then apply the checklist."}},
+{"@type":"Question","name":"How do I check my dependencies for vulnerabilities?","acceptedAnswer":{"@type":"Answer","text":"Run your language's audit tool. For Node, npm audit lists known CVEs and npm audit fix updates what it safely can. For Python, use pip-audit. Do it before launch and on a schedule after, and if you ship containers, scan the image as well. Patching your own dependencies is your responsibility, not the host's."}},
+{"@type":"Question","name":"Does my AI-built app really need HTTPS?","acceptedAnswer":{"@type":"Answer","text":"Yes, always, with no exceptions. Without HTTPS, logins and session cookies travel as plain text that anyone on the network can read, and browsers label the site Not secure. It is also one of the easiest fixes on the list: install a free, auto-renewing certificate and force the redirect from HTTP."}},
+{"@type":"Question","name":"How do I stop brute-force attacks on my login?","acceptedAnswer":{"@type":"Answer","text":"Use two layers. At the server level, a firewall plus Fail2ban bans addresses that repeatedly fail to log in, and on Kloudbean both are on by default. At the app level, add rate limiting to sensitive endpoints like login and password reset so a single client cannot hammer them. Together they shut down most automated guessing."}},
+{"@type":"Question","name":"Is my database safe if it works from my app?","acceptedAnswer":{"@type":"Answer","text":"Working and safe are not the same thing. If the database has a public IP or the browser connects to it directly, it is exposed even though the app functions. Put an API between the browser and the data, keep the database on a private network, and give the app a least-privilege user. Scanners find public databases within hours."}},
+{"@type":"Question","name":"Whose job is security, mine or the hosting platform's?","acceptedAnswer":{"@type":"Answer","text":"It is shared. The platform hardens the infrastructure: firewall, SSL, private networking, backups, access controls. You own the application: your code, secrets, auth logic, input validation, and dependencies. No host can secure the code the AI wrote for you, and no host can make your app compliant on its own. This checklist is mostly your side of that line."}}
+]}
+]}
+</script>
+</body>
+</html>

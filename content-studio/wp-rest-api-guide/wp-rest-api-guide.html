@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The WordPress REST API: How to Read, Write, and Extend /wp-json/</title>
+<meta name="description" content="A practical WordPress REST API guide: the core /wp-json/ routes, reading data with fetch, authenticating writes with Application Passwords, creating posts over HTTP, registering custom endpoints, and locking it down.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/wp-rest-api-guide/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="The WordPress REST API: How to Read, Write, and Extend /wp-json/">
+<meta property="og:description" content="The core routes, reading with fetch, authenticating writes with Application Passwords, creating and updating posts, register_rest_route, and how to secure it.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">WordPress &amp; frontend</span>
+  <h1>The WordPress REST API: How to Read, Write, and Extend /wp-json/</h1>
+
+  <figure><img src="images/hero.png" alt="The WordPress REST API: open GET requests for reading and authenticated writes with an Application Password"></figure>
+
+  <p class="lead">The WordPress REST API has been sitting on your site since WordPress 4.7, quietly ready to hand your content to anything that speaks HTTP. A Next.js front end, a mobile app, a nightly cron script, a Zapier zap. Open <code>/wp-json/wp/v2/posts</code> in a browser right now and you'll probably see your posts as JSON.</p>
+  <p>This is the hands-on reference, not the architecture lecture. Deciding whether to go headless at all? The <a href="https://www.kloudbean.com/blog/headless-wordpress-hosting/">headless WordPress hosting</a> guide is for that call. This one is the API itself: the routes, real read and write code, how authentication works, how to add your own endpoints, and how to keep it from leaking.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>The WordPress REST API exposes your content as JSON under <code>/wp-json/</code>, with core routes at <code>/wp-json/wp/v2/</code>. Reading public content needs no auth: a plain <code>GET /wp/v2/posts</code> works in the browser. Writing (create, update, delete) needs authentication, and the modern built-in method is <strong>Application Passwords</strong> sent as an HTTP Basic header. For same-origin admin JavaScript, use the cookie plus nonce. Add your own routes with <code>register_rest_route</code>, and always give them a real <code>permission_callback</code>.</p>
+  </div>
+
+  <h2>What the WordPress REST API is</h2>
+  <p>It's a way for <em>other software</em> to read and write your WordPress content over HTTP, as clean <strong>JSON</strong> instead of rendered HTML. It hands a <em>program</em> the raw content (posts, pages, users, categories, media) as structured data it can do anything with. It's built into core, so every modern WordPress site already serves it at <code>/wp-json/</code>. No plugin, no setup.</p>
+  <p>Two request styles cover almost everything you'll do. You <strong>GET</strong> data to read it, openly if it's public. You <strong>POST</strong> (or <code>PUT</code>/<code>DELETE</code>) to change it, with credentials. The diagram below is the whole mental model.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 380" width="100%" role="img" aria-label="Diagram of the WordPress REST API: a client makes an open GET request that returns JSON with no auth, and an authenticated POST request that needs an Application Password sent as a Basic header and returns 201 or 401">
+      <defs>
+        <marker id="arG" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto"><path d="M0,0 L6.5,3 L0,6 Z" fill="#40b75f"></path></marker>
+        <marker id="arP" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto"><path d="M0,0 L6.5,3 L0,6 Z" fill="#4F1AF3"></path></marker>
+        <marker id="arMu" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto"><path d="M0,0 L6.5,3 L0,6 Z" fill="#5b6a86"></path></marker>
+      </defs>
+      <rect x="0" y="0" width="760" height="380" fill="#ffffff"></rect>
+      <text x="24" y="30" font-family="Poppins,sans-serif" font-size="14.5" font-weight="700" fill="#000f27">Two ways in: open reads, authenticated writes</text>
+
+      <rect x="24" y="150" width="150" height="90" rx="12" fill="#f0f2f8" stroke="#c9d0e3"></rect>
+      <text x="99" y="183" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="700" fill="#1c2536">Client</text>
+      <text x="99" y="204" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" fill="#5b6a86">browser / Next.js</text>
+      <text x="99" y="222" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" fill="#5b6a86">curl / cron / script</text>
+
+      <!-- read path -->
+      <text x="324" y="135" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">public read, no auth, returns 200 + JSON</text>
+      <text x="324" y="152" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="700" fill="#2f8f49">GET /wp/v2/posts</text>
+      <line x1="174" y1="172" x2="470" y2="172" stroke="#40b75f" stroke-width="2" marker-end="url(#arG)"></line>
+
+      <!-- write path -->
+      <line x1="174" y1="214" x2="470" y2="214" stroke="#4F1AF3" stroke-width="2" marker-end="url(#arP)"></line>
+      <text x="324" y="236" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="700" fill="#4F1AF3">POST /wp/v2/posts</text>
+      <text x="324" y="253" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10.5" fill="#5b6a86">Authorization: Basic base64(user:app-pw)</text>
+      <text x="324" y="270" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">auth required, returns 201, or 401 if missing</text>
+
+      <rect x="474" y="132" width="176" height="124" rx="13" fill="#000f27"></rect>
+      <text x="562" y="170" text-anchor="middle" font-family="Poppins,sans-serif" font-size="14" font-weight="700" fill="#ffffff">WordPress</text>
+      <text x="562" y="192" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11.5" fill="#c9b8ff">/wp-json/wp/v2</text>
+      <text x="562" y="214" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" fill="#aeb6d4">posts, pages, media</text>
+      <text x="562" y="233" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" fill="#aeb6d4">users, taxonomies</text>
+
+      <line x1="650" y1="194" x2="682" y2="194" stroke="#5b6a86" stroke-width="1.5" marker-end="url(#arMu)"></line>
+      <rect x="686" y="160" width="58" height="70" rx="10" fill="#eefaf1" stroke="#40b75f" stroke-width="1.5"></rect>
+      <text x="715" y="199" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" fill="#2f8f49">MySQL</text>
+
+      <rect x="30" y="342" width="12" height="12" rx="2" fill="#40b75f"></rect>
+      <text x="50" y="352" font-family="Poppins,sans-serif" font-size="11.5" fill="#1c2536">Open read: GET, no auth</text>
+      <rect x="360" y="342" width="12" height="12" rx="2" fill="#4F1AF3"></rect>
+      <text x="380" y="352" font-family="Poppins,sans-serif" font-size="11.5" fill="#1c2536">Authenticated write: POST, PUT, DELETE</text>
+    </svg>
+    <figcaption>The whole model: reads are open and return JSON, writes carry an Application Password as a Basic header. Everything else is detail.</figcaption>
+  </figure>
+
+  <h2>The core routes you'll actually use</h2>
+  <p>The built-in content lives under <code>/wp-json/wp/v2/</code>. You'll spend most of your time on a handful of these. Public content reads without auth; drafts, private data, and any write need it.</p>
+  <table class="cmp">
+    <thead><tr><th>Route</th><th>What it returns</th><th>Auth to read?</th></tr></thead>
+    <tbody>
+      <tr><td><code>/wp-json/</code></td><td>The API index: every route the site exposes</td><td>No</td></tr>
+      <tr><td><code>/wp/v2/posts</code></td><td>Posts (add <code>/123</code> for one)</td><td>No for published, yes for drafts</td></tr>
+      <tr><td><code>/wp/v2/pages</code></td><td>Pages</td><td>No for published</td></tr>
+      <tr><td><code>/wp/v2/media</code></td><td>Media library items and their URLs</td><td>No for attached, mostly</td></tr>
+      <tr><td><code>/wp/v2/categories</code>, <code>/tags</code></td><td>Taxonomy terms</td><td>No</td></tr>
+      <tr><td><code>/wp/v2/comments</code></td><td>Comments</td><td>No for approved</td></tr>
+      <tr><td><code>/wp/v2/users</code></td><td>Authors (a public subset of fields)</td><td>Listing can be restricted</td></tr>
+      <tr><td><code>/wp/v2/settings</code></td><td>Site settings</td><td>Yes, always</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Reading data: real fetch examples</h2>
+  <p>Reading is the easy half, and genuinely as simple as hitting a URL. The plainest possible request:</p>
+  <pre><code>GET https://example.com/wp-json/wp/v2/posts</code></pre>
+  <p>That returns the 10 most recent posts as a JSON array. A few query parameters do most of the real work. <code>per_page</code> defaults to 10 and maxes out at 100. <code>_fields</code> trims the payload to just what you need. <code>_embed</code> pulls in related data like the featured image and author in one round trip. And <code>search=term</code> or <code>categories=7</code> filter the list:</p>
+  <pre><code>// Latest 5 posts, only the fields we care about
+const res = await fetch(
+  'https://example.com/wp-json/wp/v2/posts?per_page=5&amp;_fields=id,title,link'
+);
+const posts = await res.json();
+
+// One post by ID, with its featured image embedded
+const one = await fetch(
+  'https://example.com/wp-json/wp/v2/posts/123?_embed'
+).then(r =&gt; r.json());</code></pre>
+  <p>One thing that trips people up: there are more posts than the array shows. Total counts come back in response <em>headers</em>, not the body. Read <code>X-WP-Total</code> and <code>X-WP-TotalPages</code>, then page through with <code>?page=2</code>. If you request <code>per_page=500</code> hoping to grab everything at once, WordPress caps you at 100 and you'll quietly miss the rest.</p>
+
+  <!-- Author: replace this slot with a real screenshot. src -> images/wp-json-in-browser.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The raw JSON response for /wp-json/wp/v2/posts open in a browser tab, so readers see what the API actually returns.</em><small>Author-supplied screenshot.</small></span></figure>
+
+  <h2>Authenticating writes with Application Passwords</h2>
+  <p>Reading public content is open. <strong>Changing</strong> anything is not, and that's exactly right. The modern, built-in way to authenticate a script or a server is <strong>Application Passwords</strong>, added in WordPress 5.6. A user generates a dedicated password for one app under <em>Users, Profile, Application Passwords</em>, separate from their login and revocable on its own. Requests made with it act as that user, with their role and capabilities, so an editor's application password can create posts but can't manage users.</p>
+  <p>You send it as an HTTP <strong>Basic</strong> auth header. From the command line that's just the <code>-u</code> flag:</p>
+  <pre><code>curl -X POST https://example.com/wp-json/wp/v2/posts \
+  -u "editor:xxxx xxxx xxxx xxxx xxxx xxxx" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Posted from the API","status":"draft"}'</code></pre>
+  <p>From JavaScript you build the same header yourself. But read the next sentence before you paste this into a React component: this belongs on a <strong>server</strong>, never in browser code, because anyone can open dev tools and read the password.</p>
+  <pre><code>// SERVER-SIDE ONLY. Never ship an app password to the browser.
+const auth = Buffer.from('editor:xxxx xxxx xxxx xxxx xxxx xxxx').toString('base64');
+
+await fetch('https://example.com/wp-json/wp/v2/posts', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Basic ' + auth,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ title: 'Posted from Node', status: 'draft' })
+});</code></pre>
+  <p>Two other methods exist, for two other jobs. For JavaScript running <em>inside</em> wp-admin (same origin), WordPress uses your login cookie plus a <strong>nonce</strong> sent as an <code>X-WP-Nonce</code> header (WordPress hands it to your script via <code>wpApiSettings.nonce</code>). For third-party apps acting for other users, <strong>OAuth</strong> or <strong>JWT</strong> via a plugin is the usual route. For server-to-server work, Application Passwords are the simplest thing that's actually secure, and my default.</p>
+
+  <!-- Author: replace this slot with a real screenshot. src -> images/application-passwords.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Application Passwords section on a user profile, generating a new password for an integration.</em><small>Author-supplied screenshot from your own WordPress admin.</small></span></figure>
+
+  <h2>Creating, updating, and deleting content</h2>
+  <p>Once you're authenticated, writing is a matter of the HTTP verb. Create with a <code>POST</code> to the collection, update with a <code>POST</code> to a single item (WordPress accepts partial updates, so send only what changed), and remove with a <code>DELETE</code>:</p>
+  <pre><code># Create a published post
+curl -X POST https://example.com/wp-json/wp/v2/posts \
+  -u "editor:APP_PASSWORD" -H "Content-Type: application/json" \
+  -d '{"title":"Launch day","content":"&lt;p&gt;We are live.&lt;/p&gt;","status":"publish"}'
+
+# Update just the title of post 123
+curl -X POST https://example.com/wp-json/wp/v2/posts/123 \
+  -u "editor:APP_PASSWORD" -H "Content-Type: application/json" \
+  -d '{"title":"Updated title"}'
+
+# Send it to the trash
+curl -X DELETE https://example.com/wp-json/wp/v2/posts/123 \
+  -u "editor:APP_PASSWORD"</code></pre>
+  <p>Every field you can set in the editor has an equivalent here: <code>categories</code>, <code>tags</code>, <code>featured_media</code>, <code>slug</code>, and custom fields you've registered. That's what makes scripted publishing and content migrations possible without touching the admin.</p>
+
+  <h2>Registering your own endpoint (and the footgun to avoid)</h2>
+  <p>The built-in routes are a starting point, not a ceiling. When your project needs data the defaults don't expose, you register a custom route with <code>register_rest_route</code>, in a plugin or your theme's <code>functions.php</code>:</p>
+  <pre><code>add_action('rest_api_init', function () {
+  register_rest_route('myplugin/v1', '/status', array(
+    'methods'             =&gt; 'GET',
+    'callback'            =&gt; 'myplugin_status',
+    'permission_callback' =&gt; '__return_true', // fine ONLY for public, read-only, non-sensitive data
+  ));
+});
+
+function myplugin_status() {
+  return array('ok' =&gt; true, 'time' =&gt; current_time('c'));
+}</code></pre>
+  <p>Now the honest warning, and I'll say it plainly because it's the mistake we see most: <strong>never leave <code>permission_callback</code> set to <code>__return_true</code> on a route that writes or returns anything sensitive.</strong> An empty or always-true callback means your endpoint is wide open to the entire internet. WordPress will even log a notice about a missing <code>permission_callback</code>, because it's that common a slip. For anything that mutates data or exposes private info, gate it with a real capability check:</p>
+  <pre><code>register_rest_route('myplugin/v1', '/orders', array(
+  'methods'             =&gt; 'POST',
+  'callback'            =&gt; 'myplugin_create_order',
+  'permission_callback' =&gt; function () {
+    return current_user_can('edit_posts'); // real check, not __return_true
+  },
+));</code></pre>
+
+  <h2>Securing the WordPress REST API</h2>
+  <p>The API is on by default, and some of it is public by design, so security here is about configuration, not panic. Get these right and you're in good shape:</p>
+  <ul>
+    <li><strong>Serve everything over HTTPS.</strong> An Application Password sent over plain HTTP is a password in the open. Free SSL makes this a non-issue, so there's no excuse.</li>
+    <li><strong>Authenticate every write, with least privilege.</strong> Use an application password tied to the lowest role that can do the job. Don't automate as an administrator when an editor will do.</li>
+    <li><strong>Mind the users endpoint.</strong> <code>/wp/v2/users</code> can list author usernames, which is real reconnaissance for a brute-force attempt. If you don't need it public, restrict it.</li>
+    <li><strong>Never return secrets.</strong> A custom endpoint should hand back only what the caller is allowed to see. API keys, tokens, and private fields don't belong in a JSON response.</li>
+    <li><strong>Put a <code>permission_callback</code> on every custom route.</strong> See above. This is the single most common REST mistake.</li>
+    <li><strong>Rate-limit or lock down if it's abused.</strong> If a public endpoint gets hammered, throttle it or gate it behind auth.</li>
+  </ul>
+  <p>None of this means disabling the API. Fighting a core feature usually breaks the block editor and the plugins that lean on it. Leave it on, secure it properly, and treat it like the backend surface it is. The broader picture is in <a href="https://www.kloudbean.com/blog/secure-wordpress-hosting/">secure WordPress hosting</a>.</p>
+
+  <h2>REST API or WPGraphQL?</h2>
+  <p>Both feed a headless front end. The REST API is built in and organized as fixed endpoints: call <code>/posts</code>, get the standard post fields. <strong>WPGraphQL</strong> (a plugin) lets the client ask for exactly the fields it wants in one request, handy for a complex page that would otherwise fire several REST calls. Neither wins outright. Start with REST because it's zero-setup, and reach for GraphQL only when your pages are query-heavy enough to justify the plugin. The <a href="https://www.kloudbean.com/blog/headless-wordpress-hosting/">headless WordPress guide</a> weighs that choice in full.</p>
+
+  <h2>How the REST API fits your stack</h2>
+  <p>When the API powers a front end or an app, treat WordPress as the backend it now is. The consumer (a <a href="https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/">Next.js app</a> or a <a href="https://www.kloudbean.com/blog/deploy-fullstack-react-app-to-production/">full-stack React app</a>) should read the WordPress base URL from an environment variable, never hard-coded, so you can point staging and production at different sites without editing code.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console: storing the WordPress REST API base URL as an environment variable in the consumer app">
+    <figcaption>The front end reads the WordPress API base URL from an environment variable, so staging and production just point at different sites.</figcaption>
+  </figure>
+
+  <p>The WordPress side is ordinary managed hosting, with two things that matter more once the API is busy: HTTPS, because authenticated traffic must be encrypted, and capacity, because an API feeding a front end handles real request volume. It runs on managed PHP with a <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">managed MySQL database</a> behind it, and you resize the server as traffic grows.</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="The Kloudbean console: the WordPress server that answers REST API requests, sized for real request volume">
+    <figcaption>The server that answers every /wp-json/ request. Give it room and keep it on HTTPS when it's doing real work.</figcaption>
+  </figure>
+
+  <p>Prefer the terminal for debugging content? WP-CLI reads and writes the same data, covered in the <a href="https://www.kloudbean.com/blog/wordpress-cli-guide/">WordPress CLI guide</a>. The boundary is the usual one: a Linux stack where the platform manages the server, PHP, SSL, and backups, while your content and its API stay yours. The REST API just makes that content reachable by more than a browser.</p>
+
+  <!-- Author: replace this slot with a real screenshot. src -> images/rest-api-consumer.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A front-end app rendering content it pulled from the WordPress REST API, next to the JSON it fetched.</em><small>Author-supplied screenshot.</small></span></figure>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Content any app can read, on a backend you control.</p>
+    <p style="margin:0 0 .6em">Host WordPress and its REST API on a managed, HTTPS-ready server, with a Node or static front end right beside it, at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Managed WordPress · Free SSL · Managed MySQL · Node/static front ends · Automatic backups · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is the WordPress REST API?</h3>
+    <p>It's a built-in interface that lets other software read and write your WordPress content over HTTP as JSON, rather than as rendered web pages. It exposes posts, pages, users, media, and more under <code>/wp-json/</code>, and it's what powers headless WordPress, mobile apps, and integrations that need WordPress content as structured data.</p>
+    <h3>Where is the WordPress REST API located?</h3>
+    <p>At <code>/wp-json/</code> on your site, with the core content routes under <code>/wp-json/wp/v2/</code>. Visiting <code>/wp-json/</code> returns the API index, a list of every route the site exposes. It's enabled by default in WordPress core since version 4.7, so you don't install or turn anything on.</p>
+    <h3>How do I get posts from the WordPress REST API?</h3>
+    <p>Send a GET request to <code>/wp-json/wp/v2/posts</code>, which returns the latest posts as JSON. Add an ID like <code>/posts/123</code> for one post, use <code>per_page</code> (max 100) to control how many, and <code>_fields</code> to trim the response. Total counts come back in the <code>X-WP-Total</code> and <code>X-WP-TotalPages</code> response headers.</p>
+    <h3>How do I authenticate WordPress REST API requests?</h3>
+    <p>Use Application Passwords, built into WordPress since 5.6. A user generates a dedicated password for one app, and you send it as an HTTP Basic auth header. Requests act as that user with their role's permissions, and you can revoke a single application password without touching the login. For same-origin admin JavaScript, use the cookie plus an X-WP-Nonce header instead.</p>
+    <h3>What are Application Passwords in WordPress?</h3>
+    <p>They're per-application passwords, separate from a user's login, created under Users, Profile, Application Passwords. Each one can be named and revoked independently, so an integration that's retired or compromised is disabled with a single click. They're the recommended way to authenticate server-to-server REST API requests.</p>
+    <h3>How do I create a post through the REST API?</h3>
+    <p>Send an authenticated POST to <code>/wp-json/wp/v2/posts</code> with a JSON body containing fields like title, content, and status. Update a post by POSTing to <code>/posts/123</code> with only the fields that changed, and delete it with a DELETE to the same URL. You authenticate with an Application Password as a Basic header.</p>
+    <h3>How do I add a custom REST API endpoint?</h3>
+    <p>Call <code>register_rest_route</code> inside a <code>rest_api_init</code> action, giving it a namespace, a route, the HTTP methods, a callback, and a permission_callback. The callback returns the data you want as an array or WP_REST_Response. Always set a real permission_callback; leaving it as <code>__return_true</code> on a write or sensitive route exposes it to everyone.</p>
+    <h3>Is the WordPress REST API a security risk?</h3>
+    <p>Not inherently. Read endpoints expose content that's already public, and writes require authentication. Secure it with the basics: serve everything over HTTPS, authenticate writes with least-privilege Application Passwords, restrict the users endpoint if you don't need it public, never return secrets, and put a permission_callback on every custom route.</p>
+    <h3>Should I disable the WordPress REST API?</h3>
+    <p>Usually no. The block editor and many plugins rely on it, so disabling it outright tends to break things. If you're worried about exposure, restrict specific endpoints or require authentication rather than turning the whole API off. For most sites the right move is to leave it on and configure it well.</p>
+    <h3>Should I use the REST API or GraphQL for headless WordPress?</h3>
+    <p>Start with the built-in REST API. It needs no setup and handles straightforward content needs well. Consider WPGraphQL (a plugin) when your pages pull many different pieces of data in one request, where asking for exactly the fields you want in a single call is more efficient. For most sites, REST is enough.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Read is open, writes need a key.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"The WordPress REST API: How to Read, Write, and Extend /wp-json/","description":"The core routes, reading with fetch, authenticating writes with Application Passwords, creating and updating posts, register_rest_route, and how to secure it.","image":"https://www.kloudbean.com/blog/wp-rest-api-guide/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/wp-rest-api-guide/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is the WordPress REST API?","acceptedAnswer":{"@type":"Answer","text":"It's a built-in interface that lets other software read and write your WordPress content over HTTP as JSON, rather than as rendered web pages. It exposes posts, pages, users, media, and more under /wp-json/, and it's what powers headless WordPress, mobile apps, and integrations that need WordPress content as structured data."}},
+{"@type":"Question","name":"Where is the WordPress REST API located?","acceptedAnswer":{"@type":"Answer","text":"At /wp-json/ on your site, with the core content routes under /wp-json/wp/v2/. Visiting /wp-json/ returns the API index, a list of every route the site exposes. It's enabled by default in WordPress core since version 4.7, so you don't install or turn anything on."}},
+{"@type":"Question","name":"How do I get posts from the WordPress REST API?","acceptedAnswer":{"@type":"Answer","text":"Send a GET request to /wp-json/wp/v2/posts, which returns the latest posts as JSON. Add an ID like /posts/123 for one post, use per_page (max 100) to control how many, and _fields to trim the response. Total counts come back in the X-WP-Total and X-WP-TotalPages response headers."}},
+{"@type":"Question","name":"How do I authenticate WordPress REST API requests?","acceptedAnswer":{"@type":"Answer","text":"Use Application Passwords, built into WordPress since 5.6. A user generates a dedicated password for one app, and you send it as an HTTP Basic auth header. Requests act as that user with their role's permissions, and you can revoke a single application password without touching the login. For same-origin admin JavaScript, use the cookie plus an X-WP-Nonce header instead."}},
+{"@type":"Question","name":"What are Application Passwords in WordPress?","acceptedAnswer":{"@type":"Answer","text":"They're per-application passwords, separate from a user's login, created under Users, Profile, Application Passwords. Each one can be named and revoked independently, so an integration that's retired or compromised is disabled with a single click. They're the recommended way to authenticate server-to-server REST API requests."}},
+{"@type":"Question","name":"How do I create a post through the REST API?","acceptedAnswer":{"@type":"Answer","text":"Send an authenticated POST to /wp-json/wp/v2/posts with a JSON body containing fields like title, content, and status. Update a post by POSTing to /posts/123 with only the fields that changed, and delete it with a DELETE to the same URL. You authenticate with an Application Password as a Basic header."}},
+{"@type":"Question","name":"How do I add a custom REST API endpoint?","acceptedAnswer":{"@type":"Answer","text":"Call register_rest_route inside a rest_api_init action, giving it a namespace, a route, the HTTP methods, a callback, and a permission_callback. The callback returns the data you want as an array or WP_REST_Response. Always set a real permission_callback; leaving it as __return_true on a write or sensitive route exposes it to everyone."}},
+{"@type":"Question","name":"Is the WordPress REST API a security risk?","acceptedAnswer":{"@type":"Answer","text":"Not inherently. Read endpoints expose content that's already public, and writes require authentication. Secure it with the basics: serve everything over HTTPS, authenticate writes with least-privilege Application Passwords, restrict the users endpoint if you don't need it public, never return secrets, and put a permission_callback on every custom route."}},
+{"@type":"Question","name":"Should I disable the WordPress REST API?","acceptedAnswer":{"@type":"Answer","text":"Usually no. The block editor and many plugins rely on it, so disabling it outright tends to break things. If you're worried about exposure, restrict specific endpoints or require authentication rather than turning the whole API off. For most sites the right move is to leave it on and configure it well."}},
+{"@type":"Question","name":"Should I use the REST API or GraphQL for headless WordPress?","acceptedAnswer":{"@type":"Answer","text":"Start with the built-in REST API. It needs no setup and handles straightforward content needs well. Consider WPGraphQL (a plugin) when your pages pull many different pieces of data in one request, where asking for exactly the fields you want in a single call is more efficient. For most sites, REST is enough."}}
+]}
+]}
+</script>
+</body>
+</html>

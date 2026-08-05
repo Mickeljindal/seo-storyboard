@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Migrate WordPress to Kloudbean Without Downtime</title>
+<meta name="description" content="Migrate WordPress to Kloudbean the low-risk way: plugin or manual method, the gotchas that break a WordPress migration, and a safe zero-downtime DNS cutover.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/migrate-wordpress-to-kloudbean/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Migrate WordPress to Kloudbean Without Downtime">
+<meta property="og:description" content="A practical, low-risk WordPress migration guide: the plugin route, the manual files-plus-database route, the gotchas that break sites, and a safe DNS cutover.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">WordPress migration</span>
+  <h1>How to Migrate WordPress to Kloudbean Without Downtime</h1>
+  <p class="byline">By Kloudbean · Move In Without the Downtime.</p>
+
+  <figure><img src="images/hero.png" alt="Migrate WordPress to Kloudbean: copy files and database, test on a temporary URL, then switch DNS with the old host as rollback"></figure>
+
+  <p class="lead">You've outgrown your shared host, or the renewal price just doubled, and now you have to move a live WordPress site without breaking it. That's the scary part. Not the copying, the fear of visitors hitting a half-moved site or a plain white screen.</p>
+
+  <p>This guide walks the whole job. Two honest ways to migrate a WordPress site, the handful of mistakes that cause the classic broken migration, and how to migrate WordPress to Kloudbean with a cutover that keeps the old site live until the new one is proven. If you've never moved WordPress to a new host before, read the gotchas section twice. That's where the evenings get lost.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>There are two ways to move WordPress: a migration plugin (easiest for small and medium sites) or the manual files-plus-database method (more control, better for large or broken sites). Either way the safe pattern is identical. Build and test the new site on a temporary URL first, lower your DNS TTL a day ahead, then switch DNS while the old host stays live as an instant rollback. Kloudbean adds free migration assistance, a free trial, one-click staging, and automatic backups so nothing rides on a single risky flip.</p>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 780 452" role="img" aria-label="WordPress migration and cutover pipeline. Step one, built while the old site stays live: old host to copy files and export database to import on Kloudbean to test on a temporary URL. Step two, the cutover: lower DNS TTL, switch DNS, live on Kloudbean. A dashed loop shows the old host staying live as an instant rollback." style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#fff">
+      <text x="20" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16.5" font-weight="700">Migrate, test, then cut over. The old site never goes dark.</text>
+
+      <!-- Band A background -->
+      <rect x="10" y="54" width="760" height="112" rx="14" fill="#f6f7fb" stroke="#e6e9f2" stroke-width="1"></rect>
+      <text x="24" y="76" fill="#2f8f49" font-family="Poppins,sans-serif" font-size="11.5" font-weight="700" letter-spacing="1.2">STEP 1 · BUILD IT WHILE THE OLD SITE STAYS LIVE</text>
+
+      <!-- Band A nodes -->
+      <g font-family="Poppins,sans-serif">
+        <rect x="22" y="90" width="166" height="52" rx="12" fill="#000f27"></rect>
+        <text x="105" y="116" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="600">Old host (live)</text>
+        <text x="105" y="133" text-anchor="middle" fill="#aeb6d4" font-size="10.5">shared / cPanel</text>
+
+        <rect x="210" y="90" width="166" height="52" rx="12" fill="#4F1AF3"></rect>
+        <text x="293" y="116" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="600">Copy files + export DB</text>
+        <text x="293" y="133" text-anchor="middle" fill="#d8ccff" font-size="10.5">wp-content + SQL</text>
+
+        <rect x="398" y="90" width="166" height="52" rx="12" fill="#ffffff" stroke="#000f27" stroke-width="1.5"></rect>
+        <text x="481" y="116" text-anchor="middle" fill="#000f27" font-size="14" font-weight="600">Import on Kloudbean</text>
+        <text x="481" y="133" text-anchor="middle" fill="#5b6a86" font-size="10.5">files + DB + wp-config</text>
+
+        <rect x="586" y="90" width="166" height="52" rx="12" fill="#40b75f"></rect>
+        <text x="669" y="116" text-anchor="middle" fill="#04321a" font-size="14" font-weight="700">Test on temp URL</text>
+        <text x="669" y="133" text-anchor="middle" fill="#0a4a28" font-size="10.5">staging / hosts file</text>
+      </g>
+
+      <!-- Band A arrows -->
+      <line x1="188" y1="116" x2="208" y2="116" stroke="#5b6a86" stroke-width="2"></line><path d="M208 116 l-9 -4 v8 z" fill="#5b6a86"></path>
+      <line x1="376" y1="116" x2="396" y2="116" stroke="#5b6a86" stroke-width="2"></line><path d="M396 116 l-9 -4 v8 z" fill="#5b6a86"></path>
+      <line x1="564" y1="116" x2="584" y2="116" stroke="#5b6a86" stroke-width="2"></line><path d="M584 116 l-9 -4 v8 z" fill="#5b6a86"></path>
+
+      <!-- connector A to B -->
+      <line x1="669" y1="142" x2="669" y2="286" stroke="#5b6a86" stroke-width="2"></line><path d="M669 286 l-4 -9 h8 z" fill="#5b6a86"></path>
+      <text x="681" y="216" fill="#2f8f49" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600">verified &#10003;</text>
+
+      <!-- Band B background -->
+      <rect x="10" y="250" width="760" height="112" rx="14" fill="#f6f7fb" stroke="#e6e9f2" stroke-width="1"></rect>
+      <text x="24" y="273" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11.5" font-weight="700" letter-spacing="1.2">STEP 2 · CUT OVER IN MINUTES</text>
+
+      <!-- Band B nodes (right to left) -->
+      <g font-family="Poppins,sans-serif">
+        <rect x="586" y="286" width="166" height="52" rx="12" fill="#4F1AF3"></rect>
+        <text x="669" y="312" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="600">Lower DNS TTL</text>
+        <text x="669" y="329" text-anchor="middle" fill="#d8ccff" font-size="10.5">e.g. 300s, a day ahead</text>
+
+        <rect x="398" y="286" width="166" height="52" rx="12" fill="#000f27"></rect>
+        <text x="481" y="312" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="600">Switch DNS</text>
+        <text x="481" y="329" text-anchor="middle" fill="#aeb6d4" font-size="10.5">A record to new IP</text>
+
+        <rect x="210" y="286" width="166" height="52" rx="12" fill="#40b75f"></rect>
+        <text x="293" y="312" text-anchor="middle" fill="#04321a" font-size="14" font-weight="700">Live on Kloudbean</text>
+        <text x="293" y="329" text-anchor="middle" fill="#0a4a28" font-size="10.5">traffic moves over</text>
+      </g>
+
+      <!-- Band B arrows (right to left) -->
+      <line x1="586" y1="312" x2="566" y2="312" stroke="#5b6a86" stroke-width="2"></line><path d="M566 312 l9 -4 v8 z" fill="#5b6a86"></path>
+      <line x1="398" y1="312" x2="378" y2="312" stroke="#5b6a86" stroke-width="2"></line><path d="M378 312 l9 -4 v8 z" fill="#5b6a86"></path>
+
+      <!-- rollback dashed loop -->
+      <path d="M210 312 H104 V142" fill="none" stroke="#40b75f" stroke-width="2" stroke-dasharray="5 5"></path><path d="M104 142 l-4 9 h8 z" fill="#40b75f"></path>
+      <text x="96" y="228" fill="#2e8b4f" font-family="Poppins,sans-serif" font-size="10" font-weight="600" text-anchor="middle" transform="rotate(-90 96 228)">OLD HOST STAYS LIVE = ROLLBACK</text>
+    </svg>
+    <figcaption>Copy the files and database, import on Kloudbean, and test on a temporary URL. Only then lower your DNS TTL and switch the record. The old host stays live as an instant rollback.</figcaption>
+  </figure>
+
+  <h2>Two ways to migrate a WordPress site</h2>
+  <p>Every WordPress site is the same two things under the hood. A pile of <strong>files</strong> (WordPress core, your theme, your plugins, and everything you've uploaded) and a <strong>database</strong> (your posts, pages, settings, users, comments). Move both to the new server, tell WordPress where they now live, and you've migrated. That's the whole job.</p>
+  <p>You've got two routes to do it. A migration plugin that packages everything for you, or the manual method where you copy the files and the database by hand. Neither is "better" in the abstract. They fit different sites. Here's how I'd choose.</p>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>Migration plugin</th><th>Manual files + database</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Best for</strong></td><td>Small and medium sites</td><td>Large sites, big media, or a broken site</td></tr>
+      <tr><td><strong>Effort</strong></td><td>Point and click, no terminal</td><td>SFTP plus a database export</td></tr>
+      <tr><td><strong>The usual wall</strong></td><td>Upload size limits, PHP timeouts</td><td>You handle wp-config and the URL yourself</td></tr>
+      <tr><td><strong>Serialized URL handling</strong></td><td>Done for you by the plugin</td><td>You run a proper search-replace</td></tr>
+      <tr><td><strong>Control</strong></td><td>Less, but simpler</td><td>Total, but more to get right</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note"><b>Coming from shared hosting or cPanel?</b> Your files are usually in <code>public_html</code> and your database is in phpMyAdmin. Both routes below work from there. The plugin route never makes you open phpMyAdmin at all, which is why beginners tend to start there.</div>
+
+  <h2>Path 1: the migration plugin route</h2>
+  <p>This is the easiest safe path for most sites, and honestly it's what I'd suggest first if your site is a few gigabytes or less. A migration plugin exports your entire site (files and database together) into one package, then imports that package on the new host in a few clicks. No terminal, no phpMyAdmin, no editing config files.</p>
+  <p>The common tools are <strong>All-in-One WP Migration</strong>, <strong>Duplicator</strong>, and <strong>Migrate Guru</strong>. They differ in the details but the shape is the same:</p>
+  <ol>
+    <li>Install the plugin on your <strong>old</strong> site and export. You get a single downloadable file (or a push to the new host).</li>
+    <li>Install a fresh WordPress on Kloudbean, add the same plugin, and import the package.</li>
+    <li>The plugin unpacks the files, loads the database, and rewrites the site URL for you, including the tricky serialized data.</li>
+  </ol>
+  <p>That last point is the quiet reason plugins are popular. They handle the URL rewrite correctly, which is the single most common way a manual migration goes wrong (more on that below).</p>
+  <p>So what's the catch? Size. The free tier of most migration plugins caps how large a package it will import, and a big media library blows past that fast. You either buy the paid extension, bump PHP memory and upload limits, or switch to the manual route. Very large sites also hit PHP execution timeouts mid-import, leaving you with a half-loaded database and a bad afternoon. My rule: plugins for small and medium sites, manual for anything multi-gigabyte or already misbehaving.</p>
+
+  <!-- ADD IMAGE: the migration plugin export screen (e.g. All-in-One WP Migration or Duplicator) with the Export button. Swap for a real screenshot: src -> images/plugin-export.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The migration plugin export screen on the old site, with the Export or Create Package button.</em><small>Show the package size so readers gauge the free-tier limit.</small></span></figure>
+
+  <h2>Path 2: the manual files-and-database method</h2>
+  <p>The manual method sounds intimidating and isn't. You're moving two things and repointing one config file. It's more reliable than a plugin on large sites because nothing has to fit inside a single upload, and it gives you total control when a site is broken and won't run a plugin at all.</p>
+
+  <h3>Step 1: copy the files</h3>
+  <p>Grab your WordPress files over SFTP, or with <code>rsync</code> if you have SSH on both ends. The part that truly matters is <code>wp-content</code>: your themes, plugins, and the <code>uploads</code> folder where every image and PDF lives. WordPress core you can reinstall fresh, but <code>wp-content</code> is irreplaceable.</p>
+<pre><code># copy wp-content (themes, plugins, uploads) to the new server
+rsync -avz wp-content/ user@new-host:/path/to/new/wp-content/</code></pre>
+  <p>If you're on shared hosting with no SSH, download <code>wp-content</code> over SFTP and upload it to the new server the same way. Slower, same result.</p>
+
+  <h3>Step 2: export the database</h3>
+  <p>Export with <code>mysqldump</code> if you have shell access, or use phpMyAdmin's Export tab if you don't. Two flags earn their keep: <code>--single-transaction</code> takes a consistent snapshot without locking a busy site, and <code>--default-character-set=utf8mb4</code> keeps emoji and accented characters intact.</p>
+<pre><code># on the old server, export the WordPress database
+mysqldump --single-transaction --default-character-set=utf8mb4 \
+  -u db_user -p old_wordpress_db &gt; wordpress.sql</code></pre>
+  <p>The full breakdown of dump flags and the charset traps lives in the <a href="https://www.kloudbean.com/blog/database-migration-pg_dump-mysqldump/">pg_dump and mysqldump field guide</a>. WordPress runs on MySQL or MariaDB, so that guide's MySQL half applies directly here.</p>
+
+  <h3>Step 3: import on the new server</h3>
+  <p>Create an empty database on Kloudbean, then load the SQL file into it:</p>
+<pre><code># on the new server, import into an empty database
+mysql -u db_user -p new_wordpress_db &lt; wordpress.sql</code></pre>
+
+  <h3>Step 4: point wp-config.php at the new database</h3>
+  <p>This is the file that connects WordPress to its database, and its credentials change on the new server. Update the four constants to match the database you just imported into. Get one wrong and you'll see the infamous "Error establishing a database connection".</p>
+<pre><code>// wp-config.php: point WordPress at the new database
+define( 'DB_NAME', 'new_wordpress_db' );
+define( 'DB_USER', 'db_user' );
+define( 'DB_PASSWORD', 'your-strong-password' );
+define( 'DB_HOST', 'localhost' ); // or your managed database host</code></pre>
+
+  <h3>Step 5: update the site URL the safe way</h3>
+  <p>If your domain isn't changing, you may skip this. If you're testing on a temporary URL or moving domains, the URL stored in the database has to change, and you must not do it with a raw SQL find-and-replace. Use <code>wp-cli</code> instead:</p>
+<pre><code># rewrite the URL everywhere, including serialized data
+wp search-replace 'https://old-domain.com' 'https://new-domain.com' --all-tables --dry-run
+# happy with the count? run it for real by dropping --dry-run
+wp search-replace 'https://old-domain.com' 'https://new-domain.com' --all-tables</code></pre>
+  <p>Why <code>wp search-replace</code> and not a SQL <code>UPDATE</code>? That's the next section, and it's the most important paragraph in this guide.</p>
+
+  <!-- ADD IMAGE: editing wp-config.php DB constants in an editor or the file manager. Swap for a real screenshot: src -> images/wp-config-edit.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Editing the four DB_ constants in wp-config.php on the new server.</em><small>Highlight DB_NAME, DB_USER, DB_PASSWORD, DB_HOST.</small></span></figure>
+
+  <h2>Why WordPress migrations break (and how to dodge each one)</h2>
+  <p>A migration rarely fails at the copy. It fails afterward, when the site loads wrong and you can't see why. Almost every broken WordPress migration traces back to one of the items below. Read them before you start, not at midnight after.</p>
+
+  <h3>The serialized-data trap (the number one cause)</h3>
+  <p>WordPress stores some settings as PHP <strong>serialized</strong> data: arrays and objects flattened into text, where each string is prefixed with its exact byte length. A value might look like <code>s:22:"https://old-domain.com";</code>. See that <code>22</code>? It's the character count.</p>
+  <p>Now run a plain SQL find-and-replace to swap the domain. The text changes but the number doesn't. WordPress reads <code>s:22</code>, counts a different length, and the serialized blob is corrupt. Widgets vanish, theme options reset, plugin settings break. And the ugly part is the rest of the site looks fine, so you don't notice until a client asks where the slider went.</p>
+  <p>The fix is simple: never touch the URL with raw SQL. Use <code>wp search-replace</code> or a migration plugin. Both unserialize the data, replace the string, recompute the length, and re-serialize it correctly. This one mistake causes more broken migrations than everything else combined.</p>
+
+  <h3>The rest of the usual suspects</h3>
+  <p>Here's the fast reference. Match the symptom, apply the fix.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Symptom</th><th>What actually caused it</th><th>The fix</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Broken layout or a redirect loop</strong></td><td><code>siteurl</code>/<code>home</code> still point at the old domain</td><td>Run <code>wp search-replace</code>, never a raw SQL update</td></tr>
+      <tr><td><strong>Error establishing a database connection</strong></td><td>wp-config.php has old DB name, user, password, or host</td><td>Fix the four <code>DB_</code> constants</td></tr>
+      <tr><td><strong>Images missing or 404</strong></td><td>The <code>uploads</code> folder didn't come across, or URLs weren't rewritten</td><td>Re-copy <code>wp-content/uploads</code>, then search-replace</td></tr>
+      <tr><td><strong>White screen of death</strong></td><td>PHP version mismatch, or a plugin incompatible with the new PHP</td><td>Match the PHP version, or disable the plugin</td></tr>
+      <tr><td><strong>Mixed-content warning, no padlock</strong></td><td>Site moved to HTTPS but assets still request <code>http://</code></td><td>Install SSL, then search-replace http to https</td></tr>
+      <tr><td><strong>Garbled accents or emoji</strong></td><td>Charset drift, usually latin1 to utf8mb4</td><td>Export and import as <code>utf8mb4</code></td></tr>
+      <tr><td><strong>Permission denied writing files</strong></td><td>Wrong file ownership after the copy</td><td>Reset ownership and set folders 755, files 644</td></tr>
+    </tbody>
+  </table>
+
+  <p>Two of those deserve a sentence more. <strong>PHP version</strong> is a silent killer: a site built on PHP 7.4 can throw fatal errors on PHP 8.2 because a plugin used syntax that got removed. Check your old PHP version and match it, then upgrade deliberately later. And <strong>stale caches</strong> catch people after everything else works: an old object cache or leftover transients can serve you the pre-migration site, so flush the cache and clear transients before you panic.</p>
+
+  <h2>The zero-downtime cutover: DNS, TTL, and not dropping a visitor</h2>
+  <p>Copying the site is the easy half. Switching the world onto the new server without anyone hitting a broken page is where the care goes. The trick is that you test <em>before</em> you flip anything public.</p>
+
+  <h3>Test on a temporary URL first</h3>
+  <p>Before you touch DNS, prove the migrated site works on the new server. Two ways to do it. Kloudbean gives every WordPress app a temporary URL and one-click staging, so you can open the migrated site there and click around. Or use the classic hosts-file trick: point your own machine at the new server's IP for that domain, so only you see the new site while the rest of the world still sees the old one.</p>
+<pre><code># test the new server before touching DNS: edit your local hosts file
+# /etc/hosts on macOS or Linux, or the Windows equivalent
+203.0.113.42   your-domain.com www.your-domain.com</code></pre>
+  <p>Load the site, log into <code>wp-admin</code>, click through key pages, submit a test form. You're confirming the migration landed before a single real visitor is involved. Never let the public cutover be the first time you've seen the site run on the new host.</p>
+
+  <h3>Understand TTL before you flip DNS</h3>
+  <p>Your domain's <strong>A record</strong> points at your host's IP address. Migrating means changing that record to the new server's IP. The wrinkle is <strong>TTL</strong>, the "time to live", which tells resolvers around the world how long to cache the old answer. If your TTL is 24 hours, some visitors keep hitting the old server for up to a day after you change the record.</p>
+  <p>So you plan ahead. A day or two before the move, lower the TTL to something small like 300 seconds. Then when you flip the record, the internet picks up the change in minutes instead of hours. This is the closest thing to a zero-downtime WordPress migration, and it costs you nothing but a little foresight.</p>
+
+  <h3>Flip it, and keep the old site as a net</h3>
+  <p>With a low TTL set and the new site verified, the cutover is calm:</p>
+  <ol>
+    <li>Change the <strong>A record</strong> to the new server's IP at your DNS provider.</li>
+    <li>Watch propagation. With a 300-second TTL, most visitors move over within minutes.</li>
+    <li><strong>Leave the old host running</strong> for a day or two. During propagation both servers may get traffic, and anyone still cached to the old IP should see a working page, not an error.</li>
+    <li>Once traffic has fully shifted and everything looks right, decommission the old host.</li>
+  </ol>
+  <div class="note"><b>The one honest caveat.</b> While both servers are live, a visitor could submit a form or place an order on the old site and it won't exist on the new one. For a blog or brochure site that's a non-issue. For a busy store, either pick a quiet hour, or put the old site into maintenance or read-only mode for the short propagation window. Don't over-engineer a replication pipeline for a site that gets a handful of orders a day.</div>
+
+  <h2>The post-migration checklist</h2>
+  <p>A site that loads on the temporary URL isn't a finished migration. Run this list once DNS has moved, and again the next morning:</p>
+  <ul>
+    <li><strong>Pages load</strong> across templates: home, a post, an archive, a landing page.</li>
+    <li><strong>Images resolve</strong> and no broken thumbnails. That catches a missed <code>uploads</code> folder.</li>
+    <li><strong>Permalinks work.</strong> If inner pages 404, flush rewrite rules: save Settings, Permalinks, or run <code>wp rewrite flush</code>.</li>
+    <li><strong>Forms and checkout</strong> submit. Send a test email, place a test order.</li>
+    <li><strong>Admin login</strong> works and the dashboard is intact.</li>
+    <li><strong>SSL padlock</strong> is green with <strong>no mixed-content</strong> warnings in the browser console.</li>
+    <li><strong>Backups are running</strong> on the new host. You want a restore point before you decommission the old one.</li>
+  </ul>
+<pre><code># if inner pages 404 after the move, flush rewrite rules
+wp rewrite flush</code></pre>
+
+  <!-- ADD IMAGE: the migrated site loading correctly on the temporary URL or staging domain. Swap for a real screenshot: src -> images/temp-url-test.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The migrated site loading correctly on its temporary URL before the DNS switch.</em><small>Proof the move worked before going public.</small></span></figure>
+
+  <h2>How to migrate WordPress to Kloudbean, specifically</h2>
+  <p>Everything above is host-agnostic. Here's how it maps to Kloudbean, and where the platform quietly removes the risky parts. WordPress has been a first-class stack here since launch, so it's a home the CMS was built for, not a bolt-on.</p>
+
+  <h3>Start free, launch the server, add WordPress</h3>
+  <p>A free trial lets you build and verify the whole new site before you commit or cut over, which is exactly the safety you want during a migration. You launch a server on the cloud closest to your audience (seven providers: AWS, Amazon Lightsail, Google Cloud, DigitalOcean, Vultr, Akamai Linode, and UpCloud) and add WordPress as a one-click application. The stack comes tuned and hardened, not a bare box you configure.</p>
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean Add Application screen with WordPress selected, the target for the migrated site">
+    <figcaption>Add WordPress as a one-click app, then drop your migrated files and database into it.</figcaption>
+  </figure>
+  <p>Your database lands on a managed engine. WordPress uses MySQL or MariaDB, and on Kloudbean both are managed: provisioned, kept off the public internet, and backed up. Import your <code>wordpress.sql</code> into it and update wp-config.php to match. The deep dive is <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">managed MySQL hosting</a>.</p>
+
+  <h3>Test on staging, not on your visitors</h3>
+  <p>This is where a migration stops being scary. One-click staging gives you a copy of the site to load, click through, and break freely, on the new server, before anything public changes. Verify the migrated site here, fix whatever the checklist flags, and only then think about DNS.</p>
+  <figure>
+    <img src="../assets/console/staging.png" alt="The Kloudbean one-click staging screen used to test a migrated WordPress site before the DNS cutover">
+    <figcaption>One-click staging: confirm the migrated site works before a single real visitor sees it.</figcaption>
+  </figure>
+
+  <h3>Free SSL fixes the HTTPS step, backups are your net</h3>
+  <p>Moving to HTTPS is where mixed-content warnings appear. Kloudbean issues free auto-renewing SSL, so the padlock is handled and you just search-replace any lingering <code>http://</code> asset URLs to <code>https://</code>. If a certificate ever misbehaves, the fixes are in <a href="https://www.kloudbean.com/blog/fix-ssl-certificate-errors/">fix SSL certificate errors</a>. And automatic backups start immediately, so the moment your data lands you already have a restore point. That's the safety net most people bolt on far too late; the full picture is in the <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a>.</p>
+  <figure>
+    <img src="../assets/console/manage-backups.png" alt="The Kloudbean console showing automatic backups on the migrated WordPress site, an immediate restore point">
+    <figcaption>Automatic backups mean the freshly migrated site has a rollback point from minute one.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: the DNS provider A record edit with a lowered TTL, ready for cutover. Swap for a real screenshot: src -> images/dns-a-record.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The DNS provider A record edit, TTL lowered to 300 seconds ahead of the switch.</em><small>The step that makes the cutover fast.</small></span></figure>
+
+  <h3>Or let the team run it with you</h3>
+  <p>Rather not do the cutover alone? Kloudbean offers <strong>free migration assistance</strong>. Send your source details and the team helps move the site, which genuinely matters for a large or production site where the propagation window has to be tight. To be clear about what that is: it's real people helping, plus the platform primitives (staging, managed databases, free SSL, automatic backups) that make the move low-risk. It isn't a blind one-click "import my whole site" button, and any host that promises that is glossing over the serialized-data and DNS realities you just read about.</p>
+  <p>Once you've landed, the natural next step is speed. A migrated site inherits its old plugins and habits, and this is a good moment to tune them: <a href="https://www.kloudbean.com/blog/speed-up-wordpress/">speed up WordPress</a> walks the server-level wins. Weighing hosts before you move? The honest head-to-head is <a href="https://www.kloudbean.com/blog/kloudbean-vs-wp-engine/">Kloudbean vs WP Engine</a>, and the wider view of what managed actually covers is in <a href="https://www.kloudbean.com/blog/managed-wordpress-hosting/">managed WordPress hosting</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Move WordPress in without the downtime.</p>
+    <p style="margin:0 0 .6em">Build and test the migrated site on a free trial, cut over on your schedule, and keep the old host as a rollback. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>; check current plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Free migration assistance · Free trial · One-click WordPress · Managed MySQL &amp; MariaDB · One-click staging · Automatic backups · Free auto-renewing SSL</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I migrate a WordPress site to a new host?</h3>
+    <p>Copy two things and repoint one. Move the files (<code>wp-content</code>: themes, plugins, uploads) and the database (a mysqldump export), then edit wp-config.php on the new host and update the site URL with a proper search-replace tool. Test on a temporary URL first, then switch DNS. A migration plugin bundles those steps into one export-and-import if you'd rather not touch the command line.</p>
+
+    <h3>Should I migrate WordPress with a plugin or manually?</h3>
+    <p>For small and medium sites, a plugin like All-in-One WP Migration or Duplicator is the fastest safe path: it exports one package and imports it on the new host. For very large sites, huge media libraries, or a site that's already broken, the manual files-plus-database method is more reliable because it doesn't hit plugin upload limits or PHP timeouts. Both are legitimate; pick by size and comfort.</p>
+
+    <h3>How do I migrate WordPress without downtime?</h3>
+    <p>Build and verify the new site before you touch DNS. Import everything onto the new host, test it on a temporary URL or staging, and only then switch DNS. Lower your DNS TTL a day ahead so the change propagates in minutes, and leave the old site live during propagation so anyone still hitting the old IP sees a working page. Nobody lands on a half-moved site.</p>
+
+    <h3>Why did my migration break the site?</h3>
+    <p>Almost always one of a few things: the site URL was changed with a raw SQL update that corrupted serialized data, wp-config.php still has the old database credentials, the uploads folder didn't come across, or the new server runs a different PHP version. A broken layout usually means the URL wasn't rewritten properly. A white screen usually means PHP or a plugin. Work down the checklist and each has a clear fix.</p>
+
+    <h3>Does Kloudbean migrate my WordPress site for me?</h3>
+    <p>Kloudbean offers free migration assistance: send your source details and the team helps move the site with you, which is genuinely useful for a large or production site where the cutover window matters. On top of that you get the primitives that make a move low-risk: a free trial to build and test first, one-click staging, managed MySQL or MariaDB, free SSL, and automatic backups. It's help plus a safety net, not a blind one-click import.</p>
+
+    <h3>How do I move the WordPress database?</h3>
+    <p>Export it with mysqldump (add --single-transaction and --default-character-set=utf8mb4), or use phpMyAdmin's export if you prefer a GUI. Create an empty database on the new host, import the SQL file, then point wp-config.php at it. If your old database was latin1, export and import as utf8mb4 or accented characters and emoji can arrive garbled.</p>
+
+    <h3>Do I have to change wp-config.php after migrating?</h3>
+    <p>Yes, almost always. wp-config.php holds the database name, user, password, and host, and those change on the new server. Update the four DB_ constants to match the database you just imported into. If you skip this you'll see "Error establishing a database connection", because WordPress is still trying to reach the old database.</p>
+
+    <h3>How does DNS work during a WordPress migration?</h3>
+    <p>Your domain's A record points at your host's IP address, and migrating means changing that record to the new server's IP. The catch is TTL, the time resolvers cache the old record. Lower the TTL to around 300 seconds a day before you cut over, so when you flip the record the internet picks it up in minutes instead of hours. During propagation both hosts may get traffic, which is why you keep the old one live.</p>
+
+    <h3>Why can't I just find-and-replace the URL in the database?</h3>
+    <p>Because WordPress stores some settings as PHP serialized arrays, and those encode the length of each string. A raw SQL find-and-replace changes the text but not the length prefix, which corrupts the data and can break widgets, theme options, and plugin settings. Use wp-cli's search-replace or a migration plugin instead; they unserialize the data, replace safely, and re-serialize it. This mistake causes more broken migrations than anything else.</p>
+
+    <h3>How long does a WordPress migration take?</h3>
+    <p>The copy itself is usually minutes to an hour, depending on the size of your media library and database. DNS propagation is the variable part: with a low TTL set ahead of time, most visitors move over within minutes, though some resolvers can lag a few hours. Keep the old host live for a day or two afterward as a rollback, then decommission it once traffic has fully shifted.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Move In Without the Downtime.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Migrate WordPress to Kloudbean Without Downtime","description":"A practical, low-risk WordPress migration guide: the plugin route, the manual files-plus-database route, the gotchas that break sites, a safe DNS cutover, and how to migrate WordPress to Kloudbean with free migration assistance, staging, and backups.","image":"https://www.kloudbean.com/blog/migrate-wordpress-to-kloudbean/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/migrate-wordpress-to-kloudbean/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I migrate a WordPress site to a new host?","acceptedAnswer":{"@type":"Answer","text":"Copy two things and repoint one. Move the files (wp-content: themes, plugins, uploads) and the database (a mysqldump export), then edit wp-config.php on the new host and update the site URL with a proper search-replace tool. Test on a temporary URL first, then switch DNS. A migration plugin bundles those steps into one export-and-import if you'd rather not touch the command line."}},
+{"@type":"Question","name":"Should I migrate WordPress with a plugin or manually?","acceptedAnswer":{"@type":"Answer","text":"For small and medium sites, a plugin like All-in-One WP Migration or Duplicator is the fastest safe path: it exports one package and imports it on the new host. For very large sites, huge media libraries, or a site that is already broken, the manual files-plus-database method is more reliable because it does not hit plugin upload limits or PHP timeouts. Both are legitimate; pick by size and comfort."}},
+{"@type":"Question","name":"How do I migrate WordPress without downtime?","acceptedAnswer":{"@type":"Answer","text":"Build and verify the new site before you touch DNS. Import everything onto the new host, test it on a temporary URL or staging, and only then switch DNS. Lower your DNS TTL a day ahead so the change propagates in minutes, and leave the old site live during propagation so anyone still hitting the old IP sees a working page. Nobody lands on a half-moved site."}},
+{"@type":"Question","name":"Why did my migration break the site?","acceptedAnswer":{"@type":"Answer","text":"Almost always one of a few things: the site URL was changed with a raw SQL update that corrupted serialized data, wp-config.php still has the old database credentials, the uploads folder did not come across, or the new server runs a different PHP version. A broken layout usually means the URL was not rewritten properly. A white screen usually means PHP or a plugin. Work down the checklist and each has a clear fix."}},
+{"@type":"Question","name":"Does Kloudbean migrate my WordPress site for me?","acceptedAnswer":{"@type":"Answer","text":"Kloudbean offers free migration assistance: send your source details and the team helps move the site with you, which is genuinely useful for a large or production site where the cutover window matters. On top of that you get the primitives that make a move low-risk: a free trial to build and test first, one-click staging, managed MySQL or MariaDB, free SSL, and automatic backups. It is help plus a safety net, not a blind one-click import."}},
+{"@type":"Question","name":"How do I move the WordPress database?","acceptedAnswer":{"@type":"Answer","text":"Export it with mysqldump (add --single-transaction and --default-character-set=utf8mb4), or use phpMyAdmin's export if you prefer a GUI. Create an empty database on the new host, import the SQL file, then point wp-config.php at it. If your old database was latin1, export and import as utf8mb4 or accented characters and emoji can arrive garbled."}},
+{"@type":"Question","name":"Do I have to change wp-config.php after migrating?","acceptedAnswer":{"@type":"Answer","text":"Yes, almost always. wp-config.php holds the database name, user, password, and host, and those change on the new server. Update the four DB_ constants to match the database you just imported into. If you skip this you will see Error establishing a database connection, because WordPress is still trying to reach the old database."}},
+{"@type":"Question","name":"How does DNS work during a WordPress migration?","acceptedAnswer":{"@type":"Answer","text":"Your domain's A record points at your host's IP address, and migrating means changing that record to the new server's IP. The catch is TTL, the time resolvers cache the old record. Lower the TTL to around 300 seconds a day before you cut over, so when you flip the record the internet picks it up in minutes instead of hours. During propagation both hosts may get traffic, which is why you keep the old one live."}},
+{"@type":"Question","name":"Why can't I just find-and-replace the URL in the database?","acceptedAnswer":{"@type":"Answer","text":"Because WordPress stores some settings as PHP serialized arrays, and those encode the length of each string. A raw SQL find-and-replace changes the text but not the length prefix, which corrupts the data and can break widgets, theme options, and plugin settings. Use wp-cli's search-replace or a migration plugin instead; they unserialize the data, replace safely, and re-serialize it. This mistake causes more broken migrations than anything else."}},
+{"@type":"Question","name":"How long does a WordPress migration take?","acceptedAnswer":{"@type":"Answer","text":"The copy itself is usually minutes to an hour, depending on the size of your media library and database. DNS propagation is the variable part: with a low TTL set ahead of time, most visitors move over within minutes, though some resolvers can lag a few hours. Keep the old host live for a day or two afterward as a rollback, then decommission it once traffic has fully shifted."}}
+]}
+]}
+</script>
+</body>
+</html>

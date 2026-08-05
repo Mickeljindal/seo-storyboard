@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SSH Key Authentication Done Right: Keys, Not Passwords</title>
+<meta name="description" content="A practical guide to SSH key authentication for your servers: generate an ed25519 key, add it to authorized_keys, disable password login, use ssh-agent, manage multiple keys, and rotate keys for teams.">
+<meta name="author" content="Kloudbean Security">
+<link rel="canonical" href="https://www.kloudbean.com/blog/ssh-key-authentication/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SSH Key Authentication Done Right: Keys, Not Passwords">
+<meta property="og:description" content="Stop defending port 22 with a password a bot can guess. Generate an ed25519 key, put the public half on your server, turn password login off, and keep team access clean.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Server security</span>
+  <h1>SSH Key Authentication Done Right for Your Servers</h1>
+
+  <figure><img src="images/hero.png" alt="SSH key authentication: a private key on your laptop, the public key in authorized_keys on the server"></figure>
+
+  <p class="lead">SSH key authentication is the line between a server that shrugs off a thousand login attempts an hour and one that eventually gets guessed. If you still type a password to reach your box, you are defending it with the one thing bots are built to grind through. Keys flip that around, and nothing worth stealing ever crosses the wire.</p>
+
+  <p>This is the whole path: generate a modern key, put the public half on the server, log in without a password, then switch password login off for good. Plus the parts nobody mentions, an agent so you type your passphrase once, a config file for several servers, and clean team access. On a Kloudbean server the firewall and brute-force protection are already on, so your keys land on a door that is hard to kick in.</p>
+
+  <div class="tldr">
+    <strong>Short answer</strong>
+    <p>Generate an ed25519 key with <code>ssh-keygen -t ed25519</code>, copy the public key into the server's <code>~/.ssh/authorized_keys</code> with <code>ssh-copy-id</code>, confirm you can log in with no password, then set <code>PasswordAuthentication no</code> and reload sshd. Your private key never leaves your laptop and proves your identity through a challenge an attacker cannot replay. On a Kloudbean server, Shorewall and Fail2ban already guard port 22; keys are the part you bring.</p>
+  </div>
+
+  <h2>Why passwords lose the moment your server is public</h2>
+  <p>Give a server a public IP and leave SSH on port 22, and it gets scanned within minutes. Not by a person. By bots running down lists of common usernames and leaked passwords, thousands of tries an hour. That is the baseline weather of the public internet.</p>
+  <p>A password is a shared secret. It travels on every login, gets reused between sites, shows up in breach dumps, and can be phished out of a tired human. Fail2ban helps, and on Kloudbean it is on by default: it bans an IP after a handful of failures, which kills most brute-force noise. Treat it as a speed bump, not a wall. Attacks spread across many IPs slide under the ban threshold.</p>
+  <p>Keys remove the secret entirely. The server keeps only your <em>public</em> key, which is safe to hand out; your private key stays on your machine and is never sent. Someone can read the public key all day and still not log in. When a key is rejected, SSH says so bluntly: <code>Permission denied (publickey)</code>. Annoying the first time, but it means the server turned away everything that was not a valid key. Honestly, once keys work, turn off password login and move on.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 430" width="100%" role="img" aria-label="Diagram of SSH key authentication. Your laptop holds the private key id_ed25519, which never leaves the machine. The server holds your public key in authorized_keys. A firewall gate labelled Shorewall, Fail2ban and port 22 sits in front of the server. Below, four steps show the challenge and response handshake: the client connects and offers its key fingerprint, the server picks the public key and sends a random challenge, the laptop signs the challenge with the private key, and the server verifies the signature so no secret ever crosses the wire.">
+      <rect x="1" y="1" width="718" height="428" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="360" y="34" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="16" font-weight="700" fill="#000f27">How SSH key authentication proves who you are</text>
+
+      <rect x="30" y="58" width="215" height="122" rx="12" fill="#f6f7fb" stroke="#e6e9f2"/>
+      <text x="137" y="84" text-anchor="middle" font-size="12" font-weight="700" fill="#4F1AF3" font-family="Poppins,Arial,sans-serif">YOUR LAPTOP</text>
+      <rect x="50" y="98" width="175" height="30" rx="7" fill="#fff" stroke="#cdd6ea"/>
+      <text x="137" y="118" text-anchor="middle" font-size="12" fill="#000f27" font-family="JetBrains Mono,monospace">~/.ssh/id_ed25519</text>
+      <text x="137" y="150" text-anchor="middle" font-size="12" fill="#5b6a86" font-family="Poppins,Arial,sans-serif">PRIVATE key</text>
+      <text x="137" y="168" text-anchor="middle" font-size="11" fill="#5b6a86" font-family="Poppins,Arial,sans-serif">never leaves this machine</text>
+
+      <rect x="475" y="58" width="215" height="122" rx="12" fill="#eaf7ef" stroke="#cdebd6"/>
+      <text x="582" y="84" text-anchor="middle" font-size="12" font-weight="700" fill="#40b75f" font-family="Poppins,Arial,sans-serif">MANAGED SERVER</text>
+      <rect x="497" y="98" width="175" height="30" rx="7" fill="#fff" stroke="#cde4d5"/>
+      <text x="584" y="118" text-anchor="middle" font-size="11" fill="#000f27" font-family="JetBrains Mono,monospace">~/.ssh/authorized_keys</text>
+      <text x="582" y="150" text-anchor="middle" font-size="12" fill="#5b6a86" font-family="Poppins,Arial,sans-serif">your PUBLIC key</text>
+      <text x="582" y="168" text-anchor="middle" font-size="11" fill="#5b6a86" font-family="Poppins,Arial,sans-serif">safe to share</text>
+
+      <rect x="437" y="50" width="26" height="138" rx="6" fill="#000f27"/>
+      <text x="450" y="119" text-anchor="middle" font-size="10" font-weight="700" fill="#fff" font-family="Poppins,Arial,sans-serif" transform="rotate(-90 450 119)">Shorewall + Fail2ban : port 22</text>
+      <line x1="245" y1="119" x2="437" y2="119" stroke="#c9d0e3" stroke-width="2" stroke-dasharray="5 5"/>
+
+      <text x="360" y="216" text-anchor="middle" font-size="12" font-weight="700" fill="#4F1AF3" font-family="Poppins,Arial,sans-serif">THE CHALLENGE AND RESPONSE HANDSHAKE</text>
+
+      <g font-family="Poppins,Arial,sans-serif" font-size="12" fill="#1c2536">
+        <rect x="30" y="238" width="156" height="112" rx="10" fill="#f6f7fb" stroke="#e6e9f2"/>
+        <circle cx="50" cy="258" r="11" fill="#4F1AF3"/><text x="50" y="262" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">1</text>
+        <text x="108" y="288" text-anchor="middle">Client connects on</text>
+        <text x="108" y="304" text-anchor="middle">port 22 and offers</text>
+        <text x="108" y="320" text-anchor="middle">its key fingerprint</text>
+
+        <rect x="198" y="238" width="156" height="112" rx="10" fill="#f6f7fb" stroke="#e6e9f2"/>
+        <circle cx="218" cy="258" r="11" fill="#4F1AF3"/><text x="218" y="262" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">2</text>
+        <text x="276" y="288" text-anchor="middle">Server picks your</text>
+        <text x="276" y="304" text-anchor="middle">public key, sends a</text>
+        <text x="276" y="320" text-anchor="middle">random challenge</text>
+
+        <rect x="366" y="238" width="156" height="112" rx="10" fill="#f6f7fb" stroke="#e6e9f2"/>
+        <circle cx="386" cy="258" r="11" fill="#4F1AF3"/><text x="386" y="262" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">3</text>
+        <text x="444" y="288" text-anchor="middle">Laptop signs the</text>
+        <text x="444" y="304" text-anchor="middle">challenge with the</text>
+        <text x="444" y="320" text-anchor="middle">private key</text>
+
+        <rect x="534" y="238" width="156" height="112" rx="10" fill="#eaf7ef" stroke="#cdebd6"/>
+        <circle cx="554" cy="258" r="11" fill="#40b75f"/><text x="554" y="262" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">4</text>
+        <text x="612" y="288" text-anchor="middle">Server verifies it.</text>
+        <text x="612" y="304" text-anchor="middle">A match means in.</text>
+        <text x="612" y="320" text-anchor="middle">No secret sent.</text>
+
+        <polygon points="188,294 196,288 196,300" fill="#4F1AF3"/>
+        <polygon points="356,294 364,288 364,300" fill="#4F1AF3"/>
+        <polygon points="524,294 532,288 532,300" fill="#40b75f"/>
+      </g>
+      <text x="360" y="384" text-anchor="middle" font-size="11.5" fill="#5b6a86" font-family="Poppins,Arial,sans-serif">The private key signs; the public key verifies.</text>
+    </svg>
+    <figcaption>Your laptop signs a one-time challenge with the private key. The server verifies it against your public key in authorized_keys, while Shorewall and Fail2ban guard the door.</figcaption>
+  </figure>
+
+  <h2>SSH key authentication vs passwords, honestly</h2>
+  <p>The ssh key vs password question has a clear winner for anything facing the internet, though keys are not weightless. You have a file to protect, and losing the only copy locks you out. With that noted, the honest scorecard:</p>
+
+  <table class="cmp">
+    <thead><tr><th>&nbsp;</th><th>Password auth</th><th>SSH key auth</th></tr></thead>
+    <tbody>
+      <tr><td>Brute-force resistance</td><td>Weak. Guessable, and bots try nonstop on port 22.</td><td>Strong. No secret to guess; the key space is astronomically large.</td></tr>
+      <tr><td>Phishing resistance</td><td>Poor. A password can be typed into the wrong box or handed over.</td><td>High. The private key is never sent, so there is nothing to phish.</td></tr>
+      <tr><td>Revocation</td><td>Change the password, then tell everyone the new one.</td><td>Delete one line from authorized_keys. That person is out, nobody else affected.</td></tr>
+      <tr><td>Team scaling</td><td>Shared password, or a growing list of accounts to sync.</td><td>One key per person, added and removed independently.</td></tr>
+      <tr><td>Convenience</td><td>Type it every time, or reuse a weak one.</td><td>Log in with no prompt once the agent holds your key.</td></tr>
+      <tr><td>Main downside</td><td>Everything above.</td><td>You manage a file. Lose it with no backup key and you are locked out.</td></tr>
+    </tbody>
+  </table>
+
+  <p>Keys win. The one downside, a lost file, is fixed by keeping a second key and using a platform with a way back in.</p>
+
+  <h2>Set up SSH key authentication: from a fresh server to key-only login</h2>
+  <p>Seven steps, in order. Do not touch step six until step five works, because that is the one that can lock you out.</p>
+
+  <h3>1. Get a server you can SSH into</h3>
+  <p>You need a box and a user on it. On Kloudbean, click <strong>Add Server</strong>, pick a cloud (AWS, Lightsail, GCP, Linode, Vultr, DigitalOcean, or UpCloud), size it, and launch. It comes up in minutes with Shorewall, Fail2ban, and free SSL configured, and you get SSH access as the admin user.</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="Kloudbean Add Server screen showing the choice of cloud provider, region, and server size">
+    <figcaption>Add Server on Kloudbean: pick a provider, size the box, launch. Firewall and brute-force protection are on from first boot.</figcaption>
+  </figure>
+
+  <p>No server yet, really here to ship an app? Same mechanics; the <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploy a Node app to a managed cloud</a> walkthrough shows the full flow.</p>
+
+  <h3>2. Generate an ed25519 key</h3>
+  <p>On your own machine, not the server, generate an ssh key with the ed25519 algorithm:</p>
+  <pre><code>ssh-keygen -t ed25519 -C "you@example.com"</code></pre>
+  <p>ed25519 is the modern default: short keys, fast signing, excellent security. Accept the default path <code>~/.ssh/id_ed25519</code> and set a passphrase, which encrypts the private key on disk so a stolen laptop does not hand over your servers. You get two files: <code>id_ed25519</code> (private, guard it) and <code>id_ed25519.pub</code> (public, paste anywhere). No ed25519 on some ancient system? Fall back to <code>ssh-keygen -t rsa -b 4096</code>.</p>
+
+  <!-- IMAGE SLOT: swap this figure for a real figure with an img (src -> images/your-file.png) and a figcaption -->
+  <figure class="img-slot"><span><b>Add image</b><em>Terminal after ssh-keygen: the key path, the fingerprint, and the randomart image it prints.</em><small>A real terminal shot shows readers what success looks like.</small></span></figure>
+
+  <h3>3. Put the public key on the server</h3>
+  <p>The easy way copies your key up and fixes permissions:</p>
+  <pre><code>ssh-copy-id user@server</code></pre>
+  <p>That appends your <code>id_ed25519.pub</code> to the server's <code>~/.ssh/authorized_keys</code>. If <code>ssh-copy-id</code> is missing (some minimal images, stock macOS), do it by hand:</p>
+  <pre><code># on your laptop: show the public key
+cat ~/.ssh/id_ed25519.pub
+
+# on the server, logged in as your user:
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+echo "ssh-ed25519 AAAA...your-public-key... you@example.com" &gt;&gt; ~/.ssh/authorized_keys
+chmod 600 ~/.ssh/authorized_keys</code></pre>
+  <p>Permissions matter here and trip people constantly. sshd ignores <code>authorized_keys</code> if that file or <code>~/.ssh</code> is writable by anyone but you. So <code>chmod 700 ~/.ssh</code> and <code>chmod 600 ~/.ssh/authorized_keys</code>, and keep your home directory not group-writable. Test it: <code>ssh user@server</code> should let you in with no password.</p>
+
+  <h3>4. Load the key into ssh-agent</h3>
+  <p>You set a passphrase, but you do not want to type it on every connection. ssh-agent holds the decrypted key in memory for your session:</p>
+  <pre><code>eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519</code></pre>
+  <p>On macOS, add <code>--apple-use-keychain</code> so it survives reboots. Check what is loaded with <code>ssh-add -l</code>. One habit worth forming: be careful with agent forwarding (<code>ssh -A</code>), which lets a server use your local keys. Handy, and risky if that server is compromised, so keep it off unless you need it.</p>
+
+  <h3>5. Manage multiple keys with ~/.ssh/config</h3>
+  <p>More than one server, or a work key and a personal key? An ssh config file handles multiple keys and gives each host a short name:</p>
+  <pre><code># ~/.ssh/config
+Host prod
+    HostName 203.0.113.10
+    User admin
+    IdentityFile ~/.ssh/id_ed25519
+    IdentitiesOnly yes
+
+Host github.com
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_ed25519_personal
+    IdentitiesOnly yes</code></pre>
+  <p>Now <code>ssh prod</code> just works. That <code>IdentitiesOnly yes</code> line matters more than it looks: without it the agent offers every key it holds, and a server that rejects a few in a row throws <code>Too many authentication failures</code> before it reaches the right one. Pin each host to its own <code>IdentityFile</code>, and keep the file at <code>chmod 600</code>.</p>
+
+  <h3>6. Disable password authentication</h3>
+  <p>Only now, with key login working, turn passwords off. This makes brute force pointless: there is no password to grind. Edit <code>/etc/ssh/sshd_config</code>:</p>
+  <pre><code># /etc/ssh/sshd_config
+PubkeyAuthentication yes
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitRootLogin prohibit-password</code></pre>
+  <p>Reload sshd so it picks up the change:</p>
+  <pre><code>sudo systemctl reload sshd
+# some distros name the unit ssh, not sshd:
+sudo systemctl reload ssh</code></pre>
+  <p>The rule that saves careers: keep your current session open and test <code>ssh prod</code> in a new terminal before closing anything. If the new session logs in by key and refuses passwords, you are done. If it fails, you still have the original session to fix it. Logging off too early is the classic own-goal.</p>
+
+  <!-- IMAGE SLOT: swap this figure for a real figure with an img (src -> images/your-file.png) and a figcaption -->
+  <figure class="img-slot"><span><b>Add image</b><em>Two terminals side by side: the original session still open, a fresh session logging in key-only after reloading sshd.</em><small>The safe-testing habit, shown rather than told.</small></span></figure>
+
+  <h3>7. Lock the door at the network edge too</h3>
+  <p>Keys decide who may authenticate. The firewall decides who can reach port 22 at all. On Kloudbean, Shorewall and Fail2ban run by default, and <strong>IP Access Control</strong> lets you allow or deny by IP or CIDR. Scope SSH to your office or VPN range and background scanning cannot even connect. Quieter logs, and Fail2ban mops up the rest.</p>
+
+  <figure>
+    <img src="../assets/console/firewall.png" alt="Kloudbean firewall settings showing Shorewall rules and access control for server ports">
+    <figcaption>Shorewall and Fail2ban ship on; IP Access Control scopes port 22 to the ranges you connect from.</figcaption>
+  </figure>
+
+  <p>Hardening the box anyway? Our explainer on <a href="https://www.kloudbean.com/blog/what-a-waf-does/">what a WAF does</a> covers application-layer filtering, and the <a href="https://www.kloudbean.com/blog/security-headers-guide/">security headers guide</a> handles the HTTP side.</p>
+
+  <h2>Team access and rotating keys</h2>
+  <p>A key setup for one person is easy. The interesting part, where teams get sloppy, is more than one human needing in.</p>
+  <ul>
+    <li><strong>One key per person, never a shared key.</strong> A shared key cannot be revoked for one person without rotating it for everyone, so nobody does. Each teammate makes and adds their own line.</li>
+    <li><strong>Name the keys.</strong> The comment at the end of each authorized_keys line (the <code>you@example.com</code> part) is free documentation, so you know whose key is whose next year.</li>
+    <li><strong>Off-boarding is a one-line delete.</strong> When someone leaves, remove their line from <code>authorized_keys</code>. That is the whole revocation, effective the second you save.</li>
+    <li><strong>Rotate ssh keys on a rhythm, and instantly on a scare.</strong> Add the new key, remove the old line. Do it on a schedule, and immediately if a laptop goes missing or a key file might have leaked.</li>
+    <li><strong>Least privilege.</strong> Give people the account they need, not root. Everyday work as a normal user, admin tasks through <code>sudo</code>.</li>
+  </ul>
+
+  <figure>
+    <img src="../assets/console/subusers-uac.png" alt="Kloudbean subusers and User Access Control screen with granular per-resource permissions">
+    <figcaption>Subusers with User Access Control: granular per-resource, per-action permissions, separate from your server SSH keys.</figcaption>
+  </figure>
+
+  <p>There is a platform layer above the server. Kloudbean's subusers and <a href="https://www.kloudbean.com/blog/user-access-control-explained/">User Access Control</a> give granular, per-resource, per-action permissions, so a contractor can manage one app without seeing billing or your other servers. Pair that with IP Access Control on the box. The dashboard login also supports MFA and social login (Google, GitHub, LinkedIn). One precise point: dashboard MFA protects your Kloudbean <em>account</em>, which is separate from the SSH keys that reach the server's shell. You want both.</p>
+
+  <figure>
+    <img src="../assets/console/user-2fa-security.png" alt="Kloudbean account security screen showing multi-factor authentication settings for the dashboard login">
+    <figcaption>MFA on the dashboard login guards the control panel account. Your SSH keys guard the shell. Two doors, two locks.</figcaption>
+  </figure>
+
+  <!-- IMAGE SLOT: swap this figure for a real figure with an img (src -> images/your-file.png) and a figcaption -->
+  <figure class="img-slot"><span><b>Add image</b><em>An authorized_keys file with one clearly commented key per teammate, so ownership is obvious at a glance.</em><small>Shows the one-key-per-person habit in practice.</small></span></figure>
+
+  <h3>When SSH says Permission denied (publickey)</h3>
+  <p>The error everyone hits, a catch-all for the server turning your key away. Run <code>ssh -v user@server</code> and read what it tries. Then the usual suspects, roughly by frequency:</p>
+  <ul>
+    <li><strong>Wrong key offered.</strong> Confirm the right one with <code>ssh-add -l</code>, then pin it in <code>~/.ssh/config</code> with <code>IdentityFile</code> and <code>IdentitiesOnly yes</code>.</li>
+    <li><strong>Agent not running.</strong> If <code>ssh-add -l</code> says the agent has no identities, start it and re-add the key from step four.</li>
+    <li><strong>Bad permissions.</strong> The silent one. <code>~/.ssh</code> must be 700, <code>authorized_keys</code> 600, and your home directory not group-writable. The server's <code>/var/log/auth.log</code> will say why.</li>
+    <li><strong>Key in the wrong place.</strong> It never landed, or it went into a different user's <code>authorized_keys</code>. Check the exact line is present for the user you log in as.</li>
+    <li><strong>Right key, wrong username.</strong> It might be <code>admin</code>, <code>root</code>, or <code>ubuntu</code> depending on the image.</li>
+  </ul>
+
+  <!-- IMAGE SLOT: swap this figure for a real figure with an img (src -> images/your-file.png) and a figcaption -->
+  <figure class="img-slot"><span><b>Add image</b><em>Verbose ssh -v output with the Offering public key lines and the accepted line highlighted.</em><small>Reading the -v output is the fastest way to diagnose a rejection.</small></span></figure>
+
+  <h2>How this fits a managed Kloudbean server</h2>
+  <p>The honest boundary: Kloudbean gives you a server on your choice of seven clouds, hardened from first boot with Shorewall, Fail2ban, and free SSL, and wraps IP Access Control and User Access Control around it. What it does <em>not</em> do is hold your private keys or log in for you. There is no vault that authenticates on your behalf, which is correct: a private key only means something if you alone hold it.</p>
+  <p>What you get is a starting line already hard to attack, so your keys land on a door that resists constant probing. Automatic backups and available <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">private networking and VPC</a> mean a missing key still leaves a route back. Test that route first; the <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a> covers how. You bring the keys. The platform brings a server hardened before you logged in.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">A hardened server, minus the busywork.</p>
+    <p style="margin:0">Launch a box where Shorewall, Fail2ban, and free SSL are already on, then add your keys and switch passwords off. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, with free migration help, and see sizes on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.7em 0 0; font-size:15px; opacity:.85">Hardened servers · Firewall + Fail2ban · Free SSL · Team access controls · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Is SSH key authentication safe?</h3>
+    <p>Yes, and safer than a password on the public internet. The server stores only your public key; the private key never leaves your machine, so there is no shared secret to guess or phish. A passphrase covers you even if the laptop is stolen.</p>
+
+    <h3>ed25519 vs RSA, which should I use?</h3>
+    <p>Use ed25519. Smaller keys, faster signing, excellent security, and it is the modern default. Only fall back to RSA at 4096 bits if you hit an old system that does not support ed25519, which is rare now.</p>
+
+    <h3>How do I fix Permission denied (publickey)?</h3>
+    <p>Run <code>ssh -v user@server</code> to see which key is offered. Usual causes: the wrong key is sent, the agent is not holding your key, permissions are too loose (~/.ssh must be 700, authorized_keys 600), the key is not in the right user's authorized_keys, or the username is wrong.</p>
+
+    <h3>Should I disable password login?</h3>
+    <p>Yes, once key login works. Set <code>PasswordAuthentication no</code> in sshd_config and reload, testing a fresh session before you close the current one. With passwords off, brute-force attempts have nothing to guess.</p>
+
+    <h3>How do I revoke someone's SSH key?</h3>
+    <p>Delete their line from the server's <code>~/.ssh/authorized_keys</code>. That is the whole revocation, immediate and specific to that person. It is exactly why you use one key per person, not a shared team key.</p>
+
+    <h3>How do I use different keys for different servers?</h3>
+    <p>Create a <code>~/.ssh/config</code> file with a Host block per server, each pointing at its own IdentityFile. Add <code>IdentitiesOnly yes</code> so the agent offers only that key, which avoids Too many authentication failures. Then connect with a short name like <code>ssh prod</code>.</p>
+
+    <h3>How often should I rotate SSH keys?</h3>
+    <p>On a schedule you will actually keep, and immediately if a key might be compromised, like a lost device or leaked file. Rotation is a quick add-new, remove-old edit to authorized_keys. Cheap to do, valuable when something goes wrong.</p>
+
+    <h3>Does Kloudbean manage my SSH keys for me?</h3>
+    <p>No, by design. Kloudbean gives you a hardened server with Shorewall, Fail2ban, and free SSL, plus IP Access Control and User Access Control, but you generate, place, and rotate your own keys. A private key only protects you if you alone hold it.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Security · Keys, not passwords.</p>
+</article>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Article",
+      "headline": "SSH Key Authentication Done Right for Your Servers",
+      "description": "A practical guide to SSH key authentication: generate an ed25519 key, add it to authorized_keys, disable password login, use ssh-agent, manage multiple keys, and rotate keys for teams.",
+      "image": "https://www.kloudbean.com/blog/ssh-key-authentication/images/hero.png",
+      "author": { "@type": "Organization", "name": "Kloudbean Security", "url": "https://www.kloudbean.com/" },
+      "publisher": { "@type": "Organization", "name": "Kloudbean", "logo": { "@type": "ImageObject", "url": "https://www.kloudbean.com/logo.png" } },
+      "mainEntityOfPage": "https://www.kloudbean.com/blog/ssh-key-authentication/"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "Is SSH key authentication safe?", "acceptedAnswer": { "@type": "Answer", "text": "Yes, and safer than a password on the public internet. The server stores only your public key; the private key never leaves your machine, so there is no shared secret to guess or phish. A passphrase covers you even if the laptop is stolen." } },
+        { "@type": "Question", "name": "ed25519 vs RSA, which should I use?", "acceptedAnswer": { "@type": "Answer", "text": "Use ed25519. Smaller keys, faster signing, excellent security, and it is the modern default. Only fall back to RSA at 4096 bits if you hit an old system that does not support ed25519, which is rare now." } },
+        { "@type": "Question", "name": "How do I fix Permission denied (publickey)?", "acceptedAnswer": { "@type": "Answer", "text": "Run ssh -v user@server to see which key is offered. Usual causes: the wrong key is sent, the agent is not holding your key, permissions are too loose where the .ssh directory must be 700 and authorized_keys 600, the key is not in the right user authorized_keys, or the username is wrong." } },
+        { "@type": "Question", "name": "Should I disable password login?", "acceptedAnswer": { "@type": "Answer", "text": "Yes, once key login works. Set PasswordAuthentication no in sshd_config and reload, testing a fresh session before you close the current one. With passwords off, brute-force attempts have nothing to guess." } },
+        { "@type": "Question", "name": "How do I revoke someone's SSH key?", "acceptedAnswer": { "@type": "Answer", "text": "Delete their line from the server authorized_keys file. That is the whole revocation, immediate and specific to that person. It is exactly why you use one key per person, not a shared team key." } },
+        { "@type": "Question", "name": "How do I use different keys for different servers?", "acceptedAnswer": { "@type": "Answer", "text": "Create a ~/.ssh/config file with a Host block per server, each pointing at its own IdentityFile. Add IdentitiesOnly yes so the agent offers only that key, which avoids Too many authentication failures. Then connect with a short name like ssh prod." } },
+        { "@type": "Question", "name": "How often should I rotate SSH keys?", "acceptedAnswer": { "@type": "Answer", "text": "On a schedule you will actually keep, and immediately if a key might be compromised, like a lost device or leaked file. Rotation is a quick add-new, remove-old edit to authorized_keys. Cheap to do, valuable when something goes wrong." } },
+        { "@type": "Question", "name": "Does Kloudbean manage my SSH keys for me?", "acceptedAnswer": { "@type": "Answer", "text": "No, by design. Kloudbean gives you a hardened server with Shorewall, Fail2ban, and free SSL, plus IP Access Control and User Access Control, but you generate, place, and rotate your own keys. A private key only protects you if you alone hold it." } }
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>

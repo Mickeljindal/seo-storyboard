@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Database Indexing Explained: The Fix for Slow Queries</title>
+<meta name="description" content="Database indexing explained: how database indexes work, why they make queries fast, how to read EXPLAIN to find the missing index, and the common mistakes to avoid.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/database-indexing-explained/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Database Indexing Explained: The Fix for Slow Queries">
+<meta property="og:description" content="What a database index is, how the B-tree makes lookups fast, how to read EXPLAIN and EXPLAIN ANALYZE to find the missing index, and the indexing mistakes that quietly cost you.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Database performance</span>
+  <h1>Database Indexing Explained: How Indexes Make Slow Queries Fast</h1>
+  <p class="byline">By Kloudbean Database Team · The Index Is the Fix.</p>
+
+  <figure><img src="images/hero.png" alt="Database indexing explained: a full table scan reads every row while an index jumps straight to the matching rows"></figure>
+
+  <p class="lead">Your query got slow. Not broken, just slow, and it drags a bit more every week as the table grows. Nine times out of ten the fix is <strong>database indexing</strong>, and most developers never check the one thing that would tell them what to do: the query plan. This is the database index explained without hand-waving. What an index is, how database indexes work, how to read <code>EXPLAIN</code> to find the missing one, and the mistakes that waste the indexes you already have.</p>
+
+  <div class="tldr">
+    <strong>What is database indexing, in one paragraph?</strong>
+    <p>An index is a sorted lookup structure, usually a B-tree, that lets the database jump straight to the rows you asked for instead of reading the whole table. Put one on the columns you filter and join on, and a query that scanned a million rows can touch a handful. The catch: every index slightly slows writes and uses disk, so you index for the queries you actually run, then use <code>EXPLAIN ANALYZE</code> to prove it worked.</p>
+  </div>
+
+  <h2>What a database index really is</h2>
+  <p>Picture a 900-page book with no index. To find every mention of one term you read all 900 pages, checking each. That's a full table scan: the database reads every row and keeps the matches. Fine for 500 rows, brutal for five million.</p>
+  <p>An index is the section at the back. Values in sorted order, each pointing to the exact pages. Look it up, jump straight there. A database index does the same for a column, a sorted copy that points back to the full row. It costs a little disk and a little write time, and it turns "read everything" into "go straight to it."</p>
+
+  <h2>How database indexes work: the B-tree in plain terms</h2>
+  <p>The default index in PostgreSQL and MySQL (InnoDB) is a B-tree, and you don't need the academic version to use it well. Think of a sorted tree you search by narrowing. The top node splits the values into buckets, each bucket splits again, and a few hops down you hit a leaf that points to the rows.</p>
+  <p>The payoff is the cost curve. A scan is linear: double the rows, double the work. A B-tree lookup is logarithmic: double the rows, add about one hop. On a million-row table that's reading a million versus reading maybe twenty. That's why an index is the highest-leverage database performance fix most apps leave unused.</p>
+  <p>Here's the before and after on five million orders filtered by <code>customer_id</code>, no index yet. Your exact numbers will differ, but watch the shape:</p>
+<pre><code>EXPLAIN ANALYZE
+SELECT * FROM orders WHERE customer_id = 42;
+
+                          QUERY PLAN
+------------------------------------------------------------------
+ Seq Scan on orders  (cost=0.00..96341.00 rows=18 width=91)
+   (actual time=0.29..612.4 rows=17 loops=1)
+   Filter: (customer_id = 42)
+   Rows Removed by Filter: 4999983
+ Planning Time: 0.11 ms
+ Execution Time: 612.5 ms</code></pre>
+  <p>Look at <code>Rows Removed by Filter: 4999983</code>. Postgres read all five million rows to return 17. Add the index and rerun:</p>
+<pre><code>CREATE INDEX idx_orders_customer_id ON orders (customer_id);
+
+EXPLAIN ANALYZE
+SELECT * FROM orders WHERE customer_id = 42;
+
+                          QUERY PLAN
+------------------------------------------------------------------
+ Index Scan using idx_orders_customer_id on orders
+   (cost=0.43..40.19 rows=18 width=91)
+   (actual time=0.03..0.07 rows=17 loops=1)
+   Index Cond: (customer_id = 42)
+ Planning Time: 0.13 ms
+ Execution Time: 0.11 ms</code></pre>
+  <p>Same query, same rows, completely different work. The plan flipped from <code>Seq Scan</code> to <code>Index Scan</code> and the time collapsed. The SQL didn't change. One index did.</p>
+
+  <figure>
+    <svg viewBox="0 0 780 420" width="100%" role="img" aria-labelledby="idx-title" xmlns="http://www.w3.org/2000/svg">
+      <title id="idx-title">A full table scan reads every row, while an index scan walks a short B-tree path to the matching rows</title>
+      <rect x="0" y="0" width="780" height="420" fill="#f6f7fb"></rect>
+      <text x="26" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Full table scan vs index scan</text>
+      <line x1="390" y1="56" x2="390" y2="398" stroke="#c9cede" stroke-width="1.3" stroke-dasharray="5 6"></line>
+
+      <!-- LEFT: sequential scan -->
+      <text x="26" y="74" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600" letter-spacing="1">WITHOUT AN INDEX &middot; SEQUENTIAL SCAN</text>
+      <line x1="44" y1="94" x2="44" y2="350" stroke="#5b6a86" stroke-width="1.8" marker-end="url(#dn)"></line>
+
+      <rect x="62" y="92" width="250" height="24" rx="6" fill="#000f27"></rect>
+      <text x="74" y="108" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="11">row 1</text>
+      <rect x="62" y="124" width="250" height="24" rx="6" fill="#000f27"></rect>
+      <text x="74" y="140" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="11">row 2</text>
+      <rect x="62" y="156" width="250" height="24" rx="6" fill="#40b75f"></rect>
+      <text x="74" y="172" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="11">row 3 &middot; id 42</text>
+      <rect x="62" y="188" width="250" height="24" rx="6" fill="#000f27"></rect>
+      <text x="74" y="204" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="11">row 4</text>
+      <rect x="62" y="220" width="250" height="24" rx="6" fill="#000f27"></rect>
+      <text x="74" y="236" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="11">row 5</text>
+      <rect x="62" y="252" width="250" height="24" rx="6" fill="#40b75f"></rect>
+      <text x="74" y="268" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="11">row 6 &middot; id 42</text>
+      <rect x="62" y="284" width="250" height="24" rx="6" fill="#000f27"></rect>
+      <text x="74" y="300" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="11">row 7</text>
+      <rect x="62" y="316" width="250" height="24" rx="6" fill="#000f27"></rect>
+      <text x="74" y="332" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="11">row 8</text>
+      <text x="44" y="368" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11.5">Reads every row to find 2</text>
+
+      <!-- RIGHT: B-tree lookup -->
+      <text x="410" y="74" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600" letter-spacing="1">WITH AN INDEX &middot; B-TREE LOOKUP</text>
+      <rect x="556" y="94" width="128" height="36" rx="9" fill="#ffffff" stroke="#4F1AF3" stroke-width="2.4"></rect>
+      <text x="620" y="117" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">index root</text>
+
+      <rect x="438" y="172" width="118" height="32" rx="9" fill="#eef0f6" stroke="#c9cede" stroke-width="1.4"></rect>
+      <text x="497" y="193" text-anchor="middle" fill="#8a93a8" font-family="Poppins,sans-serif" font-size="11">keys 1 to 30</text>
+      <rect x="600" y="172" width="118" height="32" rx="9" fill="#4F1AF3"></rect>
+      <text x="659" y="193" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="11">keys 31 to 60</text>
+
+      <rect x="600" y="248" width="118" height="32" rx="9" fill="#6b3cff"></rect>
+      <text x="659" y="269" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="11">leaf &middot; id 42</text>
+
+      <rect x="604" y="306" width="126" height="22" rx="6" fill="#40b75f"></rect>
+      <text x="616" y="321" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="10.5">row 3</text>
+      <rect x="604" y="334" width="126" height="22" rx="6" fill="#40b75f"></rect>
+      <text x="616" y="349" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="10.5">row 6</text>
+
+      <line x1="600" y1="128" x2="512" y2="170" stroke="#c9cede" stroke-width="1.6" stroke-dasharray="4 5" marker-end="url(#gy)"></line>
+      <text x="470" y="150" fill="#8a93a8" font-family="Poppins,sans-serif" font-size="10">skipped</text>
+      <line x1="640" y1="130" x2="659" y2="170" stroke="#4F1AF3" stroke-width="2.4" marker-end="url(#pp)"></line>
+      <line x1="659" y1="204" x2="659" y2="246" stroke="#4F1AF3" stroke-width="2.4" marker-end="url(#pp)"></line>
+      <line x1="659" y1="280" x2="668" y2="304" stroke="#4F1AF3" stroke-width="2.4" marker-end="url(#pp)"></line>
+      <text x="410" y="388" fill="#2f9d4e" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600">Walks root to leaf, reads 2 rows</text>
+
+      <defs>
+        <marker id="dn" markerWidth="9" markerHeight="9" refX="3" refY="6" orient="auto"><path d="M0 0 L6 0 L3 6 Z" fill="#5b6a86"></path></marker>
+        <marker id="pp" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0 0 L7 3 L0 6 Z" fill="#4F1AF3"></path></marker>
+        <marker id="gy" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 Z" fill="#c9cede"></path></marker>
+      </defs>
+    </svg>
+    <figcaption>Without an index the database checks every row (a sequential scan). With a B-tree it walks a short path from the root to the matching rows, so it reads a handful instead of the whole table.</figcaption>
+  </figure>
+
+  <h2>Reading the query plan: the skill most developers skip</h2>
+  <p>Adding indexes at random is guessing. The plan shows where the time goes. PostgreSQL gives you two commands: <code>EXPLAIN</code> shows the intended plan with cost estimates without running the query, and <code>EXPLAIN ANALYZE</code> runs it and reports real timings and row counts, which is what you want for a slow query.</p>
+  <p>Look for the smoking gun. On a big table, a <code>Seq Scan</code> with high <code>cost</code> and a large <code>Rows Removed by Filter</code> is your missing index in writing. An <code>Index Scan</code> or <code>Index Only Scan</code> means an index is working.</p>
+  <p>MySQL has <code>EXPLAIN</code> too. Read the <code>type</code> column first: <code>ALL</code> is a full table scan, the same red flag, while <code>ref</code>, <code>range</code>, and <code>eq_ref</code> mean it's using an index. The <code>key</code> column names the index it chose, and <code>rows</code> estimates how many it will examine.</p>
+<pre><code>EXPLAIN SELECT * FROM orders WHERE customer_id = 42;
+
++----+-------------+--------+------+---------------+------+---------+---------+-------------+
+| id | select_type | table  | type | possible_keys | key  | ref     | rows    | Extra       |
++----+-------------+--------+------+---------------+------+---------+---------+-------------+
+|  1 | SIMPLE      | orders | ALL  | NULL          | NULL | NULL    | 4998210 | Using where |
++----+-------------+--------+------+---------------+------+---------+---------+-------------+</code></pre>
+  <p>That <code>type: ALL</code> with <code>key: NULL</code> and rows in the millions is the same story as a <code>Seq Scan</code>. Add the right index and <code>type</code> becomes <code>ref</code>, <code>key</code> shows your index, <code>rows</code> collapses. MySQL 8 also has <code>EXPLAIN ANALYZE</code> for real timings.</p>
+
+  <!-- ADD IMAGE: your own EXPLAIN ANALYZE output before and after adding the index, side by side. Swap for a real screenshot: src -> images/explain-before-after.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your own EXPLAIN ANALYZE output, before and after the index, so readers see the Seq Scan flip to an Index Scan.</em><small>Optional: paste from psql or your SQL client.</small></span></figure>
+
+  <h2>What you should actually index, and why</h2>
+  <p>Indexes aren't free, so put them where reads look things up. Three spots cover most of it.</p>
+  <p><strong>Columns in your WHERE clause.</strong> Filter <code>WHERE status = 'active'</code> or <code>WHERE email = ...</code> on a large table and that column wants an index. An unindexed filter shows up as a Seq Scan that throws away most of the rows.</p>
+  <p><strong>Join keys, especially foreign keys.</strong> The classic miss. Join <code>orders</code> to <code>customers</code> and the join column needs an index or the join becomes a scan. The gotcha few people hear: PostgreSQL does not auto-create an index on a foreign key column. It indexes the referenced primary key but leaves the child column bare unless you add it. MySQL's InnoDB creates one for you. So on Postgres, index your foreign keys. Unindexed FKs also make parent deletes slow, because the database scans the child table to check the constraint.</p>
+  <p><strong>Columns in ORDER BY.</strong> A B-tree is already sorted, so an index can return rows in order and skip a separate sort step. If you constantly <code>ORDER BY created_at</code> and paginate, an index there earns its keep.</p>
+
+  <h3>Composite indexes and the leftmost-prefix rule</h3>
+  <p>A composite index covers more than one column, and column order is what people get wrong. An index on <code>(customer_id, created_at)</code> is sorted by <code>customer_id</code> first, then <code>created_at</code> within it. So it serves a query on <code>customer_id</code> alone, or both together, but not <code>created_at</code> alone. That's the leftmost-prefix rule: the index helps only when your filter uses a leading run of its columns from the left.</p>
+<pre><code>-- one index, three shapes it can serve:
+CREATE INDEX idx_orders_customer_created
+  ON orders (customer_id, created_at);
+
+-- uses it:   WHERE customer_id = 42
+-- uses it:   WHERE customer_id = 42 AND created_at &gt;= '2024-01-01'
+-- uses it:   WHERE customer_id = 42 ORDER BY created_at
+-- CANNOT:    WHERE created_at &gt;= '2024-01-01'   (created_at is not leftmost)</code></pre>
+  <p>Order the columns by how you query them: the equality filter first, the range or sort column second. Backwards, and the index sits unused while you wonder why the query is still slow.</p>
+
+  <h3>Covering indexes and index-only scans</h3>
+  <p>Sometimes an index answers the whole query. If it holds every column the query needs, the database reads straight from the index and never visits the table. Postgres calls this an <code>Index Only Scan</code>; MySQL shows <code>Using index</code> in the <code>Extra</code> column. In Postgres you add non-key columns with <code>INCLUDE</code>:</p>
+<pre><code>CREATE INDEX idx_orders_customer_incl
+  ON orders (customer_id) INCLUDE (status, total);
+
+-- this can now be an Index Only Scan, no table visit:
+SELECT status, total FROM orders WHERE customer_id = 42;</code></pre>
+  <p>Covering indexes help hot read paths. Don't sprinkle them everywhere: a wide one is bigger and slower to write, which brings us to the part people skip.</p>
+
+  <!-- ADD IMAGE: your table's index list (\d orders in psql, or SHOW INDEX FROM orders in MySQL). Swap for a real screenshot: src -> images/index-list.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The list of indexes on your busiest table, so you can see what already exists before adding more.</em><small>Optional: output of the describe-table command in your client.</small></span></figure>
+
+  <h2>The tradeoff: indexes make writes slower</h2>
+  <p>Every index is a second structure the database keeps in sync. Insert a row and it updates the table plus every index on the affected columns, same for updates and deletes. So an index speeds reads and taxes writes, and it uses disk. On a write-heavy table, ten indexes you don't need is real cost on every insert.</p>
+  <p>That's why "just index everything" is a real anti-pattern. Over-indexing bloats the table, slows writes, and gives the planner more ways to guess wrong. Index for the queries you actually run in production, not the ones you imagine you might.</p>
+  <table class="cmp">
+    <thead><tr><th>Index it</th><th>Usually skip it</th></tr></thead>
+    <tbody>
+      <tr><td>Columns in WHERE on big tables</td><td>Small tables (a scan is already fast)</td></tr>
+      <tr><td>Foreign keys and join columns</td><td>Columns you never filter or join on</td></tr>
+      <tr><td>Columns you ORDER BY or paginate on</td><td>Low-selectivity flags like a boolean</td></tr>
+      <tr><td>High-selectivity columns (many distinct values)</td><td>Write-hammered tables you rarely query that way</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Five mistakes that quietly waste your indexes</h2>
+  <p>These send people to Google at 2am, sure they have an index yet still staring at a Seq Scan.</p>
+  <p><strong>1. No index on the foreign key.</strong> So common on Postgres. The join looks innocent, the plan shows a scan on the child table, one index fixes it.</p>
+  <p><strong>2. A function on the indexed column.</strong> An index on <code>email</code> won't help <code>WHERE lower(email) = 'sam@example.com'</code>, because the index stores <code>email</code>, not <code>lower(email)</code>. Index the expression instead:</p>
+<pre><code>-- defeats a plain index on email:
+SELECT * FROM users WHERE lower(email) = 'sam@example.com';
+
+-- index the expression instead:
+CREATE INDEX idx_users_lower_email ON users (lower(email));</code></pre>
+  <p><strong>3. A leading-wildcard LIKE.</strong> A B-tree can use <code>LIKE 'sam%'</code> because sorted order finds a prefix. It can't use <code>LIKE '%sam'</code>. A value that ends in something isn't found by a structure sorted from the start. Leading wildcards need a trigram or full-text index, not a plain B-tree.</p>
+  <p><strong>4. A low-selectivity column.</strong> An index helps when it narrows a lot. A boolean like <code>is_active</code>, half the rows true, barely narrows anything, so the planner ignores it and scans, correctly. Index columns with many distinct values, not near-constant flags.</p>
+  <p><strong>5. Stale statistics.</strong> The planner chooses scan versus index from stats about your data. After a big load or delete they go stale and it calls it wrong. <code>ANALYZE</code> (Postgres) refreshes them. If a plan looks wrong right after a migration, analyze the table before blaming the index.</p>
+
+  <h2>A database indexing workflow that beats guessing</h2>
+  <p>Don't add indexes by intuition. Follow the evidence.</p>
+  <p><strong>Find the slow queries.</strong> In Postgres, <code>pg_stat_statements</code> aggregates every query so you can rank by mean or total time. In MySQL, turn on the slow query log. You want the queries that are slow times often, not just the one that scared you today.</p>
+<pre><code>-- Postgres: the heaviest queries by average time
+SELECT query, calls, mean_exec_time
+FROM pg_stat_statements
+ORDER BY mean_exec_time DESC
+LIMIT 10;</code></pre>
+  <p><strong>Explain the worst offender.</strong> Run <code>EXPLAIN ANALYZE</code> and find the Seq Scan on the big table, noting the filter or join column.</p>
+  <p><strong>Add the index that matches the query.</strong> Single column for a single filter, a composite in the right order for a multi-column filter or a filter-plus-sort.</p>
+  <p><strong>Re-run EXPLAIN ANALYZE and confirm.</strong> The scan should become an index scan and the time should drop. If not, you indexed the wrong thing or hit one of the five mistakes. Measure, don't assume. On big Postgres tables, build with <code>CREATE INDEX CONCURRENTLY</code> so you don't lock writes while it builds.</p>
+
+  <figure>
+    <img src="../assets/console/server-health.png" alt="The Kloudbean console server health view showing CPU pinned high on a database that is missing an index">
+    <figcaption>A database pinned at high CPU under normal traffic is often one missing index, not a too-small server. Check the plan before you answer this graph with a resize.</figcaption>
+  </figure>
+
+  <h2>Before you resize the database, check the plan</h2>
+  <p>The opinion I'll defend: most "we need a bigger database server" moments are one missing index. The symptom is identical, CPU pegged and everything slow under load, so the instinct is a bigger instance. Sometimes that's right. Often it buys a few weeks at double the cost while the real problem, a table scanned end to end on every request, rides along untouched.</p>
+  <p>A resize treats the symptom. An index treats the cause. Run <code>EXPLAIN ANALYZE</code> on your top queries first. Scale the hardware when the plans are clean and you're genuinely out of headroom, which happens, just later than most teams think. If you do need to grow, <a href="https://www.kloudbean.com/blog/vertical-vs-horizontal-scaling/">vertical vs horizontal scaling</a> covers that decision.</p>
+
+  <div class="note"><b>Indexing vs connection limits.</b> Slow under load has two very different causes. If queries are individually slow, it's usually a missing index (this article). If fast queries stack up waiting for a free connection, that's a separate fix: see <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>. Check which one your plan and connection count actually show.</div>
+
+  <h2>Where the managed database fits</h2>
+  <p>Indexing is your job. It lives in your schema and your queries, and no host can guess which columns you filter on. The platform's job is to run the engine well and stay out of the way. On Kloudbean you launch a managed <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">PostgreSQL</a>, <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">MySQL</a>, or MariaDB in a few clicks, on a private network, with automatic backups, then write your own <code>CREATE INDEX</code> and read your own <code>EXPLAIN</code>, because they're standard Postgres and MySQL.</p>
+  <p>A server health view shows you when a database pins the CPU, so you go read the plan instead of guessing. And because it runs on a real server with room to resize, you get the honest choice: fix the index first, grow the box only when the plans are clean. Pooling is the companion lever on connections, and caching hot reads in <a href="https://www.kloudbean.com/blog/redis-caching-patterns/">managed Redis</a> keeps repeat queries off the database. New to this? Start with <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a>. Still choosing an engine? <a href="https://www.kloudbean.com/blog/mysql-vs-postgresql/">MySQL vs PostgreSQL</a> lays out the tradeoffs.</p>
+
+  <!-- ADD IMAGE: your query latency graph dropping after the index ships, or the plan flipping to an index scan in your client. Swap for a real screenshot: src -> images/after-index-latency.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your query latency graph dropping after the index ships, or the moment the plan flips to an index scan.</em><small>Optional: a monitoring screenshot from your own app.</small></span></figure>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed PostgreSQL, MySQL, or MariaDB database">
+    <figcaption>A managed PostgreSQL, MySQL, or MariaDB on a private network with automatic backups. You add indexes and read EXPLAIN on it like any standard database.</figcaption>
+  </figure>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">A managed database where you own the schema, we run the engine.</p>
+    <p style="margin:0 0 .6em">Launch a managed PostgreSQL, MySQL, or MariaDB in minutes, add your indexes, and read EXPLAIN like normal. Automatic backups, private networking, a server health view, and free migration help, all on one dashboard. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed PostgreSQL, MySQL &amp; MariaDB · Automatic backups · Private networking · Resize on demand · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is a database index?</h3>
+    <p>A sorted lookup structure, usually a B-tree, that stores a column's values in order with pointers to the matching rows. It lets the database jump straight to those rows instead of scanning the whole table. The cost is a little disk and slightly slower writes, since the index has to stay in sync.</p>
+    <h3>How do database indexes work?</h3>
+    <p>Most indexes are B-trees, a sorted tree the database searches by narrowing the range at each level. A few hops reach a leaf that points to the exact rows, so lookups stay fast as the table grows. That's how an index turns a linear full table scan into a near-instant jump.</p>
+    <h3>When should I add an index?</h3>
+    <p>When a column shows up in a WHERE filter, a JOIN, or an ORDER BY on a table big enough that scanning is slow. The clearest signal is a plan showing a sequential scan with high cost and most rows thrown away by the filter. Confirm the win by rerunning EXPLAIN ANALYZE afterward.</p>
+    <h3>What is EXPLAIN and EXPLAIN ANALYZE?</h3>
+    <p>EXPLAIN shows the plan the database intends to use without running the query. EXPLAIN ANALYZE actually runs it and reports real timings and row counts, which is what you want for a slow query. In both Postgres and MySQL you're checking whether it uses an index scan or a full table scan.</p>
+    <h3>Why is my query slow even with an index?</h3>
+    <p>Usually the index can't be used as written. Common causes: a function around the column like lower(email), a leading-wildcard LIKE, the wrong column order in a composite index, or stale planner stats that need ANALYZE. Run EXPLAIN ANALYZE to see whether the index is actually used, then fix that cause.</p>
+    <h3>Can I have too many indexes?</h3>
+    <p>Yes. Every index is updated on each insert, update, and delete, so extras slow writes and eat disk. Over-indexing is a real anti-pattern, especially on write-heavy tables. Keep the indexes your real queries use and drop what nothing touches.</p>
+    <h3>Should I index foreign keys?</h3>
+    <p>On PostgreSQL yes, and you have to do it yourself, because Postgres doesn't auto-index the referencing column of a foreign key. Without it, joins on that key scan the child table and parent deletes get slow. MySQL InnoDB creates the index automatically, so this mostly bites Postgres users.</p>
+    <h3>What is a composite index and does column order matter?</h3>
+    <p>A composite index covers several columns and is sorted by the first, then the second within it, and so on. Order matters because of the leftmost-prefix rule: an index on customer_id then created_at helps filters on customer_id, but not on created_at alone. Put the equality column first, the range or sort column second.</p>
+    <h3>What is a covering index?</h3>
+    <p>One that contains every column a query needs, so the database answers from the index without touching the table. Postgres calls it an index-only scan and lets you add columns with INCLUDE; MySQL shows Using index in EXPLAIN. It speeds hot read paths but is wider and slower to write, so use it deliberately.</p>
+    <h3>Do indexes work the same in PostgreSQL and MySQL?</h3>
+    <p>The core is the same: B-tree indexes, EXPLAIN to read the plan, and the same rules for WHERE, joins, and sorting. The differences are details, like Postgres not auto-indexing foreign keys while MySQL does, and Postgres INCLUDE versus MySQL covering behavior. Choosing between them goes well beyond indexing.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Read the plan, then add the index.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Database Indexing Explained: How Indexes Make Slow Queries Fast","description":"Database indexing explained: how database indexes work, why they make queries fast, how to read EXPLAIN to find the missing index, and the common indexing mistakes to avoid.","image":"https://www.kloudbean.com/blog/database-indexing-explained/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/database-indexing-explained/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is a database index?","acceptedAnswer":{"@type":"Answer","text":"A sorted lookup structure, usually a B-tree, that stores a column's values in order with pointers to the matching rows. It lets the database jump straight to those rows instead of scanning the whole table. The cost is a little disk and slightly slower writes, since the index has to stay in sync."}},
+{"@type":"Question","name":"How do database indexes work?","acceptedAnswer":{"@type":"Answer","text":"Most indexes are B-trees, a sorted tree the database searches by narrowing the range at each level. A few hops reach a leaf that points to the exact rows, so lookups stay fast as the table grows. That is how an index turns a linear full table scan into a near-instant jump."}},
+{"@type":"Question","name":"When should I add an index?","acceptedAnswer":{"@type":"Answer","text":"When a column shows up in a WHERE filter, a JOIN, or an ORDER BY on a table big enough that scanning is slow. The clearest signal is a plan showing a sequential scan with high cost and most rows thrown away by the filter. Confirm the win by rerunning EXPLAIN ANALYZE afterward."}},
+{"@type":"Question","name":"What is EXPLAIN and EXPLAIN ANALYZE?","acceptedAnswer":{"@type":"Answer","text":"EXPLAIN shows the plan the database intends to use without running the query. EXPLAIN ANALYZE actually runs it and reports real timings and row counts, which is what you want for a slow query. In both Postgres and MySQL you are checking whether it uses an index scan or a full table scan."}},
+{"@type":"Question","name":"Why is my query slow even with an index?","acceptedAnswer":{"@type":"Answer","text":"Usually the index cannot be used as written. Common causes: a function around the column like lower(email), a leading-wildcard LIKE, the wrong column order in a composite index, or stale planner stats that need ANALYZE. Run EXPLAIN ANALYZE to see whether the index is actually used, then fix that cause."}},
+{"@type":"Question","name":"Can I have too many indexes?","acceptedAnswer":{"@type":"Answer","text":"Yes. Every index is updated on each insert, update, and delete, so extras slow writes and eat disk. Over-indexing is a real anti-pattern, especially on write-heavy tables. Keep the indexes your real queries use and drop what nothing touches."}},
+{"@type":"Question","name":"Should I index foreign keys?","acceptedAnswer":{"@type":"Answer","text":"On PostgreSQL yes, and you have to do it yourself, because Postgres does not auto-index the referencing column of a foreign key. Without it, joins on that key scan the child table and parent deletes get slow. MySQL InnoDB creates the index automatically, so this mostly bites Postgres users."}},
+{"@type":"Question","name":"What is a composite index and does column order matter?","acceptedAnswer":{"@type":"Answer","text":"A composite index covers several columns and is sorted by the first, then the second within it, and so on. Order matters because of the leftmost-prefix rule: an index on customer_id then created_at helps filters on customer_id, but not on created_at alone. Put the equality column first, the range or sort column second."}},
+{"@type":"Question","name":"What is a covering index?","acceptedAnswer":{"@type":"Answer","text":"One that contains every column a query needs, so the database answers from the index without touching the table. Postgres calls it an index-only scan and lets you add columns with INCLUDE; MySQL shows Using index in EXPLAIN. It speeds hot read paths but is wider and slower to write, so use it deliberately."}},
+{"@type":"Question","name":"Do indexes work the same in PostgreSQL and MySQL?","acceptedAnswer":{"@type":"Answer","text":"The core is the same: B-tree indexes, EXPLAIN to read the plan, and the same rules for WHERE, joins, and sorting. The differences are details, like Postgres not auto-indexing foreign keys while MySQL does, and Postgres INCLUDE versus MySQL covering behavior. Choosing between them goes well beyond indexing."}}
+]}
+]}
+</script>
+</body>
+</html>

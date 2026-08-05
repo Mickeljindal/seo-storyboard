@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Handle Webhooks Reliably in Production: A Node and Python Guide</title>
+<meta name="description" content="A practical guide to handling webhooks in production. Verify the HMAC signature on the raw body, respond fast with a 202, process webhooks asynchronously with a Redis-backed queue, and make handlers idempotent to survive duplicate and retried events. Real Node and Python code.">
+<meta name="author" content="Kloudbean Engineering">
+<link rel="canonical" href="https://www.kloudbean.com/blog/webhooks-guide/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Handle Webhooks Reliably in Production: A Node and Python Guide">
+<meta property="og:description" content="Verify the signature, respond with a 202 fast, queue the work, and dedupe by event id. Webhook best practices with real Node and Python code, grounded on managed runtimes and Redis.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Webhooks in production</span>
+  <h1>How to Handle Webhooks Reliably in Production</h1>
+
+  <figure><img src="images/hero.png" alt="How to handle webhooks reliably: verify the signature, respond fast, queue the work, and dedupe on event id"></figure>
+
+  <p class="lead">Stripe charges a card. GitHub gets a push. Shopify records an order. Each one fires a webhook, a small HTTP POST to a URL you control, telling your app that something happened somewhere else. Webhooks are how modern services talk to each other without you polling an API every few seconds. They're also where a lot of production apps quietly lose data. This guide covers how to handle webhooks properly on both sides: receiving them without dropping events, and sending them without hammering someone else's server. Real Node and Python code, and the reliability tricks nobody puts in the quickstart.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>Verify the HMAC signature on every incoming webhook using the raw request body and a timing-safe compare. Return a 2xx (a 202 is ideal) the moment you've verified and queued the event, then do the real work in a background worker backed by Redis. Make the handler idempotent by deduping on the provider's event id, because providers retry and you will see the same event twice. Keep the signing secret in an environment variable, and serve the endpoint over HTTPS.</p>
+  </div>
+
+  <h2>What a webhook is, and why webhooks are deceptively hard</h2>
+  <p>A webhook is a reverse API call. Instead of your app asking a provider "anything new?" on a loop, the provider posts to you the instant something happens. You hand them a URL, they send a JSON body to it, your code reacts. That part is genuinely easy. Any web framework can accept a POST in five lines.</p>
+  <p>The hard parts show up later, in production, and they have nothing to do with the endpoint. They're about trust, speed, and duplicates.</p>
+  <ul>
+    <li><strong>Trust.</strong> The request came in over the public internet. How do you know it actually came from Stripe and not from someone who guessed your URL and wants to fake a "payment succeeded" event?</li>
+    <li><strong>Speed.</strong> The provider is holding the connection open, waiting for your answer, and it gives up after a few seconds. A slow handler gets marked as a failed delivery.</li>
+    <li><strong>Duplicates.</strong> Providers retry failed and slow deliveries. "Failed" from their side often just means "you were too slow," so the same event lands two or three times.</li>
+  </ul>
+  <p>Handle those three and you've handled most webhook bugs you'll ever hit.</p>
+
+  <h2>The shape of a reliable webhook receiver</h2>
+  <p>Here's the flow you're building. The important detail: the slow work happens <em>after</em> you've already answered the provider, not before.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 340" role="img" aria-label="Webhook flow: provider POSTs an event, your endpoint verifies the HMAC and returns 202 fast, enqueues to Redis, and a worker processes it idempotently" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="28" y="36" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Verify, acknowledge fast, queue, then process</text>
+      <!-- VPC boundary -->
+      <rect x="198" y="80" width="556" height="184" rx="16" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5" stroke-dasharray="6 6"/>
+      <text x="214" y="102" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.5">YOUR APP ON KLOUDBEAN · PRIVATE NETWORK</text>
+      <!-- Provider -->
+      <rect x="16" y="150" width="120" height="80" rx="12" fill="#000f27"/>
+      <text x="76" y="184" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="15" font-weight="600">Provider</text>
+      <text x="76" y="204" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="10.5">Stripe · GitHub</text>
+      <!-- Endpoint -->
+      <rect x="210" y="140" width="170" height="100" rx="12" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="295" y="172" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="15" font-weight="600">Your endpoint</text>
+      <text x="295" y="192" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">verify HMAC signature</text>
+      <text x="295" y="212" text-anchor="middle" fill="#40b75f" font-family="Poppins,sans-serif" font-size="11" font-weight="600">return 202 immediately</text>
+      <!-- Redis -->
+      <rect x="436" y="150" width="140" height="80" rx="12" fill="#4F1AF3"/>
+      <text x="506" y="184" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="15" font-weight="600">Redis queue</text>
+      <text x="506" y="204" text-anchor="middle" fill="#d8ccff" font-family="Poppins,sans-serif" font-size="10.5">BullMQ / Celery</text>
+      <!-- Worker -->
+      <rect x="628" y="150" width="112" height="80" rx="12" fill="#ffffff" stroke="#40b75f" stroke-width="1.5"/>
+      <text x="684" y="180" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="14" font-weight="600">Worker</text>
+      <text x="684" y="199" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">idempotent</text>
+      <text x="684" y="215" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">dedupe by id</text>
+      <!-- arrow provider -> endpoint -->
+      <line x1="138" y1="176" x2="206" y2="176" stroke="#5b6a86" stroke-width="2"/>
+      <path d="M208 176 l-9 -4 v8 z" fill="#5b6a86"/>
+      <text x="172" y="166" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">POST event</text>
+      <!-- arrow endpoint -> provider (202) -->
+      <line x1="206" y1="204" x2="140" y2="204" stroke="#40b75f" stroke-width="2"/>
+      <path d="M138 204 l9 -4 v8 z" fill="#40b75f"/>
+      <text x="172" y="222" text-anchor="middle" fill="#40b75f" font-family="Poppins,sans-serif" font-size="10.5">202 fast</text>
+      <!-- arrow endpoint -> redis -->
+      <line x1="380" y1="190" x2="434" y2="190" stroke="#4F1AF3" stroke-width="2"/>
+      <path d="M436 190 l-9 -4 v8 z" fill="#4F1AF3"/>
+      <text x="408" y="180" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="10.5">enqueue</text>
+      <!-- arrow redis -> worker -->
+      <line x1="576" y1="190" x2="626" y2="190" stroke="#40b75f" stroke-width="2"/>
+      <path d="M628 190 l-9 -4 v8 z" fill="#40b75f"/>
+      <text x="601" y="180" text-anchor="middle" fill="#40b75f" font-family="Poppins,sans-serif" font-size="10.5">process</text>
+    </svg>
+    <figcaption>A provider POSTs the event. Your HTTPS endpoint verifies the HMAC signature, returns 202 right away, and enqueues to Redis. A worker processes it on its own time, deduping on the event id.</figcaption>
+  </figure>
+
+  <h2>Receiving webhooks without dropping events</h2>
+  <p>Three steps, in this order, every time. Verify, acknowledge, process. Skip any one and you get a bug that only shows up under load, or during a provider's retry storm.</p>
+
+  <h3>Step 1: Verify the webhook signature (and use the raw body)</h3>
+  <p>Almost every serious provider signs its webhooks. They take the secret you share with them, compute an HMAC (usually SHA-256) over the exact bytes of the request body, and send the result in a header like <code>X-Signature</code> or <code>Stripe-Signature</code>. You compute the same HMAC on your side with the same secret and compare. Match means the request is genuine and untampered. No match means you reject it, full stop.</p>
+  <p>One detail trips up almost everyone the first time: you have to hash the <strong>raw request body</strong>, the exact bytes that arrived, not the JSON your framework parsed and re-serialized. Parse it first and the key order or whitespace shifts, your HMAC won't match, and every single verification fails. So verify first, parse second. Always, no exceptions.</p>
+
+<pre><code>import express from "express";
+import crypto from "crypto";
+
+const app = express();
+
+// Grab the RAW body for this route. The signature is computed over the exact
+// bytes that arrived, so JSON parsing must not touch them first.
+app.post(
+  "/webhooks/stripe",
+  express.raw({ type: "application/json" }),
+  (req, res) =&gt; {
+    const secret = process.env.WEBHOOK_SECRET;
+    const sent = req.get("X-Signature") || "";
+
+    const expected = crypto
+      .createHmac("sha256", secret)
+      .update(req.body)            // req.body is a Buffer here
+      .digest("hex");
+
+    const a = Buffer.from(sent);
+    const b = Buffer.from(expected);
+
+    // timingSafeEqual throws on a length mismatch, so check length first.
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+      return res.status(401).send("invalid signature");
+    }
+
+    const event = JSON.parse(req.body.toString("utf8"));
+    webhookQueue.add("incoming", { event });   // hand off, do not process here
+    return res.status(202).send("accepted");
+  }
+);</code></pre>
+
+  <p>Same idea in Python. FastAPI hands you the raw body with <code>await request.body()</code>, and <code>hmac.compare_digest</code> is the timing-safe compare you want:</p>
+
+<pre><code>import hmac, hashlib, json, os
+from fastapi import FastAPI, Request, Response, HTTPException
+
+app = FastAPI()
+SECRET = os.environ["WEBHOOK_SECRET"].encode()
+
+@app.post("/webhooks/stripe")
+async def receive(request: Request):
+    raw = await request.body()                  # raw bytes, before parsing
+    sent = request.headers.get("X-Signature", "")
+    expected = hmac.new(SECRET, raw, hashlib.sha256).hexdigest()
+
+    # constant-time compare, never use ==
+    if not hmac.compare_digest(sent, expected):
+        raise HTTPException(status_code=401, detail="invalid signature")
+
+    event = json.loads(raw)
+    process_webhook.delay(event)                # Celery task, returns instantly
+    return Response(status_code=202)</code></pre>
+
+  <div class="note"><b>Using Stripe or GitHub directly?</b> Reach for their official verifier when they ship one. Stripe's <code>stripe.webhooks.constructEvent()</code> does the HMAC check plus a timestamp check that blocks replay attacks. The manual version above is what you write when a provider doesn't give you an SDK, which is more often than you'd think.</div>
+
+  <!-- ADD IMAGE: swap this slot for a screenshot of your app logs. src -> images/webhook-log-verify.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A log line showing a rejected delivery: 401 invalid signature next to an accepted 202.</em><small>Real logs make the verify step concrete for readers.</small></span></figure>
+
+  <h3>Step 2: Respond to the webhook fast, process it later</h3>
+  <p>The provider is holding a connection open, waiting for your status code. Most give you something like 10 seconds, some are stricter. If you charge a card, write to the database, call two other APIs, and send an email all inside the request handler, you will eventually blow that timeout. The provider marks the delivery failed and retries. Now you're doing that whole slow chain twice, on what is really the same event.</p>
+  <p>The fix is to split acknowledgement from processing. Verify the signature, drop the event onto a queue, and return <strong>202 Accepted</strong> immediately. A separate worker picks the job up and does the real work whenever it's ready. Your endpoint answers in a few milliseconds instead of a few seconds, and the provider is happy.</p>
+  <p>This is where you process webhooks asynchronously with a real queue. On Node that's BullMQ, on Python it's Celery, and both use Redis as the broker. Here's the Node worker, a separate process from the web endpoint:</p>
+
+<pre><code>import { Queue, Worker } from "bullmq";
+
+const connection = { host: process.env.REDIS_HOST, port: 6379 };
+export const webhookQueue = new Queue("incoming", { connection });
+
+// A separate worker process does the slow work, off the request path.
+new Worker(
+  "incoming",
+  async (job) =&gt; {
+    const { event } = job.data;
+
+    // Idempotency: only the first delivery of this id gets through.
+    const fresh = await redis.set(`wh:${event.id}`, "1", "NX", "EX", 86400);
+    if (!fresh) return;            // duplicate, no-op
+
+    await handleEvent(event);      // charge, email, update, whatever
+  },
+  { connection }
+);</code></pre>
+
+  <p>The Python equivalent is a Celery task. The web process already called <code>process_webhook.delay(event)</code> above, which just pushes the job to Redis and returns:</p>
+
+<pre><code>from celery import Celery
+import os, redis
+
+celery = Celery(broker=os.environ["REDIS_URL"])
+r = redis.from_url(os.environ["REDIS_URL"])
+
+@celery.task
+def process_webhook(event):
+    # dedupe by the provider's event id
+    if not r.set(f"wh:{event['id']}", "1", nx=True, ex=86400):
+        return                     # already handled, skip
+
+    handle_event(event)            # the actual work</code></pre>
+
+  <p>On Kloudbean this maps cleanly onto one server. Your Node or Python app is the receiver, a <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis</a> sits on the private network as the broker, and the worker is another process running beside the app. The full setup, including how to keep the worker alive, is in the guide to <a href="https://www.kloudbean.com/blog/celery-with-redis/">running Celery with managed Redis</a>. Redis is one click to launch, on a private network, and backed up.</p>
+
+  <h3>Step 3: Make the handler idempotent (dedupe duplicate webhook events)</h3>
+  <p>Since retries are a fact of life, your worker has to treat a repeated event as a no-op. If a <code>payment.succeeded</code> webhook fires twice and you credit the account twice, that's a real bug with real money on it. Webhook idempotency is not optional for anything that touches billing.</p>
+  <p>Every decent provider stamps a unique id on each event (<code>evt_1abc</code>, a delivery UUID, whatever shape it takes). Dedupe on that. Record the id before you act; if you've seen it, stop. Both samples above do this with Redis <code>SET ... NX</code>, which only writes the key if it doesn't already exist. First delivery wins.</p>
+  <p>Redis is the fast option. For anything financial, a unique constraint on an <code>event_id</code> column in your database is stronger, because it survives a Redis flush and the insert fails loudly on a duplicate:</p>
+
+<pre><code>-- Postgres / MySQL: the database refuses a second insert of the same event
+CREATE TABLE processed_events (
+  event_id   TEXT PRIMARY KEY,
+  handled_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+-- INSERT ... ON CONFLICT DO NOTHING  ->  0 rows means "already processed"</code></pre>
+
+  <p>Out-of-order delivery is the cousin of duplicates. Retries mean an <code>updated</code> event can arrive before the <code>created</code> one, so don't assume order. Where it matters, check a timestamp or version and ignore anything older than the state you already have.</p>
+
+  <!-- ADD IMAGE: swap this slot for a screenshot of your Redis dedupe keys. src -> images/redis-dedupe-keys.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Redis showing the dedupe keys (wh:evt_...) with their TTL counting down.</em><small>Shows idempotency working in practice.</small></span></figure>
+
+  <h2>What status code should a webhook return?</h2>
+  <p>Your response code is an instruction to the sender, not just a formality. Get it wrong and you either lose events or drown yourself in retries. Here's the practical mapping every provider follows:</p>
+
+  <table class="cmp">
+    <thead><tr><th>Your response</th><th>What the sender does</th><th>When to send it</th></tr></thead>
+    <tbody>
+      <tr><td><strong>2xx (200, 202)</strong></td><td>Delivered. Stops retrying.</td><td>You verified and queued the event. 202 fits async work best.</td></tr>
+      <tr><td><strong>400 / 422</strong></td><td>Does not retry. Treats it as broken.</td><td>Malformed payload you can't parse. Retrying won't fix it.</td></tr>
+      <tr><td><strong>401 / 403</strong></td><td>Does not retry.</td><td>Signature check failed. Reject and move on.</td></tr>
+      <tr><td><strong>429</strong></td><td>Backs off, retries later.</td><td>You're rate limiting the sender on purpose.</td></tr>
+      <tr><td><strong>5xx or timeout</strong></td><td>Retries with backoff.</td><td>A transient error on your side. Let it come back.</td></tr>
+    </tbody>
+  </table>
+  <p>The subtle trap: don't return 200 when your handler actually failed. If enqueuing the job throws and you still answer 200, the provider never resends, and you've silently dropped the event. Return a 5xx on a real failure so the retry works for you.</p>
+
+  <h2>Common webhook mistakes, and the fix for each</h2>
+  <p>A pattern we see constantly: an integration works perfectly in testing, then falls over on the first busy day, and it's almost always one of these.</p>
+  <ul>
+    <li><strong>Parsing the body before verifying.</strong> Your JSON middleware rewrites the bytes, the HMAC no longer matches, and legitimate events get rejected as forgeries. Capture the raw body for the webhook route and verify against that.</li>
+    <li><strong>Doing slow work inline.</strong> The provider times out, marks it failed, and retries. Now you're processing the same event two or three times and wondering why. Queue it, answer 202, process in a worker.</li>
+    <li><strong>No idempotency.</strong> Duplicates double-charge, double-email, double-ship. Dedupe on the event id in Redis or with a unique constraint before you do anything with side effects.</li>
+    <li><strong>No signature check at all.</strong> An open endpoint means anyone who finds the URL can POST a fake "subscription upgraded" event. Always verify. An unverified webhook endpoint is a public write API to your business logic.</li>
+    <li><strong>Logging the raw secret or full payload.</strong> Secrets end up in your log aggregator, payloads leak customer data. Log the event id and type, not the body, and never the signing secret.</li>
+  </ul>
+
+  <h2>Sending webhooks: doing unto others</h2>
+  <p>If your product is the one firing webhooks, every rule above flips around. Your consumers need to trust you, and you need to deliver reliably without giving up too early or retrying forever.</p>
+  <ul>
+    <li><strong>Sign your payloads.</strong> Compute an HMAC over the body and send it in a header so consumers can verify you. Document the scheme so they can reproduce it.</li>
+    <li><strong>Deliver from a queue.</strong> Never send the webhook inline in the request that triggered it. A slow consumer would tie up your own API. Enqueue the delivery and let a worker handle it.</li>
+    <li><strong>Retry with exponential backoff.</strong> Treat any non-2xx or timeout as a failure and retry on a widening schedule (roughly 1s, 2s, 4s, 8s), with a cap and a dead-letter after a handful of attempts.</li>
+    <li><strong>Set a short timeout.</strong> A few seconds, no more. One unresponsive consumer shouldn't hold a worker hostage.</li>
+    <li><strong>Send a stable event id.</strong> Put a unique id in a header so consumers can dedupe on their end, the same way you would.</li>
+  </ul>
+
+  <p>The delivery function itself is small. Sign, POST with a timeout, and throw on any non-2xx so the queue's retry kicks in:</p>
+
+<pre><code>import crypto from "crypto";
+
+function sign(body, secret) {
+  return crypto.createHmac("sha256", secret).update(body).digest("hex");
+}
+
+async function deliver(endpoint, payload) {
+  const body = JSON.stringify(payload);
+
+  const res = await fetch(endpoint.url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Webhook-Signature": sign(body, endpoint.secret),
+      "X-Event-Id": payload.id,          // stable id so consumers can dedupe
+    },
+    body,
+    signal: AbortSignal.timeout(5000),   // short timeout, fail fast
+  });
+
+  // Any non-2xx (or a timeout) throws, which tells the queue to retry.
+  if (!res.ok) throw new Error(`delivery failed: ${res.status}`);
+}</code></pre>
+
+  <p>And the retry policy lives in the queue, not in your own hand-rolled loop. With BullMQ it's a couple of options:</p>
+
+<pre><code>// Retry with exponential backoff: about 1s, 2s, 4s, 8s, 16s, then give up.
+await deliveries.add(
+  "deliver",
+  { endpoint, payload },
+  { attempts: 6, backoff: { type: "exponential", delay: 1000 } }
+);</code></pre>
+
+  <p>Keep the endpoint URL configurable per customer, in the database or their settings, so people can change where their webhooks go without a deploy from you.</p>
+
+  <h2>Deploy a reliable webhook receiver on Kloudbean</h2>
+  <p>A webhook receiver is a normal Node or Python app, a Redis queue, and a worker. Here's how the pieces land on Kloudbean, all on one server.</p>
+
+  <ol>
+    <li><strong>Add your app.</strong> Create a Node or Python application for the receiver. Point it at your GitHub repo and every push builds and deploys. Express, FastAPI, Django, and Flask all work the same way, your webhook route is just an endpoint in the app.</li>
+  </ol>
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean console adding a Node or Python application to host the webhook receiver">
+    <figcaption>Add Application: your webhook receiver is a normal managed Node or Python app, deployed straight from Git.</figcaption>
+  </figure>
+
+  <ol start="2">
+    <li><strong>Store the signing secret as an environment variable.</strong> Open Runtime Configuration and add <code>WEBHOOK_SECRET</code>. It lives on the server, never in your code or Git history, and you can rotate it without a code change. More on doing this cleanly in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>.</li>
+  </ol>
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console Environment Variables screen where the webhook signing secret is stored">
+    <figcaption>Environment Variables: the webhook signing secret goes here, not in your repository.</figcaption>
+  </figure>
+
+  <ol start="3">
+    <li><strong>Launch managed Redis for the queue.</strong> From the DBS section, launch a Redis instance. It comes up on the private network, one click, and it's backed up. That's your BullMQ or Celery broker, reachable by the app internally and not exposed to the internet.</li>
+  </ol>
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console Launch Database screen selecting managed Redis for the webhook queue">
+    <figcaption>Launch Database: pick managed Redis. It's the broker your queue and worker share, on the private network.</figcaption>
+  </figure>
+
+  <ol start="4">
+    <li><strong>Run the worker.</strong> The BullMQ or Celery worker is a second process beside the web app on the same server. It pulls jobs off Redis and does the slow work. The <a href="https://www.kloudbean.com/blog/celery-with-redis/">Celery with Redis</a> guide walks through keeping it running. Your endpoint is already on HTTPS with free SSL, which webhooks require.</li>
+  </ol>
+
+  <!-- ADD IMAGE: swap this slot for a screenshot of the deployed receiver. src -> images/deployed-receiver.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The deployed app tile showing the receiver, the worker process, and the linked Redis instance.</em><small>Ties the three steps together in one view.</small></span></figure>
+
+  <p>The guides on <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploying a Node app</a>, <a href="https://www.kloudbean.com/blog/deploy-express-app/">deploying Express</a>, and <a href="https://www.kloudbean.com/blog/deploy-fastapi-app/">deploying FastAPI</a> cover the app side end to end.</p>
+
+  <h2>Webhook security checklist</h2>
+  <p>Webhook security comes down to a handful of habits. Skip any one and endpoints get abused.</p>
+  <ul>
+    <li><strong>Always verify signatures.</strong> An endpoint that accepts unverified POSTs is a write path into your app that strangers can call.</li>
+    <li><strong>HTTPS only.</strong> Free SSL is on, so there's no reason a secret or a payload should ever travel in plaintext.</li>
+    <li><strong>Secret in an environment variable.</strong> Never in code, never committed. Rotate it on a schedule; because it's an env var, that's a config change.</li>
+    <li><strong>Timing-safe compare.</strong> Use <code>crypto.timingSafeEqual</code> or <code>hmac.compare_digest</code>, not <code>==</code>, so you don't leak the secret one byte at a time through response timing.</li>
+    <li><strong>Don't trust the payload for authorization.</strong> Before doing something sensitive, re-fetch the object from the provider's API by id. A verified signature proves the message is authentic, not that the state in it is still current.</li>
+    <li><strong>Allowlist source IPs if published.</strong> Some providers publish their egress IP ranges. If yours does, restrict to them. Kloudbean's Shorewall firewall and Fail2ban already blunt random abuse at the edge.</li>
+  </ul>
+
+  <!-- ADD IMAGE: swap this slot for a diagram of your own. src -> images/webhook-security-flow.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A simple before and after: an unverified endpoint accepting a forged event, versus a verified one rejecting it.</em><small>Optional, drives the security point home.</small></span></figure>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Ship a webhook receiver that doesn't drop events.</p>
+    <p style="margin:0 0 .6em">Put your Node or Python app, a one-click Redis queue, and your worker on the same server, behind free SSL and a private network. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, and check plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>. Free migration assistance if you're moving an existing integration over.</p>
+    <p style="margin:0">Managed Node and Python · One-click Redis · Private networking · Env-stored secrets · Free SSL · Simple Git deploy</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I verify a webhook signature?</h3>
+    <p>Compute an HMAC (usually SHA-256) over the raw request body using the signing secret you share with the provider, then compare it to the signature they sent in a header, using a timing-safe comparison. If the two match, the request is genuine and untampered. Always hash the raw bytes, not the parsed JSON, and reject a mismatch with a 400 or 401.</p>
+
+    <h3>Should I process webhooks synchronously or with a queue?</h3>
+    <p>With a queue, for anything that isn't trivial. Verify the signature, enqueue the event, and return 202 immediately, then let a background worker do the real work. Processing inline risks blowing the provider's timeout, which triggers a failed delivery and a retry, so you end up doing the same slow work twice.</p>
+
+    <h3>How do I handle duplicate webhook events?</h3>
+    <p>Dedupe on the provider's event id. Before your worker acts, record the id in Redis with SET NX or in a database column with a unique constraint. If the id is already there, treat the event as handled and return without doing the work again. Providers retry deliveries, so you will receive duplicates, and idempotency is what keeps them harmless.</p>
+
+    <h3>What status code should a webhook return?</h3>
+    <p>Return a 2xx once you've verified and queued the event; a 202 is a good fit for async processing. Return a 400 or 401 for a bad payload or a failed signature so the provider stops retrying. Return a 5xx or let it time out for a transient error on your side, which tells the provider to retry with backoff.</p>
+
+    <h3>Why must I use the raw request body to verify a webhook?</h3>
+    <p>Because the HMAC is computed over the exact bytes the provider sent. If your framework parses the JSON and re-serializes it, whitespace and key order can change, so your recomputed signature no longer matches and every verification fails. Capture the raw body for the webhook route and verify against that before parsing.</p>
+
+    <h3>How do I secure a webhook endpoint?</h3>
+    <p>Verify every signature, serve the endpoint over HTTPS, keep the signing secret in an environment variable, and use a timing-safe compare. Don't trust the payload contents for authorization; re-fetch sensitive objects from the provider's API by id. If the provider publishes source IP ranges, allowlist them.</p>
+
+    <h3>How many times will a provider retry a webhook?</h3>
+    <p>It varies by provider, but most retry failed or timed-out deliveries several times over minutes or hours on a backoff schedule, then give up. That's exactly why idempotency matters: across those retries you may receive the same event more than once, and your handler needs to make repeats a no-op.</p>
+
+    <h3>Can I use Redis as the webhook queue?</h3>
+    <p>Yes, and it's the common choice. BullMQ on Node and Celery on Python both use Redis as the broker. On Kloudbean you launch a managed Redis on the private network with one click, point your app and worker at it, and it's backed up for you. Redis also works nicely as the store for your idempotency keys.</p>
+
+    <h3>How do I test webhooks during development?</h3>
+    <p>Use the provider's own test or "send test event" feature where they have one, and a tunneling tool to expose your local endpoint over HTTPS while you build. Log the event id and type as they arrive so you can confirm verification passed and the job was queued. Once it works locally, deploy the same code and point the provider at your live HTTPS URL.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Engineering · Webhooks that don't drop.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Handle Webhooks Reliably in Production","description":"A practical guide to handling webhooks in production: verify the HMAC signature on the raw body, respond fast with a 202, process asynchronously with a Redis-backed queue, and make handlers idempotent to survive duplicate and retried events. Real Node and Python code.","image":"https://www.kloudbean.com/blog/webhooks-guide/images/hero.png","author":{"@type":"Organization","name":"Kloudbean Engineering","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/webhooks-guide/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I verify a webhook signature?","acceptedAnswer":{"@type":"Answer","text":"Compute an HMAC (usually SHA-256) over the raw request body using the signing secret you share with the provider, then compare it to the signature they sent in a header, using a timing-safe comparison. If the two match, the request is genuine and untampered. Always hash the raw bytes, not the parsed JSON, and reject a mismatch with a 400 or 401."}},
+{"@type":"Question","name":"Should I process webhooks synchronously or with a queue?","acceptedAnswer":{"@type":"Answer","text":"With a queue, for anything that is not trivial. Verify the signature, enqueue the event, and return 202 immediately, then let a background worker do the real work. Processing inline risks blowing the provider timeout, which triggers a failed delivery and a retry, so you end up doing the same slow work twice."}},
+{"@type":"Question","name":"How do I handle duplicate webhook events?","acceptedAnswer":{"@type":"Answer","text":"Dedupe on the provider event id. Before your worker acts, record the id in Redis with SET NX or in a database column with a unique constraint. If the id is already there, treat the event as handled and return without doing the work again. Providers retry deliveries, so you will receive duplicates, and idempotency is what keeps them harmless."}},
+{"@type":"Question","name":"What status code should a webhook return?","acceptedAnswer":{"@type":"Answer","text":"Return a 2xx once you have verified and queued the event; a 202 is a good fit for async processing. Return a 400 or 401 for a bad payload or a failed signature so the provider stops retrying. Return a 5xx or let it time out for a transient error on your side, which tells the provider to retry with backoff."}},
+{"@type":"Question","name":"Why must I use the raw request body to verify a webhook?","acceptedAnswer":{"@type":"Answer","text":"Because the HMAC is computed over the exact bytes the provider sent. If your framework parses the JSON and re-serializes it, whitespace and key order can change, so your recomputed signature no longer matches and every verification fails. Capture the raw body for the webhook route and verify against that before parsing."}},
+{"@type":"Question","name":"How do I secure a webhook endpoint?","acceptedAnswer":{"@type":"Answer","text":"Verify every signature, serve the endpoint over HTTPS, keep the signing secret in an environment variable, and use a timing-safe compare. Do not trust the payload contents for authorization; re-fetch sensitive objects from the provider API by id. If the provider publishes source IP ranges, allowlist them."}},
+{"@type":"Question","name":"How many times will a provider retry a webhook?","acceptedAnswer":{"@type":"Answer","text":"It varies by provider, but most retry failed or timed-out deliveries several times over minutes or hours on a backoff schedule, then give up. That is exactly why idempotency matters: across those retries you may receive the same event more than once, and your handler needs to make repeats a no-op."}},
+{"@type":"Question","name":"Can I use Redis as the webhook queue?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it is the common choice. BullMQ on Node and Celery on Python both use Redis as the broker. On Kloudbean you launch a managed Redis on the private network with one click, point your app and worker at it, and it is backed up for you. Redis also works nicely as the store for your idempotency keys."}},
+{"@type":"Question","name":"How do I test webhooks during development?","acceptedAnswer":{"@type":"Answer","text":"Use the provider test or send test event feature where they have one, and a tunneling tool to expose your local endpoint over HTTPS while you build. Log the event id and type as they arrive so you can confirm verification passed and the job was queued. Once it works locally, deploy the same code and point the provider at your live HTTPS URL."}}
+]}
+]}
+</script>
+</body>
+</html>

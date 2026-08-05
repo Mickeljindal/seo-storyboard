@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A Vercel Alternative for Full-Stack Apps</title>
+<meta name="description" content="Your app outgrew Vercel's serverless model. An honest Vercel alternative breakdown — where serverless stops fitting, how the metered bill behaves, and when a persistent server you own is the better call.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/vercel-alternative-for-full-stack-apps/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="A Vercel Alternative for Full-Stack Apps">
+<meta property="og:description" content="Where Vercel's serverless model hits the full-stack ceiling, what the bill does as you grow, and how a persistent server you own compares — a fit-first Vercel alternative guide.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Vercel alternative</span>
+  <h1>A Vercel Alternative for Full-Stack Apps</h1>
+
+  <figure><img src="images/hero.png" alt="A Vercel alternative for full-stack apps — a persistent server you own, with the database next to the code, at a flat price"></figure>
+
+  <p class="lead">You didn't set out to shop for a Vercel alternative. Almost nobody does. You picked Vercel for a front end, it was great, then the app grew a login, a real database, a background job that emails people at 6am, and one day the serverless model (or the invoice) started pushing back. This is the honest version of that decision: where Vercel's design genuinely fits, where a full-stack app meets the ceiling, and what a persistent server you own changes about the math.</p>
+
+  <div class="tldr">
+    <strong>Short answer</strong>
+    <p>Vercel is elite for front ends and short serverless functions. A full-stack app that needs a process that stays running, websockets, background workers, or a database sitting next to the code eventually fights that model, and the metered bill gets spiky. The strongest Vercel alternative for that case isn't another serverless host. It's a server you own, running your whole stack at a flat price, with the same push-to-deploy you already like.</p>
+  </div>
+
+  <h2>Serverless has a ceiling, and full-stack is where you hit it</h2>
+  <p>Here's an opinion I'll defend: most apps that describe themselves as "full-stack" were never a good match for serverless in the first place. Serverless earns its keep for work that's spiky, stateless, and short. A function wakes up, does one thing, returns, and disappears. That's a beautiful fit for an image resize, a form handler, an API that gets hit in bursts.</p>
+  <p>A typical full-stack app is the opposite of that. It's steady, stateful, and long-lived. It holds sessions. It keeps a pool of database connections open. It wants a timer running in the background whether or not anyone's on the site. Running that shape on functions isn't wrong, exactly. It's fitting a square peg, and the sanding never quite stops.</p>
+  <p>The two shapes look like this.</p>
+
+  <figure>
+    <svg viewBox="0 0 700 388" width="100%" role="img" aria-label="Diagram comparing two shapes for the same full-stack app. On the left, serverless functions spin up per request and reach a metered database across the network. On the right, one long-lived process on a server you own holds the app, API, database, and object storage on the same box.">
+      <rect x="1" y="1" width="698" height="386" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="350" y="30" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="16" font-weight="700" fill="#000f27">Two shapes for the same full-stack app</text>
+      <line x1="350" y1="48" x2="350" y2="366" stroke="#e6e9f2" stroke-width="1" stroke-dasharray="5 5"/>
+
+      <!-- LEFT: serverless -->
+      <text x="176" y="66" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="700" letter-spacing="1" fill="#4F1AF3">SERVERLESS FUNCTIONS</text>
+      <rect x="120" y="78" width="112" height="30" rx="8" fill="#000f27"/>
+      <text x="176" y="98" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#fff">a request arrives</text>
+      <g stroke="#4F1AF3" stroke-width="1.6" fill="none">
+        <line x1="176" y1="108" x2="70" y2="130"/>
+        <line x1="176" y1="108" x2="176" y2="130"/>
+        <line x1="176" y1="108" x2="282" y2="130"/>
+      </g>
+      <g font-family="JetBrains Mono,monospace" font-size="12" fill="#1c2536">
+        <rect x="30" y="130" width="80" height="38" rx="8" fill="#f6f7fb" stroke="#c9c0f5" stroke-dasharray="4 3"/><text x="70" y="154" text-anchor="middle">fn</text>
+        <rect x="136" y="130" width="80" height="38" rx="8" fill="#f6f7fb" stroke="#c9c0f5" stroke-dasharray="4 3"/><text x="176" y="154" text-anchor="middle">fn</text>
+        <rect x="242" y="130" width="80" height="38" rx="8" fill="#f6f7fb" stroke="#c9c0f5" stroke-dasharray="4 3"/><text x="282" y="154" text-anchor="middle">fn</text>
+      </g>
+      <text x="176" y="188" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" fill="#5b6a86">spin up per request, gone after</text>
+      <line x1="176" y1="200" x2="176" y2="250" stroke="#4F1AF3" stroke-width="1.6" stroke-dasharray="4 4"/>
+      <polygon points="170,244 176,256 182,244" fill="#4F1AF3"/>
+      <text x="235" y="228" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#5b6a86">network hop</text>
+      <rect x="56" y="258" width="240" height="46" rx="8" fill="#f6f7fb" stroke="#e6e9f2"/>
+      <text x="176" y="280" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="600" fill="#000f27">Managed database (metered)</text>
+      <text x="176" y="297" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#5b6a86">a separate service, its own bill</text>
+      <text x="176" y="344" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-style="italic" fill="#5b6a86">Ephemeral compute. Data over the wire.</text>
+
+      <!-- RIGHT: owned server -->
+      <text x="524" y="66" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="700" letter-spacing="1" fill="#40b75f">A SERVER YOU OWN</text>
+      <rect x="386" y="80" width="288" height="224" rx="12" fill="#eaf7ef" stroke="#cdebd6"/>
+      <rect x="406" y="100" width="248" height="46" rx="8" fill="#000f27"/>
+      <text x="530" y="122" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="600" fill="#fff">App + API</text>
+      <text x="530" y="139" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#c9b8ff">one long-lived process</text>
+      <rect x="406" y="158" width="248" height="40" rx="8" fill="#fff" stroke="#cdebd6"/>
+      <text x="530" y="183" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">Postgres / MySQL</text>
+      <rect x="406" y="206" width="248" height="40" rx="8" fill="#fff" stroke="#cdebd6"/>
+      <text x="530" y="231" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">Object storage</text>
+      <text x="530" y="272" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#5b6a86">same box, local network, microseconds away</text>
+      <text x="524" y="344" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-style="italic" fill="#40b75f">Always on. Data next door. One flat bill.</text>
+    </svg>
+    <figcaption>Left: a full-stack app stretched over serverless functions and a metered database it reaches across the network. Right: the same app as one persistent process with its data on the same box. Both work. One fits better past a certain size.</figcaption>
+  </figure>
+
+  <h2>Match the workload to the model</h2>
+  <p>Skip the vibes and look at what your app actually does. Some work loves serverless. Some work quietly wants a server and spends its whole life apologizing for not having one. Here's the honest split.</p>
+
+  <table class="cmp">
+    <thead><tr><th>What your app needs to do</th><th>On serverless</th><th>On a server you own</th></tr></thead>
+    <tbody>
+      <tr><td>Short request/response API, bursty traffic</td><td>Great fit, this is the sweet spot</td><td>Fine, runs it too</td></tr>
+      <tr><td>A connection that stays open (websockets, live updates)</td><td>Fights the model, needs a separate provider</td><td>Natural, the process is already running</td></tr>
+      <tr><td>Background worker or a job longer than the function limit</td><td>Hits execution timeouts</td><td>Runs as long as it needs</td></tr>
+      <tr><td>Scheduled job on a timer</td><td>Bolt on external cron</td><td>Cron from the same host</td></tr>
+      <tr><td>A database the app talks to constantly</td><td>Separate metered service, connection juggling</td><td>Launched on the same box</td></tr>
+      <tr><td>A cost you can put in a budget</td><td>Several meters, moves with usage</td><td>One flat number</td></tr>
+    </tbody>
+  </table>
+
+  <p>If your rows land mostly in the first column, stay on Vercel and stop reading. If three or more land in "wants a server," you've found your ceiling. That's not Vercel failing. It's a front-end-and-functions platform being asked to be a full-stack host, which was never the job it signed up for.</p>
+
+  <h2>The connection-storm gotcha nobody warns you about</h2>
+  <p>This is where people get genuinely surprised, so I'll spell it out. Each serverless invocation is its own short-lived process, and each one wants a database connection. Under load you get hundreds of functions opening and closing connections at once, and a database has a finite pool. You hit the ceiling, queries start failing, and the fix everyone reaches for is a connection pooler plus a serverless-flavored database driver sitting in front of the real database.</p>
+  <p>None of that is bad engineering. But notice what happened. You added infrastructure to solve a problem that only exists because the compute is ephemeral. A pattern we run into constantly with teams migrating in: an app kept alive past its natural fit by a stack of patches. A queue service here, third-party cron there, a websocket provider, a pooler in front of the database. Each patch is reasonable on its own. Together they quietly rebuild a server out of a dozen billed services, and the bill for all those parts sails past what one box would have cost. On an always-on server, one process holds a sane pool of connections to a database on the same machine, and the whole category of problem just isn't there.</p>
+
+  <h2>The cost shape, not the cost number</h2>
+  <p>People say Vercel gets expensive. That's half the story. The real issue is the shape of the bill, not any single figure. A Vercel invoice for a growing full-stack app moves on several meters at once: per seat as the team grows, function invocations and duration as traffic grows, bandwidth on top, and then the database as a separate service that meters its own usage. Each line is defensible. Added up, your monthly cost tracks how good a month you had, which is exactly the number you can't forecast in advance.</p>
+  <p>A flat server inverts that. You pick a size, you pay that, and a launch week costs the same as a dead week. I won't pretend it's always the smaller number (more on that below), but for anyone trying to commit a hosting cost to a budget, predictable beats occasionally-cheap almost every time. If cost predictability is your whole reason for looking, the <a href="https://www.kloudbean.com/blog/cost-of-running-a-side-project/">cost of running a side project</a> breaks the numbers down further.</p>
+
+  <!-- IMAGE SLOT: replace this figure with a real <figure><img><figcaption> (src -> images/vercel-bill.png) -->
+  <figure class="img-slot"><span><b>Add image</b><em>A Vercel usage dashboard or invoice with the function, bandwidth, and seat line items called out.</em><small>Grounds the cost-shape argument in something real. Author supplies.</small></span></figure>
+
+  <h2>What a full-stack Vercel alternative actually needs to do</h2>
+  <p>Once you know the shape you want, the criteria write themselves. A real Vercel alternative for a full-stack app should give you a persistent process (so long-running work, websockets, and background jobs just run), a database you launch next to the app instead of across the network, a flat and budgetable price, standard code with no lock-in, and the push-to-deploy flow you'd miss if it vanished. That last one is the reason people stall. They assume owning a server means giving up the developer experience. It doesn't have to.</p>
+
+  <p>That's the gap <a href="https://www.kloudbean.com/">Kloudbean</a> is built for. Instead of running your backend as functions, it runs your app as one always-on process on a real server it provisions and manages for you, on the cloud you choose (AWS, Google Cloud, DigitalOcean, Linode, Vultr, UpCloud, or Lightsail, so seven providers, not one opinionated platform). You connect a Git repo and deploy from a console. Same muscle memory, different thing underneath.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="Kloudbean console Deploy Code / Git Deployment tab: connect the repo, set the runtime, and Pull and Deploy">
+    <figcaption>Application Administration, then Deploy Code: connect the repo, set the build and start commands, Pull and Deploy. Auto-deploy on push with live build logs streaming in the console.</figcaption>
+  </figure>
+
+  <p>Your Next.js app doesn't need a special adapter to live here. The standard production server is exactly what runs.</p>
+
+  <pre><code># Next.js on a server you own: the stock production server, no adapter
+next build
+next start        # a long-lived Node process that reads process.env.PORT</code></pre>
+
+  <p>The database lands right beside it. Launch a managed Postgres or MySQL from the console (there are six engines: Postgres, MySQL, MariaDB, Redis, MongoDB, Elasticsearch) and point the app at it over the local network.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="Kloudbean Launch Database screen for creating a managed Postgres or MySQL instance next to the application">
+    <figcaption>Launch a managed database next to the app. The connection string points at localhost, not out across the internet to a metered service.</figcaption>
+  </figure>
+
+  <pre><code># the app and its data on the same box, reached over the local network
+DATABASE_URL=postgres://kb_user:pass@127.0.0.1:5432/appdb</code></pre>
+
+  <p>The managed layer handles the OS, stack, SSL, patching, and backups, so you get ownership without becoming a full-time sysadmin. And because it's one server holding the whole app, the mental model gets simpler, not harder. When something breaks there's one place to look, not a front end on the edge, functions somewhere else, and a database across a network. If you want the framework-specific version, we wrote up <a href="https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/">deploying Next.js to your own server</a> and <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">putting the app, API, and database on one server</a>.</p>
+
+  <h2>So is Vercel still the right call?</h2>
+  <p>Often, yes. An honest alternative piece has to say when not to switch, so here's the clean version.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Stay on Vercel when</th><th>You've outgrown it when</th></tr></thead>
+    <tbody>
+      <tr><td>The app is mostly a front end with light serverless glue</td><td>There's a real backend doing stateful, long-running work</td></tr>
+      <tr><td>You value zero infrastructure and the bill doesn't sting</td><td>You need a cost you can commit to a budget</td></tr>
+      <tr><td>The edge network and preview URLs are worth it to you</td><td>You want the app, API, and database on one box you own</td></tr>
+      <tr><td>You're one project, one team, spiky traffic</td><td>You're shipping several apps and want them to share a server</td></tr>
+    </tbody>
+  </table>
+
+  <p>If you live in the left column, switching would cost you more than it saves. The alternative earns its place the moment your app is genuinely full-stack and the serverless model is in your way. If you've already decided, the <a href="https://www.kloudbean.com/blog/move-lovable-app-off-vercel/">move-off-Vercel guide</a> walks the migration step by step, and the <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploy walkthrough</a> covers a fresh deploy. Weighing other platforms too? The <a href="https://www.kloudbean.com/blog/fly-io-alternative/">Fly.io</a> and <a href="https://www.kloudbean.com/blog/heroku-alternative-for-modern-apps/">Heroku</a> comparisons run the same reasoning.</p>
+
+  <!-- IMAGE SLOT: replace this figure with a real <figure><img><figcaption> (src -> images/one-dashboard.png) -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Kloudbean dashboard with the server, the app, and its managed database together in one view.</em><small>Reinforces the whole-stack-in-one-place payoff. Author supplies.</small></span></figure>
+
+  <h2>A fair word on cost and the edge</h2>
+  <p>Two honest caveats, because you'd find them anyway. First, cost: at genuinely tiny traffic, Vercel's hobby tier can undercut any always-on server, because a server you're renting by the month costs the same whether it serves ten requests or ten million. The flat model wins as usage and team size grow, and it wins on predictability at any size, but it's not automatically the cheapest number at near-zero traffic.</p>
+  <p>Second, the edge. A single server lives in the regions you pick, not on a global edge network the way Vercel does. I'm not going to claim otherwise. If you need Vercel-class global delivery, you put Cloudflare Enterprise edge caching in front of the server (a paid add-on, free on Enterprise plans). That closes the edge gap and keeps your app on a box you own. It's an equalizer, not a "we beat their edge" claim.</p>
+
+  <h2>The honest limits</h2>
+  <p>Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and the frameworks on top like React, Next.js, Vue, Laravel, and Django. That covers what nearly every Vercel-hosted app is built on. It isn't for Windows, .NET, or IIS workloads. "Managed" means Kloudbean runs the server, the stack, SSL, patching, and backups; you own and maintain the application and its data. You can move hosts whenever you like, because underneath it's a standard Linux box running standard code.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">A server, not a workaround.</p>
+    <p style="margin:0">See how the whole stack on one owned server compares for your app at <a href="https://www.kloudbean.com/">kloudbean.com</a>. One-click databases, automatic backups, private networking, free migration, free trial, and git deploy. Plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What's the best Vercel alternative for a full-stack app?</h3>
+    <p>For a genuinely full-stack app, the strongest Vercel alternative is a managed server, not another serverless platform. You want a real always-on process, a database launched next to the app, a flat price, and standard code with no lock-in, while keeping git-push-to-deploy. Kloudbean provides that model on seven cloud providers.</p>
+
+    <h3>Why do people move off Vercel?</h3>
+    <p>Almost always because the app became full-stack. The serverless model constrains long-running work and websockets, the database sits across the network as a separate metered service, and the bill scales on several meters at once. For a front end none of that bites. For a real backend, it does.</p>
+
+    <h3>Can I keep using Next.js without Vercel?</h3>
+    <p>Yes. Next.js runs as a normal Node app with next build and next start, no Vercel-specific adapter required. Server rendering, API routes, and ISR all work on a managed server. It's the same production server Next.js ships, running on hardware you picked.</p>
+
+    <h3>Will I lose push-to-deploy and preview URLs?</h3>
+    <p>Push-to-deploy stays. You connect the repo, set build and start commands, and turn on auto-deploy so every push builds and ships with live logs. For previews, run a second application from a staging branch on the same server to get a stable preview URL, without per-project pricing.</p>
+
+    <h3>What about the serverless database connection problem?</h3>
+    <p>It mostly disappears. The connection-storm issue exists because each function is a separate short-lived process opening its own connections. One long-lived server process holds a sensible pool to a database on the same box, so you don't need a pooler or a serverless-specific driver to paper over it.</p>
+
+    <h3>Is a managed server always cheaper than Vercel?</h3>
+    <p>No, and it's fair to say so. At very low traffic a hobby tier can be cheaper than any always-on server. A flat server usually wins as traffic and team grow, and it's more predictable at any size, since the price is the same in a quiet month and a launch month, with several apps able to share one box.</p>
+
+    <h3>Does moving off Vercel mean giving up the global edge?</h3>
+    <p>A single server lives in the regions you choose rather than on a global edge network. If you need edge-class global delivery, you can put Cloudflare Enterprise edge caching in front of the server (a paid add-on, free on Enterprise). That matches the edge advantage while keeping your app on a server you own.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"A Vercel Alternative for Full-Stack Apps","description":"Where Vercel's serverless model hits the full-stack ceiling, how the metered bill behaves, and how a persistent server you own compares — a fit-first Vercel alternative guide.","image":"https://www.kloudbean.com/blog/vercel-alternative-for-full-stack-apps/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/vercel-alternative-for-full-stack-apps/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What's the best Vercel alternative for a full-stack app?","acceptedAnswer":{"@type":"Answer","text":"For a genuinely full-stack app, the strongest Vercel alternative is a managed server, not another serverless platform. You want a real always-on process, a database launched next to the app, a flat price, and standard code with no lock-in, while keeping git-push-to-deploy. Kloudbean provides that model on seven cloud providers."}},
+{"@type":"Question","name":"Why do people move off Vercel?","acceptedAnswer":{"@type":"Answer","text":"Almost always because the app became full-stack. The serverless model constrains long-running work and websockets, the database sits across the network as a separate metered service, and the bill scales on several meters at once. For a front end none of that bites. For a real backend, it does."}},
+{"@type":"Question","name":"Can I keep using Next.js without Vercel?","acceptedAnswer":{"@type":"Answer","text":"Yes. Next.js runs as a normal Node app with next build and next start, no Vercel-specific adapter required. Server rendering, API routes, and ISR all work on a managed server. It is the same production server Next.js ships, running on hardware you picked."}},
+{"@type":"Question","name":"Will I lose push-to-deploy and preview URLs?","acceptedAnswer":{"@type":"Answer","text":"Push-to-deploy stays. You connect the repo, set build and start commands, and turn on auto-deploy so every push builds and ships with live logs. For previews, run a second application from a staging branch on the same server to get a stable preview URL, without per-project pricing."}},
+{"@type":"Question","name":"What about the serverless database connection problem?","acceptedAnswer":{"@type":"Answer","text":"It mostly disappears. The connection-storm issue exists because each function is a separate short-lived process opening its own connections. One long-lived server process holds a sensible pool to a database on the same box, so you do not need a pooler or a serverless-specific driver to paper over it."}},
+{"@type":"Question","name":"Is a managed server always cheaper than Vercel?","acceptedAnswer":{"@type":"Answer","text":"No, and it is fair to say so. At very low traffic a hobby tier can be cheaper than any always-on server. A flat server usually wins as traffic and team grow, and it is more predictable at any size, since the price is the same in a quiet month and a launch month, with several apps able to share one box."}},
+{"@type":"Question","name":"Does moving off Vercel mean giving up the global edge?","acceptedAnswer":{"@type":"Answer","text":"A single server lives in the regions you choose rather than on a global edge network. If you need edge-class global delivery, you can put Cloudflare Enterprise edge caching in front of the server, a paid add-on that is free on Enterprise. That matches the edge advantage while keeping your app on a server you own."}}
+]}
+]}
+</script>
+</body>
+</html>

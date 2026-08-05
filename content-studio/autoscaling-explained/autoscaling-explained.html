@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autoscaling: Do You Actually Need It? A Decision Guide</title>
+<meta name="description" content="Autoscaling adds and removes servers automatically as traffic rises and falls. It's powerful, and often unnecessary. Here's how to tell whether your project genuinely needs it.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/autoscaling-explained/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Autoscaling: Do You Actually Need It? A Decision Guide">
+<meta property="og:description" content="When autoscaling is worth it, when it isn't, what your app needs to support it, and the caveats. A plain decision guide.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Availability &amp; scaling</span>
+  <h1>Autoscaling: Do You Actually Need It? A Decision Guide</h1>
+
+  <figure><img src="images/hero.png" alt="Autoscaling: do you actually need it? A decision guide"></figure>
+
+  <p class="lead">Autoscaling sounds like the obviously-correct, grown-up way to run infrastructure: servers that appear when traffic surges and vanish when it calms, so you never over-pay and never fall over. For the right workload, it genuinely is that good.</p>
+  <p>But for a lot of projects, autoscaling solves a problem they don't have. It's extra machinery chasing a spike that never comes, plus a bill that can bite when the spike does. So before you switch it on, let's work out whether you need it, what your app must look like for it to work, and where it goes wrong.</p>
+
+  <div class="tldr">
+    <strong>Short version</strong>
+    <p>Autoscaling adds servers when a metric like CPU crosses a threshold and removes them when load falls, so capacity tracks real traffic. It's a genuine win for spiky, unpredictable load. But most apps have steady traffic and do fine on one right-sized server, plus maybe a node or two behind a load balancer. And it only works if your app is stateless, so that's the real first job.</p>
+  </div>
+
+  <h2>What autoscaling actually is</h2>
+  <p>So what is autoscaling, exactly? Your infrastructure <strong>adds and removes servers automatically</strong> based on live load. You set the rules once: when average CPU across the group climbs over, say, 70%, add a node; when it falls back under 30%, remove one. It's horizontal scaling (more servers behind a load balancer) with the "when" handled for you instead of you clicking a button at 2am. The interesting question is whether you need it, and that's most of this guide.</p>
+  <p>Here's the shape of it over one busy afternoon. Load climbs and crosses the trigger, nodes get added one at a time, then the extras retire as traffic fades. Your instance count follows the graph.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 400" role="img" aria-label="A load-over-time graph. As load rises and crosses the scale-out threshold, servers are added one at a time; as load falls back below the threshold the extra servers are removed. A lower step chart shows the running instance count following the load: one server, then two, then three at the peak, then back down to one." xmlns="http://www.w3.org/2000/svg">
+      <!-- legend -->
+      <line x1="96" y1="30" x2="120" y2="30" stroke="#4F1AF3" stroke-width="2.6"/>
+      <text x="126" y="34" font-family="Poppins,sans-serif" font-size="11" fill="#000f27">load</text>
+      <line x1="180" y1="30" x2="204" y2="30" stroke="#e5484d" stroke-width="2" stroke-dasharray="6 4"/>
+      <text x="210" y="34" font-family="Poppins,sans-serif" font-size="11" fill="#000f27">scale-out threshold</text>
+      <rect x="366" y="24" width="18" height="11" rx="2" fill="#40b75f" opacity=".22"/>
+      <line x1="366" y1="35" x2="384" y2="35" stroke="#40b75f" stroke-width="2.6"/>
+      <text x="390" y="34" font-family="Poppins,sans-serif" font-size="11" fill="#000f27">servers running</text>
+
+      <!-- load chart axes -->
+      <line x1="90" y1="45" x2="90" y2="220" stroke="#000f27" stroke-width="1.4"/>
+      <line x1="90" y1="220" x2="696" y2="220" stroke="#000f27" stroke-width="1.4"/>
+      <text x="34" y="140" font-family="Poppins,sans-serif" font-size="12" font-weight="600" fill="#5b6a86" transform="rotate(-90 34 140)">Load</text>
+
+      <!-- threshold line -->
+      <line x1="95" y1="105" x2="655" y2="105" stroke="#e5484d" stroke-width="2" stroke-dasharray="6 4"/>
+
+      <!-- guide lines tying crossings to instance changes -->
+      <line x1="317" y1="105" x2="317" y2="330" stroke="#c9d0e3" stroke-width="1" stroke-dasharray="4 4"/>
+      <line x1="532" y1="105" x2="532" y2="330" stroke="#c9d0e3" stroke-width="1" stroke-dasharray="4 4"/>
+
+      <!-- load curve -->
+      <polyline fill="none" stroke="#4F1AF3" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"
+        points="95,196 150,190 205,172 260,140 300,112 330,96 375,72 420,60 470,66 510,86 545,110 580,146 630,178 690,192"/>
+
+      <!-- crossing markers -->
+      <circle cx="317" cy="105" r="4.5" fill="#40b75f"/>
+      <text x="322" y="130" font-family="Poppins,sans-serif" font-size="10.5" fill="#2f9d54">crosses up: scale out</text>
+      <circle cx="532" cy="105" r="4.5" fill="#e5484d"/>
+      <text x="537" y="97" font-family="Poppins,sans-serif" font-size="10.5" fill="#c0392f">drops below: scale in</text>
+
+      <!-- step chart axis -->
+      <line x1="90" y1="270" x2="90" y2="352" stroke="#000f27" stroke-width="1.4"/>
+      <line x1="90" y1="352" x2="696" y2="352" stroke="#000f27" stroke-width="1.4"/>
+      <text x="34" y="315" font-family="Poppins,sans-serif" font-size="12" font-weight="600" fill="#5b6a86" transform="rotate(-90 34 315)">Servers</text>
+
+      <!-- instance step area + line -->
+      <polygon fill="#40b75f" opacity=".14" points="95,352 95,332 317,332 317,312 400,312 400,292 532,292 532,312 610,312 610,332 690,332 690,352"/>
+      <polyline fill="none" stroke="#40b75f" stroke-width="2.8" stroke-linejoin="round"
+        points="95,332 317,332 317,312 400,312 400,292 532,292 532,312 610,312 610,332 690,332"/>
+
+      <!-- instance event markers -->
+      <text x="322" y="306" font-family="Poppins,sans-serif" font-size="11" font-weight="600" fill="#2f9d54">+1</text>
+      <text x="405" y="286" font-family="Poppins,sans-serif" font-size="11" font-weight="600" fill="#2f9d54">+1</text>
+      <text x="540" y="308" font-family="Poppins,sans-serif" font-size="11" font-weight="600" fill="#c0392f">-1</text>
+      <text x="618" y="328" font-family="Poppins,sans-serif" font-size="11" font-weight="600" fill="#c0392f">-1</text>
+      <text x="150" y="346" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">1 node</text>
+      <text x="450" y="286" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">3 nodes at peak</text>
+
+      <text x="655" y="372" text-anchor="end" font-family="Poppins,sans-serif" font-size="11" fill="#5b6a86">time &#8594;</text>
+    </svg>
+    <figcaption>Metric-driven scaling: as load crosses the scale-out threshold, servers are added one at a time; as it falls back, the extra servers are removed. Capacity chases the traffic curve instead of sitting fixed.</figcaption>
+  </figure>
+
+  <h2>Horizontal vs vertical scaling, and where autoscaling sits</h2>
+  <p>There are two ways to give an app more room. <strong>Vertical scaling</strong> means a bigger box: more CPU and RAM on the same server. <strong>Horizontal scaling</strong> means more boxes: several servers sharing the work behind a load balancer. Autoscaling is just automated horizontal scaling, the machine adding and removing those boxes on a rule.</p>
+  <p>They aren't rivals. They're rungs. You start vertical because it's trivial: resize the server, no code changes. You go horizontal when one box isn't big enough or safe enough alone. And you automate that step only once your traffic swings enough to make doing it by hand a chore.</p>
+
+  <table class="cmp">
+    <thead><tr><th>&nbsp;</th><th>Vertical (bigger box)</th><th>Horizontal (more boxes)</th><th>Autoscaling (auto horizontal)</th></tr></thead>
+    <tbody>
+      <tr><td>What changes</td><td>More CPU and RAM on one server</td><td>More servers behind a balancer</td><td>Servers added and removed on a rule</td></tr>
+      <tr><td>Complexity</td><td>Lowest, just a resize</td><td>Medium, needs a stateless app</td><td>Highest: policy, cooldowns, limits</td></tr>
+      <tr><td>App changes</td><td>None</td><td>Must be stateless</td><td>Stateless, plus a tuned policy</td></tr>
+      <tr><td>Best for</td><td>Growing but steady load</td><td>Redundancy and higher steady load</td><td>Spiky, unpredictable load</td></tr>
+      <tr><td>Ceiling</td><td>The biggest box you can buy</td><td>Add nodes as needed</td><td>Nodes added automatically up to a max</td></tr>
+    </tbody>
+  </table>
+
+  <p>The honest path: right-size first. Add a fixed node behind <a href="https://www.kloudbean.com/blog/cloud-load-balancer-explained/">a load balancer</a> when you need redundancy or headroom. Reach for autoscaling last, and only if the traffic calls for it.</p>
+
+  <h2>What actually triggers a scale-out (and a scale-in)</h2>
+  <p>The rule that drives autoscaling is a <strong>scaling policy</strong>, simpler than it sounds. You pick a metric and set thresholds and limits. A typical one reads: add a node when average CPU stays above 70% for five minutes, remove one when it sits below 30% for ten. CPU is the common trigger, but request rate per node, memory, or queue depth all work, depending on what your app runs out of first.</p>
+  <p>Two numbers matter more than people expect. The <strong>minimum</strong> keeps a floor of servers running so you're never scaled to nothing. The <strong>maximum</strong> caps how far it grows, your protection against a runaway bill. Between them sits a <strong>cooldown</strong>, a short wait after each change so the group settles before the policy fires again. Skip it and you get flapping: nodes added and removed every couple of minutes as the metric bounces around the threshold. Worse than doing nothing.</p>
+  <p>There's an asymmetry too. Scale-out happens fast, because falling over is expensive. Scale-in is deliberately lazy, making sure the quiet is real before handing capacity back. You'd rather pay for one extra node for ten minutes than drop it right before the next wave.</p>
+
+  <!-- ADD IMAGE: swap this slot for a real screenshot. src -> images/scaling-policy.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A scaling policy form: minimum and maximum instance counts with a target CPU threshold that drives the add and remove actions.</em><small>Shows where the floor, ceiling, and trigger live.</small></span></figure>
+
+  <h2>When autoscaling is genuinely worth it</h2>
+  <p>Autoscaling earns its complexity when your traffic is <strong>variable and hard to predict</strong>:</p>
+  <ul>
+    <li><strong>Spiky traffic.</strong> Sudden surges (a product launch, a campaign email, a Hacker News front page) that would flatten a fixed setup but only last a few hours.</li>
+    <li><strong>Big daily or seasonal swings.</strong> Peak load is many times the trough, so a server sized for the peak burns money overnight and one sized for the trough dies at lunchtime.</li>
+    <li><strong>Real viral potential.</strong> If a single post could multiply your traffic while you sleep, autoscaling is insurance against your own success becoming an outage.</li>
+  </ul>
+  <p>If your traffic graph looks like a mountain range instead of a flat line, autoscaling matches capacity to reality. That's large consumer apps, ticketing, live-event sites, retail during a sale.</p>
+
+  <h2>When you don't need autoscaling (which is most of the time)</h2>
+  <p>Be honest about your traffic, because this describes most projects:</p>
+  <ul>
+    <li><strong>Steady load.</strong> If traffic is roughly flat day to day, one right-sized server (or a fixed pair behind a balancer) is simpler and cheaper. Autoscaling adds machinery for a variance that isn't there.</li>
+    <li><strong>Small scale.</strong> A site that fits comfortably on one server has nothing to scale out to yet. Plenty of busy apps <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">run happily on a single server</a> for a long time.</li>
+    <li><strong>Predictable peaks.</strong> If you know the big day is coming, scale up by hand the night before and back down after. Far less machinery than a policy, and perfectly adequate.</li>
+  </ul>
+  <p>I'll say it plainly: reaching for autoscaling on a small or steady app is one of the most common over-engineering mistakes I see. It feels responsible. It's usually just complexity, and a bigger blast radius the day the automation misbehaves. Size it once, resize occasionally, get back to building.</p>
+
+  <h2>What your app has to look like first</h2>
+  <p>This is the part people skip, and it's the actual gate. Autoscaling only works if your app is built to run across servers that appear and disappear without warning:</p>
+
+  <figure>
+    <img src="../assets/console/flb-load-balancer.png" alt="The Kloudbean console showing nodes running behind the Flexible Load Balancer, the setup autoscaling relies on">
+    <figcaption>Autoscaling adds and removes nodes behind a load balancer. That stays safe only if any node can serve any request.</figcaption>
+  </figure>
+
+  <ul>
+    <li><strong>A stateless app.</strong> Any server can handle any request, because servers get created and destroyed on the fly. Nothing important lives only on one machine's local disk or memory.</li>
+    <li><strong>Shared session and storage.</strong> Sessions in a shared store like <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis</a>, uploads in object storage. A new node then has everything it needs the moment it boots.</li>
+    <li><strong>A load balancer with health checks</strong> in front, to route traffic to the live set of nodes and notice the instant the group changes.</li>
+  </ul>
+  <p>If your app isn't stateless, autoscaling causes bugs rather than fixing them: users randomly logged out, uploads that vanish, carts that empty themselves. Getting the app stateless is the real work. Do it once and <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">running across several servers</a> stops being scary. The automation on top is the easy 10%.</p>
+
+  <!-- ADD IMAGE: swap this slot for a real screenshot. src -> images/cpu-metrics-threshold.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A live CPU or request-rate graph with the scale-out threshold drawn across it, so you can see how close you run to a trigger.</em><small>The metric your policy watches.</small></span></figure>
+
+  <h2>Autoscaling vs simply scaling up</h2>
+  <p>The alternative to autoscaling isn't "fall over." It's usually "use a bigger server." Vertical scaling is far simpler, and enough for a huge range of apps.</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="The Kloudbean console showing how to launch or resize a server to more CPU and RAM, which is vertical scaling">
+    <figcaption>Vertical scaling in one step: resize to a bigger server. No stateless refactor, no policy to tune.</figcaption>
+  </figure>
+
+  <p>The sensible progression is a ladder, and most projects never climb past the second rung:</p>
+  <ol>
+    <li>Size one server well and run on it.</li>
+    <li>Resize it up (more CPU and RAM) as you grow.</li>
+    <li>Add a fixed second node behind a balancer for redundancy and headroom.</li>
+    <li>Only then autoscale, if your traffic is variable enough to justify the machinery.</li>
+  </ol>
+  <p>Autoscaling is the top rung, not the first. Treating it as the default is how small teams end up debugging scaling policies instead of shipping features.</p>
+
+  <h2>Where autoscaling goes wrong</h2>
+  <p>Even when you genuinely need it, know the sharp edges. This is where I see it bite:</p>
+  <ul>
+    <li><strong>A stateful app breaks under it.</strong> The big one. If sessions or uploads live on a single node, adding and removing nodes scatters your users' state. Autoscaling doesn't create the bug, it exposes one that was always there.</li>
+    <li><strong>New nodes lag a sudden spike.</strong> Booting and warming a node takes real time, so autoscaling handles a sustained climb far better than a one-second wall of traffic. Keep headroom, or pre-warm before a known event.</li>
+    <li><strong>The bill can run away.</strong> A real flood, or a runaway loop hammering your own API, can scale you into a nasty invoice. That's what the maximum is for. Set it, and <a href="https://www.kloudbean.com/blog/cloud-hosting-pricing-explained/">know how the meter runs</a>.</li>
+    <li><strong>The database usually doesn't scale this way.</strong> You can autoscale the stateless web tier easily. A database is stateful and scales through bigger instances and <a href="https://www.kloudbean.com/blog/database-read-replicas-scaling/">read replicas</a>, not by spinning copies up and down. Autoscale the web tier into a database that can't keep up and you've just moved the bottleneck.</li>
+    <li><strong>More moving parts, more to break.</strong> A policy, a cooldown, health checks, metrics, limits. Each is one more thing to misconfigure. Flapping nodes and phantom scale events are real, and harder to debug than a box that's simply busy.</li>
+  </ul>
+  <p>The most common mistake we see isn't a bad policy. It's reaching for autoscaling before right-sizing, on an app that isn't even stateless yet. That's effort spent automating instability. Get the app clean and the server sized first, then automate scaling only once the traffic proves it needs it.</p>
+
+  <!-- ADD IMAGE: swap this slot for a real screenshot. src -> images/scaling-cost.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A usage or billing view showing instance-hours climbing during a spike and settling afterwards.</em><small>Why the maximum limit matters.</small></span></figure>
+
+  <h2>So: do you need autoscaling?</h2>
+  <p>Turn it on if your traffic is genuinely spiky or unpredictable <em>and</em> your app is already stateless, with shared sessions and storage behind a load balancer. Skip it, with a clear conscience, if your traffic is steady, small, or predictable enough to handle by hand. Not stateless yet? That's your first job regardless of how you scale.</p>
+  <p>Here's how this maps to Kloudbean, honestly. For everyday scaling, every account can <strong>resize a server</strong> (vertical) and run a <strong>fixed set of nodes behind the built-in Flexible Load Balancer</strong> (manual horizontal). That covers the first three rungs of the ladder, which is all most apps ever need. Fully automatic autoscaling, the kind that adds and removes nodes on its own, along with Kubernetes and custom architectures, is an <strong>enterprise and custom-setup capability</strong> on Kloudbean, not a switch a standard account flips. So match the tool to the traffic: right-size, add a balanced node when you grow, and reach for true autoscaling only when spiky traffic and a stateless app both call for it. Scaling a specific stack? <a href="https://www.kloudbean.com/blog/scalable-wordpress-hosting/">Scaling WordPress</a> and keeping nodes private inside <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">a VPC</a> are the usual next reads.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Scale when the traffic is real, not before.</p>
+    <p style="margin:0 0 .6em">Right-size your server, then add nodes behind a built-in load balancer the day one box isn't enough. Everyday scaling on servers you own, with true autoscaling and Kubernetes available for enterprise and custom setups.</p>
+    <p style="margin:0">Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> · compare plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">Resizable servers · Built-in Flexible Load Balancer · Health checks · 7 clouds · Enterprise autoscaling &amp; Kubernetes · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is autoscaling?</h3>
+    <p>Autoscaling automatically adds and removes servers based on live load. You set a policy (add a node when CPU stays above 70%, remove one below 30%), and capacity grows during a surge and shrinks when things calm down. It's automated horizontal scaling behind a load balancer.</p>
+    <h3>What's the difference between horizontal and vertical scaling?</h3>
+    <p>Vertical scaling means a bigger server (more CPU and RAM), with no code changes. Horizontal scaling means more servers behind a load balancer, which needs a stateless app. Autoscaling is automated horizontal scaling. Most apps should scale vertically first.</p>
+    <h3>Do I need autoscaling?</h3>
+    <p>Only if your traffic is genuinely variable: spiky surges, big day and night swings, or real viral potential. If it's steady, small, or predictable enough to scale up for by hand, you don't. For most projects, right-sizing occasionally is simpler and cheaper.</p>
+    <h3>What triggers autoscaling to add or remove a server?</h3>
+    <p>A scaling policy. You pick a metric (usually average CPU or request rate), set a threshold to add a node and a lower one to remove one, and set minimum and maximum counts. A cooldown stops it flapping. Scale-out is quick; scale-in is deliberately slow.</p>
+    <h3>What does an app need to support autoscaling?</h3>
+    <p>It has to be stateless: any server can handle any request, with sessions in a shared store like Redis and uploads in object storage, behind a load balancer with health checks. Making the app stateless is the real work; the autoscaling on top is the easy part.</p>
+    <h3>Does autoscaling scale my database too?</h3>
+    <p>Not the same way. The stateless web tier autoscales easily, but a database is stateful and scales through bigger instances and read replicas, not by spinning copies up and down. Autoscale the web tier without planning database capacity and you just move the bottleneck.</p>
+    <h3>Can autoscaling cause a surprise bill?</h3>
+    <p>It can. A real flood of traffic, or a runaway process, can scale you into a large invoice. That's what the maximum instance limit is for: set it so scale-out has a ceiling, and watch usage.</p>
+    <h3>Does Kloudbean autoscale my app automatically?</h3>
+    <p>On a standard account, no, and that's deliberate. Every account can resize a server (vertical) and run a fixed set of nodes behind the built-in Flexible Load Balancer (manual horizontal), which covers what most apps need. True autoscaling, along with Kubernetes and custom architectures, is available as an enterprise and custom-setup capability, not a toggle on a standard plan.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Scale on the traffic, not the panic.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Autoscaling: Do You Actually Need It? A Decision Guide","description":"When autoscaling is worth it, when it isn't, what your app needs to support it, and the caveats. A plain decision guide.","image":"https://www.kloudbean.com/blog/autoscaling-explained/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/autoscaling-explained/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is autoscaling?","acceptedAnswer":{"@type":"Answer","text":"Autoscaling automatically adds and removes servers based on live load. You set a policy (add a node when CPU stays above 70 percent, remove one below 30 percent), and capacity grows during a surge and shrinks when things calm down. It's automated horizontal scaling behind a load balancer."}},
+{"@type":"Question","name":"What's the difference between horizontal and vertical scaling?","acceptedAnswer":{"@type":"Answer","text":"Vertical scaling means a bigger server (more CPU and RAM), with no code changes. Horizontal scaling means more servers behind a load balancer, which needs a stateless app. Autoscaling is automated horizontal scaling. Most apps should scale vertically first."}},
+{"@type":"Question","name":"Do I need autoscaling?","acceptedAnswer":{"@type":"Answer","text":"Only if your traffic is genuinely variable: spiky surges, big day and night swings, or real viral potential. If it's steady, small, or predictable enough to scale up for by hand, you don't. For most projects, right-sizing occasionally is simpler and cheaper."}},
+{"@type":"Question","name":"What triggers autoscaling to add or remove a server?","acceptedAnswer":{"@type":"Answer","text":"A scaling policy. You pick a metric (usually average CPU or request rate), set a threshold to add a node and a lower one to remove one, and set minimum and maximum counts. A cooldown stops it flapping. Scale-out is quick; scale-in is deliberately slow."}},
+{"@type":"Question","name":"What does an app need to support autoscaling?","acceptedAnswer":{"@type":"Answer","text":"It has to be stateless: any server can handle any request, with sessions in a shared store like Redis and uploads in object storage, behind a load balancer with health checks. Making the app stateless is the real work; the autoscaling on top is the easy part."}},
+{"@type":"Question","name":"Does autoscaling scale my database too?","acceptedAnswer":{"@type":"Answer","text":"Not the same way. The stateless web tier autoscales easily, but a database is stateful and scales through bigger instances and read replicas, not by spinning copies up and down. Autoscale the web tier without planning database capacity and you just move the bottleneck."}},
+{"@type":"Question","name":"Can autoscaling cause a surprise bill?","acceptedAnswer":{"@type":"Answer","text":"It can. A real flood of traffic, or a runaway process, can scale you into a large invoice. That's what the maximum instance limit is for: set it so scale-out has a ceiling, and watch usage."}},
+{"@type":"Question","name":"Does Kloudbean autoscale my app automatically?","acceptedAnswer":{"@type":"Answer","text":"On a standard account, no, and that's deliberate. Every account can resize a server (vertical) and run a fixed set of nodes behind the built-in Flexible Load Balancer (manual horizontal), which covers what most apps need. True autoscaling, along with Kubernetes and custom architectures, is available as an enterprise and custom-setup capability, not a toggle on a standard plan."}}
+]}
+]}
+</script>
+</body>
+</html>

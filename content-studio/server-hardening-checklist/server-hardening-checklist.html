@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Server Hardening Checklist: How to Secure a Linux Server</title>
+<meta name="description" content="A practical server hardening checklist to secure a Linux server: patching, SSH keys, a default-deny firewall, Fail2ban, least privilege, TLS, backups, and monitoring.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/server-hardening-checklist/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Server Hardening Checklist: How to Secure a Linux Server">
+<meta property="og:description" content="An ordered, developer-friendly server hardening checklist. Each step explains why it matters and what breaks if you skip it, from SSH keys to a default-deny firewall.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Server security</span>
+  <h1>The Server Hardening Checklist: How to Secure a Linux Server</h1>
+
+  <figure><img src="images/hero.png" alt="A server hardening checklist showing how to secure a Linux server, layer by layer"></figure>
+
+  <p class="lead">Spin up a fresh Linux box, give it a public IP, and the scanners find it within minutes. Not hours. Minutes. This is the server hardening checklist I wish more people worked through before they point a domain at a new VPS. It's ordered, it explains why each step matters, and it's honest about what breaks if you skip one.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>Hardening a Linux server is mostly boring hygiene done in the right order: patch it and keep it patched, lock SSH down to keys and no root login, run a default-deny firewall that only opens 22, 80, and 443, add Fail2ban, run apps as least-privilege users, force TLS, back up and test the restore, and watch your logs. SSH hardening is the single highest-value step. A managed platform does the server baseline for you, so you can spend your time on app-level security instead.</p>
+  </div>
+
+  <h2>Why most servers actually get breached (it's boring)</h2>
+  <p>Forget the movie version. Almost nobody loses a box to a clever zero-day. They lose it to an unpatched service with a year-old CVE, a database port left open to the whole internet, an SSH login with a guessable password, or an API key committed to a public repo. That's it. That's the top of the list, over and over.</p>
+  <p>So here's my opinion, and I'll defend it: boring hygiene beats fancy tooling. A patched box with keys-only SSH and a tight firewall is harder to crack than a neglected server running three security products. Skip the basics and buy the tools, and you've bought a very good lock for a door you left open. These are the server security best practices that stop the attacks that actually happen.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 600" role="img" aria-label="Concentric rings showing attack surface reduction: patched OS, default-deny firewall, SSH keys plus Fail2ban, least-privilege app, and TLS, wrapped around your app and data" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="30" y="40" fill="#000f27" font-family="Poppins,sans-serif" font-size="17" font-weight="700">Attack surface reduction: each ring is one less way in</text>
+      <text x="30" y="62" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12.5">Work from the outside in. Skip a ring and the layers inside it carry more load than they should.</text>
+
+      <!-- concentric rings, drawn largest first so bands show -->
+      <circle cx="235" cy="350" r="200" fill="#000f27"/>
+      <circle cx="235" cy="350" r="162" fill="#4F1AF3"/>
+      <circle cx="235" cy="350" r="125" fill="#000f27"/>
+      <circle cx="235" cy="350" r="90" fill="#4F1AF3"/>
+      <circle cx="235" cy="350" r="57" fill="#000f27"/>
+      <circle cx="235" cy="350" r="30" fill="#40b75f"/>
+
+      <!-- number badges at the top of each band -->
+      <g font-family="Poppins,sans-serif" font-size="12" font-weight="700" text-anchor="middle">
+        <circle cx="235" cy="169" r="12" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/><text x="235" y="173" fill="#000f27">1</text>
+        <circle cx="235" cy="207" r="12" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5"/><text x="235" y="211" fill="#4F1AF3">2</text>
+        <circle cx="235" cy="243" r="12" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/><text x="235" y="247" fill="#000f27">3</text>
+        <circle cx="235" cy="277" r="12" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5"/><text x="235" y="281" fill="#4F1AF3">4</text>
+        <circle cx="235" cy="307" r="12" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/><text x="235" y="311" fill="#000f27">5</text>
+      </g>
+      <text x="235" y="346" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="10.5" font-weight="700">YOUR</text>
+      <text x="235" y="360" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="10.5" font-weight="700">DATA</text>
+
+      <!-- legend -->
+      <g font-family="Poppins,sans-serif">
+        <rect x="474" y="108" width="15" height="15" rx="3" fill="#000f27"/>
+        <text x="500" y="120" fill="#000f27" font-size="14.5" font-weight="700">1. Patched OS</text>
+        <text x="500" y="139" fill="#5b6a86" font-size="12.5">Closes known CVEs before scanners exploit them</text>
+
+        <rect x="474" y="170" width="15" height="15" rx="3" fill="#4F1AF3"/>
+        <text x="500" y="182" fill="#000f27" font-size="14.5" font-weight="700">2. Firewall, default-deny</text>
+        <text x="500" y="201" fill="#5b6a86" font-size="12.5">Only the ports you actually use are reachable</text>
+
+        <rect x="474" y="232" width="15" height="15" rx="3" fill="#000f27"/>
+        <text x="500" y="244" fill="#000f27" font-size="14.5" font-weight="700">3. SSH keys + Fail2ban</text>
+        <text x="500" y="263" fill="#5b6a86" font-size="12.5">Kills password guessing and lockpicking bots</text>
+
+        <rect x="474" y="294" width="15" height="15" rx="3" fill="#4F1AF3"/>
+        <text x="500" y="306" fill="#000f27" font-size="14.5" font-weight="700">4. Least-privilege app</text>
+        <text x="500" y="325" fill="#5b6a86" font-size="12.5">A break-in can't turn into full root</text>
+
+        <rect x="474" y="356" width="15" height="15" rx="3" fill="#000f27"/>
+        <text x="500" y="368" fill="#000f27" font-size="14.5" font-weight="700">5. TLS everywhere</text>
+        <text x="500" y="387" fill="#5b6a86" font-size="12.5">No plaintext logins to sniff off the wire</text>
+
+        <rect x="474" y="418" width="15" height="15" rx="3" fill="#40b75f"/>
+        <text x="500" y="430" fill="#000f27" font-size="14.5" font-weight="700">Your app + data</text>
+        <text x="500" y="449" fill="#5b6a86" font-size="12.5">What every ring exists to protect</text>
+      </g>
+    </svg>
+    <figcaption>Hardening isn't one wall. It's rings. Every layer you add removes another way in, so a single mistake doesn't hand over the whole box.</figcaption>
+  </figure>
+
+  <h2>The server hardening checklist, in order</h2>
+  <p>Do these top to bottom. The order matters, because the early items shrink the attack surface the most for the least effort. You don't need all ten done before lunch. You do need the first three before that box takes real traffic.</p>
+
+  <h3>1. Patch it, then keep patching it</h3>
+  <p>Updates are the least glamorous and most effective thing on this list. A public server with an out-of-date package is a soft target, because automated scanners hunt for exactly that: a known CVE with a known exploit, sitting unpatched. The fix is old news and it works. Patch on install, then automate it so you never rely on remembering.</p>
+  <p>On Ubuntu or Debian, turn on unattended security upgrades so the box patches itself:</p>
+  <pre><code>sudo apt update &amp;&amp; sudo apt upgrade -y
+sudo apt install unattended-upgrades
+sudo dpkg-reconfigure --priority=low unattended-upgrades</code></pre>
+  <p>What breaks if you skip it: nothing, for a while. Then one morning a widely used library has a critical advisory, the exploit is public within a day, and every unpatched box gets swept up by a bot that doesn't care how small your site is. Patching is how you stay off that list.</p>
+
+  <h3>2. Lock down SSH (the single highest-value step)</h3>
+  <p>If you do one thing on this page, do this. SSH is the front door to the whole server, and by default it accepts passwords, which means bots can guess. Switch to key-based auth, turn passwords off, and stop root from logging in directly. Keys are effectively unguessable compared to any password a human will actually type.</p>
+  <p>Copy your key up first (<code>ssh-copy-id user@your-server</code>), confirm you can log in with it, then edit <code>/etc/ssh/sshd_config</code>:</p>
+  <pre><code># /etc/ssh/sshd_config
+PermitRootLogin no
+PasswordAuthentication no
+PubkeyAuthentication yes
+ChallengeResponseAuthentication no</code></pre>
+  <p>Then reload with <code>sudo systemctl restart ssh</code>. Keep your current session open and test a new one in a second terminal before you close anything, so a typo doesn't lock you out.</p>
+  <p>Why block root specifically? Because "root" is the one username every attacker already knows. Force logins through a normal account that uses <code>sudo</code>, and a bot now has to guess both a valid username and a key it can't have. Skip it and your auth log fills with root password attempts all day. That's not paranoia. That's Tuesday.</p>
+
+  <!-- ADD IMAGE: a terminal showing a successful key-based SSH login next to the sshd_config lines above. Swap for a real screenshot: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal showing a key-based SSH login working, with password auth and root login switched off.</em><small>Reinforces the highest-value step.</small></span></figure>
+
+  <h3>3. Turn on a firewall and default to deny</h3>
+  <p>A server should answer on the ports it needs and go silent on everything else. The rule is default-deny: block all inbound traffic, then open only what you use. For a typical web server that's SSH on 22, HTTP on 80, and HTTPS on 443. Nothing else faces the internet.</p>
+  <p>The simplest tool on Ubuntu is <code>ufw</code>:</p>
+  <pre><code>sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow 22
+sudo ufw allow 80
+sudo ufw allow 443
+sudo ufw enable</code></pre>
+  <p>The most common self-inflicted breach is a database listening on a public IP with a weak password. Postgres on 5432, MySQL on 3306, Redis on 6379, Mongo on 27017, all wide open because someone bound it to 0.0.0.0 and forgot. Scanners find those in hours. Keep your database on a private network, off the public firewall entirely. If it doesn't need a public port, it shouldn't have one.</p>
+
+  <figure>
+    <img src="../assets/console/firewall.png" alt="The Kloudbean console firewall settings, showing the Shorewall firewall and Fail2ban enabled by default">
+    <figcaption>On a managed platform the firewall is already on. Kloudbean ships a Shorewall firewall and Fail2ban enabled from the first minute, so default-deny isn't a step you have to remember.</figcaption>
+  </figure>
+
+  <h3>4. Add brute-force protection with Fail2ban</h3>
+  <p>Even with key-only SSH, bots will hammer your login. They don't know you turned passwords off. Fail2ban reads your auth logs, notices an IP failing over and over, and bans it at the firewall for a while. It turns an endless guessing game into a few attempts and a door slammed shut.</p>
+  <pre><code>sudo apt install fail2ban
+sudo systemctl enable --now fail2ban
+sudo fail2ban-client status sshd</code></pre>
+  <p>"But I already use keys, so why bother?" Two reasons. It trims the noise so real problems stand out in your logs. And it covers more than SSH, because you can point it at your web server or app logs to ban IPs abusing a login form or an API. Defense doesn't stop at the SSH port.</p>
+
+  <h3>5. Give every user the least privilege that works</h3>
+  <p>Least privilege is the quiet principle behind half of good security. Nobody and nothing should have more access than the job needs. Run your app as a dedicated service user, never as root. Give each human their own account, so you can see who did what and remove one person without resetting shared credentials. Use <code>sudo</code> for the rare admin task instead of living as root.</p>
+  <p>Why it matters: blast radius. If an app running as root gets popped, the attacker owns the machine. If that same app runs as a limited <code>www-data</code>-style user, they're stuck with far less to steal or wreck. You can't prevent every break-in. You can stop one from becoming total.</p>
+
+  <!-- ADD IMAGE: a diagram or terminal showing an app running as a non-root service user, with a separate sudo account per human. Swap for a real screenshot: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>App running as a dedicated non-root service user, with one sudo-capable account per person.</em><small>Shows the least-privilege layout.</small></span></figure>
+
+  <h3>6. Close unused services and delete default accounts</h3>
+  <p>Every service you run is a door someone could try. So run fewer of them. That old FTP daemon nobody uses, the sample database from a tutorial, the default "admin" account that shipped with a package: all attack surface, none of it earning its keep. See what's listening and shut down what shouldn't be:</p>
+  <pre><code>sudo ss -tulpn        # what's listening, and which process
+sudo systemctl disable --now &lt;service&gt;</code></pre>
+  <p>Then remove or lock default accounts, and make sure none kept a default password. The math is simple: fewer services and accounts means fewer things to patch, fewer to misconfigure, and fewer ways in. Reducing the attack surface is free, and it pays off every day the box is online.</p>
+
+  <h3>7. Force TLS everywhere</h3>
+  <p>Every connection should be encrypted, no exceptions, and no plaintext admin panels. Without TLS, logins and session cookies cross the network as readable text anyone on the path can grab. With it, that traffic is gibberish in flight. Get a free certificate, redirect HTTP to HTTPS, and set it to auto-renew so you never wake up to an expired cert scaring users off.</p>
+  <p>Certificates do occasionally misbehave, and it's usually DNS, mixed content, or a stale cache rather than anything dramatic. When that happens, the fixes live in <a href="https://www.kloudbean.com/blog/fix-ssl-certificate-errors/">how to fix common SSL certificate errors</a>. The goal is boring: HTTPS on, plaintext off, renewal on autopilot.</p>
+
+  <h3>8. Back up, then actually test the restore</h3>
+  <p>Backups belong in any honest security checklist, because ransomware, a bad migration, and a fat-fingered <code>DROP TABLE</code> all end the same way: you need a clean, recent copy. Automate them and store them off the box, so a compromised server can't take your backups down with it.</p>
+  <p>Here's the step almost everyone skips, and it's the one that counts. Restore a backup on purpose, once, before you ever need it. An untested backup is a guess, not a plan, and the worst time to learn it doesn't restore is the day you depend on it. There's a proper method in the <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups and restore-testing guide</a>.</p>
+
+  <h3>9. Watch your logs and your resources</h3>
+  <p>You can't respond to what you can't see. Basic monitoring tells you when auth failures spike, when the disk is nearly full, or when CPU and memory pin for no reason, before your users do. Watch <code>/var/log/auth.log</code> for login attempts, check disk with <code>df -h</code>, and set an alert for when a box is in trouble.</p>
+  <p>A sudden flood of failed logins is a brute-force attempt in progress. A disk quietly filling to 100% takes your app down as surely as any attacker, and that's a preventable outage. Monitoring is how the small problem stays small.</p>
+
+  <figure>
+    <img src="../assets/console/server-health.png" alt="The Kloudbean console server health view showing CPU, memory, and disk usage over time">
+    <figcaption>Server health at a glance: CPU, memory, and disk. On a managed dashboard the graphs and alerts are already wired up, so you're watching trends instead of building a monitoring stack from scratch.</figcaption>
+  </figure>
+
+  <h3>10. Keep secrets off the box and out of the repo</h3>
+  <p>Database passwords, API keys, and tokens do not belong in your code, and they definitely don't belong in a file sitting in the webroot where a path bug could serve it. A leaked key in Git history is one of the fastest ways to get breached, and it's entirely self-inflicted. Put config in environment variables or a runtime config store, keep <code>.env</code> out of version control, and scope every token to the least it needs to do.</p>
+  <p>If a key does leak, rotate it immediately and assume it's already been scraped, because public repos are crawled constantly. The full method, including how to structure config per environment, is in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>.</p>
+
+  <h2>Who does each step: managed vs unmanaged</h2>
+  <p>Here's the part the sticker price hides. On an unmanaged VPS, every row below is your job to set up, watch, and keep working. On a managed platform, the server baseline is handled and you spend your effort further up the stack. This is the honest split.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Hardening step</th><th>Unmanaged VPS</th><th>Managed platform (Kloudbean)</th></tr></thead>
+    <tbody>
+      <tr><td><strong>OS + stack patching</strong></td><td>You install and automate updates</td><td>Managed patching handled for you</td></tr>
+      <tr><td><strong>Firewall, default-deny</strong></td><td>You configure ufw or nftables</td><td>Shorewall firewall, on by default</td></tr>
+      <tr><td><strong>Brute-force protection</strong></td><td>You install and tune Fail2ban</td><td>Fail2ban, on by default</td></tr>
+      <tr><td><strong>SSL / TLS</strong></td><td>You install certs and set renewal</td><td>Free, auto-renewing SSL</td></tr>
+      <tr><td><strong>Backups</strong></td><td>You build, store, and test them</td><td>Automatic backups</td></tr>
+      <tr><td><strong>Access control</strong></td><td>You manage users and SSH keys</td><td>Subusers + UAC, IP Access Control, Basic Auth gate</td></tr>
+      <tr><td><strong>Your app, code, deps, secrets</strong></td><td>You own it</td><td>You own it</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note"><b>The line that never moves:</b> notice the last row is the same in both columns. A managed platform hardens the server baseline. It cannot secure your application code, your dependencies, your auth logic, or your secrets. That half is yours no matter who runs the box.</div>
+
+  <h2>What a managed platform hardens for you (and what it doesn't)</h2>
+  <p>This is where a managed host earns its keep: the tedious, easy-to-forget baseline arrives already done. On Kloudbean, every server ships with a Shorewall firewall and Fail2ban on from the first minute, plus free auto-renewing SSL, automatic backups, and managed OS and stack patching. So the first eight items on this checklist, the ones that stop most real attacks, are handled before you deploy a line of code.</p>
+  <p>Access control comes with tools too. Subusers and User Access Control give each person only the permissions their task needs. IP Access Control allows or denies by address or CIDR range, so an admin path only answers your office or VPN. A Basic Auth gate puts a username-and-password wall in front of an app or staging site before anyone can probe it. The bots can't attack a door they can't reach.</p>
+  <p>Now the honest boundary. The platform hardens the server. You still own app-level security: your dependencies and their CVEs, your code, your auth logic, and your secrets. Run <code>npm audit</code> or <code>pip-audit</code>, set your <a href="https://www.kloudbean.com/blog/security-headers-guide/">HTTP security headers</a>, and keep keys out of Git. That's the shared-responsibility model, laid out in full in the guide to <a href="https://www.kloudbean.com/blog/secure-compliant-hosting/">secure, compliant hosting and who secures what</a>. Managed is worth it because that baseline is genuinely tedious to run yourself, which is the argument in <a href="https://www.kloudbean.com/blog/what-is-a-managed-server/">what a managed server actually is</a> and <a href="https://www.kloudbean.com/blog/the-real-cost-of-unmanaged-vps/">the real cost of an unmanaged VPS</a>.</p>
+
+  <!-- ADD IMAGE: a split showing the platform-handled baseline on one side and your app-level responsibilities on the other. Swap for a real screenshot: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A simple two-column split: server baseline the platform handles vs app-level security you own.</em><small>Reinforces the shared-responsibility line.</small></span></figure>
+
+  <h2>The five-minute version, if you only do a handful</h2>
+  <p>If the whole list feels like a lot, collapse it to three: patch the box, switch SSH to keys, and turn on a default-deny firewall. Those three take an afternoon and shut out most automated attacks. When you have more time, add the rest, in this order.</p>
+  <ul>
+    <li>Update everything, then turn on automatic security updates.</li>
+    <li>Switch SSH to keys only, and disable direct root login.</li>
+    <li>Enable a firewall with default-deny; open only 22, 80, and 443.</li>
+    <li>Install Fail2ban and confirm it's watching your auth log.</li>
+    <li>Force HTTPS, and confirm the certificate auto-renews.</li>
+    <li>Move every secret into environment variables; scrub keys from Git history.</li>
+    <li>Restore one backup on purpose, to prove the path works.</li>
+  </ul>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Skip the baseline grind. Ship on a server that arrives hardened.</p>
+    <p style="margin:0 0 .6em">Launch on infrastructure where the firewall, Fail2ban, free SSL, backups, and patching are already handled, so your effort goes to the app-level security only you can own. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>, and verify current details there.</p>
+    <p style="margin:0">Shorewall firewall + Fail2ban baseline · Free auto-renewing SSL · Automatic backups · Managed patching · IP Access Control · Subusers + UAC · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is a server hardening checklist?</h3>
+    <p>It's an ordered list of the steps that reduce a server's attack surface: patching, SSH hardening, a default-deny firewall, brute-force protection, least-privilege users, closing unused services, TLS, backups, monitoring, and keeping secrets off the box. Working through it in order matters, because the early steps shut out the most attacks for the least effort. The goal is fewer ways in and less damage if someone does get in.</p>
+
+    <h3>How do I secure a Linux server?</h3>
+    <p>Start with the three that matter most: patch the OS and keep it patched, switch SSH to key-based auth with root login disabled, and run a firewall that denies everything except the ports you use. Then add Fail2ban, run your apps as non-root users, force HTTPS, automate backups you have actually tested, and monitor your logs. Those steps handle the attacks that happen in the real world.</p>
+
+    <h3>What is the highest-value hardening step?</h3>
+    <p>SSH hardening. It's the front door to the whole machine, so moving to key-based authentication, disabling password login, and blocking direct root login removes the single most common way servers get taken over. Passwords can be guessed by bots around the clock; a key effectively cannot. If you only have time for one step, make it this one.</p>
+
+    <h3>Should I disable root SSH login?</h3>
+    <p>Yes. Root is the one username every attacker already knows exists, so leaving it able to log in directly hands them half the puzzle for free. Log in as a normal user and use sudo for admin tasks instead. Set PermitRootLogin no in sshd_config, and confirm your regular account works before you close your session.</p>
+
+    <h3>Do I still need Fail2ban if I use SSH keys?</h3>
+    <p>It's still worth running. Key-based auth stops the guessing from succeeding, but bots will keep trying and flooding your logs, and Fail2ban bans the repeat offenders so real events stand out. It also protects more than SSH, since you can point it at web server or application logs to ban IPs abusing a login form or API. Think of it as noise reduction plus a wider net.</p>
+
+    <h3>What ports should I leave open on a web server?</h3>
+    <p>For a typical web server, just SSH on 22, HTTP on 80, and HTTPS on 443, with everything else blocked by a default-deny rule. Database ports like 5432, 3306, 6379, and 27017 should never face the public internet; keep the database on a private network instead. The rule of thumb is simple: if a port doesn't need to be public, close it.</p>
+
+    <h3>Does managed hosting harden the server for me?</h3>
+    <p>The server baseline, yes. On Kloudbean a Shorewall firewall and Fail2ban are on by default, SSL is free and auto-renewing, patching is managed, and backups run automatically, so most of this checklist is handled before you deploy. What no host can do for you is app-level security: your code, your dependencies, your auth logic, and your secrets. That half is always yours.</p>
+
+    <h3>How often should I patch a Linux server?</h3>
+    <p>As soon as security updates land, which in practice means automating it. Turn on unattended security upgrades so the box patches itself, and reboot when a kernel update needs it. The risk isn't routine updates, it's the gap between a public exploit and your next manual patch, and automation closes that gap. Unpatched services are how most boxes actually get compromised.</p>
+
+    <h3>What's the difference between hardening and a firewall?</h3>
+    <p>A firewall is one step inside hardening, not the whole thing. Hardening is the full set of measures that reduce risk across the server, from patching and SSH to least privilege and backups. The firewall specifically controls which ports are reachable. You need the firewall, but a firewall alone in front of an unpatched box with password SSH is not a hardened server.</p>
+
+    <h3>Is server hardening a one-time task?</h3>
+    <p>No. The initial checklist is one-time, but patching, log monitoring, access reviews, and backup testing are ongoing. New vulnerabilities appear, people join and leave your team, and configs drift, so hardening is a habit more than a task you finish. A managed platform keeps the baseline current for you, which is a big part of why it's worth the fee.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Security · Lock the Doors First. The boring hygiene that stops the attacks that actually happen.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"The Server Hardening Checklist: How to Secure a Linux Server","description":"A practical, ordered server hardening checklist to secure a Linux server: patching, SSH hardening, a default-deny firewall, Fail2ban, least privilege, TLS, backups, monitoring, and secrets, with the honest managed vs unmanaged split.","image":"https://www.kloudbean.com/blog/server-hardening-checklist/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/server-hardening-checklist/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is a server hardening checklist?","acceptedAnswer":{"@type":"Answer","text":"It is an ordered list of the steps that reduce a server's attack surface: patching, SSH hardening, a default-deny firewall, brute-force protection, least-privilege users, closing unused services, TLS, backups, monitoring, and keeping secrets off the box. Working through it in order matters, because the early steps shut out the most attacks for the least effort. The goal is fewer ways in and less damage if someone does get in."}},
+{"@type":"Question","name":"How do I secure a Linux server?","acceptedAnswer":{"@type":"Answer","text":"Start with the three that matter most: patch the OS and keep it patched, switch SSH to key-based auth with root login disabled, and run a firewall that denies everything except the ports you use. Then add Fail2ban, run your apps as non-root users, force HTTPS, automate backups you have actually tested, and monitor your logs. Those steps handle the attacks that happen in the real world."}},
+{"@type":"Question","name":"What is the highest-value hardening step?","acceptedAnswer":{"@type":"Answer","text":"SSH hardening. It is the front door to the whole machine, so moving to key-based authentication, disabling password login, and blocking direct root login removes the single most common way servers get taken over. Passwords can be guessed by bots around the clock; a key effectively cannot. If you only have time for one step, make it this one."}},
+{"@type":"Question","name":"Should I disable root SSH login?","acceptedAnswer":{"@type":"Answer","text":"Yes. Root is the one username every attacker already knows exists, so leaving it able to log in directly hands them half the puzzle for free. Log in as a normal user and use sudo for admin tasks instead. Set PermitRootLogin no in sshd_config, and confirm your regular account works before you close your session."}},
+{"@type":"Question","name":"Do I still need Fail2ban if I use SSH keys?","acceptedAnswer":{"@type":"Answer","text":"It is still worth running. Key-based auth stops the guessing from succeeding, but bots will keep trying and flooding your logs, and Fail2ban bans the repeat offenders so real events stand out. It also protects more than SSH, since you can point it at web server or application logs to ban IPs abusing a login form or API. Think of it as noise reduction plus a wider net."}},
+{"@type":"Question","name":"What ports should I leave open on a web server?","acceptedAnswer":{"@type":"Answer","text":"For a typical web server, just SSH on 22, HTTP on 80, and HTTPS on 443, with everything else blocked by a default-deny rule. Database ports like 5432, 3306, 6379, and 27017 should never face the public internet; keep the database on a private network instead. The rule of thumb is simple: if a port does not need to be public, close it."}},
+{"@type":"Question","name":"Does managed hosting harden the server for me?","acceptedAnswer":{"@type":"Answer","text":"The server baseline, yes. On Kloudbean a Shorewall firewall and Fail2ban are on by default, SSL is free and auto-renewing, patching is managed, and backups run automatically, so most of this checklist is handled before you deploy. What no host can do for you is app-level security: your code, your dependencies, your auth logic, and your secrets. That half is always yours."}},
+{"@type":"Question","name":"How often should I patch a Linux server?","acceptedAnswer":{"@type":"Answer","text":"As soon as security updates land, which in practice means automating it. Turn on unattended security upgrades so the box patches itself, and reboot when a kernel update needs it. The risk is not routine updates, it is the gap between a public exploit and your next manual patch, and automation closes that gap. Unpatched services are how most boxes actually get compromised."}},
+{"@type":"Question","name":"What is the difference between hardening and a firewall?","acceptedAnswer":{"@type":"Answer","text":"A firewall is one step inside hardening, not the whole thing. Hardening is the full set of measures that reduce risk across the server, from patching and SSH to least privilege and backups. The firewall specifically controls which ports are reachable. You need the firewall, but a firewall alone in front of an unpatched box with password SSH is not a hardened server."}},
+{"@type":"Question","name":"Is server hardening a one-time task?","acceptedAnswer":{"@type":"Answer","text":"No. The initial checklist is one-time, but patching, log monitoring, access reviews, and backup testing are ongoing. New vulnerabilities appear, people join and leave your team, and configs drift, so hardening is a habit more than a task you finish. A managed platform keeps the baseline current for you, which is a big part of why it is worth the fee."}}
+]}
+]}
+</script>
+</body>
+</html>

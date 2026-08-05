@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How Agencies Host 20+ Client Apps on One Managed Server</title>
+<meta name="description" content="How agencies host multiple client apps on one managed server: the 1-to-20 journey, real per-client isolation, backups and deploys, honest capacity limits, and the exact setup steps.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How Agencies Host 20+ Client Apps on One Managed Server">
+<meta property="og:description" content="The 1-to-20 journey: run a whole client book on one managed server with real isolation, per-client backups and deploys, honest capacity limits, and the exact setup steps.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{ --navy:#000f27; --ink:#1c2536; --muted:#5b6a86; --purple:#4F1AF3; --green:#40b75f; --line:#e6e9f2; --bg-soft:#f6f7fb; }
+  *{box-sizing:border-box}
+  body{ margin:0; background:#fff; color:var(--ink); font-family:"Poppins","Segoe UI",system-ui,-apple-system,Arial,sans-serif; line-height:1.72; font-size:18px; -webkit-font-smoothing:antialiased; }
+  .wrap{max-width:760px; margin:0 auto; padding:40px 22px 80px}
+  .eyebrow{ display:inline-block; font-size:12px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:var(--purple); border:1px solid var(--line); background:var(--bg-soft); padding:5px 12px; border-radius:999px; margin-bottom:18px; }
+  h1{ font-size:clamp(30px,5vw,44px); line-height:1.12; font-weight:700; letter-spacing:-.02em; color:var(--navy); margin:.1em 0 .5em; }
+  h2{ font-size:clamp(23px,3.4vw,29px); font-weight:700; letter-spacing:-.01em; color:var(--navy); margin:2.2em 0 .6em; padding-left:14px; border-left:4px solid var(--purple); }
+  h3{ font-size:20px; font-weight:700; color:var(--navy); margin:1.6em 0 .3em; }
+  p{margin:0 0 1.15em}
+  a{color:var(--purple); text-decoration:none; border-bottom:1px solid rgba(79,26,243,.35)}
+  a:hover{border-bottom-color:var(--purple)}
+  strong{color:var(--navy)}
+  ul{margin:0 0 1.3em; padding-left:0; list-style:none}
+  ul li{position:relative; padding-left:26px; margin:0 0 .7em}
+  ul li::before{content:""; position:absolute; left:2px; top:.62em; width:8px; height:8px; border-radius:2px; background:var(--purple); transform:rotate(45deg)}
+  ol{padding-left:1.2em} ol li{margin:0 0 .6em}
+  figure{margin:2em 0}
+  figure img{width:100%; height:auto; display:block; border-radius:16px; border:1px solid var(--line)}
+  figcaption{font-size:14px; color:var(--muted); text-align:center; margin-top:10px}
+  .lead{font-size:20px; color:#2a3550}
+  code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace; font-size:.88em; background:var(--bg-soft); border:1px solid var(--line); border-radius:6px; padding:1px 6px}
+  .faq h3{font-size:18px; margin:1.4em 0 .2em}
+  .cta{ margin:2.4em 0 0; padding:22px 24px; border-radius:16px; color:#fff; background:linear-gradient(135deg,var(--navy),#0a1f45); }
+  .cta a{color:#c9b8ff; border-bottom-color:rgba(201,184,255,.4)}
+  .byline{font-size:14px; color:var(--muted); border-top:1px solid var(--line); margin-top:2em; padding-top:14px}
+  /* additive utilities (kept in sync with assets/article.css) */
+  .tldr{background:var(--bg-soft);border:1px solid var(--line);border-left:4px solid var(--purple);border-radius:12px;padding:16px 20px;margin:1.6em 0}
+  .tldr strong{display:block;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--purple);margin-bottom:6px}
+  .tldr p{margin:0;font-size:16.5px}
+  .note{background:#f6f8ff;border:1px solid #e2e8ff;border-radius:12px;padding:14px 18px;margin:1.5em 0;font-size:16.5px}
+  .note b{color:var(--navy)}
+  table.cmp{width:100%;border-collapse:collapse;margin:1.6em 0;font-size:16px}
+  table.cmp th,table.cmp td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  table.cmp thead th{font-size:12.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--bg-soft)}
+  table.cmp td:first-child,table.cmp th:first-child{font-weight:600;color:var(--navy)}
+  table.cmp tr:last-child td{border-bottom:none}
+  /* image spacer / drop-zone: replace the whole <figure class="img-slot"> with a real <figure><img ...></figure> */
+  .img-slot{display:flex;align-items:center;justify-content:center;text-align:center;min-height:210px;margin:2em 0;padding:30px 24px;border:2px dashed #c9d0e3;border-radius:16px;background:repeating-linear-gradient(45deg,var(--bg-soft),var(--bg-soft) 14px,#eef1f8 14px,#eef1f8 28px);color:var(--muted)}
+  .img-slot > span{display:block;max-width:80%}
+  .img-slot b{display:block;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--purple);margin-bottom:8px}
+  .img-slot em{font-style:normal;font-size:15.5px;color:var(--ink);line-height:1.5}
+  .img-slot small{display:block;margin-top:8px;font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">For agencies</span>
+  <h1>How Agencies Host 20+ Client Apps on One Managed Server</h1>
+
+  <figure><img src="images/hero.png" alt="Host 20+ client apps on one managed server with Kloudbean"></figure>
+
+  <p class="lead">The question isn't whether you can host multiple client apps on one server. You can. The real question is what happens between client app #1 and client app #20, and whether the setup that felt clever at three clients still feels clever at twenty.</p>
+  <p>This is the growth story, told the way it actually happens. Not "spin up a VPS and cram everything in," but the mechanics of adding one client, then five, then twenty, and keeping the whole thing calm. What stays flat as you grow. What quietly grows with you. And where it bites if you skip the discipline. If you want the higher-level agency operations version, the <a href="https://www.kloudbean.com/blog/hosting-for-agencies-playbook/">agency hosting playbook</a> covers billing and offboarding too. This piece is the hands-on "how do I actually run 20" part.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>One well-sized managed server can hold twenty-plus light-to-moderate client apps, as long as each app is truly isolated (its own system user, database, and SSL) and you can back up and deploy them one at a time. What stays flat as you scale: your logins, your dashboard, your bill. What grows: apps, databases, and domains, which is fine because they're a few clicks each. Move the heaviest client to its own server when it earns it.</p>
+  </div>
+
+  <h2>The trap most agencies fall into first</h2>
+  <p>Count your logins right now. Go on. A frontend host for the Next.js builds, a WordPress host for the brochure sites, something metered for the one client whose "quick landing page" quietly became a booking system, and a database provider you forgot you were even paying for. Every project arrived with its own dashboard, its own quota, its own renewal date. By client ten, nobody on the team can tell you what the monthly infrastructure bill actually is.</p>
+  <p>That's the trap: a platform per client app. It scales your costs and your mental overhead linearly with your client count, and it never gets easier. The alternative is older than most of the platforms charging you for it. Put the client work on servers you control, run them from one place, and let something else handle keeping those servers patched and healthy.</p>
+
+  <h2>What grows as you add clients, and what doesn't</h2>
+  <p>Here's the whole argument in one picture. As you go from one client app to twenty, your resources grow (more apps, more databases, more domains). But your <em>control surface</em>, the number of places you log into and the number of bills you reconcile, stays flat at one. That gap is the entire point of consolidating onto managed servers.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 360" role="img" aria-label="Chart: as client apps grow from 1 to 20, per-client resources rise while logins, dashboards and bills stay flat at one" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="34" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Scaling from 1 to 20 client apps</text>
+
+      <!-- axes -->
+      <line x1="70" y1="300" x2="712" y2="300" stroke="#c3cbe0" stroke-width="1.5"/>
+      <line x1="70" y1="70" x2="70" y2="300" stroke="#c3cbe0" stroke-width="1.5"/>
+      <text x="70" y="322" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">App #1</text>
+      <text x="391" y="322" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">App #10</text>
+      <text x="700" y="322" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">App #20</text>
+      <text x="40" y="180" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12" transform="rotate(-90 40 180)">count / effort</text>
+
+      <!-- rising staircase: resources grow -->
+      <path d="M70 276 L175 276 L175 244 L280 244 L280 210 L385 210 L385 178 L490 178 L490 148 L595 148 L595 118 L700 118"
+            fill="none" stroke="#4F1AF3" stroke-width="3" stroke-linejoin="round"/>
+      <circle cx="700" cy="118" r="5" fill="#4F1AF3"/>
+      <text x="694" y="104" text-anchor="end" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">apps · databases · domains · SSL</text>
+
+      <!-- flat line: control surface stays at one -->
+      <line x1="70" y1="284" x2="700" y2="284" stroke="#40b75f" stroke-width="3"/>
+      <circle cx="70" cy="284" r="4.5" fill="#40b75f"/>
+      <circle cx="700" cy="284" r="4.5" fill="#40b75f"/>
+      <text x="360" y="279" fill="#2e8f4a" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">one login · one dashboard · one bill</text>
+
+      <!-- legend -->
+      <rect x="486" y="60" width="12" height="12" rx="2" fill="#4F1AF3"/>
+      <text x="504" y="70" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">grows with each client</text>
+      <rect x="486" y="80" width="12" height="12" rx="2" fill="#40b75f"/>
+      <text x="504" y="90" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">stays flat as you scale</text>
+    </svg>
+    <figcaption>Add clients and your resources climb, but your control surface (logins, dashboards, bills) stays at one. That flat green line is the win.</figcaption>
+  </figure>
+
+  <h2>App #1: the day-one setup</h2>
+  <p>Your first client app sets the template for every one after it, so it's worth doing deliberately. You launch one server, sized with real headroom, and add the client's app to it. WordPress, a Node build, a Laravel API, whatever they need. The app lands in its own isolated space with its own system user. That's the foundation.</p>
+  <p>Two decisions here pay off for years. First, a naming convention you'll stick to (<code>acme-wp</code>, <code>globex-next</code>), because staring at twenty unnamed apps later is genuinely miserable. Second, don't under-buy the server. This box is going to carry a crowd eventually, so give it room.</p>
+
+  <h2>Apps #2 to #5: the pattern locks in</h2>
+  <p>This is the good stretch. Each new client is the same short routine on the same server: add the app, give it its own database, wire the connection into that app's environment variables, deploy from Git, point the domain, install SSL. Five minutes of clicks, not an afternoon of setup.</p>
+  <p>And this is where the flat green line from the chart starts to feel real. Client #5 didn't add a fifth dashboard or a fifth bill. It added one app to a server you already run. You're building a system, and the system is getting easier per client, not harder.</p>
+
+  <!-- ADD IMAGE: swap for a real console screenshot. src -> ../assets/console/add-application.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Add Application screen: adding a new client app to the same managed server, in its own isolated space.</em><small>Real screenshot at ../assets/console/add-application.png</small></span></figure>
+
+  <h2>Apps #6 to #12: where the toil actually creeps in</h2>
+  <p>Somewhere around here, the cracks show if your setup is sloppy. Not because one server can't hold the apps, but because a shared box has sharp edges. Four of them, specifically. Anyone who's run a busy server has the scars.</p>
+  <p><strong>Noisy neighbor.</strong> One client's traffic spike or memory leak starves the others. The fix is headroom and limits. Size the server with room to spare, keep roughly a quarter of it free for spikes, and watch which client is trending up. When one app consistently wants more than its share, that's your cue to move it, not to buy a bigger everything.</p>
+  <p><strong>Blast radius.</strong> They share a kernel, so a server-level failure is a shared failure. Your insurance is backups you've actually restored, plus not stacking all your best clients on one machine. Spread the important ones across two boxes.</p>
+  <p><strong>Per-client backups.</strong> A whole-server snapshot is useless when one client deletes a page and wants <em>just their site</em> rolled back to Tuesday. You want backups you can restore at the individual app and database level. If your setup only does all-or-nothing restores, you'll feel it the first time a client panics.</p>
+  <p><strong>Deploys without collateral damage.</strong> Shipping an update for Client C should never risk Client A's uptime. Per-app processes plus a real <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD pipeline</a> handle this. You deploy one app and the neighbors never notice.</p>
+
+  <div class="note"><b>The one that gets people:</b> the most common failure I see isn't capacity, it's a shared database with every client's tables in it. It feels tidy on day one. It becomes a security and backup nightmare by client eight. Give every client their own database from the start.</div>
+
+  <h2>Apps #13 to #20: what breaks without discipline</h2>
+  <p>By the mid-teens, you're not learning anything new, you're just enforcing the habits from earlier. The apps that break the calm are always the ones that skipped isolation or naming. Two honest limits are worth saying out loud.</p>
+  <p>There's no magic number for "apps per server." Anyone who quotes you one is guessing. Static sites and cached WordPress brochure sites are featherweights, so a modest box holds a lot of them. A busy Laravel app with background jobs, or a Node API doing real work, is a different animal, and a handful of those can fill the same server. Watch memory first (it's usually what runs out), then CPU and disk. Twenty-plus light-to-moderate sites on one properly sized machine is realistic. Twenty heavyweight apps is not, and that's fine, because you'll split those out anyway.</p>
+
+  <h2>The cost and toil, side by side</h2>
+  <p>Put the two models next to each other and the growth math is obvious.</p>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>A platform per client app</th><th>Isolated apps on one managed server</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Logins to manage</strong></td><td>One per client, and climbing</td><td>One, flat</td></tr>
+      <tr><td><strong>Monthly bills</strong></td><td>Several, hard to total</td><td>One, predictable</td></tr>
+      <tr><td><strong>Adding client #15</strong></td><td>New account, new quota, new dashboard</td><td>Add an app, a few clicks</td></tr>
+      <tr><td><strong>Per-client isolation</strong></td><td>Varies by vendor</td><td>Own user, database, SSL</td></tr>
+      <tr><td><strong>Who patches the OS</strong></td><td>You, or nobody</td><td>Managed for you</td></tr>
+      <tr><td><strong>Moving a heavy client out</strong></td><td>Full migration off a platform</td><td>Move one app to its own server</td></tr>
+    </tbody>
+  </table>
+
+  <h2>The isolation model that keeps client apps on one server safe</h2>
+  <p>"Multi-tenant on one server" only works if the tenants can't touch each other. Done right, each client app gets four walls:</p>
+  <ul>
+    <li><strong>Its own system user and web root.</strong> Client B's PHP can't read Client A's files. This is the single most important line of defense, and it's boring on purpose.</li>
+    <li><strong>Its own process or pool.</strong> WordPress sites run in their own pools, Node and Next apps run as their own managed processes, a Laravel app has its own queue workers. If one hangs, the neighbors keep serving.</li>
+    <li><strong>Its own database and credentials.</strong> A separate MySQL, PostgreSQL, or Redis per client. Never one shared database with everyone's tables.</li>
+    <li><strong>Its own domain and SSL,</strong> each terminating its own certificate, renewed automatically.</li>
+  </ul>
+  <p>Underneath, it's a Linux server running Nginx or Apache with the runtimes installed, which is why the apps can be a total mix. WordPress next to Next.js next to a Django API on the same box. There's a deeper look at the tradeoffs in <a href="https://www.kloudbean.com/blog/single-tenant-vs-multi-tenant/">single-tenant vs multi-tenant</a>, and the general case in <a href="https://www.kloudbean.com/blog/host-multiple-apps-one-server/">hosting multiple apps on one server</a>.</p>
+
+  <h2>Where a managed platform earns its keep</h2>
+  <p>You can do every bit of this on a raw VPS. Plenty of agencies start there. What ends the honeymoon is the ops. Kernel patches, a failed SSL renewal at midnight, a security incident you hear about late, the backup script that quietly stopped running in March. That work doesn't bill, and it doesn't scale with your team. Honestly, most agencies don't need a DevOps hire, they need the DevOps done.</p>
+  <p>That's the gap <a href="https://www.kloudbean.com/">Kloudbean</a> fills. You pick the cloud (AWS, Lightsail, Google Cloud, DigitalOcean, Vultr, Linode, or UpCloud) and the region, then run your whole client book on servers you own, from one console:</p>
+  <ul>
+    <li><strong>The server is managed for you:</strong> security hardening (Shorewall firewall and Fail2ban), OS patching, monitoring, and free auto-renewing SSL on every site.</li>
+    <li><strong>Any stack, side by side:</strong> WordPress, Next.js, Vue, Laravel, Django, Node, and static sites, plus six managed databases (MySQL, MariaDB, PostgreSQL, Redis, Elasticsearch, MongoDB) running right next to the apps.</li>
+    <li><strong>Built-in load balancing and S3-compatible object storage,</strong> so client media and off-server backups have a durable home and traffic can be spread when a client grows.</li>
+    <li><strong>Managed CI/CD from Git with live build logs,</strong> so adding, isolating, and shipping client apps is a few clicks, and one app's deploy never risks another's uptime.</li>
+    <li><strong>Scoped access with subusers and UAC,</strong> so teammates and clients get exactly the permissions they should, and free migration help to move your first clients over.</li>
+  </ul>
+  <p>When a client genuinely outgrows the shared model, or needs hard isolation for compliance, that's when the <a href="https://www.kloudbean.com/enterprise/">enterprise tier</a> (Kubernetes, autoscaling, a private VPC, and an audit trail) makes sense. Most of your roster won't need it. Match the client to the setup instead of over-buying on day one.</p>
+
+  <h2>Setting it up on Kloudbean</h2>
+  <p>Here's the actual click-path, agency edition. One server, many isolated clients, no DevOps hire required.</p>
+
+  <h3>1. Launch one shared server</h3>
+  <p>From the dashboard, click <strong>Add Server</strong>. Pick your <strong>Cloud Provider</strong> and the <strong>datacenter</strong> nearest most of your clients, choose a first <strong>Application</strong> (say WordPress or Node.js), name the server something you'll recognize (<code>agency-prod-01</code>), and choose a <strong>size with real headroom</strong>, because this box will carry several apps. Hit <strong>Launch Now</strong> and it provisions in a few minutes.</p>
+
+  <!-- ADD IMAGE: swap for a real console screenshot. src -> ../assets/console/add-server.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Add Server screen: choosing the cloud provider, region, and a server size with headroom for many apps.</em><small>Real screenshot at ../assets/console/add-server.png</small></span></figure>
+
+  <h3>2. Add each client as its own application</h3>
+  <p>This is the step that makes the whole model work, and it's a first-class feature, not a workaround. Go to <strong>Applications &rarr; Add Application</strong> and add each client's app to the <em>same</em> server. WordPress for one, a Next.js build for another, a Laravel API for a third. Each app lands in its own isolated space with its own system user, so no client can read or crash another.</p>
+
+  <h3>3. Give each client its own database</h3>
+  <p>From <strong>DBS &rarr; Launch Database</strong>, spin up a PostgreSQL or MySQL instance <em>per client</em> instead of sharing one, then wire the credentials into that app's <strong>Runtime Configuration &rarr; Environment Variables</strong>. One client's data never sits in another's database. (There's a full walkthrough of the wiring in <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">hosting an app, API, and database on one server</a>.)</p>
+
+  <h3>4. Deploy each app from Git</h3>
+  <p>For every client app, open <strong>Git Deployment</strong>, connect the repo, pick the branch, and <strong>Pull &amp; Deploy</strong>. Because each app deploys independently, shipping Client C's update never risks Client A. Turn on automated deployment per app and pushes go live on their own. If a client's app was built with an AI tool, the full deploy walkthrough is in <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">how to deploy an AI-built app to production</a>.</p>
+
+  <!-- ADD IMAGE: swap for a real console screenshot. src -> ../assets/console/git-deployment.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Git Deployment screen: connecting a client repo and deploying that one app without touching the others.</em><small>Real screenshot at ../assets/console/git-deployment.png</small></span></figure>
+
+  <h3>5. Domains and SSL, per client</h3>
+  <p>In each app's <strong>Domain Aliases</strong>, add that client's domain (point its DNS at the server's public address) and install a free <strong>Let's Encrypt</strong> certificate. Every site terminates its own HTTPS, renewed automatically.</p>
+
+  <h3>6. Backups at the right level</h3>
+  <p>Server-level backups cover the whole box. For the "roll back <em>just this client</em> to Tuesday" case, use per-application backups so you can restore one app or database without touching the rest. Test a restore to staging before you're depending on it. The <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a> goes deeper.</p>
+
+  <h2>When to split into more servers</h2>
+  <p>Consolidation is a starting point, not a religion. Split a client onto its own server when its resource use is consistently crowding the others, when it needs genuine isolation for security or compliance, or when the blast radius of one shared machine gets bigger than you're comfortable with. The goal was never "everything on one server forever." It's the fewest servers you can run well, with the ops off your plate. And because it's all one console, moving one app out leaves the rest untouched. Same login, same bill.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Run the whole client book from one console.</p>
+    <p style="margin:0 0 .6em">Spin up your first managed server, add clients as isolated apps, and watch the dashboard sprawl disappear. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">One console · Per-client isolation · Managed databases · Per-app backups · Git deploys · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How many client apps can one server really host?</h3>
+    <p>It depends on the apps, not a magic number. Cached WordPress and static sites are light, so a modest server holds many; busy Node or Laravel apps are heavier, so fewer fit. Watch memory first, keep real headroom for spikes, and move the heaviest client to its own box when it earns it. Twenty-plus light-to-moderate sites on one well-sized server is realistic.</p>
+    <h3>Is it safe to put multiple clients on the same server?</h3>
+    <p>Yes, when they're properly isolated. Each client gets its own system user, web root, process, database, and SSL, so one can't read or crash another. The shared risk that remains is a server-level failure, which you cover with tested per-app backups and by not stacking all your highest-value clients on one machine.</p>
+    <h3>Can I run WordPress and Node or Next.js apps on the same server?</h3>
+    <p>Yes. Underneath it's a Linux server running Nginx or Apache with multiple runtimes installed, so WordPress, Next.js, Laravel, Django, and Node apps can live side by side on one box. Add each one from Applications, Add Application.</p>
+    <h3>How do backups and restores work per client?</h3>
+    <p>Server-level backups cover the whole box, and per-application backups let you restore an individual app or database, so you can roll back one client's site without touching anyone else's. Test a restore to staging before you actually need it, so you know the path works.</p>
+    <h3>What's the difference between this and reseller hosting?</h3>
+    <p>Old-school reseller hosting splits one box into fixed quotas behind a control panel, usually with weak isolation. Running isolated apps on a managed server gives each client its own user, database, and SSL, on modern clouds you choose, from one console. There's a fuller comparison in reseller hosting versus managed cloud.</p>
+    <h3>When should a client get its own server instead?</h3>
+    <p>When it consistently crowds the others on resources, when it needs hard isolation for security or compliance, or when you're not comfortable with the shared blast radius. Because everything runs from one console, moving that one app to a dedicated server leaves the rest of your roster untouched.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · From client app #1 to #20, on one console.</p>
+</article>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Article",
+      "headline": "How Agencies Host 20+ Client Apps on One Managed Server",
+      "description": "How agencies host multiple client apps on one managed server: the 1-to-20 journey, real per-client isolation, backups and deploys, honest capacity limits, and the exact setup steps.",
+      "image": "https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/images/hero.png",
+      "author": { "@type": "Organization", "name": "Kloudbean", "url": "https://www.kloudbean.com/" },
+      "publisher": { "@type": "Organization", "name": "Kloudbean", "logo": { "@type": "ImageObject", "url": "https://www.kloudbean.com/logo.png" } },
+      "mainEntityOfPage": "https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "How many client apps can one server really host?", "acceptedAnswer": { "@type": "Answer", "text": "It depends on the apps, not a magic number. Cached WordPress and static sites are light, so a modest server holds many; busy Node or Laravel apps are heavier, so fewer fit. Watch memory first, keep real headroom for spikes, and move the heaviest client to its own box when it earns it. Twenty-plus light-to-moderate sites on one well-sized server is realistic." } },
+        { "@type": "Question", "name": "Is it safe to put multiple clients on the same server?", "acceptedAnswer": { "@type": "Answer", "text": "Yes, when they are properly isolated. Each client gets its own system user, web root, process, database, and SSL, so one cannot read or crash another. The shared risk that remains is a server-level failure, which you cover with tested per-app backups and by not stacking all your highest-value clients on one machine." } },
+        { "@type": "Question", "name": "Can I run WordPress and Node or Next.js apps on the same server?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Underneath it is a Linux server running Nginx or Apache with multiple runtimes installed, so WordPress, Next.js, Laravel, Django, and Node apps can live side by side on one box. Add each one from Applications, Add Application." } },
+        { "@type": "Question", "name": "How do backups and restores work per client?", "acceptedAnswer": { "@type": "Answer", "text": "Server-level backups cover the whole box, and per-application backups let you restore an individual app or database, so you can roll back one client's site without touching anyone else's. Test a restore to staging before you actually need it, so you know the path works." } },
+        { "@type": "Question", "name": "What's the difference between this and reseller hosting?", "acceptedAnswer": { "@type": "Answer", "text": "Old-school reseller hosting splits one box into fixed quotas behind a control panel, usually with weak isolation. Running isolated apps on a managed server gives each client its own user, database, and SSL, on modern clouds you choose, from one console. There's a fuller comparison in reseller hosting versus managed cloud." } },
+        { "@type": "Question", "name": "When should a client get its own server instead?", "acceptedAnswer": { "@type": "Answer", "text": "When it consistently crowds the others on resources, when it needs hard isolation for security or compliance, or when you're not comfortable with the shared blast radius. Because everything runs from one console, moving that one app to a dedicated server leaves the rest of your roster untouched." } }
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>

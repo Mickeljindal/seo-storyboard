@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Deploy a Full-Stack React App to Production</title>
+<meta name="description" content="Deploy a full-stack React app (SPA plus API plus database) to production on one server. The real decision is one process or two, plus the SPA refresh-404 that catches everyone. Here's both.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/deploy-fullstack-react-app-to-production/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Deploy a Full-Stack React App to Production">
+<meta property="og:description" content="One process or two? Serve your React SPA from the same Node server as your API, or split them. The architecture decision, the SPA refresh-404, and the deploy.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Deploy full-stack React</span>
+  <h1>How to Deploy a Full-Stack React App to Production</h1>
+
+  <figure><img src="images/hero.png" alt="Deploy a full-stack React app to production — SPA, API, and database on one server"></figure>
+
+  <p class="lead">A full-stack React app is three parts: a React SPA (built with Vite or Create React App), a Node API that serves data, and a database. Deploying a full-stack React app to production isn't hard, but there's a real architecture decision hiding in it that nobody warns you about. Do you serve the built SPA from the same Node process that runs your API, or split them into two apps? That one choice shapes your domains, your CORS, and how many things you deploy. Let's make it deliberately.</p>
+
+  <p>And then there's the bug. The one that ships fine, works in every click-through, and 404s the first time a user refreshes the page. We'll kill that one for good.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>To deploy a full-stack React app, decide first: one process (your Node/Express server serves the built SPA <em>and</em> the <code>/api</code> routes, one domain, no CORS) or two apps (static SPA on <code>app.</code>, API on <code>api.</code>, sharing a database). Default to one process. Then fix the two SPA gotchas: a catch-all route so refreshing an inner page doesn't 404, and an API base URL that's relative or env-configured, never hard-coded to localhost.</p>
+  </div>
+
+  <h2>The decision: one process, or two?</h2>
+  <p>Full-stack React usually gets deployed the scattered way by habit: SPA on a static host, API as serverless functions, database on a third service. Three bills, three dashboards, three things to reason about, and CORS gluing it together. For a product still finding its users, that's more moving parts than the app deserves. Both of the arrangements below put everything on one server you own, which is simpler to hold in your head and cheaper to run.</p>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>One process (recommended)</th><th>Two apps</th></tr></thead>
+    <tbody>
+      <tr><td>How it runs</td><td>Express serves the SPA build <em>and</em> <code>/api</code></td><td>Static SPA + a separate API app</td></tr>
+      <tr><td>Domains</td><td>One origin, e.g. <code>yourapp.com</code></td><td><code>app.yourapp.com</code> + <code>api.yourapp.com</code></td></tr>
+      <tr><td>CORS</td><td>None. Same origin.</td><td>Required, since the browser calls another origin</td></tr>
+      <tr><td>Deploys</td><td>One build, one start command</td><td>Two apps to build and run</td></tr>
+      <tr><td>Best when</td><td>Most apps, especially early</td><td>Separate teams, or you scale the SPA and API very differently</td></tr>
+    </tbody>
+  </table>
+
+  <p>My recommendation is unambiguous: default to one process. Serve the SPA from the same Express server that runs your API. You get one origin (so CORS never enters your life), one thing to deploy, and one place to look when something breaks. Split into two apps only when something concrete forces it, like separate teams owning the front end and back end, or wanting to scale them independently. Reaching for two apps on day one is the most common over-engineering I see in full-stack React, and it buys complexity you don't need yet.</p>
+
+  <figure>
+    <svg viewBox="0 0 700 470" width="100%" role="img" aria-label="Diagram: option A is one process where the browser loads the SPA and calls /api on the same server with the database beside it. Option B splits the SPA and API across app. and api. subdomains, which needs CORS.">
+      <rect x="1" y="1" width="698" height="468" rx="16" fill="#fff" stroke="#e6e9f2"/>
+
+      <!-- Option A -->
+      <text x="28" y="34" font-family="Poppins,Arial,sans-serif" font-size="14" font-weight="700" fill="#40b75f">OPTION A · One process (recommended)</text>
+      <rect x="28" y="48" width="120" height="70" rx="10" fill="#f6f7fb" stroke="#e6e9f2"/>
+      <text x="88" y="80" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="600" fill="#000f27">Browser</text>
+      <text x="88" y="99" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#5b6a86">loads SPA</text>
+
+      <line x1="148" y1="83" x2="212" y2="83" stroke="#4F1AF3" stroke-width="2"/><polygon points="212,77 224,83 212,89" fill="#4F1AF3"/>
+      <text x="186" y="74" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="10.5" fill="#5b6a86">yourapp.com</text>
+
+      <rect x="226" y="40" width="300" height="88" rx="12" fill="#000f27"/>
+      <text x="376" y="63" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#fff">one Node process</text>
+      <rect x="242" y="74" width="130" height="38" rx="8" fill="#4F1AF3"/><text x="307" y="98" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#fff">static SPA files</text>
+      <rect x="380" y="74" width="130" height="38" rx="8" fill="#4F1AF3"/><text x="445" y="98" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11.5" fill="#fff">/api routes</text>
+
+      <line x1="526" y1="84" x2="590" y2="84" stroke="#40b75f" stroke-width="2"/><polygon points="590,78 602,84 590,90" fill="#40b75f"/>
+      <rect x="604" y="52" width="72" height="64" rx="10" fill="#eaf7ef" stroke="#cdebd6"/>
+      <text x="640" y="80" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="600" fill="#000f27">DB</text>
+      <text x="640" y="98" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="9.5" fill="#5b6a86">same box</text>
+      <text x="376" y="150" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#40b75f">Same origin, so no CORS.</text>
+
+      <line x1="28" y1="180" x2="672" y2="180" stroke="#e6e9f2" stroke-width="1"/>
+
+      <!-- Option B -->
+      <text x="28" y="214" font-family="Poppins,Arial,sans-serif" font-size="14" font-weight="700" fill="#4F1AF3">OPTION B · Split, when you need it</text>
+      <rect x="28" y="230" width="120" height="70" rx="10" fill="#f6f7fb" stroke="#e6e9f2"/>
+      <text x="88" y="262" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="600" fill="#000f27">Browser</text>
+      <text x="88" y="281" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#5b6a86">loads SPA</text>
+
+      <line x1="148" y1="248" x2="230" y2="248" stroke="#4F1AF3" stroke-width="2"/><polygon points="230,242 242,248 230,254" fill="#4F1AF3"/>
+      <rect x="244" y="226" width="150" height="44" rx="9" fill="#4F1AF3"/>
+      <text x="319" y="253" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#fff">app.yourapp.com</text>
+
+      <path d="M108 300 L108 340 L318 340 L318 300" stroke="#5b6a86" stroke-width="2" fill="none" stroke-dasharray="5 4"/>
+      <polygon points="312,304 318,292 324,304" fill="#5b6a86"/>
+      <text x="214" y="332" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="10.5" fill="#5b6a86">SPA calls the API (needs CORS)</text>
+
+      <rect x="244" y="356" width="150" height="44" rx="9" fill="#000f27"/>
+      <text x="319" y="383" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#fff">api.yourapp.com</text>
+      <line x1="394" y1="378" x2="470" y2="378" stroke="#40b75f" stroke-width="2"/><polygon points="470,372 482,378 470,384" fill="#40b75f"/>
+      <rect x="486" y="346" width="90" height="64" rx="10" fill="#eaf7ef" stroke="#cdebd6"/>
+      <text x="531" y="374" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="600" fill="#000f27">DB</text>
+      <text x="531" y="392" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="9.5" fill="#5b6a86">shared</text>
+      <text x="350" y="440" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#5b6a86">Two apps on the same server, one shared database. More separation, more to wire up.</text>
+    </svg>
+    <figcaption>Same server either way. One process keeps it to a single origin. Splitting adds subdomains and the CORS that comes with them.</figcaption>
+  </figure>
+
+  <h2>The one process shape, in code</h2>
+  <p>If you go with one process (you should, to start), your Express server does three jobs in a specific order. Serve the static build. Handle <code>/api</code>. And for anything else, hand back <code>index.html</code> so React's router can take over. That order matters, and the last line is the fix for the bug in the next section.</p>
+  <pre><code>const express = require("express");
+const path = require("path");
+const app = express();
+
+// 1. your API routes first
+app.use("/api", apiRouter);
+
+// 2. the built SPA (Vite: "dist", CRA: "build")
+app.use(express.static(path.join(__dirname, "dist")));
+
+// 3. catch-all: send index.html so client routing works
+app.get("*", (req, res) =&gt;
+  res.sendFile(path.join(__dirname, "dist", "index.html"))
+);
+
+app.listen(process.env.PORT || 3000);</code></pre>
+  <p>One process, one port, one origin. The SPA and the API share a domain, so the browser never makes a cross-origin call and CORS simply never comes up. That's the quiet luxury of this shape.</p>
+
+  <h2>The SPA gotcha that 404s on refresh</h2>
+  <p>This is the bug that catches nearly everyone deploying a React SPA for the first time, and it's worth understanding, not just pasting a fix for.</p>
+  <p>A single-page app does its own routing in the browser. You click to <code>/dashboard</code> and React swaps the view without asking the server for anything. Feels great. But when a user <strong>refreshes</strong> on <code>/dashboard</code>, or pastes that link fresh, the browser does ask the server for <code>/dashboard</code>. And your server has no such route, because that path only ever existed in the browser. So it returns a 404. Your app looks broken, but only on refresh, which is why it sails through your click-testing and then breaks for a real user on day one.</p>
+  <p>The fix is that catch-all route above, sometimes called the SPA fallback or history-mode fallback. After your API and static files, any request the server doesn't recognize gets <code>index.html</code>. The SPA loads, reads the URL, and renders the right view. Order is everything: put the catch-all last, or it swallows your <code>/api</code> calls and hands them HTML too, which produces a different confusing bug (your data calls start returning your homepage). If you take the two-app path with a static SPA, you configure the same fallback on the static host instead of in Express.</p>
+
+  <div class="note"><b>Coming from a starter template?</b> A lot of Vite and CRA starters run the SPA and API as two dev servers with a proxy, which hides this entirely in development. The refresh-404 only appears once you deploy for real. If your app "works locally but 404s in production on refresh," this is almost always why.</div>
+
+  <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>Browser on /dashboard showing a 404 after refresh, next to the same page working once the catch-all route is added.</em><small>Before and after sells the fix. Optional.</small></span></figure>
+
+  <h2>The other gotcha: where your API lives</h2>
+  <p>The second thing that trips deploys is how the front end addresses the API. In development it's common to hard-code <code>http://localhost:3001</code>, and that string is worthless in production because the visitor's browser has no localhost server. The pages load, but every data call fails, and the app looks half-alive.</p>
+  <p>With the one-process shape this is easy: call <strong>relative paths</strong> like <code>/api/things</code>. They resolve to the same origin automatically, in dev and in production, with no config. If you must use an absolute base URL (you're splitting the apps, say), read it from a build-time variable:</p>
+  <pre><code>// relative is simplest for one process
+fetch("/api/things");
+
+// or an env-driven base URL for the split shape
+const base = import.meta.env.VITE_API_URL ?? "";
+fetch(`${base}/api/things`);</code></pre>
+  <p>Which brings up the React-specific env var rule. Anything the browser reads is baked into the bundle at build time, and it's public. Vite exposes only variables prefixed <code>VITE_</code>; Create React App uses <code>REACT_APP_</code>. Two consequences. First, never put a secret behind those prefixes, since it ends up in the JavaScript any user can read. Second, if you set a <code>VITE_</code> value after the build already ran, it won't take effect until you rebuild. Your API keys and database URL stay unprefixed and server-side. The full model is in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a>.</p>
+
+  <h2>Deploy your full-stack React app to production</h2>
+  <p>Now the deploy, which is short once the two gotchas are handled. Here's the path on <a href="https://www.kloudbean.com/">Kloudbean</a>.</p>
+  <p>Click <strong>Add Server</strong>, pick a <strong>Cloud Provider</strong> (AWS, Lightsail, GCP, Linode, Vultr, DigitalOcean, or UpCloud), choose <strong>Node.js</strong>, pick the nearest datacenter, and give it 2-4 GB for the front-end build. <strong>Launch Now</strong> has a ready stack in a few minutes.</p>
+  <p>Open the app, go to <strong>Application Administration &#8594; Deploy Code</strong>, connect GitHub, paste the repo URL, pick the branch, and <strong>Clone Repository</strong>. Set the runtime:</p>
+  <ul>
+    <li><strong>App Directory:</strong> where your server's <code>package.json</code> lives.</li>
+    <li><strong>Port:</strong> your API server listens on <code>process.env.PORT</code>.</li>
+    <li><strong>Node Version:</strong> Node 20+.</li>
+    <li><strong>Install / Build / Start:</strong> install, then a Build that compiles the React front end (for example <code>npm run build</code>, producing <code>dist</code> or <code>build</code>), then a Start that runs the server which serves that bundle and the API.</li>
+  </ul>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean console Deploy Code / Git Deployment tab: build the React front end and start the API server, then Pull and Deploy">
+    <figcaption>Deploy Code, then Git Deployment: build the SPA, start the server that serves it and the API, Pull and Deploy.</figcaption>
+  </figure>
+
+  <p>Hit <strong>Pull &amp; Deploy</strong> and watch the log. Then launch the database from <strong>DBS &#8594; Launch Database</strong>: a managed Postgres or MySQL (six engines are available), on the same box, backed up, reached over the local network in a fraction of a millisecond instead of across the internet. Connect your API to it with an environment variable and run migrations as part of the build so the tables exist on first boot.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="Kloudbean Launch Database screen for creating a managed Postgres or MySQL instance on the same server as the API">
+    <figcaption>Launch a managed database on the same server, then point your API's connection string at it.</figcaption>
+  </figure>
+
+  <p>Set your variables under <strong>Runtime Configuration &#8594; Environment Variables</strong> with the <strong>Paste .env Content</strong> tab (unprefixed secrets for the API, <code>VITE_</code>/<code>REACT_APP_</code> for anything the browser needs at build). Add your domain under <strong>Domain Aliases</strong>, install free <strong>Let's Encrypt</strong> SSL, and turn on <strong>automated deployment</strong> so each push rebuilds the SPA and ships. Full picture of the stack on one box: <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">host your app, API, and database on one server</a>.</p>
+
+  <h3>If you took the two-app path</h3>
+  <p>Splitting on purpose? Add the second app from <strong>Applications &#8594; Add Application</strong> on the same server, put the API on <code>api.yourapp.com</code> and the SPA on <code>app.yourapp.com</code>, and point both at the shared database. Now you do need CORS: your API must send <code>Access-Control-Allow-Origin</code> for your SPA's origin, or the browser blocks every call. This is the tax for splitting, and it's the main reason one process is the easier default. Stacking apps on one box is covered in <a href="https://www.kloudbean.com/blog/host-multiple-apps-one-server/">hosting multiple apps on one server</a>.</p>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="Kloudbean Add Application screen for running a second app, such as a separate API, on the same server">
+    <figcaption>Add Application: run the API and the SPA as two apps on the same server when you deliberately split them.</figcaption>
+  </figure>
+
+  <h2>Two different failures, two different fixes</h2>
+  <p>When a full-stack React deploy misbehaves, the symptom tells you where to look, so don't confuse the two.</p>
+  <ul>
+    <li><strong>A 503, nothing loads.</strong> The API process didn't come up. Usual causes: not listening on <code>process.env.PORT</code>, a missing environment variable (often the database URL), or a Start command that doesn't launch the server. Read <code>app.error.log</code> at <code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs</code>. Details in <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fixing a 503</a>.</li>
+    <li><strong>The page loads but data fails, or refresh 404s.</strong> That's not a 503 and not a server crash. It's the API base URL (still pointing at localhost) or a missing catch-all route. Both are the SPA gotchas above.</li>
+  </ul>
+
+  <h2>The honest note on SEO</h2>
+  <p>One thing specific to a client-rendered SPA: because the browser renders it, the initial HTML is close to empty, so it isn't server-rendered for SEO the way a Next.js page is. For app-style products, behind a login or where SEO isn't the point, that's completely fine and this setup is ideal. If search visibility of public content pages matters, server-render or pre-render those pages. That's a framework decision, not a hosting one, and a server runs a client-rendered or a server-rendered React app equally well. If SEO is central to your project, the <a href="https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/">Next.js self-host guide</a> covers the server-rendered path.</p>
+  <p>The rest is the usual boundary. Kloudbean runs this as a Node app on Linux, not Windows or .NET. "Managed" means the server, stack, SSL, and backups are handled; you own the app and its data, and can move hosts whenever, because it's a standard Linux box. If an AI tool generated your app, the tool-agnostic version is the <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploy an AI-built app</a> guide.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">SPA, API, and data. One server.</p>
+    <p style="margin:0">Deploy your full-stack React app at <a href="https://www.kloudbean.com/">kloudbean.com</a> with a free trial and your first migration done for you. Prefer to keep the API and database close? See <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a>. Server sizes are on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I deploy a React front end and Node API together?</h3>
+    <p>The simplest way is one process on one server: build the React SPA to static files and run your Node/Express API as the process that serves both those files and the <code>/api</code> routes. Deploy from your GitHub repo in Deploy Code, add a managed database, set environment variables, and point your domain. One server holds the whole stack.</p>
+
+    <h3>Should I serve my React app and API from one process or two?</h3>
+    <p>Default to one process. Serving the SPA from the same Express server as your API gives you a single origin (no CORS), one thing to deploy, and one place to debug. Split into two apps only when separate teams own each side, or you need to scale the front end and API very differently.</p>
+
+    <h3>Why does my React app 404 when I refresh on an inner page?</h3>
+    <p>Because that route only exists in the browser, and the server has no matching path. Add a catch-all route so the server returns <code>index.html</code> for any non-API, non-static request; the SPA then loads and its router handles the path. Put the catch-all after your API and static routes, never before.</p>
+
+    <h3>My pages load but the API calls fail. Why?</h3>
+    <p>Usually the front end is calling a hard-coded <code>localhost</code> URL left from development, or a missing base-URL variable. In production, call relative paths like <code>/api/...</code> (easiest with one process) or set the base URL via a <code>VITE_</code> or <code>REACT_APP_</code> variable to your real origin.</p>
+
+    <h3>Do I need to deal with CORS?</h3>
+    <p>Only if you split the SPA and API onto different origins. With one process serving both from the same domain, there's no cross-origin call, so CORS never comes up. That's a big reason to prefer the single-process shape until you have a concrete reason to split.</p>
+
+    <h3>Where do the front-end and API environment variables go?</h3>
+    <p>All on the server, in Runtime Configuration. API secrets like the database URL and keys are unprefixed and server-side. Front-end values use the <code>VITE_</code> or <code>REACT_APP_</code> prefix and get baked into the public bundle at build time, so never put a secret in a prefixed variable.</p>
+
+    <h3>Is a client-rendered React app bad for SEO?</h3>
+    <p>For app-style products behind a login, or where SEO isn't the priority, it's fine. If search visibility of content pages matters, server-render or pre-render those pages. That's a framework choice, and a managed server runs a client-rendered or server-rendered app equally well.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Deploy a Full-Stack React App to Production","description":"One process or two? Serve your React SPA from the same Node server as your API, or split them. The architecture decision, the SPA refresh-404, and the deploy.","image":"https://www.kloudbean.com/blog/deploy-fullstack-react-app-to-production/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/deploy-fullstack-react-app-to-production/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I deploy a React front end and Node API together?","acceptedAnswer":{"@type":"Answer","text":"The simplest way is one process on one server: build the React SPA to static files and run your Node/Express API as the process that serves both those files and the /api routes. Deploy from your GitHub repo in Deploy Code, add a managed database, set environment variables, and point your domain. One server holds the whole stack."}},
+{"@type":"Question","name":"Should I serve my React app and API from one process or two?","acceptedAnswer":{"@type":"Answer","text":"Default to one process. Serving the SPA from the same Express server as your API gives you a single origin (no CORS), one thing to deploy, and one place to debug. Split into two apps only when separate teams own each side, or you need to scale the front end and API very differently."}},
+{"@type":"Question","name":"Why does my React app 404 when I refresh on an inner page?","acceptedAnswer":{"@type":"Answer","text":"Because that route only exists in the browser, and the server has no matching path. Add a catch-all route so the server returns index.html for any non-API, non-static request; the SPA then loads and its router handles the path. Put the catch-all after your API and static routes, never before."}},
+{"@type":"Question","name":"My pages load but the API calls fail. Why?","acceptedAnswer":{"@type":"Answer","text":"Usually the front end is calling a hard-coded localhost URL left from development, or a missing base-URL variable. In production, call relative paths like /api/ (easiest with one process) or set the base URL via a VITE_ or REACT_APP_ variable to your real origin."}},
+{"@type":"Question","name":"Do I need to deal with CORS?","acceptedAnswer":{"@type":"Answer","text":"Only if you split the SPA and API onto different origins. With one process serving both from the same domain, there is no cross-origin call, so CORS never comes up. That is a big reason to prefer the single-process shape until you have a concrete reason to split."}},
+{"@type":"Question","name":"Where do the front-end and API environment variables go?","acceptedAnswer":{"@type":"Answer","text":"All on the server, in Runtime Configuration. API secrets like the database URL and keys are unprefixed and server-side. Front-end values use the VITE_ or REACT_APP_ prefix and get baked into the public bundle at build time, so never put a secret in a prefixed variable."}},
+{"@type":"Question","name":"Is a client-rendered React app bad for SEO?","acceptedAnswer":{"@type":"Answer","text":"For app-style products behind a login, or where SEO isn't the priority, it's fine. If search visibility of content pages matters, server-render or pre-render those pages. That's a framework choice, and a managed server runs a client-rendered or server-rendered app equally well."}}
+]}
+]}
+</script>
+</body>
+</html>

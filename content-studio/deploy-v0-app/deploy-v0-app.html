@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deploy Your v0 App to a Server You Own: Start With What v0 Gave You</title>
+<meta name="description" content="Generated a UI with v0 and want it off Vercel? Here's how to deploy your v0 app to a server you own: figure out what v0 gave you, run Next.js as a normal Node process, wire up the database, and go live with SSL.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/deploy-v0-app/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Deploy Your v0 App to a Server You Own: Start With What v0 Gave You">
+<meta property="og:description" content="v0 writes Next.js + shadcn/ui. Here's how to deploy your v0 app on a server you own — no adapter, one Node process, your database, your domain.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Shipping a v0 app</span>
+  <h1>Deploy Your v0 App to a Server You Own: Start With What v0 Gave You</h1>
+
+  <figure><img src="images/hero.png" alt="Deploy your v0 app — from generated Next.js UI to a production server you own"></figure>
+
+  <p class="lead">v0, Vercel's generator, is very good at the slow part of building: getting from "I need a screen" to polished React, styled with Tailwind, built on shadcn/ui. It'll push the project to GitHub and, being a Vercel product, nudge you toward one-click Vercel hosting. That default is fine. But if you want to deploy your v0 app to a server you own, for a real database, predictable cost, or just to not be tied to one platform, the code is completely portable. It's plain Next.js.</p>
+
+  <p>Before any deploy steps, one question decides your whole path, and almost no guide asks it: what did v0 actually hand you? A whole application, or a few components to drop into an app you already have? The answer changes what "deploy" even means here.</p>
+
+  <div class="tldr">
+    <strong>Short version:</strong> v0 writes standard Next.js and React, so you don't need Vercel or any special adapter. Figure out whether you got a full app or just components. Then run it as a normal Node process (<code>next build</code>, <code>next start</code>) on a server you own, set your <code>NEXT_PUBLIC_</code> vars at build time, add a managed database, and turn on SSL and auto-deploy.
+  </div>
+
+  <h2>First, figure out what v0 actually handed you</h2>
+  <p>v0 output lands in one of a few shapes, and I've seen people burn an hour trying to "deploy" something that was never a standalone app. Sort yours first.</p>
+  <ul>
+    <li><strong>A full Next.js app.</strong> You built out pages and routes in v0 and pushed the whole project to GitHub. This is a deployable app on its own.</li>
+    <li><strong>A few components.</strong> You generated a pricing section, a dashboard card, a form. These are meant to be pasted into an app you already have. You deploy that app, with the new components in it.</li>
+    <li><strong>A page or block.</strong> Somewhere between the two. Add it as a route in your existing Next.js project, then deploy that project.</li>
+  </ul>
+
+  <figure>
+    <svg viewBox="0 0 700 300" width="100%" role="img" aria-label="Decision diagram: v0 output splits into a full Next.js app, a few components, or a page or block, and all three end up as one Next.js app running on your server with next build and next start.">
+      <rect x="1" y="1" width="698" height="298" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="350" y="28" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="16" font-weight="700" fill="#000f27">What did v0 give you?</text>
+
+      <rect x="270" y="40" width="160" height="40" rx="8" fill="#000f27"/>
+      <text x="350" y="65" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="600" fill="#ffffff">v0 output</text>
+
+      <g stroke="#4F1AF3" stroke-width="2" fill="none">
+        <line x1="350" y1="80" x2="120" y2="116"/>
+        <line x1="350" y1="80" x2="350" y2="116"/>
+        <line x1="350" y1="80" x2="580" y2="116"/>
+      </g>
+
+      <g font-family="Poppins,Arial,sans-serif" fill="#1c2536">
+        <rect x="20" y="118" width="200" height="64" rx="8" fill="#f6f7fb" stroke="#e6e9f2"/>
+        <text x="120" y="144" text-anchor="middle" font-size="13.5" font-weight="700" fill="#000f27">A full Next.js app</text>
+        <text x="120" y="166" text-anchor="middle" font-size="12" fill="#5b6a86">deploy the repo</text>
+
+        <rect x="250" y="118" width="200" height="64" rx="8" fill="#f6f7fb" stroke="#e6e9f2"/>
+        <text x="350" y="144" text-anchor="middle" font-size="13.5" font-weight="700" fill="#000f27">A few components</text>
+        <text x="350" y="166" text-anchor="middle" font-size="12" fill="#5b6a86">paste into your app</text>
+
+        <rect x="480" y="118" width="200" height="64" rx="8" fill="#f6f7fb" stroke="#e6e9f2"/>
+        <text x="580" y="144" text-anchor="middle" font-size="13.5" font-weight="700" fill="#000f27">A page or block</text>
+        <text x="580" y="166" text-anchor="middle" font-size="12" fill="#5b6a86">add it as a route</text>
+      </g>
+
+      <g stroke="#40b75f" stroke-width="2" fill="none">
+        <line x1="120" y1="182" x2="120" y2="226"/>
+        <line x1="350" y1="182" x2="350" y2="226"/>
+        <line x1="580" y1="182" x2="580" y2="226"/>
+      </g>
+
+      <rect x="20" y="228" width="660" height="48" rx="8" fill="#eaf7ef" stroke="#cdebd6"/>
+      <text x="350" y="257" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="13.5" font-weight="600" fill="#000f27">One Next.js app on your server: next build, then next start</text>
+    </svg>
+    <figcaption>Whatever shape v0 handed you, the destination is the same: one Next.js app running on a server you own. The only difference is how much assembly you do first.</figcaption>
+  </figure>
+
+  <p>The rest of this assumes you've got (or assembled) one Next.js app. If it's just loose components, paste them in, get the app running locally, then follow along.</p>
+
+  <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>The v0 canvas with a generated component, showing the code panel and the option to push the project to GitHub.</em><small>Anchors the "what did v0 give you" question. Optional.</small></span></figure>
+
+  <h2>shadcn/ui components are yours (that's the point)</h2>
+  <p>One thing that quietly makes v0 apps easy to own: the shadcn/ui components v0 leans on are not an npm dependency. They're copied straight into your repo as source files, usually under <code>components/ui</code>. That's shadcn's entire philosophy. You own the component code and can edit it.</p>
+  <p>For deploying, this is good news on two fronts. There's no component library to reach out to at runtime and no design-system service to subscribe to, so nothing extra to configure on the server. And there's no lock-in hiding in your UI layer. The buttons and dialogs are just React files that build like any other part of the app. What you saw in the v0 preview compiles and serves from your server, unchanged.</p>
+
+  <h2>A Next.js app is a Node process, not a static site</h2>
+  <p>This is the misconception that trips people, so let's kill it. A Next.js app is not a folder of static files you can drop on any web host. Unless you deliberately set <code>output: 'export'</code> (which most v0 apps don't), a built Next.js app is a running Node server. <code>next build</code> compiles it, and <code>next start</code> boots the server that handles rendering, API routes, and the rest.</p>
+  <p>Two things follow. First, you need a host that runs a persistent Node process, not just static file hosting. Second, and this is the part people don't expect from a Vercel product: you do not need a special adapter, a proprietary build target, or Vercel itself. The standard <code>next start</code> is the same production server Next.js ships. Server rendering, API routes, incremental static regeneration, image optimization: all of it runs on an ordinary Node machine.</p>
+
+  <pre><code># package.json: the standard Next.js scripts, nothing custom
+"scripts": {
+  "build": "next build",
+  "start": "next start"
+}</code></pre>
+
+  <p>So hosting Next.js yourself isn't a degraded version of Next.js. It's the same server, on hardware you picked. If you want the framework-specific deep dive, we have a whole guide on <a href="https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/">deploying Next.js to your own server</a>.</p>
+
+  <h2>NEXT_PUBLIC_ variables bake in at build time</h2>
+  <p>Next.js splits environment variables in two, and getting this wrong is the most common reason a first deploy looks broken. Anything prefixed <code>NEXT_PUBLIC_</code> is meant for the browser, so it gets inlined into the JavaScript when <code>next build</code> runs. It's frozen at build time. Everything else is a server-side secret, read live at runtime, and it should never carry the <code>NEXT_PUBLIC_</code> prefix.</p>
+  <p>The practical rule: set your <code>NEXT_PUBLIC_</code> values before the build, and if one of them encodes a URL, point it at your new domain, not the old preview address. Add or change one after deploying and nothing updates until you rebuild. Secrets like <code>DATABASE_URL</code> behave the opposite way, read at runtime, which is exactly why they stay out of the repo and out of anything public.</p>
+
+  <pre><code># Inlined into the browser bundle at build time
+NEXT_PUBLIC_APP_URL=https://yourapp.com
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+
+# Read at runtime, server-side only, never NEXT_PUBLIC_
+DATABASE_URL=postgres://kb_user:pass@127.0.0.1:5432/kb_appdb
+STRIPE_SECRET_KEY=sk_live_...</code></pre>
+
+  <p>If this split feels fuzzy, the full mental model is in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a>.</p>
+
+  <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>The v0 project pushed to a GitHub repo, showing the Next.js app structure and the components/ui folder.</em><small>Ties the "what did v0 give you" question to the real repo. Optional.</small></span></figure>
+
+  <h2>Where the backend and data go (v0 leaves this to you)</h2>
+  <p>v0's sweet spot is the interface, so a v0 project often arrives as a gorgeous front end with the data layer barely sketched in. That's the work you finish, and your own server is the natural home for it. API routes live in the same Next.js app (or a separate service if you'd rather split), your data lives in a managed database on the same box, and configuration comes from environment variables.</p>
+  <p>Reach for an ORM like Prisma or Drizzle, or write SQL directly. Either way the database sits next to the app rather than across a network to a metered service. Putting the whole thing on one server is covered in <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">app, API, and database on one server</a>.</p>
+
+  <h2>Deploy your v0 app on a server you own</h2>
+  <p>With one Next.js app in a GitHub repo, the deploy is short. No adapter, no special output mode.</p>
+
+  <p>In the <a href="https://www.kloudbean.com/">Kloudbean</a> console, click <strong>Add Server</strong>, pick a <strong>Cloud Provider</strong>, choose <strong>Node.js</strong>, pick the nearest datacenter, and give a Next.js build 2 to 4 GB of headroom. <strong>Launch Now</strong> has it ready in a few minutes.</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="Kloudbean Add Server screen: choosing a cloud provider, Node.js application, datacenter, and server size">
+    <figcaption>Add Server: a Next.js app is a Node app, so choose Node.js, size it, and launch.</figcaption>
+  </figure>
+
+  <p>Open the app, go to <strong>Application Administration, Deploy Code</strong>, connect GitHub, paste your repository URL, and pick the branch. Then the runtime fields:</p>
+  <ul>
+    <li><strong>App Directory:</strong> where <code>package.json</code> lives.</li>
+    <li><strong>Port:</strong> <code>next start</code> respects <code>process.env.PORT</code> by default; a custom server must too.</li>
+    <li><strong>Node Version:</strong> Node 20+ for a modern Next.js app.</li>
+    <li><strong>Install / Build / Start:</strong> <code>npm install</code>, <code>npm run build</code> (runs <code>next build</code>), and <code>npm start</code> (runs <code>next start</code>).</li>
+  </ul>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="Kloudbean Deploy Code / Git Deployment screen: connect the repo, set the runtime, and Pull and Deploy">
+    <figcaption>Deploy Code, then Git Deployment: connect the repo, set build and start, and Pull and Deploy.</figcaption>
+  </figure>
+
+  <p>Launch a managed <strong>Postgres</strong> or <strong>MySQL</strong> from the console for the data layer v0 left to you. It runs alongside the app, backed up, reachable through a connection string you keep in environment variables.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="Kloudbean Launch Database screen for creating a managed Postgres or MySQL instance next to the app">
+    <figcaption>Launch a managed database next to the app. Copy its connection details into your environment variables.</figcaption>
+  </figure>
+
+  <p>Add your variables under <strong>Runtime Configuration, Environment Variables</strong>, using the <strong>Paste .env Content</strong> tab. Remember the split: <code>NEXT_PUBLIC_</code> values are baked in at build, everything else is read at runtime. Then add your domain under <strong>Domain Aliases</strong>, install a free Let's Encrypt certificate, and turn on <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">automated deployment</a> so every push rebuilds and ships. It's the same git-driven flow the Vercel default gave you, now on a server you own.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="Kloudbean environment variables editor with a paste .env content tab and a key value list">
+    <figcaption>Set NEXT_PUBLIC_ values before the build, and keep secrets like DATABASE_URL out of anything public.</figcaption>
+  </figure>
+
+  <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your v0 app live on its own domain with the SSL padlock, real data loading behind the shadcn/ui interface.</em><small>The payoff shot. Optional.</small></span></figure>
+
+  <h2>v0 to Vercel is the default. When to own the server instead.</h2>
+  <p>Credit where it's due: Vercel's edge network and zero-config preview deployments are genuinely slick, and for a purely static marketing site the one-click path is hard to beat. If that fits your project and the bill doesn't bother you, there's no rule that says you must move.</p>
+  <p>You'd choose your own server when the shape of the app, or the shape of the bill, starts pushing back.</p>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>v0 to Vercel default</th><th>A server you own</th></tr></thead>
+    <tbody>
+      <tr><td>Backend and database</td><td>Add managed services, often billed separately</td><td>App, API, and database on one box</td></tr>
+      <tr><td>Pricing shape</td><td>Usage and seat based, scales with success</td><td>Flat monthly, predictable in a busy month</td></tr>
+      <tr><td>Several apps</td><td>Each tends to be its own project</td><td>Share one server, one bill</td></tr>
+      <tr><td>Previews</td><td>Zero-config, built in</td><td>A staging app on the same server</td></tr>
+      <tr><td>Control</td><td>Platform conventions</td><td>Full access, move hosts anytime</td></tr>
+    </tbody>
+  </table>
+
+  <p>My take: for a static site, the default is genuinely fine, stay. The moment there's a real backend, a database, and a plan to ship more than one app, a server you own tends to be simpler and cheaper to reason about. If you're specifically migrating away from the default, the <a href="https://www.kloudbean.com/blog/vercel-alternative-for-full-stack-apps/">Vercel alternative for full-stack apps</a> and the <a href="https://www.kloudbean.com/blog/move-lovable-app-off-vercel/">move off Vercel</a> guide both dig into the migration.</p>
+
+  <h2>When it won't come up</h2>
+  <p>A <strong>503</strong> means the process didn't start. For a v0 or Next.js app, check in this order:</p>
+  <ul>
+    <li><strong>The start command runs <code>next start</code></strong>, after a successful <code>next build</code>. Running <code>next dev</code> in production is a common slip.</li>
+    <li><strong>A missing environment variable</strong>, often the database URL or a <code>NEXT_PUBLIC_</code> value the app reads at startup.</li>
+    <li><strong>Port binding.</strong> Standard <code>next start</code> respects <code>process.env.PORT</code>; a custom server must honor it too.</li>
+  </ul>
+  <p>Read <code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/app.error.log</code>, where the cause is almost always named, or watch the live build under Build and Deployment History. The full playbook is in <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fixing a 503 after deploying</a>.</p>
+
+  <h2>What you own, and what's managed</h2>
+  <p>Kloudbean runs Linux stacks: Node and the modern JavaScript toolkit including Next.js and React, which is what v0 produces. It isn't for Windows or .NET workloads. "Managed" means the server, stack, SSL, backups, and patching are handled, while you own and maintain the app. The upside of owning it: the UI, the API, and the database sit in one dashboard, and your next v0 project can share the same server instead of starting a new bill. For the tool-agnostic version that also covers Cursor, Lovable, and Bolt, see <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploy an AI-built app to production</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Generated UI, infrastructure you own.</p>
+    <p style="margin:0">Deploy your v0 app on a server you own at <a href="https://www.kloudbean.com/">kloudbean.com</a>. One-click databases · Automatic backups · Private networking · Free migration · Free trial · Git deploy. Plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Can I deploy a v0 app without using Vercel?</h3>
+    <p>Yes. v0 generates a standard Next.js and React project and pushes it to GitHub. You can deploy that repo to your own server on Kloudbean. The code isn't tied to Vercel in any way.</p>
+
+    <h3>Did v0 give me a full app or just components?</h3>
+    <p>Both are possible. If you built pages and routes and pushed a whole project, it's a deployable app. If you generated individual sections or cards, those are meant to be pasted into an existing app, which is the app you then deploy.</p>
+
+    <h3>Does Next.js need a special adapter to run on my server?</h3>
+    <p>No. Standard next build then next start runs the full Next.js production server on a normal Node machine. Server rendering, API routes, ISR, and image optimization all work, with no proprietary adapter or build target.</p>
+
+    <h3>Are shadcn/ui components hard to deploy?</h3>
+    <p>No. shadcn/ui components are copied into your repo as source files rather than pulled from a package, so they build like any other React code. There's nothing to configure on the server and no runtime service to reach.</p>
+
+    <h3>Where does my database go?</h3>
+    <p>On your server. Launch a managed Postgres or MySQL from the console, connect through environment variables, and it runs next to the app. Handy, since v0 focuses on the UI and leaves the data layer to you.</p>
+
+    <h3>My v0 app builds but won't start: why?</h3>
+    <p>Usually the start command isn't running next start, or an environment variable is missing (often the database URL or a NEXT_PUBLIC_ value), or the port isn't respected. Check app.error.log and redeploy.</p>
+
+    <h3>Do I lose Vercel's preview deployments?</h3>
+    <p>You can reproduce them. Run a second application from a staging branch on the same server for a stable preview URL. You keep git-driven deploys and add previews without the platform lock-in.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Deploy Your v0 App to a Server You Own: Start With What v0 Gave You","description":"Generated a UI with v0 and want it off Vercel? Here is how to deploy your v0 app to a server you own: figure out what v0 gave you, run Next.js as a normal Node process, wire up the database, and go live with SSL.","image":"https://www.kloudbean.com/blog/deploy-v0-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/deploy-v0-app/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Can I deploy a v0 app without using Vercel?","acceptedAnswer":{"@type":"Answer","text":"Yes. v0 generates a standard Next.js and React project and pushes it to GitHub. You can deploy that repo to your own server on Kloudbean. The code isn't tied to Vercel in any way."}},
+{"@type":"Question","name":"Did v0 give me a full app or just components?","acceptedAnswer":{"@type":"Answer","text":"Both are possible. If you built pages and routes and pushed a whole project, it's a deployable app. If you generated individual sections or cards, those are meant to be pasted into an existing app, which is the app you then deploy."}},
+{"@type":"Question","name":"Does Next.js need a special adapter to run on my server?","acceptedAnswer":{"@type":"Answer","text":"No. Standard next build then next start runs the full Next.js production server on a normal Node machine. Server rendering, API routes, ISR, and image optimization all work, with no proprietary adapter or build target."}},
+{"@type":"Question","name":"Are shadcn/ui components hard to deploy?","acceptedAnswer":{"@type":"Answer","text":"No. shadcn/ui components are copied into your repo as source files rather than pulled from a package, so they build like any other React code. There's nothing to configure on the server and no runtime service to reach."}},
+{"@type":"Question","name":"Where does my database go?","acceptedAnswer":{"@type":"Answer","text":"On your server. Launch a managed Postgres or MySQL from the console, connect through environment variables, and it runs next to the app. Handy, since v0 focuses on the UI and leaves the data layer to you."}},
+{"@type":"Question","name":"My v0 app builds but won't start: why?","acceptedAnswer":{"@type":"Answer","text":"Usually the start command isn't running next start, or an environment variable is missing (often the database URL or a NEXT_PUBLIC_ value), or the port isn't respected. Check app.error.log and redeploy."}},
+{"@type":"Question","name":"Do I lose Vercel's preview deployments?","acceptedAnswer":{"@type":"Answer","text":"You can reproduce them. Run a second application from a staging branch on the same server for a stable preview URL. You keep git-driven deploys and add previews without the platform lock-in."}}
+]}
+]}
+</script>
+</body>
+</html>

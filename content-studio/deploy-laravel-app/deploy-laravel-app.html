@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deploy a Laravel App the Right Way (Queues and All)</title>
+<meta name="description" content="Deploy a Laravel app the right way: the artisan production sequence (config:cache, migrate --force, storage:link) plus the queue worker and scheduler most guides skip — on a managed server you own.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/deploy-laravel-app/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Deploy a Laravel App the Right Way (Queues and All)">
+<meta property="og:description" content="The artisan production sequence, plus the queue worker and scheduler generic guides forget. A Laravel deploy checklist that actually matches how Laravel runs.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">App deployment</span>
+  <h1>Deploy a Laravel App the Right Way (Queues and All)</h1>
+
+  <figure><img src="images/hero.png" alt="Deploy a Laravel app — the web app, the queue worker, and the scheduler, all on one server"></figure>
+
+  <p class="lead">So you're ready to deploy a Laravel app to production. The tricky part isn't the web page. It's that a real Laravel app is rarely one process. It's usually three running side by side: the web app served by PHP-FPM, a <strong>queue worker</strong> grinding through background jobs, and a <strong>scheduler</strong> firing tasks on a timer.</p>
+  <p>Get the site live and forget the other two, and the bugs are quiet ones. Password-reset emails never arrive. That CSV export spins forever. The nightly cleanup job just doesn't run, and nobody notices for a week. This guide walks the whole deploy, the artisan production sequence included, so all three come up together.</p>
+
+  <div class="tldr"><strong>Short version</strong><p>Set your <code>.env</code> on the server (<code>APP_KEY</code>, <code>APP_ENV=production</code>, <code>APP_DEBUG=false</code>, DB creds). On every deploy run <code>composer install --no-dev</code>, build assets, <code>php artisan migrate --force</code>, then cache config, routes and views, and <code>php artisan storage:link</code>. PHP-FPM serves the app, never <code>artisan serve</code>. And run <code>php artisan queue:restart</code> so your workers actually pick up the new code.</p></div>
+
+  <h2>Laravel isn't one process. It's usually three.</h2>
+  <p>This is the mental model that makes every other decision obvious. Your browser talks to a web server, which hands PHP requests to PHP-FPM, which runs Laravel. That's the part you see. But <code>Mail::queue()</code>, <code>dispatch()</code>, and every <code>-&gt;daily()</code> in your scheduler don't run in that web request. They run in two separate long-lived processes. If those processes aren't started (and kept alive), the code that depends on them silently does nothing.</p>
+
+  <figure>
+    <svg viewBox="0 0 700 492" width="100%" role="img" aria-label="Diagram: one Laravel codebase runs as three processes in production. The web process is PHP-FPM behind a web server serving HTTPS requests. The queue worker runs php artisan queue:work for background jobs like email and exports. The scheduler is a cron entry running php artisan schedule:run for timed tasks. All three share managed MySQL and Redis. On every deploy you run composer install, migrate --force, config:cache, route:cache and view:cache, then php artisan queue:restart so workers load the new code.">
+      <rect x="0.5" y="0.5" width="699" height="491" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="350" y="32" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="16.5" font-weight="700" fill="#000f27">One Laravel codebase, three processes in production</text>
+
+      <!-- codebase box -->
+      <g font-family="Poppins,Arial,sans-serif">
+        <rect x="24" y="62" width="150" height="170" rx="12" fill="#000f27"/>
+        <text x="99" y="140" text-anchor="middle" font-size="14" font-weight="600" fill="#fff">Your Laravel</text>
+        <text x="99" y="160" text-anchor="middle" font-size="14" font-weight="600" fill="#fff">code (one repo)</text>
+        <text x="99" y="184" text-anchor="middle" font-size="11" fill="#c9b8ff">composer + artisan</text>
+      </g>
+
+      <!-- three process lanes -->
+      <g font-family="Poppins,Arial,sans-serif">
+        <rect x="214" y="62" width="300" height="48" rx="10" fill="#eef0ff" stroke="#d7ddff"/>
+        <text x="230" y="84" font-size="13" font-weight="600" fill="#000f27">Web · PHP-FPM behind the web server</text>
+        <text x="230" y="101" font-size="11" fill="#5b6a86">serves your pages and API over HTTPS</text>
+
+        <rect x="214" y="122" width="300" height="48" rx="10" fill="#f6f7fb" stroke="#e6e9f2"/>
+        <text x="230" y="144" font-size="13" font-weight="600" fill="#000f27">Queue worker · artisan queue:work</text>
+        <text x="230" y="161" font-size="11" fill="#5b6a86">email, exports, image processing, slow APIs</text>
+
+        <rect x="214" y="182" width="300" height="48" rx="10" fill="#f6f7fb" stroke="#e6e9f2"/>
+        <text x="230" y="204" font-size="13" font-weight="600" fill="#000f27">Scheduler · cron → schedule:run</text>
+        <text x="230" y="221" font-size="11" fill="#5b6a86">nightly and hourly tasks, one cron line</text>
+      </g>
+      <g stroke="#4F1AF3" stroke-width="2" fill="none">
+        <line x1="174" y1="86" x2="210" y2="86"/><polygon points="210,80 222,86 210,92" fill="#4F1AF3"/>
+        <line x1="174" y1="146" x2="210" y2="146"/><polygon points="210,140 222,146 210,152" fill="#4F1AF3"/>
+        <line x1="174" y1="206" x2="210" y2="206"/><polygon points="210,200 222,206 210,212" fill="#4F1AF3"/>
+      </g>
+
+      <!-- shared services -->
+      <text x="214" y="258" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="600" fill="#4F1AF3">SHARED SERVICES (same box)</text>
+      <g font-family="Poppins,Arial,sans-serif">
+        <rect x="214" y="268" width="145" height="42" rx="9" fill="#eaf7ef" stroke="#cdebd6"/>
+        <text x="286" y="288" text-anchor="middle" font-size="13" font-weight="600" fill="#000f27">Managed MySQL</text>
+        <text x="286" y="303" text-anchor="middle" font-size="10.5" fill="#40b75f">your data</text>
+        <rect x="369" y="268" width="145" height="42" rx="9" fill="#f6f7fb" stroke="#e6e9f2"/>
+        <text x="441" y="288" text-anchor="middle" font-size="13" font-weight="600" fill="#000f27">Managed Redis</text>
+        <text x="441" y="303" text-anchor="middle" font-size="10.5" fill="#5b6a86">queue · cache · sessions</text>
+      </g>
+
+      <!-- deploy strip -->
+      <line x1="30" y1="338" x2="670" y2="338" stroke="#e6e9f2" stroke-width="1"/>
+      <text x="350" y="362" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#4F1AF3">RUNS ON EVERY DEPLOY (THE ARTISAN SEQUENCE)</text>
+      <rect x="40" y="376" width="620" height="46" rx="9" fill="#000f27"/>
+      <text x="350" y="398" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="12" fill="#e8ecfb">composer install → migrate --force → config:cache → route:cache → view:cache</text>
+      <text x="350" y="414" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#c9b8ff">then php artisan queue:restart, or the worker keeps running the old code</text>
+      <text x="350" y="450" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#5b6a86">The web process is one of three. Miss the worker or the cron and the app "works" but quietly doesn't.</text>
+      <text x="350" y="472" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#5b6a86">On a managed server the web server, PHP-FPM and SSL are already there. You bring the code.</text>
+    </svg>
+    <figcaption>Same code, three processes. A Laravel deploy that only starts the web process looks fine and half works.</figcaption>
+  </figure>
+
+  <h2>The Laravel deploy sequence: what runs, and why</h2>
+  <p>Here's the part generic PHP tutorials wave past. A production Laravel deploy runs a specific set of artisan and Composer commands, in order, every single time. Each one exists for a reason, and each has a failure mode if you skip it. This table is the checklist most guides don't give you.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Command</th><th>What it does</th><th>Skip it and…</th></tr></thead>
+    <tbody>
+      <tr><td><code>composer install --no-dev --optimize-autoloader</code></td><td>Installs PHP deps without dev tooling, builds a fast classmap</td><td>Dev packages on prod, slower autoloading, or class-not-found errors</td></tr>
+      <tr><td><code>npm ci &amp;&amp; npm run build</code></td><td>Compiles your Vite assets (CSS and JS)</td><td>Unstyled pages and missing front-end JS</td></tr>
+      <tr><td><code>php artisan migrate --force</code></td><td>Applies schema changes (the <code>--force</code> skips the prod confirm prompt)</td><td>A 500 the moment code touches a column that isn't there yet</td></tr>
+      <tr><td><code>php artisan config:cache</code></td><td>Merges all config into one cached file</td><td>Slower boot, and stale env reads if you cache wrong (see below)</td></tr>
+      <tr><td><code>php artisan route:cache</code></td><td>Compiles routes into a single fast lookup</td><td>Slower routing on every request</td></tr>
+      <tr><td><code>php artisan view:cache</code></td><td>Precompiles your Blade templates</td><td>First hit on each view compiles on demand</td></tr>
+      <tr><td><code>php artisan storage:link</code></td><td>Symlinks <code>storage/app/public</code> into <code>public/</code></td><td>Uploaded files return 404</td></tr>
+      <tr><td><code>php artisan queue:restart</code></td><td>Tells running workers to exit so they reload new code</td><td>Workers keep executing the code from <em>before</em> your deploy</td></tr>
+    </tbody>
+  </table>
+
+  <p>An opinion, plainly: in production you should cache config, routes and views, and you should never ship with <code>APP_DEBUG=true</code>. The caches are close to free speed, and the payoff shows up under load. Debug mode is the opposite of free. Leave it on and an unhandled error renders a Whoops page with your stack trace, parts of your config, even snippets of environment values, to whoever tripped it. Treat a live Laravel site running with debug on as an incident, not a tidy-up.</p>
+
+  <pre><code># the deploy commands, in order (Build step on a managed host)
+composer install --no-dev --optimize-autoloader
+npm ci &amp;&amp; npm run build
+php artisan migrate --force
+php artisan config:cache &amp;&amp; php artisan route:cache &amp;&amp; php artisan view:cache
+php artisan storage:link
+php artisan queue:restart   # so workers pick up the code you just shipped</code></pre>
+
+  <p>One catch on <code>config:cache</code> that bites people: once config is cached, Laravel stops reading <code>.env</code> at runtime and reads the cached values instead. So any code calling <code>env()</code> outside a config file returns null in production. Keep <code>env()</code> calls inside <code>config/*.php</code>, reference them with <code>config('services.foo')</code>, and this never surprises you.</p>
+
+  <h2>The .env, and the one key that breaks sessions</h2>
+  <p>Laravel reads its config from environment variables, and there's one that catches nearly every first deploy: <strong><code>APP_KEY</code></strong>. It's the key Laravel uses to encrypt sessions and signed cookies. Miss it and the app throws on boot. Change it after launch and every logged-in user gets silently kicked, because their session cookie can no longer be decrypted. Generate it once with <code>php artisan key:generate</code>, then leave it alone.</p>
+  <p>Set your variables on the server, never in the repo. On <a href="https://www.kloudbean.com/">Kloudbean</a> you paste your whole <code>.env</code> under Runtime Configuration, so secrets live on the box and you can rotate them without a code change.</p>
+
+  <pre><code># the production .env essentials
+APP_ENV=production
+APP_DEBUG=false
+APP_KEY=base64:...            # from php artisan key:generate
+APP_URL=https://yourdomain.com
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_DATABASE=myapp
+DB_USERNAME=myapp
+DB_PASSWORD=...
+
+QUEUE_CONNECTION=redis        # so queue:work has real jobs to pull
+CACHE_STORE=redis
+SESSION_DRIVER=redis</code></pre>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console Environment Variables screen: Laravel's APP_KEY, APP_ENV, database and queue settings pasted from a .env file">
+    <figcaption>Runtime Configuration, Environment Variables. Paste your <code>.env</code> and Laravel reads <code>APP_KEY</code>, the database and queue settings from here.</figcaption>
+  </figure>
+
+  <p>The why behind keeping secrets out of git, and the mistakes people make with it, is in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a>.</p>
+
+  <h2>Wiring the Laravel deploy on a managed server</h2>
+  <p>Laravel is a first-class managed app type here, so you're deploying onto a PHP stack that already exists rather than installing PHP-FPM by hand. That's a big reason so many hosts fight over the "best Laravel hosting" spot: the boring server work is done and you just ship code. Connect your repo under <strong>Application Administration &#8594; Deploy Code &#8594; Git Deployment</strong> and drop the sequence above into the Build field. The Start side is PHP-FPM, already serving <code>public/index.php</code>.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean Deploy Code / Git Deployment screen: a Laravel repo connected with the Composer and artisan build sequence set, ready to pull and deploy">
+    <figcaption>Deploy Code &#8594; Git Deployment: connect the repo, set the Composer and artisan build sequence, Pull &amp; Deploy. The build log streams live.</figcaption>
+  </figure>
+
+  <p>Push once to wire it up, then turn on auto-deploy and every push re-runs the build and restarts your workers. If you want to rehearse a risky migration first, Laravel supports <strong>staging</strong> here too, so you can deploy to a copy, watch it, then promote. More on the push-to-deploy loop in <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD auto-deploy from GitHub</a>.</p>
+
+  <h2>Don't use <code>artisan serve</code> in production</h2>
+  <p>On your laptop you run <code>php artisan serve</code>. In production, don't. It's a single-process development server that was never meant for real traffic. Your live app is served by PHP-FPM behind the web server, with the web root pointed at Laravel's <code>public/</code> directory so requests flow through <code>index.php</code>. On a managed PHP server that's the default wiring, so it's already handled. You don't touch it.</p>
+
+  <h2>The queue worker that keeps running your old code</h2>
+  <p>This is the one I'd put a sticky note on your monitor for. Here's a pattern we see constantly: someone finds a bug in a queued job, fixes it, deploys, and swears the bug is <em>still there</em>. And it is, sort of. A queue worker is a long-lived PHP process. It boots your app once and holds it in memory, then chews through jobs. When you deploy new code, that running worker doesn't know. It keeps executing the version it loaded at boot, bug and all, until it's told to stop.</p>
+  <p>The fix is one command in your deploy: <code>php artisan queue:restart</code>. It doesn't kill workers midway through a job. It signals them to finish the current job and exit gracefully, and your process manager starts a fresh one that loads the new code. That's why <code>queue:restart</code> is the last line of the sequence above. Forget it and you'll debug a ghost.</p>
+  <p>The worker itself runs as a persistent background process, kept alive by the server's process manager so it restarts if it ever dies. No worker means jobs pile up in the queue, unprocessed, and you find out when a customer asks where their receipt went.</p>
+
+  <!-- Swap this slot for a real screenshot. src -> images/queue-worker.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The queue worker running: a terminal showing php artisan queue:work processing jobs, or Laravel Horizon's dashboard with active workers.</em><small>Makes the "is my worker even running?" question concrete.</small></span></figure>
+
+  <h2>The scheduler is one cron line</h2>
+  <p>Laravel's scheduler, all those <code>-&gt;daily()</code> and <code>-&gt;everyFiveMinutes()</code> tasks in your app, is driven by a single cron entry that runs <code>php artisan schedule:run</code> once a minute. Laravel decides internally what's actually due. Add the one line and you're done. Skip it and none of your scheduled tasks ever fire, which is a genuinely confusing silence the first time.</p>
+
+  <pre><code># one cron entry, every minute, drives the entire Laravel scheduler
+* * * * * cd /path/to/app &amp;&amp; php artisan schedule:run &gt;&gt; /dev/null 2&gt;&amp;1</code></pre>
+
+  <p>You can add this from the dashboard's cron jobs screen, no SSH required.</p>
+
+  <h2>Sessions, cache, and uploads: decide these on day one</h2>
+  <p>Three config choices are cheap now and painful to change later. Sort them before launch.</p>
+  <ul>
+    <li><strong>Sessions and cache.</strong> The file drivers work on a single server. The moment you run more than one, or you just want speed, move both to <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis</a>. Laravel treats Redis as a first-class store, and one small instance covers sessions, cache, and your queue at once.</li>
+    <li><strong>Uploads.</strong> Files saved to the local <code>storage/</code> disk live on that one box, so they vanish on a rebuild and don't exist if you scale out. Point Laravel's filesystem at <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage</a>. It's a config change and credentials, not a rewrite, because the driver ships with the framework.</li>
+    <li><strong>Database.</strong> Launch a <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">managed MySQL</a> and reach it over the local network on the same box, backed up for you. Postgres works just as well if that's your preference.</li>
+  </ul>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean Launch Database screen: creating a managed MySQL instance for a Laravel app on the same server">
+    <figcaption>Launch Database: a managed MySQL (or Redis) on the same server, reached over the local network and backed up for you.</figcaption>
+  </figure>
+
+  <p>Running the app, queue, scheduler and database on one box is a clean starting point for most Laravel apps. The full pattern is in <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">host your app, API, and database on one server</a>.</p>
+
+  <h2>When the first deploy goes sideways</h2>
+  <p>Laravel's opening-night failures are short and predictable, and each maps to something above:</p>
+  <ul>
+    <li><strong>Blank page or 500.</strong> Usually a missing <code>APP_KEY</code>, wrong database credentials, or permissions on <code>storage/</code> and <code>bootstrap/cache</code>. Read <code>storage/logs/laravel.log</code> first; the exception is named there.</li>
+    <li><strong>Uploaded images 404.</strong> You skipped <code>php artisan storage:link</code>. Run it, done.</li>
+    <li><strong>A bug you fixed is still happening.</strong> The queue worker never restarted. Add <code>queue:restart</code> to the deploy.</li>
+    <li><strong>Config changes that don't take effect.</strong> Cached config is stale, or you're calling <code>env()</code> outside a config file. Rebuild the cache; move the read into config.</li>
+  </ul>
+  <p>Below the app, the server's own logs sit at <code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/app.error.log</code>. Read that before you start changing code on a hunch. The full walkthrough for a stubborn one is <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fixing a 503 after deploying your app</a>.</p>
+
+  <h2>What you run, what Kloudbean runs</h2>
+  <p>Laravel is a PHP app, and PHP on Linux is exactly what a managed server runs, so nothing here is a workaround. Kloudbean keeps the box healthy: the PHP runtime, PHP-FPM and the web server, free SSL, the firewall, and server-level backups, on whichever of its seven clouds you pick. You own the Laravel app: its <code>.env</code>, its migrations, the queue worker, the scheduled tasks. Clean split, and it's the arrangement most PHP teams actually want. (If your app were .NET on IIS, this wouldn't be your platform. For PHP and Laravel, it's home turf.) Building elsewhere in your stack too? The Python sibling is <a href="https://www.kloudbean.com/blog/deploy-django-app/">deploy a Django app</a>, and the Node path is <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploy a Node app</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Web, queue, and scheduler. All accounted for.</p>
+    <p style="margin:0">Deploy your Laravel app on a server you own at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Managed MySQL &amp; Redis · Automatic backups · Free Let's Encrypt SSL · Staging · Git deploy · Free migration · Free trial. Server sizes are on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I deploy a Laravel app to production?</h3>
+    <p>Set your <code>.env</code> on the server, then on each deploy run <code>composer install --no-dev</code>, build your assets, <code>php artisan migrate --force</code>, cache config, routes and views, and <code>php artisan storage:link</code>. PHP-FPM serves the app. Then start a queue worker and add the scheduler cron. On a managed host you set that build sequence once, connect your repo, and every push repeats it.</p>
+
+    <h3>Why isn't my Laravel app sending emails or processing jobs?</h3>
+    <p>There's no queue worker running. Laravel does that work in the background through a queue, which needs <code>php artisan queue:work</code> running as a persistent process. Start it, kept alive by the process manager, and queued jobs flow again.</p>
+
+    <h3>Why does my Laravel app still show a bug I already fixed?</h3>
+    <p>Your queue worker is running the old code. A worker loads your app into memory once at boot and keeps that version until it restarts. Add <code>php artisan queue:restart</code> to the end of your deploy so workers reload the code you just shipped.</p>
+
+    <h3>How do I run Laravel's scheduled tasks in production?</h3>
+    <p>Add one cron entry that runs <code>php artisan schedule:run</code> every minute. Laravel's scheduler takes it from there and fires your daily and hourly tasks. Without that single line, none of them run.</p>
+
+    <h3>What is the correct artisan build sequence for a Laravel deploy?</h3>
+    <p>Composer install without dev packages, an asset build if you have one, <code>migrate --force</code>, then <code>config:cache</code>, <code>route:cache</code> and <code>view:cache</code>, then <code>storage:link</code>, and finally <code>queue:restart</code>. Each step has a clear job and a clear failure if you skip it.</p>
+
+    <h3>Why is my Laravel app showing a 500 error after deploy?</h3>
+    <p>Most often a missing or changed <code>APP_KEY</code>, wrong database credentials in the environment, or permissions on the <code>storage/</code> directory. Check <code>storage/logs/laravel.log</code> first. The real exception is almost always named there.</p>
+
+    <h3>Should I use php artisan serve in production?</h3>
+    <p>No. It's a single-process development server. In production Laravel is served by PHP-FPM behind the web server, with the web root pointed at the <code>public/</code> folder. A managed PHP server sets this up for you.</p>
+
+    <h3>Do I need Redis for a Laravel app?</h3>
+    <p>Not strictly, but it's the easy win. One small managed Redis can back your queue, your cache, and your sessions at once, which matters the moment you run more than one server. If you're on a single box and low traffic, the file and database drivers are fine to start.</p>
+  </div>
+
+  <p class="byline">Kloudbean · PHP hosting that remembers the queue worker.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Deploy a Laravel App the Right Way (Queues and All)","description":"The full Laravel deploy on a managed server: the artisan production sequence, plus the queue worker and scheduler that generic guides forget.","image":"https://www.kloudbean.com/blog/deploy-laravel-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/deploy-laravel-app/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I deploy a Laravel app to production?","acceptedAnswer":{"@type":"Answer","text":"Set your .env on the server, then on each deploy run composer install --no-dev, build your assets, php artisan migrate --force, cache config, routes and views, and php artisan storage:link. PHP-FPM serves the app. Then start a queue worker and add the scheduler cron. On a managed host you set that build sequence once, connect your repo, and every push repeats it."}},
+{"@type":"Question","name":"Why isn't my Laravel app sending emails or processing jobs?","acceptedAnswer":{"@type":"Answer","text":"There's no queue worker running. Laravel does that work in the background through a queue, which needs php artisan queue:work running as a persistent process. Start it, kept alive by the process manager, and queued jobs flow again."}},
+{"@type":"Question","name":"Why does my Laravel app still show a bug I already fixed?","acceptedAnswer":{"@type":"Answer","text":"Your queue worker is running the old code. A worker loads your app into memory once at boot and keeps that version until it restarts. Add php artisan queue:restart to the end of your deploy so workers reload the code you just shipped."}},
+{"@type":"Question","name":"How do I run Laravel's scheduled tasks in production?","acceptedAnswer":{"@type":"Answer","text":"Add one cron entry that runs php artisan schedule:run every minute. Laravel's scheduler takes it from there and fires your daily and hourly tasks. Without that single line, none of them run."}},
+{"@type":"Question","name":"What is the correct artisan build sequence for a Laravel deploy?","acceptedAnswer":{"@type":"Answer","text":"Composer install without dev packages, an asset build if you have one, migrate --force, then config:cache, route:cache and view:cache, then storage:link, and finally queue:restart. Each step has a clear job and a clear failure if you skip it."}},
+{"@type":"Question","name":"Why is my Laravel app showing a 500 error after deploy?","acceptedAnswer":{"@type":"Answer","text":"Most often a missing or changed APP_KEY, wrong database credentials in the environment, or permissions on the storage/ directory. Check storage/logs/laravel.log first. The real exception is almost always named there."}},
+{"@type":"Question","name":"Should I use php artisan serve in production?","acceptedAnswer":{"@type":"Answer","text":"No. It's a single-process development server. In production Laravel is served by PHP-FPM behind the web server, with the web root pointed at the public/ folder. A managed PHP server sets this up for you."}},
+{"@type":"Question","name":"Do I need Redis for a Laravel app?","acceptedAnswer":{"@type":"Answer","text":"Not strictly, but it's the easy win. One small managed Redis can back your queue, your cache, and your sessions at once, which matters the moment you run more than one server. If you're on a single box and low traffic, the file and database drivers are fine to start."}}
+]}
+]}
+</script>
+</body>
+</html>

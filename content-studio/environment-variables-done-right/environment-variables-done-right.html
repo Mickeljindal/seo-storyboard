@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Environment Variables Done Right for a Deployed App</title>
+<meta name="description" content="There are only two kinds of environment variable: build-time and public, or runtime and secret. Get that split right and you fix most env-var bugs — the leaked key, the 503, the 'I changed it and nothing happened.'">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/environment-variables-done-right/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Environment Variables Done Right for a Deployed App">
+<meta property="og:description" content="The build-time vs runtime split explained — public NEXT_PUBLIC/VITE vars vs secret server vars — plus how to set them, keep secrets off the browser, and stop the 503.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Environment variables</span>
+  <h1>Environment Variables Done Right for a Deployed App</h1>
+
+  <figure><img src="images/hero.png" alt="Environment variables done right — secrets and config out of your code, set on the server"></figure>
+
+  <p class="lead">An app that runs flawlessly on your laptop and 503s the instant you deploy it is almost always telling you one thing: a variable that lived on your machine never made it to the server. Environment variables for a deployed app are the least glamorous part of shipping, and reliably the part that breaks the first deploy. Whether you built in Lovable, v0, or Cursor, the fix is the same, and it starts with a mental model most tutorials skip. There are only two kinds of environment variable, and almost every env-var bug is a confusion between the two.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>Every environment variable is one of two kinds. Build-time variables (prefixed <code>NEXT_PUBLIC_</code>, <code>VITE_</code>, or <code>REACT_APP_</code>) get baked into the browser bundle when you build, so they're public and can never hold a secret. Runtime variables (<code>DATABASE_URL</code>, API keys) are read live by the server, stay off the browser, and can change without a rebuild. Set them in Runtime Configuration, keep secrets unprefixed and out of Git, and redeploy after changes. A missing one is the top cause of a first-deploy 503.</p>
+  </div>
+
+  <h2>There are only two kinds of environment variable</h2>
+  <p>Almost everything that goes wrong with env vars comes from not knowing which kind you're holding. So here's the whole model, and once it clicks the rest is mechanical.</p>
+  <p>A <strong>build-time variable</strong> is read once, while your app is being built, and its value is written directly into the JavaScript that ships to the browser. It's frozen in the bundle from that moment. Because it lands in the browser, it's public by definition, and frameworks force you to opt in with a prefix so you can't leak a secret by accident. A <strong>runtime variable</strong> is read live by the server process, every time the app runs. It never goes near the browser, you can change it without rebuilding, and it's where every secret belongs.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 490" width="100%" role="img" aria-label="Diagram: build-time variables versus runtime variables. Build-time variables are prefixed NEXT_PUBLIC, VITE, or REACT_APP, are baked into the browser bundle at build time, are public, and are not safe for secrets. Runtime variables have no prefix, are read live by the server, never reach the browser, can change without a rebuild, and are safe for secrets.">
+      <rect x="1" y="1" width="718" height="488" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="360" y="32" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="17" font-weight="700" fill="#000f27">Two kinds of environment variable</text>
+
+      <!-- divider + vs -->
+      <line x1="360" y1="52" x2="360" y2="430" stroke="#e6e9f2" stroke-width="2" stroke-dasharray="4 5"/>
+      <circle cx="360" cy="241" r="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="360" y="246" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="700" fill="#5b6a86">vs</text>
+
+      <!-- LEFT header: build-time / public -->
+      <rect x="40" y="52" width="294" height="38" rx="9" fill="#e08a2b"/>
+      <text x="187" y="76" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="13.5" font-weight="700" fill="#fff">BUILD-TIME &#183; PUBLIC</text>
+      <!-- RIGHT header: runtime / secret -->
+      <rect x="386" y="52" width="294" height="38" rx="9" fill="#000f27"/>
+      <text x="533" y="76" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="13.5" font-weight="700" fill="#fff">RUNTIME &#183; SECRET</text>
+
+      <!-- LEFT body -->
+      <rect x="40" y="100" width="294" height="330" rx="12" fill="#f6f7fb" stroke="#e6e9f2"/>
+      <g font-family="Poppins,Arial,sans-serif" fill="#1c2536">
+        <text x="58" y="126" font-size="12.5">Baked into the browser bundle</text>
+        <text x="58" y="144" font-size="12.5">when the build runs.</text>
+      </g>
+      <rect x="58" y="158" width="258" height="86" rx="8" fill="#000f27"/>
+      <g font-family="JetBrains Mono,monospace">
+        <text x="72" y="180" font-size="10" fill="#8ea0c4">// app.4f2a.js  (in the browser)</text>
+        <text x="72" y="204" font-size="11.5" fill="#e8ecfb">VITE_API_URL =</text>
+        <text x="72" y="223" font-size="11.5" fill="#9ad0ff">&#160;&#160;"https://api.app.com"</text>
+      </g>
+      <g font-family="Poppins,Arial,sans-serif" fill="#1c2536">
+        <text x="58" y="272" font-size="12">Prefix: VITE_ / NEXT_PUBLIC_ /</text>
+        <text x="58" y="290" font-size="12">REACT_APP_</text>
+        <text x="58" y="320" font-size="12.5" font-weight="600" fill="#000f27">Set BEFORE the build.</text>
+        <text x="58" y="342" font-size="12">Change one = rebuild.</text>
+      </g>
+      <line x1="58" y1="362" x2="316" y2="362" stroke="#e6e9f2"/>
+      <text x="58" y="392" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#1c2536">Safe for secrets?</text>
+      <rect x="238" y="378" width="60" height="22" rx="11" fill="#fdeaea"/>
+      <text x="268" y="393" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="700" fill="#d64545">NO</text>
+
+      <!-- RIGHT body -->
+      <rect x="386" y="100" width="294" height="330" rx="12" fill="#f6f7fb" stroke="#e6e9f2"/>
+      <g font-family="Poppins,Arial,sans-serif" fill="#1c2536">
+        <text x="404" y="126" font-size="12.5">Read live by the server process.</text>
+        <text x="404" y="144" font-size="12.5">Never sent to the browser.</text>
+      </g>
+      <rect x="404" y="158" width="258" height="86" rx="8" fill="#000f27"/>
+      <g font-family="JetBrains Mono,monospace">
+        <text x="418" y="180" font-size="10" fill="#8ea0c4"># server env (private)</text>
+        <text x="418" y="204" font-size="10.5" fill="#e8ecfb">DATABASE_URL = postgres://&#8230;</text>
+        <text x="418" y="223" font-size="10.5" fill="#ff9b9b">STRIPE_SECRET_KEY = sk_live_&#8230;</text>
+      </g>
+      <g font-family="Poppins,Arial,sans-serif" fill="#1c2536">
+        <text x="404" y="272" font-size="12">No prefix. Server-only.</text>
+        <text x="404" y="320" font-size="12.5" font-weight="600" fill="#000f27">Set anytime.</text>
+        <text x="404" y="342" font-size="12">Change = restart, no rebuild.</text>
+      </g>
+      <line x1="404" y1="362" x2="662" y2="362" stroke="#e6e9f2"/>
+      <text x="404" y="392" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#1c2536">Safe for secrets?</text>
+      <rect x="584" y="378" width="60" height="22" rx="11" fill="#e7f6ec"/>
+      <text x="614" y="393" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="700" fill="#40b75f">YES</text>
+
+      <text x="360" y="462" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#5b6a86">Public vars freeze into the bundle at build time. Secret vars are read live and must never touch the browser.</text>
+    </svg>
+    <figcaption>The split behind almost every env-var bug: a public value that thinks it's secret, or a secret that got made public.</figcaption>
+  </figure>
+
+  <p>Put side by side, the differences that actually matter come down to this:</p>
+  <table class="cmp">
+    <thead><tr><th>&nbsp;</th><th>Build-time variable</th><th>Runtime variable</th></tr></thead>
+    <tbody>
+      <tr><td>Prefix</td><td><code>NEXT_PUBLIC_</code>, <code>VITE_</code>, <code>REACT_APP_</code></td><td>None (plain name)</td></tr>
+      <tr><td>Read when</td><td>Once, during <code>build</code></td><td>Live, on every request</td></tr>
+      <tr><td>Ends up in</td><td>The browser bundle</td><td>The server process only</td></tr>
+      <tr><td>Visible to users?</td><td>Yes, fully public</td><td>No</td></tr>
+      <tr><td>Change without rebuild?</td><td>No, rebuild required</td><td>Yes, just restart</td></tr>
+      <tr><td>Safe for secrets?</td><td>Never</td><td>Yes, this is where they go</td></tr>
+    </tbody>
+  </table>
+
+  <h2>The mistake we see most: changing a build-time var after the build</h2>
+  <p>Of all the env-var confusion out there, this is the one that comes up again and again, and it's worth calling out plainly. Someone sets a <code>NEXT_PUBLIC_</code> or <code>VITE_</code> value in the dashboard <em>after</em> the app has already built, reloads the site, and nothing changes. They set it again. Still nothing. They conclude the platform is broken.</p>
+  <p>The platform is fine. That's just what build-time means. The value was read and frozen into the bundle when the build ran, so the old value (or an empty string) is what the browser is still serving. Changing the source variable now does nothing until you build again. The fix is a rule you can say out loud: <strong>set build-time variables before the build, and rebuild whenever you change one.</strong> Runtime variables don't have this problem, because the server reads them fresh each time. So if a value has to change often, that's a strong hint it should be a runtime variable read on the server, not a public one baked into the client.</p>
+
+  <h2>A secret in the client bundle is a leaked secret</h2>
+  <p>This is the opinion I'll plant a flag on, because the stakes are real. The moment you give a secret a public prefix, it is leaked. Not "at risk," not "exposed if someone digs." Leaked. Prefix your Stripe secret key with <code>NEXT_PUBLIC_</code> and it's shipped, in plain text, inside the JavaScript every visitor's browser downloads. Anyone can open dev tools and read it. Rotating it is then your only option, because you can't un-publish a bundle people already fetched.</p>
+  <p>So the discipline is simple: public prefixes are for genuinely public values only, and everything with the word "secret" or "private" in it stays unprefixed and server-side. Take a real <code>.env</code> and sort it by that test:</p>
+  <pre><code># .env  (sorted by kind)
+DATABASE_URL=postgres://user:pass@host:5432/app   # runtime · SECRET
+JWT_SECRET=super-long-random-string               # runtime · SECRET
+STRIPE_SECRET_KEY=sk_live_xxx                      # runtime · SECRET
+OPENAI_API_KEY=sk-xxx                              # runtime · SECRET
+VITE_API_URL=https://api.yourapp.com              # build-time · public, fine
+NEXT_PUBLIC_STRIPE_KEY=pk_live_xxx                 # build-time · publishable, fine</code></pre>
+  <p>Notice the last one is a <em>publishable</em> Stripe key (<code>pk_</code>), which is designed to be public, not the secret key (<code>sk_</code>). That distinction is the whole game. If a value starting <code>sk_live_</code> ever carries a <code>NEXT_PUBLIC_</code> prefix, that's the bug to catch before you ship, every time.</p>
+  <p>Two habits back this up. First, never commit your real <code>.env</code>. Add it to <code>.gitignore</code> so a public repo can't leak a thing:</p>
+  <pre><code># .gitignore
+.env
+.env.local
+.env.*.local</code></pre>
+  <p>Second, if a secret ever did land in Git history, rotate it. Deleting the file doesn't help, because the value is in the history and the internet is patient. Generate a new key, update the runtime variable on the server, and retire the old one. Treating a leaked key as "rotate now," not "hope nobody noticed," is the difference between a scare and an incident. This is also why proper <a href="https://www.kloudbean.com/blog/security-headers-guide/">security hygiene</a> starts at the variable level.</p>
+
+  <h2>Which prefix your framework uses</h2>
+  <p>The prefix is a framework convention, not a platform feature, so it depends entirely on how you built the app. The rule is identical across all of them: prefixed means public and baked in at build; everything else stays server-side.</p>
+  <table class="cmp">
+    <thead><tr><th>Framework / bundler</th><th>Public prefix (baked in)</th><th>Everything else</th></tr></thead>
+    <tbody>
+      <tr><td>Next.js</td><td><code>NEXT_PUBLIC_</code></td><td>Server-only, read live</td></tr>
+      <tr><td>Vite (React, Vue, Svelte)</td><td><code>VITE_</code></td><td>Server-only, read live</td></tr>
+      <tr><td>Create React App</td><td><code>REACT_APP_</code></td><td>Server-only, read live</td></tr>
+      <tr><td>Astro</td><td><code>PUBLIC_</code></td><td>Server-only, read live</td></tr>
+    </tbody>
+  </table>
+  <p>If you're on Next.js specifically, there's more nuance in the <a href="https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/">deploy Next.js guide</a>, since its build turns <code>NEXT_PUBLIC_</code> values into part of the client bundle exactly as described here.</p>
+
+  <h2>Set environment variables for your deployed app on Kloudbean</h2>
+  <p>The mechanics are quick. On <a href="https://www.kloudbean.com/">Kloudbean</a>, open your app and go to <strong>Runtime Configuration &#8594; Environment Variables</strong>. You can add them one at a time, but the fast path is the <strong>Paste .env Content</strong> tab: paste your local <code>.env</code>, click <strong>Convert to Key/Value</strong>, review the parsed pairs, and <strong>Save Variables</strong>.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="Kloudbean environment variables editor with a Paste .env Content tab and a converted key/value list for the deployed app">
+    <figcaption>Runtime Configuration, Environment Variables: paste your <code>.env</code>, convert to key/value, and save. The values live on the server, never in the repo.</figcaption>
+  </figure>
+
+  <p>The platform stores them for the app and injects them at runtime, so your code's <code>process.env.MY_VAR</code> (or the equivalent in your language) reads the right value. Because they live on the server rather than the repo, you can update or rotate a secret without touching your code or your Git history. One step people forget: <strong>after saving, redeploy</strong> so the app picks up the new values. And remember the earlier rule for anything with a public prefix. Those only take effect on the next build, not just a restart. If you've wired up <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">auto-deploy from GitHub</a>, a push does the rebuild for you.</p>
+
+  <!-- ADD IMAGE: swap for a real <figure> with an <img> (src -> images/devtools-public-var.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>Browser dev tools, Sources tab, showing a NEXT_PUBLIC_ value sitting in plain text inside the shipped bundle.</em><small>Drives home that public prefixes are visible to everyone.</small></span></figure>
+
+  <h2>When a missing variable 503s your app</h2>
+  <p>The most common first-deploy failure has the simplest cause. The app starts, tries to read a variable that isn't set on the server, and either throws immediately or falls over the first time it needs the value (a database connection with an undefined password, say). The process doesn't stay up, so the server returns a 503. It builds fine, because the build didn't need that runtime value. It just can't boot.</p>
+  <p>Don't guess which variable. Read the app's own error log, which usually names the exact key it wanted:</p>
+  <pre><code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/app.error.log</code></pre>
+  <p>Set the missing variable, redeploy, and the app comes up. The broader 503 playbook (missing env var, wrong start command, a build that skipped its tools) is in <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fixing a 503 after deploying</a>. And when the missing value is a database URL, the clean setup is a <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">managed database on the same server</a>, so the connection string is a private-network address you paste in once.</p>
+
+  <!-- ADD IMAGE: swap for a real <figure> with an <img> (src -> images/error-log.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>app.error.log open in the File Manager, with the line that names the exact missing environment variable highlighted.</em></span></figure>
+
+  <div class="note"><b>Per-environment values.</b> Running a staging app next to production? Give each its own variables: a staging database, staging keys, a different public URL. The same codebase then behaves correctly in each place because each environment supplies its own config, and your tests never touch production data. That separation is the entire reason environment variables exist. It pairs naturally with <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">running your app, API, and database on one server</a>.</div>
+
+  <h2>The honest limits</h2>
+  <p>On Kloudbean, environment variables are stored for your app and injected at runtime on your <strong>Linux</strong> server; you own the values and can update or rotate them anytime. Here's the boundary worth stating: the platform handles storage and injection, but it can't know which of your variables are secret and which are public. That judgment (the client-exposure discipline in this guide) is always yours to apply. It's true on every host, because a prefix is a framework convention, not something a platform can police for you. Used well, this split is what makes an app safe to open-source and painless to run across environments. If you're still getting the app onto a server, start with the <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploy an AI-built app guide</a>, then come back here to get the variables right.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Config outside the code. Secrets off the client.</p>
+    <p style="margin:0">Set your environment variables in the console at <a href="https://www.kloudbean.com/">kloudbean.com</a>, with a free trial and your first migration done for you. Wire up <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">push-to-deploy</a> next, and check server sizes on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Where should environment variables go for a deployed app?</h3>
+    <p>On the server, set through your host's configuration. On Kloudbean that's Runtime Configuration, Environment Variables, where you paste your <code>.env</code> and save. Never in your source code, and never committed to Git. The repo should be safe to expose without leaking anything.</p>
+    <h3>What's the difference between NEXT_PUBLIC_ variables and normal server env?</h3>
+    <p>Prefixed variables (<code>NEXT_PUBLIC_</code>, <code>VITE_</code>, <code>REACT_APP_</code>) are baked into the front-end bundle at build time and visible in every visitor's browser, so they're for public values only. Unprefixed variables are read live by the server and stay private. Never put a secret in a prefixed variable, or you publish it to everyone.</p>
+    <h3>I changed an environment variable and nothing happened. Why?</h3>
+    <p>If it's a build-time (prefixed) variable, its value was frozen into the bundle when you last built, so changing it does nothing until you rebuild. Set build-time variables before the build and rebuild after any change. Runtime variables only need a redeploy or restart to take effect.</p>
+    <h3>Why does my app 503 right after deploying?</h3>
+    <p>Most often a missing environment variable. The app starts, can't find a value it needs (like the database password), and the process fails, so the server returns a 503. Read <code>app.error.log</code>; it usually names the missing key. Set it, then redeploy.</p>
+    <h3>Should I commit my .env file?</h3>
+    <p>No. Add it to <code>.gitignore</code> and set the values on the server instead. A committed <code>.env</code> leaks secrets into your Git history. If that has already happened, rotate the exposed keys, because deleting the file doesn't remove them from history.</p>
+    <h3>How do I rotate a secret?</h3>
+    <p>Update the variable's value on the server and redeploy. Because the secret lives in the environment rather than the code, rotation is a config change with no code edit. Quick to do, and worth doing routinely, especially if a key was ever exposed.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Environment Variables Done Right for a Deployed App","description":"The build-time vs runtime split explained: public NEXT_PUBLIC and VITE vars vs secret server vars, how to set them, keep secrets off the browser, and stop the missing-variable 503.","image":"https://www.kloudbean.com/blog/environment-variables-done-right/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/environment-variables-done-right/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Where should environment variables go for a deployed app?","acceptedAnswer":{"@type":"Answer","text":"On the server, set through your host's configuration. On Kloudbean that's Runtime Configuration, Environment Variables, where you paste your .env and save. Never in your source code, and never committed to Git. The repo should be safe to expose without leaking anything."}},
+{"@type":"Question","name":"What is the difference between NEXT_PUBLIC_ variables and normal server env?","acceptedAnswer":{"@type":"Answer","text":"Prefixed variables (NEXT_PUBLIC_, VITE_, REACT_APP_) are baked into the front-end bundle at build time and visible in every visitor's browser, so they are for public values only. Unprefixed variables are read live by the server and stay private. Never put a secret in a prefixed variable, or you publish it to everyone."}},
+{"@type":"Question","name":"I changed an environment variable and nothing happened. Why?","acceptedAnswer":{"@type":"Answer","text":"If it is a build-time (prefixed) variable, its value was frozen into the bundle when you last built, so changing it does nothing until you rebuild. Set build-time variables before the build and rebuild after any change. Runtime variables only need a redeploy or restart to take effect."}},
+{"@type":"Question","name":"Why does my app 503 right after deploying?","acceptedAnswer":{"@type":"Answer","text":"Most often a missing environment variable. The app starts, can't find a value it needs (like the database password), and the process fails, so the server returns a 503. Read app.error.log; it usually names the missing key. Set it, then redeploy."}},
+{"@type":"Question","name":"Should I commit my .env file?","acceptedAnswer":{"@type":"Answer","text":"No. Add it to .gitignore and set the values on the server instead. A committed .env leaks secrets into your Git history. If that has already happened, rotate the exposed keys, because deleting the file does not remove them from history."}},
+{"@type":"Question","name":"How do I rotate a secret?","acceptedAnswer":{"@type":"Answer","text":"Update the variable's value on the server and redeploy. Because the secret lives in the environment rather than the code, rotation is a config change with no code edit. Quick to do, and worth doing routinely, especially if a key was ever exposed."}}
+]}
+]}
+</script>
+</body>
+</html>

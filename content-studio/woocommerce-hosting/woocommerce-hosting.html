@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WooCommerce Hosting: What Your Store Actually Needs</title>
+<meta name="description" content="WooCommerce hosting has to handle carts, checkout, and traffic spikes a blog never sees. What a store needs from hosting, why cheap shared plans choke, and how to fix it.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/woocommerce-hosting/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="WooCommerce Hosting: What Your Store Actually Needs">
+<meta property="og:description" content="Why WooCommerce is heavier than a blog, why shared hosting falls over during a sale, and what the best managed WooCommerce hosting gives a real store.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">WooCommerce</span>
+  <h1>WooCommerce Hosting: What Your Store Actually Needs</h1>
+  <p class="byline">By the Kloudbean Commerce Team · Built for the Cart.</p>
+
+  <figure><img src="images/hero.png" alt="WooCommerce hosting: the cacheable catalog path versus the dynamic cart and checkout path that always hits PHP and MySQL"></figure>
+
+  <p class="lead">A WooCommerce store is not a blog with a buy button. It's a live application: carts that change per shopper, a checkout that runs code on every click, and a database that grows with every order. WooCommerce hosting has to carry all of that, and cheap shared hosting usually can't. This is what a store actually needs from its server, why the $3 plan falls over the moment you run a sale, and how to pick hosting that stays fast when it matters.</p>
+
+  <div class="tldr">
+    <strong>Short answer</strong>
+    <p>Good WooCommerce hosting gives a store enough PHP workers and CPU for concurrent shoppers, a fast managed MySQL or MariaDB database that's backed up, a persistent object cache (Redis or Memcached), and full-page caching that skips the cart, checkout, and account pages. The best WooCommerce hosting for a store that makes money is managed cloud hosting sized for dynamic traffic, not a shared plan built for static pages.</p>
+  </div>
+
+  <h2>Why WooCommerce is heavier than a blog</h2>
+  <p>Start with the thing most hosting advice skips. A blog post is the same for every reader. Your server can build it once, keep a copy, and hand that copy to the next thousand visitors without running a line of PHP or touching the database. That's why a static blog flies on almost anything.</p>
+  <p>A store breaks that assumption. The cart is different for every shopper. So is the checkout. So is the My Account page. None of those can be served from a shared cache, because caching one shopper's cart and showing it to another would be a disaster. Every hit on those pages boots PHP, runs WooCommerce, and queries MySQL. Live, every time.</p>
+  <p>WooCommerce also adds weight under the hood. It creates its own tables for orders, order items, product metadata, and customer sessions. It leans on WordPress options, and the autoloaded options row can bloat as plugins pile up, so every page load drags a fat query along with it. Product search, coupon checks, stock counts, tax and shipping calculations: all dynamic, all hitting the database.</p>
+  <p>Then the spike. You send one marketing email, or a post takes off, and a crowd arrives at the same moment. On a blog they'd all land on cached pages. On a store they head for the product page, the cart, the checkout. The exact pages you can't cache are the ones getting hammered. That's the WooCommerce load profile in one sentence: bursty, dynamic, and database-bound.</p>
+
+  <h2>The part you can't cache</h2>
+  <p>It helps to see the two paths side by side, because the whole art of WooCommerce speed lives in the split. Some pages are cacheable and should fly. Some are per-user and always cost real work.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 452" role="img" aria-label="Two request paths for a WooCommerce store. A shopper's request splits into a green top path and a purple bottom path. The green path (catalog pages: home, shop, product, blog) goes to a full-page cache and is served instantly with no PHP and no database. The purple path (per-user pages: cart, checkout, my account) runs PHP workers on every hit and queries MySQL, with a Redis object cache that cuts repeat database queries." style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <defs>
+        <marker id="ahg" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="#40b75f"></path>
+        </marker>
+        <marker id="ahp" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="#4F1AF3"></path>
+        </marker>
+      </defs>
+
+      <text x="28" y="32" fill="#000f27" font-family="Poppins,sans-serif" font-size="16.5" font-weight="700">One store, two very different request paths</text>
+
+      <!-- shopper -->
+      <rect x="24" y="186" width="108" height="60" rx="11" fill="#000f27"></rect>
+      <text x="78" y="212" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Shopper</text>
+      <text x="78" y="230" text-anchor="middle" fill="#c7ccd8" font-family="Poppins,sans-serif" font-size="10.5">a request</text>
+
+      <!-- branch arrows -->
+      <path d="M132 206 L172 118" fill="none" stroke="#40b75f" stroke-width="2" marker-end="url(#ahg)"></path>
+      <path d="M132 226 L172 330" fill="none" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ahp)"></path>
+
+      <!-- green lane: cacheable -->
+      <g font-family="Poppins,sans-serif">
+        <rect x="176" y="86" width="200" height="64" rx="10" fill="#eafaf0" stroke="#40b75f" stroke-width="1.3"></rect>
+        <text x="276" y="112" text-anchor="middle" fill="#000f27" font-size="13" font-weight="600">Catalog pages</text>
+        <text x="276" y="132" text-anchor="middle" fill="#2f6a41" font-size="10.5">Home, Shop, Product, Blog</text>
+
+        <rect x="430" y="86" width="150" height="64" rx="10" fill="#eafaf0" stroke="#40b75f" stroke-width="1.3"></rect>
+        <text x="505" y="112" text-anchor="middle" fill="#000f27" font-size="13" font-weight="600">Full-page cache</text>
+        <text x="505" y="132" text-anchor="middle" fill="#2f6a41" font-size="10.5">no PHP, no DB</text>
+
+        <rect x="628" y="86" width="112" height="64" rx="10" fill="#40b75f"></rect>
+        <text x="684" y="112" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">Served</text>
+        <text x="684" y="130" text-anchor="middle" fill="#eafaf0" font-size="11">instantly</text>
+
+        <path d="M376 118 L426 118" fill="none" stroke="#40b75f" stroke-width="2" marker-end="url(#ahg)"></path>
+        <path d="M580 118 L624 118" fill="none" stroke="#40b75f" stroke-width="2" marker-end="url(#ahg)"></path>
+      </g>
+
+      <!-- purple lane: dynamic -->
+      <g font-family="Poppins,sans-serif">
+        <rect x="176" y="298" width="200" height="64" rx="10" fill="#f0ecfe" stroke="#4F1AF3" stroke-width="1.3"></rect>
+        <text x="276" y="324" text-anchor="middle" fill="#000f27" font-size="13" font-weight="600">Per-user pages</text>
+        <text x="276" y="344" text-anchor="middle" fill="#4326b0" font-size="10.5">Cart, Checkout, My Account</text>
+
+        <rect x="430" y="298" width="150" height="64" rx="10" fill="#f0ecfe" stroke="#4F1AF3" stroke-width="1.3"></rect>
+        <text x="505" y="324" text-anchor="middle" fill="#000f27" font-size="13" font-weight="600">PHP workers</text>
+        <text x="505" y="344" text-anchor="middle" fill="#4326b0" font-size="10.5">run on every hit</text>
+
+        <rect x="628" y="298" width="112" height="64" rx="10" fill="#4F1AF3"></rect>
+        <text x="684" y="332" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">MySQL</text>
+
+        <path d="M376 330 L426 330" fill="none" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ahp)"></path>
+        <path d="M580 330 L624 330" fill="none" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ahp)"></path>
+
+        <!-- redis object cache -->
+        <rect x="430" y="388" width="150" height="44" rx="10" fill="#fff" stroke="#4F1AF3" stroke-width="1.3" stroke-dasharray="5 4"></rect>
+        <text x="505" y="415" text-anchor="middle" fill="#4F1AF3" font-size="12" font-weight="600">Redis object cache</text>
+        <path d="M505 388 L505 364" fill="none" stroke="#4F1AF3" stroke-width="1.6" marker-end="url(#ahp)"></path>
+        <path d="M580 405 L640 362" fill="none" stroke="#4F1AF3" stroke-width="1.4" stroke-dasharray="4 4"></path>
+        <text x="612" y="392" text-anchor="middle" fill="#4326b0" font-size="9.5">cuts repeat queries</text>
+      </g>
+    </svg>
+    <figcaption>Catalog pages should come from a full-page cache and never wake PHP. The cart, checkout, and account run code and hit the database on every request, which is why a store needs real PHP and database horsepower, plus an object cache to soften the load.</figcaption>
+  </figure>
+
+  <p>Read the diagram and the strategy writes itself. Push everything you safely can onto the green path. Give the purple path enough PHP workers, a database that isn't starved, and an object cache so it doesn't ask MySQL the same question a thousand times a minute. Get that balance wrong in either direction and the store either serves stale carts or grinds to a halt. More on that mistake shortly.</p>
+
+  <h2>Why cheap shared hosting chokes a store</h2>
+  <p>Shared hosting is built for the blog case. One physical box is oversold across hundreds of accounts, and the whole business model assumes most of those sites are mostly cached, mostly idle, mostly cheap to serve. Your neighbor's traffic and your traffic compete for the same CPU, the same RAM, the same database.</p>
+  <p>Drop a store into that and the cracks show fast. You get a tiny slice of PHP workers, maybe one or two, so only one or two dynamic requests run at once. The database is shared and tuned small, with an InnoDB buffer pool too little to hold your product catalog in memory. There's no persistent object cache, so WooCommerce re-runs the same option and product queries on every page. It looks fine while you're testing with one browser tab.</p>
+  <p>Then real shoppers arrive together. Ten people hit checkout at the same time on a box with two workers, and eight of them wait in line. Pages hang. Some time out. If the shared database is under pressure you'll see the classic WordPress failure, <code>Error establishing a database connection</code>, or a checkout that spins and then throws a 502 or 504. The store was fine at 3 visitors and fell over at 30. Nothing was broken. The hosting just ran out of room on the one day you needed it.</p>
+  <p>So the honest read: shared hosting is fine for a store that's barely a store, a handful of orders a month and no real traffic. The moment a WooCommerce site has customers and a revenue number, the shared plan stops being a bargain and starts being a liability.</p>
+
+  <!-- ADD IMAGE: server metrics during a flash sale, CPU and RAM climbing while PHP workers max out. Swap for a real screenshot: src -> images/store-under-load.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Server metrics during a sale: CPU and RAM climbing as PHP workers max out and requests start to queue.</em><small>A resource graph tells the story better than words.</small></span></figure>
+
+  <h2>What good WooCommerce hosting actually gives you</h2>
+  <p>Here's the checklist that separates hosting a store can trust from hosting that will embarrass you on launch day. Each item earns its place, so I've put the reason next to it.</p>
+  <p><strong>Enough PHP workers, CPU, and RAM.</strong> Workers are how many dynamic requests run at once. A store with two workers can serve two shoppers through checkout simultaneously, and everyone else queues. More workers plus more CPU is how you handle a crowd on the pages that can't be cached. This is the single most common thing underpowered plans get wrong.</p>
+  <p><strong>A fast, well-resourced managed database.</strong> WooCommerce is query-heavy, so MySQL or MariaDB needs enough RAM to keep hot data in the InnoDB buffer pool and not thrash the disk. Managed means it's patched, tuned, kept off the public internet, and backed up, because those rows are your orders and customers. Losing that database is not a bad day, it's a business event.</p>
+  <p><strong>A persistent object cache.</strong> Redis or Memcached stores the results of the queries WooCommerce repeats endlessly, including that heavy autoloaded options blob, so MySQL isn't re-answering the same thing on every request. Persistent is the key word: WordPress has a default cache that lasts one request and then throws itself away, which does nothing for load. A real object cache lives across requests and is often the biggest single win for a busy store.</p>
+  <p><strong>Full-page caching that bypasses the cart.</strong> Catalog and content pages should serve from cache with no PHP at all. But the cache has to know to step aside for the cart, checkout, and My Account, and for any shopper who has items in their cart. Get this wrong and people see someone else's cart or an empty checkout. Right, and most of your traffic never touches PHP while the dynamic bits still work.</p>
+  <p><strong>Free, auto-renewing SSL.</strong> Checkout must be HTTPS. Browsers now flag plain HTTP as not secure, payment gateways expect TLS, and shoppers bail on a page that looks unsafe. SSL that installs and renews itself means you never wake up to an expired certificate scaring away buyers.</p>
+  <p><strong>Automatic, restorable backups.</strong> A store that loses orders can't just reinstall and move on. Backups need to run on their own, live off the box they protect, and restore cleanly when you test them. The day a bad plugin update corrupts something, a good backup is the difference between an hour of downtime and a lost weekend.</p>
+  <p><strong>A staging site.</strong> WooCommerce plus its plugins update constantly, and an update that breaks checkout is lost revenue in real time. Staging is a copy of the live store where you test the update, click through a full test purchase, and only then push it live. On a store, testing on production is gambling with the cart.</p>
+  <p><strong>Room to scale.</strong> Traffic grows, and sales are spiky by nature. You want to resize the server up when you need more headroom, and for big stores, put a load balancer in front and run more than one app server. Hosting that traps you on one fixed box is hosting you'll outgrow mid-sale.</p>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean Add Application screen with WooCommerce selected as the application stack">
+    <figcaption>WooCommerce launches as a one-click managed application, provisioned tuned, hardened, and SSL-ready rather than a bare box you configure.</figcaption>
+  </figure>
+
+  <h2>WooCommerce server requirements, as sensible baselines</h2>
+  <p>You don't need to memorize a spec sheet, but a few baselines are worth knowing because they're where cheap hosting quietly under-delivers. These track WooCommerce's own published recommendations. Treat them as a floor, not a target.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Requirement</th><th>Sensible baseline</th><th>Why it matters</th></tr></thead>
+    <tbody>
+      <tr><td><strong>PHP version</strong></td><td>7.4 minimum, 8.1+ recommended</td><td>Newer PHP is faster and still getting security fixes</td></tr>
+      <tr><td><strong>PHP memory limit</strong></td><td>256M or more</td><td>WooCommerce and its plugins are memory-hungry per request</td></tr>
+      <tr><td><strong>Database</strong></td><td>MySQL 5.7+ or MariaDB 10.4+</td><td>Newer engines handle WooCommerce's queries and indexes better</td></tr>
+      <tr><td><strong>HTTPS / TLS</strong></td><td>Required, auto-renewing</td><td>Checkout has to be secure, and browsers punish plain HTTP</td></tr>
+      <tr><td><strong>Object cache</strong></td><td>Redis or Memcached, persistent</td><td>Cuts repeat database queries on every dynamic page</td></tr>
+      <tr><td><strong>PHP workers</strong></td><td>Scaled to concurrency, not one or two</td><td>Decides how many shoppers you serve at once</td></tr>
+    </tbody>
+  </table>
+
+  <p>A couple of these live in your <code>wp-config.php</code> and in how the object cache is wired up. On a managed host the plumbing is done for you, but it helps to know what "correct" looks like:</p>
+  <pre><code>// wp-config.php essentials for a WooCommerce store
+define( 'WP_MEMORY_LIMIT', '256M' );
+define( 'WP_MAX_MEMORY_LIMIT', '512M' );
+
+// Point WordPress at the object cache (managed Redis)
+define( 'WP_REDIS_HOST', '127.0.0.1' );
+define( 'WP_REDIS_PORT', 6379 );
+define( 'WP_CACHE', true );</code></pre>
+
+  <h2>The caching mistake that breaks most stores</h2>
+  <p>If I had to name the one thing that goes wrong most often on WooCommerce, it isn't the code. It's caching, done at one of two extremes.</p>
+  <p>The first extreme: someone flips on aggressive full-page caching for the whole site because it made the blog fast, and now the cart shows the wrong items, the checkout total is stale, or a logged-in customer sees a cached page meant for a guest. Panicked, they do the second extreme: turn caching off entirely. Now every request, including all the cacheable catalog pages, boots PHP and pounds MySQL, and the site melts under any real traffic.</p>
+  <p>Both are wrong because they treat the store as one thing. It's two. The fix is to run both cache layers and let each do its job. A persistent object cache underneath everything, so repeated queries are cheap. Full-page caching on top for catalog and content pages, with the dynamic paths explicitly excluded. In practice that means telling the cache to never store these, and to bail out when a cart cookie is present:</p>
+  <pre><code># Never full-page cache these WooCommerce paths
+/cart/
+/checkout/
+/my-account/
+
+# Bypass the page cache when these cookies exist
+woocommerce_items_in_cart
+woocommerce_cart_hash
+wp_woocommerce_session_</code></pre>
+  <div class="note"><b>The position I'll defend:</b> nearly every "WooCommerce is slow" ticket is a caching balance problem, not a hardware problem or a code problem. Object cache plus full-page cache with the cart excluded fixes more stores than any plugin you can install. If you want the deeper mechanics, our <a href="https://www.kloudbean.com/blog/redis-caching-patterns/">Redis caching patterns</a> guide and the general <a href="https://www.kloudbean.com/blog/speed-up-wordpress/">speed up WordPress</a> playbook cover the how.</div>
+
+  <h2>The PCI question, answered honestly</h2>
+  <p>Anyone taking card payments eventually asks whether their hosting is "PCI compliant," and the honest answer has more nuance than a checkbox. Compliance is shared, and most of it depends on how you take payment, not just where you host.</p>
+  <p>The good news for most stores: you probably aren't touching raw card numbers at all. Gateways like Stripe and PayPal handle the card data on their side, either by redirecting to their page or by tokenizing the card in the browser so the number never lands on your server. That design is deliberate, and it dramatically shrinks how much of the PCI standard applies to you. Your store records that a payment succeeded, not the card that paid.</p>
+  <p>What stays on your plate is the hosting hygiene: keep the whole checkout on HTTPS, keep WordPress, WooCommerce, and plugins patched, use a reputable gateway, and never store card data yourself. A good host gives you the infrastructure controls for that, the firewall, TLS, isolation, and patched stack. But no host can hand you compliance as a finished product, and you should be wary of any that claims to. It's a shared responsibility: the platform secures the infrastructure layer, you secure your application and your payment flow.</p>
+
+  <h2>How do you scale a WooCommerce store?</h2>
+  <p>Scaling a store is mostly about the dynamic path, since that's the part that costs real work. The order you reach for the levers matters.</p>
+  <p><strong>First, cache correctly.</strong> Object cache plus full-page cache, as above. This is free performance and it usually buys more headroom than any upgrade. A lot of "we need a bigger server" turns out to be "we never turned on the object cache."</p>
+  <p><strong>Then resize up (vertical).</strong> Give the server more CPU and RAM, add PHP workers, and give the database a bigger buffer pool. For most stores this single step covers every sale they'll ever run. Vertical scaling is simpler, and simple is underrated when money is on the line.</p>
+  <p><strong>Then scale out (horizontal), for the big ones.</strong> A large store puts a load balancer in front and runs several app servers behind it, all sharing one managed database and one object cache. That's how you survive traffic a single box can't, and how you do zero-downtime maintenance. Fully automatic autoscaling is an enterprise and custom setup, not a switch a standard store flips, so plan capacity for your known peaks rather than assuming the platform grows the store for you.</p>
+  <p><strong>And offload the heavy static stuff.</strong> Product images and downloads can move to object storage and sit behind an edge CDN, so your app servers spend their cycles on carts and checkouts, not on serving photos. For the full mental model of resize versus add-servers, we wrote it up in <a href="https://www.kloudbean.com/blog/scalable-wordpress-hosting/">scalable WordPress hosting</a>.</p>
+
+  <!-- ADD IMAGE: a load balancer with two or three app servers behind it, all pointing at one managed database. Swap for a real screenshot: src -> images/store-scale-out.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Scaling out: a load balancer in front of two or three app servers, all sharing one managed database and object cache.</em></span></figure>
+
+  <h2>How Kloudbean does managed WooCommerce hosting</h2>
+  <p>WooCommerce has been a first-class stack on Kloudbean since launch, right alongside WordPress, so none of this is bolted on after the fact. Here's the path, with the actual screens.</p>
+  <p>You pick a cloud (seven of them: AWS, Amazon Lightsail, Google Cloud, DigitalOcean, Vultr, Akamai Linode, and UpCloud), launch a server in a region near your customers, and add WooCommerce as an application. The PHP stack comes tuned and hardened, with free SSL ready to go, not a blank box waiting for you to configure it.</p>
+
+  <!-- ADD IMAGE: the WooCommerce application overview with the live URL, PHP version, and cache controls. Swap for a real screenshot: src -> images/woo-app-overview.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The WooCommerce application overview: live URL, PHP version, cache controls, and staging in one panel.</em></span></figure>
+
+  <p>The store keeps its data in managed MySQL or MariaDB: provisioned, secured, kept off the public internet, and backed up automatically with controlled access. Alongside it you add a managed Redis or Memcached for the object cache, the layer that keeps the dynamic pages quick. That's the caching a plugin can't provide, running as real infrastructure you can size.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean Launch Database screen showing managed MySQL and MariaDB for WooCommerce, plus Redis and Memcached for object caching">
+    <figcaption>Managed MySQL or MariaDB for the store, plus managed Redis or Memcached for the object cache. All backed up, all in the same console.</figcaption>
+  </figure>
+
+  <p>From there you get the pieces a store leans on. One-click staging for WordPress (WooCommerce runs on it) so plugin and theme updates get tested before they hit live sales. Automatic backups with self-serve restore, because orders are money. Free auto-renewing SSL for the checkout. Cron jobs from the dashboard without SSH for scheduled tasks. And when a sale is coming, you resize the server or put the built-in Flexible Load Balancer in front, all from the same place.</p>
+
+  <figure>
+    <img src="../assets/console/manage-backups.png" alt="The Kloudbean backups screen showing automatic backups and self-serve restore for a WooCommerce store">
+    <figcaption>Automatic backups with self-serve restore. Test a restore once before you need it, so you know the path works.</figcaption>
+  </figure>
+
+  <p>It's all one dashboard: the store, its database, the object cache, backups, SSL, and scaling, with one login and one bill. If you're moving an existing store, Kloudbean offers free migration assistance, and there's a free trial so you can load your catalog and test a real checkout before committing. If you're wiring the database up by hand, <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a> walks the connection details, and <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">managed MySQL hosting</a> covers the database side in depth. For the backup discipline itself, see the <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a>.</p>
+
+  <h2>The honest limits</h2>
+  <p>Two things, said plainly. WooCommerce runs on a <strong>Linux and PHP</strong> stack, which is exactly what it was built for, so this is a strong fit rather than a workaround. And "managed" is a split, not a takeover. The platform runs the server, the stack, the object cache wiring, SSL, and backups. You still own your products, your orders, your plugin and theme choices, and your checkout flow. On compliance, treat it as shared: the platform provides and keeps maturing the infrastructure controls, while the application-level compliance of your specific store, especially around payments, stays with you. That clarity is the point. You always know who owns what.</p>
+  <p>If you're still deciding between plain managed WordPress and a store-ready setup, <a href="https://www.kloudbean.com/blog/managed-wordpress-hosting/">managed WordPress hosting</a> lays out the general version, and this page is the WooCommerce-specific answer sitting on top of it.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Your store stays fast. We run the stack under it.</p>
+    <p style="margin:0 0 .6em">Managed WooCommerce hosting on infrastructure you own, with the database, object cache, backups, and SSL handled for you. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>; check current plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">One-click WooCommerce · Managed MySQL &amp; Redis · Full-page + object cache · Automatic backups · Free auto-renewing SSL · One-click staging · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What are the requirements for WooCommerce hosting?</h3>
+    <p>WooCommerce runs on WordPress, so it needs PHP (7.4 at minimum, 8.1 or newer recommended), a memory limit around 256M, and a MySQL 5.7+ or MariaDB 10.4+ database. It also wants HTTPS for checkout and, in practice, a persistent object cache like Redis or Memcached to stay fast. Those are the published floors. A real store also needs enough PHP workers and CPU to handle several shoppers at once, which is where cheap plans fall short.</p>
+    <h3>Why is my WooCommerce store slow?</h3>
+    <p>Usually one of three things. Not enough PHP workers or CPU, so dynamic pages queue under load. No persistent object cache, so MySQL answers the same queries over and over. Or a caching setup that's either too aggressive (breaking the cart) or turned off entirely. Slow WooCommerce is far more often a hosting and caching problem than a plugin problem, though a bloated plugin can make it worse.</p>
+    <h3>Can I cache a WooCommerce store?</h3>
+    <p>Yes, but carefully. Catalog and content pages (home, shop, product, blog) can be full-page cached and served without PHP. The cart, checkout, and My Account pages must be excluded, and the cache should bypass whenever a shopper has items in their cart. The winning setup is full-page caching for the cacheable pages plus a persistent object cache underneath for the dynamic ones.</p>
+    <h3>Do I need Redis for WooCommerce?</h3>
+    <p>You don't strictly need it, but a busy store benefits enormously. Redis (or Memcached) acts as a persistent object cache, storing the results of queries WooCommerce repeats on every request, including the heavy autoloaded options. Without it, WordPress falls back to a cache that lasts a single request, which does little for load. For a store with real traffic, an object cache is often the biggest single speed win.</p>
+    <h3>Is shared hosting okay for WooCommerce?</h3>
+    <p>Only for a store that's barely a store. Shared hosting oversells one box across many accounts and gives each a tiny slice of workers and database power, which is fine for a static blog but chokes on a store's dynamic, database-heavy load. Once you have real customers and revenue, shared hosting becomes the thing that fails during your busiest hour. Managed cloud hosting sized for dynamic traffic is the better fit.</p>
+    <h3>What is managed WooCommerce hosting?</h3>
+    <p>It's hosting tuned for a WooCommerce store where the provider runs the server layer for you: the PHP stack, a managed database, the object cache, full-page caching, SSL, staging, and automatic backups. You keep control of your products, orders, plugins, and theme. The point is that the operational work that keeps a store fast and safe stops being your job, so you can spend your time selling.</p>
+    <h3>How do I scale a WooCommerce store for high traffic?</h3>
+    <p>In order: get caching right (object cache plus full-page cache with the cart excluded), then resize the server up for more CPU, RAM, and PHP workers, then for very large stores scale out with a load balancer in front of several app servers sharing one managed database. Offload images to object storage behind a CDN too. Most stores never need more than a correct cache and one resize.</p>
+    <h3>Is WooCommerce hosting PCI compliant?</h3>
+    <p>Compliance is shared, and it depends mostly on how you take payment. Most stores use a hosted gateway like Stripe or PayPal, so card numbers never touch the server, which shrinks the scope that applies to you. Your job is to keep checkout on HTTPS, keep the stack patched, and never store card data. A good host secures the infrastructure layer, but no host can hand you finished compliance, so be skeptical of any that claims to.</p>
+    <h3>Does Kloudbean support WooCommerce?</h3>
+    <p>Yes. WooCommerce has been a first-class one-click application on Kloudbean since launch, with managed MySQL or MariaDB, managed Redis or Memcached for the object cache, free auto-renewing SSL, automatic backups, and one-click staging. It runs on any of seven clouds, and you can resize or put the built-in load balancer in front as you grow. There's free migration assistance and a free trial to move an existing store across.</p>
+    <h3>How much does WooCommerce hosting cost?</h3>
+    <p>It varies with server size and how much traffic your store handles. On Kloudbean, standard plans start from $8/mo, with Enterprise priced custom. The number worth planning around isn't the base price, it's what a busy sales month costs with the database and cache your store actually needs. Confirm current pricing on the pricing page before you commit.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Built for the Cart.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"WooCommerce Hosting: What Your Store Actually Needs","description":"Why WooCommerce is heavier than a blog, why cheap shared hosting chokes a store, what good WooCommerce hosting provides (PHP workers, managed database, object cache, full-page caching, SSL, backups, staging, scaling), and how Kloudbean does managed WooCommerce hosting.","image":"https://www.kloudbean.com/blog/woocommerce-hosting/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/woocommerce-hosting/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What are the requirements for WooCommerce hosting?","acceptedAnswer":{"@type":"Answer","text":"WooCommerce runs on WordPress, so it needs PHP (7.4 at minimum, 8.1 or newer recommended), a memory limit around 256M, and a MySQL 5.7+ or MariaDB 10.4+ database. It also wants HTTPS for checkout and, in practice, a persistent object cache like Redis or Memcached to stay fast. Those are the published floors. A real store also needs enough PHP workers and CPU to handle several shoppers at once, which is where cheap plans fall short."}},
+{"@type":"Question","name":"Why is my WooCommerce store slow?","acceptedAnswer":{"@type":"Answer","text":"Usually one of three things. Not enough PHP workers or CPU, so dynamic pages queue under load. No persistent object cache, so MySQL answers the same queries over and over. Or a caching setup that is either too aggressive (breaking the cart) or turned off entirely. Slow WooCommerce is far more often a hosting and caching problem than a plugin problem, though a bloated plugin can make it worse."}},
+{"@type":"Question","name":"Can I cache a WooCommerce store?","acceptedAnswer":{"@type":"Answer","text":"Yes, but carefully. Catalog and content pages (home, shop, product, blog) can be full-page cached and served without PHP. The cart, checkout, and My Account pages must be excluded, and the cache should bypass whenever a shopper has items in their cart. The winning setup is full-page caching for the cacheable pages plus a persistent object cache underneath for the dynamic ones."}},
+{"@type":"Question","name":"Do I need Redis for WooCommerce?","acceptedAnswer":{"@type":"Answer","text":"You do not strictly need it, but a busy store benefits enormously. Redis (or Memcached) acts as a persistent object cache, storing the results of queries WooCommerce repeats on every request, including the heavy autoloaded options. Without it, WordPress falls back to a cache that lasts a single request, which does little for load. For a store with real traffic, an object cache is often the biggest single speed win."}},
+{"@type":"Question","name":"Is shared hosting okay for WooCommerce?","acceptedAnswer":{"@type":"Answer","text":"Only for a store that is barely a store. Shared hosting oversells one box across many accounts and gives each a tiny slice of workers and database power, which is fine for a static blog but chokes on a store's dynamic, database-heavy load. Once you have real customers and revenue, shared hosting becomes the thing that fails during your busiest hour. Managed cloud hosting sized for dynamic traffic is the better fit."}},
+{"@type":"Question","name":"What is managed WooCommerce hosting?","acceptedAnswer":{"@type":"Answer","text":"It is hosting tuned for a WooCommerce store where the provider runs the server layer for you: the PHP stack, a managed database, the object cache, full-page caching, SSL, staging, and automatic backups. You keep control of your products, orders, plugins, and theme. The point is that the operational work that keeps a store fast and safe stops being your job, so you can spend your time selling."}},
+{"@type":"Question","name":"How do I scale a WooCommerce store for high traffic?","acceptedAnswer":{"@type":"Answer","text":"In order: get caching right (object cache plus full-page cache with the cart excluded), then resize the server up for more CPU, RAM, and PHP workers, then for very large stores scale out with a load balancer in front of several app servers sharing one managed database. Offload images to object storage behind a CDN too. Most stores never need more than a correct cache and one resize."}},
+{"@type":"Question","name":"Is WooCommerce hosting PCI compliant?","acceptedAnswer":{"@type":"Answer","text":"Compliance is shared, and it depends mostly on how you take payment. Most stores use a hosted gateway like Stripe or PayPal, so card numbers never touch the server, which shrinks the scope that applies to you. Your job is to keep checkout on HTTPS, keep the stack patched, and never store card data. A good host secures the infrastructure layer, but no host can hand you finished compliance, so be skeptical of any that claims to."}},
+{"@type":"Question","name":"Does Kloudbean support WooCommerce?","acceptedAnswer":{"@type":"Answer","text":"Yes. WooCommerce has been a first-class one-click application on Kloudbean since launch, with managed MySQL or MariaDB, managed Redis or Memcached for the object cache, free auto-renewing SSL, automatic backups, and one-click staging. It runs on any of seven clouds, and you can resize or put the built-in load balancer in front as you grow. There is free migration assistance and a free trial to move an existing store across."}},
+{"@type":"Question","name":"How much does WooCommerce hosting cost?","acceptedAnswer":{"@type":"Answer","text":"It varies with server size and how much traffic your store handles. On Kloudbean, standard plans start from $8/mo, with Enterprise priced custom. The number worth planning around is not the base price, it is what a busy sales month costs with the database and cache your store actually needs. Confirm current pricing on the pricing page before you commit."}}
+]}
+]}
+</script>
+</body>
+</html>

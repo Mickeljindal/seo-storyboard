@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Access Control Explained: RBAC and Least Privilege</title>
+<meta name="description" content="User access control done right: why a shared admin login is a real risk, how role-based access control and least privilege fix it, and how to run team permissions safely.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/user-access-control-explained/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="User Access Control Explained: RBAC and Least Privilege">
+<meta property="og:description" content="Why one shared admin login is a risk, and how role-based access control, least privilege, subusers, and an audit trail fix accountability and offboarding.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Security &amp; team access</span>
+  <h1>User Access Control Explained: Roles, Least Privilege, and Team Permissions</h1>
+
+  <figure><img src="images/hero.png" alt="User access control explained: roles, least privilege, subusers, and an audit trail"></figure>
+
+  <p class="lead">Five people, one "admin" login, shared in a group chat. It works right up until it doesn't. Someone deletes the wrong database and nobody can say who. A contractor rolls off and that password still opens everything. This is what user access control fixes: give each person their own identity, grant only the permissions their job needs, and keep a record of who did what. This guide walks the principles (least privilege, role-based access control, separation of duties) and how to run real team permissions on your hosting.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>User access control decides who can do what in your systems. The fix for a shared admin login is unglamorous and it works: one identity per person, role-based access control so permissions attach to roles instead of people, least privilege so nobody holds more than their job needs, and an audit trail so every action is attributable. On Kloudbean that's subusers with granular per-resource, per-action permissions, plus an Enterprise audit trail.</p>
+  </div>
+
+  <h2>What user access control actually means</h2>
+  <p>User access control is the set of rules that decide which people can reach which resources, and what they can do there. For every action it answers three questions: who are you, are you allowed to do this, and can we prove later that you did.</p>
+  <p>Authentication proves who you are; authorization is what you're allowed to do afterward. A shared admin login fails both: you can't tell people apart, and everyone can do everything.</p>
+
+  <h2>The real cost of one shared admin login</h2>
+  <p>Sharing one login feels efficient early on. Then the team grows and that convenience turns into three specific problems. I've watched all three bite teams that swore they'd fix access later.</p>
+  <p><strong>No accountability.</strong> Five people, one login, and the logs show a single actor. So when a production database gets dropped at 2am, the honest answer to "who ran that?" is a shrug. You can't investigate an incident when every action traces back to the same account.</p>
+  <p><strong>No least privilege.</strong> A shared admin can do anything, so everyone holding it can too. The junior dev who only needed to restart one app can also wipe the server and export the billing history. One phished password, and it's game over for the whole account.</p>
+  <p><strong>Painful offboarding.</strong> A freelancer finishes up. To remove their access you change the shared password and re-share it with everyone still around. Most teams skip that, so the password quietly keeps working long after the person is gone.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 470" role="img" aria-label="One shared admin login versus scoped subusers with role-based access control" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="28" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">One shared key vs scoped subusers</text>
+      <text x="28" y="56" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">Same team, two ways to hand out access. Only one of them survives an audit.</text>
+      <line x1="380" y1="74" x2="380" y2="444" stroke="#c9d0e3" stroke-width="1.5" stroke-dasharray="5 5"/>
+
+      <!-- LEFT: anti-pattern -->
+      <rect x="28" y="76" width="330" height="36" rx="9" fill="#000f27"/>
+      <text x="193" y="100" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="14" font-weight="600">One shared admin login</text>
+      <circle cx="78" cy="158" r="15" fill="#000f27"/>
+      <circle cx="138" cy="158" r="15" fill="#000f27"/>
+      <circle cx="198" cy="158" r="15" fill="#000f27"/>
+      <circle cx="258" cy="158" r="15" fill="#000f27"/>
+      <circle cx="318" cy="158" r="15" fill="#000f27"/>
+      <line x1="78" y1="173" x2="194" y2="205" stroke="#c9d0e3" stroke-width="1.5"/>
+      <line x1="138" y1="173" x2="194" y2="205" stroke="#c9d0e3" stroke-width="1.5"/>
+      <line x1="198" y1="173" x2="194" y2="205" stroke="#c9d0e3" stroke-width="1.5"/>
+      <line x1="258" y1="173" x2="194" y2="205" stroke="#c9d0e3" stroke-width="1.5"/>
+      <line x1="318" y1="173" x2="194" y2="205" stroke="#c9d0e3" stroke-width="1.5"/>
+      <rect x="110" y="205" width="168" height="56" rx="12" fill="#4F1AF3"/>
+      <text x="194" y="231" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="14" font-weight="700">ADMIN login</text>
+      <text x="194" y="249" text-anchor="middle" fill="#d8ccff" font-family="Poppins,sans-serif" font-size="11">can do everything</text>
+      <circle cx="34" cy="299" r="3" fill="#000f27"/>
+      <text x="46" y="303" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">Who deleted the database? Nobody can say.</text>
+      <circle cx="34" cy="325" r="3" fill="#000f27"/>
+      <text x="46" y="329" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">One phished password opens all of it.</text>
+      <circle cx="34" cy="351" r="3" fill="#000f27"/>
+      <text x="46" y="355" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">Someone leaves? Rotate it for everyone.</text>
+
+      <!-- RIGHT: scoped -->
+      <rect x="402" y="76" width="330" height="36" rx="9" fill="#40b75f"/>
+      <text x="567" y="100" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="14" font-weight="600">Scoped subusers + UAC</text>
+      <circle cx="430" cy="161" r="15" fill="#000f27"/>
+      <line x1="445" y1="161" x2="460" y2="161" stroke="#40b75f" stroke-width="2"/>
+      <rect x="460" y="145" width="272" height="32" rx="8" fill="#ffffff" stroke="#40b75f" stroke-width="1.5"/>
+      <text x="472" y="165" fill="#000f27" font-family="Poppins,sans-serif" font-size="12">Dev A · deploy App 1, view logs</text>
+      <circle cx="430" cy="213" r="15" fill="#000f27"/>
+      <line x1="445" y1="213" x2="460" y2="213" stroke="#40b75f" stroke-width="2"/>
+      <rect x="460" y="197" width="272" height="32" rx="8" fill="#ffffff" stroke="#40b75f" stroke-width="1.5"/>
+      <text x="472" y="217" fill="#000f27" font-family="Poppins,sans-serif" font-size="12">Designer · view only</text>
+      <circle cx="430" cy="265" r="15" fill="#000f27"/>
+      <line x1="445" y1="265" x2="460" y2="265" stroke="#40b75f" stroke-width="2"/>
+      <rect x="460" y="249" width="272" height="32" rx="8" fill="#ffffff" stroke="#40b75f" stroke-width="1.5"/>
+      <text x="472" y="269" fill="#000f27" font-family="Poppins,sans-serif" font-size="12">Contractor · App 2 logs only</text>
+      <circle cx="408" cy="329" r="3" fill="#40b75f"/>
+      <text x="420" y="333" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">Every action is attributable.</text>
+      <circle cx="408" cy="355" r="3" fill="#40b75f"/>
+      <text x="420" y="359" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">A leak is contained to one scope.</text>
+      <circle cx="408" cy="381" r="3" fill="#40b75f"/>
+      <text x="420" y="385" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">Someone leaves? Revoke one account.</text>
+    </svg>
+    <figcaption>One shared key means no accountability and a painful cleanup. Scoped subusers make every action attributable and turn offboarding into a single revoke.</figcaption>
+  </figure>
+
+  <h2>The principles behind good access control</h2>
+  <p>Access control isn't one setting. It's a few principles that reinforce each other, and they map to how real teams break. Get the why behind each one and the product screens later feel obvious.</p>
+
+  <h3>Least privilege: grant only what the role needs</h3>
+  <p>Least privilege means every person and every key gets the minimum access to do the job, nothing spare. Access you never use can't help you, but it can hurt you when a credential leaks or someone fat-fingers a command. A designer who only edits static assets shouldn't hold delete rights on the production database.</p>
+
+  <h3>One identity per human</h3>
+  <p>Every person gets their own account. Always. Individual identities mean the logs name a real human for every action, offboarding is a clean single revoke, and you can change one person's permissions without touching anyone else. If you can't tell who did something, you don't really have security. You have a group chat with root.</p>
+
+  <h3>Separation of duties</h3>
+  <p>Some combinations of power shouldn't sit in one pair of hands. In finance, whoever approves a payment shouldn't also issue it. Same in infrastructure: the account that can change production shouldn't also delete every backup and wipe the audit log, or one compromised login can do damage and erase the evidence.</p>
+
+  <h3>Per-resource, per-action granularity</h3>
+  <p>Access isn't one switch. Real control is granular: can this person do this action on this resource. View App A's logs, yes. Delete the server it runs on, no. Touch App B, no. Coarse "admin or nothing" roles force you to over-grant: the only way to allow one small thing is to hand over everything.</p>
+
+  <h3>Regular access reviews</h3>
+  <p>Access creeps. People change teams, grab a temporary permission, and quietly keep it forever, so six months later half your team holds access they never use. Each stale grant is extra blast radius for the day something goes wrong. The fix is a habit, not a tool: every quarter, pull the who-can-do-what list and prune anything that no longer matches the job.</p>
+
+  <!-- ADD IMAGE: a quarterly access-review table an admin can use. Swap for a real screenshot: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A quarterly access review: a who-has-access-to-what table with stale grants flagged for removal.</em><small>Mark the rows you plan to revoke.</small></span></figure>
+
+  <h2>What is role-based access control (RBAC)?</h2>
+  <p>Role-based access control, or RBAC, is what makes least privilege manageable past a couple of people. Instead of hand-assigning permissions to individuals, you attach permissions to roles, then assign people to roles. Users point at roles, roles point at permissions. That one layer of indirection is the whole trick.</p>
+  <p>Hire a third developer and you don't rebuild their permissions from memory. Drop them into the developer role and they inherit exactly the right access. When the job needs a new permission, change the role once and everyone in it updates.</p>
+
+  <pre><code># Permissions attach to ROLES. People attach to roles.
+role: developer    can deploy(App1), view(logs), restart(App1)
+role: billing      can view(invoices), manage(payment_method)
+role: contractor   can view(App2 logs)        # and nothing else
+
+alice   is developer
+bob     is billing
+carol   is contractor      # rolls off in March? remove carol. done.
+</code></pre>
+
+  <p>Contrast the anti-pattern almost everyone starts with: everyone is admin. It's just the shared-login problem wearing individual accounts. Names show up in logs, so accountability improves a little, but any account can still do anything, so any single compromise is total. RBAC keeps the individual accounts and shrinks that blast radius.</p>
+
+  <h3>A worked example</h3>
+  <p>Say you run a small product team on one hosting account. Here's how a sane set of roles maps to real actions.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Action</th><th>Owner</th><th>Developer</th><th>Designer</th><th>Contractor</th><th>Billing</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Deploy App 1</strong></td><td>Yes</td><td>Yes</td><td>No</td><td>No</td><td>No</td></tr>
+      <tr><td><strong>Restart App 1</strong></td><td>Yes</td><td>Yes</td><td>No</td><td>No</td><td>No</td></tr>
+      <tr><td><strong>View App 2 logs</strong></td><td>Yes</td><td>Yes</td><td>No</td><td>Yes</td><td>No</td></tr>
+      <tr><td><strong>Delete a server</strong></td><td>Yes</td><td>No</td><td>No</td><td>No</td><td>No</td></tr>
+      <tr><td><strong>Manage the database</strong></td><td>Yes</td><td>Yes</td><td>No</td><td>No</td><td>No</td></tr>
+      <tr><td><strong>Manage billing</strong></td><td>Yes</td><td>No</td><td>No</td><td>No</td><td>Yes</td></tr>
+      <tr><td><strong>View dashboards</strong></td><td>Yes</td><td>Yes</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+    </tbody>
+  </table>
+
+  <p>Read down the Contractor column. That's least privilege in one glance: they see the logs for the one app they're helping with, and nothing else. Nobody outside the owner can delete a server. When the contract ends, you remove one account and every grant disappears with it.</p>
+
+  <h2>How to offboard someone without a fire drill</h2>
+  <p>Offboarding is where sloppy access control sends the bill. With individual accounts and RBAC, removing someone is one action: revoke their account, and all their permissions go with it. No shared password to change, no copy sitting in an old chat.</p>
+  <p>Build it into the moment someone leaves. Revoke on the way out, not next week. Access that outlives the working relationship is a common way old credentials turn into new breaches. Offboarding removes the people who left; reviews catch the permissions that outlived their purpose.</p>
+  <p>Client work compounds this fast. Agencies onboard and offboard people constantly across many client environments, so a clean per-person, per-resource model is the difference between a two-second revoke and a nervous afternoon. There's more on that model in the <a href="https://www.kloudbean.com/blog/white-label-hosting-for-agencies/">guide to white-label hosting for agencies</a> and the practical side of running lots of client sites in <a href="https://www.kloudbean.com/blog/agency-wordpress-hosting/">agency WordPress hosting</a>.</p>
+
+  <h2>How Kloudbean handles user access control</h2>
+  <p>Principles are cheap until a platform lets you enforce them. Here's how they map to real controls on Kloudbean, all inside the same dashboard as your servers, apps, and databases.</p>
+
+  <h3>Subusers and User Access Control (UAC)</h3>
+  <p>Create a subuser for each person, then grant permissions per resource and per action. Granular by design, so your developer can deploy one app without touching billing, the database, or the other twenty projects. This is RBAC and least privilege made concrete.</p>
+
+  <figure>
+    <img src="../assets/console/subusers-uac.png" alt="The Kloudbean console subusers and User Access Control screen granting least-privilege, per-resource, per-action permissions">
+    <figcaption>Subusers + UAC: one account per person, with granular per-resource, per-action permissions.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: a close-up of a single subuser's permission set. Swap for a real screenshot: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A single subuser's permission set: specific apps and actions on, everything else off.</em><small>Least privilege as an actual toggle grid.</small></span></figure>
+
+  <h3>Stronger identity: social login and hardened sessions</h3>
+  <p>Authorization only holds if authentication is solid. Kloudbean supports social login with Google, GitHub, and LinkedIn, so you lean on providers that already do serious identity work instead of minting another password. Sessions use HttpOnly cookies, so a cross-site scripting bug can't read the session token out of JavaScript. As a general best practice, turn on two-factor authentication for every account from your account security settings.</p>
+
+  <figure>
+    <img src="../assets/console/user-2fa-security.png" alt="The Kloudbean console account security screen where you enable two-factor authentication and manage login security">
+    <figcaption>Account security settings: enable two-factor authentication so a leaked password on its own can't get in.</figcaption>
+  </figure>
+
+  <h3>Lock the doors you rarely open</h3>
+  <p>Two more controls shrink your attack surface cheaply. IP Access Control allows or denies traffic by address or CIDR range, so a sensitive path only answers to your office or VPN. Point it at something like <code>203.0.113.0/24</code> and the rest of the internet can't reach that door. A Basic Auth gate puts a username and password wall in front of an app, ideal for a staging site you don't want probed.</p>
+
+  <h3>The audit trail: proof of who did what</h3>
+  <p>When something changes, both compliance and incident response ask the same question: who did that, and when? On Kloudbean, the Audit Trail is an Enterprise feature: an immutable, searchable, account-wide log of activity with CSV export, built with compliance in mind. It turns a pile of good controls into evidence. For a SOC 2 review or a post-incident timeline, it's the difference between "we think" and "here's the record." The <a href="https://www.kloudbean.com/blog/soc2-compliant-hosting/">SOC 2 hosting guide</a> shows where that evidence fits.</p>
+
+  <!-- ADD IMAGE: the audit trail view with a searchable activity log and CSV export. Swap for a real screenshot: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Enterprise audit trail: a searchable, timestamped activity log with CSV export.</em><small>Enterprise feature.</small></span></figure>
+
+  <p>Access control is one layer of a bigger picture. For how it sits alongside firewalls, SSL, and backups, see the <a href="https://www.kloudbean.com/blog/secure-compliant-hosting/">shared-responsibility guide to secure, compliant hosting</a>, and the <a href="https://www.kloudbean.com/blog/what-is-a-managed-server/">explainer on what a managed server includes</a> covers what "managed" handles underneath.</p>
+
+  <h2>A practical access-control checklist</h2>
+  <p>Take the list if nothing else. Do these and you've closed the doors attackers use most.</p>
+  <ul>
+    <li>Give every person their own account. Kill the shared admin login.</li>
+    <li>Grant least privilege: only the resources and actions each role needs.</li>
+    <li>Use roles, not one-off per-person grants, so access stays reviewable.</li>
+    <li>Split sensitive powers (separation of duties) so one account can't do damage and erase the trail.</li>
+    <li>Turn on two-factor authentication for everyone from account security settings.</li>
+    <li>Fence off admin and staging paths with IP Access Control or a Basic Auth gate.</li>
+    <li>Revoke access the day someone leaves, and review who-has-what every quarter.</li>
+    <li>Keep an audit trail so every action is attributable when it matters.</li>
+  </ul>
+  <p>Access control and recoverability are two halves of surviving a bad day, so the <a href="https://www.kloudbean.com/blog/server-backups-guide/">guide to server backups and restore testing</a> covers the other half. Weighing platforms on how seriously they take team access? A read like <a href="https://www.kloudbean.com/blog/kloudbean-vs-cloudways/">Kloudbean vs Cloudways</a> beats any homepage checkbox.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Real team access, without the shared password.</p>
+    <p style="margin:0 0 .6em">Give everyone their own scoped account, keep least privilege by default, and manage it all from one dashboard. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>, and always confirm current details there.</p>
+    <p style="margin:0">Subusers + UAC · Per-resource, per-action permissions · Social login · IP Access Control · Basic Auth gate · Automatic backups · Audit trail (Enterprise)</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is user access control?</h3>
+    <p>User access control decides which people can reach which resources and what they can do there. It pairs authentication (who you are) with authorization (what you're allowed to do), so each person has a limited, recorded identity instead of a shared free-for-all.</p>
+    <h3>What is role-based access control (RBAC)?</h3>
+    <p>RBAC attaches permissions to roles, then assigns people to roles instead of granting permissions one by one. Change a role once and everyone in it updates, which is what makes least privilege manageable at scale.</p>
+    <h3>Why is sharing one admin login risky?</h3>
+    <p>It breaks accountability (the logs can't tell your people apart), least privilege (everyone holds full power, so one phished password owns the account), and offboarding (removing one person means rotating the password for all).</p>
+    <h3>What is the principle of least privilege?</h3>
+    <p>Least privilege means granting every person and key the minimum access the job needs, nothing extra. Access you never use can't help you but can hurt you when a credential leaks, so limiting it shrinks the blast radius of any single compromise.</p>
+    <h3>What are subusers?</h3>
+    <p>Subusers are individual accounts for each team member instead of a shared login. On Kloudbean each gets granular permissions per resource and per action through User Access Control, so a developer can deploy one app without touching billing or the database.</p>
+    <h3>How do I offboard someone safely?</h3>
+    <p>Give everyone an individual account, then offboarding is a single revoke: remove the account and all their permissions go with it. Do it the day they leave, with no shared password to rotate and no credential left quietly working.</p>
+    <h3>What is an audit trail and do I need one?</h3>
+    <p>An audit trail is an immutable, searchable log of who did what and when. On Kloudbean it's an Enterprise feature with CSV export, which you need to prove your controls operated over time for frameworks like SOC 2 and to reconstruct an incident.</p>
+    <h3>Does Kloudbean support team permissions and RBAC?</h3>
+    <p>Yes. You create a subuser per person and grant permissions per resource and per action through User Access Control. Kloudbean also has social login (Google, GitHub, LinkedIn), HttpOnly sessions, IP Access Control, and a Basic Auth gate; the account-wide audit trail is on Enterprise.</p>
+    <h3>What is separation of duties?</h3>
+    <p>Separation of duties splits sensitive powers so no single account completes a risky chain alone. The account that can change production shouldn't also delete every backup and clear the audit log, or one compromise can do damage and then hide it.</p>
+    <h3>How often should I review who has access?</h3>
+    <p>A quarterly review is a sensible default, with an immediate revoke whenever someone leaves. Access creeps upward as people change roles and keep old permissions, so a regular prune keeps least privilege honest.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Security · Least Privilege, By Default. One identity per person, only the access the job needs, and a record of who did what.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"User Access Control Explained: Roles, Least Privilege, and Team Permissions","description":"User access control explained: why a shared admin login is a real risk, how role-based access control (RBAC) and least privilege fix accountability and offboarding, and how subusers, UAC, and an Enterprise audit trail put team permissions to work.","image":"https://www.kloudbean.com/blog/user-access-control-explained/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/user-access-control-explained/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is user access control?","acceptedAnswer":{"@type":"Answer","text":"User access control decides which people can reach which resources and what they can do there. It pairs authentication (who you are) with authorization (what you are allowed to do), so each person has a limited, recorded identity instead of a shared free-for-all."}},
+{"@type":"Question","name":"What is role-based access control (RBAC)?","acceptedAnswer":{"@type":"Answer","text":"RBAC attaches permissions to roles, then assigns people to roles instead of granting permissions one by one. Change a role once and everyone in it updates, which is what makes least privilege manageable at scale."}},
+{"@type":"Question","name":"Why is sharing one admin login risky?","acceptedAnswer":{"@type":"Answer","text":"It breaks accountability (the logs cannot tell your people apart), least privilege (everyone holds full power, so one phished password owns the account), and offboarding (removing one person means rotating the password for all)."}},
+{"@type":"Question","name":"What is the principle of least privilege?","acceptedAnswer":{"@type":"Answer","text":"Least privilege means granting every person and key the minimum access the job needs, nothing extra. Access you never use cannot help you but can hurt you when a credential leaks, so limiting it shrinks the blast radius of any single compromise."}},
+{"@type":"Question","name":"What are subusers?","acceptedAnswer":{"@type":"Answer","text":"Subusers are individual accounts for each team member instead of a shared login. On Kloudbean each gets granular permissions per resource and per action through User Access Control, so a developer can deploy one app without touching billing or the database."}},
+{"@type":"Question","name":"How do I offboard someone safely?","acceptedAnswer":{"@type":"Answer","text":"Give everyone an individual account, then offboarding is a single revoke: remove the account and all their permissions go with it. Do it the day they leave, with no shared password to rotate and no credential left quietly working."}},
+{"@type":"Question","name":"What is an audit trail and do I need one?","acceptedAnswer":{"@type":"Answer","text":"An audit trail is an immutable, searchable log of who did what and when. On Kloudbean it is an Enterprise feature with CSV export, which you need to prove your controls operated over time for frameworks like SOC 2 and to reconstruct an incident."}},
+{"@type":"Question","name":"Does Kloudbean support team permissions and RBAC?","acceptedAnswer":{"@type":"Answer","text":"Yes. You create a subuser per person and grant permissions per resource and per action through User Access Control. Kloudbean also has social login (Google, GitHub, LinkedIn), HttpOnly sessions, IP Access Control, and a Basic Auth gate; the account-wide audit trail is on Enterprise."}},
+{"@type":"Question","name":"What is separation of duties?","acceptedAnswer":{"@type":"Answer","text":"Separation of duties splits sensitive powers so no single account completes a risky chain alone. The account that can change production should not also delete every backup and clear the audit log, or one compromise can do damage and then hide it."}},
+{"@type":"Question","name":"How often should I review who has access?","acceptedAnswer":{"@type":"Answer","text":"A quarterly review is a sensible default, with an immediate revoke whenever someone leaves. Access creeps upward as people change roles and keep old permissions, so a regular prune keeps least privilege honest."}}
+]}
+]}
+</script>
+</body>
+</html>

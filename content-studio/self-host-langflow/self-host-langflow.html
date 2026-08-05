@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Self-Host Langflow: Run Your AI Pipelines on a Server You Own</title>
+<meta name="description" content="Self-host Langflow to build RAG pipelines and agents visually, then run them on a server you control. The real architecture, where Postgres and pgvector fit, and when self-hosting beats SaaS.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/self-host-langflow/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Self-Host Langflow: Run Your AI Pipelines on a Server You Own">
+<meta property="og:description" content="Build RAG pipelines and agents in Langflow, then run them on your own server. The real architecture, where pgvector fits, and when self-hosting wins.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Self-hosted tools</span>
+  <h1>Self-Host Langflow: Run Your AI Pipelines on a Server You Own</h1>
+
+  <figure><img src="images/hero.png" alt="Self-host Langflow: build and run LLM pipelines on a server you own"></figure>
+
+  <p class="lead">You built a slick RAG pipeline in Langflow. It answers questions from your own docs, calls a model, returns clean JSON. Then someone asks the awkward question: where does this actually run, and who can see the prompts, documents, and keys flowing through it?</p>
+  <p>That's usually the moment people go looking to self-host Langflow. Good instinct. Langflow is open source and written in Python, so you can run the whole thing on a server you own, keys and documents staying put. This guide covers what the docs skim: what Langflow really is, the three pieces its architecture needs (including where pgvector fits), how to run it on your own box, and when self-hosting beats a hosted option.</p>
+
+  <div class="tldr"><strong>Short answer</strong><p>Langflow is an open-source, Python visual builder for LLM apps, RAG pipelines, and agents. To self-host Langflow, run the Python app on a managed Linux server, point it at a managed PostgreSQL (turn on pgvector for embeddings), and keep your model API keys in the server's environment. It stays light because Langflow orchestrates the model instead of running it, so a small CPU box is plenty.</p></div>
+
+  <h2>What Langflow actually is (and who should bother)</h2>
+  <p>Langflow is a visual, low-code builder for AI apps. You drag nodes onto a canvas. A prompt here, a model there, a document loader, a bit of logic, and you wire them into a working flow: a chatbot, a RAG pipeline that answers from your own documents, or an agent that calls tools. When the flow works, Langflow exposes it as an API endpoint your real application can hit. That last part matters. A finished flow isn't a sketch, it's a callable backend.</p>
+  <p>So who's it for? People who want to prototype and run LLM pipelines without hand-writing all the glue code between the model, the retriever, and the vector store. If you've ever wired LangChain by hand, Langflow is the canvas on top of that idea. You still get a real endpoint at the end. You just skip a lot of boilerplate getting there.</p>
+  <p>And the reason to run Langflow yourself, rather than on someone else's platform, is simple: the flows carry your prompts, your documents, and your provider keys. Self-hosting keeps all of that on infrastructure you control.</p>
+
+  <!-- ADD IMAGE: a screenshot of the Langflow canvas with a flow wired up. Swap this whole figure for src -> images/langflow-canvas.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Langflow canvas with a RAG flow wired up: document loader, embed node, vector store, retriever, prompt, model.</em><small>Author screenshot from your own Langflow instance.</small></span></figure>
+
+  <h2>The architecture nobody explains up front</h2>
+  <p>Here's where most "run Langflow" tutorials wave their hands. Langflow in production is three parts, and if you skip the middle one you'll lose work. The parts:</p>
+  <ul>
+    <li><strong>The Langflow app itself.</strong> A Python process serving the canvas UI and your flows' API endpoints. This is the light bit.</li>
+    <li><strong>A database for your flows.</strong> Langflow saves your flows, users, and settings. Its default is a local file (SQLite). Fine on your laptop, wrong for a server. Point it at a managed PostgreSQL so your work survives a restart or a redeploy.</li>
+    <li><strong>A vector store for embeddings.</strong> Any RAG flow turns your documents into embeddings and needs somewhere to keep them. That's a vector database. You can run a dedicated one, or you can enable <strong>pgvector</strong> on the same managed Postgres and keep everything in one place.</li>
+  </ul>
+  <p>That pgvector detail is the one people wish they'd known on day one. PostgreSQL with the <code>vector</code> extension stores and searches embeddings natively, so a small RAG project doesn't need a second piece of infrastructure. One managed Postgres does both jobs: it holds your saved flows and it holds your embeddings. Fewer moving parts, one thing to back up.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 400" role="img" aria-labelledby="lf-svg-title" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
+      <title id="lf-svg-title">A Langflow RAG pipeline running inside your own server, with only the model call leaving the box</title>
+      <defs>
+        <marker id="lfArrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#4F1AF3"></path></marker>
+        <marker id="lfArrowDash" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#000f27"></path></marker>
+      </defs>
+      <!-- model box, outside the server -->
+      <rect x="470" y="14" width="270" height="48" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5" stroke-dasharray="5 4"></rect>
+      <text x="605" y="34" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">Model API (OpenAI / Anthropic)</text>
+      <text x="605" y="51" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" fill="#5b6a86">or your own Ollama box</text>
+      <!-- your server container -->
+      <rect x="24" y="82" width="712" height="228" rx="16" fill="#f6f7fb" stroke="#4F1AF3" stroke-width="2" stroke-dasharray="7 5"></rect>
+      <text x="42" y="106" font-family="Poppins,sans-serif" font-size="12.5" font-weight="700" letter-spacing="1.5" fill="#4F1AF3">YOUR SERVER · MANAGED LINUX · LANGFLOW PIPELINE</text>
+      <!-- pipeline nodes -->
+      <g font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" text-anchor="middle">
+        <rect x="42" y="150" width="96" height="50" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"></rect>
+        <text x="90" y="180" fill="#000f27">Your docs</text>
+        <rect x="162" y="150" width="96" height="50" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"></rect>
+        <text x="210" y="180" fill="#000f27">Embed</text>
+        <rect x="282" y="150" width="120" height="50" rx="10" fill="#40b75f" stroke="#2f8f49" stroke-width="1.5"></rect>
+        <text x="342" y="174" fill="#fff">pgvector</text>
+        <text x="342" y="190" fill="#eafff0" font-size="10.5" font-weight="500">Postgres store</text>
+        <rect x="426" y="150" width="96" height="50" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"></rect>
+        <text x="474" y="180" fill="#000f27">Retrieve</text>
+        <rect x="546" y="150" width="82" height="50" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"></rect>
+        <text x="587" y="180" fill="#000f27">Prompt</text>
+        <rect x="652" y="150" width="66" height="50" rx="10" fill="#4F1AF3" stroke="#3a13b8" stroke-width="1.5"></rect>
+        <text x="685" y="180" fill="#fff">LLM</text>
+      </g>
+      <!-- arrows between nodes -->
+      <g stroke="#4F1AF3" stroke-width="2" fill="none">
+        <line x1="138" y1="175" x2="158" y2="175" marker-end="url(#lfArrow)"></line>
+        <line x1="258" y1="175" x2="278" y2="175" marker-end="url(#lfArrow)"></line>
+        <line x1="402" y1="175" x2="422" y2="175" marker-end="url(#lfArrow)"></line>
+        <line x1="522" y1="175" x2="542" y2="175" marker-end="url(#lfArrow)"></line>
+        <line x1="628" y1="175" x2="648" y2="175" marker-end="url(#lfArrow)"></line>
+      </g>
+      <!-- dashed model call leaving the box -->
+      <path d="M685,150 L685,90 L620,62" stroke="#000f27" stroke-width="1.6" fill="none" stroke-dasharray="5 4" marker-end="url(#lfArrowDash)"></path>
+      <text x="700" y="120" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86" text-anchor="end">only the model call leaves</text>
+      <!-- endpoint bar -->
+      <rect x="42" y="242" width="676" height="34" rx="8" fill="#eae4ff" stroke="#4F1AF3" stroke-width="1.2"></rect>
+      <text x="380" y="264" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#2a1a7a">This whole flow becomes one API endpoint your app calls</text>
+      <line x1="685" y1="200" x2="685" y2="240" stroke="#4F1AF3" stroke-width="2" fill="none" marker-end="url(#lfArrow)"></line>
+      <!-- your app, outside bottom -->
+      <rect x="300" y="348" width="160" height="40" rx="10" fill="#000f27"></rect>
+      <text x="380" y="373" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#fff">Your app / widget</text>
+      <line x1="380" y1="348" x2="380" y2="278" stroke="#4F1AF3" stroke-width="2" fill="none" marker-end="url(#lfArrow)"></line>
+    </svg>
+    <figcaption>A Langflow RAG pipeline running on your own server. Docs get embedded into a pgvector store, retrieval feeds the prompt, and only the model call ever leaves the box.</figcaption>
+  </figure>
+
+  <h2>Where the model actually runs: an API, or your own Ollama</h2>
+  <p>This is the misunderstanding that scares people off self-hosting AI, so it's worth being blunt. Langflow does not run the neural network. It's the conductor, not the orchestra. Langflow shuffles text between nodes and decides what goes where. The heavy thinking happens in one of two places:</p>
+  <ul>
+    <li><strong>A hosted model API.</strong> You point the LLM node at OpenAI, Anthropic, or similar. The model call goes out, the answer comes back. Simplest to start with. You pay that provider per call.</li>
+    <li><strong>Your own model.</strong> Run <a href="https://www.kloudbean.com/blog/self-host-ollama-open-webui/">Ollama on a separate box</a> and point Langflow at it. Now the prompts never leave your infrastructure at all. That box wants real memory, and a GPU helps for speed, so it's the larger machine in the setup.</li>
+  </ul>
+  <p>Either way, the Langflow server itself stays small. A CPU box around 2 GB of RAM runs it comfortably, because orchestrating text is cheap. The GPU question only shows up if you also self-host the model. Miss that distinction and you'll over-provision the wrong machine.</p>
+
+  <h2>A real example: a support bot that answers from your docs</h2>
+  <p>Make it concrete. You want a support bot that answers using your own help articles. Classic RAG. In Langflow you'd wire a flow like this: a loader pulls in your docs, an embed node turns them into vectors and writes them to your pgvector store, a retrieval node finds the chunks most relevant to a question, a prompt node stitches those chunks into a prompt, and a model node generates the answer. Drag, connect, test on the canvas. Done.</p>
+  <p>Now the payoff. None of that needed a GPU on the Langflow server. The embeddings and the final answer came from a model API (or your own Ollama on another box). Langflow just moved text between steps and did the vector search in Postgres. When the flow works, you publish it as an endpoint and your support widget calls it. That's a production RAG feature, built visually, running on a small server you own, with your documents and keys never touring the internet.</p>
+
+  <!-- ADD IMAGE: a screenshot or diagram of the deployed support-bot flow answering a real question. Swap for src -> images/langflow-rag-flow.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The published RAG endpoint answering a real support question, or the flow's API view in Langflow.</em><small>Author screenshot.</small></span></figure>
+
+  <h2>How to self-host Langflow on a server you own</h2>
+  <p>Langflow is not a one-click app on Kloudbean, and that's fine, because it's an ordinary Python service. You run it on a managed Linux server the same way you'd run any Python app. Here's the shape of it.</p>
+
+  <h3>1. Add a managed server</h3>
+  <p>Spin up a server on the cloud and region you want. Around 2 GB of RAM is a sensible start for Langflow itself. The platform handles the OS, the stack, and free SSL, so you're not hand-patching Linux.</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="The Kloudbean console Add Server screen: choose a cloud and size a small server for Langflow">
+    <figcaption>Add a server, pick a cloud and region, and size it small. Langflow orchestrates, so it doesn't need much.</figcaption>
+  </figure>
+
+  <h3>2. Launch a managed PostgreSQL (and turn on pgvector)</h3>
+  <p>Create a managed PostgreSQL for Langflow's saved flows, then enable the vector extension so the same database can hold your embeddings. Two jobs, one database, one thing to back up.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console Launch Database screen with PostgreSQL selected for Langflow">
+    <figcaption>Launch a managed PostgreSQL. It stores your flows, and with pgvector it stores your embeddings too.</figcaption>
+  </figure>
+
+  <pre><code>-- in your managed PostgreSQL, once
+CREATE EXTENSION IF NOT EXISTS vector;</code></pre>
+
+  <h3>3. Set your keys and connection as environment variables</h3>
+  <p>Your model provider keys and the database URL belong in the server's environment, never pasted into a flow or committed to Git. This is the step that keeps the keys yours.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console Environment Variables screen: model provider API keys and the Langflow database URL live on your server">
+    <figcaption>Environment Variables: your provider keys and the Postgres connection stay on your server, not in a third-party tool.</figcaption>
+  </figure>
+
+  <pre><code># On your server, in the app's environment
+LANGFLOW_DATABASE_URL=postgresql://langflow:secret@10.0.0.5:5432/langflow
+OPENAI_API_KEY=sk-...           # or ANTHROPIC_API_KEY, etc.
+LANGFLOW_AUTO_LOGIN=false        # require a login
+LANGFLOW_SUPERUSER=admin
+LANGFLOW_SUPERUSER_PASSWORD=change-me</code></pre>
+
+  <h3>4. Run it and put it behind your domain</h3>
+  <p>Install and start Langflow, point a subdomain at it, and let the platform issue SSL. Now you've got a private Langflow at <code>flow.yourdomain.com</code>, wired to a real database, keys in the environment.</p>
+
+  <pre><code>pip install langflow
+langflow run --host 0.0.0.0 --port 7860</code></pre>
+
+  <!-- ADD IMAGE: Langflow running behind your own domain with the SSL padlock. Swap for src -> images/langflow-live.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Langflow open at your own subdomain with the SSL padlock showing, proving it runs on your infrastructure.</em><small>Author screenshot.</small></span></figure>
+
+  <h2>Self-host Langflow, or use a hosted option?</h2>
+  <p>I'll take a position, because balanced-both-ways advice helps nobody. If you're just kicking tires on an idea and don't care where the flow runs, a hosted option is genuinely fine. Faster to start, nothing to maintain. But the moment your flows touch real customer data, real documents, or real provider keys, running Langflow yourself is the sensible call. Here's the split:</p>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>Self-hosted Langflow</th><th>Hosted / SaaS</th></tr></thead>
+    <tbody>
+      <tr><td>Where data lives</td><td>Your server, your region</td><td>The vendor's cloud</td></tr>
+      <tr><td>Provider API keys</td><td>In your server's environment</td><td>In the vendor's account</td></tr>
+      <tr><td>Cost shape</td><td>Flat server price</td><td>Often per seat or per run</td></tr>
+      <tr><td>Ops</td><td>You update the app; platform runs the box</td><td>Vendor handles it</td></tr>
+      <tr><td>Reproducible on your infra</td><td>Yes, it's your stack</td><td>Not really</td></tr>
+      <tr><td>Best when</td><td>Sensitive data, keys you must keep, repeatable setups</td><td>Quick prototype, throwaway flows</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Where people get it wrong</h2>
+  <p>A few sharp edges we see people hit, worth naming so you don't:</p>
+  <ul>
+    <li><strong>Leaving Langflow on its default file store.</strong> The flows live in a local SQLite file, the server restarts or redeploys, and the work is gone. Point it at managed Postgres before you build anything you care about.</li>
+    <li><strong>Baking keys into the flow.</strong> Exporting a flow with the provider key typed into a node means the key rides along in the JSON. Keep keys in the environment, reference them, and they never leak into an export.</li>
+    <li><strong>Under-sizing for ingestion.</strong> Orchestration is light, but loading and embedding a big document set can spike memory for a while. If a large import gets killed, resize the box for the ingest, then scale back.</li>
+    <li><strong>Assuming Langflow needs a GPU.</strong> It doesn't, unless you're also self-hosting the model. Put the GPU on the Ollama box, not the Langflow one.</li>
+  </ul>
+
+  <h2>How it fits the rest of your stack</h2>
+  <p>Self-hosted Langflow isn't an island. It's a Python app next to a database, which is a shape the platform is built for. Keep the model private by pairing it with <a href="https://www.kloudbean.com/blog/self-host-ollama-open-webui/">your own Ollama and Open WebUI</a>. Lean on <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a> for both flows and pgvector embeddings. Because Langflow is so light, it'll happily <a href="https://www.kloudbean.com/blog/host-multiple-apps-one-server/">share one server with your other apps</a>, so the box already running your automations can host your AI flows too. Set <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">the wider AI app</a> around it, and let <a href="https://www.kloudbean.com/blog/server-backups-guide/">automatic backups</a> cover the database. Want the map of everything self-hostable? Start from the <a href="https://www.kloudbean.com/blog/best-self-hosted-tools/">self-hosted tools hub</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Build the AI backend. Keep the keys, the docs, and the flows.</p>
+    <p style="margin:0">Run Langflow on a small managed server with a managed PostgreSQL and pgvector for embeddings, private networking, free SSL, and automatic backups. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.5em 0 0; font-size:15px; opacity:.85">Managed server · Managed PostgreSQL + pgvector · Private networking · Automatic backups · Free SSL · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Do I need a GPU to self-host Langflow?</h3>
+    <p>No. Langflow orchestrates the model rather than running it, so it's light. A CPU server around 2 GB of RAM is enough. A GPU only matters if you also self-host the model itself with Ollama, and that runs on a separate, larger machine.</p>
+    <h3>Can I build real apps with Langflow, or just demos?</h3>
+    <p>Real apps. A finished flow exposes an API endpoint your application calls, so Langflow is a genuine way to build AI backends: chatbots, RAG over your documents, and agents. The canvas is where you design it; the endpoint is what ships.</p>
+    <h3>What database should Langflow use in production?</h3>
+    <p>PostgreSQL. The default file storage is fine for a quick test, but a managed Postgres keeps your saved flows reliable across restarts and redeploys. Turn on the pgvector extension and the same database can also store your RAG embeddings.</p>
+    <h3>What is pgvector, and do I need it?</h3>
+    <p>pgvector is a PostgreSQL extension that stores and searches embeddings (vectors) natively. If your flow does RAG, you need somewhere to keep embeddings. pgvector lets your existing managed Postgres do that job, so a small project avoids running a second vector database.</p>
+    <h3>Where do my API keys live when I self-host?</h3>
+    <p>In your server's environment variables, under your control, not in a third-party platform. That's a core reason to self-host Langflow: your model provider keys and the data flowing through your flows stay on infrastructure you own.</p>
+    <h3>How much server does Langflow really need?</h3>
+    <p>The Langflow app is happy on a small CPU box, roughly 2 GB of RAM, because it shuffles text and makes API calls. Big document ingestion can spike memory briefly, so resize up for a heavy import if needed. The GPU, if any, belongs on the model box.</p>
+    <h3>Does self-hosting Langflow mean I stop paying for models?</h3>
+    <p>No. Langflow orchestrates models, it doesn't replace them. If it calls a hosted API you still pay that provider per use. If you self-host the model with Ollama, that model needs its own memory or GPU. Langflow's own server stays small either way.</p>
+    <h3>Can Langflow share a server with my other self-hosted tools?</h3>
+    <p>Yes. Because Langflow is light, it can run as one application alongside others on the same server, each on its own subdomain. That's the practical win of owning the box: one flat bill, several tools, including your AI flows.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Build the pipeline, keep the keys.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Self-Host Langflow: Run Your AI Pipelines on a Server You Own","description":"Self-host Langflow to build RAG pipelines and agents visually, then run them on a server you control. The real architecture, where Postgres and pgvector fit, and when self-hosting beats SaaS.","image":"https://www.kloudbean.com/blog/self-host-langflow/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/self-host-langflow/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Do I need a GPU to self-host Langflow?","acceptedAnswer":{"@type":"Answer","text":"No. Langflow orchestrates the model rather than running it, so it is light. A CPU server around 2 GB of RAM is enough. A GPU only matters if you also self-host the model itself with Ollama, and that runs on a separate, larger machine."}},
+{"@type":"Question","name":"Can I build real apps with Langflow, or just demos?","acceptedAnswer":{"@type":"Answer","text":"Real apps. A finished flow exposes an API endpoint your application calls, so Langflow is a genuine way to build AI backends: chatbots, RAG over your documents, and agents. The canvas is where you design it; the endpoint is what ships."}},
+{"@type":"Question","name":"What database should Langflow use in production?","acceptedAnswer":{"@type":"Answer","text":"PostgreSQL. The default file storage is fine for a quick test, but a managed Postgres keeps your saved flows reliable across restarts and redeploys. Turn on the pgvector extension and the same database can also store your RAG embeddings."}},
+{"@type":"Question","name":"What is pgvector, and do I need it?","acceptedAnswer":{"@type":"Answer","text":"pgvector is a PostgreSQL extension that stores and searches embeddings (vectors) natively. If your flow does RAG, you need somewhere to keep embeddings. pgvector lets your existing managed Postgres do that job, so a small project avoids running a second vector database."}},
+{"@type":"Question","name":"Where do my API keys live when I self-host?","acceptedAnswer":{"@type":"Answer","text":"In your server's environment variables, under your control, not in a third-party platform. That is a core reason to self-host Langflow: your model provider keys and the data flowing through your flows stay on infrastructure you own."}},
+{"@type":"Question","name":"How much server does Langflow really need?","acceptedAnswer":{"@type":"Answer","text":"The Langflow app is happy on a small CPU box, roughly 2 GB of RAM, because it shuffles text and makes API calls. Big document ingestion can spike memory briefly, so resize up for a heavy import if needed. The GPU, if any, belongs on the model box."}},
+{"@type":"Question","name":"Does self-hosting Langflow mean I stop paying for models?","acceptedAnswer":{"@type":"Answer","text":"No. Langflow orchestrates models, it does not replace them. If it calls a hosted API you still pay that provider per use. If you self-host the model with Ollama, that model needs its own memory or GPU. Langflow's own server stays small either way."}},
+{"@type":"Question","name":"Can Langflow share a server with my other self-hosted tools?","acceptedAnswer":{"@type":"Answer","text":"Yes. Because Langflow is light, it can run as one application alongside others on the same server, each on its own subdomain. That is the practical win of owning the box: one flat bill, several tools, including your AI flows."}}
+]}
+]}
+</script>
+</body>
+</html>

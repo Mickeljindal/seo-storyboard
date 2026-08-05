@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S3-Compatible Object Storage: Why Your Files Don't Belong on the App Server</title>
+<meta name="description" content="S3-compatible object storage keeps files as objects in buckets, reached over the S3 API instead of a disk path. Here's how it works, the code to use it, and why it keeps your app server stateless.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="S3-Compatible Object Storage: Why Your Files Don't Belong on the App Server">
+<meta property="og:description" content="What object storage is, why 'S3-compatible' means your existing SDKs and the aws CLI just work, and how moving files into a bucket keeps your server disposable.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Databases &amp; storage</span>
+  <h1>S3-Compatible Object Storage: Why Your Files Don't Belong on the App Server</h1>
+
+  <figure><img src="images/hero.png" alt="S3-compatible object storage: files as objects in buckets, reached over the S3 API"></figure>
+
+  <p class="lead">Your app server's disk is 82% full and climbing. You SSH in, run <code>du -sh *</code>, and there it is: a folder of user uploads quietly eating the box. Avatars, invoices, a few enormous video files somebody forgot about.</p>
+  <p>I'll say the unpopular part first. Those files should never have been on the server. Not the uploads, not the media, and definitely not the backups. They belong in <strong>S3-compatible object storage</strong>, and moving them makes the server a lot easier to run. This is what object storage actually is, why "S3-compatible" is the word that matters, and the commands that make it click.</p>
+
+  <div class="tldr">
+    <strong>Short answer</strong>
+    <p>Object storage keeps files as objects in flat buckets, addressed by a key and reached over the S3 API (HTTP), not by a filesystem path. "S3-compatible" means your existing AWS SDKs and the <code>aws</code> CLI work against it by pointing at a new endpoint. Put uploads, media, and backups in a bucket so the app server stays stateless and you can rebuild it anytime without losing data.</p>
+  </div>
+
+  <h2>Object storage vs the disk you already understand</h2>
+  <p>You know how a filesystem works. Folders inside folders, a file at a path like <code>/var/www/uploads/2024/avatar.png</code>, and you open, seek, and append to it. Block storage is the layer under that, raw volumes your OS formats and mounts. Both are tied to a machine. That's the catch.</p>
+  <p>Object storage throws out the folder tree. Instead you get <strong>buckets</strong>, and inside a bucket you store <strong>objects</strong>. An object is just your file plus some metadata (content type, size, custom tags) and a <strong>key</strong>, which is the object's name. The key can look like a path (<code>uploads/2024/avatar.png</code>), but there are no real directories underneath. It's a flat namespace with slashes in the names. You don't mount it. You talk to it over HTTP: <code>PUT</code> to store an object, <code>GET</code> to fetch it, <code>DELETE</code> to remove it.</p>
+  <p>That one design change buys you a lot. Objects are replicated across many machines, so a single dead disk doesn't lose your file. There's no volume to fill, so you never "run out of space." And because nothing lives on your server, you can destroy and rebuild that server whenever you like. The files don't care.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 320" width="100%" role="img" aria-labelledby="s3diagram-title" xmlns="http://www.w3.org/2000/svg">
+      <title id="s3diagram-title">An app server writes and reads objects by key to buckets over the S3 API</title>
+      <rect x="0" y="0" width="720" height="320" fill="#ffffff"></rect>
+      <!-- app server -->
+      <rect x="24" y="112" width="176" height="96" rx="14" fill="#000f27"></rect>
+      <text x="112" y="152" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="16" font-weight="600">App server</text>
+      <text x="112" y="176" text-anchor="middle" fill="#9fb0d0" font-family="Poppins,sans-serif" font-size="12.5">stateless / disposable</text>
+      <!-- PUT arrow -->
+      <path d="M212 140 H470" stroke="#4F1AF3" stroke-width="3" fill="none" marker-end="url(#ar)"></path>
+      <text x="340" y="128" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="13" font-weight="600">PUT uploads/avatar.png</text>
+      <!-- GET arrow -->
+      <path d="M470 184 H212" stroke="#40b75f" stroke-width="3" fill="none" marker-end="url(#ag)"></path>
+      <text x="340" y="204" text-anchor="middle" fill="#2f9d4e" font-family="Poppins,sans-serif" font-size="13" font-weight="600">GET uploads/avatar.png</text>
+      <text x="340" y="240" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">S3 API over HTTPS</text>
+      <!-- buckets -->
+      <rect x="486" y="44" width="210" height="104" rx="14" fill="#ffffff" stroke="#40b75f" stroke-width="2.5"></rect>
+      <text x="516" y="86" fill="#000f27" font-family="Poppins,sans-serif" font-size="15" font-weight="600">Public bucket</text>
+      <text x="516" y="110" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12.5">served to the web</text>
+      <circle cx="668" cy="80" r="13" fill="none" stroke="#40b75f" stroke-width="2.5"></circle>
+      <path d="M655 80 H681 M668 67 V93" stroke="#40b75f" stroke-width="1.6"></path>
+      <rect x="486" y="172" width="210" height="104" rx="14" fill="#ffffff" stroke="#4F1AF3" stroke-width="2.5"></rect>
+      <text x="516" y="214" fill="#000f27" font-family="Poppins,sans-serif" font-size="15" font-weight="600">Private bucket</text>
+      <text x="516" y="238" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12.5">signed links only</text>
+      <rect x="658" y="196" width="20" height="16" rx="3" fill="#4F1AF3"></rect>
+      <path d="M662 196 v-6 a6 6 0 0 1 12 0 v6" fill="none" stroke="#4F1AF3" stroke-width="2.5"></path>
+      <defs>
+        <marker id="ar" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0 0 L7 3 L0 6 Z" fill="#4F1AF3"></path></marker>
+        <marker id="ag" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0 0 L7 3 L0 6 Z" fill="#40b75f"></path></marker>
+      </defs>
+    </svg>
+    <figcaption>The app never keeps the file. It writes and reads objects by key over the S3 API, and the buckets live somewhere else entirely.</figcaption>
+  </figure>
+
+  <h2>Why "S3-compatible" is the part that matters</h2>
+  <p>Amazon shipped S3 in 2006, and its HTTP API became the thing everyone else copied. So "S3-compatible" isn't a compliance badge. It's a promise that your tools already work. The same request format, the same authentication scheme, the same <code>aws s3</code> commands. Point them at a different endpoint and you're done.</p>
+  <p>That portability is the quiet superpower here. You're not learning a proprietary SDK or locking your code to one vendor. The official AWS SDKs (boto3, the JavaScript v3 client, the PHP and Go SDKs) all take an <code>endpoint</code> parameter. Change one line and the same code talks to a different provider's storage. The CLI first, because it's the fastest way to prove a bucket works:</p>
+
+  <pre><code># list what's in a bucket, on any S3-compatible endpoint
+aws s3 ls s3://my-bucket --endpoint-url https://s3.your-provider.com
+
+# copy a file up
+aws s3 cp report.pdf s3://my-bucket/exports/report.pdf \
+  --endpoint-url https://s3.your-provider.com</code></pre>
+
+  <p>The only new thing there is <code>--endpoint-url</code>. Drop it and the command hits AWS. Add it and the identical command hits whichever S3-compatible store you're using. That's the whole trick, and it's why teams standardize on the S3 API even when they never touch AWS.</p>
+  <p>In code it's the same story. A tiny Python example with boto3:</p>
+
+  <pre><code>import os, boto3
+
+s3 = boto3.client(
+    "s3",
+    endpoint_url=os.environ["S3_ENDPOINT"],       # the only S3-specific bit
+    aws_access_key_id=os.environ["S3_KEY"],
+    aws_secret_access_key=os.environ["S3_SECRET"],
+)
+
+s3.upload_file("avatar.png", "my-bucket", "uploads/avatar.png")
+url = s3.generate_presigned_url(
+    "get_object",
+    Params={"Bucket": "my-bucket", "Key": "uploads/avatar.png"},
+    ExpiresIn=3600,   # a link that works for one hour
+)</code></pre>
+
+  <p>And the Node shape, for the JavaScript crowd:</p>
+
+  <pre><code>import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+
+const s3 = new S3Client({
+  endpoint: process.env.S3_ENDPOINT,
+  region: "auto",
+  credentials: {
+    accessKeyId: process.env.S3_KEY,
+    secretAccessKey: process.env.S3_SECRET,
+  },
+});
+
+await s3.send(new PutObjectCommand({
+  Bucket: "my-bucket",
+  Key: "uploads/avatar.png",
+  Body: fileBuffer,
+}));</code></pre>
+
+  <p>Notice the credentials come from environment variables, not from the source. Storage keys are as sensitive as a database password, so treat them the same way. There's more on that in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>.</p>
+
+  <!-- ADD IMAGE: replace this slot with a real console screenshot of managing a bucket and its objects. src -> images/bucket-objects.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A bucket's object list with a few keys like uploads/ and backups/, showing size and last-modified.</em><small>Optional: swap for your own console screenshot.</small></span></figure>
+
+  <h2>What actually belongs in a bucket</h2>
+  <p>Not everything, but more than you'd think. The test: if it's a file your app reads or writes, and it isn't code, it probably belongs in a bucket. The usual suspects:</p>
+  <ul>
+    <li><strong>User uploads.</strong> Avatars, documents, anything people send you. This is the number-one thing to get off the local disk, because uploads on a server disk vanish on a rebuild and can't be shared across two app instances.</li>
+    <li><strong>Media libraries.</strong> A WordPress media folder, a photo gallery, a video collection. Usually the bulk of your storage and the heaviest thing you serve. Put a CDN in front of the bucket and visitors get files from a nearby edge instead of your origin.</li>
+    <li><strong>Backups.</strong> A backup on the same server it protects is not a backup. Database dumps and file snapshots want to live off-box, and a bucket is the cheap, durable home for them. More on that in the <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a>.</li>
+    <li><strong>Static assets and exports.</strong> The hashed JS and CSS from a build, plus generated CSV reports and invoices your app hands users. Write them to a bucket, serve a link, and stop accumulating temp files.</li>
+  </ul>
+  <p>Two things stay out. Your live database, which needs fast random-access storage that a bucket can't give it, so use a <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">managed database</a> for that and only park the database <em>backups</em> in a bucket. And your running application code, which needs to be deployed to the server, not fetched from storage. Get those two exceptions right and the rest is fair game.</p>
+
+  <figure>
+    <img src="../assets/console/s3-buckets.png" alt="The Kloudbean console showing S3-compatible buckets alongside servers and databases">
+    <figcaption>S3-compatible buckets sitting in the same dashboard as the servers and databases they support.</figcaption>
+  </figure>
+
+  <h2>The real payoff: a server you can throw away</h2>
+  <p>The position I'll defend: a production app server should be <strong>stateless</strong>, meaning you could delete it and stand up a fresh one and lose nothing. That's the whole game. It lets you scale out, recover from a bad node in minutes, and sleep through a disk failure. The moment you write a user's file to the local disk, you break it. Now that server holds data nobody else has, and it can't be replaced without a careful copy-off first.</p>
+  <p>Object storage is how you keep the server disposable. Files go to the bucket, sessions go to <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">Redis</a>, data goes to the database, and the server itself becomes a stateless worker that any request can hit. A common mistake we see: an app runs fine on one box for a year, the team adds a second box behind a load balancer, and suddenly half the uploaded images 404 because they only exist on the first server. Buckets from day one avoid that whole class of bug. Put files in object storage before you need to, not after the incident.</p>
+
+  <h2>Public vs private buckets, and why you care</h2>
+  <p>A bucket is private by default, and that's usually right. Objects in a private bucket aren't reachable by a raw URL. To hand a user a file, your app generates a <strong>presigned URL</strong>, a temporary link (the boto3 example above did exactly this) that grants access to one object for a set number of minutes, then expires. Great for invoices, private documents, paid downloads.</p>
+  <p>A public bucket serves objects to anyone with the URL, which is what you want for a site's images, CSS, and other visible assets. Default to private, and only make a bucket public when the content is genuinely meant for the open web. Flipping a bucket public to make it work is how private files end up indexed by Google. Set the access level deliberately.</p>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>Local disk</th><th>Object storage (S3)</th></tr></thead>
+    <tbody>
+      <tr><td>Addressed by</td><td>Filesystem path</td><td>Bucket + key, over HTTP</td></tr>
+      <tr><td>Survives a server rebuild</td><td>No</td><td>Yes</td></tr>
+      <tr><td>Shared across servers</td><td>No</td><td>Yes</td></tr>
+      <tr><td>Capacity</td><td>Fixed disk size</td><td>Effectively unlimited</td></tr>
+      <tr><td>Durability</td><td>One disk</td><td>Replicated</td></tr>
+      <tr><td>Good for</td><td>Temp files, the OS, code</td><td>Uploads, media, backups, exports</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Moving files that are already on a server</h2>
+  <p>If your uploads folder is already fat with files, you don't rewrite anything to migrate. You sync. The <code>aws s3 sync</code> command (or <code>rclone</code>, if you prefer) copies a whole tree into a bucket in one pass, and you can run it again to catch stragglers:</p>
+
+  <pre><code># first pass: copy the existing uploads into the bucket
+aws s3 sync ./public/uploads s3://my-bucket/uploads \
+  --endpoint-url https://s3.your-provider.com
+
+# run it again later; only new/changed files transfer</code></pre>
+
+  <p>For app-level file handling, most frameworks have a storage "driver" you repoint at S3 with config, not a rewrite. Laravel has an <code>s3</code> disk, Django has <code>django-storages</code>, WordPress has offload plugins, Rails has Active Storage. In every case you're pointing existing tooling at a bucket, because they all speak the same S3 API.</p>
+
+  <!-- ADD IMAGE: replace this slot with a real screenshot or GIF of a framework storage config pointing at an S3 endpoint. src -> images/storage-driver-config.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A framework storage config (Laravel disk or django-storages) with the endpoint and bucket filled in.</em><small>Optional: swap for your own screenshot.</small></span></figure>
+
+  <h2>How it fits the rest of your stack</h2>
+  <p>Object storage is one piece of owning the whole stack instead of renting bits of it from five vendors. The bucket holds the files. A <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">managed database</a> holds the structured data. The app server, kept stateless, runs the code and scales out behind a load balancer when traffic climbs. On a busy site, moving media into a bucket is often the single biggest disk and bandwidth relief you'll get, which is why it shows up in nearly every <a href="https://www.kloudbean.com/blog/scalable-wordpress-hosting/">scalable WordPress</a> setup. Because it's all S3-compatible, the objects stay yours to export whenever you want.</p>
+  <p>One cost note before you commit to any provider: serving files out of a bucket can carry a bandwidth charge called egress, and it can dwarf the storage cost. It's worth understanding before the bill arrives, and we dug into it in <a href="https://www.kloudbean.com/blog/zero-egress-object-storage/">the egress fees breakdown</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Get the files off the box, keep the server disposable.</p>
+    <p style="margin:0 0 .6em">Kloudbean gives you built-in S3-compatible object storage in the same dashboard as your servers, managed databases, and apps. Full AWS S3 SDK and CLI compatibility, public and private buckets, and objects you can export anytime. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">S3-compatible buckets · Managed databases · Automatic backups · Private networking · One dashboard · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is S3-compatible object storage?</h3>
+    <p>It's storage that keeps your files as objects inside buckets, reached over the same HTTP API that Amazon S3 popularized. Because the API is a shared standard, the AWS SDKs and the aws CLI work against it directly. You point them at a different endpoint and everything else stays the same, which makes your code and your files portable rather than locked to one vendor.</p>
+    <h3>How is object storage different from a normal filesystem?</h3>
+    <p>A filesystem stores files at paths on a disk attached to one machine. Object storage stores objects by key in a flat bucket, reached over HTTP, with no server to mount. That means it survives server rebuilds, is shared across every app instance, replicates for durability, and never runs out of space the way a fixed disk does.</p>
+    <h3>How do I use an S3 bucket from my code?</h3>
+    <p>Use the AWS SDK for your language (boto3, the JavaScript v3 client, and so on) and set the endpoint to your provider's S3 URL, with the access key and secret loaded from environment variables. Then it's ordinary calls like put_object and get_object, or presigned URLs for temporary access. For quick tests, the aws s3 CLI with an --endpoint-url flag does the same thing from the terminal.</p>
+    <h3>What should I store in object storage?</h3>
+    <p>User uploads, media libraries, backups kept off the app server, built static assets, and generated exports or downloads. Anything that's a file rather than code, and that you don't want tied to one server's disk. Keep your live database out of it (use a managed database), and keep your running application code on the server.</p>
+    <h3>Can I store my database in a bucket?</h3>
+    <p>No. A live database needs fast, structured, random-access storage, which object storage isn't built for. Use a managed database engine for the running database, and store the database backups in a bucket so they sit safely off the machine the database runs on.</p>
+    <h3>What's the difference between a public and a private bucket?</h3>
+    <p>A private bucket keeps objects unreachable by a raw URL; your app grants access with temporary presigned links that expire. A public bucket serves objects to anyone with the URL, which suits site assets and images. Default to private and only make content public when it's genuinely meant for the open web.</p>
+    <h3>How do I move files that are already on my server?</h3>
+    <p>Sync them. The aws s3 sync command (or rclone) copies an existing folder into a bucket in one pass, and you can rerun it to catch changes. For your app's file handling, repoint the framework's storage driver (Laravel's s3 disk, django-storages, an offload plugin) at the bucket. That's config, not a rewrite, because they all speak the S3 API.</p>
+    <h3>Does object storage work with a CDN?</h3>
+    <p>Yes, and it's a common pairing. A CDN in front of a bucket caches objects at edge locations, so visitors get images, video, and static assets from somewhere nearby instead of your origin. That's faster for users and takes load off your server. Just budget for egress, since files served out of a bucket can carry a bandwidth charge.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Store it in a bucket, not on the box.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"S3-Compatible Object Storage: Why Your Files Don't Belong on the App Server","description":"What object storage is, why S3-compatible means your existing SDKs and the aws CLI just work, and how moving files into a bucket keeps your server stateless.","image":"https://www.kloudbean.com/blog/s3-compatible-object-storage/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/s3-compatible-object-storage/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is S3-compatible object storage?","acceptedAnswer":{"@type":"Answer","text":"It's storage that keeps your files as objects inside buckets, reached over the same HTTP API that Amazon S3 popularized. Because the API is a shared standard, the AWS SDKs and the aws CLI work against it directly. You point them at a different endpoint and everything else stays the same, which makes your code and your files portable rather than locked to one vendor."}},
+{"@type":"Question","name":"How is object storage different from a normal filesystem?","acceptedAnswer":{"@type":"Answer","text":"A filesystem stores files at paths on a disk attached to one machine. Object storage stores objects by key in a flat bucket, reached over HTTP, with no server to mount. That means it survives server rebuilds, is shared across every app instance, replicates for durability, and never runs out of space the way a fixed disk does."}},
+{"@type":"Question","name":"How do I use an S3 bucket from my code?","acceptedAnswer":{"@type":"Answer","text":"Use the AWS SDK for your language (boto3, the JavaScript v3 client, and so on) and set the endpoint to your provider's S3 URL, with the access key and secret loaded from environment variables. Then it's ordinary calls like put_object and get_object, or presigned URLs for temporary access. For quick tests, the aws s3 CLI with an --endpoint-url flag does the same thing from the terminal."}},
+{"@type":"Question","name":"What should I store in object storage?","acceptedAnswer":{"@type":"Answer","text":"User uploads, media libraries, backups kept off the app server, built static assets, and generated exports or downloads. Anything that's a file rather than code, and that you don't want tied to one server's disk. Keep your live database out of it (use a managed database), and keep your running application code on the server."}},
+{"@type":"Question","name":"Can I store my database in a bucket?","acceptedAnswer":{"@type":"Answer","text":"No. A live database needs fast, structured, random-access storage, which object storage isn't built for. Use a managed database engine for the running database, and store the database backups in a bucket so they sit safely off the machine the database runs on."}},
+{"@type":"Question","name":"What's the difference between a public and a private bucket?","acceptedAnswer":{"@type":"Answer","text":"A private bucket keeps objects unreachable by a raw URL; your app grants access with temporary presigned links that expire. A public bucket serves objects to anyone with the URL, which suits site assets and images. Default to private and only make content public when it's genuinely meant for the open web."}},
+{"@type":"Question","name":"How do I move files that are already on my server?","acceptedAnswer":{"@type":"Answer","text":"Sync them. The aws s3 sync command (or rclone) copies an existing folder into a bucket in one pass, and you can rerun it to catch changes. For your app's file handling, repoint the framework's storage driver (Laravel's s3 disk, django-storages, an offload plugin) at the bucket. That's config, not a rewrite, because they all speak the S3 API."}},
+{"@type":"Question","name":"Does object storage work with a CDN?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it's a common pairing. A CDN in front of a bucket caches objects at edge locations, so visitors get images, video, and static assets from somewhere nearby instead of your origin. That's faster for users and takes load off your server. Just budget for egress, since files served out of a bucket can carry a bandwidth charge."}}
+]}
+]}
+</script>
+</body>
+</html>

@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI App Works Locally but Not in Production? 7 Real Causes</title>
+<meta name="description" content="Your AI app works locally but not in production? Here are the 7 real causes, from SQLite resets to missing env vars and localhost ports, plus the fix for each.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/why-my-ai-app-works-locally-but-not-in-production/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="AI App Works Locally but Not in Production? 7 Real Causes">
+<meta property="og:description" content="Why a vibe-coded app runs on localhost but breaks once deployed, and how to fix each cause: local databases, missing secrets, localhost ports, uploads, CORS, builds, versions.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Troubleshooting · localhost vs production</span>
+  <h1>Why Your AI App Works Locally but Not in Production</h1>
+  <p class="byline">By Kloudbean Engineering · Field notes from the gap between localhost and production.</p>
+
+  <figure><img src="images/hero.png" alt="Why an AI app works locally but not in production, and how to fix each cause"></figure>
+
+  <p class="lead">You built an app with Cursor, Lovable, Bolt, Replit, or v0. On your laptop it's flawless. Buttons work, data saves, the thing feels finished. Then you deploy and the wheels come off: blank screens, a 500, data that quietly vanishes. If your AI app works locally but not in production, that's not a punishment for bad code. You've hit the oldest gap in software, the one where it works on localhost, not in production. This guide walks the seven real causes. Each one gets the exact symptom, the reason, and the fix.</p>
+
+  <div class="tldr">
+    <strong>Short answer</strong>
+    <p>Why does an AI-built app work locally but break in production? Because production is a different environment, and the things your laptop quietly faked are now gone. The database was a local file that resets on redeploy. Your secrets lived in a <code>.env</code> that never reached the server. Your app listens on <code>localhost</code> instead of <code>0.0.0.0</code>. It's almost always config and state, not your logic. Fix the environment and the same code that ran locally runs in production.</p>
+  </div>
+
+  <h2>Why your AI app works locally but not in production</h2>
+  <p>Here's the founder-level truth, and it saves a lot of thrashing. AI tools optimize for one thing: getting something running on your machine, fast. But "runs on my machine" leans on conveniences your laptop hands you for free and a real server does not. Your database is a file sitting right there. Secrets are in a <code>.env</code> the app just reads. Everything talks over <code>localhost</code>, uploads land on the same disk as your code, and the runtime is whatever you happen to have installed.</p>
+  <p>Production strips all of that away. The server is a fresh Linux box that knows none of your local assumptions. So the bug is rarely in the logic the AI wrote. It's in the environment around it: config and state. See production-only failures that way and they stop being mysterious. Let's walk the seven.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 480" width="100%" role="img" aria-label="A two-column diff showing what your laptop provides implicitly versus what production needs explicitly. Row data: a local SQLite file becomes a managed Postgres or MySQL. Row secrets: a dot env file on disk becomes environment variables set on the server. Row address: localhost port 3000 becomes 0.0.0.0 on the assigned PORT. Row uploads: files saved to local disk become an object storage bucket. Row runtime: your laptop's version becomes a pinned Node or Python version." style="border:1px solid #e6e9f2;border-radius:16px;background:#fff">
+      <text x="24" y="32" font-family="Poppins,Arial,sans-serif" font-size="17" font-weight="700" fill="#000f27">The localhost-to-production diff</text>
+      <text x="24" y="54" font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#5b6a86">What your laptop fakes for free (left) has to become real and explicit in production (right).</text>
+
+      <!-- header pills -->
+      <rect x="92" y="76" width="246" height="26" rx="8" fill="#000f27"/>
+      <text x="215" y="93" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#fff">On your laptop (implicit)</text>
+      <rect x="396" y="76" width="302" height="26" rx="8" fill="#eafaf0" stroke="#40b75f"/>
+      <text x="547" y="93" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#2f7d45">In production (must be explicit)</text>
+
+      <!-- rows -->
+      <g font-family="Poppins,Arial,sans-serif">
+        <!-- category labels -->
+        <g font-size="10.5" font-weight="700" fill="#5b6a86">
+          <text x="16" y="148">DATA</text>
+          <text x="16" y="212">SECRETS</text>
+          <text x="16" y="276">ADDRESS</text>
+          <text x="16" y="340">UPLOADS</text>
+          <text x="16" y="404">RUNTIME</text>
+        </g>
+
+        <!-- left boxes (navy) -->
+        <g>
+          <rect x="92" y="122" width="246" height="44" rx="10" fill="#000f27"/>
+          <rect x="92" y="186" width="246" height="44" rx="10" fill="#000f27"/>
+          <rect x="92" y="250" width="246" height="44" rx="10" fill="#000f27"/>
+          <rect x="92" y="314" width="246" height="44" rx="10" fill="#000f27"/>
+          <rect x="92" y="378" width="246" height="44" rx="10" fill="#000f27"/>
+        </g>
+        <g font-size="12.5" fill="#ffffff" text-anchor="middle">
+          <text x="215" y="148">A local SQLite file</text>
+          <text x="215" y="212">.env sitting on disk</text>
+          <text x="215" y="276">localhost : 3000</text>
+          <text x="215" y="340">Uploads to local disk</text>
+          <text x="215" y="404">Your laptop's version</text>
+        </g>
+
+        <!-- arrows -->
+        <g stroke="#4F1AF3" stroke-width="2" fill="#4F1AF3">
+          <line x1="340" y1="144" x2="386" y2="144"/><polygon points="386,139 386,149 396,144"/>
+          <line x1="340" y1="208" x2="386" y2="208"/><polygon points="386,203 386,213 396,208"/>
+          <line x1="340" y1="272" x2="386" y2="272"/><polygon points="386,267 386,277 396,272"/>
+          <line x1="340" y1="336" x2="386" y2="336"/><polygon points="386,331 386,341 396,336"/>
+          <line x1="340" y1="400" x2="386" y2="400"/><polygon points="386,395 386,405 396,400"/>
+        </g>
+
+        <!-- right boxes (white, green border) -->
+        <g>
+          <rect x="396" y="122" width="302" height="44" rx="10" fill="#fff" stroke="#40b75f" stroke-width="1.8"/>
+          <rect x="396" y="186" width="302" height="44" rx="10" fill="#fff" stroke="#40b75f" stroke-width="1.8"/>
+          <rect x="396" y="250" width="302" height="44" rx="10" fill="#fff" stroke="#40b75f" stroke-width="1.8"/>
+          <rect x="396" y="314" width="302" height="44" rx="10" fill="#fff" stroke="#40b75f" stroke-width="1.8"/>
+          <rect x="396" y="378" width="302" height="44" rx="10" fill="#fff" stroke="#40b75f" stroke-width="1.8"/>
+        </g>
+        <g font-size="12.5" fill="#000f27" text-anchor="middle" font-weight="600">
+          <text x="547" y="148">Managed Postgres or MySQL</text>
+          <text x="547" y="212">Env vars set on the server</text>
+          <text x="547" y="276">0.0.0.0 on the assigned PORT</text>
+          <text x="547" y="340">Object storage bucket (S3)</text>
+          <text x="547" y="404">A pinned Node or Python</text>
+        </g>
+      </g>
+
+      <text x="360" y="456" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#5b6a86">Five assumptions localhost makes silently. Production needs every one of them spelled out.</text>
+    </svg>
+    <figcaption>The gap in one picture: localhost fakes the database, secrets, address, uploads, and runtime. Production makes you declare each one.</figcaption>
+  </figure>
+
+  <h2>The seven usual culprits, most common first</h2>
+  <p>These are the failures that turn "it worked five minutes ago" into a deployed app that won't load. I've ordered them by how often they bite. Scan the table, find the symptom on your screen, jump to the fix.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Symptom you see</th><th>Real cause</th><th>The fix</th></tr></thead>
+    <tbody>
+      <tr><td>Data resets after a redeploy; empty tables</td><td>Local SQLite or file database</td><td>Move to a managed Postgres or MySQL</td></tr>
+      <tr><td>Crash on boot, values are <code>undefined</code></td><td>Secrets never set on the server</td><td>Set env vars in Runtime Configuration</td></tr>
+      <tr><td>502 or 503, blank wall</td><td>App bound to <code>localhost</code>, not the port</td><td>Listen on <code>0.0.0.0</code> and <code>process.env.PORT</code></td></tr>
+      <tr><td>Uploaded files 404 later</td><td>Uploads written to local disk</td><td>Store files in object storage</td></tr>
+      <tr><td>CORS error, calls to <code>localhost</code> fail</td><td>Frontend points at a local API URL</td><td>Use an env-driven base URL</td></tr>
+      <tr><td><code>Cannot find module</code>, blank page</td><td>No build step, or dev-only deps dropped</td><td>Set the build command; fix dependencies</td></tr>
+      <tr><td>Install fails, modern syntax errors</td><td>Node or Python version mismatch</td><td>Pin the runtime version</td></tr>
+    </tbody>
+  </table>
+
+  <h2>1. Your database was a local file, and production wiped it</h2>
+  <p><strong>Symptom:</strong> you sign up a test user, everything's fine. Then you push a change, the app redeploys, and every account is gone. Or you see <code>SQLITE_ERROR: no such table</code> where there was clearly a table yesterday.</p>
+  <p><strong>Cause:</strong> the AI generated your app against <strong>SQLite</strong> or a local file, because that needs zero setup and works the instant you run it. Great for building. But a lot of production filesystems are ephemeral, so a redeploy or restart hands you a clean disk, and your database file goes with it. SQLite is great in dev and wrong the moment a second person relies on the app.</p>
+  <p><strong>Fix:</strong> run a real database that lives on its own and survives deploys. Point your app at a managed Postgres or MySQL through a <code>DATABASE_URL</code>, and swap the local file out:</p>
+  <pre><code># Local (works, then wipes on the next redeploy)
+DATABASE_URL="file:./dev.db"
+
+# Production: a managed database that persists
+DATABASE_URL="postgresql://appuser:secret@10.0.0.5:5432/appdb"</code></pre>
+  <p>On Kloudbean you open <strong>DBS</strong>, click <strong>Launch Database</strong>, and wire the connection in as an environment variable. The full walkthrough, with migration commands for Prisma, Drizzle, Django, Laravel, and Rails, is in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">how to add a managed database to your app</a>. Do this before you have real users, not after you lose them.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console Launch Database screen, creating a managed Postgres or MySQL that survives redeploys">
+    <figcaption>DBS, then Launch Database. A managed Postgres or MySQL persists across every deploy, unlike a local file.</figcaption>
+  </figure>
+
+  <h2>2. Your secrets live on your laptop, not on the server</h2>
+  <p><strong>Symptom:</strong> the app boots, then dies instantly. Logs show a value is <code>undefined</code>, or you get <code>Error: connect ECONNREFUSED 127.0.0.1:5432</code>, or an API client throws because a key is empty. Works locally every single time.</p>
+  <p><strong>Cause:</strong> your <code>.env</code> file is in <code>.gitignore</code>, which is correct. But that also means it never travels to the server. The app reaches for <code>DATABASE_URL</code> or <code>OPENAI_API_KEY</code>, finds nothing, and crashes. This is the single thing we see break most often on a first deploy, and there's not one line of bad code involved.</p>
+  <p><strong>Fix:</strong> set every secret on the server itself. In Kloudbean that's <strong>Runtime Configuration &#8594; Environment Variables</strong>, where you can paste your whole <code>.env</code> and convert it to key/value in one go, then redeploy. The reliable habit is env parity: put your local <code>.env</code> and the server's variables side by side and set anything that's missing. New to this? Read <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a> before you trust any deploy. And don't paste secrets into the repo to make the deploy pass. That leaks your keys into Git history forever.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean Environment Variables editor with a paste dot env tab, where secrets are set on the server">
+    <figcaption>Runtime Configuration, Environment Variables. Set the keys the log named, then redeploy.</figcaption>
+  </figure>
+
+  <h2>3. Your app binds to localhost, so nothing can reach it</h2>
+  <p><strong>Symptom:</strong> a green build, then a <strong>502 Bad Gateway</strong> or <strong>503 Service Unavailable</strong> when you open the URL. The logs even say the app is listening. Dead page anyway.</p>
+  <p><strong>Cause:</strong> either the app hard-codes a port like <code>3000</code> instead of reading the one the platform assigned, or it binds to <code>127.0.0.1</code> (localhost) instead of <code>0.0.0.0</code>. Bound to localhost, the app is only reachable from inside itself. The web server out front knocks, gets no answer, and returns a 502 or 503. This is the most common production-only failure that isn't about data.</p>
+  <p><strong>Fix:</strong> read the assigned port from the environment and bind to every interface.</p>
+  <pre><code>// Breaks in production: only the box itself can reach this
+app.listen(3000, '127.0.0.1')
+
+// Works: bind to all interfaces on the port you're given
+const port = process.env.PORT || 3000
+app.listen(port, '0.0.0.0', () =&gt; console.log('up on ' + port))</code></pre>
+  <p>Python is the same idea:</p>
+  <pre><code># Flask
+app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
+
+# FastAPI with uvicorn
+uvicorn main:app --host 0.0.0.0 --port $PORT</code></pre>
+  <p>The <code>|| 3000</code> fallback keeps it working on your laptop while doing the right thing in production. This failure is common enough to have its own field guide: <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">how to fix a 503 after deploying your app</a> walks the full decision tree.</p>
+
+  <h2>4. File uploads write to local disk, then disappear</h2>
+  <p><strong>Symptom:</strong> a user uploads an avatar or a PDF, it shows up fine, and after the next deploy the image is a broken link. Logs show <code>ENOENT: no such file or directory</code> pointing at an <code>/uploads</code> path.</p>
+  <p><strong>Cause:</strong> the app saves uploaded files to the local disk next to the code, usually through something like multer's disk storage. Same trap as the local database. That disk isn't permanent, and it isn't shared if you ever run more than one instance. Redeploy, and the files are gone.</p>
+  <p><strong>Fix:</strong> write uploads to <strong>object storage</strong> instead of the app's disk. It's built for this: durable, separate from your app, reachable by every instance. Kloudbean has built-in S3-compatible buckets with full AWS S3 SDK compatibility, so most existing upload code works with a config change rather than a rewrite. The <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage guide</a> shows how to point uploads at a bucket.</p>
+
+  <!-- ADD IMAGE: swap for a real <figure> with an <img> (src -> images/uploads-disk-vs-bucket.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>A before/after: an upload saved to a local /uploads folder that vanishes on redeploy, versus the same file living safely in an object storage bucket.</em><small>Makes the ephemeral-disk trap obvious at a glance.</small></span></figure>
+
+  <h2>5. Your frontend still points at localhost (the CORS wall)</h2>
+  <p><strong>Symptom:</strong> the deployed site loads, but nothing fetches. The browser console reads <code>Access to fetch at 'http://localhost:3001/api' from origin 'https://yourapp.com' has been blocked by CORS policy</code>. Or every API call just fails silently.</p>
+  <p><strong>Cause:</strong> the frontend has a hard-coded API base URL of <code>http://localhost:3001</code>. On your laptop the backend really is at localhost, so it works. In production the visitor's browser tries to reach <em>their own</em> localhost, finds nothing, and the request dies. The CORS error is the same root problem from the server side: your API only allows requests from localhost.</p>
+  <p><strong>Fix:</strong> never hard-code the API location. Drive it from an environment variable, and fall back to a relative path so same-origin calls just work:</p>
+  <pre><code>// Vite / React
+const API = import.meta.env.VITE_API_URL || '/api'
+fetch(API + '/users')</code></pre>
+  <p>Then set <code>VITE_API_URL</code> at build time in production, and set your API's allowed CORS origin to your real domain instead of <code>localhost</code>. Note that frontend build variables are baked in when the app is built, so they have to be present during the build, not just at runtime.</p>
+
+  <h2>6. The build step never ran, or dev-only dependencies vanished</h2>
+  <p><strong>Symptom:</strong> a blank white page, 404s on your JavaScript and CSS, or a hard crash with <code>Cannot find module 'vite'</code> or <code>sh: vite: command not found</code> during deploy.</p>
+  <p><strong>Cause:</strong> two flavors. First, no build command was set, so the server serves raw source that was never compiled into <code>dist</code> or <code>build</code>. Second, the build tool (Vite, the TypeScript compiler) sits in <code>devDependencies</code>, and a production install with <code>NODE_ENV=production</code> skips those. It builds on your laptop because you installed everything. It fails on the server because the server was told to be lean.</p>
+  <p><strong>Fix:</strong> set the build command explicitly (usually <code>npm run build</code>) so the production assets actually get generated. If a package is needed to build, make sure it's installed at build time rather than pruned. On Kloudbean you set the install, build, and start commands right in the Git deployment config, and the live build logs show you exactly which step failed.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean Git deployment configuration where install, build, and start commands are set">
+    <figcaption>Set install, build, and start as separate steps. The live build log tells you which one broke.</figcaption>
+  </figure>
+
+  <h2>7. Node or Python version mismatch</h2>
+  <p><strong>Symptom:</strong> packages fail to install, or the app throws syntax errors on code that's obviously valid, or you see <code>The engine "node" is incompatible with this module. Expected version "&gt;=20". Got "18.17.0"</code>.</p>
+  <p><strong>Cause:</strong> your laptop runs one version and the server defaulted to another. Modern syntax and newer packages assume a recent runtime, so an older server chokes on things that ran fine for you. It's the least common cause here, but it produces the most confusing errors, because the code genuinely is correct.</p>
+  <p><strong>Fix:</strong> pin the version so both environments match. For Node, declare it in <code>package.json</code> and set the same version in your runtime config:</p>
+  <pre><code>{
+  "engines": { "node": "&gt;=20" }
+}</code></pre>
+  <p>For Python, pin the interpreter version in the app's runtime settings. Kloudbean lets you set the Node or Python version in the UI, so you match your local runtime without touching the server by hand. Pin it once and this class of bug disappears.</p>
+
+  <h2>Is it my code or my config? Almost always config</h2>
+  <p>Notice the pattern across all seven. Not one is a bug in the logic the AI wrote. Every one is about the environment: where data lives, where secrets come from, what address the app answers on, where files go, and which runtime runs them. That's the mental model. When something works locally and breaks deployed, suspect config and state first, and open your application code last.</p>
+  <p>The trap I see most is editing app code to chase a bug that was never in the code. You make the working parts worse while the real cause, a missing variable or a local path, sits untouched. Read the logs, check the environment, and resist rewriting what already ran.</p>
+
+  <h2>A pre-flight checklist before you push</h2>
+  <p>Once you've been burned once, a short habit keeps the next deploy boring:</p>
+  <ul>
+    <li>The database is a managed Postgres or MySQL, not a local file, and <code>DATABASE_URL</code> is set on the server.</li>
+    <li>Every key in your local <code>.env</code> is also set in the server's environment variables.</li>
+    <li>The app binds to <code>0.0.0.0</code> and reads <code>process.env.PORT</code>, never a hard-coded port.</li>
+    <li>File uploads go to object storage, not the local disk.</li>
+    <li>The frontend's API URL comes from an env var, and CORS allows your real domain.</li>
+    <li>The build command is set, and everything needed to build is installed at build time.</li>
+    <li>The runtime version is pinned to match what you develop on.</li>
+    <li>You ran the production build locally once. If it fails on your machine, it'll fail on the server.</li>
+  </ul>
+  <p>None of that is heavy process. It turns "deploy and pray" into "deploy and know."</p>
+
+  <h2>Why one dashboard makes this gap smaller</h2>
+  <p>Most of these failures share a root: the app needs services and config that live somewhere other than your laptop, and stitching them across three or four providers is where things slip through. That's the part Kloudbean removes. Your managed database, environment variables, object storage, and build logs sit in one dashboard, on a server you own, on a private network. You set the port and env vars in the UI, launch the database next to the app, and watch the build stream live. Fewer moving pieces, fewer places for a localhost assumption to hide.</p>
+  <p>Weighing where to put a vibe-coded app after a hobby host? The <a href="https://www.kloudbean.com/blog/render-alternative-for-vibe-coded-apps/">Render alternative for vibe-coded apps</a> breaks down the tradeoffs, and the pillar guide, <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">how to deploy an AI-built app to production</a>, ties every step together.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">The code already runs. Now give it a real home.</p>
+    <p style="margin:0">Launch a managed server, database, and object storage from one dashboard at <a href="https://www.kloudbean.com/">kloudbean.com</a>, with a free trial and your first migration done for you. Sizes and plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.7em 0 0; font-size:15px; color:#c9b8ff">Managed databases · Environment variables in the UI · Object storage · Private networking · Live build logs · Free migration</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Why does my AI-built app work locally but not in production?</h3>
+    <p>Because production is a different environment and the conveniences your laptop provided are gone. The database was a local file, the secrets were in a .env that never reached the server, and the app assumed localhost. It's almost always config and state, not the code the AI wrote. Fix the environment and the same code runs.</p>
+    <h3>My app works on localhost but not when deployed. What do I check first?</h3>
+    <p>Read the logs before touching code. On a Kloudbean server that's app.error.log, plus the live build log. They almost always name the exact problem, whether it's a missing environment variable, a port it cannot bind, or a module it cannot find. Guessing wastes the most time.</p>
+    <h3>Why did all my data disappear after I redeployed?</h3>
+    <p>Your app is using SQLite or a local file database on an ephemeral filesystem. When the app redeploys, the disk is reset and the data goes with it. Move to a managed Postgres or MySQL that lives independently and survives deploys, then wire it in through a DATABASE_URL environment variable.</p>
+    <h3>Why do I get ECONNREFUSED 127.0.0.1 in production?</h3>
+    <p>The app is trying to reach a database or service at localhost that only existed on your machine. In production that address points at the server itself, where nothing is listening. Set the real connection details as environment variables on the server and point the app at the managed service.</p>
+    <h3>Why does my app return a 502 or 503 after deploying?</h3>
+    <p>The app process is not answering on the port the platform expects. Usually it binds to localhost or a hard-coded port instead of 0.0.0.0 and process.env.PORT, or it crashed on startup over a missing variable. Bind correctly, set the env vars, and redeploy.</p>
+    <h3>Why do my uploaded files disappear on the server?</h3>
+    <p>They were written to the local disk, which is not permanent and is not shared across instances. A redeploy or restart wipes them. Store uploads in object storage instead, which is durable and reachable by every instance of your app.</p>
+    <h3>Why am I getting a CORS error only in production?</h3>
+    <p>Your frontend has a hard-coded API URL pointing at localhost, or your API only allows requests from localhost. Drive the API base URL from an environment variable, fall back to a relative path, and set the allowed CORS origin to your real production domain.</p>
+    <h3>Cannot find module in production but it works locally. Why?</h3>
+    <p>The package is either missing from your real dependencies or it was in devDependencies and got pruned by a production install. It worked locally because you had everything installed. Make anything the app or the build needs a proper dependency, and confirm the build command actually ran.</p>
+    <h3>Can a Node or Python version mismatch cause production-only bugs?</h3>
+    <p>Yes. If the server runs an older runtime than your laptop, modern syntax and newer packages can fail with confusing errors even though the code is correct. Pin the version in package.json engines for Node, or in the runtime settings for Python, and match it in your host's config.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Engineering · Field notes from the gap between localhost and production.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Why Your AI App Works Locally but Not in Production","description":"The seven real reasons an AI-built app works locally but breaks in production, from SQLite resets to missing env vars and localhost ports, with the fix for each.","image":"https://www.kloudbean.com/blog/why-my-ai-app-works-locally-but-not-in-production/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/why-my-ai-app-works-locally-but-not-in-production/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Why does my AI-built app work locally but not in production?","acceptedAnswer":{"@type":"Answer","text":"Because production is a different environment and the conveniences your laptop provided are gone. The database was a local file, the secrets were in a .env that never reached the server, and the app assumed localhost. It is almost always config and state, not the code the AI wrote. Fix the environment and the same code runs."}},
+{"@type":"Question","name":"My app works on localhost but not when deployed. What do I check first?","acceptedAnswer":{"@type":"Answer","text":"Read the logs before touching code. On a Kloudbean server that is app.error.log, plus the live build log. They almost always name the exact problem, whether it is a missing environment variable, a port it cannot bind, or a module it cannot find. Guessing wastes the most time."}},
+{"@type":"Question","name":"Why did all my data disappear after I redeployed?","acceptedAnswer":{"@type":"Answer","text":"Your app is using SQLite or a local file database on an ephemeral filesystem. When the app redeploys, the disk is reset and the data goes with it. Move to a managed Postgres or MySQL that lives independently and survives deploys, then wire it in through a DATABASE_URL environment variable."}},
+{"@type":"Question","name":"Why do I get ECONNREFUSED 127.0.0.1 in production?","acceptedAnswer":{"@type":"Answer","text":"The app is trying to reach a database or service at localhost that only existed on your machine. In production that address points at the server itself, where nothing is listening. Set the real connection details as environment variables on the server and point the app at the managed service."}},
+{"@type":"Question","name":"Why does my app return a 502 or 503 after deploying?","acceptedAnswer":{"@type":"Answer","text":"The app process is not answering on the port the platform expects. Usually it binds to localhost or a hard-coded port instead of 0.0.0.0 and process.env.PORT, or it crashed on startup over a missing variable. Bind correctly, set the env vars, and redeploy."}},
+{"@type":"Question","name":"Why do my uploaded files disappear on the server?","acceptedAnswer":{"@type":"Answer","text":"They were written to the local disk, which is not permanent and is not shared across instances. A redeploy or restart wipes them. Store uploads in object storage instead, which is durable and reachable by every instance of your app."}},
+{"@type":"Question","name":"Why am I getting a CORS error only in production?","acceptedAnswer":{"@type":"Answer","text":"Your frontend has a hard-coded API URL pointing at localhost, or your API only allows requests from localhost. Drive the API base URL from an environment variable, fall back to a relative path, and set the allowed CORS origin to your real production domain."}},
+{"@type":"Question","name":"Cannot find module in production but it works locally. Why?","acceptedAnswer":{"@type":"Answer","text":"The package is either missing from your real dependencies or it was in devDependencies and got pruned by a production install. It worked locally because you had everything installed. Make anything the app or the build needs a proper dependency, and confirm the build command actually ran."}},
+{"@type":"Question","name":"Can a Node or Python version mismatch cause production-only bugs?","acceptedAnswer":{"@type":"Answer","text":"Yes. If the server runs an older runtime than your laptop, modern syntax and newer packages can fail with confusing errors even though the code is correct. Pin the version in package.json engines for Node, or in the runtime settings for Python, and match it in your host config."}}
+]}
+]}
+</script>
+</body>
+</html>

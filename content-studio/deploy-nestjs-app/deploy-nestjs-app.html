@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Deploy a NestJS App to Production, Start to Finish</title>
+<meta name="description" content="Deploy a NestJS app to production: run nest build to dist, read config from env vars with @nestjs/config, enable shutdown hooks, and run node dist/main.js under PM2 behind Nginx.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/deploy-nestjs-app/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Deploy a NestJS App to Production, Start to Finish">
+<meta property="og:description" content="The production build, config from env vars, shutdown hooks, PM2 behind Nginx, and a managed database. A practical guide to deploy a NestJS app the way it survives real traffic.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Deploy NestJS to production</span>
+  <h1>How to Deploy a NestJS App to Production</h1>
+
+  <figure><img src="images/hero.png" alt="Deploy a NestJS app to production: nest build compiles to dist, then node dist/main.js runs under PM2 behind Nginx with free SSL"></figure>
+
+  <p class="lead">You built an API with NestJS. It runs beautifully with <code>npm run start:dev</code>, hot-reloading on every save. Then you go to deploy a NestJS app to production and hit the question nobody's tutorial answered: what actually runs on the server? Not <code>nest start</code>. Not ts-node. A compiled JavaScript bundle in <code>dist/</code>, launched with <code>node dist/main.js</code>, kept alive by a process manager, sitting behind Nginx with SSL.</p>
+
+  <p>Good news up front. NestJS hosting isn't a special discipline. In production a Nest app is a well-structured Node app plus one compile step. If you can host a NestJS API, you already know most of it. This guide walks the whole path: the NestJS production build, reading config from environment variables, graceful shutdown hooks, running under PM2 behind a reverse proxy, then a Git deploy with a managed database wired in. Real commands, not hand-waving.</p>
+
+  <div class="tldr">
+    <strong>How do I deploy a NestJS app to production?</strong>
+    <p>Run <code>nest build</code> to compile TypeScript into <code>dist/</code>, set <code>NODE_ENV=production</code>, and start the app with <code>node dist/main.js</code> (not <code>start:dev</code>). Read config through <code>@nestjs/config</code> from environment variables, call <code>app.enableShutdownHooks()</code> so redeploys close cleanly, and run the process under PM2 behind Nginx with SSL. On Kloudbean you connect a Git repo, set install/build/start commands, add env vars in the UI, and every push builds and ships with live logs.</p>
+  </div>
+
+  <h2>What actually changes when NestJS goes to production?</h2>
+  <p>One thing. The build step. That's the whole difference between a plain Express app and a NestJS app at deploy time, and it's worth understanding before you touch a server.</p>
+  <p>In development you run <code>nest start --watch</code> (that's what <code>npm run start:dev</code> calls). Under the hood it uses ts-node to compile your TypeScript in memory and re-run it every time you save. Convenient for you. Wrong for production. ts-node recompiling on the fly is slower, heavier on memory, and depends on dev tooling you don't want on a live box.</p>
+  <p>Production flips it. You compile <em>once</em> with <code>nest build</code>, which writes plain JavaScript into a <code>dist/</code> folder, and then you run that with <code>node dist/main.js</code>. No TypeScript at runtime. No watcher. Just Node executing compiled code, exactly like any other Node service. Set <code>NODE_ENV=production</code> so your framework and libraries skip dev-only work.</p>
+  <div class="note"><b>Founder note.</b> People overthink NestJS deploys because the framework feels enterprise-y, with modules, decorators, and dependency injection everywhere. In production none of that matters. It compiles down to ordinary Node. So a NestJS deploy is the Node deploy you already know, with a <code>nest build</code> in front of it. Learn the Node half once and every Nest deploy after this is muscle memory.</div>
+
+  <figure>
+    <svg viewBox="0 0 800 340" role="img" aria-label="Dev versus production for NestJS. In development, nest start --watch runs TypeScript through ts-node in memory on localhost:3000 and recompiles on save. In production, git push triggers nest build which compiles once to dist/main.js, then node runs it under PM2, behind Nginx on port 443, served over HTTPS." style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <defs>
+        <marker id="ar" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5b6a86"></path></marker>
+        <marker id="arG" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#40b75f"></path></marker>
+      </defs>
+      <text x="28" y="30" fill="#000f27" font-family="Poppins,sans-serif" font-size="17" font-weight="700">Dev runs TypeScript. Production runs the compiled build.</text>
+      <text x="28" y="51" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12.5">One extra step versus a plain Node app: nest build turns your source into dist/.</text>
+
+      <!-- DEV lane -->
+      <text x="28" y="86" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.2">DEVELOPMENT</text>
+      <g font-family="Poppins,sans-serif">
+        <rect x="90" y="96" width="200" height="52" rx="12" fill="#000f27"></rect>
+        <text x="190" y="120" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="600">nest start --watch</text>
+        <text x="190" y="138" text-anchor="middle" fill="#aeb6d4" font-size="10.5">recompiles on save</text>
+
+        <rect x="330" y="96" width="180" height="52" rx="12" fill="#fff" stroke="#4F1AF3" stroke-width="1.5"></rect>
+        <text x="420" y="120" text-anchor="middle" fill="#000f27" font-size="12.5" font-weight="600">ts-node</text>
+        <text x="420" y="138" text-anchor="middle" fill="#5b6a86" font-size="10.5">compiles in memory</text>
+
+        <rect x="550" y="96" width="170" height="52" rx="12" fill="#fff" stroke="#000f27" stroke-width="1.5"></rect>
+        <text x="635" y="120" text-anchor="middle" fill="#000f27" font-size="12.5" font-weight="600">localhost:3000</text>
+        <text x="635" y="138" text-anchor="middle" fill="#5b6a86" font-size="10.5">just you, watching</text>
+      </g>
+      <line x1="290" y1="122" x2="328" y2="122" stroke="#5b6a86" stroke-width="2" marker-end="url(#ar)"></line>
+      <line x1="510" y1="122" x2="548" y2="122" stroke="#5b6a86" stroke-width="2" marker-end="url(#ar)"></line>
+
+      <line x1="28" y1="176" x2="772" y2="176" stroke="#e6e9f2" stroke-width="1"></line>
+
+      <!-- PROD lane -->
+      <text x="28" y="204" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.2">PRODUCTION</text>
+      <g font-family="Poppins,sans-serif">
+        <rect x="18" y="216" width="114" height="56" rx="11" fill="#000f27"></rect>
+        <text x="75" y="240" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">git push</text>
+        <text x="75" y="257" text-anchor="middle" fill="#aeb6d4" font-size="10">your source</text>
+
+        <rect x="145" y="216" width="114" height="56" rx="11" fill="#4F1AF3"></rect>
+        <text x="202" y="240" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">nest build</text>
+        <text x="202" y="257" text-anchor="middle" fill="#d8ccff" font-size="10">compile once</text>
+
+        <rect x="272" y="216" width="114" height="56" rx="11" fill="#fff" stroke="#4F1AF3" stroke-width="1.5"></rect>
+        <text x="329" y="240" text-anchor="middle" fill="#000f27" font-size="11.5" font-weight="600">dist/main.js</text>
+        <text x="329" y="257" text-anchor="middle" fill="#5b6a86" font-size="10">the artifact</text>
+
+        <rect x="399" y="216" width="114" height="56" rx="11" fill="#fff" stroke="#000f27" stroke-width="1.5"></rect>
+        <text x="456" y="240" text-anchor="middle" fill="#000f27" font-size="12" font-weight="600">PM2</text>
+        <text x="456" y="257" text-anchor="middle" fill="#5b6a86" font-size="10">restart on crash</text>
+
+        <rect x="526" y="216" width="114" height="56" rx="11" fill="#fff" stroke="#000f27" stroke-width="1.5"></rect>
+        <text x="583" y="240" text-anchor="middle" fill="#000f27" font-size="11.5" font-weight="600">Nginx :443</text>
+        <text x="583" y="257" text-anchor="middle" fill="#5b6a86" font-size="10">reverse proxy</text>
+
+        <rect x="653" y="216" width="114" height="56" rx="11" fill="#fff" stroke="#40b75f" stroke-width="1.8"></rect>
+        <text x="710" y="240" text-anchor="middle" fill="#000f27" font-size="12" font-weight="600">HTTPS</text>
+        <text x="710" y="257" text-anchor="middle" fill="#2f7d45" font-size="10">api.you.com</text>
+      </g>
+      <line x1="132" y1="244" x2="144" y2="244" stroke="#5b6a86" stroke-width="2" marker-end="url(#ar)"></line>
+      <line x1="259" y1="244" x2="271" y2="244" stroke="#5b6a86" stroke-width="2" marker-end="url(#ar)"></line>
+      <line x1="386" y1="244" x2="398" y2="244" stroke="#5b6a86" stroke-width="2" marker-end="url(#ar)"></line>
+      <line x1="513" y1="244" x2="525" y2="244" stroke="#5b6a86" stroke-width="2" marker-end="url(#ar)"></line>
+      <line x1="640" y1="244" x2="652" y2="244" stroke="#5b6a86" stroke-width="2" marker-end="url(#arG)"></line>
+
+      <text x="400" y="308" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12.5">node dist/main.js runs under PM2, behind Nginx, on a domain with free auto-renewing SSL.</text>
+    </svg>
+    <figcaption>The only real difference between a Nest deploy and a plain Node deploy is the middle box: nest build, once, into dist/.</figcaption>
+  </figure>
+
+  <h2>The NestJS production build, step by step</h2>
+  <p>Open the <code>package.json</code> that Nest generated for you. The two scripts that matter in production are already there:</p>
+  <pre><code>{
+  "scripts": {
+    "build": "nest build",
+    "start:prod": "node dist/main.js"
+  }
+}</code></pre>
+  <p><code>npm run build</code> runs the Nest compiler and produces <code>dist/</code>. <code>npm run start:prod</code> runs the compiled output. That's your production start command. Never ship <code>start:dev</code> to a server. It runs the watcher, which is slower and expects dev dependencies you shouldn't be relying on in production.</p>
+  <p>Here's the sequence a deploy runs, and the order matters more than it looks:</p>
+  <pre><code># 1. install dependencies (keep devDependencies so the Nest CLI exists)
+npm ci
+
+# 2. compile TypeScript to dist/
+npm run build
+
+# 3. run the compiled app
+node dist/main.js</code></pre>
+  <div class="note"><b>The gotcha that trips up half of all first NestJS deploys.</b> The Nest CLI (<code>@nestjs/cli</code>) lives in <code>devDependencies</code>. If you optimize too early and run <code>npm ci --omit=dev</code> <em>before</em> building, the build fails with <code>sh: nest: not found</code> because the tool that compiles your app was never installed. Install everything, build, and only then prune dev deps if you want a leaner runtime. Build first. Prune later, or not at all.</div>
+
+  <!-- ADD IMAGE: terminal running npm run build then node dist/main.js, showing the "Nest application successfully started" boot line. Swap for a real screenshot: src -> images/nest-build-terminal.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Terminal running npm run build, then node dist/main.js, with the Nest boot log ending in "Nest application successfully started".</em><small>Makes the compile-then-run flow concrete.</small></span></figure>
+
+  <h2>Reading config from environment variables with @nestjs/config</h2>
+  <p>Your database URL, JWT secret, third-party API keys, and the public app URL differ between your laptop and production. They belong in environment variables, read at runtime, never hard-coded and never committed to Git. NestJS has a first-party module for exactly this: <code>@nestjs/config</code>.</p>
+  <p>Register it once, globally, in your root module:</p>
+  <pre><code>// app.module.ts
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+  ],
+})
+export class AppModule {}</code></pre>
+  <p>Then read values anywhere through <code>ConfigService</code>, with a typed getter:</p>
+  <pre><code>constructor(private config: ConfigService) {}
+
+const dbUrl = this.config.get&lt;string&gt;('DATABASE_URL');</code></pre>
+  <p>In development, <code>ConfigModule</code> reads a local <code>.env</code> file. That file is for your machine only. It must be in <code>.gitignore</code>, because a secret in your repo is a secret in every clone, fork, and CI log the moment it leaks. In production you set the same keys as real environment variables on the server instead. Same code, different source. That's the whole point of doing config this way, and the subtle failures around it are common enough that we wrote a dedicated guide: <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a>.</p>
+  <p>One habit worth building early: validate your config at boot. Pass a schema to <code>ConfigModule.forRoot</code> so the app refuses to start when a required variable is missing, instead of crashing later with a confusing <code>undefined</code> deep in a service. A loud failure at startup beats a mystery at 2am.</p>
+
+  <h2>Graceful shutdown: turn on NestJS shutdown hooks</h2>
+  <p>Every deploy replaces the running version. The platform stops the old process by sending it a <code>SIGTERM</code> signal, waits a moment, then starts the new one. If your app ignores that signal, it gets killed mid-request: in-flight responses drop, the database pool doesn't close cleanly, and a half-finished job stays half-finished.</p>
+  <p>Raw Node makes you wire this up with <code>process.on('SIGTERM', ...)</code>. NestJS gives you something better, because it ties shutdown into the module lifecycle. Call one method in <code>main.ts</code>:</p>
+  <pre><code>// src/main.ts
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  // listen for SIGTERM / SIGINT and run lifecycle hooks
+  app.enableShutdownHooks();
+
+  // read the assigned port; fall back to 3000 for local dev
+  await app.listen(process.env.PORT ?? 3000);
+}
+bootstrap();</code></pre>
+  <p>With hooks enabled, any provider that implements <code>OnApplicationShutdown</code> or <code>OnModuleDestroy</code> gets called on the way out. That's where you close what needs closing:</p>
+  <pre><code>import { Injectable, OnApplicationShutdown } from '@nestjs/common';
+
+@Injectable()
+export class DbService implements OnApplicationShutdown {
+  async onApplicationShutdown(signal: string) {
+    // finish in-flight work, then close the connection pool
+    await this.pool.end();
+  }
+}</code></pre>
+  <p>Notice the other detail in that <code>main.ts</code>: <code>app.listen(process.env.PORT ?? 3000)</code>. Local code often hard-codes <code>3000</code>. In production the platform assigns the port, and if your app grabs <code>3000</code> anyway while the proxy forwards somewhere else, you get a 503 with clean-looking logs. Read the port from the environment. It's a one-line change that prevents a genuinely annoying class of "works locally, dead in prod" bugs.</p>
+
+  <h2>Running NestJS behind Nginx with PM2</h2>
+  <p>Compiled code that runs once and exits is a script, not a service. Two pieces turn <code>node dist/main.js</code> into something that stays up and is reachable on the public internet: a process manager and a reverse proxy.</p>
+  <p><strong>PM2</strong> is the process manager. It launches your app, watches it, and restarts it in about a second if it crashes from an unhandled exception or runs out of memory. It also brings the app back after a server reboot. Without a supervisor, one bad request at 3am takes your API down until a human notices. With PM2, it's back before anyone files a ticket.</p>
+  <p><strong>Nginx</strong> is the reverse proxy. Your Nest app listens on an internal port like 3000. The web speaks HTTPS on 443. Nginx sits in front, terminates SSL, and forwards traffic to your app's port. It's also why reading <code>process.env.PORT</code> matters: the proxy needs to forward to the exact port your app listens on.</p>
+  <p>NestJS is stateless by default, which makes it a clean fit for PM2 cluster mode. Node runs your code on one thread, so a single process uses one CPU core. Cluster mode runs one copy per core behind the same port, and Kloudbean supports PM2 multi-process, so it's a config choice rather than a rewrite:</p>
+  <pre><code># run one instance of the compiled app per CPU core
+pm2 start dist/main.js -i max --name my-nest-api</code></pre>
+  <p>Start with a single instance. Turn on clustering when your metrics ask for it. And mind the one trap that bites people: the moment you run more than one instance, anything you kept in process memory (an in-memory cache, a local rate-limiter, a Map of sessions) stops being shared. Each worker has its own copy. Move that state into managed Redis and every instance sees the same thing. If you genuinely outgrow a single box, autoscaling and Kubernetes exist for enterprise setups, but the honest truth is most NestJS APIs never need them.</p>
+
+  <!-- ADD IMAGE: pm2 list output showing the Nest app online with its restart count. Swap for a real screenshot: src -> images/pm2-list.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>pm2 list showing the NestJS app online, its uptime, and restart count.</em><small>Optional. Makes the process-manager point tangible.</small></span></figure>
+
+  <h2>Deploy your NestJS app from Git</h2>
+  <p>Concepts done. Here's the actual path on <a href="https://www.kloudbean.com/">Kloudbean</a>, where the process manager, reverse proxy, and SSL are already configured so you're only bringing the app.</p>
+  <p>Click <strong>Add Server</strong>, choose a cloud provider (there are seven: AWS, Amazon Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud), pick <strong>Node.js</strong> as the stack, choose a location near your users, and size it. 2 GB is a comfortable start for a small API. A few minutes later the box is ready with Node, PM2, Nginx, a firewall, and SSL, none of which you configured by hand.</p>
+  <p>Next, add the application. If you didn't attach one while provisioning, open <strong>Applications</strong> and <strong>Add Application</strong>, then pick the Node stack. Running your Nest API next to a front end or a worker? Multiple apps per server is a first-class feature here, not a hack.</p>
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean Add Application screen: adding a Node.js app to an existing server for the NestJS API">
+    <figcaption>Add Application: give your NestJS API its own slot on the server, with room for a front end or worker beside it.</figcaption>
+  </figure>
+  <p>Now connect Git. In <strong>Git Deployment</strong>, link GitHub (OAuth or an SSH key), paste the repository URL, choose a branch, and clone. Then set the runtime configuration, which is where the build step from earlier becomes real fields:</p>
+  <ul>
+    <li><strong>App Directory:</strong> the folder containing your <code>package.json</code>.</li>
+    <li><strong>Port:</strong> the port your app reads from <code>process.env.PORT</code>.</li>
+    <li><strong>Node version:</strong> match what you built on. Node 20+ is a safe default for current NestJS.</li>
+    <li><strong>Install command:</strong> <code>npm ci</code></li>
+    <li><strong>Build command:</strong> <code>npm run build</code> (this runs <code>nest build</code> into <code>dist/</code>).</li>
+    <li><strong>Start command:</strong> <code>node dist/main.js</code> (or <code>npm run start:prod</code>).</li>
+  </ul>
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean Git Deployment tab: connect the repository, choose a branch, and set install, build, and start commands for the NestJS app">
+    <figcaption>Git Deployment: connect the repo, pick a branch, and set install / build / start. The build command is where nest build runs.</figcaption>
+  </figure>
+  <p>Hit <strong>Pull &amp; Deploy</strong>. The console pulls the code, runs <code>npm ci</code>, compiles with <code>nest build</code>, and starts <code>dist/main.js</code> under PM2, behind the proxy. The whole thing streams as <strong>live build logs</strong>, so you watch install, compile, and boot scroll past in real time. When you turn on automated deployment, every <code>git push</code> to your branch repeats this on its own. That's the CI/CD loop the big platforms sell, running on a server you own, and if you want just that piece we broke it down in <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD auto-deploy from GitHub</a>.</p>
+
+  <!-- ADD IMAGE: Build & Deployment History with a deploy open and live logs streaming the nest build step. Swap for a real screenshot: src -> images/build-logs.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Build and Deployment History with a deploy expanded, live logs streaming the npm ci and nest build steps.</em><small>Shows the live-logs payoff moment.</small></span></figure>
+
+  <h2>Connecting a managed database (TypeORM or Prisma)</h2>
+  <p>Almost every NestJS API talks to a database, and the connection should come from an environment variable, not a hard-coded string. Both common data layers read one: <code>DATABASE_URL</code>.</p>
+  <p>Launch a managed engine from <strong>Launch Database</strong>. Kloudbean runs seven (PostgreSQL, MySQL, MariaDB, Redis, Memcached, Elasticsearch, and MongoDB), provisioned, backed up, and reachable over the local network. For most NestJS APIs that's managed PostgreSQL or MySQL, with Redis alongside for caching or sessions once you cluster. Take the credentials and set them under <strong>Environment Variables</strong> in the app, using the <strong>Paste .env Content</strong> tab to drop your whole file in at once.</p>
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean Environment Variables editor with a paste-dot-env tab, holding DATABASE_URL and secrets for the NestJS app">
+    <figcaption>Environment Variables: paste your .env, convert to key/value, save. DATABASE_URL and secrets reach the app at runtime, never through Git.</figcaption>
+  </figure>
+  <p>On the code side, wiring is short. With <strong>TypeORM</strong> through <code>@nestjs/typeorm</code>:</p>
+  <pre><code>TypeOrmModule.forRoot({
+  type: 'postgres',
+  url: process.env.DATABASE_URL,
+  autoLoadEntities: true,
+  synchronize: false, // never true in production
+});</code></pre>
+  <p>That <code>synchronize: false</code> is not a style preference. With <code>synchronize: true</code>, TypeORM alters your live schema to match your entities on every boot, and it will happily drop a column when you rename a property. It's fine in early dev. In production it's a data-loss incident waiting for a bad deploy. Use migrations instead, and run them as a step in your deploy:</p>
+  <pre><code># TypeORM: apply migrations (never auto-synchronize in prod)
+npm run typeorm migration:run
+
+# Prisma: apply migrations, then the app starts as normal
+npx prisma migrate deploy</code></pre>
+  <p>Prisma reads the same <code>DATABASE_URL</code> from the environment, so the pattern is identical: secret in env vars, migrations on deploy, app starts clean. If you're moving off a metered hosted database onto one that lives beside your app, the full walkthrough is in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">add a managed database to your app</a>.</p>
+
+  <h2>Custom domain and free SSL</h2>
+  <p>Point your domain at the server (an A record for the apex, a CNAME for a subdomain like <code>api.you.com</code>), add it in the app's domain settings, and install a free SSL certificate. It's issued through Let's Encrypt and auto-renews, so you're not diarizing a cert expiry. Nginx already terminates SSL on 443 and forwards to your Nest process, so once DNS resolves and the cert installs, your API is live over HTTPS. That's the last green box in the diagram.</p>
+
+  <h2>Where NestJS deploys actually go wrong</h2>
+  <p>Most first deploys break, and for NestJS the failures are predictable. Here's where they cluster, so you can skip the debugging session.</p>
+  <ul>
+    <li><strong><code>Error: Cannot find module '/.../dist/main.js'</code></strong> means the build didn't run, or ran in the wrong directory, so there's no compiled output to start. Confirm your build command is <code>npm run build</code> and your app directory points at the folder with <code>package.json</code>.</li>
+    <li><strong><code>sh: nest: not found</code></strong> is the devDependencies trap from earlier. The Nest CLI wasn't installed before the build. Install with dev deps, then build.</li>
+    <li><strong>A 503 with no crash in the log</strong> usually means the app is listening on the wrong port. Read <code>process.env.PORT</code> in <code>main.ts</code> instead of hard-coding 3000.</li>
+    <li><strong>The app boots but every request 500s on the database</strong> is nearly always a missing or wrong <code>DATABASE_URL</code>, or migrations that never ran. Check the env var, then your migration step.</li>
+    <li><strong>Columns quietly disappearing</strong> is <code>synchronize: true</code> doing its thing. Turn it off and move to migrations.</li>
+  </ul>
+  <p>When something's down, read the app's error log before you guess. On Kloudbean it's at:</p>
+  <pre><code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/app.error.log</code></pre>
+  <p>A Nest crash writes its stack trace there and usually names the exact provider or module that failed to resolve. Fix the one line it points at and deploy again. Nine times out of ten a broken NestJS deploy is config, not code.</p>
+
+  <h2>What you own, and what's handled</h2>
+  <p>Kloudbean runs NestJS on Linux managed cloud: the Node runtime, PM2, Nginx, SSL, and backups are provisioned and maintained on whichever of the seven clouds you choose. It isn't for Windows or .NET workloads, but NestJS is a Node framework, so it's squarely in the sweet spot. "Managed" means the platform keeps the server and its stack healthy while you own the application: your modules, your data, your config (the port, the env vars, the build and start commands). Because it's a standard Linux box running standard compiled Node, you can move hosts whenever you like, with no per-app tax as you add more. Deploying a plain Express service instead of Nest? See <a href="https://www.kloudbean.com/blog/deploy-express-app/">deploy an Express app</a>. Want the production concerns for Node in general (crash-restart, cluster mode, SIGTERM) in more depth? That's <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploy a Node app to managed cloud</a>. And if you want the framework-agnostic mental model behind all of this, start at <a href="https://www.kloudbean.com/blog/how-to-deploy-any-app/">how to deploy an app</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Ship your NestJS API on a server you own.</p>
+    <p style="margin:0 0 .6em">Connect a repo, set <code>npm run build</code> and <code>node dist/main.js</code>, add your env vars, and deploy. PM2, Nginx, and SSL are already wired. Coming from a per-service platform bill? Weigh it in <a href="https://www.kloudbean.com/blog/heroku-alternative-for-modern-apps/">the Heroku alternative for modern apps</a>. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>; sizes on <a href="https://www.kloudbean.com/pricing/">pricing</a> from $8/mo, Enterprise custom.</p>
+    <p style="margin:0">Git deploy with live logs · PM2 process manager · Free auto-renewing SSL · Seven managed databases · Automatic backups · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I deploy a NestJS app to production?</h3>
+    <p>Compile it with <code>nest build</code> so plain JavaScript lands in <code>dist/</code>, set <code>NODE_ENV=production</code>, and start it with <code>node dist/main.js</code> under a process manager like PM2, behind Nginx with SSL. Read config from environment variables via <code>@nestjs/config</code> and connect a managed database over a <code>DATABASE_URL</code>. On Kloudbean you connect a Git repo, set the install, build, and start commands, add env vars, and deploy.</p>
+
+    <h3>What's the difference between nest start and node dist/main.js?</h3>
+    <p><code>nest start</code> (and <code>start:dev</code>) is for development. It compiles TypeScript through ts-node and can watch for changes, which is slower and depends on dev tooling. <code>node dist/main.js</code> runs the already-compiled output from <code>nest build</code>, which is what you want in production: faster, lighter, and pure Node with no TypeScript at runtime.</p>
+
+    <h3>Do I need to run nest build before deploying?</h3>
+    <p>Yes. Your repository holds TypeScript, and Node doesn't run TypeScript directly in production. <code>nest build</code> compiles it into JavaScript in <code>dist/</code>, and that folder is what you start. On managed hosting you set <code>npm run build</code> as the build command so it runs automatically on every deploy.</p>
+
+    <h3>How do I read environment variables in NestJS in production?</h3>
+    <p>Use <code>@nestjs/config</code>. Register <code>ConfigModule.forRoot({ isGlobal: true })</code> in your root module, then read values through <code>ConfigService</code>. In development it loads a local <code>.env</code> file (kept out of Git), and in production you set the same keys as real environment variables on the server. The code doesn't change, only the source of the values.</p>
+
+    <h3>How do I enable graceful shutdown in NestJS?</h3>
+    <p>Call <code>app.enableShutdownHooks()</code> in <code>main.ts</code>. That wires <code>SIGTERM</code> and <code>SIGINT</code> into the Nest lifecycle, so any provider implementing <code>OnApplicationShutdown</code> or <code>OnModuleDestroy</code> runs on exit. Use it to finish in-flight requests and close your database pool cleanly, which makes redeploys invisible to users instead of dropping connections.</p>
+
+    <h3>Should I use PM2 to run NestJS in production?</h3>
+    <p>Yes. PM2 keeps the process alive, restarting it in about a second if it crashes and bringing it back after a reboot. It also runs cluster mode to use every CPU core. Kloudbean supports PM2 multi-process and configures it for you, so it's the default rather than something you install and babysit.</p>
+
+    <h3>How do I connect a managed database to NestJS with TypeORM or Prisma?</h3>
+    <p>Set a <code>DATABASE_URL</code> environment variable and read it in your config. TypeORM takes it as <code>url</code> in <code>TypeOrmModule.forRoot</code> with <code>synchronize: false</code>; Prisma reads it automatically. Run migrations as a deploy step (<code>migration:run</code> for TypeORM, <code>prisma migrate deploy</code> for Prisma). Launch the database as a managed engine so it's backed up and reachable over the local network.</p>
+
+    <h3>Why does my NestJS deploy fail with "nest: not found"?</h3>
+    <p>The Nest CLI is a devDependency, and it was missing when the build ran, usually because dev dependencies were skipped with something like <code>npm ci --omit=dev</code> before building. Install all dependencies first, run <code>npm run build</code>, and only prune dev deps afterward if you want a leaner runtime.</p>
+
+    <h3>Do I need Docker to deploy a NestJS app?</h3>
+    <p>No. A NestJS app compiles to ordinary Node, and a managed server runs <code>node dist/main.js</code> directly under a process manager. Docker is one way to package the build, useful when you're coordinating many services, but it isn't required to ship a single API. Learn the build-and-run flow first and reach for containers only when you actually need the isolation.</p>
+
+    <h3>Can I run NestJS across all CPU cores?</h3>
+    <p>Yes, with PM2 cluster mode (<code>pm2 start dist/main.js -i max</code>), which runs one instance per core behind the same port. NestJS is stateless by default, so it clusters cleanly. Just move any in-memory state (caches, rate-limiters, sessions) into Redis first, because it won't be shared across instances.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Platform Team · A NestJS deploy is the Node deploy plus one step: the build.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Deploy a NestJS App to Production, Start to Finish","description":"A practical guide to deploy a NestJS app to production: run nest build to dist, read config from env vars with @nestjs/config, enable shutdown hooks, run node dist/main.js under PM2 behind Nginx, and connect a managed database via TypeORM or Prisma.","image":"https://www.kloudbean.com/blog/deploy-nestjs-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/deploy-nestjs-app/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I deploy a NestJS app to production?","acceptedAnswer":{"@type":"Answer","text":"Compile it with nest build so plain JavaScript lands in dist/, set NODE_ENV=production, and start it with node dist/main.js under a process manager like PM2, behind Nginx with SSL. Read config from environment variables via @nestjs/config and connect a managed database over a DATABASE_URL. On Kloudbean you connect a Git repo, set the install, build, and start commands, add env vars, and deploy."}},
+{"@type":"Question","name":"What is the difference between nest start and node dist/main.js?","acceptedAnswer":{"@type":"Answer","text":"nest start (and start:dev) is for development. It compiles TypeScript through ts-node and can watch for changes, which is slower and depends on dev tooling. node dist/main.js runs the already-compiled output from nest build, which is what you want in production: faster, lighter, and pure Node with no TypeScript at runtime."}},
+{"@type":"Question","name":"Do I need to run nest build before deploying?","acceptedAnswer":{"@type":"Answer","text":"Yes. Your repository holds TypeScript, and Node does not run TypeScript directly in production. nest build compiles it into JavaScript in dist/, and that folder is what you start. On managed hosting you set npm run build as the build command so it runs automatically on every deploy."}},
+{"@type":"Question","name":"How do I read environment variables in NestJS in production?","acceptedAnswer":{"@type":"Answer","text":"Use @nestjs/config. Register ConfigModule.forRoot with isGlobal true in your root module, then read values through ConfigService. In development it loads a local .env file kept out of Git, and in production you set the same keys as real environment variables on the server. The code does not change, only the source of the values."}},
+{"@type":"Question","name":"How do I enable graceful shutdown in NestJS?","acceptedAnswer":{"@type":"Answer","text":"Call app.enableShutdownHooks() in main.ts. That wires SIGTERM and SIGINT into the Nest lifecycle, so any provider implementing OnApplicationShutdown or OnModuleDestroy runs on exit. Use it to finish in-flight requests and close your database pool cleanly, which makes redeploys invisible to users instead of dropping connections."}},
+{"@type":"Question","name":"Should I use PM2 to run NestJS in production?","acceptedAnswer":{"@type":"Answer","text":"Yes. PM2 keeps the process alive, restarting it in about a second if it crashes and bringing it back after a reboot. It also runs cluster mode to use every CPU core. Kloudbean supports PM2 multi-process and configures it for you, so it is the default rather than something you install and babysit."}},
+{"@type":"Question","name":"How do I connect a managed database to NestJS with TypeORM or Prisma?","acceptedAnswer":{"@type":"Answer","text":"Set a DATABASE_URL environment variable and read it in your config. TypeORM takes it as url in TypeOrmModule.forRoot with synchronize false; Prisma reads it automatically. Run migrations as a deploy step (migration:run for TypeORM, prisma migrate deploy for Prisma). Launch the database as a managed engine so it is backed up and reachable over the local network."}},
+{"@type":"Question","name":"Why does my NestJS deploy fail with nest: not found?","acceptedAnswer":{"@type":"Answer","text":"The Nest CLI is a devDependency, and it was missing when the build ran, usually because dev dependencies were skipped with something like npm ci --omit=dev before building. Install all dependencies first, run npm run build, and only prune dev deps afterward if you want a leaner runtime."}},
+{"@type":"Question","name":"Do I need Docker to deploy a NestJS app?","acceptedAnswer":{"@type":"Answer","text":"No. A NestJS app compiles to ordinary Node, and a managed server runs node dist/main.js directly under a process manager. Docker is one way to package the build, useful when you are coordinating many services, but it is not required to ship a single API. Learn the build-and-run flow first and reach for containers only when you actually need the isolation."}},
+{"@type":"Question","name":"Can I run NestJS across all CPU cores?","acceptedAnswer":{"@type":"Answer","text":"Yes, with PM2 cluster mode (pm2 start dist/main.js -i max), which runs one instance per core behind the same port. NestJS is stateless by default, so it clusters cleanly. Just move any in-memory state such as caches, rate-limiters, or sessions into Redis first, because it will not be shared across instances."}}
+]}
+]}
+</script>
+</body>
+</html>

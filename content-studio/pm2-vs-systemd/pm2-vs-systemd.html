@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PM2 vs systemd: Keep a Node.js App Running in Production</title>
+<meta name="description" content="PM2 vs systemd for keeping a Node.js app running in production: what each is, cluster mode, boot persistence, logs, and which process manager to actually pick.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/pm2-vs-systemd/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="PM2 vs systemd: Keep a Node.js App Running in Production">
+<meta property="og:description" content="An honest PM2 vs systemd guide for Node: what each does, cluster mode and zero-downtime reload, boot persistence, log handling, the gotchas, and the combo most teams miss.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Node in Production · Process Managers</span>
+  <h1>PM2 vs systemd: Keeping a Node.js App Running in Production</h1>
+  <p class="byline">By Kloudbean Engineering · Keeping Node Alive.</p>
+
+  <figure><img src="images/hero.png" alt="PM2 vs systemd for Node: a supervisor keeps the process alive, restarts it on crash, brings it back on boot, and runs a copy per CPU core"></figure>
+
+  <p class="lead">You wrote a Node app. It runs with <code>node server.js</code>, you SSH in, start it, and it works. Then you close the terminal and it's gone. Or the box reboots and nothing comes back. Or it crashes at 3am and stays down until someone notices. To run Node in production you need a supervisor, and the two standard answers are PM2 and systemd. This is an honest PM2 vs systemd guide: what each one is, where each wins, and which to actually pick.</p>
+
+  <div class="tldr">
+    <strong>PM2 vs systemd, in one line</strong>
+    <p>PM2 is a Node-native process manager with cluster mode, zero-downtime reloads, and log handling built in. systemd is the Linux service manager already running on your server, language-agnostic and with no extra dependency. Pick PM2 for a pure Node app that wants clustering and easy reloads. Pick systemd when you want one supervisor for every service on the box. On managed hosting, the platform runs this for you and you don't hand-write either.</p>
+  </div>
+
+  <h2>Why <code>node server.js</code> isn't a production setup</h2>
+  <p>Running <code>node server.js</code> in an SSH session is fine for a demo. It's not how you run Node in production. Here's what actually goes wrong, and every item is a real outage someone has lived through.</p>
+  <ul>
+    <li><strong>Close the SSH session and the process dies.</strong> The app is a child of your shell. Log out and it gets a hangup. Your "live" site goes with it.</li>
+    <li><strong>It doesn't restart on crash.</strong> An unhandled promise rejection, an out-of-memory kill, a bad request that throws. The process exits and stays exited. Nobody's watching.</li>
+    <li><strong>It doesn't come back after a reboot.</strong> The provider patches the kernel and reboots the VM at 4am. Your app doesn't start itself. You wake up to a dead site and no error, because nothing crashed. Nothing ran.</li>
+    <li><strong>It uses one CPU core.</strong> Node is single-threaded per process. A 4-core box running one <code>node</code> process leaves three cores idle while the one pegs at 100 percent.</li>
+  </ul>
+  <p>A supervisor fixes all four. It keeps the process running, restarts it when it dies, starts it on boot, and (for the multi-core problem) can run a copy per core. PM2 and systemd are two roads to the same place. They just start from different worlds.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 396" role="img" aria-label="Left, the fragile way: node server.js runs as one process on one CPU core, so closing SSH kills it, a crash leaves it down, and a reboot never brings it back. Right, supervised: a PM2 or systemd supervisor watches the app, auto-restarts it on crash, starts it on boot, and in PM2 cluster mode runs one worker per CPU core." style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <defs>
+        <marker id="ag" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5b6a86"></path></marker>
+        <marker id="agr" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#40b75f"></path></marker>
+        <marker id="ap" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#4F1AF3"></path></marker>
+      </defs>
+
+      <text x="28" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="17" font-weight="700">One process, or a supervised one</text>
+
+      <!-- divider -->
+      <line x1="380" y1="58" x2="380" y2="372" stroke="#e6e9f2" stroke-width="1"></line>
+
+      <!-- LEFT: fragile -->
+      <text x="28" y="76" fill="#b3143c" font-family="Poppins,sans-serif" font-size="12" font-weight="600" letter-spacing="1.1">FRAGILE · node server.js</text>
+
+      <rect x="60" y="92" width="260" height="26" rx="8" fill="#eef1f8" stroke="#c9d0e3" stroke-width="1"></rect>
+      <text x="190" y="109" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">1 CPU core (3 more sit idle)</text>
+
+      <rect x="110" y="128" width="160" height="52" rx="12" fill="#000f27"></rect>
+      <text x="190" y="150" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">node server.js</text>
+      <text x="190" y="167" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="10.5">one process, in your shell</text>
+
+      <rect x="40" y="206" width="300" height="30" rx="8" fill="#fff" stroke="#e0b4be" stroke-width="1.3"></rect>
+      <text x="54" y="225" fill="#b3143c" font-family="Poppins,sans-serif" font-size="11.5">SSH closes  →  process dies</text>
+      <rect x="40" y="244" width="300" height="30" rx="8" fill="#fff" stroke="#e0b4be" stroke-width="1.3"></rect>
+      <text x="54" y="263" fill="#b3143c" font-family="Poppins,sans-serif" font-size="11.5">crash  →  stays down</text>
+      <rect x="40" y="282" width="300" height="30" rx="8" fill="#fff" stroke="#e0b4be" stroke-width="1.3"></rect>
+      <text x="54" y="301" fill="#b3143c" font-family="Poppins,sans-serif" font-size="11.5">reboot  →  nothing restarts</text>
+
+      <text x="40" y="344" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">A terminal window is not a service.</text>
+
+      <!-- RIGHT: supervised -->
+      <text x="404" y="76" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="12" font-weight="600" letter-spacing="1.1">SUPERVISED · PM2 or systemd</text>
+
+      <rect x="440" y="92" width="248" height="46" rx="12" fill="#4F1AF3"></rect>
+      <text x="564" y="112" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">Supervisor</text>
+      <text x="564" y="128" text-anchor="middle" fill="#d8ccff" font-family="Poppins,sans-serif" font-size="10.5">watches, restarts, starts on boot</text>
+
+      <rect x="436" y="164" width="76" height="46" rx="10" fill="#000f27"></rect>
+      <text x="474" y="185" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="11" font-weight="600">worker</text>
+      <text x="474" y="200" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="9.5">core 1</text>
+      <rect x="526" y="164" width="76" height="46" rx="10" fill="#000f27"></rect>
+      <text x="564" y="185" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="11" font-weight="600">worker</text>
+      <text x="564" y="200" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="9.5">core 2</text>
+      <rect x="616" y="164" width="76" height="46" rx="10" fill="#000f27"></rect>
+      <text x="654" y="185" text-anchor="middle" fill="#fff" font-family="Poppins,sans-serif" font-size="11" font-weight="600">worker</text>
+      <text x="654" y="200" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="9.5">core 3</text>
+
+      <line x1="490" y1="138" x2="474" y2="162" stroke="#4F1AF3" stroke-width="1.6" marker-end="url(#ap)"></line>
+      <line x1="564" y1="138" x2="564" y2="162" stroke="#4F1AF3" stroke-width="1.6" marker-end="url(#ap)"></line>
+      <line x1="638" y1="138" x2="654" y2="162" stroke="#4F1AF3" stroke-width="1.6" marker-end="url(#ap)"></line>
+      <text x="618" y="152" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="9.5">cluster mode</text>
+
+      <rect x="436" y="236" width="256" height="30" rx="8" fill="#fff" stroke="#a9dcbb" stroke-width="1.3"></rect>
+      <text x="450" y="255" fill="#2f7d45" font-family="Poppins,sans-serif" font-size="11.5">crash  →  auto-restart</text>
+      <rect x="436" y="274" width="256" height="30" rx="8" fill="#fff" stroke="#a9dcbb" stroke-width="1.3"></rect>
+      <text x="450" y="293" fill="#2f7d45" font-family="Poppins,sans-serif" font-size="11.5">reboot  →  starts on boot</text>
+
+      <path d="M700 251 C724 251, 724 189, 700 189" fill="none" stroke="#40b75f" stroke-width="1.8" marker-end="url(#agr)"></path>
+
+      <text x="436" y="344" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">Same job, two tools. Both keep it alive.</text>
+    </svg>
+    <figcaption>The whole point of a process manager: turn a terminal command into a service that survives crashes, reboots, and a single busy core.</figcaption>
+  </figure>
+
+  <h2>What is PM2?</h2>
+  <p>PM2 is a process manager built for Node. You install it from npm, hand it your app, and it becomes the thing that keeps your app running. It restarts on crash, it can start on boot, it collects logs, and it has a cluster mode that runs one worker per CPU core without you touching your code.</p>
+  <p>The friendly way to use it is a config file, <code>ecosystem.config.js</code>, checked into your repo so the settings live with the code:</p>
+  <pre><code>// ecosystem.config.js
+module.exports = {
+  apps: [{
+    name: 'api',
+    script: 'server.js',
+    instances: 'max',            // one worker per CPU core
+    exec_mode: 'cluster',        // turn on the built-in load balancer
+    max_memory_restart: '400M',  // recycle a worker if it leaks past 400M
+    env: { NODE_ENV: 'production' }
+  }]
+};</code></pre>
+  <p>Then a handful of commands do the day-to-day work:</p>
+  <pre><code>pm2 start ecosystem.config.js   # start using the config above
+pm2 reload api                  # zero-downtime reload (cluster mode)
+pm2 startup                     # generate the boot script for your init system
+pm2 save                        # snapshot the running apps so boot can restore them
+pm2 logs api                    # tail this app's stdout and stderr
+pm2 list                        # status, uptime, restarts, memory per worker</code></pre>
+  <p>Two features earn PM2 its reputation. <strong>Cluster mode</strong> forks your app across cores and load-balances connections between the workers, so a 4-core box actually uses four cores. And <strong>zero-downtime reload</strong> (<code>pm2 reload</code>, not <code>restart</code>) rolls workers one at a time, so a deploy doesn't drop live requests. That zero downtime reload for Node is the feature people miss most when they leave PM2.</p>
+  <p>The catch, and it's the one that burns people: PM2 does <em>not</em> survive a reboot on its own. You have to run <code>pm2 startup</code> once (it prints a <code>sudo</code> line you paste back) and then <code>pm2 save</code> after your apps are running. Skip either and your carefully configured processes vanish the next time the server restarts.</p>
+  <!-- ADD IMAGE: terminal output of pm2 list showing the app online with uptime and restart count across workers. Swap for a real screenshot: src -> images/pm2-list.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal running pm2 list: the app online across several workers, with uptime and restart counts.</em><small>Makes cluster mode and the process-manager view concrete.</small></span></figure>
+
+  <h2>What is systemd, and how do you run Node under it?</h2>
+  <p>systemd is the init system on most modern Linux distributions. It's PID 1, the first thing the kernel starts, and it already supervises sshd, cron, your firewall, and the rest of the box. It doesn't know or care that your app is Node. To systemd, your app is just a service, described by a small unit file.</p>
+  <p>A minimal systemd unit file for Node looks like this, saved as <code>/etc/systemd/system/node-api.service</code>:</p>
+  <pre><code>[Unit]
+Description=Node API
+After=network.target
+
+[Service]
+Type=simple
+User=appuser
+WorkingDirectory=/var/www/api
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=2
+Environment=NODE_ENV=production
+EnvironmentFile=/var/www/api/.env
+
+[Install]
+WantedBy=multi-user.target</code></pre>
+  <p>Three lines carry most of the weight. <code>Restart=always</code> is the whole reason you're here: it restarts Node on crash, every time. <code>WantedBy=multi-user.target</code> is what makes it start on boot once the service is enabled. And <code>User=appuser</code> runs the app as an unprivileged service user instead of root, which you want.</p>
+  <p>You control it with <code>systemctl</code>, and there's one distinction that trips newcomers. <code>start</code> runs it now. <code>enable</code> makes it start on every boot. They're separate, so you usually want both:</p>
+  <pre><code>sudo systemctl daemon-reload    # re-read unit files after you edit them
+sudo systemctl enable node-api  # start automatically on every boot
+sudo systemctl start node-api   # start it right now
+sudo systemctl status node-api  # is it running? recent log lines
+journalctl -u node-api -f       # follow the live logs</code></pre>
+  <p>Logs go to journald, so <code>journalctl -u node-api</code> gives you searchable, rotated history with no extra tooling. There's no cluster mode, though. systemd will happily run one process reliably; if you want four workers you either run four units or reach for socket activation, which is more moving parts than most people want. That gap is exactly where PM2 shines.</p>
+  <!-- ADD IMAGE: systemctl status output showing active (running) in green plus a few journalctl lines. Swap for a real screenshot: src -> images/systemctl-status.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>systemctl status for the Node service showing active (running), with a few journalctl log lines underneath.</em><small>Shows the systemd view of a healthy Node service.</small></span></figure>
+
+  <h2>PM2 vs systemd for Node: the honest comparison</h2>
+  <p>Both keep your app alive. The differences are about clustering, reloads, dependencies, and how much of the box you want one tool to own. Here's the PM2 vs systemd comparison for Node laid out side by side.</p>
+  <table class="cmp">
+    <thead>
+      <tr><th>Capability</th><th>PM2</th><th>systemd</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Language fit</td><td>Node-native (can run other binaries, but built for Node)</td><td>Language-agnostic, runs any process</td></tr>
+      <tr><td>Multi-core / clustering</td><td>Built-in cluster mode, one worker per core</td><td>No clustering by itself (N units or socket activation)</td></tr>
+      <tr><td>Zero-downtime reload</td><td>Yes, rolling <code>pm2 reload</code></td><td>A plain restart drops connections; no built-in rolling reload</td></tr>
+      <tr><td>Boot persistence</td><td>Manual: <code>pm2 startup</code> plus <code>pm2 save</code></td><td>Native: <code>systemctl enable</code></td></tr>
+      <tr><td>Logs</td><td>Own log files and <code>pm2 logs</code> (add pm2-logrotate)</td><td>journald and <code>journalctl</code>, rotation built in</td></tr>
+      <tr><td>Extra dependency</td><td>Yes, an npm package to install and keep updated</td><td>None, already on the server</td></tr>
+      <tr><td>Overhead</td><td>A small daemon always running</td><td>Already running as PID 1</td></tr>
+      <tr><td>Learning curve</td><td>Gentle, a Node-friendly CLI</td><td>Steeper, unit-file syntax to learn</td></tr>
+      <tr><td>Best for</td><td>Pure Node apps that want clustering and reloads</td><td>Mixed fleets, one supervisor for everything</td></tr>
+    </tbody>
+  </table>
+
+  <h2>So which one should you use?</h2>
+  <p>My take, after watching a lot of Node deploys go sideways: most single-app teams are happiest on PM2, and most teams running a mixed set of services are happiest on systemd. If you run a pure Node shop and you want clustering across cores plus zero-downtime reloads without writing much config, PM2 is the pragmatic pick. If you're already managing other services with <code>systemctl</code> and you'd rather not add an npm dependency to your production supervisor, systemd is the clean call. It's already there. It already survives reboots. It doesn't care what language you wrote.</p>
+  <p>Now the part the internet argues about and mostly gets wrong: it isn't strictly either/or. Plenty of teams run <strong>PM2 under systemd</strong>, and it's a sensible combo. systemd keeps the PM2 daemon itself alive and brings it back on boot. PM2 manages the Node workers, the clustering, and the reloads on top. That's actually what <code>pm2 startup</code> does behind the scenes: it writes a systemd unit that resurrects PM2. So if you like PM2's cluster mode but you want systemd's rock-solid boot behavior underneath, you can have both. Just run <code>pm2 startup</code>, then <code>pm2 save</code>, and let systemd own the bottom layer.</p>
+  <p>One honest caveat: two supervisors means two places to look when something breaks. So test it. Reboot the box on purpose and confirm the app comes back before you trust it.</p>
+  <!-- ADD IMAGE: a simple two-layer diagram or terminal showing PM2 running as an enabled systemd service. Swap for a real screenshot: src -> images/pm2-under-systemd.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>PM2 running as an enabled systemd service: systemd keeps PM2 alive, PM2 manages the Node workers.</em><small>Illustrates the two-layer combo.</small></span></figure>
+
+  <h2>The gotchas that actually bite people</h2>
+  <p>Whichever you pick, the same handful of mistakes account for most of the "it was up yesterday" tickets. None of these are exotic. They're just easy to skip.</p>
+  <ul>
+    <li><strong>Forgetting boot persistence with PM2.</strong> The single most common one. You set everything up beautifully, it runs for weeks, then the provider reboots the VM for maintenance and it's all gone because <code>pm2 startup</code> and <code>pm2 save</code> were never run. Do both, then reboot on purpose to prove it works.</li>
+    <li><strong>Running as root.</strong> If your app is compromised, you do not want it running as root. Create a service user and run under it (that <code>User=appuser</code> line in systemd, or launching PM2 as a non-root user). Least privilege is cheap insurance.</li>
+    <li><strong>Cluster mode with in-memory state.</strong> PM2 cluster mode assumes your app is stateless between requests. If you keep sessions, a rate-limiter counter, or a cache in a plain object, each worker gets its own copy, so a user hits worker A and their session isn't on worker B. Move that shared state into Redis or your database. Same rule applies to uploads: don't write user files to local disk if you're running multiple workers, because only one worker will have the file.</li>
+    <li><strong>Ignoring memory leaks.</strong> Long-running Node processes creep upward. <code>max_memory_restart</code> in PM2 (or a memory limit in systemd) recycles a worker before it drags the box down. It's a safety net, not a fix, but it buys you time to find the leak.</li>
+    <li><strong>No log rotation.</strong> PM2's raw log files grow forever until they fill the disk and take the app with them. Install <code>pm2-logrotate</code>. systemd sidesteps this because journald rotates by default, which is a quiet point in its favor.</li>
+    <li><strong>Env vars in the wrong place.</strong> Neither tool should hold your secrets in plain sight. systemd reads an <code>EnvironmentFile</code>, PM2 reads the <code>env</code> block or a <code>.env</code>. Keep secrets out of the repo either way. The full pattern is in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a>.</li>
+  </ul>
+
+  <h2>Do you even need this on managed hosting?</h2>
+  <p>Short answer: no, and that's kind of the point. Everything above is what you do on a raw VPS where you own the supervisor. On a managed server the platform has already made this decision and wired it up for you. If you're new to that model, <a href="https://www.kloudbean.com/blog/what-is-a-managed-server/">what a managed server is</a> covers the boundary of who handles what.</p>
+  <p>On Kloudbean, your Node app runs under PM2 as part of the managed stack, so a crash doesn't become downtime and the app comes back after a reboot without you writing a unit file or memorizing <code>systemctl</code>. PM2 multi-process is supported, so when one core stops being enough you can run a copy per core behind the same port. You set the Node runtime, the start command, and the process settings in the dashboard, not by hand-editing files over SSH.</p>
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean Add Application screen: adding a Node.js app and setting its runtime and start command">
+    <figcaption>Add Application: pick the Node stack and set the runtime and start command in the UI. The platform runs it under a process manager for you.</figcaption>
+  </figure>
+  <p>Then you watch it instead of babysitting it. The server health view shows CPU, memory, and disk, so you can see a worker misbehaving or a memory leak climbing before it becomes a page. That's the supervisor's job made visible.</p>
+  <figure>
+    <img src="../assets/console/server-health.png" alt="The Kloudbean server health view: CPU, memory, and disk for a running app kept alive by the managed process manager">
+    <figcaption>Server health: watch the process stay up and keep an eye on resource use, without tailing logs over SSH.</figcaption>
+  </figure>
+  <!-- ADD IMAGE: the Kloudbean runtime configuration panel for a Node app, showing the start command and process options. Swap for a real screenshot: src -> images/node-runtime-config.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Node runtime configuration panel: start command and process options set in the dashboard, not over SSH.</em><small>Where the managed process manager is configured.</small></span></figure>
+  <p>To be clear about a boundary people ask about: cluster mode uses the cores on the server you already have. It is not autoscaling. Automatically adding or removing servers under load is an enterprise and custom-architecture thing, not something that happens on a standard app, so don't expect a normal managed app to grow servers by itself. For most apps, right-sizing one box and using all its cores is exactly enough.</p>
+  <p>The same managed flow deploys the frameworks that sit on top. If you're shipping a specific stack, see <a href="https://www.kloudbean.com/blog/deploy-express-app/">deploy an Express app</a> or <a href="https://www.kloudbean.com/blog/deploy-nestjs-app/">deploy a NestJS app</a>, and wire pushes to auto-deploy with <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD from GitHub</a>. However you keep the process alive, a <a href="https://www.kloudbean.com/blog/reverse-proxy-explained/">reverse proxy</a> still sits in front to terminate TLS and forward traffic to it.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Keep your Node app alive without hand-writing a single unit file.</p>
+    <p style="margin:0 0 .6em">Deploy from Git, let the managed stack supervise the process with PM2 (multi-process supported), watch health in one dashboard, and add a managed database and free SSL when you need them. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>; sizes and plans (from $8/mo, Enterprise custom) are on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">PM2 process management · Git deploy with live logs · Managed databases · Free auto-renewing SSL · Private networking · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is PM2?</h3>
+    <p>PM2 is a process manager for Node.js. You install it from npm and it keeps your app running: it restarts the process on crash, can start it on boot, collects logs, and has a cluster mode that runs one worker per CPU core. It's the most common way people keep a Node app alive on a server they manage themselves.</p>
+
+    <h3>What is a systemd service for Node?</h3>
+    <p>It's a small unit file that tells systemd, the Linux init system, how to run and supervise your Node app. With <code>Restart=always</code> it restarts Node on crash, and with <code>WantedBy=multi-user.target</code> plus <code>systemctl enable</code> it starts on boot. systemd is already on the box and language-agnostic, so it treats your app as just another service.</p>
+
+    <h3>PM2 vs systemd for Node: which is better?</h3>
+    <p>Neither is universally better. PM2 wins for a pure Node app because of built-in cluster mode and zero-downtime reloads. systemd wins when you want one supervisor for every service on the box with no extra dependency. Many teams run PM2 under systemd to get both.</p>
+
+    <h3>How do I keep a Node app running after I close SSH?</h3>
+    <p>Don't run it in your shell. Hand it to a supervisor. Under PM2 that's <code>pm2 start</code>, and under systemd it's a service unit with <code>systemctl start</code>. Both detach the process from your terminal, so logging out no longer kills your app.</p>
+
+    <h3>Does PM2 restart my app on server reboot?</h3>
+    <p>Only if you set it up. PM2 does not survive a reboot by default. Run <code>pm2 startup</code> once (it prints a sudo command to paste back), then <code>pm2 save</code> after your apps are running. Skipping these is the most common reason a PM2 setup vanishes after maintenance reboots.</p>
+
+    <h3>What is PM2 cluster mode?</h3>
+    <p>Cluster mode forks your Node app into multiple worker processes and load-balances connections across them, so a multi-core server actually uses all its cores. You enable it with <code>exec_mode: cluster</code> and <code>instances: max</code>, or <code>pm2 start app.js -i max</code>. Your app needs to be stateless between requests for it to work correctly.</p>
+
+    <h3>Can I run PM2 under systemd?</h3>
+    <p>Yes, and it's a common setup. systemd keeps the PM2 daemon alive and starts it on boot, while PM2 manages the Node workers, clustering, and reloads on top. Running <code>pm2 startup</code> actually generates a systemd unit that resurrects PM2, so the two work together by design.</p>
+
+    <h3>How do I see logs with PM2 vs systemd?</h3>
+    <p>With PM2 you run <code>pm2 logs</code> to tail an app's output, and you should add pm2-logrotate so the log files don't grow forever. With systemd, output goes to journald, so <code>journalctl -u your-service -f</code> follows the logs and rotation is handled for you.</p>
+
+    <h3>Do I need PM2 on managed hosting?</h3>
+    <p>No. On a managed platform like Kloudbean, your Node app already runs under PM2 as part of the stack, so it restarts on crash and comes back after a reboot without you configuring anything. You set the runtime and start command in the dashboard, and PM2 multi-process is supported when you want to use more cores.</p>
+
+    <h3>Is systemd better than PM2 for a single Node app?</h3>
+    <p>For one process that doesn't need clustering, systemd is a great fit and adds no dependency, since it's already running. PM2 becomes clearly worth it once you want cluster mode across cores or zero-downtime reloads on deploy. For a simple single-instance service, either is fine, so pick the one your team already knows.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Keep the process alive, use every core, and own the box it runs on.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"PM2 vs systemd: Keeping a Node.js App Running in Production","description":"An honest PM2 vs systemd guide for Node in production: what each tool is, PM2 cluster mode and zero-downtime reload, systemd unit files and boot persistence, the gotchas that cause outages, the PM2-under-systemd combo, and why managed hosting handles this for you.","image":"https://www.kloudbean.com/blog/pm2-vs-systemd/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/pm2-vs-systemd/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is PM2?","acceptedAnswer":{"@type":"Answer","text":"PM2 is a process manager for Node.js. You install it from npm and it keeps your app running: it restarts the process on crash, can start it on boot, collects logs, and has a cluster mode that runs one worker per CPU core. It is the most common way people keep a Node app alive on a server they manage themselves."}},
+{"@type":"Question","name":"What is a systemd service for Node?","acceptedAnswer":{"@type":"Answer","text":"It is a small unit file that tells systemd, the Linux init system, how to run and supervise your Node app. With Restart=always it restarts Node on crash, and with WantedBy=multi-user.target plus systemctl enable it starts on boot. systemd is already on the box and language-agnostic, so it treats your app as just another service."}},
+{"@type":"Question","name":"PM2 vs systemd for Node: which is better?","acceptedAnswer":{"@type":"Answer","text":"Neither is universally better. PM2 wins for a pure Node app because of built-in cluster mode and zero-downtime reloads. systemd wins when you want one supervisor for every service on the box with no extra dependency. Many teams run PM2 under systemd to get both."}},
+{"@type":"Question","name":"How do I keep a Node app running after I close SSH?","acceptedAnswer":{"@type":"Answer","text":"Do not run it in your shell. Hand it to a supervisor. Under PM2 that is pm2 start, and under systemd it is a service unit with systemctl start. Both detach the process from your terminal, so logging out no longer kills your app."}},
+{"@type":"Question","name":"Does PM2 restart my app on server reboot?","acceptedAnswer":{"@type":"Answer","text":"Only if you set it up. PM2 does not survive a reboot by default. Run pm2 startup once (it prints a sudo command to paste back), then pm2 save after your apps are running. Skipping these is the most common reason a PM2 setup vanishes after maintenance reboots."}},
+{"@type":"Question","name":"What is PM2 cluster mode?","acceptedAnswer":{"@type":"Answer","text":"Cluster mode forks your Node app into multiple worker processes and load-balances connections across them, so a multi-core server actually uses all its cores. You enable it with exec_mode cluster and instances max, or pm2 start app.js -i max. Your app needs to be stateless between requests for it to work correctly."}},
+{"@type":"Question","name":"Can I run PM2 under systemd?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it is a common setup. systemd keeps the PM2 daemon alive and starts it on boot, while PM2 manages the Node workers, clustering, and reloads on top. Running pm2 startup actually generates a systemd unit that resurrects PM2, so the two work together by design."}},
+{"@type":"Question","name":"How do I see logs with PM2 vs systemd?","acceptedAnswer":{"@type":"Answer","text":"With PM2 you run pm2 logs to tail an app output, and you should add pm2-logrotate so the log files do not grow forever. With systemd, output goes to journald, so journalctl -u your-service -f follows the logs and rotation is handled for you."}},
+{"@type":"Question","name":"Do I need PM2 on managed hosting?","acceptedAnswer":{"@type":"Answer","text":"No. On a managed platform like Kloudbean, your Node app already runs under PM2 as part of the stack, so it restarts on crash and comes back after a reboot without you configuring anything. You set the runtime and start command in the dashboard, and PM2 multi-process is supported when you want to use more cores."}},
+{"@type":"Question","name":"Is systemd better than PM2 for a single Node app?","acceptedAnswer":{"@type":"Answer","text":"For one process that does not need clustering, systemd is a great fit and adds no dependency, since it is already running. PM2 becomes clearly worth it once you want cluster mode across cores or zero-downtime reloads on deploy. For a simple single-instance service, either is fine, so pick the one your team already knows."}}
+]}
+]}
+</script>
+</body>
+</html>

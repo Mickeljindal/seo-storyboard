@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Host Your App, API, and Database on One Server</title>
+<meta name="description" content="The modern default scatters your front end, API, and database across three services. Here's the case for running the whole stack on one owned server — the latency win, the ops win, and exactly how to set it up.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Host Your App, API, and Database on One Server">
+<meta property="og:description" content="The case for running your whole stack — front end, API, and database — on one owned server, why local beats the internet, and how to set it up.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Architecture · one server, whole stack</span>
+  <h1>How to Host Your App, API, and Database on One Server</h1>
+
+  <figure><img src="images/hero.png" alt="Host your app, API, and database on one server — the whole stack, one owned box"></figure>
+
+  <p class="lead">For a few years now the default advice has been to spread a web app across services: the front end on an edge host, the API as serverless functions somewhere else, the database as a separate metered product in a third place. It works. It also means three dashboards, three bills, three things to keep in your head, and a trip across the public internet between every layer. For a huge number of apps, especially the ones coming out of Lovable, Bolt, or Cursor, there's a simpler shape that's faster and cheaper to run: put your app, API, and database on one server you own. This is the case for that architecture, why the co-located version is quicker where it counts, and exactly how to build it.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>Running the full stack on one server means your app reaches its database over the machine's local network, in under a millisecond, instead of a round trip across the internet to a hosted service. You get one bill, one thing to back up, one place to debug, and a database that never has to face the public internet. Split things apart later, deliberately, when real scale or separate teams make you. For most apps, one box is the right default, not a compromise.</p>
+  </div>
+
+  <h2>Two shapes for the same app</h2>
+  <p>Before the how, look at the what. Here's the same app drawn two ways: everything co-located on one server, versus the scattered default where each layer lives in a different cloud. The thing to watch is the arrows. On the left they're short hops across a local network. On the right, every one of them is a round trip over the public internet.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 470" width="100%" role="img" aria-label="Two architectures side by side. On the left, one server you own contains three stacked tiers, front end, API, and managed database, with short local-network hops under one millisecond between them, plus one bill, one backup, one place to debug. On the right, the same app scattered across three clouds, front end on an edge host, API on serverless, database as a service, with each hop bowing out across the public internet at tens of milliseconds, plus three bills, three dashboards, three separate outages.">
+      <rect x="1" y="1" width="718" height="468" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="360" y="34" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="17" font-weight="700" fill="#000f27">Two shapes for the same app</text>
+
+      <!-- divider -->
+      <line x1="360" y1="60" x2="360" y2="430" stroke="#e6e9f2" stroke-width="1.5" stroke-dasharray="5 5"/>
+
+      <!-- LEFT: one server -->
+      <rect x="28" y="66" width="300" height="360" rx="16" fill="#f6f7fb" stroke="#000f27" stroke-width="1.5"/>
+      <text x="178" y="92" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="700" letter-spacing="0.06em" fill="#000f27">ONE SERVER YOU OWN</text>
+      <g font-family="Poppins,Arial,sans-serif" font-size="13.5" font-weight="600" text-anchor="middle">
+        <rect x="64" y="106" width="228" height="54" rx="10" fill="#4F1AF3"/><text x="178" y="138" fill="#fff">Front end</text>
+        <rect x="64" y="196" width="228" height="54" rx="10" fill="#4F1AF3"/><text x="178" y="228" fill="#fff">API</text>
+        <rect x="64" y="286" width="228" height="54" rx="10" fill="#000f27"/><text x="178" y="318" fill="#fff">Managed database</text>
+      </g>
+      <g stroke="#40b75f" stroke-width="2.5" fill="#40b75f">
+        <path d="M178 160 L178 194"/><path d="M172 187 L184 187 L178 196 Z"/>
+        <path d="M178 250 L178 284"/><path d="M172 277 L184 277 L178 286 Z"/>
+      </g>
+      <g font-family="Poppins,Arial,sans-serif" font-size="10.5" font-weight="600" fill="#2f9e52" text-anchor="middle">
+        <text x="230" y="181">under 1 ms</text><text x="230" y="271">under 1 ms</text>
+      </g>
+      <text x="178" y="404" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#5b6a86">one bill · one backup · one place to debug</text>
+
+      <!-- RIGHT: scattered -->
+      <text x="536" y="92" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="700" letter-spacing="0.06em" fill="#000f27">SCATTERED ACROSS 3 CLOUDS</text>
+      <g font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" text-anchor="middle" fill="#1c2536">
+        <rect x="446" y="106" width="180" height="54" rx="10" fill="#fff" stroke="#c9d0e3"/><text x="536" y="132">Front end</text><text x="536" y="149" font-size="10.5" font-weight="500" fill="#8a94ab">cloud A · edge host</text>
+        <rect x="446" y="196" width="180" height="54" rx="10" fill="#fff" stroke="#c9d0e3"/><text x="536" y="222">API</text><text x="536" y="239" font-size="10.5" font-weight="500" fill="#8a94ab">cloud B · serverless</text>
+        <rect x="446" y="286" width="180" height="54" rx="10" fill="#fff" stroke="#c9d0e3"/><text x="536" y="312">Database</text><text x="536" y="329" font-size="10.5" font-weight="500" fill="#8a94ab">cloud C · db service</text>
+      </g>
+      <g stroke="#d98324" stroke-width="2" fill="none" stroke-dasharray="5 4">
+        <path d="M626 150 Q700 178 626 196"/>
+        <path d="M626 240 Q700 268 626 286"/>
+      </g>
+      <g fill="#d98324" stroke="none">
+        <path d="M621 188 L631 188 L626 197 Z"/>
+        <path d="M621 278 L631 278 L626 287 Z"/>
+      </g>
+      <g font-family="Poppins,Arial,sans-serif" font-size="10.5" font-weight="600" fill="#c47a1f" text-anchor="middle">
+        <text x="690" y="176">internet</text><text x="690" y="266">internet</text>
+      </g>
+      <text x="536" y="368" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#c47a1f">public internet · tens of ms per hop</text>
+      <text x="536" y="404" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#5b6a86">three bills · three dashboards · three outages</text>
+    </svg>
+    <figcaption>Same app, two topologies. The one-server version keeps every hop on the local network; the scattered one pays an internet round trip at each layer.</figcaption>
+  </figure>
+
+  <h2>Why put the app, API, and database on one server?</h2>
+  <p>Because for most apps the co-located shape wins on the things you actually feel, and loses on almost nothing until you're genuinely big. Here's the honest ledger:</p>
+  <ul>
+    <li><strong>The database is a local call, not an internet call.</strong> Your app reaches Postgres or MySQL over the machine's own network in a fraction of a millisecond. A data-heavy page that makes a handful of queries feels the difference immediately.</li>
+    <li><strong>One predictable bill.</strong> You pay for a server, not a front-end plan plus function invocations plus a database tier that each meter separately and climb on their own schedule.</li>
+    <li><strong>One place to debug.</strong> When something breaks, you look at one server, its logs, its processes, its database, instead of triangulating across three services and guessing which one dropped the request.</li>
+    <li><strong>App and data backed up together.</strong> The whole stack sits on infrastructure you own and gets backed up as a unit, so a restore brings back a coherent snapshot, not three services that have drifted out of sync.</li>
+    <li><strong>A smaller attack surface.</strong> The database never needs a public door, because the only thing that talks to it is the app on the same box.</li>
+  </ul>
+  <p>I'll take a position here, because the industry rarely does. Most apps don't have Google's problems, and copying Google's architecture mostly gives you Google's operational overhead without Google's scale. A single-server architecture that hosts the frontend, backend, and database together is the right default for the large middle of real-world apps. The scattered version is a scaling tool you reach for when you have a scaling problem, not a starting point.</p>
+
+  <h2>The distance your data actually travels</h2>
+  <p>This is the part the scattered setup handles worst, so it's worth slowing down on. When your database is a separate hosted service, every query leaves your app, crosses the public internet, hits the database, and comes back. That round trip adds real latency to anything data-driven, and it stacks: a page that runs six queries pays that internet tax six times. When the database sits on the same server, the trip is over the machine's local loopback or private network, effectively instant.</p>
+  <p>You can see the whole difference in one environment variable. It's the host in your connection string:</p>
+  <pre><code># scattered: every query crosses the internet
+DATABASE_URL="postgresql://user:pass@db.some-cloud.com:5432/app"
+
+# co-located: same box, over the local network
+DATABASE_URL="postgresql://user:pass@127.0.0.1:5432/app"</code></pre>
+  <p>Same app, same query, radically different physics. Pointing at <code>127.0.0.1</code> instead of a hostname three networks away is the single least glamorous performance win available, and you get it for free just by not scattering the pieces. Keeping that connection string out of your code and in the environment is its own small discipline, covered in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>.</p>
+
+  <h2>What one-server architecture actually looks like</h2>
+  <p>Make it concrete with the shape most vibe-coded apps already have: a React front end, an Express or Next.js API, and a Postgres database. On one server, that's a single Node process serving the built front-end files and answering the <code>/api/...</code> routes, plus a Postgres instance on the same machine that the process connects to through a <code>DATABASE_URL</code> pointed at <code>localhost</code>. A visitor loads the page (served by your process), the page calls <code>/api/things</code> (handled by the same process), which queries Postgres (right there on the box) and returns the data. Everything a request touches lives on one machine. That's the full stack on one server, and for this extremely common app shape it isn't a lesser architecture. It's the cleaner one.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console DBS Launch Database screen, creating a managed Postgres or MySQL database on the same server as the app">
+    <figcaption>DBS, Launch Database. The managed database lands on the same server the app runs on, reachable over the local network.</figcaption>
+  </figure>
+
+  <h2>Front end and API: one process or two?</h2>
+  <p>A real design choice, and both answers are fine on one server:</p>
+  <ul>
+    <li><strong>One process (a monolith).</strong> Your app serves the front end and the API from the same Node process: an Express server that both hands out the built front-end files and handles <code>/api/...</code>, or a Next.js app doing both. Simplest possible shape, one thing to deploy and run. Many vibe-coded apps come out exactly like this, and it's a perfectly good production form.</li>
+    <li><strong>Two applications on the same server.</strong> Prefer to keep the front end and API as separate deployables? Run them as two applications on the same box, each with its own Start command, sharing the server and the database. More separation, still one bill.</li>
+  </ul>
+  <p>Neither is more correct. Start with whatever your app already is, usually the single process, and split it only when you have a concrete reason. One server holds both arrangements without dragging in extra services.</p>
+
+  <h2>Where people get this wrong</h2>
+  <p>Two mistakes show up again and again. The first is architectural cargo-culting: scattering a brand-new, low-traffic app across three clouds because a conference talk about a company 10,000 times its size did it that way. You inherit all the coordination cost and none of the reason for it. If you can't name the specific scaling problem the split solves for you, you probably don't have it yet.</p>
+  <p>The second is a security one we see constantly: an app and its database on the same server, but the database still configured to accept connections from anywhere on the internet. If the only client is the app on the same box, the database doesn't need a public door at all. Bind it to the local interface, keep it off the public internet, and you've closed a whole category of exposure for free. Co-location makes that easy; leaving the door open throws the benefit away.</p>
+
+  <h2>The ops win, in one breath</h2>
+  <p>Set the latency aside for a second, because the operational story might matter more day to day. One server means one firewall to configure, one set of logs to read, one backup to restore, one invoice to reconcile, and one system to reason about when you ask "what's exposed, and to whom." The scattered version multiplies each of those by three and then adds the connections between them. Every vendor is another status page to watch and another billing relationship to manage. Consolidating doesn't just save money. It shrinks the number of things that can independently ruin your afternoon.</p>
+
+  <h2>When you should split it apart</h2>
+  <p>Being honest about the limits is the point, so here's when one server stops being the answer. You split deliberately, driven by a metric, not a vibe:</p>
+  <ul>
+    <li><strong>The database is starved.</strong> If the app and the database are fighting over the same CPU and memory, move the database onto its own server so it gets dedicated resources. Your connection string changes; your code doesn't.</li>
+    <li><strong>One box can't take the traffic.</strong> Put a load balancer in front and run the app on more than one instance. Kloudbean's Flexible Load Balancer is built in for exactly this, and the <a href="https://www.kloudbean.com/blog/cloud-load-balancer-explained/">load balancer explainer</a> covers when it earns its place.</li>
+    <li><strong>Reads dominate.</strong> A read-heavy app can add read replicas before it needs a full re-architecture; the <a href="https://www.kloudbean.com/blog/database-read-replicas-scaling/">read-replicas guide</a> walks through that.</li>
+    <li><strong>Separate teams or a global audience.</strong> Genuinely independent teams, or users spread across continents who need edge presence, are real reasons to distribute. Not day-one reasons for most apps.</li>
+  </ul>
+  <p>Starting on one server doesn't paint you into a corner. Because it's standard Linux and standard code, splitting a component out later is a normal operation, not a rewrite. Begin simple, scale when the need is real.</p>
+
+  <!-- ADD IMAGE: swap for a real <figure> with an <img> (src -> images/scale-out.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>The moment you outgrow one box: resizing the server, or putting a load balancer in front of a second instance.</em><small>Shows the deliberate scale-out step, so "one server" doesn't read as a dead end.</small></span></figure>
+
+  <h2>How to set it up on Kloudbean</h2>
+  <p>The setup is the ordinary deploy flow, with the database landing on the same box instead of a separate service:</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="The Kloudbean console Add Server screen, launching a server on one of the cloud providers to hold the whole stack">
+    <figcaption>Step one: launch the server that will hold the app, the API, and the database together.</figcaption>
+  </figure>
+
+  <ol>
+    <li><strong>Launch a server.</strong> Pick one of the cloud providers, choose your stack (Node, or whatever you run), and the nearest datacenter. Give it enough memory to build.</li>
+    <li><strong>Deploy the app.</strong> Open <strong>Application Administration &#8594; Deploy Code</strong>, connect your Git repo, set the app directory, <code>process.env.PORT</code>, and your install, build, and start commands, then <strong>Pull &amp; Deploy</strong>.</li>
+    <li><strong>Launch the database on the same box.</strong> From <strong>DBS &#8594; Launch Database</strong>, create a managed instance. You've got six engines to choose from (Postgres, MySQL, MariaDB, MongoDB, Redis, Elasticsearch), all living on the server you just deployed to.</li>
+    <li><strong>Wire it with an environment variable.</strong> In <strong>Runtime Configuration &#8594; Environment Variables</strong>, set <code>DATABASE_URL</code> to point at the local database. Never hard-code it.</li>
+    <li><strong>Point your domain, add SSL, turn on auto-deploy.</strong> Attach your domain with a free Let's Encrypt certificate and enable automated deployment so every push ships. The <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">auto-deploy guide</a> has that part.</li>
+  </ol>
+  <p>That's the whole stack, front end, API, and data, on one server you own, reachable at your domain over HTTPS. If you want the app side in more detail, the <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploy an AI-built app guide</a> and the <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">add a managed database guide</a> cover each half.</p>
+
+  <!-- ADD IMAGE: swap for a real <figure> with an <img> (src -> images/app-and-db-same-server.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>The server overview showing the application and its managed database listed on the same server, so readers see the co-located stack in the console.</em><small>Proves the "one box holds the whole stack" claim visually.</small></span></figure>
+
+  <h2>How this differs from splitting the front end from the API</h2>
+  <p>One clarification, because people mix these up. Deciding whether your React front end and your API run as one process or two is a question about how you serve the app. Deciding to keep the app and the database on one server is a question about where your data lives and how far it travels. They're different axes. You can run a single-process monolith or two apps, and in both cases keep the database local. The topology guide for the serving side is the <a href="https://www.kloudbean.com/blog/deploy-fullstack-react-app-to-production/">full-stack React deploy guide</a>; this piece is about co-locating the data so queries stay on the machine. And if the "several apps on one server" idea appeals, <a href="https://www.kloudbean.com/blog/host-multiple-apps-one-server/">hosting multiple apps on one server</a> takes it further.</p>
+
+  <h2>What stays managed</h2>
+  <p>Running the whole stack on one server doesn't mean running the server by hand. The managed platform handles the OS, the web stack, the process manager that keeps your app alive, SSL, and backups, including the database. You own the application and the data; the platform keeps the box healthy. That split is what makes "everything on one server" practical for people who'd rather build than administer Linux. You get the simplicity and ownership of a single machine without inheriting the grind of a bare one.</p>
+
+  <h2>The honest limits</h2>
+  <p>Kloudbean runs <strong>Linux</strong> web stacks (Node, PHP, Python, and frameworks like React, Next.js, Vue, Laravel, and Django) with managed databases on the same server. It isn't for Windows, .NET, or IIS workloads. Two honest points about the architecture itself. First, one server is, until you scale, a single point of failure, which is exactly why managed backups matter and why you add a load balancer or move the database out when uptime demands it. Second, "one server" is the right default for most apps but not all; a genuinely global, latency-critical, or very high-traffic app will eventually want a distributed setup. For the large middle of real apps, one owned box holding the whole stack is the simplest thing that fully works.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">One box. The whole stack. Yours.</p>
+    <p style="margin:0">Put your app, API, and database on one owned server at <a href="https://www.kloudbean.com/">kloudbean.com</a>, with a free trial and your first migration done for you. Check server sizes on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Can I run my front end, API, and database on one server?</h3>
+    <p>Yes, and for most apps it's the simplest good architecture. The app (serving the front end and API) runs as an always-on process, and a managed database such as Postgres or MySQL runs on the same server, connected over the local network. One box holds the whole stack.</p>
+    <h3>Isn't it better to use separate services for each layer?</h3>
+    <p>Only at large scale or for specific needs like a global audience or independent teams. For the typical app, one server is simpler, cheaper, faster to the database, and easier to debug than scattering the front end, API, and database across three separate metered services.</p>
+    <h3>Why is keeping the database on the same server faster?</h3>
+    <p>Your app reaches it over the machine's local network in a fraction of a millisecond, instead of a round trip across the public internet to a hosted database. For data-heavy apps that's a real, free performance win, and the database never needs to be exposed publicly.</p>
+    <h3>Should the front end and API be one process or two?</h3>
+    <p>Either works on one server. Many apps run a single process that serves both the front end and the API routes; if you prefer separation, run them as two applications on the same server sharing the database. Start with whatever your app already is.</p>
+    <h3>Is one server a single point of failure?</h3>
+    <p>Until you scale, yes, which is why managed backups matter and why you add a load balancer or move the database to its own server when uptime demands it. Starting on one server is fine and doesn't lock you in; you split components out later if real traffic requires it.</p>
+    <h3>How do I move the database off later without a rewrite?</h3>
+    <p>You launch a database on its own server and change the connection string in your environment variables to point at it. Because it's standard Linux and standard code, your application doesn't change; only the host in <code>DATABASE_URL</code> does. That's what makes starting on one server safe.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Host Your App, API, and Database on One Server","description":"The case for running your whole stack, front end, API, and database, on one owned server: the latency win, the ops win, and exactly how to set it up.","image":"https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Can I run my front end, API, and database on one server?","acceptedAnswer":{"@type":"Answer","text":"Yes, and for most apps it's the simplest good architecture. The app (serving the front end and API) runs as an always-on process, and a managed database such as Postgres or MySQL runs on the same server, connected over the local network. One box holds the whole stack."}},
+{"@type":"Question","name":"Isn't it better to use separate services for each layer?","acceptedAnswer":{"@type":"Answer","text":"Only at large scale or for specific needs like a global audience or independent teams. For the typical app, one server is simpler, cheaper, faster to the database, and easier to debug than scattering the front end, API, and database across three separate metered services."}},
+{"@type":"Question","name":"Why is keeping the database on the same server faster?","acceptedAnswer":{"@type":"Answer","text":"Your app reaches it over the machine's local network in a fraction of a millisecond, instead of a round trip across the public internet to a hosted database. For data-heavy apps that's a real, free performance win, and the database never needs to be exposed publicly."}},
+{"@type":"Question","name":"Should the front end and API be one process or two?","acceptedAnswer":{"@type":"Answer","text":"Either works on one server. Many apps run a single process that serves both the front end and the API routes; if you prefer separation, run them as two applications on the same server sharing the database. Start with whatever your app already is."}},
+{"@type":"Question","name":"Is one server a single point of failure?","acceptedAnswer":{"@type":"Answer","text":"Until you scale, yes, which is why managed backups matter and why you add a load balancer or move the database to its own server when uptime demands it. Starting on one server is fine and doesn't lock you in; you split components out later if real traffic requires it."}},
+{"@type":"Question","name":"How do I move the database off later without a rewrite?","acceptedAnswer":{"@type":"Answer","text":"You launch a database on its own server and change the connection string in your environment variables to point at it. Because it's standard Linux and standard code, your application doesn't change; only the host in DATABASE_URL does. That's what makes starting on one server safe."}}
+]}
+]}
+</script>
+</body>
+</html>

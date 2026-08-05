@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Managed Elasticsearch Hosting: Real Search for Your App</title>
+<meta name="description" content="Managed Elasticsearch hosting explained: what it's for, full-text and faceted search, indexing a copy of your data, connecting on port 9200, and why it's not your primary database.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/managed-elasticsearch-hosting/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Managed Elasticsearch Hosting: Real Search for Your App">
+<meta property="og:description" content="What managed Elasticsearch hosting is for, full-text and faceted search, indexing a copy of your data from Postgres or MySQL, and why Elasticsearch is not your primary database.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Managed databases</span>
+  <h1>Managed Elasticsearch Hosting: Search Your Database Can't Do Alone</h1>
+
+  <figure><img src="images/hero.png" alt="Managed Elasticsearch hosting, the search engine beside your primary database"></figure>
+
+  <p class="lead">Your users type into a search box and expect Google. What they get, if search is a <code>LIKE '%term%'</code> query against your database, is slow, unranked, and blind to typos.</p>
+  <p>That gap is where Elasticsearch earns its keep. Managed Elasticsearch hosting means you launch a search engine next to your app, feed it a copy of your data, and get fast, ranked full-text search without babysitting a cluster yourself. This guide covers what Elasticsearch is actually for, when you genuinely need it, how it fits beside your real database, and the memory reality that makes self-hosting such a chore.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>Managed Elasticsearch hosting is a provisioned, patched, backed-up Elasticsearch instance you run beside your app for search and analytics. It's brilliant at full-text search with relevance ranking, faceted product filters, autocomplete, and log data. It is not your primary database. Keep the source of truth in PostgreSQL or MySQL and index a copy into Elasticsearch for the things a search engine does well.</p>
+  </div>
+
+  <h2>What managed Elasticsearch hosting actually is</h2>
+  <p>Elasticsearch is a distributed search and analytics engine built on top of Apache Lucene. You give it JSON documents, it builds an inverted index, and then it answers search queries in milliseconds with results ranked by relevance. It speaks HTTP over a REST API, so any language can talk to it.</p>
+  <p>Managed Elasticsearch hosting takes the annoying part off your plate. Instead of installing Java, tuning heap, wiring up a cluster, and remembering to snapshot it, you launch an instance from a dashboard. The platform provisions it, patches the engine, keeps it on a private network, and backs it up. You own your indices and your data. You just don't own the 2am pager when a node runs out of memory.</p>
+
+  <h2>Elasticsearch is a search engine, not your database</h2>
+  <p>This is the one idea that saves people the most pain, so it goes first. Elasticsearch is not where your data lives. It's where a <em>copy</em> of your data goes so it can be searched well.</p>
+  <p>Your authoritative records, the ones you cannot afford to lose, belong in a real transactional database. That's <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">PostgreSQL</a> or MySQL for most apps. Those engines give you ACID transactions, foreign keys, and a durability guarantee that Elasticsearch was never designed to match. Elasticsearch is near-real-time, not strongly consistent, and its whole architecture is tuned for reading and ranking, not for being the single source of truth.</p>
+  <p>So the mental model is simple. Write to your database. Index a copy into Elasticsearch. Search against Elasticsearch. If the search index ever gets corrupted or a node dies, you rebuild it from the database and lose nothing that matters.</p>
+
+  <figure>
+<svg viewBox="0 0 760 360" width="100%" role="img" aria-label="Architecture diagram: the primary database is the source of truth and Elasticsearch holds a searchable copy indexed from it" xmlns="http://www.w3.org/2000/svg">
+  <rect width="760" height="360" rx="16" fill="#f6f7fb"/>
+  <text x="28" y="36" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Source of truth in the database, a searchable copy in Elasticsearch</text>
+
+  <!-- User -->
+  <rect x="26" y="150" width="118" height="66" rx="12" fill="#000f27"/>
+  <text x="85" y="181" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="15" font-weight="600">User</text>
+  <text x="85" y="201" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="11">search box</text>
+
+  <!-- App -->
+  <rect x="214" y="146" width="150" height="74" rx="12" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
+  <text x="289" y="178" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="15" font-weight="600">Application</text>
+  <text x="289" y="198" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">Node · Python · PHP</text>
+
+  <!-- Primary DB cylinder (top right) -->
+  <text x="540" y="70" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600" letter-spacing="0.5">SOURCE OF TRUTH</text>
+  <g>
+    <ellipse cx="540" cy="96" rx="60" ry="12" fill="#000f27"/>
+    <path d="M480 96 v42 a60 12 0 0 0 120 0 v-42" fill="#000f27"/>
+    <ellipse cx="540" cy="96" rx="60" ry="12" fill="#12224a"/>
+    <text x="540" y="126" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="14" font-weight="600">Primary DB</text>
+    <text x="540" y="144" text-anchor="middle" fill="#9fb0d8" font-family="Poppins,sans-serif" font-size="10.5">Postgres / MySQL</text>
+  </g>
+
+  <!-- Elasticsearch (bottom right) -->
+  <rect x="452" y="256" width="182" height="76" rx="12" fill="#4F1AF3"/>
+  <text x="543" y="288" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="15" font-weight="700">Elasticsearch</text>
+  <text x="543" y="308" text-anchor="middle" fill="#d9ccff" font-family="Poppins,sans-serif" font-size="11">search index · a copy</text>
+
+  <!-- user -> app -->
+  <line x1="144" y1="183" x2="208" y2="183" stroke="#5b6a86" stroke-width="2.5" marker-end="url(#a-muted)"/>
+  <!-- app -> primary db -->
+  <line x1="364" y1="168" x2="478" y2="132" stroke="#5b6a86" stroke-width="2.5" marker-end="url(#a-muted)"/>
+  <text x="410" y="140" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12" font-weight="600">read / write</text>
+  <!-- primary db -> elasticsearch (index a copy) -->
+  <line x1="560" y1="152" x2="560" y2="252" stroke="#40b75f" stroke-width="3" marker-end="url(#a-green)"/>
+  <text x="650" y="206" text-anchor="middle" fill="#2f8f4e" font-family="Poppins,sans-serif" font-size="12.5" font-weight="700">index a copy</text>
+  <!-- app -> elasticsearch (search) -->
+  <line x1="300" y1="222" x2="448" y2="288" stroke="#4F1AF3" stroke-width="2.5" marker-end="url(#a-purple)"/>
+  <text x="352" y="276" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="12" font-weight="600">search query</text>
+
+  <defs>
+    <marker id="a-muted" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5b6a86"/></marker>
+    <marker id="a-green" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#40b75f"/></marker>
+    <marker id="a-purple" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#4F1AF3"/></marker>
+  </defs>
+</svg>
+<figcaption>The database stays the source of truth. Elasticsearch holds a copy tuned for search. Lose the index and you rebuild it from the database.</figcaption>
+  </figure>
+
+  <p>A classic mistake is treating Elasticsearch as the only home for some data, usually because it was easy to shove documents in and query them back. Then a mapping change, a bad reindex, or a lost node means there's nothing to rebuild from. Don't do that. Keep the database in charge.</p>
+
+  <h2>Do you even need Elasticsearch yet?</h2>
+  <p>Honest opinion, and it might cost us a sale: most apps should start with the full-text search already built into their database. Postgres has real full-text search with <code>tsvector</code>, <code>tsquery</code>, a GIN index, and ranking through <code>ts_rank</code>. MySQL has <code>FULLTEXT</code> indexes. For a blog, a help center, a small catalog, that is genuinely enough, and it's one less service to run.</p>
+  <p>Elasticsearch is the usual alternative to database search once a plain query starts creaking. You'll feel it when a few things stack up at the same time:</p>
+  <ul>
+    <li><strong>Search is a first-class feature.</strong> People come to your app <em>to search</em>, like an online store, a jobs board, or a docs site. Search quality is the product, not a nicety.</li>
+    <li><strong>You need relevance, not just matches.</strong> "Best match first" beats "every row that contains the word." Elasticsearch ranks with BM25 out of the box.</li>
+    <li><strong>You want typo tolerance and autocomplete.</strong> Fuzzy matching, suggestions as you type, and "did you mean" are painful to fake in SQL.</li>
+    <li><strong>You need facets over big result sets.</strong> Live counts per brand, price band, and category across millions of rows. That's an aggregation problem, and it's what Elasticsearch was born for.</li>
+  </ul>
+  <p>If none of that is true yet, save yourself the moving part. If two or three are true, it's time. This is exactly the kind of "add it when the feature demands it" call, same as reaching for <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis</a> when repeat reads start hammering the database.</p>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>Database full-text search</th><th>Elasticsearch</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Setup</strong></td><td>Built in, one index</td><td>A separate service to run and feed</td></tr>
+      <tr><td><strong>Relevance ranking</strong></td><td>Basic (<code>ts_rank</code>)</td><td>Strong (BM25, tunable)</td></tr>
+      <tr><td><strong>Typos / fuzzy</strong></td><td>Limited</td><td>Built in</td></tr>
+      <tr><td><strong>Facets / aggregations</strong></td><td>Doable but heavy</td><td>Fast, first-class</td></tr>
+      <tr><td><strong>Autocomplete</strong></td><td>Hand-rolled</td><td>Purpose-built field types</td></tr>
+      <tr><td><strong>Best for</strong></td><td>Most small and mid apps</td><td>Search-heavy apps and logs</td></tr>
+    </tbody>
+  </table>
+
+  <h2>What Elasticsearch is genuinely good at</h2>
+  <p>Four jobs are where an Elasticsearch cluster pays for itself. If your problem is one of these, you're in the right place.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Job</th><th>What it gives you</th><th>Elasticsearch features</th></tr></thead>
+    <tbody>
+      <tr><td>Full-text search</td><td>Ranked, relevant results across text</td><td>Analyzers, BM25 scoring, fuzzy matching</td></tr>
+      <tr><td>Faceted / filtered search</td><td>Live counts per brand, price, category</td><td>Aggregations, keyword fields</td></tr>
+      <tr><td>Autocomplete</td><td>Suggestions as the user types</td><td>Edge n-grams, search-as-you-type, completion suggester</td></tr>
+      <tr><td>Logs &amp; observability</td><td>Search and dashboard huge log volumes</td><td>Time-based indices, the ELK stack, Kibana</td></tr>
+    </tbody>
+  </table>
+
+  <p>The store example ties three together. A shopper searches "wool socks," and Elasticsearch ranks the best matches first, shows a sidebar with live counts (12 in Trailhead, 8 under $20, 5 in stock), and offers completions as they type. Doing all of that against a SQL table with a pile of <code>LIKE</code> and <code>COUNT</code> queries gets slow and ugly fast.</p>
+
+  <p>Logs are the other big one. The ELK stack (Elasticsearch, Logstash, Kibana) exists because Elasticsearch ingests a flood of log lines into time-based indices and lets you search and chart them. If you've ever grepped across a week of logs and given up, that's the problem it solves.</p>
+
+  <!-- ADD IMAGE: a faceted search results page. Swap for a real screenshot: src -> images/faceted-search.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Show a store search results page with a facet sidebar (brand, price, in stock) and ranked results.</em><small>Makes the faceted-search payoff concrete.</small></span></figure>
+
+  <h2>How it fits: index a copy of your data</h2>
+  <p>Here's the part tutorials skip. Elasticsearch doesn't magically know about your database. You have to get your data into it, and keep it roughly in sync. There are three common ways, from simplest to sturdiest:</p>
+  <ul>
+    <li><strong>Dual write.</strong> When your app writes a record to the database, it also indexes a document into Elasticsearch. Simple to start, but the two can drift if an index write fails, so you'll want retries or a reconciliation job.</li>
+    <li><strong>Batch reindex.</strong> A scheduled job reads changed rows from the database and bulk-indexes them. Easy to reason about, and a nightly or hourly cron is plenty for catalogs that don't change by the second.</li>
+    <li><strong>Change data capture.</strong> A pipeline streams row changes from the database into Elasticsearch in near real time. It's the most robust and the most moving parts. Reach for it when drift actually hurts.</li>
+  </ul>
+  <p>Start with a batch reindex. It's boring, it's debuggable, and you can always rebuild the whole index from scratch, which is the entire point of keeping the database as the source of truth. On one private network, that reindex job talks to both over internal addresses and never touches the public internet.</p>
+
+  <p>Launching the engine is the easy bit. Open the DBS section, hit Launch Database, and pick Elasticsearch from the managed engines. Kloudbean runs seven: PostgreSQL, MySQL, MariaDB, Redis, Memcached, Elasticsearch, and MongoDB. A minute or two later it's provisioned on your server, secured, and already being backed up.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console, Launch Database, choosing managed Elasticsearch from the list of managed engines">
+    <figcaption>DBS &rarr; Launch Database: choose Elasticsearch from the seven managed engines, and it's provisioned on your server.</figcaption>
+  </figure>
+
+  <h2>Connecting to Elasticsearch on port 9200</h2>
+  <p>Elasticsearch listens for client traffic over HTTP on port <strong>9200</strong>. You can hit it with plain <code>curl</code>, and every language has an official client that wraps the same REST API. Managed instances expect a username, password, and usually TLS.</p>
+  <p>Keep those in environment variables, never in your source. Open Runtime Configuration, then Environment Variables, and add them, the same way you'd wire up any managed database.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console, Environment Variables, storing the Elasticsearch connection details outside the code">
+    <figcaption>Runtime Configuration &rarr; Environment Variables: the Elasticsearch host, port, and credentials live here, not in your repository.</figcaption>
+  </figure>
+
+<pre><code># one connection URL, with credentials
+ELASTICSEARCH_NODE=https://elastic:s3cret@10.0.0.6:9200
+
+# or split out, if your client prefers discrete fields
+ES_HOST=10.0.0.6
+ES_PORT=9200
+ES_USERNAME=elastic
+ES_PASSWORD=s3cret</code></pre>
+
+  <p>The Node client reads that URL and does the rest:</p>
+<pre><code>import { Client } from "@elastic/elasticsearch";
+const client = new Client({ node: process.env.ELASTICSEARCH_NODE });
+
+const result = await client.search({
+  index: "products",
+  query: { match: { name: "wool socks" } },
+});
+console.log(result.hits.hits);</code></pre>
+
+  <p>Python is the same shape with <code>elasticsearch-py</code>:</p>
+<pre><code>import os
+from elasticsearch import Elasticsearch
+
+es = Elasticsearch(os.environ["ELASTICSEARCH_NODE"])
+res = es.search(index="products", query={"match": {"name": "wool socks"}})
+print(res["hits"]["hits"])</code></pre>
+
+  <p>Because the credentials sit in the environment, they stay out of your Git history and you can rotate a password without a code change. That's the same discipline covered in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a>, and it applies to every managed engine.</p>
+
+  <h2>Indexing and mapping, with a small example</h2>
+  <p>An index is like a table, and a mapping is like its schema. You can let Elasticsearch guess field types (dynamic mapping), but on anything real you should define them, because the wrong type is the single most common Elasticsearch bug. Here's an explicit mapping for a product catalog:</p>
+
+<pre><code># create an index with an explicit mapping, over the REST API on 9200
+curl -X PUT "https://10.0.0.6:9200/products" -u elastic:$ES_PASSWORD \
+  -H 'Content-Type: application/json' -d '
+{
+  "mappings": {
+    "properties": {
+      "name":     { "type": "text" },
+      "brand":    { "type": "keyword" },
+      "category": { "type": "keyword" },
+      "price":    { "type": "float" },
+      "in_stock": { "type": "boolean" }
+    }
+  }
+}'</code></pre>
+
+  <p>Notice <code>name</code> is <code>text</code> and <code>brand</code> is <code>keyword</code>. That distinction is the whole game, so here's the rule people wish they'd known on day one:</p>
+  <ul>
+    <li><strong><code>text</code></strong> fields are analyzed. Elasticsearch tokenizes them, lowercases, and often stems, so "Running Socks" matches a search for "run sock." Use it for anything you want to <em>search</em>.</li>
+    <li><strong><code>keyword</code></strong> fields are stored verbatim. No tokenizing. Use it for anything you want to <em>filter</em>, <em>sort</em>, or <em>aggregate</em> on, like a brand, a status, or a category.</li>
+  </ul>
+  <p>Get this backwards and things quietly break. Index a category as <code>text</code> and your facet counts fragment. Index a product title as <code>keyword</code> and full-text search stops working, because it only matches the exact whole string. When a filter or sort misbehaves, check the field type first.</p>
+
+  <p>Indexing a document and searching it back looks like this:</p>
+<pre><code># index one product
+curl -X POST "https://10.0.0.6:9200/products/_doc" -u elastic:$ES_PASSWORD \
+  -H 'Content-Type: application/json' -d '
+{ "name": "Merino wool running socks", "brand": "Trailhead", "category": "socks", "price": 18.0, "in_stock": true }'
+
+# full-text search on name, filtered to in-stock items
+curl "https://10.0.0.6:9200/products/_search" -u elastic:$ES_PASSWORD \
+  -H 'Content-Type: application/json' -d '
+{
+  "query": {
+    "bool": {
+      "must":   { "match": { "name": "wool socks" } },
+      "filter": { "term":  { "in_stock": true } }
+    }
+  }
+}'</code></pre>
+  <p>The <code>match</code> clause does the fuzzy, analyzed, relevance-ranked part on the <code>text</code> field. The <code>term</code> filter does an exact yes/no check on a boolean and doesn't affect scoring. That split, scoring queries in <code>must</code> and exact filters in <code>filter</code>, is the backbone of nearly every real Elasticsearch query.</p>
+
+  <!-- ADD IMAGE: a raw _search JSON response. Swap for a real screenshot: src -> images/search-response.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Show a terminal or Kibana view of a _search response, with the hits array and _score values visible.</em><small>Lets readers see relevance scoring in action.</small></span></figure>
+
+  <h2>Why Elasticsearch is a beast to self-host</h2>
+  <p>This is the real reason managed Elasticsearch hosting exists, and it comes down to memory. Elasticsearch runs on the JVM, and it's hungry. The long-standing guidance is to give the JVM heap no more than half the machine's RAM, and to keep the heap under roughly 32GB so it can use compressed object pointers. The other half of RAM isn't wasted; Lucene leans on the operating system's filesystem cache for the actual search speed. So a box with too little RAM either starves the heap or starves the cache, and search gets slow either way.</p>
+  <p>That's just the sizing. Running a cluster well also means managing shards and replicas, watching health flip from green to yellow to red, clearing unassigned shards after a restart, taking snapshots, and upgrading versions without downtime. None of it is impossible. All of it is work you didn't sign up for when you just wanted a good search box.</p>
+  <p>Managed hosting collapses that. The instance is sized and provisioned for you, the engine is patched, it sits on a <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">private network</a> instead of the open internet, and it's backed up on a schedule you don't maintain. If you want to understand the backup side in general, <a href="https://www.kloudbean.com/blog/server-backups-guide/">the server backups guide</a> covers how automatic backups and restores work across the platform. You still own your indices and can export them whenever you like.</p>
+
+  <!-- ADD IMAGE: cluster health / heap usage. Swap for a real screenshot: src -> images/cluster-health.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Show cluster health (green/yellow/red) and JVM heap usage, so the memory point lands visually.</em><small>Backs up the heap and sizing section.</small></span></figure>
+
+  <h2>Managed Elasticsearch, or run the cluster yourself?</h2>
+  <p>Self-hosting is fine for learning or a throwaway project. For anything users depend on, a managed instance on the same private network as your app and database, in one dashboard, means one place to launch it, one bill, and no cluster babysitting. If you're weighing where that infrastructure should live, <a href="https://www.kloudbean.com/blog/digitalocean-vs-kloudbean/">DigitalOcean vs Kloudbean</a> lays out the raw-VPS-versus-managed tradeoff. And mind that the two engines scale differently: Elasticsearch grows by adding nodes and shards, while your primary database usually scales reads with <a href="https://www.kloudbean.com/blog/database-read-replicas-scaling/">read replicas</a>. Keep the roles clear and each stays simple.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Give your app search that actually feels like search.</p>
+    <p style="margin:0 0 .6em">Launch managed Elasticsearch beside your database, index a copy of your data, and connect with one URL, on infrastructure you control. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">One-click Elasticsearch · On a private network · Automatic backups · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is managed Elasticsearch hosting used for?</h3>
+    <p>Full-text search, faceted filtering, autocomplete, and log or analytics data, mostly. Elasticsearch ranks results by relevance and handles typos and aggregations that are painful in plain SQL. Managed Elasticsearch hosting means the platform provisions the instance, patches the engine, keeps it on a private network, and backs it up, so you launch one and connect with a URL.</p>
+    <h3>Is Elasticsearch a database?</h3>
+    <p>Not in the way Postgres or MySQL is. It's a search and analytics engine, near-real-time rather than strongly consistent, and it wasn't built to be your single source of truth. Keep your authoritative data in a transactional database and index a copy into Elasticsearch for search. If the index is ever lost, you rebuild it from the database.</p>
+    <h3>Do I need Elasticsearch, or is my database's full-text search enough?</h3>
+    <p>For most small and mid-sized apps, Postgres full-text search or MySQL FULLTEXT indexes are enough and one less service to run. Reach for Elasticsearch when search is a core feature, when you need real relevance ranking, typo tolerance, autocomplete, or fast facets over large result sets. If two or three of those are true, it's time.</p>
+    <h3>How do I connect my app to managed Elasticsearch?</h3>
+    <p>Elasticsearch exposes a REST API over HTTP on port 9200. Store the host, port, and credentials in environment variables, then use the official client for your language, such as the Elasticsearch client for Node or elasticsearch-py for Python. Both read the connection details and let you index and search with a few lines of code.</p>
+    <h3>What is the difference between a text field and a keyword field?</h3>
+    <p>A text field is analyzed, meaning it's tokenized and lowercased so full-text search works, so use it for anything you want to search. A keyword field is stored exactly as given, so use it for values you filter, sort, or aggregate on, like a brand or a category. Choosing the wrong type is the most common Elasticsearch mistake, and it makes facets and filters behave strangely.</p>
+    <h3>How does data get into Elasticsearch from my database?</h3>
+    <p>You index a copy of it. The simplest approach is a scheduled batch job that reads changed rows and bulk-indexes them. You can also dual-write from your app as records change, or stream changes with a change-data-capture pipeline for near real-time sync. Start with a batch reindex, because you can always rebuild the whole index from the database.</p>
+    <h3>Why does Elasticsearch use so much memory?</h3>
+    <p>It runs on the JVM and relies on both heap and the operating system's filesystem cache. The common guidance is to give the heap at most half of the machine's RAM and keep it under about 32GB, leaving the rest for the cache that makes searches fast. Under-sizing memory is the usual cause of a slow or unstable cluster, which is a big reason managed hosting is worth it.</p>
+    <h3>Can I use Elasticsearch for logs and observability?</h3>
+    <p>Yes, that's one of its biggest uses. The ELK stack pairs Elasticsearch with Logstash for ingestion and Kibana for dashboards. Log data goes into time-based indices, and you can search and chart huge volumes quickly. It's a common alternative to grepping across servers by hand.</p>
+    <h3>Managed Elasticsearch or self-hosting, which should I pick?</h3>
+    <p>Self-hosting is fine for learning or a throwaway project. For anything users rely on, managed hosting removes the hard parts: sizing, patching, shard and cluster management, snapshots, and upgrades. A managed instance on the same private network as your app and database, in one dashboard, is simpler and keeps everything on infrastructure you control.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Data Team · Search belongs in a search engine, not a LIKE query.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Managed Elasticsearch Hosting: Search Your Database Can't Do Alone","description":"What managed Elasticsearch hosting is for, full-text and faceted search, indexing a copy of your data from Postgres or MySQL, connecting on port 9200, and why Elasticsearch is not your primary database.","image":"https://www.kloudbean.com/blog/managed-elasticsearch-hosting/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/managed-elasticsearch-hosting/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is managed Elasticsearch hosting used for?","acceptedAnswer":{"@type":"Answer","text":"Full-text search, faceted filtering, autocomplete, and log or analytics data, mostly. Elasticsearch ranks results by relevance and handles typos and aggregations that are painful in plain SQL. Managed Elasticsearch hosting means the platform provisions the instance, patches the engine, keeps it on a private network, and backs it up, so you launch one and connect with a URL."}},
+{"@type":"Question","name":"Is Elasticsearch a database?","acceptedAnswer":{"@type":"Answer","text":"Not in the way Postgres or MySQL is. It is a search and analytics engine, near-real-time rather than strongly consistent, and it was not built to be your single source of truth. Keep your authoritative data in a transactional database and index a copy into Elasticsearch for search. If the index is ever lost, you rebuild it from the database."}},
+{"@type":"Question","name":"Do I need Elasticsearch, or is my database's full-text search enough?","acceptedAnswer":{"@type":"Answer","text":"For most small and mid-sized apps, Postgres full-text search or MySQL FULLTEXT indexes are enough and one less service to run. Reach for Elasticsearch when search is a core feature, when you need real relevance ranking, typo tolerance, autocomplete, or fast facets over large result sets. If two or three of those are true, it is time."}},
+{"@type":"Question","name":"How do I connect my app to managed Elasticsearch?","acceptedAnswer":{"@type":"Answer","text":"Elasticsearch exposes a REST API over HTTP on port 9200. Store the host, port, and credentials in environment variables, then use the official client for your language, such as the Elasticsearch client for Node or elasticsearch-py for Python. Both read the connection details and let you index and search with a few lines of code."}},
+{"@type":"Question","name":"What is the difference between a text field and a keyword field?","acceptedAnswer":{"@type":"Answer","text":"A text field is analyzed, meaning it is tokenized and lowercased so full-text search works, so use it for anything you want to search. A keyword field is stored exactly as given, so use it for values you filter, sort, or aggregate on, like a brand or a category. Choosing the wrong type is the most common Elasticsearch mistake, and it makes facets and filters behave strangely."}},
+{"@type":"Question","name":"How does data get into Elasticsearch from my database?","acceptedAnswer":{"@type":"Answer","text":"You index a copy of it. The simplest approach is a scheduled batch job that reads changed rows and bulk-indexes them. You can also dual-write from your app as records change, or stream changes with a change-data-capture pipeline for near real-time sync. Start with a batch reindex, because you can always rebuild the whole index from the database."}},
+{"@type":"Question","name":"Why does Elasticsearch use so much memory?","acceptedAnswer":{"@type":"Answer","text":"It runs on the JVM and relies on both heap and the operating system's filesystem cache. The common guidance is to give the heap at most half of the machine's RAM and keep it under about 32GB, leaving the rest for the cache that makes searches fast. Under-sizing memory is the usual cause of a slow or unstable cluster, which is a big reason managed hosting is worth it."}},
+{"@type":"Question","name":"Can I use Elasticsearch for logs and observability?","acceptedAnswer":{"@type":"Answer","text":"Yes, that is one of its biggest uses. The ELK stack pairs Elasticsearch with Logstash for ingestion and Kibana for dashboards. Log data goes into time-based indices, and you can search and chart huge volumes quickly. It is a common alternative to grepping across servers by hand."}},
+{"@type":"Question","name":"Managed Elasticsearch or self-hosting, which should I pick?","acceptedAnswer":{"@type":"Answer","text":"Self-hosting is fine for learning or a throwaway project. For anything users rely on, managed hosting removes the hard parts: sizing, patching, shard and cluster management, snapshots, and upgrades. A managed instance on the same private network as your app and database, in one dashboard, is simpler and keeps everything on infrastructure you control."}}
+]}
+]}
+</script>
+</body>
+</html>

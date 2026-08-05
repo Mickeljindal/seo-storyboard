@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Speed Up WooCommerce: The Store-Specific Fixes</title>
+<meta name="description" content="WooCommerce slow? Learn how to speed up WooCommerce with the store-specific fixes that matter: object cache, cart and checkout exclusions, autoload bloat, and Action Scheduler.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/speed-up-woocommerce/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Speed Up WooCommerce: The Store-Specific Fixes">
+<meta property="og:description" content="A cache plugin only fixes half a store. Here is how to speed up WooCommerce for real: object cache, cart exclusions, autoload bloat, Action Scheduler, and database hygiene.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">WooCommerce performance</span>
+  <h1>How to Speed Up WooCommerce When a Cache Plugin Isn't Enough</h1>
+  <p class="byline">By Kloudbean · A Store That Doesn't Stall.</p>
+
+  <figure><img src="images/hero.png" alt="How to speed up WooCommerce: a store split into cacheable storefront pages and dynamic cart, checkout, and account pages that need an object cache"></figure>
+
+  <p class="lead">Your blog loads fast. Your store crawls. Same WordPress underneath, very different behavior, and it catches a lot of people off guard.</p>
+  <p>The generic advice to speed up WooCommerce (install a cache plugin, compress a few images, call it done) fixes maybe half the problem. A store is full of pages a page cache can't touch. Cart, checkout, My Account: all different for every visitor, all bypassing full-page cache by design. So a WooCommerce store gets slow in ways a blog never does. This guide goes straight at the store-specific bottlenecks that actually move WooCommerce performance, in priority order, with the reasons behind each one.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>The biggest WooCommerce speed win is a persistent object cache (Redis or Memcached), because your dynamic pages fire the same database queries over and over and a page cache can't hold them. After that: full-page cache with cart, checkout, and account excluded; clear <code>wp_options</code> autoload bloat; drain the Action Scheduler backlog; tame cart fragments; keep the database tidy; and run a current PHP. Most "WooCommerce slow" tickets are a database and plugins problem, not a theme problem.</p>
+  </div>
+
+  <h2>Why a WooCommerce store gets slow in ways a blog doesn't</h2>
+  <p>A blog is mostly static. Once a post is published, the HTML is the same for every reader, so a page cache can store one finished copy and serve it to everyone in milliseconds. No PHP runs. The database is barely touched. That's why a well-cached blog feels instant on a tiny server.</p>
+  <p>A store is a different animal. The moment someone adds an item, their cart is theirs alone. The checkout shows their address, their shipping, their totals. My Account shows their orders. None of that can be shared with the next visitor, so WooCommerce marks those pages as uncacheable. Every hit runs PHP, opens a session, and queries the database. That's the half a cache plugin was never going to fix.</p>
+  <p>Here's the split that explains almost every slow store.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 404" width="100%" role="img" aria-label="A WooCommerce store splits in two. Storefront pages (home, shop, category, product) are the same for everyone and get served straight from the full-page cache with no PHP. Cart, checkout, and My Account are per-user, bypass the page cache by design, and run PHP through the object cache and database on every load.">
+      <rect x="0" y="0" width="760" height="404" fill="#ffffff"></rect>
+      <text x="30" y="32" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">The two halves of every WooCommerce store</text>
+
+      <line x1="376" y1="58" x2="376" y2="384" stroke="#e6e9f2" stroke-width="1.5" stroke-dasharray="5 6"></line>
+
+      <text x="30" y="78" fill="#2f8f49" font-family="Poppins,sans-serif" font-size="11.5" font-weight="700" letter-spacing="1.1">CACHEABLE · SAME FOR EVERYONE</text>
+      <rect x="30" y="90" width="312" height="74" rx="12" fill="#ffffff" stroke="#40b75f" stroke-width="1.5"></rect>
+      <text x="46" y="120" fill="#000f27" font-family="Poppins,sans-serif" font-size="15" font-weight="600">Storefront</text>
+      <text x="46" y="142" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">Home · Shop · Category · Product</text>
+
+      <line x1="186" y1="164" x2="186" y2="206" stroke="#40b75f" stroke-width="2"></line>
+      <path d="M186 208 l-4 -9 h8 z" fill="#40b75f"></path>
+
+      <rect x="30" y="210" width="312" height="66" rx="12" fill="#eafaf0" stroke="#40b75f" stroke-width="1.5"></rect>
+      <text x="46" y="238" fill="#1c7a3a" font-family="Poppins,sans-serif" font-size="14" font-weight="600">Full-page cache</text>
+      <text x="46" y="258" fill="#2f8f49" font-family="Poppins,sans-serif" font-size="12">Served in milliseconds. No PHP, no DB.</text>
+
+      <text x="30" y="312" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12.5">One cache plugin handles this half.</text>
+
+      <text x="404" y="78" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11.5" font-weight="700" letter-spacing="1.1">PER-USER · NEVER CACHED</text>
+      <rect x="404" y="90" width="326" height="60" rx="12" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5"></rect>
+      <text x="420" y="116" fill="#000f27" font-family="Poppins,sans-serif" font-size="14.5" font-weight="600">Cart · Checkout · My Account</text>
+      <text x="420" y="136" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">Different for every visitor. Bypass page cache.</text>
+
+      <line x1="567" y1="150" x2="567" y2="176" stroke="#4F1AF3" stroke-width="2"></line>
+      <path d="M567 178 l-4 -9 h8 z" fill="#4F1AF3"></path>
+
+      <rect x="404" y="180" width="326" height="40" rx="10" fill="#ffffff" stroke="#000f27" stroke-width="1.5"></rect>
+      <text x="567" y="205" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="600">PHP builds the page</text>
+
+      <line x1="567" y1="220" x2="567" y2="244" stroke="#4F1AF3" stroke-width="2"></line>
+      <path d="M567 246 l-4 -9 h8 z" fill="#4F1AF3"></path>
+
+      <rect x="404" y="248" width="326" height="52" rx="10" fill="#f2ecff" stroke="#4F1AF3" stroke-width="1.5"></rect>
+      <text x="567" y="272" text-anchor="middle" fill="#3a12b0" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Object cache</text>
+      <text x="567" y="290" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11.5">Redis / Memcached · keeps repeat queries off the DB</text>
+
+      <line x1="567" y1="300" x2="567" y2="324" stroke="#4F1AF3" stroke-width="2"></line>
+      <path d="M567 326 l-4 -9 h8 z" fill="#4F1AF3"></path>
+
+      <g>
+        <ellipse cx="567" cy="336" rx="60" ry="11" fill="#4F1AF3"></ellipse>
+        <path d="M507 336 v30 a60 11 0 0 0 120 0 v-30" fill="#4F1AF3"></path>
+        <ellipse cx="567" cy="336" rx="60" ry="11" fill="#6b3cff"></ellipse>
+        <text x="567" y="362" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">Database (MySQL / MariaDB)</text>
+      </g>
+    </svg>
+    <figcaption>Left half is easy: cache it once, serve it to everyone. Right half is the WooCommerce tax. It runs PHP and hits the database on every load, which is exactly why an object cache matters more here than on a blog.</figcaption>
+  </figure>
+
+  <p>If you want the general WordPress basics first (measuring, page caching, images, CDN), read <a href="https://www.kloudbean.com/blog/speed-up-wordpress/">how to speed up WordPress</a>. This guide assumes you've done that groundwork and now need the store-specific layer on top.</p>
+
+  <h2>A priority order to speed up WooCommerce</h2>
+  <p>Not every fix is worth the same. I've put these roughly in order of payoff, because the classic mistake is spending a weekend on the last item while the first one sits switched off. Start at the top.</p>
+
+  <h3>1. A persistent object cache (this is the big one)</h3>
+  <p>If you do one thing for a store, do this. A page cache serves whole finished pages, which covers the storefront. An <strong>object cache</strong> is different. It keeps the results of individual database queries in memory, so WooCommerce stops re-running the same lookups on the pages a page cache can't hold. Cart, checkout, account, and every logged-in view lean on it.</p>
+  <p>WooCommerce is query-heavy by nature. Building a single product page can mean loading the product, its variations, stock, tax rules, shipping zones, active coupons, and a stack of options. Without a persistent object cache, WordPress throws a lot of that away at the end of each request and rebuilds it on the next one. Redis or Memcached holds it between requests instead. On a busy store the drop in database load is the difference you actually feel.</p>
+  <p>The usual setup is a managed Redis plus the Redis Object Cache plugin. Point WordPress at the instance in <code>wp-config.php</code>:</p>
+<pre><code>// wp-config.php
+define( 'WP_REDIS_HOST', '10.0.0.5' ); // private network address
+define( 'WP_REDIS_PORT', 6379 );
+define( 'WP_CACHE', true );</code></pre>
+  <p>Then enable the drop-in from the plugin and confirm it connects. Memcached works too if that's what you know. Both are solid; Redis is the more common default because the tooling around it is richer. There's more on when each fits in <a href="https://www.kloudbean.com/blog/redis-caching-patterns/">Redis caching patterns</a>, and the provisioning side in <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis hosting</a> and <a href="https://www.kloudbean.com/blog/managed-memcached-hosting/">managed Memcached hosting</a>.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed Redis to use as a WooCommerce object cache">
+    <figcaption>DBS then Launch Database: a managed Redis (or Memcached) becomes your object cache. This is the single biggest WooCommerce win on a database-heavy store.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: the Redis Object Cache plugin showing a connected, active status inside wp-admin. Swap for a real screenshot: src -> images/redis-object-cache-status.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Redis Object Cache plugin in wp-admin showing a connected, active status.</em><small>Confirm the object cache is actually live, not just installed.</small></span></figure>
+
+  <h3>2. Full-page cache with cart, checkout, and account excluded</h3>
+  <p>Cache the storefront hard. Home, shop, category, and product pages are the same for everyone until stock or price changes, so a full-page cache serves them without ever running PHP. That covers most of your traffic and most of your crawl budget.</p>
+  <p>But you have to <strong>exclude the dynamic pages</strong>, and this is where stores break themselves. If you accidentally cache the checkout, one shopper can be served a page built for another, complete with someone else's cart contents or session. It's the scariest WooCommerce caching bug there is, and it's entirely self-inflicted. Any decent cache plugin knows to skip Cart, Checkout, and My Account, but verify it rather than assuming.</p>
+  <p>Exclude these pages by their slug or ID, and make sure the cache also bypasses when a WooCommerce session cookie is present. The cookies to watch for are the ones WooCommerce sets once a cart is active:</p>
+<pre><code># Never cache a response that carries these cookies
+woocommerce_items_in_cart
+woocommerce_cart_hash
+wp_woocommerce_session_*
+
+# And always exclude these pages
+/cart/  /checkout/  /my-account/</code></pre>
+  <p>WooCommerce also sets the <code>DONOTCACHEPAGE</code> constant on its own dynamic pages, which good caching layers respect. The rule to remember: cache what's identical for everyone, never cache what's personal.</p>
+
+  <h3>3. Clear <code>wp_options</code> autoload bloat</h3>
+  <p>This one is quiet, common, and genuinely underrated. WordPress keeps site-wide settings in the <code>wp_options</code> table. Any row marked <code>autoload = 'yes'</code> gets loaded into memory on <em>every single request</em>, before your app even decides what page it's showing. That's fine when it's a few kilobytes. It's a problem when it's several megabytes.</p>
+  <p>How does it get big? Plugins. You install a plugin, it writes autoloaded options, you delete the plugin, and the options stay behind. Do that fifty times over a store's life and you're loading megabytes of dead settings on every hit, including on those uncacheable checkout pages that already run PHP. Find the offenders with a quick query:</p>
+<pre><code>-- The 20 largest autoloaded options
+SELECT option_name, LENGTH(option_value) AS size_bytes
+FROM wp_options
+WHERE autoload = 'yes'
+ORDER BY size_bytes DESC
+LIMIT 20;
+
+-- Total weight loaded on every request
+SELECT COUNT(*) AS rows, SUM(LENGTH(option_value)) AS autoload_bytes
+FROM wp_options
+WHERE autoload = 'yes';</code></pre>
+  <p>If that total is into the megabytes, you've found real work. Track each large row back to a plugin. If it belongs to something you removed, it's safe to delete or flip its autoload off. One caution: WordPress 6.6 and later can store the flag as <code>'on'</code> or <code>'auto'</code> too, not only <code>'yes'</code>, so check for those values on newer installs. Back up before you delete anything, which brings us to a habit worth keeping: read the <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a> and take a snapshot before touching the database directly.</p>
+
+  <!-- ADD IMAGE: a database client (phpMyAdmin or Adminer) showing the autoload query result with a few oversized rows. Swap for a real screenshot: src -> images/autoload-query-result.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A database client showing the autoload query result, with a couple of oversized rows highlighted.</em></span></figure>
+
+  <h3>4. Drain the Action Scheduler backlog</h3>
+  <p>WooCommerce runs background jobs through <strong>Action Scheduler</strong>: things like sending emails, syncing orders, cleaning sessions, and running extension tasks. It stores every job in the database, in the <code>wp_actionscheduler_actions</code> table. On a healthy store that table stays small. On a store where cron is misfiring or an extension queues faster than it completes, it can swell to hundreds of thousands of rows, and that drags every query that touches it.</p>
+  <p>Check the state from wp-admin under WooCommerce, Status, Scheduled Actions, or straight from SQL:</p>
+<pre><code>-- How many scheduled actions, grouped by status
+SELECT status, COUNT(*) AS total
+FROM wp_actionscheduler_actions
+GROUP BY status;</code></pre>
+  <p>A big pile of <code>pending</code> actions usually means WordPress cron isn't firing, so nothing is getting processed. A big pile of <code>complete</code> or <code>failed</code> means the cleanup isn't keeping up. The fix is to make cron reliable (a real server cron hitting <code>wp-cron.php</code> beats the default visitor-triggered cron on a busy store) and to let Action Scheduler purge old records. You can set cron jobs from the dashboard without SSH. Once the backlog clears, admin pages that were crawling often snap back.</p>
+
+  <h3>5. Tame cart fragments</h3>
+  <p>WooCommerce keeps the little cart total in your header live with an AJAX call to <code>?wc-ajax=get_refreshed_fragments</code>. Every page load fires it at <code>admin-ajax.php</code>. On a fast, well-cached store that's fine. On a slow one it's a tax on every single view, and because <code>admin-ajax.php</code> is dynamic, it never gets cached.</p>
+  <p>You don't always need it. If your cart total doesn't have to update without a page reload, or you only show it on the shop and cart pages, you can stop cart fragments from loading everywhere else. Limit it to the pages that need it. It's a small win on its own, but on a store already fighting to keep <code>admin-ajax.php</code> responsive, cutting needless calls to it helps.</p>
+
+  <h3>6. Keep the database clean</h3>
+  <p>WooCommerce stores grow cruft faster than blogs do. Expired transients, abandoned sessions, old completed orders, order notes, spam, and a heap of post revisions all pile into the database and slow the queries that scan those tables. A periodic tidy keeps things lean:</p>
+<pre><code># With WP-CLI
+wp transient delete --expired      # clear stale transients
+wp transient delete --all          # clear them all (they regenerate)
+
+# Then optimize the tables (or use your DB client's Optimize)
+wp db optimize</code></pre>
+  <p>Two WooCommerce-specific notes. First, transients are cached values with an expiry, and a lot of them live in <code>wp_options</code>, so a bloated transient set feeds straight back into the autoload problem above. Second, modern WooCommerce uses High-Performance Order Storage (HPOS), which keeps orders in dedicated <code>wp_wc_orders</code> tables instead of jamming them into <code>wp_posts</code> alongside your content. If you're on an older store still using the legacy post-based orders, enabling HPOS is one of the better structural speedups available to a store with a lot of order history. For the wider picture of keeping the engine itself healthy, see <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">managed MySQL hosting</a>.</p>
+
+  <h3>7. The usual suspects that still matter</h3>
+  <p>The store-specific fixes come first because they're what a blog never needs. But the general performance basics still apply, and skipping them undoes the rest:</p>
+  <ul>
+    <li><strong>A current PHP version.</strong> Each recent PHP release runs meaningfully faster than the last. Running something old like PHP 7.x leaves easy speed on the table, and WooCommerce, with all its per-request PHP work, feels the difference more than a blog does.</li>
+    <li><strong>Enough PHP workers and RAM.</strong> Uncacheable checkout traffic is all concurrent PHP. Too few workers and requests queue behind each other during a rush. This is the setting people forget when a sale suddenly triples traffic.</li>
+    <li><strong>Image optimization.</strong> Product catalogs are image-heavy. Compress, serve WebP, and don't push a 3000px photo into a 400px thumbnail slot.</li>
+    <li><strong>A CDN for static assets.</strong> Offload images, CSS, and JS to the edge so the origin only handles the dynamic work. Cloudflare's edge cache is available as a paid add-on if you want pages held at the edge too.</li>
+  </ul>
+  <p>You watch a lot of this from the server itself. If PHP workers are saturated or the database is pinned, the CPU and memory graphs tell you before your customers do.</p>
+
+  <figure>
+    <img src="../assets/console/server-health.png" alt="The Kloudbean server health view showing CPU, RAM, and disk usage to spot database or PHP pressure on a WooCommerce store">
+    <figcaption>The server health view. When a store feels slow, this is where you see whether it's CPU, memory, or database pressure rather than guessing.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: PHP runtime settings showing the version selector on a current 8.x release and the worker or memory limit. Swap for a real screenshot: src -> images/php-runtime-settings.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The PHP runtime settings, version on a current 8.x release, memory limit visible.</em></span></figure>
+
+  <h2>Quick reference: symptom to cause to fix</h2>
+  <p>When a store slows down, the symptom usually points at the cause. Use this to jump to the right fix instead of trying everything.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td>Storefront fast, cart and checkout slow</td><td>No object cache; dynamic pages hitting the DB raw</td><td>Add a persistent Redis or Memcached object cache</td></tr>
+      <tr><td>Whole site slow, even the homepage</td><td>Full-page cache off or misconfigured</td><td>Cache the storefront, exclude cart/checkout/account</td></tr>
+      <tr><td>Everything slow by a constant amount</td><td><code>wp_options</code> autoload bloat</td><td>Find and clear large autoloaded rows</td></tr>
+      <tr><td>wp-admin crawls, orders screen lags</td><td>Action Scheduler backlog, unreliable cron</td><td>Fix server cron, drain scheduled actions</td></tr>
+      <tr><td>Every page load pings admin-ajax</td><td>Cart fragments firing everywhere</td><td>Limit cart fragments to pages that need it</td></tr>
+      <tr><td>Gradual slowdown over months</td><td>Database cruft, legacy order storage</td><td>Clean transients, optimize tables, enable HPOS</td></tr>
+      <tr><td>Slow only during sales and spikes</td><td>Too few PHP workers, undersized server</td><td>Raise workers/RAM, resize, or scale out</td></tr>
+    </tbody>
+  </table>
+
+  <h2>The real number-one slowdown, in my experience</h2>
+  <p>I'll take a position, because it holds up across almost every slow-store ticket. The number one WooCommerce slowdown isn't the theme. It's the database plus a pile of plugins, each one quietly adding autoloaded options and firing its own queries on every request.</p>
+  <p>Themes get blamed because they're visible. You can see a heavy theme. You can't see thirty plugins each adding a few queries and a few hundred kilobytes of autoloaded settings, but that's usually where the time actually goes. So audit plugins ruthlessly. Deactivate what you don't use and delete it, because an inactive plugin still leaves rows behind and still carries risk. Then profile what's left with a tool like Query Monitor and find the two or three plugins doing the most work. Fixing or replacing those beats every micro-optimization on this page combined. A store with twelve lean, necessary plugins will nearly always beat a store with forty, no matter how good the hosting is.</p>
+
+  <h2>Where the hosting actually helps</h2>
+  <p>A good managed stack quietly handles a chunk of this so you're left with the store-side calls. On Kloudbean, the pieces line up with the fixes above.</p>
+  <ul>
+    <li><strong>Managed Redis and Memcached</strong> for the object cache, launched from the same dashboard as everything else and reachable over a private network.</li>
+    <li><strong>Managed MySQL and MariaDB</strong> for the store database, with room to <strong>resize</strong> as your catalog and order history grow.</li>
+    <li><strong>A tuned PHP runtime</strong> kept on a current version, so the general basics are handled for you.</li>
+    <li><strong>The server health view</strong> to spot CPU, memory, or database pressure before customers do, plus <strong>cron jobs from the dashboard</strong> so Action Scheduler runs reliably.</li>
+    <li><strong>Staging sites</strong> so you can test a caching change or a plugin cull on a copy before it ever touches the live store.</li>
+    <li><strong>Automatic backups and free SSL</strong>, and if a store outgrows one box, a built-in <strong>Flexible Load Balancer</strong> to put more servers behind it. (Autoscaling is an enterprise and custom option, not something a standard store toggles on.)</li>
+  </ul>
+  <p>One dashboard for the app, the database, and the object cache is the practical part. You're not stitching a store together from three providers and hoping the private networking lines up. If genuine traffic growth is your problem rather than tuning, that's a scaling question, and <a href="https://www.kloudbean.com/blog/scalable-wordpress-hosting/">scalable WordPress hosting</a> picks up where this guide stops.</p>
+
+  <!-- ADD IMAGE: the whole-stack dashboard showing an app, a managed MySQL, and a Redis instance together. Swap for a real screenshot: src -> images/whole-stack-dashboard.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The dashboard with the store app, its MySQL database, and a Redis object cache side by side.</em><small>One login for the whole store.</small></span></figure>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">A store that stays quick under real traffic.</p>
+    <p style="margin:0 0 .6em">Run WooCommerce on a stack with a managed object cache and database on the same private network, tuned PHP, and staging to test changes safely. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Managed Redis &amp; Memcached · Managed MySQL &amp; MariaDB · Automatic backups · Staging · Free SSL · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Why is my WooCommerce store slow?</h3>
+    <p>Usually because the dynamic pages (cart, checkout, My Account) run PHP and query the database on every visit, and there's no object cache to absorb the repeated queries. Add to that autoload bloat in <code>wp_options</code>, an Action Scheduler backlog, and a few heavy plugins, and a store crawls even when a blog on the same server is fast. Start with an object cache, then work down the priority list.</p>
+    <h3>Can you cache WooCommerce?</h3>
+    <p>You cache the storefront, not the whole store. Home, shop, category, and product pages are the same for everyone, so a full-page cache serves them fast. Cart, checkout, and My Account are personal and must be excluded, or you risk showing one shopper another shopper's cart. The dynamic half is handled by an object cache instead of a page cache.</p>
+    <h3>Do I need Redis for WooCommerce?</h3>
+    <p>For anything beyond a small catalog, yes, a persistent object cache makes a real difference. Redis (or Memcached) stores repeated database query results in memory, so WooCommerce stops rebuilding the same data on the pages a page cache can't hold. It's the single biggest speedup on a database-heavy store. A tiny store with light traffic can survive without it, but most benefit.</p>
+    <h3>Why is my WooCommerce admin slow?</h3>
+    <p>Admin pages are never cached, so they feel every underlying problem directly. The common culprits are an Action Scheduler backlog bloating <code>wp_actionscheduler_actions</code>, autoload bloat loading on every request, and heavy plugins adding queries to admin screens. Check Scheduled Actions under WooCommerce Status, fix your cron, and clear autoloaded junk. Admin usually recovers once those are sorted.</p>
+    <h3>What is autoload bloat?</h3>
+    <p>WordPress loads every option marked <code>autoload = 'yes'</code> from <code>wp_options</code> on every request. Deleted plugins often leave their autoloaded settings behind, so over time you can be loading megabytes of dead data on every page load. Run a query to find the largest autoloaded rows, trace them to plugins, and remove what belongs to software you no longer use.</p>
+    <h3>What is Action Scheduler in WooCommerce?</h3>
+    <p>It's the background job system WooCommerce and many extensions use for tasks like emails, syncs, and cleanup, all queued in the <code>wp_actionscheduler_actions</code> table. When cron misfires or jobs queue faster than they finish, that table balloons and slows queries across the store, especially in wp-admin. Reliable server cron and letting old actions purge keeps it healthy.</p>
+    <h3>How do I speed up WooCommerce checkout?</h3>
+    <p>Checkout can't be page-cached, so speed comes from the layers underneath: a persistent object cache, a clean and well-sized database, enough PHP workers so requests don't queue, and a current PHP version. Cutting autoload bloat helps because that weight loads on the checkout page too. Also trim plugins that hook into checkout, since each adds work to a page that already runs PHP every time.</p>
+    <h3>What are cart fragments and should I disable them?</h3>
+    <p>Cart fragments are an AJAX call (<code>wc-ajax=get_refreshed_fragments</code>) that updates the mini-cart without a page reload, and it fires on every page against <code>admin-ajax.php</code>. If your theme doesn't need a live cart count on every page, limiting it to the shop and cart pages removes a repeated uncacheable request. It's a small gain, but useful on a store already under load.</p>
+    <h3>Does the object cache also speed up the storefront?</h3>
+    <p>It helps, though the storefront gets most of its speed from the full-page cache since those pages are identical for everyone. The object cache shines on the dynamic and logged-in pages a page cache can't store, and it lowers overall database load, which indirectly helps everything. Run both: page cache for the storefront, object cache for the rest.</p>
+    <h3>My store is still slow under heavy sale traffic. What now?</h3>
+    <p>If you've cached properly, added an object cache, and cleaned the database, and it still buckles during a big sale, that's a capacity issue, not a tuning one. Raise PHP workers and RAM, resize the server, or put more servers behind a load balancer. That's a scaling conversation covered in scalable WordPress hosting, and most stores reach it only during genuine spikes.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · A Store That Doesn't Stall.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Speed Up WooCommerce When a Cache Plugin Isn't Enough","description":"How to speed up WooCommerce for real: object cache, cart and checkout exclusions, wp_options autoload bloat, Action Scheduler backlog, cart fragments, and database hygiene, in priority order.","image":"https://www.kloudbean.com/blog/speed-up-woocommerce/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/speed-up-woocommerce/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Why is my WooCommerce store slow?","acceptedAnswer":{"@type":"Answer","text":"Usually because the dynamic pages (cart, checkout, My Account) run PHP and query the database on every visit, and there is no object cache to absorb the repeated queries. Add autoload bloat in wp_options, an Action Scheduler backlog, and a few heavy plugins, and a store crawls even when a blog on the same server is fast. Start with an object cache, then work down the priority list."}},
+{"@type":"Question","name":"Can you cache WooCommerce?","acceptedAnswer":{"@type":"Answer","text":"You cache the storefront, not the whole store. Home, shop, category, and product pages are the same for everyone, so a full-page cache serves them fast. Cart, checkout, and My Account are personal and must be excluded, or you risk showing one shopper another shopper's cart. The dynamic half is handled by an object cache instead of a page cache."}},
+{"@type":"Question","name":"Do I need Redis for WooCommerce?","acceptedAnswer":{"@type":"Answer","text":"For anything beyond a small catalog, yes, a persistent object cache makes a real difference. Redis or Memcached stores repeated database query results in memory, so WooCommerce stops rebuilding the same data on the pages a page cache cannot hold. It is the single biggest speedup on a database-heavy store. A tiny store with light traffic can survive without it, but most benefit."}},
+{"@type":"Question","name":"Why is my WooCommerce admin slow?","acceptedAnswer":{"@type":"Answer","text":"Admin pages are never cached, so they feel every underlying problem directly. The common culprits are an Action Scheduler backlog bloating the wp_actionscheduler_actions table, autoload bloat loading on every request, and heavy plugins adding queries to admin screens. Check Scheduled Actions under WooCommerce Status, fix your cron, and clear autoloaded junk. Admin usually recovers once those are sorted."}},
+{"@type":"Question","name":"What is autoload bloat?","acceptedAnswer":{"@type":"Answer","text":"WordPress loads every option marked autoload equals yes from wp_options on every request. Deleted plugins often leave their autoloaded settings behind, so over time you can be loading megabytes of dead data on every page load. Run a query to find the largest autoloaded rows, trace them to plugins, and remove what belongs to software you no longer use."}},
+{"@type":"Question","name":"What is Action Scheduler in WooCommerce?","acceptedAnswer":{"@type":"Answer","text":"It is the background job system WooCommerce and many extensions use for tasks like emails, syncs, and cleanup, all queued in the wp_actionscheduler_actions table. When cron misfires or jobs queue faster than they finish, that table balloons and slows queries across the store, especially in wp-admin. Reliable server cron and letting old actions purge keeps it healthy."}},
+{"@type":"Question","name":"How do I speed up WooCommerce checkout?","acceptedAnswer":{"@type":"Answer","text":"Checkout cannot be page-cached, so speed comes from the layers underneath: a persistent object cache, a clean and well-sized database, enough PHP workers so requests do not queue, and a current PHP version. Cutting autoload bloat helps because that weight loads on the checkout page too. Also trim plugins that hook into checkout, since each adds work to a page that already runs PHP every time."}},
+{"@type":"Question","name":"What are cart fragments and should I disable them?","acceptedAnswer":{"@type":"Answer","text":"Cart fragments are an AJAX call (wc-ajax=get_refreshed_fragments) that updates the mini-cart without a page reload, and it fires on every page against admin-ajax.php. If your theme does not need a live cart count on every page, limiting it to the shop and cart pages removes a repeated uncacheable request. It is a small gain, but useful on a store already under load."}},
+{"@type":"Question","name":"Does the object cache also speed up the storefront?","acceptedAnswer":{"@type":"Answer","text":"It helps, though the storefront gets most of its speed from the full-page cache since those pages are identical for everyone. The object cache shines on the dynamic and logged-in pages a page cache cannot store, and it lowers overall database load, which indirectly helps everything. Run both: page cache for the storefront, object cache for the rest."}},
+{"@type":"Question","name":"My store is still slow under heavy sale traffic. What now?","acceptedAnswer":{"@type":"Answer","text":"If you have cached properly, added an object cache, and cleaned the database, and it still buckles during a big sale, that is a capacity issue, not a tuning one. Raise PHP workers and RAM, resize the server, or put more servers behind a load balancer. That is a scaling conversation covered in scalable WordPress hosting, and most stores reach it only during genuine spikes."}}
+]}
+]}
+</script>
+</body>
+</html>

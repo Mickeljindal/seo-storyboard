@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SSL vs TLS: What's the Difference, and Which Do You Use?</title>
+<meta name="description" content="SSL vs TLS explained simply: SSL is the old, retired name and TLS is the modern protocol behind HTTPS. Learn the TLS handshake, SSL certificates, CAs, and 1.2 vs 1.3.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/ssl-tls-explained/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SSL vs TLS: What's the Difference, and Which Do You Use?">
+<meta property="og:description" content="SSL is the old name, TLS is the protocol actually securing HTTPS today. The handshake, certificates, CAs, TLS 1.2 vs 1.3, and why the padlock matters.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Web security fundamentals</span>
+  <h1>SSL vs TLS: What's the Difference, and Which One Are You Actually Using?</h1>
+
+  <figure><img src="images/hero.png" alt="SSL vs TLS explained: the padlock, the certificate, and the TLS handshake behind HTTPS"></figure>
+
+  <p class="lead">Type a domain, hit enter, and a little padlock shows up next to the address. That padlock is the whole SSL vs TLS story squeezed into one icon, and most people never think about it until it flips to a red "Not Secure" warning. So which one is guarding your site, SSL or TLS? Short version: it's TLS. It's been TLS for years. We just kept saying SSL out of habit.</p>
+  <p>This is SSL/TLS explained without the hand-waving. What the two names mean, what TLS actually does to a connection, how the handshake works at a level you can picture, what a certificate is and who hands them out, and why your browser cares so much. By the end the padlock stops being magic.</p>
+
+  <div class="tldr">
+    <strong>The short answer</strong>
+    <p>SSL and TLS are two names for the same job, securing a connection, from two eras. SSL is the original 1990s protocol, now retired and unsafe. TLS is its successor, and it's what every HTTPS site actually runs today, usually TLS 1.2 or 1.3. People still say "SSL certificate" out of habit, but the protocol doing the work is TLS.</p>
+  </div>
+
+  <h2>SSL vs TLS: the honest one-line answer</h2>
+  <p>SSL stands for Secure Sockets Layer, invented at Netscape in the mid-90s to encrypt traffic between a browser and a server. TLS stands for Transport Layer Security, the standardized successor. When the protocol moved from Netscape to the IETF in 1999, the version ticked over and the name changed with it. TLS 1.0 was basically SSL 3.1 with a new badge. The name changed, the habit didn't, and that's the whole source of the confusion.</p>
+  <p>Now the part that matters for security. SSL 2.0 and SSL 3.0 are both dead. SSL 3.0 got broken wide open by the POODLE attack in 2014, and browsers refuse to speak either version now. So if a "SSL certificate" is securing your site today, the actual conversation on the wire is TLS. The protocol underneath moved on. Nobody selling you an "SSL certificate" is lying, it's just an old label on a modern thing. The precise answer to "SSL or TLS?" is TLS.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Version</th><th>Released</th><th>Status today</th></tr></thead>
+    <tbody>
+      <tr><td>SSL 1.0</td><td>Never shipped</td><td>Scrapped for security flaws before release</td></tr>
+      <tr><td>SSL 2.0</td><td>1995</td><td>Dead, formally prohibited</td></tr>
+      <tr><td>SSL 3.0</td><td>1996</td><td>Dead, broken by POODLE in 2014</td></tr>
+      <tr><td>TLS 1.0</td><td>1999</td><td>Deprecated in 2021</td></tr>
+      <tr><td>TLS 1.1</td><td>2006</td><td>Deprecated in 2021</td></tr>
+      <tr><td>TLS 1.2</td><td>2008</td><td>Still widely used and safe</td></tr>
+      <tr><td>TLS 1.3</td><td>2018</td><td>Modern, recommended</td></tr>
+    </tbody>
+  </table>
+  <p>Read that table top to bottom and the story tells itself. Everything with "SSL" in the name is retired. The live web runs on the bottom two rows.</p>
+
+  <h2>So what does TLS actually do?</h2>
+  <p>Most people think HTTPS "just encrypts stuff." Encryption is only one of three jobs TLS does, and honestly the other two are where the interesting failures live.</p>
+  <ul>
+    <li><strong>Encryption.</strong> It scrambles the data so anyone on the wire (the coffee-shop wifi, your ISP, every router in between) sees noise instead of your password or card number. Without TLS, a login form sends your password across the internet in plain text.</li>
+    <li><strong>Integrity.</strong> Every chunk of data carries a check value, so if someone flips even a single byte in transit, the other side notices and rejects it. That's what stops a network in the middle from injecting ads, trackers, or malware into a file you're downloading.</li>
+    <li><strong>Authentication.</strong> It proves you're talking to the real server and not an impostor. This is the certificate's job, and the one people forget, because encryption on its own would happily encrypt your traffic straight into an attacker's hands.</li>
+  </ul>
+  <p>That third one is the quiet hero. Encryption without authentication is a trap: your data is scrambled beautifully, just not to the person you think. TLS ties encryption and identity together, so a man-in-the-middle can't slip between you and the real server without the certificate check failing loudly.</p>
+
+  <!-- ADD IMAGE: a browser address bar with the padlock icon and the certificate details popover open. Swap for a real screenshot: src -> images/padlock-details.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A browser address bar showing the padlock, with the certificate details popover open (issuer, valid dates, domain).</em><small>The one place a visitor can actually see the certificate that TLS is using.</small></span></figure>
+
+  <h2>How the TLS handshake works, without the math</h2>
+  <p>Before any real data moves, the client and server run a quick negotiation called the handshake. It settles two things: which version and ciphers both sides can speak, and a shared secret key to encrypt the rest of the session. Picture it as four beats.</p>
+  <ol>
+    <li><strong>ClientHello.</strong> Your browser opens with "here are the TLS versions and cipher suites I support, plus a random number to start."</li>
+    <li><strong>ServerHello and certificate.</strong> The server picks a version and cipher both sides support, then sends its certificate, which carries its public key and a signature from a Certificate Authority.</li>
+    <li><strong>Key exchange.</strong> Using asymmetric crypto (a public and private key pair), the two sides agree on a shared secret without ever sending it across the wire. Modern TLS uses ephemeral keys, so every session gets a fresh one.</li>
+    <li><strong>Encrypted session.</strong> Both sides now hold the same symmetric key and switch to fast symmetric encryption for the actual data. Handshake done.</li>
+  </ol>
+  <p>Why two kinds of crypto? Each is good at what the other's bad at. Asymmetric crypto can agree on a secret over an open channel safely, but it's slow. Symmetric crypto is fast, but both sides need to already share a key. So TLS uses the slow one briefly to set up the fast one. That trick is why HTTPS isn't painfully sluggish on every request.</p>
+
+  <figure>
+    <svg viewBox="0 0 840 440" role="img" aria-label="The TLS handshake as a sequence. Step 1, the client sends a ClientHello with supported ciphers and a random value. Step 2, the server replies with a ServerHello and its certificate. Step 3, both sides agree on one shared secret using key exchange. Step 4, they switch to a fast encrypted session with a symmetric key, in both directions. TLS 1.3 folds steps 1 to 3 into a single round trip." xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <defs>
+        <marker id="pr" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4F1AF3"/></marker>
+        <marker id="gr" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 Z" fill="#40b75f"/></marker>
+      </defs>
+      <text x="24" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">The TLS handshake, one round at a time</text>
+
+      <rect x="40" y="56" width="200" height="54" rx="12" fill="#000f27"/>
+      <text x="140" y="82" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="14" font-weight="600">Client</text>
+      <text x="140" y="100" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="10.5">your browser</text>
+
+      <rect x="600" y="56" width="200" height="54" rx="12" fill="#000f27"/>
+      <text x="700" y="82" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="14" font-weight="600">Server</text>
+      <text x="700" y="100" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="10.5">holds the certificate</text>
+
+      <line x1="140" y1="110" x2="140" y2="322" stroke="#c9cfe0" stroke-width="1.6" stroke-dasharray="4 5"/>
+      <line x1="700" y1="110" x2="700" y2="322" stroke="#c9cfe0" stroke-width="1.6" stroke-dasharray="4 5"/>
+
+      <text x="420" y="146" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="12" font-weight="600">1 · ClientHello: supported ciphers and a random</text>
+      <line x1="146" y1="158" x2="694" y2="158" stroke="#4F1AF3" stroke-width="2.4" marker-end="url(#pr)"/>
+
+      <text x="420" y="200" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="12" font-weight="600">2 · ServerHello + certificate (proves who it is)</text>
+      <line x1="694" y1="212" x2="146" y2="212" stroke="#4F1AF3" stroke-width="2.4" marker-end="url(#pr)"/>
+
+      <text x="420" y="254" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="12" font-weight="600">3 · Agree one shared secret (key exchange)</text>
+      <line x1="146" y1="266" x2="694" y2="266" stroke="#4F1AF3" stroke-width="2.4" marker-end="url(#pr)"/>
+
+      <rect x="40" y="330" width="760" height="82" rx="14" fill="#eafaf0" stroke="#40b75f" stroke-width="1.8"/>
+      <text x="420" y="362" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="14" font-weight="700">4 · Encrypted session</text>
+      <text x="420" y="381" text-anchor="middle" fill="#2f8f4c" font-family="Poppins,sans-serif" font-size="11">Fast symmetric encryption, both directions</text>
+      <line x1="250" y1="396" x2="590" y2="396" stroke="#40b75f" stroke-width="2.4" marker-start="url(#gr)" marker-end="url(#gr)"/>
+    </svg>
+    <figcaption>The handshake settles a version, a cipher, and a shared key, then hands off to fast symmetric encryption. TLS 1.3 folds steps 1 to 3 into a single round trip.</figcaption>
+  </figure>
+
+  <p>Worth knowing: TLS 1.3 trimmed this dance to a single round trip, and a resumed connection can even send data on its first message. TLS 1.2 usually needed two round trips first. Fewer trips means a faster first byte, which you feel most on mobile, where every round trip to a distant server costs real milliseconds.</p>
+
+  <h2>What is an SSL certificate, and who issues it?</h2>
+  <p>A certificate (properly a TLS certificate, still universally called an SSL certificate) is a small signed file that binds a domain name to a public key. In plain terms it says "the site at example.com owns this public key," and that claim is vouched for by a signature you can check.</p>
+  <p>Who does the vouching? A <strong>Certificate Authority</strong>, or CA. A CA is an organization that browsers and operating systems have collectively decided to trust. Before signing, the CA checks that you actually control the domain (for the common, cheap kind of cert, that check is automated and takes seconds), then signs. Now any browser can verify your cert without ever having met you.</p>
+  <p>That works through a <strong>chain of trust</strong>. Your certificate is signed by an intermediate CA, the intermediate is signed by a root CA, and the root ships pre-installed in your browser or OS trust store. Your browser walks that chain upward. Reach a trusted root with every signature checking out, and you get the padlock. Break the chain, and you get a warning instead.</p>
+  <p>Certificates come in flavors by how hard the CA verified you: domain validation (DV, just proves you control the domain), organization validation (OV), and extended validation (EV, the most vetting). Honestly, for most sites plain DV is all you need. Browsers stopped showing the fancy green company name for EV years ago, so the practical gap narrowed a lot.</p>
+  <p>The thing that changed everything was <strong>Let's Encrypt</strong>, a nonprofit CA that made DV certificates free and fully automated starting in 2015. Before that you paid a vendor and clicked through forms once a year. After it, a script could request, install, and renew a certificate with zero humans involved. That single shift is most of the reason HTTPS went from "nice for checkout pages" to expected on everything.</p>
+
+  <div class="note">
+    <p><strong>The padlock is smaller than people think.</strong> A padlock does not mean "this is a safe, honest website." A phishing site can hold a perfectly valid certificate too. All the padlock certifies is that the connection is encrypted and the certificate is valid for this exact domain. "Not Secure" means there's no valid TLS at all, so treat anything you type into that page as public.</p>
+  </div>
+
+  <h2>TLS 1.2 vs 1.3: what actually changed?</h2>
+  <p>TLS 1.3, published in 2018, is the cleanup that 1.2 had been needing for a decade. It's faster and safer by default, and the "by default" part is the important bit.</p>
+  <ul>
+    <li><strong>Faster handshake.</strong> One round trip instead of two, plus a resumption mode that can send data immediately on reconnect. Lower latency, especially over mobile.</li>
+    <li><strong>A smaller, cleaner menu of ciphers.</strong> TLS 1.3 threw out the old, weak, rarely-used algorithms behind a surprising share of historical TLS vulnerabilities. Fewer options, fewer ways to misconfigure yourself into a hole.</li>
+    <li><strong>Forward secrecy, always on.</strong> Every session uses a fresh ephemeral key. So even if an attacker records your traffic today and steals the server's private key next year, they still can't decrypt those old sessions. TLS 1.2 could do this if configured well. TLS 1.3 makes it mandatory.</li>
+  </ul>
+
+  <table class="cmp">
+    <thead><tr><th>&nbsp;</th><th>TLS 1.2</th><th>TLS 1.3</th></tr></thead>
+    <tbody>
+      <tr><td>Released</td><td>2008</td><td>2018</td></tr>
+      <tr><td>Handshake</td><td>Usually 2 round trips</td><td>1 round trip, 0 on resume</td></tr>
+      <tr><td>Cipher suites</td><td>Many, including old weak ones</td><td>Small, modern only</td></tr>
+      <tr><td>Forward secrecy</td><td>Optional</td><td>Always on</td></tr>
+      <tr><td>Verdict</td><td>Fine and still common</td><td>Prefer it where you can</td></tr>
+    </tbody>
+  </table>
+  <p>You don't usually pick this by hand. A well-run server offers both, prefers 1.3, and lets each client negotiate the highest version it supports. Modern browsers land on 1.3, older clients fall back to 1.2, and 1.0 and 1.1 stay switched off entirely.</p>
+
+  <h2>Where does TLS actually get decrypted? (TLS termination)</h2>
+  <p>Encryption has to end somewhere, because your application code needs to read the request in plain form to do anything with it. The spot where the encrypted connection ends and plain HTTP begins is called <strong>TLS termination</strong>.</p>
+  <p>On most real setups it isn't your app doing that. It's the web server or reverse proxy out front (Nginx or Apache), or a load balancer, that holds the certificate, ends the encrypted connection, and passes plain HTTP to your app over a private network behind it. One place owns the cert and speaks HTTPS to the world. Your app speaks plain HTTP internally and never touches a <code>.pem</code> file. For the full picture of that front-door server, see <a href="https://www.kloudbean.com/blog/reverse-proxy-explained/">how a reverse proxy works</a>. The one rule: keep that plain-HTTP hop on a private network, not the open internet. Terminating TLS only helps if you don't then expose the plaintext on the next hop.</p>
+
+  <!-- ADD IMAGE: a simple network sketch of TLS terminating at the proxy or load balancer, with plain HTTP on a private network behind it. Swap for a real screenshot: src -> images/tls-termination.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A sketch of TLS terminating at the proxy or load balancer, with plain HTTP on a private network behind it.</em><small>Where HTTPS ends and the private hop to your app begins.</small></span></figure>
+
+  <h2>Why SSL certificates expire, and why that's a good thing</h2>
+  <p>Certificates carry an expiry date on purpose. A shorter lifetime limits the damage if a private key ever leaks, since a stolen key is only useful until the cert rotates. The industry keeps shrinking these windows. Let's Encrypt certificates last 90 days, and the ceiling for paid certs keeps dropping too.</p>
+  <p>The catch bites people all the time. A certificate that isn't renewed before it expires takes your whole site down with a full-page, browser-blocking error. An expired cert is the single most common way HTTPS breaks in production. It's not hackers. It's a renewal that quietly didn't run.</p>
+  <p>So automate it and stop thinking about it. A cron-driven renewal, or a platform that renews for you, is the entire answer. Nobody should be renewing certificates by hand in 2026. If you are, you've scheduled a future outage and just don't know the date yet. If one's already gone red on you, here's a focused walkthrough for <a href="https://www.kloudbean.com/blog/fix-ssl-certificate-errors/">fixing common SSL certificate errors</a>.</p>
+
+  <figure>
+    <img src="../assets/console/ssl-certificate.png" alt="Free auto-renewing SSL for an application in the Kloudbean console, terminated at the platform proxy layer">
+    <figcaption>Free auto-renewing SSL in the Kloudbean console. The certificate refreshes before it expires, so there's no renewal to forget and no .pem file to manage.</figcaption>
+  </figure>
+
+  <h2>The SSL/TLS errors you'll actually run into</h2>
+  <p>When TLS breaks, the browser throws a scary full-page warning and refuses to load the site. Intimidating, but the cause is almost always one of a short list. Learn these five and you'll diagnose most of them in seconds.</p>
+  <ul>
+    <li><strong>Name mismatch.</strong> The certificate is for <code>www.example.com</code> but you visited <code>example.com</code>, or vice versa. Chrome shows <code>ERR_CERT_COMMON_NAME_INVALID</code>. Fix: get a cert that covers both names.</li>
+    <li><strong>Expired.</strong> The renewal didn't run. You'll see <code>NET::ERR_CERT_DATE_INVALID</code>. Fix: renew, then automate it.</li>
+    <li><strong>Self-signed or untrusted issuer.</strong> The cert wasn't signed by a CA in the trust store. Fine on your laptop for local dev, never okay in production.</li>
+    <li><strong>Incomplete chain.</strong> The server forgot to send the intermediate certificate, so some clients can't build the chain up to a root. Maddening one: it often passes in desktop Chrome and fails on certain phones.</li>
+    <li><strong>Mixed content.</strong> The page loads over HTTPS but pulls an image or script over plain <code>http://</code>. The browser blocks or warns, and the padlock breaks even though your certificate is valid.</li>
+  </ul>
+  <p>Mixed content is the sneaky one. Your cert is fine, the handshake is fine, and the padlock still won't turn solid because one stray <code>http://</code> asset dragged the page down. Check it first when the cert itself looks healthy.</p>
+
+  <!-- ADD IMAGE: a full-page browser TLS warning screen (Your connection is not private) with the error code visible. Swap for a real screenshot: src -> images/tls-warning.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A full-page browser TLS warning ("Your connection is not private") with the error code visible.</em><small>The screen every visitor sees when a certificate expires or the chain breaks.</small></span></figure>
+
+  <div class="note">
+    <p><strong>TLS secures the pipe, not the payload.</strong> A valid certificate encrypts the connection and proves the server's identity. It does nothing about a SQL injection or a weak password. That's a different layer: sane <a href="https://www.kloudbean.com/blog/security-headers-guide/">security headers</a> and, for filtering malicious traffic, a <a href="https://www.kloudbean.com/blog/what-a-waf-does/">web application firewall</a>. HTTPS is the floor, not the whole house.</p>
+  </div>
+
+  <h2>How SSL works on Kloudbean (you never touch a .pem file)</h2>
+  <p>Everything above is worth understanding once. Now the part where you get to stop thinking about it. On Kloudbean, SSL is part of the managed stack. Add an app or a static site and the platform issues free, auto-renewing SSL and terminates TLS at the web-server layer in front of your app. No certificate to generate, no cron job to babysit, no renewal to diarize. The cert refreshes before it lapses, and your app keeps speaking plain HTTP privately behind the proxy. The split of responsibility stays honest: the platform handles the certificate, the renewal, and the termination, and you own your app and data on Linux stacks like PHP, Node, Python, Ruby, and Java. That's what <a href="https://www.kloudbean.com/blog/what-is-a-managed-server/">a managed server actually covers</a>.</p>
+  <p>Need TLS terminated at the edge with a CDN for global speed? Cloudflare is an optional paid add-on (free on Enterprise) that ends TLS close to your users and caches near them. Baseline free SSL is included either way. And because servers, apps, managed databases, static sites, and the load balancer all sit under one dashboard, your certificates aren't scattered across five vendors with five renewal quirks, which is roughly the point of <a href="https://www.kloudbean.com/blog/how-cloud-hosting-works/">running your stack on managed cloud</a>. For teams with tighter obligations, that single pane also feeds into <a href="https://www.kloudbean.com/blog/secure-compliant-hosting/">secure, compliance-friendly hosting</a>.</p>
+
+  <figure>
+    <img src="../assets/console/cloudflare.png" alt="Cloudflare edge TLS and CDN as an optional add-on in the Kloudbean console, on top of the included free SSL">
+    <figcaption>Cloudflare edge TLS and CDN is an optional add-on (free on Enterprise). The built-in free SSL is there regardless.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: the Kloudbean dashboard showing servers, apps, and databases under one login, with SSL status per app. Swap for a real screenshot: src -> images/one-dashboard-ssl.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The dashboard showing servers, apps, and databases under one login, with SSL status visible per app.</em><small>One place for every certificate instead of five vendor portals.</small></span></figure>
+
+  <h2>SSL vs TLS: what to actually remember</h2>
+  <p>Strip it right down. SSL is the old name, TLS is what actually runs, and every real HTTPS site today speaks TLS 1.2 or 1.3. TLS does three jobs, not one: it encrypts your data, it detects tampering, and it proves you reached the genuine server. The certificate proves that last part, signed by a CA your browser already trusts. And the number one reason HTTPS breaks in the wild isn't some clever attack. It's a certificate that expired because nobody renewed it. Automate that, or hand it to a platform that does, and the padlock takes care of itself.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Stop babysitting certificates. Ship with the padlock already on.</p>
+    <p style="margin:0 0 .6em">Deploy on Kloudbean and every app and site gets free, auto-renewing SSL, terminated at the proxy for you, so you never generate a <code>.pem</code> file or diarize a renewal again. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, and compare plans from $8/mo on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Free auto-renewing SSL · Managed web server · One dashboard · Private networking · 7 clouds · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What's the difference between SSL and TLS?</h3>
+    <p>They're the same idea from two eras. SSL (Secure Sockets Layer) is the original 1990s protocol, now retired and unsafe. TLS (Transport Layer Security) is its standardized successor and what every secure site runs today. People still say "SSL certificate" out of habit, but the work is done by TLS.</p>
+    <h3>Is SSL still used?</h3>
+    <p>Not as a live protocol. SSL 2.0 and 3.0 are both broken and disabled in every modern browser. What's still alive is the word SSL as a casual label for certificates and HTTPS, while the technology underneath is entirely TLS.</p>
+    <h3>What is a TLS handshake?</h3>
+    <p>It's the short negotiation before any real data moves. The client and server agree on a version and cipher, the server presents its certificate, and both sides work out a shared secret key. Then they switch to fast symmetric encryption for the session. TLS 1.3 does it in a single round trip.</p>
+    <h3>What is an SSL certificate?</h3>
+    <p>It's a small signed file that binds a domain name to a public key, proving a site owns that key. A Certificate Authority signs it after checking you control the domain, and your browser trusts it by following a chain up to a root it already knows. Technically it's a TLS certificate.</p>
+    <h3>Who issues SSL and TLS certificates?</h3>
+    <p>Certificate Authorities (CAs). A CA is an organization browsers and operating systems trust to verify domain ownership and sign certificates. Let's Encrypt is a nonprofit CA that made domain-validated certificates free and automated, a big reason HTTPS is now everywhere.</p>
+    <h3>Is TLS 1.3 better than TLS 1.2?</h3>
+    <p>Yes, in most ways that matter. TLS 1.3 has a faster one round trip handshake, a smaller set of modern ciphers, and forward secrecy on by default. TLS 1.2 is still safe and widely used, so a good server offers both and prefers 1.3.</p>
+    <h3>Do I need to renew my SSL certificate?</h3>
+    <p>Yes. Certificates expire on purpose, and an expired one takes your site down with a browser-blocking error. The fix is automation: a scheduled renewal, or a managed platform that renews for you before the cert lapses. Renewing by hand is asking for a surprise outage.</p>
+    <h3>Why does my browser say "Not Secure"?</h3>
+    <p>It means the page isn't protected by valid TLS: no certificate, an expired one, a name that doesn't match the domain, or an incomplete chain. Anything you type on a "Not Secure" page can be read by others on the network, so fix the certificate before trusting the site with data.</p>
+    <h3>What is TLS termination?</h3>
+    <p>It's the point where the encrypted connection ends and plain HTTP begins so your app can read the request. It usually happens at a reverse proxy or load balancer that holds the certificate, not in your app code. The decrypted traffic should then travel to your app over a private network.</p>
+    <h3>Does Kloudbean include free SSL?</h3>
+    <p>Yes. Kloudbean issues free, auto-renewing SSL for your apps and sites and terminates TLS at the platform's web-server layer, so you never generate certificate files or manage renewals. Cloudflare edge TLS with a CDN is an optional paid add-on (free on Enterprise), but the baseline free SSL is included on every account.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Security · The Padlock, Explained.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"SSL vs TLS: What's the Difference, and Which One Are You Actually Using?","description":"SSL vs TLS explained simply: SSL is the old, retired name and TLS is the modern protocol behind HTTPS. Learn what TLS does, the TLS handshake, SSL certificates and CAs, and TLS 1.2 vs 1.3.","image":"https://www.kloudbean.com/blog/ssl-tls-explained/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/ssl-tls-explained/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What's the difference between SSL and TLS?","acceptedAnswer":{"@type":"Answer","text":"They are the same idea from two eras. SSL (Secure Sockets Layer) is the original 1990s protocol, now retired and unsafe. TLS (Transport Layer Security) is its standardized successor and what every secure site runs today. People still say SSL certificate out of habit, but the work is done by TLS."}},
+{"@type":"Question","name":"Is SSL still used?","acceptedAnswer":{"@type":"Answer","text":"Not as a live protocol. SSL 2.0 and 3.0 are both broken and disabled in every modern browser. What is still alive is the word SSL as a casual label for certificates and HTTPS, while the technology underneath is entirely TLS."}},
+{"@type":"Question","name":"What is a TLS handshake?","acceptedAnswer":{"@type":"Answer","text":"It is the short negotiation before any real data moves. The client and server agree on a version and cipher, the server presents its certificate, and both sides work out a shared secret key. Then they switch to fast symmetric encryption for the session. TLS 1.3 does it in a single round trip."}},
+{"@type":"Question","name":"What is an SSL certificate?","acceptedAnswer":{"@type":"Answer","text":"It is a small signed file that binds a domain name to a public key, proving a site owns that key. A Certificate Authority signs it after checking you control the domain, and your browser trusts it by following a chain up to a root it already knows. Technically it is a TLS certificate."}},
+{"@type":"Question","name":"Who issues SSL and TLS certificates?","acceptedAnswer":{"@type":"Answer","text":"Certificate Authorities (CAs). A CA is an organization browsers and operating systems trust to verify domain ownership and sign certificates. Lets Encrypt is a nonprofit CA that made domain-validated certificates free and automated, a big reason HTTPS is now everywhere."}},
+{"@type":"Question","name":"Is TLS 1.3 better than TLS 1.2?","acceptedAnswer":{"@type":"Answer","text":"Yes, in most ways that matter. TLS 1.3 has a faster one round trip handshake, a smaller set of modern ciphers, and forward secrecy on by default. TLS 1.2 is still safe and widely used, so a good server offers both and prefers 1.3."}},
+{"@type":"Question","name":"Do I need to renew my SSL certificate?","acceptedAnswer":{"@type":"Answer","text":"Yes. Certificates expire on purpose, and an expired one takes your site down with a browser-blocking error. The fix is automation: a scheduled renewal, or a managed platform that renews for you before the cert lapses. Renewing by hand is asking for a surprise outage."}},
+{"@type":"Question","name":"Why does my browser say Not Secure?","acceptedAnswer":{"@type":"Answer","text":"It means the page is not protected by valid TLS: no certificate, an expired one, a name that does not match the domain, or an incomplete chain. Anything you type on a Not Secure page can be read by others on the network, so fix the certificate before trusting the site with data."}},
+{"@type":"Question","name":"What is TLS termination?","acceptedAnswer":{"@type":"Answer","text":"It is the point where the encrypted connection ends and plain HTTP begins so your app can read the request. It usually happens at a reverse proxy or load balancer that holds the certificate, not in your app code. The decrypted traffic should then travel to your app over a private network."}},
+{"@type":"Question","name":"Does Kloudbean include free SSL?","acceptedAnswer":{"@type":"Answer","text":"Yes. Kloudbean issues free, auto-renewing SSL for your apps and sites and terminates TLS at the platform web-server layer, so you never generate certificate files or manage renewals. Cloudflare edge TLS with a CDN is an optional paid add-on, free on Enterprise, but the baseline free SSL is included on every account."}}
+]}
+]}
+</script>
+</body>
+</html>

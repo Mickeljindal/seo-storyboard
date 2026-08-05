@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reverse Proxy Explained: The Server in Front of Your App</title>
+<meta name="description" content="Reverse proxy explained in plain English: what a reverse proxy is, how it works, reverse proxy vs forward proxy and vs a load balancer, plus a real Nginx config.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/reverse-proxy-explained/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Reverse Proxy Explained: The Server in Front of Your App">
+<meta property="og:description" content="What a reverse proxy is, how it works, how it differs from a forward proxy and a load balancer, a real Nginx config, and why a 502 is the proxy talking to you.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Cloud fundamentals</span>
+  <h1>Reverse Proxy Explained: The Server That Sits in Front of Your App</h1>
+
+  <figure><img src="images/hero.png" alt="Reverse proxy explained: the server that sits in front of your application"></figure>
+
+  <p class="lead">Load any site over HTTPS and there's a good chance you hit a reverse proxy before your request ever reaches the real application. Usually it's Nginx or Apache, sitting quietly out front, taking the request and handing back the reply. You never see it. Until it breaks, and a <code>502 Bad Gateway</code> shows up where your homepage should be.</p>
+  <p>This is reverse proxy explained the way it actually matters to someone shipping code. What a reverse proxy is, how it works, how it differs from a forward proxy and from a load balancer, and why that 502 is trying to tell you something specific. We'll read a real Nginx config too. No hand-waving.</p>
+
+  <div class="tldr">
+    <strong>The short answer</strong>
+    <p>A reverse proxy is a server that sits in front of your application, takes every incoming client request, and forwards it to the app behind it, then passes the response back. It handles TLS, routing, and static files, and hides your backend so clients only ever talk to one public address.</p>
+  </div>
+
+  <h2>What is a reverse proxy?</h2>
+  <p>A reverse proxy is a server that sits between your users and your application. Every request from a client hits the proxy first. The proxy forwards it to a <strong>backend</strong>, the process actually running your code, waits for the answer, and relays it back to the client. To the outside world, the proxy <em>is</em> the site. The app behind it never faces the internet directly.</p>
+  <p>That last part is the whole point of the word "reverse." A normal proxy works for the client. A reverse proxy works for the server. Same middleman idea, flipped around. We'll get to that contrast in a minute, because mixing the two up is the most common confusion here.</p>
+  <p>Why put anything in front of your app at all? Because your application shouldn't have to fuss over TLS certificates, or which URL path goes where, or a slow phone tying up a worker for thirty seconds. Hand those jobs to a proxy that's good at them. Your app gets to just do the thing it was written to do.</p>
+
+  <figure>
+    <svg viewBox="0 0 820 400" role="img" aria-label="A reverse proxy sits in front of your servers: clients connect to the proxy, which terminates TLS and routes each request to a hidden app backend. Below it, a forward proxy sits in front of a client instead, facing the open internet. Same middleman idea, opposite directions." xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <defs>
+        <marker id="rp" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4F1AF3"/></marker>
+        <marker id="rg" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#40b75f"/></marker>
+        <marker id="rm" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#8a94a6"/></marker>
+      </defs>
+      <text x="24" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Two proxies, facing opposite ways</text>
+
+      <text x="24" y="62" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.2">REVERSE PROXY · IN FRONT OF YOUR SERVERS</text>
+
+      <rect x="24" y="80" width="104" height="56" rx="12" fill="#000f27"/>
+      <text x="76" y="110" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="14" font-weight="600">Clients</text>
+      <text x="76" y="126" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="10.5">browsers</text>
+
+      <line x1="128" y1="108" x2="210" y2="108" stroke="#4F1AF3" stroke-width="2.4" marker-end="url(#rp)"/>
+
+      <rect x="214" y="76" width="170" height="64" rx="12" fill="#ffffff" stroke="#4F1AF3" stroke-width="2"/>
+      <text x="299" y="104" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="13.5" font-weight="700">Reverse proxy</text>
+      <text x="299" y="122" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10">TLS · routing · buffering</text>
+
+      <rect x="486" y="60" width="312" height="118" rx="14" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.4" stroke-dasharray="6 6"/>
+      <text x="498" y="78" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600" letter-spacing="1">YOUR APP · HIDDEN FROM THE INTERNET</text>
+
+      <rect x="506" y="92" width="118" height="46" rx="10" fill="#ffffff" stroke="#40b75f" stroke-width="1.7"/>
+      <text x="565" y="112" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12" font-weight="600">App node A</text>
+      <text x="565" y="128" text-anchor="middle" fill="#5b6a86" font-family="JetBrains Mono,monospace" font-size="9.5">127.0.0.1:3000</text>
+
+      <rect x="650" y="92" width="126" height="46" rx="10" fill="#ffffff" stroke="#40b75f" stroke-width="1.7"/>
+      <text x="713" y="112" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12" font-weight="600">App node B</text>
+      <text x="713" y="128" text-anchor="middle" fill="#5b6a86" font-family="JetBrains Mono,monospace" font-size="9.5">127.0.0.1:3001</text>
+
+      <line x1="384" y1="104" x2="502" y2="112" stroke="#40b75f" stroke-width="2.2" marker-end="url(#rg)"/>
+      <line x1="384" y1="112" x2="646" y2="114" stroke="#40b75f" stroke-width="2.2" marker-end="url(#rg)"/>
+
+      <line x1="24" y1="222" x2="796" y2="222" stroke="#e6e9f2" stroke-width="1.4"/>
+
+      <text x="24" y="252" fill="#8a94a6" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.2">FORWARD PROXY · IN FRONT OF THE CLIENT</text>
+
+      <rect x="24" y="270" width="104" height="56" rx="12" fill="#000f27"/>
+      <text x="76" y="300" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13.5" font-weight="600">One client</text>
+      <text x="76" y="316" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="10.5">your browser</text>
+
+      <line x1="128" y1="298" x2="210" y2="298" stroke="#8a94a6" stroke-width="2.2" marker-end="url(#rm)"/>
+
+      <rect x="214" y="266" width="170" height="64" rx="12" fill="#ffffff" stroke="#8a94a6" stroke-width="1.7"/>
+      <text x="299" y="294" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="13.5" font-weight="700">Forward proxy</text>
+      <text x="299" y="312" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10">filters · caches · hides you</text>
+
+      <line x1="384" y1="298" x2="482" y2="298" stroke="#8a94a6" stroke-width="2.2" marker-end="url(#rm)"/>
+
+      <rect x="486" y="266" width="312" height="64" rx="12" fill="#ffffff" stroke="#8a94a6" stroke-width="1.4" stroke-dasharray="6 6"/>
+      <text x="642" y="294" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">The open internet</text>
+      <text x="642" y="312" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10">many different sites</text>
+    </svg>
+    <figcaption>A reverse proxy stands in front of your servers and hides them. A forward proxy stands in front of a client and hides it. Same idea, opposite directions.</figcaption>
+  </figure>
+
+  <h2>How does a reverse proxy work, one request at a time?</h2>
+  <p>Walk a single HTTPS request through it. Nothing here is magic once you see the order.</p>
+  <p>First, the client opens a connection to the proxy on port <code>443</code>. The proxy holds the TLS certificate, so the encrypted handshake ends right there. That's <strong>TLS termination</strong>: the proxy decrypts the request and now has plain HTTP to work with.</p>
+  <p>Next it looks at the request and decides where it goes. A path like <code>/static/logo.png</code> might be served straight off disk. A path like <code>/api/orders</code> gets forwarded to your app. This is <strong>routing</strong>, and it's why one domain can fan out to several different backends without the visitor knowing.</p>
+  <p>Then it forwards. The proxy opens its own connection to the backend, often something local like <code>127.0.0.1:3000</code>, and passes the request along with a few headers so the app still knows who the real visitor was. The app does its work, returns a response, and the proxy relays it back to the client over that original encrypted connection.</p>
+  <p>One quiet but important step in the middle: <strong>buffering</strong>. The proxy can read the whole response from your app quickly, then feed it out to a slow client at whatever pace that client can handle. Your app worker is freed the moment the proxy has the bytes, instead of being held hostage by someone on hotel wifi. Small thing. Saves real capacity under load. The proxy is just one hop in a longer journey, so if you want the full path from DNS to database, see <a href="https://www.kloudbean.com/blog/how-cloud-hosting-works/">how cloud hosting works</a>.</p>
+
+  <h2>What a reverse proxy actually does for you</h2>
+  <p>Strip away the jargon and a reverse proxy earns its keep in a handful of concrete ways.</p>
+  <ul>
+    <li><strong>TLS termination.</strong> One place holds the certificate and speaks HTTPS to the world. Your app can speak plain HTTP internally and never touch a cert file.</li>
+    <li><strong>Routing.</strong> Send <code>/api</code> to one service, <code>/</code> to another, a subdomain somewhere else. The proxy is the switchboard.</li>
+    <li><strong>Serving static files.</strong> Images, CSS, a built React bundle. The proxy hands these back directly, far faster than waking your application to do it.</li>
+    <li><strong>Hiding the backend.</strong> Clients see one public address. Your app's real port and internal address stay private, which shrinks what an attacker can even reach.</li>
+    <li><strong>Buffering slow clients</strong> so one sluggish connection can't pin an app worker in place.</li>
+    <li><strong>Basic rate limiting and access rules.</strong> Cap requests per IP, block a path, add a header. Cheap protection before traffic ever touches your code.</li>
+  </ul>
+  <p>Notice something: none of these need more than one backend. A reverse proxy in front of a <em>single</em> app is already useful. That matters for the next comparison, because people assume a proxy only earns its place once you run a fleet of servers. Not true.</p>
+
+  <!-- ADD IMAGE: browser devtools Network tab showing a response with a Server: nginx header, proving a proxy answered. Swap for a real screenshot: src -> images/response-headers.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Browser devtools showing a response header like Server: nginx, the proxy quietly answering in front of your app.</em><small>Proof the middleman is there even when you never configured it.</small></span></figure>
+
+  <h2>Reverse proxy vs forward proxy: which direction is it facing?</h2>
+  <p>Here's the distinction that trips everyone up. Both are middlemen. The difference is <em>who they work for</em> and which side they hide.</p>
+  <p>A <strong>forward proxy</strong> sits in front of the <strong>client</strong>. A company routes everyone's outbound traffic through one so it can filter, cache, or log what staff reach on the internet. The servers on the far end see the proxy, not the individual person. It hides the client.</p>
+  <p>A <strong>reverse proxy</strong> sits in front of the <strong>server</strong>. Clients send requests to it thinking it's the site, and it relays them to the real backends. The client sees the proxy, not your actual app servers. It hides the server.</p>
+  <p>Often the same software does both jobs. Nginx is a reverse proxy in one config and a forward proxy in another. The word just tells you which way it's pointing.</p>
+
+  <table class="cmp">
+    <thead><tr><th>&nbsp;</th><th>Forward proxy</th><th>Reverse proxy</th></tr></thead>
+    <tbody>
+      <tr><td>Sits in front of</td><td>The client</td><td>The server</td></tr>
+      <tr><td>Acts on behalf of</td><td>The user making requests</td><td>The app receiving requests</td></tr>
+      <tr><td>Hides</td><td>Who the client is</td><td>Where the backend is</td></tr>
+      <tr><td>Typical use</td><td>Egress filtering, caching, privacy</td><td>TLS, routing, static files, one public door</td></tr>
+      <tr><td>Client knows it's there</td><td>Usually yes, it's configured on the client</td><td>No, it looks like the site itself</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Reverse proxy vs load balancer: is a load balancer just a reverse proxy?</h2>
+  <p>Short answer: pretty much, yes. A load balancer is a reverse proxy with one job turned all the way up, spreading requests across many backends and watching their health.</p>
+  <p>Think of it as a family. Every load balancer is doing reverse-proxy work: taking a client request, forwarding it to a backend, relaying the answer. What makes it a <em>load balancer</em> is that it forwards to a <strong>pool</strong> of backends instead of one, picks which node gets each request (round-robin and friends), and runs health checks so a dead node drops out of rotation on its own.</p>
+  <p>But a reverse proxy doesn't need any of that to be worth having. In front of a single app it still terminates TLS, serves static files, and hides your backend. So the honest framing is this. A load balancer is a specialized reverse proxy for distributing traffic. A plain reverse proxy in front of one app is the everyday case, and by far the more common one. Want the distribution and failover side in depth? We wrote a whole piece on <a href="https://www.kloudbean.com/blog/cloud-load-balancer-explained/">how a cloud load balancer works</a>.</p>
+
+  <table class="cmp">
+    <thead><tr><th>&nbsp;</th><th>Reverse proxy (one app)</th><th>Load balancer</th></tr></thead>
+    <tbody>
+      <tr><td>Main job</td><td>TLS, routing, static files, hiding the app</td><td>Spread traffic across many backends</td></tr>
+      <tr><td>Backends behind it</td><td>Often just one</td><td>Always several, a pool</td></tr>
+      <tr><td>Health checks</td><td>Not really the point</td><td>Core feature, drops dead nodes</td></tr>
+      <tr><td>Survives a server dying</td><td>No, there's one backend</td><td>Yes, reroutes to healthy nodes</td></tr>
+      <tr><td>Useful with a single server</td><td>Yes, very</td><td>Not the point of one</td></tr>
+      <tr><td>In one line</td><td>The general tool</td><td>A reverse proxy tuned for distribution</td></tr>
+    </tbody>
+  </table>
+
+  <figure>
+    <img src="../assets/console/flb-load-balancer.png" alt="The Kloudbean Flexible Load Balancer, a specialized reverse proxy, spreading traffic across healthy backend nodes">
+    <figcaption>A load balancer is a reverse proxy specialized for one thing: fanning each request across a pool of healthy backends.</figcaption>
+  </figure>
+
+  <h2>Nginx reverse proxy: reading a real config</h2>
+  <p>Nginx is the most common reverse proxy on the web, so let's read an actual config instead of describing one. This fronts a Node app listening on port 3000.</p>
+<pre><code># /etc/nginx/sites-available/myapp : reverse proxy for a Node app on port 3000
+server {
+    listen 443 ssl;
+    server_name example.com;
+
+    ssl_certificate     /etc/letsencrypt/live/example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
+
+    # serve static files straight off disk, fast
+    location /static/ {
+        root /var/www/myapp;
+    }
+
+    # everything else goes to the app behind the proxy
+    location / {
+        proxy_pass         http://127.0.0.1:3000;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+}</code></pre>
+  <p>Read it top to bottom and it's just the steps from earlier, written down. Listen on 443 with a certificate (TLS termination). Serve <code>/static/</code> off disk (static files). Send everything else to <code>127.0.0.1:3000</code> (routing plus forwarding), attaching <code>X-Forwarded-For</code> so your app still sees the visitor's real IP instead of the proxy's.</p>
+  <p>Two operational habits worth stealing. Always test before you reload, and reload rather than restart so live connections aren't dropped:</p>
+<pre><code># test the config first, then reload without dropping connections
+sudo nginx -t
+sudo systemctl reload nginx
+
+# ask the proxy what it thinks of your app right now
+curl -I https://example.com
+# HTTP/1.1 502 Bad Gateway   (proxy is up, your app is not answering)</code></pre>
+  <p>That last line is the tell. If <code>curl</code> comes back with <code>502 Bad Gateway</code>, the proxy is alive and well. It's your app behind it that isn't answering.</p>
+
+  <!-- ADD IMAGE: an SSL certificate panel showing an active, auto-renewing cert terminating at the proxy layer. Swap for a real screenshot: src -> images/ssl-at-proxy.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>An SSL certificate view: an active, auto-renewing cert that terminates at the proxy so your app speaks plain HTTP inside.</em><small>Where HTTPS ends and the private hop to your backend begins.</small></span></figure>
+
+  <h2>Why a 502 is the reverse proxy talking to you</h2>
+  <p>This is the part that actually helps at 2am, so here's where a reverse proxy stops being trivia and starts being useful.</p>
+  <p>When you see <code>502 Bad Gateway</code> or <code>503 Service Unavailable</code>, that message is coming <em>from the reverse proxy</em>, not from your app. The proxy is up. It took the request. Then it tried to reach your backend and couldn't. A 502 means the app refused or dropped the connection. A 503 usually means nothing healthy was available to send the request to. A 504 means the app took too long to answer.</p>
+  <p>And the cause is almost always the same boring thing. Your app is listening on the wrong address or the wrong port. Bind to <code>localhost</code> (or <code>127.0.0.1</code> inside an isolated environment the proxy can't enter) and the proxy gets connection refused. Hard-code a port the platform doesn't route to, same result. The fix is to listen on <code>0.0.0.0</code> and read the port from the environment:</p>
+<pre><code># good: listens on all interfaces, on the port the platform expects
+app.listen(process.env.PORT || 3000, '0.0.0.0')
+
+# bad: only reachable from inside its own box, proxy gets connection refused
+app.listen(3000, '127.0.0.1')   # results in 502 / 503</code></pre>
+  <p>The code is fine. The wiring is wrong. I'd bet most 502s are config, not bugs. If you're staring at one right now, we have a focused walkthrough for <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fixing a 503 after a deploy</a>, and one for <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploying a Node app so the proxy can actually reach it</a>.</p>
+
+  <div class="note">
+    <p><strong>Founder note.</strong> On a managed host you almost never hand-edit the proxy config, and honestly you shouldn't have to. The platform runs Nginx or Apache in front of your app and terminates SSL there for you. Knowing the proxy exists isn't about configuring it. It's so the first time you meet a 502, you know exactly who's talking and where to look: your app's bind address and port, not the proxy.</p>
+  </div>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="Adding an application in the Kloudbean console, where the platform wires a reverse proxy to your app's port">
+    <figcaption>Add an app and the platform puts a web server in front of it, wires it to your app's port, and issues SSL. No nginx.conf to hand-roll.</figcaption>
+  </figure>
+
+  <h2>How the reverse proxy fits on Kloudbean</h2>
+  <p>On Kloudbean the reverse proxy is just there, part of the managed stack. You deploy an app and the platform puts a web server (Nginx or Apache) in front of it, wires it to your app's port, and terminates free auto-renewing SSL at that layer. No <code>nginx.conf</code> to hand-roll for a normal app.</p>
+  <p>Need more than one backend? That's when the built-in <strong>Flexible Load Balancer</strong> comes in, the specialized reverse proxy from earlier, sitting in front of a pool with health checks and SSL management. It's on every account, off until you switch it on. And because servers, apps, databases, and the load balancer all live under one dashboard, you're not stitching the proxy layer together from separate products and separate bills.</p>
+  <p>The division of labour stays honest. The platform runs the proxy and the SSL. You own the app that listens behind it, on Linux stacks like Node, PHP, Python, Ruby, and Java. Keeping that backend on a <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">private network</a> means the only public door is the proxy, which is exactly where you want it.</p>
+
+  <figure>
+    <img src="../assets/console/dashboard.png" alt="The Kloudbean dashboard showing servers, applications, databases, and the load balancer in one place">
+    <figcaption>Servers, apps, managed databases, and the load balancer under one login, so the proxy layer isn't a separate product to wire up.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: an app runtime settings panel showing the HTTP port / bind address the proxy forwards to. Swap for a real screenshot: src -> images/app-port-setting.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>An app runtime panel showing the HTTP port and bind address the platform's proxy forwards to.</em><small>The one setting that decides whether you get your homepage or a 502.</small></span></figure>
+
+  <h2>Reverse proxy explained: what to actually remember</h2>
+  <p>Strip it to the studs. A reverse proxy is the server in front of your server. It takes the client's request, handles the tedious edge work (TLS, routing, static files, buffering), hides your app, and forwards the real work to the backend.</p>
+  <p>A forward proxy points the other way, standing in front of clients. A load balancer is a reverse proxy that specializes in spreading traffic across many backends. And the practical payoff, the bit worth carrying around: when you see a 502, the proxy is fine and your app isn't answering, so check the bind address and the port first. You'll be right most of the time. If you're choosing where that whole managed stack should live, our take on the <a href="https://www.kloudbean.com/blog/best-managed-cloud-hosting/">best managed cloud hosting</a> lays out what to look for.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Let the platform run the proxy. You run the app.</p>
+    <p style="margin:0 0 .6em">Deploy on Kloudbean and a web server sits in front of your app with free auto-renewing SSL, wired to the right port for you. Flip on the built-in load balancer the day one backend isn't enough. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; compare plans from $8/mo on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">One dashboard · Managed web server and SSL · Built-in load balancer · Private networking · 7 clouds · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is a reverse proxy in simple terms?</h3>
+    <p>A reverse proxy is a server that sits in front of your application and handles requests on its behalf. Clients connect to the proxy, and the proxy forwards each request to the real backend, then returns the response. To visitors the proxy looks like the site itself, while your app stays hidden behind it.</p>
+    <h3>How does a reverse proxy work?</h3>
+    <p>A client connects to the proxy over HTTPS. The proxy terminates TLS, decides where the request should go based on its path or host, forwards it to the matching backend over an internal connection, and relays the backend's response back to the client. It can also serve static files itself and buffer responses for slow clients.</p>
+    <h3>What is the difference between a reverse proxy and a forward proxy?</h3>
+    <p>Direction. A forward proxy sits in front of clients and acts on their behalf, hiding who the client is from the servers they reach. A reverse proxy sits in front of servers and acts on their behalf, hiding the backend from clients. Same middleman idea, pointing opposite ways.</p>
+    <h3>Is a load balancer the same as a reverse proxy?</h3>
+    <p>A load balancer is a specialized reverse proxy. It does the same core job of forwarding client requests to backends, but it forwards to a pool of servers, chooses which one gets each request, and runs health checks to drop failed nodes. A plain reverse proxy in front of a single app is still useful for TLS, routing, and hiding the backend.</p>
+    <h3>Why do people use Nginx as a reverse proxy?</h3>
+    <p>Nginx is fast, lightweight, and built to handle many connections at once, which makes it a natural fit for terminating TLS, serving static files, and forwarding dynamic requests to an app. A short server block with a proxy_pass line is often all it takes. Apache can do the same job and is also common.</p>
+    <h3>Do I need to configure a reverse proxy myself?</h3>
+    <p>On a managed host, usually not. The platform runs a web server such as Nginx or Apache in front of your app and terminates SSL there for you. You mainly need to make sure your app listens on the address and port the platform expects. On an unmanaged server you configure the proxy yourself.</p>
+    <h3>Why does a reverse proxy return a 502 error?</h3>
+    <p>A 502 Bad Gateway means the proxy is running but could not reach your application behind it. The most common cause is the app listening on localhost instead of 0.0.0.0, or on a port the proxy is not forwarding to. Fix the bind address and the port and the 502 usually clears.</p>
+    <h3>Does a reverse proxy handle SSL?</h3>
+    <p>Yes, that is one of its main jobs. The proxy holds the certificate and terminates TLS, so the HTTPS connection ends at the proxy and your app can speak plain HTTP internally. That gives you one place to manage and renew certificates. Managed platforms issue and auto-renew that certificate for you.</p>
+    <h3>Does a reverse proxy make my site faster?</h3>
+    <p>It can. Serving static files directly from the proxy is faster than waking your app to do it, buffering frees app workers from slow clients sooner, and the proxy can compress responses and add caching rules. It will not speed up slow application code, but it removes a lot of avoidable overhead.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Infrastructure · The quiet server in front of your app, and the reason a 502 is it talking to you.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Reverse Proxy Explained: The Server That Sits in Front of Your App","description":"Reverse proxy explained in plain English: what a reverse proxy is, how it works, reverse proxy vs forward proxy and vs a load balancer, a real Nginx config, and why a 502 is the proxy talking to you.","image":"https://www.kloudbean.com/blog/reverse-proxy-explained/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/reverse-proxy-explained/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is a reverse proxy in simple terms?","acceptedAnswer":{"@type":"Answer","text":"A reverse proxy is a server that sits in front of your application and handles requests on its behalf. Clients connect to the proxy, and the proxy forwards each request to the real backend, then returns the response. To visitors the proxy looks like the site itself, while your app stays hidden behind it."}},
+{"@type":"Question","name":"How does a reverse proxy work?","acceptedAnswer":{"@type":"Answer","text":"A client connects to the proxy over HTTPS. The proxy terminates TLS, decides where the request should go based on its path or host, forwards it to the matching backend over an internal connection, and relays the backend response back to the client. It can also serve static files itself and buffer responses for slow clients."}},
+{"@type":"Question","name":"What is the difference between a reverse proxy and a forward proxy?","acceptedAnswer":{"@type":"Answer","text":"Direction. A forward proxy sits in front of clients and acts on their behalf, hiding who the client is from the servers they reach. A reverse proxy sits in front of servers and acts on their behalf, hiding the backend from clients. Same middleman idea, pointing opposite ways."}},
+{"@type":"Question","name":"Is a load balancer the same as a reverse proxy?","acceptedAnswer":{"@type":"Answer","text":"A load balancer is a specialized reverse proxy. It does the same core job of forwarding client requests to backends, but it forwards to a pool of servers, chooses which one gets each request, and runs health checks to drop failed nodes. A plain reverse proxy in front of a single app is still useful for TLS, routing, and hiding the backend."}},
+{"@type":"Question","name":"Why do people use Nginx as a reverse proxy?","acceptedAnswer":{"@type":"Answer","text":"Nginx is fast, lightweight, and built to handle many connections at once, which makes it a natural fit for terminating TLS, serving static files, and forwarding dynamic requests to an app. A short server block with a proxy_pass line is often all it takes. Apache can do the same job and is also common."}},
+{"@type":"Question","name":"Do I need to configure a reverse proxy myself?","acceptedAnswer":{"@type":"Answer","text":"On a managed host, usually not. The platform runs a web server such as Nginx or Apache in front of your app and terminates SSL there for you. You mainly need to make sure your app listens on the address and port the platform expects. On an unmanaged server you configure the proxy yourself."}},
+{"@type":"Question","name":"Why does a reverse proxy return a 502 error?","acceptedAnswer":{"@type":"Answer","text":"A 502 Bad Gateway means the proxy is running but could not reach your application behind it. The most common cause is the app listening on localhost instead of 0.0.0.0, or on a port the proxy is not forwarding to. Fix the bind address and the port and the 502 usually clears."}},
+{"@type":"Question","name":"Does a reverse proxy handle SSL?","acceptedAnswer":{"@type":"Answer","text":"Yes, that is one of its main jobs. The proxy holds the certificate and terminates TLS, so the HTTPS connection ends at the proxy and your app can speak plain HTTP internally. That gives you one place to manage and renew certificates. Managed platforms issue and auto-renew that certificate for you."}},
+{"@type":"Question","name":"Does a reverse proxy make my site faster?","acceptedAnswer":{"@type":"Answer","text":"It can. Serving static files directly from the proxy is faster than waking your app to do it, buffering frees app workers from slow clients sooner, and the proxy can compress responses and add caching rules. It will not speed up slow application code, but it removes a lot of avoidable overhead."}}
+]}
+]}
+</script>
+</body>
+</html>

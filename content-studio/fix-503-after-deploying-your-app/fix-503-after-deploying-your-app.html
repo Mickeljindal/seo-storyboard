@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Fix a 503 Error After Deploying Your App</title>
+<meta name="description" content="Deployed your app and got a 503? It's the most common post-deploy problem and almost always quick to fix. Here's what a 503 means and how to diagnose the real cause, in order — a decision tree from symptom to fix.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Fix a 503 Error After Deploying Your App">
+<meta property="og:description" content="What a 503 after deploy means and how to walk from symptom to cause in order — build, port, env vars, startup crash — instead of guessing.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Troubleshooting · the 503</span>
+  <h1>How to Fix a 503 Error After Deploying Your App</h1>
+
+  <figure><img src="images/hero.png" alt="Fix the 503 after deploying your app — what it means and how to diagnose the cause"></figure>
+
+  <p class="lead">You pushed your app, the build went green, you opened the URL, and there it is: <strong>503 Service Unavailable</strong>. No homepage. Just a blank wall from the server. If you built the thing in Lovable, Bolt, or Cursor and this is your first real deploy, it can feel like everything broke at the finish line. It didn't. A 503 right after deploy is the most common post-deploy problem there is, and most of the time it's a quick fix. This is the field guide to fix a 503 after deploy the fast way: what the error is actually telling you, and how to walk from symptom to cause in order instead of guessing.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>A 503 after deploy almost always means one thing: your app process isn't up and answering on the port the server expects. So read <code>app.error.log</code> first, don't guess. In practice the cause is usually small. The app isn't listening on <code>process.env.PORT</code>, or a required environment variable never got set on the server. Both are quick fixes once the log points at them. Work down the tree below and you'll normally have it in two or three checks.</p>
+  </div>
+
+  <h2>First move: read the log, don't guess</h2>
+  <p>I'll say the thing most guides dance around. Most 503s are a config problem, not a code bug. That matters because it changes what you do first. You don't start editing your app. You start reading, because your app already wrote down why it wouldn't start. Two files hold almost the whole answer.</p>
+  <p>The first is your app's own error output. On a Kloudbean server it lives here:</p>
+  <pre><code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/app.error.log</code></pre>
+  <p>If the app crashed on startup, the stack trace is sitting at the bottom of that file, usually naming the exact problem: a variable it couldn't read, a module it couldn't find, a database it couldn't reach. The second is <strong>Build &amp; Deployment History</strong> in the console, which tells you whether the build even produced a runnable app and streams the full build log. Between those two, the cause is written down almost every time. The error is rarely silent. It's just in a file you haven't opened yet.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean console showing Build and Deployment History and the deploy screen, where you confirm the build succeeded and read the log">
+    <figcaption>Start in Build &amp; Deployment History. Confirm the build went green, then follow the log to the failing step.</figcaption>
+  </figure>
+
+  <h2>The 503 decision tree: symptom to cause</h2>
+  <p>Here's the whole diagnosis as one picture. Start at the top. At each checkpoint, a "yes" drops you down to the next question and a "no" branches off to the specific fix. Most apps fall out of the tree at the port check or the env-var check, which is exactly why those two sit near the top.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 690" width="100%" role="img" aria-label="A top-to-bottom 503 decision tree. Checkpoint one: did the build pass? If no, read the build log for a compile error, failed install, or out-of-memory. Checkpoint two: is the process up? If no, the Start command must launch the server, not rebuild or run a dev command. Checkpoint three: is it listening on process.env.PORT? If no, listen on process.env.PORT and never hard-code 3000; this is the most common cause. Checkpoint four: are all env vars set? If no, set the missing one in Runtime Configuration and redeploy. Checkpoint five: does it boot clean? If no, read app.error.log, which names the missing module, refused database, or unrun migration. If every check passes, the app answers with a 200.">
+      <rect x="1" y="1" width="718" height="688" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="360" y="34" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="17" font-weight="700" fill="#000f27">The 503 decision tree: symptom to cause, top to bottom</text>
+
+      <!-- decision spine -->
+      <g font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="600" fill="#000f27" text-anchor="middle">
+        <rect x="48" y="66" width="214" height="56" rx="10" fill="#fff" stroke="#4F1AF3" stroke-width="1.5"/><text x="155" y="99">Did the build pass?</text>
+        <rect x="48" y="182" width="214" height="56" rx="10" fill="#fff" stroke="#4F1AF3" stroke-width="1.5"/><text x="155" y="215">Is the process up?</text>
+        <rect x="48" y="298" width="214" height="56" rx="10" fill="#fff" stroke="#4F1AF3" stroke-width="1.5"/><text x="155" y="331">On process.env.PORT?</text>
+        <rect x="48" y="414" width="214" height="56" rx="10" fill="#fff" stroke="#4F1AF3" stroke-width="1.5"/><text x="155" y="447">Are all env vars set?</text>
+        <rect x="48" y="530" width="214" height="56" rx="10" fill="#fff" stroke="#4F1AF3" stroke-width="1.5"/><text x="155" y="563">Does it boot clean?</text>
+        <rect x="48" y="624" width="214" height="48" rx="10" fill="#40b75f"/><text x="155" y="653" fill="#fff">200 · your app answers</text>
+      </g>
+
+      <!-- yes arrows down the spine -->
+      <g stroke="#40b75f" stroke-width="2" fill="#40b75f">
+        <path d="M155 122 L155 180"/><path d="M150 172 L160 172 L155 182 Z"/>
+        <path d="M155 238 L155 296"/><path d="M150 288 L160 288 L155 298 Z"/>
+        <path d="M155 354 L155 412"/><path d="M150 404 L160 404 L155 414 Z"/>
+        <path d="M155 470 L155 528"/><path d="M150 520 L160 520 L155 530 Z"/>
+        <path d="M155 586 L155 622"/><path d="M150 614 L160 614 L155 624 Z"/>
+      </g>
+      <g font-family="Poppins,Arial,sans-serif" font-size="11" font-weight="600" fill="#40b75f">
+        <text x="163" y="156">yes</text><text x="163" y="272">yes</text><text x="163" y="388">yes</text><text x="163" y="504">yes</text><text x="163" y="608">yes</text>
+      </g>
+
+      <!-- no arrows to fix cards -->
+      <g stroke="#c9d0e3" stroke-width="2" fill="#c9d0e3">
+        <path d="M262 94 L334 94"/><path d="M326 89 L326 99 L336 94 Z"/>
+        <path d="M262 210 L334 210"/><path d="M326 205 L326 215 L336 210 Z"/>
+        <path d="M262 326 L334 326"/><path d="M326 321 L326 331 L336 326 Z"/>
+        <path d="M262 442 L334 442"/><path d="M326 437 L326 447 L336 442 Z"/>
+        <path d="M262 558 L334 558"/><path d="M326 553 L326 563 L336 558 Z"/>
+      </g>
+      <g font-family="Poppins,Arial,sans-serif" font-size="11" font-weight="600" fill="#8a94ab">
+        <text x="284" y="86">no</text><text x="284" y="202">no</text><text x="284" y="318">no</text><text x="284" y="434">no</text><text x="284" y="550">no</text>
+      </g>
+
+      <!-- fix cards -->
+      <g font-family="Poppins,Arial,sans-serif">
+        <rect x="336" y="50" width="336" height="88" rx="10" fill="#fff" stroke="#e6e9f2"/>
+        <circle cx="354" cy="70" r="5" fill="#d98324"/><text x="368" y="75" font-size="11.5" font-weight="700" fill="#d98324">BUILD</text>
+        <text x="354" y="98" font-size="12.5" fill="#1c2536">Read the build log. Compile error, failed</text>
+        <text x="354" y="117" font-size="12.5" fill="#1c2536">install, or out-of-memory (resize the box).</text>
+
+        <rect x="336" y="166" width="336" height="88" rx="10" fill="#fff" stroke="#e6e9f2"/>
+        <circle cx="354" cy="186" r="5" fill="#d98324"/><text x="368" y="191" font-size="11.5" font-weight="700" fill="#d98324">START</text>
+        <text x="354" y="214" font-size="12.5" fill="#1c2536">Start must launch the server (npm start),</text>
+        <text x="354" y="233" font-size="12.5" fill="#1c2536">not rebuild and not a dev command.</text>
+
+        <rect x="336" y="282" width="336" height="88" rx="10" fill="#fff" stroke="#d64545"/>
+        <circle cx="354" cy="302" r="5" fill="#d64545"/><text x="368" y="307" font-size="11.5" font-weight="700" fill="#d64545">PORT · most common</text>
+        <text x="354" y="330" font-size="12.5" fill="#1c2536">app.listen(process.env.PORT).</text>
+        <text x="354" y="349" font-size="12.5" fill="#1c2536">Never hard-code 3000.</text>
+
+        <rect x="336" y="398" width="336" height="88" rx="10" fill="#fff" stroke="#d64545"/>
+        <circle cx="354" cy="418" r="5" fill="#d64545"/><text x="368" y="423" font-size="11.5" font-weight="700" fill="#d64545">ENV · also common</text>
+        <text x="354" y="446" font-size="12.5" fill="#1c2536">Set it in Runtime Config, then redeploy.</text>
+        <text x="354" y="465" font-size="12.5" fill="#1c2536">Compare server vars against your .env.</text>
+
+        <rect x="336" y="514" width="336" height="88" rx="10" fill="#fff" stroke="#e6e9f2"/>
+        <circle cx="354" cy="534" r="5" fill="#d98324"/><text x="368" y="539" font-size="11.5" font-weight="700" fill="#d98324">BOOT</text>
+        <text x="354" y="562" font-size="12.5" fill="#1c2536">Read app.error.log. It names the missing</text>
+        <text x="354" y="581" font-size="12.5" fill="#1c2536">module, refused DB, or unrun migration.</text>
+      </g>
+
+      <text x="360" y="682" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" fill="#5b6a86">Most apps fall out at PORT or ENV. Start at the top, follow the "no" to the fix, then redeploy.</text>
+    </svg>
+    <figcaption>Symptom to cause, one checkpoint at a time. A green build gets you past the first box, not to the finish.</figcaption>
+  </figure>
+
+  <h2>The same tree, as a checklist</h2>
+  <p>If you'd rather scan a table next to your terminal, here's the identical logic. Find the first "no" and you've found your 503.</p>
+  <table class="cmp">
+    <thead><tr><th>Checkpoint</th><th>What "no" means</th><th>The fix</th></tr></thead>
+    <tbody>
+      <tr><td>Build passed?</td><td>The deploy never produced a runnable app</td><td>Read the build log; fix the compile error, failed install, or out-of-memory.</td></tr>
+      <tr><td>Process up?</td><td>Build was fine, nothing is running</td><td>Point Start at your production server, not a build or dev command.</td></tr>
+      <tr><td>On <code>process.env.PORT</code>?</td><td>App runs but the server can't reach it</td><td>Listen on <code>process.env.PORT</code>. This is the single most common cause.</td></tr>
+      <tr><td>Env vars set?</td><td>App boots, then dies reading a missing value</td><td>Set the missing variable in Runtime Configuration and redeploy.</td></tr>
+      <tr><td>Boots clean?</td><td>Crashes on startup for some other reason</td><td>Read <code>app.error.log</code>; fix the exact line or missing dependency it names.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Did the build even pass? Build-time vs runtime</h2>
+  <p>This is the first fork, and getting it right saves the most time. A 503 comes from one of two phases, and they're diagnosed in different files. A <strong>build-time</strong> failure means the deploy never produced a runnable app: a type error, a failed <code>npm ci</code>, or a build that ran out of memory on a small server. You diagnose that in the build log. A <strong>runtime</strong> failure means the build was fine but the app won't stay up, and that story is in <code>app.error.log</code>. So glance at Build &amp; Deployment History first. If the build is red, stop, fix the build, and ignore everything else until it's green. If the build is green, the rest of the tree is yours.</p>
+
+  <h2>Is the process actually up? The Start command</h2>
+  <p>Build and start are different jobs, and confusing them is a quiet source of 503s. A successful build compiles your app. The <strong>Start</strong> command is what actually launches the long-running server, and it has to do exactly that, nothing else. If your Start command re-runs the build, or runs a dev command that exits, or points at the wrong entry file, the deploy "succeeds" and then there's no server listening. For a Node app, Build is usually <code>npm run build</code> and Start is <code>npm start</code> (or <code>next start</code> for Next.js). Keep them distinct, and make sure Start boots a server that stays alive.</p>
+
+  <h2>Is it listening on process.env.PORT? The number-one cause</h2>
+  <p>If you fix one thing, fix this. The platform assigns your app a port through the <code>PORT</code> environment variable, and your app must listen on it. When code hard-codes a literal port, the app starts up perfectly fine on the wrong number, the server checks the assigned port, finds nothing, and hands the browser a 503. Green logs, dead URL. The fix is one line:</p>
+  <pre><code>// wrong: the platform can never reach this
+app.listen(3000)
+
+// right: bind to the port you're actually assigned
+const port = process.env.PORT || 3000
+app.listen(port, () =&gt; console.log('listening on ' + port))</code></pre>
+  <p>The <code>|| 3000</code> fallback keeps it working on your laptop while doing the right thing in production. Frameworks read this port for you if you let them, so the mistake is usually a hard-coded number someone added on purpose. Search your code for the literal port and delete it.</p>
+
+  <h2>Is a required environment variable missing? The other number-one</h2>
+  <p>Here's the grounded truth from watching a lot of these fail: the single most common 503 we see isn't in anyone's code at all. It's a missing environment variable. The app boots, immediately reaches for a <code>DATABASE_URL</code>, an API key, or a session secret that exists in your local <code>.env</code> but was never set on the server, and the process dies before it can answer a request. Build passed (the build never needed the value), app dead, 503 in the browser. The error log almost always names the key it wanted.</p>
+  <p>The fix is to set the missing variable in <strong>Runtime Configuration &#8594; Environment Variables</strong> and redeploy. The reliable way to catch these is to compare, side by side, every key in your local <code>.env</code> against what's set on the server. Whatever's on your machine but not on the box is your prime suspect. If env vars are new to you, the <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a> guide is worth ten minutes before you trust any deploy.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console Environment Variables screen, where you set a missing key like DATABASE_URL and redeploy">
+    <figcaption>Runtime Configuration, Environment Variables. Set the key the log named, then redeploy.</figcaption>
+  </figure>
+
+  <h2>Did it crash on boot? Read app.error.log</h2>
+  <p>If the build passed, the port is right, and the env vars are set, and you're still getting a 503, the app is starting and then throwing. This is where the error log earns its keep. Open <code>app.error.log</code>, scroll to the <strong>bottom</strong> (the newest entry is where the fatal error lives), and read up from there. You don't need to understand the whole trace. You need two things: the error message and the file and line it points at.</p>
+  <p>A few messages come up constantly, and each maps to a real cause:</p>
+  <ul>
+    <li><code>Cannot find module 'x'</code> means a package your code imports isn't in <code>package.json</code>. It was installed globally on your machine, so it worked locally and vanished on the server. Add it as a real dependency.</li>
+    <li><code>Error: connect ECONNREFUSED</code> means the app tried to reach a database or service and couldn't: wrong connection string, database not created yet, or a host it can't see.</li>
+    <li>A crash pointing at a config line is usually a missing env var, the same cause as above, showing up from a different angle.</li>
+  </ul>
+  <p>Treat the log as a message addressed to you, because it is. Modern runtimes write these in near-plain English on purpose.</p>
+
+  <!-- ADD IMAGE: swap for a real <figure> with an <img> (src -> images/app-error-log.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal view of app.error.log with the fatal stack trace at the bottom highlighted, showing a real message like "Cannot find module" or "ECONNREFUSED".</em><small>Shows readers exactly what "read the log" looks like in practice.</small></span></figure>
+
+  <h3>The migration that never ran</h3>
+  <p>One boot crash deserves its own callout because the code is genuinely fine. You added a column, your new code queries it, you deploy, the build passes, the app boots, and then it throws the first time it hits that table because the database was never migrated. The fix is to make the migration part of the deploy so schema and code ship together, for example running <code>npx prisma migrate deploy</code> in your build or start step. If your database lives on the same server as the app, that whole change travels as one unit; the <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">managed database guide</a> covers wiring it up.</p>
+
+  <h2>Where people get this wrong</h2>
+  <p>The mistake I see most often: the build is green, so people keep re-reading the build log looking for the problem. It isn't there. A green build already did its job and moved on. The app died <em>after</em> the build, at startup, and that story is in a different file. When the build is green and the URL still 503s, close the build log and open <code>app.error.log</code>. Looking in the wrong window is the difference between a five-minute fix and a lost hour.</p>
+  <p>The other trap is trying to make the crash go away instead of reading it. Wrapping your startup in a giant try/catch so the process "boots" doesn't fix anything; now the app is up but every request 500s, and you've hidden the one message that told you why. Don't silence the crash. Let it print, read what it says, fix that.</p>
+
+  <h2>A diagnostic order of operations</h2>
+  <p>Put together, this is the fastest path from 503 to fixed. It's the tree, in the order you actually run it:</p>
+  <ol>
+    <li><strong>Open <code>app.error.log</code>.</strong> If the app crashed, the reason is at the bottom. Jump to the matching branch above.</li>
+    <li><strong>Check Build &amp; Deployment History.</strong> If the build is red, nothing else matters until it's green.</li>
+    <li><strong>Confirm the app listens on <code>process.env.PORT</code>.</strong> The most common single fix, and a one-liner.</li>
+    <li><strong>Compare env vars</strong> on the server against your local <code>.env</code>, and set whatever's missing.</li>
+    <li><strong>Verify Build and Start</strong> are correct and doing separate jobs.</li>
+    <li><strong>Redeploy and recheck,</strong> with the log open as your guide.</li>
+  </ol>
+  <p>Work it in order and you'll usually have the answer inside the first two or three steps, because the log named it before you started.</p>
+
+  <h2>Stop the next 503 before you push</h2>
+  <p>Once you've cleared one, a thirty-second habit keeps the next deploy clean:</p>
+  <ul>
+    <li>Bind to <code>process.env.PORT</code>, never a hard-coded number.</li>
+    <li>Check env parity: every key in your local <code>.env</code> is also set on the server.</li>
+    <li>Everything your code imports is a real dependency in <code>package.json</code>.</li>
+    <li>Run your production build locally first. If it fails on your machine, it'll fail on the server, and it's faster to fix locally.</li>
+    <li>Make schema migrations ship with the code, so the app never boots against a database missing its columns.</li>
+  </ul>
+  <p>None of that is heavy process. It turns "deploy and hope" into "deploy and know." The best 503 is the one you prevented before pushing.</p>
+
+  <h2>The honest limits</h2>
+  <p>This tree covers the overwhelming majority of post-deploy 503s on a <strong>Linux</strong> app server, because those 503s nearly always reduce to "the app process isn't up and listening," and the logs say why. What it can't do is debug your application's own logic. If the app starts, listens, and still misbehaves, that's ordinary app debugging, not a deploy problem. And "managed" here means the platform keeps the server, the stack, and the web server healthy, while your code and its config (the port, the env vars, the Start command) are yours to get right. That's precisely where these 503s live, which is also why they're so fixable: the evidence is on a box you can read, every time. If you're still getting the app onto a server in the first place, the <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploy an AI-built app guide</a> and the Node-specific <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">managed cloud walkthrough</a> cover the full flow, and <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">auto-deploy from GitHub</a> shows where in the pipeline this same failure tends to surface.</p>
+
+  <!-- ADD IMAGE: swap for a real <figure> with an <img> (src -> images/503-then-200.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>A simple before/after: the browser showing 503 Service Unavailable, then the same URL returning the working app after the fix.</em></span></figure>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">The log already knows. Go read it.</p>
+    <p style="margin:0">Deploy with logs you can actually open at <a href="https://www.kloudbean.com/">kloudbean.com</a>, with a free trial and your first migration done for you. The full deploy flow is in the <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">AI-built app guide</a>, and server sizes are on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Why does my app show a 503 right after deploying?</h3>
+    <p>Because the app process isn't answering on the expected port. The web server is up but got nothing back from your app. Usually the app isn't listening on <code>process.env.PORT</code>, a required environment variable is missing, the Start command isn't launching a server, or the app crashed on startup. The error log names the specific cause.</p>
+    <h3>Where do I find the error that's causing the 503?</h3>
+    <p>Read <code>app.error.log</code> in your app's app-logs folder for runtime crashes, and Build &amp; Deployment History for build failures. Between them they almost always name the exact problem, so open them before you touch any code.</p>
+    <h3>What's the single most common cause of a 503 after deploy?</h3>
+    <p>Not listening on the assigned port. Your app must use <code>process.env.PORT</code> rather than a hard-coded number; if it doesn't, the server can't reach it and returns a 503. A missing environment variable is a close second. Both are quick fixes.</p>
+    <h3>My build succeeded but I still get a 503, why?</h3>
+    <p>A green build means the app compiled, not that it stays running. Look in <code>app.error.log</code>, not the build log. The app is likely crashing on startup (a missing env var, a missing dependency, or a database it can't reach) or not listening on the right port.</p>
+    <h3>How do I fix a missing environment variable 503?</h3>
+    <p>Set the missing variable in Runtime Configuration, Environment Variables, then redeploy. Compare the server's variables against your local <code>.env</code> to find what didn't get copied across; the error log usually names the one it wanted.</p>
+    <h3>Is a 503 different from a 502 after deploy?</h3>
+    <p>Yes. A 503 usually means your app process isn't up or isn't answering on the expected port, so there's nothing to hand the request to. A 502 usually means the server did reach your app but got back an invalid or broken response. Both point you at the app process, and both are diagnosed the same way: read the app error log.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Fix a 503 Error After Deploying Your App","description":"What a 503 after deploy means and how to diagnose the real cause, in order: build, port, env vars, startup crash. A decision tree from symptom to fix.","image":"https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Why does my app show a 503 right after deploying?","acceptedAnswer":{"@type":"Answer","text":"Because the app process isn't answering on the expected port. The web server is up but got nothing back from your app. Usually the app isn't listening on process.env.PORT, a required environment variable is missing, the Start command isn't launching a server, or the app crashed on startup. The error log names the specific cause."}},
+{"@type":"Question","name":"Where do I find the error that's causing the 503?","acceptedAnswer":{"@type":"Answer","text":"Read app.error.log in your app's app-logs folder for runtime crashes, and Build and Deployment History for build failures. Between them they almost always name the exact problem, so open them before you touch any code."}},
+{"@type":"Question","name":"What's the single most common cause of a 503 after deploy?","acceptedAnswer":{"@type":"Answer","text":"Not listening on the assigned port. Your app must use process.env.PORT rather than a hard-coded number; if it doesn't, the server can't reach it and returns a 503. A missing environment variable is a close second. Both are quick fixes."}},
+{"@type":"Question","name":"My build succeeded but I still get a 503, why?","acceptedAnswer":{"@type":"Answer","text":"A green build means the app compiled, not that it stays running. Look in app.error.log, not the build log. The app is likely crashing on startup (a missing env var, a missing dependency, or a database it cannot reach) or not listening on the right port."}},
+{"@type":"Question","name":"How do I fix a missing environment variable 503?","acceptedAnswer":{"@type":"Answer","text":"Set the missing variable in Runtime Configuration, Environment Variables, then redeploy. Compare the server's variables against your local .env to find what didn't get copied across; the error log usually names the one it wanted."}},
+{"@type":"Question","name":"Is a 503 different from a 502 after deploy?","acceptedAnswer":{"@type":"Answer","text":"Yes. A 503 usually means your app process isn't up or isn't answering on the expected port, so there's nothing to hand the request to. A 502 usually means the server reached your app but got back an invalid or broken response. Both point you at the app process, and both are diagnosed the same way: read the app error log."}}
+]}
+]}
+</script>
+</body>
+</html>

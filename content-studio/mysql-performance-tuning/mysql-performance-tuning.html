@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MySQL Performance Tuning: A Practical Guide for App Developers</title>
+<meta name="description" content="A practical, engineer-level guide to MySQL performance tuning: find slow MySQL queries with the slow query log, read a MySQL EXPLAIN plan (type ALL full table scan vs ref index use, Using filesort), add the right MySQL index, size the InnoDB buffer pool, and set up MySQL connection pooling on managed MySQL.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/mysql-performance-tuning/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MySQL Performance Tuning: A Practical Guide for App Developers">
+<meta property="og:description" content="Measure first, index second, tune knobs last. Find slow MySQL queries with the slow query log, read MySQL EXPLAIN, add the right index, and size the InnoDB buffer pool.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Managed MySQL</span>
+  <h1>MySQL Performance Tuning for App Developers</h1>
+
+  <figure><img src="images/hero.png" alt="MySQL performance tuning: from a type ALL full table scan to a fast ref index lookup"></figure>
+
+  <p class="lead">Your app flew on day one. A few hundred thousand rows later, a page that loaded instantly stalls for two seconds, and nine times out of ten the database is the reason. MySQL performance tuning is the skill of proving that, then fixing the real cause instead of pasting config off a blog. Here's the order I'd hand a developer who owns a Laravel, Rails, Django, or Prisma app and just watched a query that flew at ten thousand rows fall over at five million: find the slow MySQL queries first, read the MySQL EXPLAIN plan, add the right index, size the InnoDB buffer pool, pool your connections, and resize the box last.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>Measure before you touch anything. Turn on the slow query log to catch your slowest statements, run <code>EXPLAIN</code> to see why they're slow, and add an index on the columns you filter, join, and sort on. Size the InnoDB buffer pool so your hot data and indexes live in RAM, pool your connections so MySQL isn't buried under them, and resize the server only when it's genuinely maxed. In that order.</p>
+  </div>
+
+  <div class="note"><b>On Postgres instead?</b> The order of operations is identical, only the tools differ. There's a companion <a href="https://www.kloudbean.com/blog/postgresql-performance-tuning/">PostgreSQL performance tuning</a> guide, plus a <a href="https://www.kloudbean.com/blog/mysql-vs-postgresql/">MySQL vs PostgreSQL</a> comparison if you're still choosing an engine.</div>
+
+  <h2>Turn on the slow query log before you touch a knob</h2>
+  <p>The cheapest tuning mistake is also the most common. Someone reads that the InnoDB buffer pool should be most of your RAM, bumps a setting, restarts, and the slow page is still slow. They tuned before they knew what was slow. MySQL will tell you which statements hurt, if you ask it.</p>
+  <p>The tool for that is the <strong>MySQL slow query log</strong>. It records every statement slower than <code>long_query_time</code> seconds, so you get a list of real offenders from real traffic. Turn it on and set the threshold low enough to be useful:</p>
+<pre><code>-- log anything slower than 1 second
+SET GLOBAL slow_query_log = 'ON';
+SET GLOBAL long_query_time = 1;
+
+-- confirm it's on and see where the file lives
+SHOW VARIABLES LIKE 'slow_query_log%';
+SHOW VARIABLES LIKE 'long_query_time';</code></pre>
+  <p>Let it run through a normal day, then rank the log instead of reading it line by line. <code>mysqldumpslow</code> ships with the server and groups similar statements so the worst offenders float to the top:</p>
+<pre><code># the ten queries with the highest total time
+mysqldumpslow -s t -t 10 /var/log/mysql/slow.log</code></pre>
+  <p>That's your ranked to-do list. Sort by total time, not just per-query time, so you also catch the query that's quick on its own but runs ten thousand times a minute.</p>
+
+  <!-- Author: swap this slot for a real screenshot. src -> images/slow-query-log.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A mysqldumpslow ranking with the worst repeat offender at the top, Query_time and Rows_examined visible.</em><small>Blur any real table or column names first.</small></span></figure>
+
+  <h2>Read the EXPLAIN plan: the type column does most of the talking</h2>
+  <p>Once you know the slow query, ask MySQL how it plans to run it. <code>EXPLAIN</code> shows the plan without executing the statement. On MySQL 8.0.18 and newer, <code>EXPLAIN ANALYZE</code> runs the query and prints real timings next to the estimates, worth using whenever the statement is safe to execute.</p>
+  <p>The field that matters most for app developers is <code>type</code>, the access method MySQL chose. It's a ladder from awful to great: <code>ALL</code> (a full table scan), <code>index</code> (a full scan of an index), <code>range</code> (an index range like a date window), <code>ref</code> (an index lookup by a non-unique key), and <code>eq_ref</code> or <code>const</code> (a unique or primary-key hit, the best you'll see). When you spot <code>type: ALL</code> on a big table, that's a <strong>type ALL full table scan</strong>, and it's usually a missing index shouting at you.</p>
+  <p>Run <code>EXPLAIN</code> on a filter with no supporting index and you'll see something like this:</p>
+<pre><code>mysql&gt; EXPLAIN SELECT * FROM orders WHERE user_id = 42\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: orders
+         type: ALL
+possible_keys: NULL
+          key: NULL
+          ref: NULL
+         rows: 2013480
+     filtered: 10.00
+        Extra: Using where</code></pre>
+  <p>Read the three fields that carry the story. <code>type: ALL</code> is a full scan, <code>key: NULL</code> means no index was used, and <code>rows: 2013480</code> is roughly how many rows MySQL expects to examine to answer a query that returns maybe eight. Reading two million rows to hand back eight is exactly the shape of a missing index.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 466" role="img" aria-label="Diagram of one MySQL query taking two paths: a type ALL full table scan without an index versus a type ref index lookup with an index on user_id" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="28" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">One query, two plans: what the EXPLAIN type decides</text>
+
+      <!-- query box, centered -->
+      <rect x="280" y="50" width="200" height="52" rx="12" fill="#000f27"/>
+      <text x="380" y="76" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">SELECT ... FROM orders</text>
+      <text x="380" y="93" text-anchor="middle" fill="#aeb6d4" font-family="JetBrains Mono,monospace" font-size="10.5">WHERE user_id = 42</text>
+
+      <!-- fork lines -->
+      <path d="M360 102 C 300 120, 230 122, 195 140" stroke="#5b6a86" stroke-width="2" fill="none"/>
+      <path d="M195 140 l1 -9 -7 4 z" fill="#5b6a86"/>
+      <path d="M400 102 C 470 120, 540 122, 565 140" stroke="#40b75f" stroke-width="2" fill="none"/>
+      <path d="M565 140 l6 -5 -8 -3 z" fill="#40b75f"/>
+
+      <!-- left label -->
+      <text x="195" y="134" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.2">WITHOUT AN INDEX</text>
+      <!-- left EXPLAIN card -->
+      <rect x="45" y="144" width="300" height="104" rx="12" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="63" y="172" fill="#000f27" font-family="JetBrains Mono,monospace" font-size="12.5" font-weight="600">type:  ALL</text>
+      <text x="63" y="194" fill="#5b6a86" font-family="JetBrains Mono,monospace" font-size="12.5">key:   NULL</text>
+      <text x="63" y="216" fill="#5b6a86" font-family="JetBrains Mono,monospace" font-size="12.5">rows:  2,013,480</text>
+      <text x="63" y="238" fill="#000f27" font-family="JetBrains Mono,monospace" font-size="12.5">Extra: Using filesort</text>
+      <line x1="195" y1="248" x2="195" y2="272" stroke="#5b6a86" stroke-width="2"/>
+      <path d="M195 272 l-4 -9 8 0 z" fill="#5b6a86"/>
+      <!-- left table, all rows scanned -->
+      <rect x="115" y="276" width="160" height="86" rx="10" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
+      <rect x="115" y="276" width="160" height="86" rx="10" fill="#4F1AF3" fill-opacity="0.14"/>
+      <line x1="129" y1="294" x2="261" y2="294" stroke="#000f27" stroke-opacity="0.32" stroke-width="6"/>
+      <line x1="129" y1="308" x2="261" y2="308" stroke="#000f27" stroke-opacity="0.32" stroke-width="6"/>
+      <line x1="129" y1="322" x2="261" y2="322" stroke="#000f27" stroke-opacity="0.32" stroke-width="6"/>
+      <line x1="129" y1="336" x2="261" y2="336" stroke="#000f27" stroke-opacity="0.32" stroke-width="6"/>
+      <line x1="129" y1="350" x2="261" y2="350" stroke="#000f27" stroke-opacity="0.32" stroke-width="6"/>
+      <text x="195" y="384" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600">Reads every row</text>
+      <text x="195" y="424" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="17" font-weight="700">~1.8 s</text>
+      <text x="195" y="444" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12" font-weight="600">slow</text>
+
+      <!-- right label -->
+      <text x="565" y="134" text-anchor="middle" fill="#40b75f" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.2">INDEX ON user_id</text>
+      <!-- right EXPLAIN card -->
+      <rect x="415" y="144" width="300" height="104" rx="12" fill="#ffffff" stroke="#40b75f" stroke-width="1.5"/>
+      <text x="433" y="172" fill="#40b75f" font-family="JetBrains Mono,monospace" font-size="12.5" font-weight="600">type:  ref</text>
+      <text x="433" y="194" fill="#5b6a86" font-family="JetBrains Mono,monospace" font-size="12.5">key:   idx_orders_user_id</text>
+      <text x="433" y="216" fill="#5b6a86" font-family="JetBrains Mono,monospace" font-size="12.5">rows:  8</text>
+      <text x="433" y="238" fill="#000f27" font-family="JetBrains Mono,monospace" font-size="12.5">Extra: Using index</text>
+      <line x1="565" y1="248" x2="565" y2="272" stroke="#40b75f" stroke-width="2"/>
+      <path d="M565 272 l-4 -9 8 0 z" fill="#40b75f"/>
+      <!-- right index badge + table, few rows matched -->
+      <rect x="485" y="276" width="160" height="86" rx="10" fill="#ffffff" stroke="#40b75f" stroke-width="1.5"/>
+      <line x1="499" y1="294" x2="631" y2="294" stroke="#40b75f" stroke-width="6"/>
+      <line x1="499" y1="308" x2="631" y2="308" stroke="#40b75f" stroke-width="6"/>
+      <line x1="499" y1="322" x2="587" y2="322" stroke="#000f27" stroke-opacity="0.12" stroke-width="6"/>
+      <line x1="499" y1="336" x2="587" y2="336" stroke="#000f27" stroke-opacity="0.12" stroke-width="6"/>
+      <line x1="499" y1="350" x2="587" y2="350" stroke="#000f27" stroke-opacity="0.12" stroke-width="6"/>
+      <text x="565" y="384" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600">Jumps to the matches</text>
+      <text x="565" y="424" text-anchor="middle" fill="#40b75f" font-family="Poppins,sans-serif" font-size="17" font-weight="700">~2 ms</text>
+      <text x="565" y="444" text-anchor="middle" fill="#40b75f" font-family="Poppins,sans-serif" font-size="12" font-weight="600">fast</text>
+    </svg>
+    <figcaption>Same query, same rows. With no index MySQL reads the whole table (type ALL). Add an index on the filtered column and it drops to a ref lookup that touches a handful of rows.</figcaption>
+  </figure>
+
+  <p>The <code>Extra</code> column is the other half of the plan, and two values are worth learning on sight. <strong>Using filesort</strong> means MySQL sorted the rows itself because no index gave them back in the order you asked for, which gets expensive on big result sets. <strong>Using temporary</strong> means it built a temporary table to finish, common with <code>GROUP BY</code> or <code>DISTINCT</code> on unindexed columns. A friendlier value is <code>Using index</code>: a covering index answered the query without touching the table.</p>
+  <p>Add the index, run the same statement, and the plan changes shape:</p>
+<pre><code>CREATE INDEX idx_orders_user_id ON orders (user_id);
+
+mysql&gt; EXPLAIN SELECT * FROM orders WHERE user_id = 42\G
+         type: ref
+          key: idx_orders_user_id
+         rows: 8
+        Extra: NULL</code></pre>
+  <p>Same eight rows, but MySQL went straight to them. This is the highest-leverage move in the whole game, and it's why the method starts with measurement: you can't index a query you haven't found.</p>
+  <p>When you can run the statement, <code>EXPLAIN ANALYZE</code> confirms the win in real numbers, not estimates:</p>
+<pre><code>-- MySQL 8.0.18+: runs the query and prints actual timings
+EXPLAIN ANALYZE
+SELECT * FROM orders WHERE user_id = 42 AND created_at &gt; NOW() - INTERVAL 30 DAY;</code></pre>
+
+  <!-- Author: swap this slot for a real screenshot. src -> images/explain-annotated.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>An EXPLAIN plan with callouts on the type field, the rows estimate, and the Extra column showing Using filesort.</em><small>Arrows help readers find each field fast.</small></span></figure>
+
+  <h2>MySQL performance tuning, ranked by payoff</h2>
+  <p>Not every lever earns its keep. Some take five minutes and cut a query by 99 percent; others take an afternoon and buy you ten. Here's how I'd rank them for an app that isn't yet at web scale.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Lever</th><th>What it fixes</th><th>Payoff vs effort</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Add a missing index</strong></td><td>Turns a type ALL full scan into a ref or range lookup</td><td>Huge payoff, low effort</td></tr>
+      <tr><td><strong>Fix N+1 queries</strong></td><td>Collapses hundreds of round trips into one</td><td>Huge payoff, low effort</td></tr>
+      <tr><td><strong>Pool connections</strong></td><td>Stops the "Too many connections" wall under load</td><td>High payoff, low effort</td></tr>
+      <tr><td><strong>Rewrite the worst queries</strong></td><td>Reads fewer rows, kills Using filesort and Using temporary</td><td>High payoff, medium effort</td></tr>
+      <tr><td><strong>Size the InnoDB buffer pool</strong></td><td>Keeps hot data and indexes in RAM instead of on disk</td><td>High payoff, medium effort, needs RAM</td></tr>
+      <tr><td><strong>Other server knobs</strong></td><td>Marginal gains, easy to get wrong</td><td>Medium payoff, handle with care</td></tr>
+      <tr><td><strong>Resize the server</strong></td><td>More CPU and RAM for a genuinely maxed box</td><td>High payoff, costs money</td></tr>
+    </tbody>
+  </table>
+  <p>Look at the top two rows. Most of the slow MySQL I've been handed came down to a missing index or an N+1 loop, not hardware and not a config file. My advice on memory: size the buffer pool once, then stop poking knobs and go add an index.</p>
+
+  <h2>Indexes done right in MySQL (an index isn't free)</h2>
+  <p>An index is a sorted structure that lets MySQL find rows without reading the whole table. InnoDB uses a <strong>B-tree</strong> by default, and it's right for almost everything an app does: equality, ranges, <code>ORDER BY</code>, and most joins. A few rules decide whether it actually gets used.</p>
+<pre><code>-- single-column index for a common filter
+CREATE INDEX idx_orders_user_id ON orders (user_id);
+
+-- composite index: column order matters. This one serves
+-- "a user's orders, newest first" and "just this user's orders"
+CREATE INDEX idx_orders_user_created ON orders (user_id, created_at);</code></pre>
+  <ul>
+    <li><strong>Leftmost-prefix rule.</strong> A composite index on <code>(user_id, created_at)</code> helps a query that filters on <code>user_id</code>, or filters <code>user_id</code> then sorts by <code>created_at</code>. It does nothing for a query that only filters <code>created_at</code>. MySQL reads a composite index left to right, so the first column has to be in play.</li>
+
+    <li><strong>Covering indexes skip the table.</strong> If an index holds every column a query needs, MySQL answers straight from the index and you'll see <code>Using index</code> in <code>Extra</code>. Great for a hot read that only pulls a couple of columns.</li>
+    <li><strong>Don't wrap an indexed column in a function.</strong> It quietly kills index use.</li>
+  </ul>
+<pre><code>-- the index on created_at is ignored: the function hides the column
+WHERE DATE(created_at) = '2024-01-01'
+
+-- rewrite as a range and the index works again
+WHERE created_at &gt;= '2024-01-01' AND created_at &lt; '2024-01-02'</code></pre>
+  <p>Now the honest part: an index isn't free. Every <code>INSERT</code>, <code>UPDATE</code>, and <code>DELETE</code> updates every index on the table, so ten indexes mean each write does ten times the bookkeeping. They cost disk and memory too. Index the columns you filter, join, and sort on, not every column. The deeper mechanics live in <a href="https://www.kloudbean.com/blog/database-indexing-explained/">database indexing explained</a>.</p>
+  <p><strong>Why isn't MySQL using my index?</strong> Usually one of a few reasons. You wrapped the column in a function, like the <code>DATE()</code> case above. Stale statistics sent the optimizer down a bad path, so run <code>ANALYZE TABLE orders</code>. The query returns a big fraction of the table, so a scan is genuinely cheaper and the optimizer is right. Or the types don't match between the filter and the column. On a small table a full scan really is faster, so trust the optimizer there.</p>
+
+  <h2>The InnoDB buffer pool, in plain terms</h2>
+  <p>If you learn one thing about MySQL memory, learn this. The <strong>InnoDB buffer pool</strong> is the chunk of RAM InnoDB uses to cache data pages and index pages. When the rows and indexes a query needs are already in the pool, the read is served from memory in microseconds. When they aren't, MySQL goes to disk, orders of magnitude slower. Your whole goal is to keep the working set resident in the pool.</p>
+  <p>On a dedicated database box a common guideline is to give the buffer pool a large share of the machine's RAM, since little else runs there. That's why <code>innodb_buffer_pool_size</code> is the first memory setting anyone mentions. On managed MySQL the pool is sized to your plan, so the practical lever is the plan itself: when your working set outgrows the pool, you resize the server for more RAM instead of hand-editing a config file. More data in the pool means fewer trips to disk.</p>
+  <p>You can watch whether the pool is doing its job. If reads keep hitting disk while the box has spare CPU, your working set no longer fits, and more RAM is the honest answer:</p>
+<pre><code>-- how big the pool is, and how much of it is in use
+SHOW VARIABLES LIKE 'innodb_buffer_pool_size';
+SHOW STATUS LIKE 'Innodb_buffer_pool_read%';
+-- the deep dive lives in the engine status
+SHOW ENGINE INNODB STATUS\G</code></pre>
+
+  <!-- Author: swap this slot for a real screenshot. src -> images/buffer-pool-status.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Innodb_buffer_pool_reads climbing against Innodb_buffer_pool_read_requests, showing the working set spilling to disk.</em><small>A before and after around a resize tells the story well.</small></span></figure>
+
+  <h2>Connections and the "Too many connections" wall</h2>
+  <p>Every MySQL connection is a thread with its own memory. That's lighter than a full process, but connections still aren't free, and <code>max_connections</code> is finite (the default often sits around 151). Cross that ceiling under load and every new request meets the error everyone hits eventually:</p>
+<pre><code>ERROR 1040 (HY000): Too many connections</code></pre>
+  <p>The instinct is to raise <code>max_connections</code>. Resist it. More allowed connections means more memory reserved for idle threads, and per-connection buffers like <code>sort_buffer_size</code> multiply your worst-case memory. The real fix is <strong>MySQL connection pooling</strong>: a small, reused set of connections that many requests share instead of each opening its own.</p>
+  <p>Your framework almost certainly pools already: the <code>mysql2</code> pool in Node, HikariCP in Spring, SQLAlchemy's engine, and Laravel's persistent connections all keep one. Set a sane pool size per app instance rather than a connection per request. Running many app servers or something serverless? A proxy such as ProxySQL funnels thousands of client connections down to a handful of real backend ones. A good starting pool is a small multiple of your CPU cores, and most apps need far fewer than they reach for. To see what's connected:</p>
+<pre><code>SHOW FULL PROCESSLIST;
+SHOW STATUS LIKE 'Threads_connected';
+SHOW VARIABLES LIKE 'max_connections';</code></pre>
+  <p>The full reasoning, with pool sizing math, is in <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>.</p>
+
+  <h2>When the honest fix is a bigger server</h2>
+  <p>Sometimes the answer really is more hardware. If CPU sits pinned near 100 percent, RAM is exhausted so the buffer pool can't hold your working set, or you're I/O bound after the queries are already tuned, then the box is the bottleneck. On managed MySQL you resize for more CPU and RAM without rebuilding anything, and backups and patching keep running.</p>
+  <p>But tune queries and indexes first. Bad SQL scales badly no matter the hardware. A missing index that scans five million rows scans them a bit faster on a bigger box, then falls over at ten million. Doubling your server to paper over an N+1 loop is the most expensive way to not fix a bug. For read-heavy workloads, a <a href="https://www.kloudbean.com/blog/redis-caching-guide/">managed Redis cache</a> in front of your hottest reads often buys more headroom than a bigger database will.</p>
+
+  <h2>Put it into practice on managed MySQL</h2>
+  <p>Everything above is plain MySQL and works anywhere. What a managed platform changes is the ops around it: provisioning, the private network, patching, and backups are handled, so your time goes to schema, queries, and indexes.</p>
+
+  <p><strong>1. Launch a managed MySQL.</strong> MySQL is one of seven managed database engines here, alongside MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB. In the DBS section, pick MySQL, name it, and it's provisioned on a private network with automatic backups already on. You own the schema, queries, and data; the platform handles provisioning, patching, and backups. More in <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">managed MySQL hosting</a>.</p>
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed MySQL database with automatic backups and private networking">
+    <figcaption>DBS then Launch Database: managed MySQL, provisioned on a private network with backups running from the start.</figcaption>
+  </figure>
+
+  <p><strong>2. Connect over the private network.</strong> Put the connection string in an environment variable, set your pool size there, and keep the database off the public internet so your app reaches it internally. Wiring up an app end to end? <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">Deploying a Node app to a managed cloud</a> walks the whole path.</p>
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console environment variables screen holding the MySQL connection string out of the codebase">
+    <figcaption>Runtime configuration then Environment Variables: the connection string and pool size live here, never in your repo.</figcaption>
+  </figure>
+
+  <p><strong>3. Watch CPU and RAM while you measure.</strong> Keep the server health view open next to your slow query log findings. Slow while CPU sits idle points at a query or index problem, so fix that. Pinned at 100 percent after you've tuned means it's time to resize.</p>
+  <figure>
+    <img src="../assets/console/server-health.png" alt="The Kloudbean console server health view showing CPU and RAM usage to decide between tuning and resizing MySQL">
+    <figcaption>Server health: line up slow queries against real CPU and RAM before you decide to tune or to resize.</figcaption>
+  </figure>
+
+  <!-- Author: swap this slot for a real screenshot. src -> images/before-after-timing.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The same query timed before and after the index, going from seconds to milliseconds.</em><small>A simple two-bar chart reads instantly.</small></span></figure>
+
+  <p>Backups run automatically, but a backup you've never restored is just a hope. Do a test restore before you need one. Here's how <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups</a> work.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Make MySQL earn its keep.</p>
+    <p style="margin:0 0 .6em">Managed MySQL on Kloudbean gives you a real box on a private network, automatic backups, and one-click provisioning, so the only thing left to tune is your own queries. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> and see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Managed MySQL and MariaDB · Automatic backups · Private networking · Resize as you grow · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I find slow MySQL queries?</h3>
+    <p>Turn on the slow query log (<code>SET GLOBAL slow_query_log = 'ON'</code>, <code>long_query_time = 1</code>), let it run through real traffic, then rank it with <code>mysqldumpslow -s t</code>. Sort by total time so you also catch fast queries that run thousands of times.</p>
+    <h3>How do I read a MySQL EXPLAIN plan?</h3>
+    <p>Read three fields: <code>type</code> (the access method, where <code>ALL</code> is a full table scan and <code>ref</code>, <code>range</code>, or <code>eq_ref</code> mean an index was used), <code>rows</code> (estimated rows examined), and <code>Extra</code> (which flags work like Using filesort). A big <code>rows</code> for a small result signals a missing index.</p>
+    <h3>What does type ALL mean in EXPLAIN?</h3>
+    <p><code>type: ALL</code> is a full table scan: MySQL reads every row and discards the non-matches. It almost always points at a missing index on the column you filter or join on.</p>
+    <h3>What is the InnoDB buffer pool?</h3>
+    <p>It's the RAM InnoDB uses to cache data and index pages, so reads hit memory instead of disk. Keeping your working set resident in the buffer pool is the single biggest MySQL memory win.</p>
+    <h3>Should I increase innodb_buffer_pool_size?</h3>
+    <p>On a dedicated box the pool gets a large share of RAM, and on managed MySQL it's sized to your plan, so the practical move is to resize for more RAM. Add the right indexes first, since an index usually beats any memory change.</p>
+    <h3>Why is MySQL not using my index?</h3>
+    <p>Common causes: a function wrapped around the column (like <code>DATE(created_at)</code>), stale statistics that need <code>ANALYZE TABLE</code>, a query returning much of the table so a scan is cheaper, or a type mismatch. On small tables a full scan is often fastest anyway.</p>
+    <h3>What does Using filesort mean?</h3>
+    <p>It means MySQL sorted the result itself because no index returned the rows in your <code>ORDER BY</code> order, which is slow on large result sets. A composite index matching the sort often removes it.</p>
+    <h3>How many connections can MySQL handle?</h3>
+    <p><code>max_connections</code> often defaults near 151, and past it clients hit <code>ERROR 1040: Too many connections</code>. Use a connection pool so requests share a small set, and add a proxy like ProxySQL if you run many app servers.</p>
+    <h3>Does EXPLAIN ANALYZE run the query?</h3>
+    <p>Yes. On MySQL 8.0.18 and newer it executes the statement and prints real timings beside the estimates, while plain <code>EXPLAIN</code> only shows the plan. Be careful on writes, since it will change data.</p>
+    <h3>Will a bigger server fix slow MySQL queries?</h3>
+    <p>Sometimes: if CPU is pinned or the buffer pool can't hold your working set after tuning, more RAM and CPU help, and a managed server resizes without a rebuild. But a missing index or N+1 loop scales badly on any hardware, so fix the query first.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Database · Tune the query, not the myth.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"MySQL Performance Tuning for App Developers","description":"A practical, engineer-level guide to MySQL performance tuning: find slow MySQL queries with the slow query log, read a MySQL EXPLAIN plan, add the right index, size the InnoDB buffer pool, and pool connections on managed MySQL.","image":"https://www.kloudbean.com/blog/mysql-performance-tuning/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/mysql-performance-tuning/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I find slow MySQL queries?","acceptedAnswer":{"@type":"Answer","text":"Turn on the slow query log by setting slow_query_log to ON and long_query_time to 1, let it run through real traffic, then rank it with mysqldumpslow sorted by time. Sort by total time so you also catch fast queries that run thousands of times."}},
+{"@type":"Question","name":"How do I read a MySQL EXPLAIN plan?","acceptedAnswer":{"@type":"Answer","text":"Read three fields: type (the access method, where ALL is a full table scan and ref, range, or eq_ref mean an index was used), rows (estimated rows examined), and Extra (which flags work like Using filesort). A big rows for a small result signals a missing index."}},
+{"@type":"Question","name":"What does type ALL mean in EXPLAIN?","acceptedAnswer":{"@type":"Answer","text":"A type of ALL is a full table scan, so MySQL reads every row and discards the non-matches. It almost always points at a missing index on the column you filter or join on."}},
+{"@type":"Question","name":"What is the InnoDB buffer pool?","acceptedAnswer":{"@type":"Answer","text":"It is the RAM InnoDB uses to cache data and index pages, so reads hit memory instead of disk. Keeping your working set resident in the buffer pool is the single biggest MySQL memory win."}},
+{"@type":"Question","name":"Should I increase innodb_buffer_pool_size?","acceptedAnswer":{"@type":"Answer","text":"On a dedicated box the pool gets a large share of RAM, and on managed MySQL it is sized to your plan, so the practical move is to resize for more RAM. Add the right indexes first, since an index usually beats any memory change."}},
+{"@type":"Question","name":"Why is MySQL not using my index?","acceptedAnswer":{"@type":"Answer","text":"Common causes are a function wrapped around the column such as DATE on a timestamp, stale statistics that need an ANALYZE TABLE, a query returning much of the table so a scan is cheaper, or a type mismatch. On small tables a full scan is often fastest anyway."}},
+{"@type":"Question","name":"What does Using filesort mean?","acceptedAnswer":{"@type":"Answer","text":"It means MySQL sorted the result itself because no index returned the rows in your ORDER BY order, which is slow on large result sets. A composite index matching the sort often removes it."}},
+{"@type":"Question","name":"How many connections can MySQL handle?","acceptedAnswer":{"@type":"Answer","text":"max_connections often defaults near 151, and past it clients hit error 1040, Too many connections. Use a connection pool so requests share a small set, and add a proxy like ProxySQL if you run many app servers."}},
+{"@type":"Question","name":"Does EXPLAIN ANALYZE run the query?","acceptedAnswer":{"@type":"Answer","text":"Yes. On MySQL 8.0.18 and newer it executes the statement and prints real timings beside the estimates, while plain EXPLAIN only shows the plan. Be careful on writes, since it will change data."}},
+{"@type":"Question","name":"Will a bigger server fix slow MySQL queries?","acceptedAnswer":{"@type":"Answer","text":"Sometimes: if CPU is pinned or the buffer pool cannot hold your working set after tuning, more RAM and CPU help, and a managed server resizes without a rebuild. But a missing index or N+1 loop scales badly on any hardware, so fix the query first."}}
+]}
+]}
+</script>
+</body>
+</html>

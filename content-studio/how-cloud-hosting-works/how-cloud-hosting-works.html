@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How Cloud Hosting Works: From DNS to Database, Explained</title>
+<meta name="description" content="How cloud hosting works, explained end to end. Follow one web request from DNS through the load balancer, web server, app runtime, and managed database to backups.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/how-cloud-hosting-works/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How Cloud Hosting Works: From DNS to Database, Explained">
+<meta property="og:description" content="Follow one web request through every layer of cloud hosting: DNS, load balancer, web server, app runtime, managed database, object storage, and backups.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Cloud fundamentals</span>
+  <h1>How Cloud Hosting Works: The Life of a Single Request</h1>
+
+  <figure><img src="images/hero.png" alt="How cloud hosting works, from DNS to the managed database, explained as one request"></figure>
+
+  <p class="lead">You typed a domain, hit enter, and a page appeared. Simple, right? Underneath, a dozen pieces of infrastructure just did their jobs in a few hundred milliseconds, and most of them stay invisible until one breaks.</p>
+  <p>This is how cloud hosting works, told as the journey of a single request. From the moment your browser asks "where does this site live?" to the moment your data is written and safely backed up. No hand-waving about "the cloud" as magic fog in the sky. Just the real machines, in order, and why each one earns its place.</p>
+
+  <div class="tldr">
+    <strong>The short answer</strong>
+    <p>Cloud hosting runs your site or app on a virtual server, a slice of a much larger physical machine in a data center. When someone visits, DNS turns your domain into that server's IP address, the request travels in, your application code runs and reads or writes a database, and the response comes back. Managed cloud hosting adds the operations layer on top: provisioning, security, SSL, and automatic backups handled for you.</p>
+  </div>
+
+  <h2>What is cloud hosting, and what's a cloud server?</h2>
+  <p>Start with what the word "cloud" hides: there's a real computer. What is cloud hosting? It's renting computing power from a provider's data center instead of buying and racking a machine yourself. Your site runs on a <strong>cloud server</strong>, a virtual machine carved out of a big physical host by a hypervisor. You get a guaranteed slice of CPU, memory, and disk that behaves like its own box, with its own IP address and operating system, almost always Linux.</p>
+  <p>The old way was one physical server in a rack. It died, you drove to it. You outgrew it, you migrated to a bigger one over a weekend. Cloud hosting broke that. Your server is virtual, so it spins up in minutes, resizes while it runs, and moves to healthy hardware if a host fails. That, at its most basic, is how web hosting works: a server with an address, waiting to answer requests.</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="Provisioning a cloud server in the Kloudbean console, choosing a provider and a size">
+    <figcaption>A cloud server is provisioned in a couple of minutes. Pick a provider and a size, and you get a real Linux box with its own IP.</figcaption>
+  </figure>
+
+  <h2>The shape of it: one request, end to end</h2>
+  <p>Before we walk each piece, here's the whole path in one picture. A request enters from the left, threads through the layers, and returns the same way. Object storage and backups branch off to the side.</p>
+
+  <figure>
+    <svg viewBox="0 0 840 340" role="img" aria-label="How cloud hosting works: a request flows from the user to DNS to the load balancer, then into the app server and the managed database on a private network, with object storage and automatic backups branching off." xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <defs>
+        <marker id="ap" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4F1AF3"/></marker>
+        <marker id="ag" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#40b75f"/></marker>
+      </defs>
+      <text x="26" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">The life of one request</text>
+
+      <rect x="470" y="58" width="356" height="250" rx="16" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5" stroke-dasharray="6 6"/>
+      <text x="484" y="80" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.4">PRIVATE NETWORK · VPC</text>
+      <text x="150" y="214" fill="#8a94a6" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.4">PUBLIC INTERNET</text>
+
+      <rect x="18" y="84" width="104" height="62" rx="12" fill="#000f27"/>
+      <text x="70" y="113" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="14.5" font-weight="600">You</text>
+      <text x="70" y="131" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="10.5">browser</text>
+
+      <rect x="158" y="84" width="104" height="62" rx="12" fill="#ffffff" stroke="#000f27" stroke-width="1.4"/>
+      <text x="210" y="113" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="14" font-weight="600">DNS</text>
+      <text x="210" y="131" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">name to IP</text>
+
+      <rect x="298" y="84" width="140" height="62" rx="12" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.8"/>
+      <text x="368" y="111" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="13.5" font-weight="700">Load balancer</text>
+      <text x="368" y="129" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10">public door · SSL</text>
+
+      <rect x="496" y="84" width="140" height="62" rx="12" fill="#ffffff" stroke="#000f27" stroke-width="1.6"/>
+      <text x="566" y="111" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="13.5" font-weight="700">App server</text>
+      <text x="566" y="129" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10">your code runs here</text>
+
+      <g>
+        <path d="M680 92 v56 a52 11 0 0 0 104 0 v-56" fill="#4F1AF3"/>
+        <ellipse cx="732" cy="92" rx="52" ry="11" fill="#6b3cff"/>
+        <text x="732" y="121" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Managed DB</text>
+        <text x="732" y="138" text-anchor="middle" fill="#d8ccff" font-family="Poppins,sans-serif" font-size="10">Postgres / MySQL</text>
+      </g>
+
+      <rect x="496" y="250" width="140" height="56" rx="12" fill="#ffffff" stroke="#40b75f" stroke-width="1.6"/>
+      <text x="566" y="275" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">Object storage</text>
+      <text x="566" y="292" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10">files &amp; uploads</text>
+
+      <rect x="666" y="250" width="140" height="56" rx="12" fill="#ffffff" stroke="#40b75f" stroke-width="1.6"/>
+      <text x="736" y="275" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600">Backups</text>
+      <text x="736" y="292" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10">automatic, restorable</text>
+
+      <line x1="122" y1="115" x2="152" y2="115" stroke="#4F1AF3" stroke-width="2.2" marker-end="url(#ap)"/>
+      <line x1="262" y1="115" x2="292" y2="115" stroke="#4F1AF3" stroke-width="2.2" marker-end="url(#ap)"/>
+      <line x1="438" y1="115" x2="490" y2="115" stroke="#4F1AF3" stroke-width="2.2" marker-end="url(#ap)"/>
+      <line x1="636" y1="115" x2="674" y2="115" stroke="#4F1AF3" stroke-width="2.2" marker-end="url(#ap)"/>
+      <line x1="566" y1="146" x2="566" y2="248" stroke="#40b75f" stroke-width="2.2" marker-end="url(#ag)"/>
+      <line x1="732" y1="160" x2="732" y2="248" stroke="#40b75f" stroke-width="2.2" marker-end="url(#ag)"/>
+      <text x="576" y="206" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10">big files</text>
+      <text x="742" y="206" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10">nightly copy</text>
+    </svg>
+    <figcaption>One request, in order: your browser to DNS, to the load balancer, into the app server, out to the managed database. Object storage and automatic backups sit alongside on a private network.</figcaption>
+  </figure>
+
+  <h2>How cloud hosting works, one hop at a time</h2>
+  <p>Now the walk, cloud hosting explained the way you'd actually debug it. Each layer solves a real problem, and each bites back if you ignore it.</p>
+
+  <h3>Step one: DNS turns a name into an address</h3>
+  <p>Your browser has no idea what <code>example.com</code> means. It knows IP addresses, numbers like <code>203.0.113.10</code>. DNS, the Domain Name System, is the phone book in between. Hit enter and your machine asks a chain of resolvers to translate the name into an IP, caching the answer so the next lookup is basically free.</p>
+<pre><code># what DNS is really doing (an A record)
+example.com.   300   IN   A   203.0.113.10
+
+# your browser then opens an HTTPS connection to that IP
+curl -I https://example.com</code></pre>
+  <p>That <code>300</code> is the TTL, how many seconds the answer stays cached. It's why a DNS change takes time to show up everywhere: the record is cached all over the internet, and those copies expire on their own clock. This is the naming answer to how web hosting works. A DNS record points your domain at your server's public IP, and everything after depends on that one line.</p>
+
+  <!-- ADD IMAGE: DNS records screen showing an A record for a domain pointing to a server's public IP, with the TTL visible. Swap for a real screenshot: src -> images/dns-a-record.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A DNS records panel: an A record for your domain pointing at the server's public IP, TTL visible.</em><small>Shows the name-to-address mapping that starts every request.</small></span></figure>
+
+  <h3>The load balancer: one public door for many servers</h3>
+  <p>For a single server, DNS points straight at it. Run more than one, and something has to decide which server answers each request. That's a <strong>load balancer</strong>. It sits at the front, holds the public address, and spreads traffic across a pool of backends. It runs health checks too, so a server that stops responding is pulled from rotation automatically and visitors never notice.</p>
+  <p>It usually terminates SSL as well, so HTTPS ends there and you manage certificates in one place. Do you need one on day one? Honestly, no. A single well-sized server handles plenty first, and adding a balancer early is moving parts without a problem to solve. Reach for it when one server isn't enough, or when you need a dead node to be a shrug instead of an outage. Full breakdown in <a href="https://www.kloudbean.com/blog/cloud-load-balancer-explained/">how a cloud load balancer works</a>.</p>
+
+  <figure>
+    <img src="../assets/console/flb-load-balancer.png" alt="A load balancer in the Kloudbean console distributing traffic across healthy backend servers">
+    <figcaption>The load balancer is the public door. It spreads each request across the healthy servers behind it and quietly drops any that fail a health check.</figcaption>
+  </figure>
+
+  <h3>The web server: answering on ports 80 and 443</h3>
+  <p>Traffic reaches your server and hits a <strong>web server</strong> process, usually Nginx or Apache, on port 443 for HTTPS (and 80 for plain HTTP, which it redirects to 443). It reads the incoming request and decides what to do with it.</p>
+  <p>A static file, an image, a stylesheet, a built React bundle, it hands back directly. Anything dynamic, a dashboard, a search, a checkout, it forwards inward to your application. People call that a reverse proxy.</p>
+
+  <h3>The app runtime: where your code actually runs</h3>
+  <p>Behind the web server sits the <strong>application runtime</strong>, the process running the code you wrote. PHP-FPM for WordPress or Laravel. A Node process for Express or a server-rendered React or Vue app. Gunicorn or Uvicorn for Django and FastAPI. A JVM for Java. This is the layer people mean when they say "my app." It takes the request, runs your logic, usually hits a database, and builds the response the web server sends back.</p>
+  <p>Here's a failure mode worth naming, one of the most common going. The app hard-codes a port the platform doesn't expect, or binds to <code>localhost</code> instead of <code>0.0.0.0</code>, so the web server can't reach it and every request returns a <code>502</code> or <code>503</code>. The code is fine. The wiring is wrong. The fix is boring: read the port from an environment variable and bind where the platform tells you. Most deploy failures are config, not code.</p>
+
+  <h3>The managed database: where your data lives</h3>
+  <p>Your app needs to remember things. Users, orders, posts, sessions. That's the <strong>database</strong>, the one component you can't rebuild from your code repo if it's lost. On any sane setup it does not sit on the public internet. It lives on a <strong>private network</strong>, a VPC, reachable by your app over an internal address and nothing else. Scanners hammer public database ports constantly, so keeping it off the open web isn't optional.</p>
+  <p>A <strong>managed</strong> database goes further: the platform provisions the engine, patches it, keeps it private, and backs it up, while the schema and the data stay yours. A trap worth flagging: plenty of generated apps ship with SQLite, a single file on the app server's disk. Great in dev, wrong in production, because the next redeploy can wipe that file and every row in it. A real client-server database is the fix. More on walling it off in <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">what a VPC is and why your database belongs in one</a>.</p>
+
+  <h3>Object storage: the files that don't belong in a database</h3>
+  <p>Databases are for structured data, not a 40MB video or a profile photo. Big files go to <strong>object storage</strong>, an S3-compatible bucket that stores blobs and serves them over HTTP. Cheap, scales on its own, and keeps your database lean.</p>
+  <p>One rule saves a lot of pain: don't write uploads to the app server's local disk. Redeploy and it can be wiped. Add a second server and half your traffic can't see what the other half saved. Send them to a bucket from the start and the problem never exists.</p>
+
+  <!-- ADD IMAGE: an object storage bucket listing with a few uploaded files and their public or private access setting. Swap for a real screenshot: src -> images/object-storage-bucket.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>An object storage bucket with uploaded files and their access settings.</em><small>Where user uploads and big assets belong, off the app server's disk.</small></span></figure>
+
+  <h3>Backups: the layer you hope you never open</h3>
+  <p>Everything above can be rebuilt from your code, except your data. <strong>Automatic backups</strong> are the safety net under the whole stack. A server snapshot rolls a broken box back to a known-good state. Database backups save you from a bad migration or a fat-fingered <code>DELETE</code>.</p>
+  <p>The mistake people make is trusting backups they've never restored. A backup you haven't tested is a hope, not a plan. Run one restore into a throwaway environment, confirm the data comes back, and then you know the path works.</p>
+
+  <h2>Where SSL, the CDN, and the edge fit</h2>
+  <p>Three things wrap around the whole path rather than living at a single hop.</p>
+  <p><strong>SSL/TLS</strong> is the padlock in the address bar. It encrypts the connection between visitor and server so nobody in between can read or tamper with it. Modern hosting issues free, auto-renewing certificates, so HTTPS is the default rather than a yearly chore. <strong>A CDN</strong> caches static content in locations around the world and serves each visitor from the nearest one, which cuts latency and origin load. Kloudbean offers Cloudflare Enterprise edge caching as an add-on for exactly this. And in front of all of it, <strong>DDoS protection</strong> absorbs floods of junk traffic before they ever reach your server. Here's <a href="https://www.kloudbean.com/blog/ddos-protection-explained/">how DDoS protection actually works</a> and why the filtering happens at the edge.</p>
+
+  <!-- ADD IMAGE: SSL certificate status showing an active, auto-renewing certificate, or a CDN/edge caching toggle. Swap for a real screenshot: src -> images/ssl-and-edge.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>An SSL certificate status view, or the edge caching toggle, showing HTTPS active and auto-renewing.</em><small>The encryption and edge layer that wraps the whole request path.</small></span></figure>
+
+  <h2>Managed vs unmanaged cloud hosting: who fixes it at 3am?</h2>
+  <p>Two ways to buy a cloud server, and the difference is entirely about who does the operations work.</p>
+  <p><strong>Unmanaged</strong> means a bare Linux box and root access. Everything above the operating system is your job: web server, database, runtime, firewall, SSL renewals, security patches, backups. Total control, and a real time sink. When something breaks at 3am, that pager is yours.</p>
+  <p><strong>Managed cloud hosting</strong> hands that layer to the platform. Server, stack, SSL, patching, and backups handled, so you work on the app instead of on <code>apt upgrade</code>. The honest boundary: managed doesn't mean someone writes your code or owns your data. You own both and can export them anytime. It just means the plumbing is somebody else's problem. Weighing the two? See <a href="https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/">managed vs unmanaged hosting</a>.</p>
+
+  <table class="cmp">
+    <thead><tr><th>&nbsp;</th><th>Unmanaged cloud</th><th>Managed cloud hosting</th></tr></thead>
+    <tbody>
+      <tr><td>Server setup</td><td>You install and configure everything</td><td>Provisioned and configured for you</td></tr>
+      <tr><td>Security patches</td><td>Your responsibility, on your schedule</td><td>Handled by the platform</td></tr>
+      <tr><td>SSL certificates</td><td>Install and renew yourself</td><td>Free, auto-renewing</td></tr>
+      <tr><td>Backups</td><td>You build the whole pipeline</td><td>Automatic, restorable</td></tr>
+      <tr><td>A 3am outage</td><td>Your pager</td><td>Platform handles the infrastructure</td></tr>
+      <tr><td>Your app and data</td><td>Yours</td><td>Still yours</td></tr>
+    </tbody>
+  </table>
+
+  <h2>How cloud hosting scales: vertical, horizontal, and the autoscaling question</h2>
+  <p>Traffic grows. You have two real moves, and one overhyped one.</p>
+  <p><strong>Vertical scaling</strong> is making the server bigger. More CPU, more RAM, a couple of clicks and a reboot. Simplest thing you can do, and almost always the right first step. A single beefier box carries most apps a long way. <strong>Horizontal scaling</strong> is adding servers behind a load balancer, spreading the work across a pool. That's for when one box, however big, isn't enough, or when you want redundancy so one failure can't take you down.</p>
+  <p>Then there's <strong>autoscaling</strong>, which adds and removes servers automatically as load changes. Sounds essential, mostly oversold. Most small and mid-sized apps never need it. A right-sized server plus the option to resize covers years of growth, minus the surprise bills that come from machines spinning up on their own. On Kloudbean, autoscaling and Kubernetes are part of enterprise and custom setups, not a switch a standard account flips. If you think you might need it, read <a href="https://www.kloudbean.com/blog/autoscaling-explained/">autoscaling and whether you actually need it</a> first. The honest default: watch your graphs, resize near the ceiling, add a server when uptime demands it.</p>
+
+  <figure>
+    <img src="../assets/console/server-health.png" alt="Server health metrics in the Kloudbean console showing CPU, RAM, and disk usage over time">
+    <figcaption>Watch CPU, RAM, and disk. When you're regularly bumping the ceiling, that's the signal to resize (vertical) or add a server (horizontal).</figcaption>
+  </figure>
+
+  <h2>Regions and data residency: where your server physically sits</h2>
+  <p>"The cloud" is always somewhere specific. A <strong>region</strong> is a physical data center location, and you pick it when you create the server. Two reasons it matters: latency and the law.</p>
+  <p>First, latency. A server close to your users answers faster, because the request travels less distance. Traffic mostly in Europe? A European region shaves real milliseconds off every round trip. Second, <strong>data residency</strong>. Some rules require personal data to stay inside a country or bloc, so where the bytes live becomes a legal question, not just a performance one. The full picture is in <a href="https://www.kloudbean.com/blog/data-residency-explained/">data residency, explained</a>.</p>
+
+  <!-- ADD IMAGE: a region picker showing available data center locations, with one selected. Swap for a real screenshot: src -> images/region-picker.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A region picker with data center locations, one selected close to the target audience.</em><small>Where your server physically lives, for both speed and data residency.</small></span></figure>
+
+  <h2>Uptime, SLAs, and what "reliable" actually means</h2>
+  <p>Reliability gets sold in nines. 99.9% uptime sounds airtight until you do the math: roughly 43 minutes of downtime a month. 99.99% is about 4. Each extra nine is exponentially harder and more expensive to reach, which is why a vague "high availability" claim earns a raised eyebrow.</p>
+  <p>An <strong>SLA</strong>, a service level agreement, is the provider's written promise about uptime, usually with credits back if they miss it. Read what it actually covers. The foundation underneath matters just as much. Kloudbean runs on tier-1 clouds like AWS, Google Cloud, and DigitalOcean, so the hardware and networking beneath your server already carry serious redundancy. For reading these promises without getting spun, see <a href="https://www.kloudbean.com/blog/cloud-sla-explained/">cloud SLAs, explained</a>.</p>
+
+  <h2>The whole stack, on one dashboard</h2>
+  <p>Here's where it comes together. Every layer we just walked, the server, the load balancer, the managed database, the object storage, SSL, the backups, traditionally means juggling separate products, logins, and bills. That sprawl is where things get dropped.</p>
+  <p>Kloudbean puts the entire stack behind <strong>one dashboard</strong> and one login. Seven clouds to launch on: AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud. Seven managed database engines, from PostgreSQL and MySQL to Redis and MongoDB. Built-in S3-compatible object storage. A Flexible Load Balancer available on every account, off until you flip it on. Free auto-renewing SSL and automatic backups on by default. Run a server, a database, a static site, and a standalone load balancer side by side without leaving the panel. Comparing your options? <a href="https://www.kloudbean.com/blog/best-managed-cloud-hosting/">What makes the best managed cloud hosting</a> lays out what's actually worth looking for.</p>
+
+  <figure>
+    <img src="../assets/console/dashboard.png" alt="The Kloudbean dashboard showing servers, applications, databases, and storage in one place">
+    <figcaption>The whole stack on one screen: servers, apps, managed databases, storage, and more, under a single login.</figcaption>
+  </figure>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">See the whole path from one place.</p>
+    <p style="margin:0 0 .6em">Servers, managed databases, object storage, a built-in load balancer, free SSL, and automatic backups, across 7 clouds and one dashboard. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; compare plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">One dashboard · 7 clouds · Managed databases · Built-in load balancer · Free SSL · Automatic backups · Free migration</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How does cloud hosting work, in simple terms?</h3>
+    <p>Your site runs on a virtual server inside a provider's data center. When a visitor loads it, DNS translates your domain into that server's IP address, the request travels in, your app code runs and reads or writes a database, and the finished page travels back. Cloud hosting just means that server is virtual, so it can be created, resized, and moved in minutes instead of being a physical box you own.</p>
+    <h3>What is a cloud server?</h3>
+    <p>A cloud server is a virtual machine carved out of a larger physical host by a hypervisor. You get a dedicated slice of CPU, memory, and disk that behaves like its own computer, with its own IP address and operating system, usually Linux. Because it's virtual, the provider can spin it up fast, resize it while it runs, and move it to healthy hardware if a physical host fails.</p>
+    <h3>How is cloud hosting different from traditional web hosting?</h3>
+    <p>Traditional web hosting often meant your site shared one physical server with many others, with fixed resources and little room to grow. Cloud hosting runs on virtual servers backed by large fleets of hardware, so you can resize on demand, survive a hardware failure by moving to another host, and pay for what you use. The request path is similar; the flexibility and resilience underneath are the difference.</p>
+    <h3>What is managed cloud hosting?</h3>
+    <p>Managed cloud hosting means the platform handles the operations layer for you: provisioning the server, configuring the stack, applying security patches, issuing and renewing SSL, and running automatic backups. You still own your application code and your data and can export them anytime. Unmanaged hosting gives you a bare server and leaves all of that work to you.</p>
+    <h3>Do I need a load balancer for my site?</h3>
+    <p>Usually not at first. A single well-sized server handles a surprising amount of traffic, and a load balancer adds cost and moving parts. You want one when you outgrow the largest sensible single server, or when you need redundancy so one server failing does not take you offline. Add it when the scale or uptime need is real, not before.</p>
+    <h3>Where is my data actually stored?</h3>
+    <p>In the data center region you choose when you create the server. Structured data lives in your database on a private network, large files live in object storage, and both are covered by automatic backups. The region matters for speed, because closer is faster, and for data residency, because some regulations require personal data to stay inside a specific country or region.</p>
+    <h3>How does scaling work in cloud hosting?</h3>
+    <p>Two ways. Vertical scaling makes the server bigger, more CPU and RAM, which is the simplest first move and covers most apps for a long time. Horizontal scaling adds more servers behind a load balancer to spread the work and add redundancy. Autoscaling, which adds servers automatically, is rarely needed by small or mid-sized apps and on Kloudbean is part of enterprise and custom setups.</p>
+    <h3>How reliable is cloud hosting?</h3>
+    <p>It depends on the design and the foundation. Uptime is measured in nines: 99.9% is about 43 minutes of downtime a month, 99.99% about 4. Running on tier-1 cloud infrastructure gives you hardware and network redundancy underneath, and adding a load balancer with more than one server removes the single point of failure. An SLA is the provider's written uptime commitment, worth reading closely.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Infrastructure · From the DNS lookup to the nightly backup, one dashboard holds the whole chain.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How Cloud Hosting Works: The Life of a Single Request","description":"How cloud hosting works, explained end to end by following one web request through DNS, the load balancer, web server, app runtime, managed database, object storage, and backups.","image":"https://www.kloudbean.com/blog/how-cloud-hosting-works/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/how-cloud-hosting-works/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How does cloud hosting work, in simple terms?","acceptedAnswer":{"@type":"Answer","text":"Your site runs on a virtual server inside a provider's data center. When a visitor loads it, DNS translates your domain into that server's IP address, the request travels in, your app code runs and reads or writes a database, and the finished page travels back. Cloud hosting just means that server is virtual, so it can be created, resized, and moved in minutes instead of being a physical box you own."}},
+{"@type":"Question","name":"What is a cloud server?","acceptedAnswer":{"@type":"Answer","text":"A cloud server is a virtual machine carved out of a larger physical host by a hypervisor. You get a dedicated slice of CPU, memory, and disk that behaves like its own computer, with its own IP address and operating system, usually Linux. Because it's virtual, the provider can spin it up fast, resize it while it runs, and move it to healthy hardware if a physical host fails."}},
+{"@type":"Question","name":"How is cloud hosting different from traditional web hosting?","acceptedAnswer":{"@type":"Answer","text":"Traditional web hosting often meant your site shared one physical server with many others, with fixed resources and little room to grow. Cloud hosting runs on virtual servers backed by large fleets of hardware, so you can resize on demand, survive a hardware failure by moving to another host, and pay for what you use. The request path is similar; the flexibility and resilience underneath are the difference."}},
+{"@type":"Question","name":"What is managed cloud hosting?","acceptedAnswer":{"@type":"Answer","text":"Managed cloud hosting means the platform handles the operations layer for you: provisioning the server, configuring the stack, applying security patches, issuing and renewing SSL, and running automatic backups. You still own your application code and your data and can export them anytime. Unmanaged hosting gives you a bare server and leaves all of that work to you."}},
+{"@type":"Question","name":"Do I need a load balancer for my site?","acceptedAnswer":{"@type":"Answer","text":"Usually not at first. A single well-sized server handles a surprising amount of traffic, and a load balancer adds cost and moving parts. You want one when you outgrow the largest sensible single server, or when you need redundancy so one server failing does not take you offline. Add it when the scale or uptime need is real, not before."}},
+{"@type":"Question","name":"Where is my data actually stored?","acceptedAnswer":{"@type":"Answer","text":"In the data center region you choose when you create the server. Structured data lives in your database on a private network, large files live in object storage, and both are covered by automatic backups. The region matters for speed, because closer is faster, and for data residency, because some regulations require personal data to stay inside a specific country or region."}},
+{"@type":"Question","name":"How does scaling work in cloud hosting?","acceptedAnswer":{"@type":"Answer","text":"Two ways. Vertical scaling makes the server bigger, more CPU and RAM, which is the simplest first move and covers most apps for a long time. Horizontal scaling adds more servers behind a load balancer to spread the work and add redundancy. Autoscaling, which adds servers automatically, is rarely needed by small or mid-sized apps and on Kloudbean is part of enterprise and custom setups."}},
+{"@type":"Question","name":"How reliable is cloud hosting?","acceptedAnswer":{"@type":"Answer","text":"It depends on the design and the foundation. Uptime is measured in nines: 99.9% is about 43 minutes of downtime a month, 99.99% about 4. Running on tier-1 cloud infrastructure gives you hardware and network redundancy underneath, and adding a load balancer with more than one server removes the single point of failure. An SLA is the provider's written uptime commitment, worth reading closely."}}
+]}
+]}
+</script>
+</body>
+</html>

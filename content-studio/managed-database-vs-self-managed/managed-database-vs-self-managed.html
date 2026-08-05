@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Managed Database vs Self-Managed: The One Choice You Can't Undo</title>
+<meta name="description" content="Managed database vs self-managed is a higher-stakes call than most hosting decisions, because lost data doesn't come back. The real failure modes, the full ops burden, and when self-managing still makes sense.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/managed-database-vs-self-managed/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Managed Database vs Self-Managed: The One Choice You Can't Undo">
+<meta property="og:description" content="Why a database is the worst thing to wing, the failure modes we actually see, the full self-managed ops burden, and when running your own is still right.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Databases &amp; storage</span>
+  <h1>Managed Database vs Self-Managed: The One Choice You Can't Undo</h1>
+
+  <figure><img src="images/hero.png" alt="Managed database vs self-managed, weighing the risk of permanent data loss"></figure>
+
+  <p class="lead">A crashed app restarts. A misconfigured server rebuilds. A dropped table at 3am, with no good backup? That one doesn't come back.</p>
+  <p>That asymmetry is the whole reason managed database vs self-managed is a different, higher-stakes decision than picking where to host your app. Most infrastructure choices are reversible. Data loss isn't. So before we compare features, let's be honest about what's actually on the table, because it changes how you should weigh the two.</p>
+
+  <div class="tldr">
+    <strong>Short answer</strong>
+    <p>Self-managed means you install the database on a server and own everything after: configuration, security, patching, version upgrades, backups, tested restores, and recovery when it breaks. Managed means you launch it, get a connection string, and the platform runs backups, access control, and the private network for you. For most teams the deciding factor isn't performance or price. It's that a database is the one place where a mistake can be permanent, and managed removes the scariest ways to lose data.</p>
+  </div>
+
+  <h2>Why a database is the worst thing to run on vibes</h2>
+  <p>I'll say it plainly: a database is the single worst part of your stack to improvise. Not because it's the hardest to install (it isn't, <code>apt install postgresql</code> and you're "done" in a minute), but because the stakes are lopsided. Everything else in your system is replaceable. Lose the web server, rebuild it. Lose the app container, redeploy it. Lose the data, and you might be emailing customers to apologize.</p>
+  <p>That's the trap with self-managing. The install is easy, so it feels solved. The parts that actually protect you (a backup that restores, a patched engine, a disk that doesn't fill) are invisible right up until the night they aren't. And by then it's too late to start caring.</p>
+
+  <h2>The 3am incident, two ways</h2>
+  <p>Here's the same trigger, a disk quietly filling to 100%, playing out on a self-managed box and on a managed one. This is the pattern behind most of the "we lost data" stories, drawn as a timeline.</p>
+
+  <figure>
+    <svg viewBox="0 0 740 430" width="100%" role="img" aria-label="Timeline comparing a database incident on self-managed versus managed hosting. Self-managed: at 2:14am the disk fills, writes fail and the app throws 500s, you get paged and wake up, then discover the backup is old and was never tested, ending in data loss. Managed: a nightly backup ran, the platform handles the disk and restart, you keep sleeping, a restore point is ready, and the database recovers.">
+      <rect x="1" y="1" width="738" height="428" rx="16" fill="#ffffff" stroke="#e6e9f2"/>
+      <text x="370" y="32" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="17" font-weight="700" fill="#000f27">The 3am incident, same trigger, two outcomes</text>
+
+      <!-- SELF-MANAGED lane -->
+      <text x="30" y="66" font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="700" fill="#4F1AF3">SELF-MANAGED &#183; your night</text>
+      <line x1="60" y1="150" x2="600" y2="150" stroke="#e6e9f2" stroke-width="3"/>
+      <line x1="500" y1="150" x2="620" y2="150" stroke="#f0c0c0" stroke-width="3"/>
+      <!-- labels -->
+      <g font-family="Poppins,Arial,sans-serif" font-size="10.5" fill="#1c2536" text-anchor="middle">
+        <text x="110" y="112">2:14am</text><text x="110" y="126">disk full</text>
+        <text x="240" y="112">writes fail</text><text x="240" y="126">app 500s</text>
+        <text x="370" y="112">you're paged</text><text x="370" y="126">wide awake</text>
+        <text x="500" y="112">backup old</text><text x="500" y="126">never tested</text>
+      </g>
+      <circle cx="110" cy="150" r="8" fill="#000f27"/>
+      <circle cx="240" cy="150" r="8" fill="#000f27"/>
+      <circle cx="370" cy="150" r="8" fill="#4F1AF3"/>
+      <circle cx="500" cy="150" r="8" fill="#e08a2b"/>
+      <rect x="620" y="132" width="102" height="36" rx="18" fill="#d64545"/>
+      <text x="671" y="155" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="700" fill="#ffffff">DATA LOST</text>
+
+      <!-- MANAGED lane -->
+      <text x="30" y="256" font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="700" fill="#000f27">MANAGED &#183; platform's night</text>
+      <line x1="60" y1="336" x2="620" y2="336" stroke="#e6e9f2" stroke-width="3"/>
+      <g font-family="Poppins,Arial,sans-serif" font-size="10.5" fill="#1c2536" text-anchor="middle">
+        <text x="110" y="298">nightly</text><text x="110" y="312">backup ran</text>
+        <text x="240" y="298">platform</text><text x="240" y="312">handles disk</text>
+        <text x="370" y="298">you keep</text><text x="370" y="312">sleeping</text>
+        <text x="500" y="298">restore</text><text x="500" y="312">point ready</text>
+      </g>
+      <circle cx="110" cy="336" r="8" fill="#40b75f"/>
+      <circle cx="240" cy="336" r="8" fill="#40b75f"/>
+      <circle cx="370" cy="336" r="8" fill="#40b75f"/>
+      <circle cx="500" cy="336" r="8" fill="#40b75f"/>
+      <rect x="620" y="318" width="102" height="36" rx="18" fill="#40b75f"/>
+      <text x="671" y="341" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="700" fill="#ffffff">RECOVERED</text>
+
+      <text x="370" y="404" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#5b6a86">Same disk-full trigger. The difference is who was watching, and whether a restore actually existed.</text>
+    </svg>
+    <figcaption>The failure mode is rarely exotic. It's a full disk, a stale backup, and nobody awake. Managed hosting removes two of those three.</figcaption>
+  </figure>
+
+  <p>The cruel detail is the backup. Almost everyone who loses data <em>had</em> backups configured. What they didn't have was a backup they'd ever restored. A dump that silently stopped running weeks ago, or one that restores into a different schema, is worse than none, because it feels like safety. That's the single most expensive lesson in self-managing a database, and it usually gets learned once.</p>
+
+  <!-- ADD IMAGE: swap for a real <figure> with an <img> (src -> images/disk-usage.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>A monitoring graph of disk usage climbing toward 100 percent, or a low-disk alert firing overnight.</em><small>Puts a face on the trigger behind most data-loss nights.</small></span></figure>
+
+  <h2>What "self-managed" actually signs you up for</h2>
+  <p>The word "install" hides a job that never really ends. Run your own Postgres or MySQL on a VM and here's the standing to-do list, forever:</p>
+  <ul>
+    <li><strong>Secure it.</strong> Bind it to a private interface, not <code>0.0.0.0</code>. An exposed database is found by scanners in minutes, and there's a whole genre of ransom notes left in unsecured MongoDB instances to prove it.</li>
+    <li><strong>Configure and tune it.</strong> Memory, connection limits, work_mem, checkpoints. The defaults are conservative and rarely right for your box.</li>
+    <li><strong>Patch it.</strong> The OS and the engine both. Security releases don't wait for a convenient week.</li>
+    <li><strong>Upgrade major versions.</strong> The genuinely scary one. A botched <code>pg_upgrade</code> can corrupt data, so you rehearse it, or you gamble.</li>
+    <li><strong>Back it up, then <em>prove</em> the restore.</strong> Scheduling a dump is easy. Confirming it restores cleanly, on a timer, is the part almost nobody does.</li>
+    <li><strong>Watch the disk, the connections, the slow queries.</strong> Because the full disk at 2:14am doesn't announce itself.</li>
+    <li><strong>Plan recovery.</strong> Point-in-time recovery, replication, failover. Real projects, not checkboxes.</li>
+  </ul>
+  <p>None of it is beyond a competent engineer. That's not the point. The point is that it's a recurring, high-consequence job that sits next to your actual work, and it only truly tests you on the worst night. When you self-manage, you also own the server underneath the database, with all of that.</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="The Kloudbean console showing a server, which a self-run database would sit on and depend on">
+    <figcaption>Self-run means you also own the box beneath the database: its disk, its patches, its 2am health.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: swap for a real <figure> with an <img> (src -> images/restore-test.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>A restore in progress, or a backups screen showing recent restore points with timestamps.</em><small>Reinforces the article's core point: an untested backup is not a backup.</small></span></figure>
+
+  <h2>What "managed" hands you instead</h2>
+  <p>Managed collapses that list to almost nothing. On Kloudbean you open the databases section, pick an engine, and launch. A minute or two later it's provisioned, secured, sitting on a private network, and already being backed up. You get a connection string and you move on with building.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed database with a choice of six engines">
+    <figcaption>Launch a managed database: PostgreSQL, MySQL, MariaDB, Redis, Elasticsearch, or MongoDB. Provisioned, secured, backed up.</figcaption>
+  </figure>
+
+  <p>Six engines are on offer (PostgreSQL, MySQL, MariaDB, Redis, Elasticsearch, and MongoDB), each as a standalone one-click service with automatic backups, controlled access, and a private network so it never sits out on the public internet. That's the trade: you keep the parts that need your judgment, and hand off the parts that just need doing on time, every time, without fail. If you want the hands-on version of wiring one into an app, that's <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">add a managed database to your app</a>, with engine-specific guides for <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a> and <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">managed MySQL</a>.</p>
+
+  <h2>The ops burden, side by side</h2>
+  <p>Same database engine in both columns. What changes is who carries each job, and how bad it is when it's skipped.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Database job</th><th>Self-managed (you)</th><th>Managed (the service)</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Install + secure</strong></td><td>You, and you'd better not leave it exposed</td><td>Provisioned on a private network</td></tr>
+      <tr><td><strong>Config + tuning</strong></td><td>You, from conservative defaults</td><td>Sensible defaults out of the box</td></tr>
+      <tr><td><strong>OS + engine patching</strong></td><td>You, on the security cycle</td><td>Handled for you</td></tr>
+      <tr><td><strong>Major version upgrades</strong></td><td>You rehearse it, or you gamble</td><td>A managed operation, not your gamble</td></tr>
+      <tr><td><strong>Backups</strong></td><td>You schedule them</td><td>Automatic</td></tr>
+      <tr><td><strong>Tested restores</strong></td><td>You, and most people don't</td><td>Restore points you can actually use</td></tr>
+      <tr><td><strong>Monitoring</strong></td><td>Disk, connections, slow queries: you</td><td>Watched for you</td></tr>
+      <tr><td><strong>Schema, indexes, queries</strong></td><td>Yours</td><td>Still yours</td></tr>
+      <tr><td><strong>Your data</strong></td><td>Yours</td><td>Still yours, exportable anytime</td></tr>
+    </tbody>
+  </table>
+  <p>Look at the last two rows. This is the part people fear losing when they hear "managed," and it's exactly the part you keep. You control the schema, the indexes, and the queries, which is where nearly all real database performance is won or lost anyway. You give up the chores, not the craft.</p>
+
+  <h2>But is my data trapped? The portability question</h2>
+  <p>The most common fear about managed databases is lock-in, and it's the easiest to put to rest. A managed PostgreSQL or MySQL is the same open-source engine you'd run yourself. Same SQL, same dump formats, same tools. Your data isn't in a proprietary vault, it's in ordinary Postgres or MySQL, and it walks out the door with one command:</p>
+  <pre><code># PostgreSQL: full logical dump, then restore anywhere
+pg_dump "$DATABASE_URL" &gt; backup.sql
+psql "$NEW_DATABASE_URL" &lt; backup.sql
+
+# MySQL / MariaDB
+mysqldump -h HOST -u USER -p appdb &gt; backup.sql
+mysql -h NEWHOST -u USER -p appdb &lt; backup.sql</code></pre>
+  <p>There's no lock-in because there's nothing proprietary to be locked into. The service manages the operation of the database, never ownership of the contents. And that <code>psql ... &lt; backup.sql</code> line is also the restore you should be rehearsing on a self-managed box, but usually aren't.</p>
+
+  <h2>Scaling, without hand-building it</h2>
+  <p>People assume managed databases hit a ceiling. In practice, scaling is a reason to use one. The simplest lever is vertical: resize to a bigger server when CPU or memory gets tight. Beyond that, the usual patterns still apply. Read replicas are the standard next step for read-heavy workloads (the concepts are in <a href="https://www.kloudbean.com/blog/database-read-replicas-scaling/">database read replicas and scaling</a>), and putting a <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis</a> cache in front of your hottest reads takes real pressure off the primary. The difference is that you're reasoning about your data and your queries, not also hand-building the machinery underneath. Backups, in particular, are one thing you shouldn't be improvising, and the <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a> covers testing a restore before you need it.</p>
+
+  <h2>When self-managing is genuinely the right call</h2>
+  <p>Myth-busting shouldn't turn into pretending self-managed is never right. It is, in real cases, and I'd pick it myself in a couple of them.</p>
+  <p>Run your own when you're <strong>learning</strong>, and getting your hands dirty is the entire goal. Run your own for a <strong>hobby or throwaway</strong> project where a wipe costs you nothing and the effort is trivial. Run your own when you have a <strong>dedicated DBA or platform team</strong> whose actual job is this, and you need control a managed service won't give: an exotic extension, a custom replication topology, a very specific tuning profile. Those are legitimate, and nobody should be shamed off a setup that fits. What doesn't hold up is self-managing your production data by accident, because the install was easy, without a rehearsed restore. That's not a choice, it's a bet you didn't know you placed.</p>
+
+  <p>The boundary, stated once: these are standard open-source engines on a Linux stack. Managed means the service runs, patches, and backs up the database and keeps it on a private network, while your schema, your queries, and your data stay entirely yours and exportable any day. Managed databases take the toil, not the ownership. For the data your business depends on, that's the trade worth making.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Launch it. Get a connection string. Stop worrying about the backup.</p>
+    <p style="margin:0 0 .6em">Run a managed database that stays yours, secured on a private network and backed up automatically, on the cloud you choose. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, or see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">6 managed engines &middot; Automatic backups &middot; Private networking &middot; Controlled access &middot; Free migration help &middot; Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What's the difference between a managed database and a self-managed one?</h3>
+    <p>Self-managed means you install the database on a server and own everything after: security, configuration, tuning, patching, version upgrades, backups, tested restores, and recovery. Managed means the service provisions it, keeps it on a private network, and runs the backups and access control, so you get a connection string and keep control of your schema, queries, and data.</p>
+
+    <h3>Is a managed database worth it, or should I just run my own?</h3>
+    <p>If it's production data your business depends on, managed is usually worth it, because it removes the failure modes that cause permanent data loss: the missed patch, the full disk, and above all the backup that was never tested. Run your own when you're learning, it's throwaway, or you have a dedicated team that needs deep control.</p>
+
+    <h3>Does a managed database lock in my data?</h3>
+    <p>No. Managed MySQL and PostgreSQL are the standard open-source engines, so your data is in ordinary, portable formats. You can export the whole database with a normal mysqldump or pg_dump and load it anywhere. The service manages operation, not ownership. There's nothing proprietary to be trapped in.</p>
+
+    <h3>Are managed databases slower than self-hosted ones?</h3>
+    <p>Usually not, and often the reverse. Managed databases arrive with sensible defaults on real infrastructure, while self-run instances frequently sit on untuned settings nobody adjusted. It's the same engine underneath, so unless you'll invest real DBA time tuning your own, the managed one tends to be as fast or faster.</p>
+
+    <h3>Do I lose control with a managed database?</h3>
+    <p>You keep the control that matters: your schema, indexes, and queries, which drive most real performance. What you give up is the operating system and the maintenance chores, which is the intended benefit. You lose sysadmin duties, not database design.</p>
+
+    <h3>What happens if I never test my backups?</h3>
+    <p>You find out whether they work at the worst possible moment. An untested backup can be silently broken: stopped running weeks ago, or restoring into the wrong schema. That's the most common way self-managed databases lose data despite "having backups." Managed services keep usable restore points, and you should still confirm a restore before you rely on it.</p>
+
+    <h3>Which databases can I run as managed?</h3>
+    <p>On Kloudbean, six engines are available as one-click managed services: PostgreSQL, MySQL, MariaDB, Redis, Elasticsearch, and MongoDB. Each comes with automatic backups, controlled access, and a private network by default, so it isn't exposed to the public internet.</p>
+
+    <h3>Can a managed database scale for a large app?</h3>
+    <p>Yes. The simplest move is resizing to a bigger server as CPU or memory gets tight. For read-heavy workloads, read replicas are the standard pattern, and caching hot reads in a managed Redis takes pressure off the primary. You reason about your data and queries instead of hand-building the machinery.</p>
+
+    <h3>How do I migrate an existing database to a managed one?</h3>
+    <p>Export with pg_dump or mysqldump, import into the new managed database with psql or mysql, then repoint your connection string and redeploy. Because these are standard engines, the move is a plain export and import. Kloudbean also offers free migration assistance if you'd rather not run it yourself.</p>
+
+    <h3>Can I connect with my usual database client or GUI?</h3>
+    <p>Yes. It's a standard engine, so any normal client or GUI connects with the usual connection string. For admin access from your own machine you tunnel in through the server rather than exposing the database to the public internet, which keeps it on the private network where it belongs.</p>
+  </div>
+
+  <p class="byline">Kloudbean &middot; Never wing the database.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Managed Database vs Self-Managed: The One Choice You Can't Undo","description":"Why a database is the worst thing to wing, the failure modes we actually see, the full self-managed ops burden, and when running your own is still right.","image":"https://www.kloudbean.com/blog/managed-database-vs-self-managed/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/managed-database-vs-self-managed/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What's the difference between a managed database and a self-managed one?","acceptedAnswer":{"@type":"Answer","text":"Self-managed means you install the database on a server and own everything after: security, configuration, tuning, patching, version upgrades, backups, tested restores, and recovery. Managed means the service provisions it, keeps it on a private network, and runs the backups and access control, so you get a connection string and keep control of your schema, queries, and data."}},
+{"@type":"Question","name":"Is a managed database worth it, or should I just run my own?","acceptedAnswer":{"@type":"Answer","text":"If it is production data your business depends on, managed is usually worth it, because it removes the failure modes that cause permanent data loss: the missed patch, the full disk, and above all the backup that was never tested. Run your own when you are learning, it is throwaway, or you have a dedicated team that needs deep control."}},
+{"@type":"Question","name":"Does a managed database lock in my data?","acceptedAnswer":{"@type":"Answer","text":"No. Managed MySQL and PostgreSQL are the standard open-source engines, so your data is in ordinary, portable formats. You can export the whole database with a normal mysqldump or pg_dump and load it anywhere. The service manages operation, not ownership. There is nothing proprietary to be trapped in."}},
+{"@type":"Question","name":"Are managed databases slower than self-hosted ones?","acceptedAnswer":{"@type":"Answer","text":"Usually not, and often the reverse. Managed databases arrive with sensible defaults on real infrastructure, while self-run instances frequently sit on untuned settings nobody adjusted. It is the same engine underneath, so unless you will invest real DBA time tuning your own, the managed one tends to be as fast or faster."}},
+{"@type":"Question","name":"Do I lose control with a managed database?","acceptedAnswer":{"@type":"Answer","text":"You keep the control that matters: your schema, indexes, and queries, which drive most real performance. What you give up is the operating system and the maintenance chores, which is the intended benefit. You lose sysadmin duties, not database design."}},
+{"@type":"Question","name":"What happens if I never test my backups?","acceptedAnswer":{"@type":"Answer","text":"You find out whether they work at the worst possible moment. An untested backup can be silently broken: stopped running weeks ago, or restoring into the wrong schema. That is the most common way self-managed databases lose data despite having backups. Managed services keep usable restore points, and you should still confirm a restore before you rely on it."}},
+{"@type":"Question","name":"Which databases can I run as managed?","acceptedAnswer":{"@type":"Answer","text":"On Kloudbean, six engines are available as one-click managed services: PostgreSQL, MySQL, MariaDB, Redis, Elasticsearch, and MongoDB. Each comes with automatic backups, controlled access, and a private network by default, so it isn't exposed to the public internet."}},
+{"@type":"Question","name":"Can a managed database scale for a large app?","acceptedAnswer":{"@type":"Answer","text":"Yes. The simplest move is resizing to a bigger server as CPU or memory gets tight. For read-heavy workloads, read replicas are the standard pattern, and caching hot reads in a managed Redis takes pressure off the primary. You reason about your data and queries instead of hand-building the machinery."}},
+{"@type":"Question","name":"How do I migrate an existing database to a managed one?","acceptedAnswer":{"@type":"Answer","text":"Export with pg_dump or mysqldump, import into the new managed database with psql or mysql, then repoint your connection string and redeploy. Because these are standard engines, the move is a plain export and import. Kloudbean also offers free migration assistance if you'd rather not run it yourself."}},
+{"@type":"Question","name":"Can I connect with my usual database client or GUI?","acceptedAnswer":{"@type":"Answer","text":"Yes. It's a standard engine, so any normal client or GUI connects with the usual connection string. For admin access from your own machine you tunnel in through the server rather than exposing the database to the public internet, which keeps it on the private network where it belongs."}}
+]}
+]}
+</script>
+</body>
+</html>

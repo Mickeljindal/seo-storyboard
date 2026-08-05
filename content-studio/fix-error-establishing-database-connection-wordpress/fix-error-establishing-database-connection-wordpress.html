@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Error Establishing a Database Connection in WordPress: A Fix-It Decision Tree</title>
+<meta name="description" content="The blank page that says error establishing a database connection means WordPress can't reach its database. Here is the decision tree: check credentials, host, connection limits, then corruption, with the exact fix for each.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/fix-error-establishing-database-connection-wordpress/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Error Establishing a Database Connection in WordPress: A Fix-It Decision Tree">
+<meta property="og:description" content="What the WordPress database connection error means, the four causes in order of likelihood, and the exact fix for each.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">WordPress &amp; frontend</span>
+  <h1>Error Establishing a Database Connection in WordPress: A Fix-It Decision Tree</h1>
+
+  <figure><img src="images/hero.png" alt="Fixing the WordPress error establishing a database connection message"></figure>
+
+  <p class="lead">Your site is a blank white page with one sentence on it: <em>Error establishing a database connection.</em> No menu, no posts, no admin login. Just that line. It looks like everything is broken. It almost never is.</p>
+  <p>That message means one specific thing. WordPress itself ran fine, but it couldn't reach the database where all your content lives. The PHP worked. Your files are there. The database just didn't answer. And that's good news, because it shrinks the whole problem to a short list of causes you can walk in order. So let's walk it, calmly, from the most likely fix to the least.</p>
+
+  <div class="tldr">
+    <strong>Fastest triage</strong>
+    <p>Nine times out of ten it's wrong credentials in <code>wp-config.php</code>. Open that file and check <code>DB_NAME</code>, <code>DB_USER</code>, <code>DB_PASSWORD</code>, and <code>DB_HOST</code> against your real database. If the site only flickers the error under traffic, the database is hitting its connection limit. If the message names a specific table, it's corruption: run the built-in repair, or restore a backup.</p>
+  </div>
+
+  <h2>What "error establishing a database connection" actually means</h2>
+  <p>WordPress keeps everything in a database, MySQL or MariaDB: your posts, pages, users, settings, plugin options, all of it. On every single page load it opens a connection to that database, asks for what it needs, and builds the page. This error means that connection failed. WordPress reached out and got nothing usable back.</p>
+  <p>Notice what it does not mean. It's usually not your theme, not a plugin, not a broken file. PHP is clearly running, or you'd see a different error (or a truly blank page). So you only have one question to answer: why can't WordPress reach its database? There are four common answers, and this tree walks them in the order they actually happen.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 600" width="100%" role="img" aria-labelledby="dbtreetitle dbtreedesc" xmlns="http://www.w3.org/2000/svg">
+      <title id="dbtreetitle">A decision tree for the WordPress database connection error</title>
+      <desc id="dbtreedesc">Start at the error. Ask if the database is reachable, then if the credentials match, then if it is out of connections, then if it is corrupted. Each no or yes leads to a specific fix.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+          <polygon points="0,0 9,4.5 0,9" fill="#4F1AF3"></polygon>
+        </marker>
+      </defs>
+      <rect x="0" y="0" width="720" height="600" fill="#ffffff"></rect>
+
+      <!-- start -->
+      <rect x="120" y="16" width="300" height="46" rx="10" fill="#000f27"></rect>
+      <text x="270" y="44" font-family="Poppins,Arial,sans-serif" font-size="14" font-weight="600" fill="#ffffff" text-anchor="middle">"Database connection" error</text>
+
+      <!-- spine arrows -->
+      <g stroke="#4F1AF3" stroke-width="2.5" fill="none">
+        <line x1="270" y1="62" x2="270" y2="88" marker-end="url(#arrow)"></line>
+        <line x1="270" y1="172" x2="270" y2="210" marker-end="url(#arrow)"></line>
+        <line x1="270" y1="292" x2="270" y2="330" marker-end="url(#arrow)"></line>
+        <line x1="270" y1="412" x2="270" y2="450" marker-end="url(#arrow)"></line>
+        <!-- branch-out arrows -->
+        <line x1="365" y1="130" x2="428" y2="130" marker-end="url(#arrow)"></line>
+        <line x1="365" y1="250" x2="428" y2="250" marker-end="url(#arrow)"></line>
+        <line x1="365" y1="370" x2="428" y2="370" marker-end="url(#arrow)"></line>
+        <line x1="365" y1="490" x2="428" y2="490" marker-end="url(#arrow)"></line>
+      </g>
+
+      <!-- diamonds -->
+      <g font-family="Poppins,Arial,sans-serif" font-size="13" fill="#000f27" text-anchor="middle">
+        <polygon points="270,90 365,130 270,170 175,130" fill="#eef1f8" stroke="#000f27" stroke-width="2"></polygon>
+        <text x="270" y="128" font-weight="600">DB reachable?</text>
+        <text x="270" y="145" font-size="11" fill="#5b6a86">host up, port open</text>
+
+        <polygon points="270,210 365,250 270,290 175,250" fill="#eef1f8" stroke="#000f27" stroke-width="2"></polygon>
+        <text x="270" y="248" font-weight="600">Credentials match?</text>
+        <text x="270" y="265" font-size="11" fill="#5b6a86">wp-config.php</text>
+
+        <polygon points="270,330 365,370 270,410 175,370" fill="#eef1f8" stroke="#000f27" stroke-width="2"></polygon>
+        <text x="270" y="368" font-weight="600">Too many conns?</text>
+        <text x="270" y="385" font-size="11" fill="#5b6a86">worse under load</text>
+
+        <polygon points="270,450 365,490 270,530 175,490" fill="#eef1f8" stroke="#000f27" stroke-width="2"></polygon>
+        <text x="270" y="488" font-weight="600">Corrupted?</text>
+        <text x="270" y="505" font-size="11" fill="#5b6a86">names a table</text>
+      </g>
+
+      <!-- yes/no labels on spine -->
+      <g font-family="Poppins,Arial,sans-serif" font-size="11" fill="#4F1AF3">
+        <text x="280" y="196">yes</text>
+        <text x="280" y="316">yes</text>
+        <text x="280" y="436">no</text>
+        <text x="388" y="122">no</text>
+        <text x="388" y="242">no</text>
+        <text x="388" y="362">yes</text>
+        <text x="388" y="482">yes</text>
+      </g>
+
+      <!-- leaves -->
+      <g font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#08240f" text-anchor="middle">
+        <rect x="430" y="108" width="278" height="44" rx="10" fill="#40b75f"></rect>
+        <text x="569" y="135" font-weight="600">Fix DB_HOST or start the DB</text>
+
+        <rect x="430" y="228" width="278" height="44" rx="10" fill="#40b75f"></rect>
+        <text x="569" y="255" font-weight="600">Fix the wp-config.php credentials</text>
+
+        <rect x="430" y="348" width="278" height="44" rx="10" fill="#40b75f"></rect>
+        <text x="569" y="375" font-weight="600">Resize or use a managed DB</text>
+
+        <rect x="430" y="468" width="278" height="44" rx="10" fill="#40b75f"></rect>
+        <text x="569" y="495" font-weight="600">Repair, or restore a backup</text>
+      </g>
+    </svg>
+    <figcaption>Follow the tree. Reachable, then credentials, then connection limits, then corruption. Most sites stop at the second box.</figcaption>
+  </figure>
+
+  <h2>Cause 1: Wrong credentials in wp-config.php</h2>
+  <p>This is the culprit the overwhelming majority of the time. WordPress reads four values from a file called <code>wp-config.php</code> to connect to its database. If any one of them is wrong, the connection fails and you get the error. Here's the block you're looking for:</p>
+  <pre><code>define( 'DB_NAME', 'wordpress_db' );
+define( 'DB_USER', 'wp_user' );
+define( 'DB_PASSWORD', 'your-real-password' );
+define( 'DB_HOST', 'localhost' );</code></pre>
+  <p>Open <code>wp-config.php</code> in the root of your WordPress install and confirm all four match your actual database exactly. A single wrong character does it. This cause shoots to the top of the list if the error appeared right after you migrated the site, switched hosts, reset the database password, or edited that file. A credential quietly drifting out of sync is the number-one trigger there is. If you recently moved the site, the <a href="https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/">zero-downtime migration guide</a> covers keeping these in step.</p>
+
+  <!-- Add image here. To use your own screenshot, replace this block with a real figure and set src -> images/wp-config-credentials.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The wp-config.php file open in an editor with the four DB_ lines highlighted.</em><small>The exact block to check first.</small></span></figure>
+
+  <h2>Cause 2: The wrong DB_HOST, or a database it can't reach</h2>
+  <p>Often the one wrong value is <code>DB_HOST</code> specifically. Plenty of setups use <code>localhost</code>, where the database sits on the same box as the web server. But managed and cloud setups frequently put the database on its own host, so <code>DB_HOST</code> needs to be a private address or hostname like <code>10.0.0.5:3306</code>, not <code>localhost</code>. Point it at the wrong place and WordPress knocks on a door where nothing answers.</p>
+  <p>Don't guess whether the database is reachable. Test it with the same credentials WordPress is using:</p>
+  <pre><code># ask WordPress itself whether the database checks out
+wp db check
+
+# or test the raw connection directly
+mysql -h 10.0.0.5 -u wp_user -p wordpress_db -e "SELECT 1;"</code></pre>
+  <p>If that connects, your host and credentials are fine and the problem is elsewhere. If it hangs or refuses, the database is either down, or it's up but not reachable at the address you gave it (wrong host, blocked port, or not on the same private network as your app). WP-CLI is the fastest tool for this kind of poke; the <a href="https://www.kloudbean.com/blog/wordpress-cli-guide/">WP-CLI guide</a> has more of these.</p>
+
+  <!-- Add image here. To use your own screenshot, replace this block with a real figure and set src -> images/db-connection-test.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal running wp db check and a mysql SELECT 1 test, both returning success.</em><small>Proves the host and credentials before you look further.</small></span></figure>
+
+  <h2>Cause 3: The database is down or out of connections</h2>
+  <p>Credentials are right, host is right, but the site still throws the error, especially under traffic? Now you're looking at capacity. A database allows only so many simultaneous connections. When a rush of visitors each needs one, you can exhaust the limit, and new page loads get turned away with this exact error. The tell is that it comes and goes: the site works, flashes the error under load, then works again. In the logs you'll often see the MySQL side of it:</p>
+  <pre><code>ERROR 1040 (HY000): Too many connections</code></pre>
+  <p>You can confirm how close you are to the ceiling:</p>
+  <pre><code>SHOW VARIABLES LIKE 'max_connections';
+SHOW STATUS LIKE 'Threads_connected';</code></pre>
+  <p>The other version of this is a database that has simply stopped, crashed, run out of memory, or filled its disk, so it isn't accepting connections at all. Either way the answer isn't to keep refreshing and hoping. It's more capacity: a bigger database, or one that runs as its own managed service instead of scrapping for RAM on the same box as your web server.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed database kept running and sized so WordPress can always connect">
+    <figcaption>A managed database has its own capacity and stays up under load. It removes most of the "down or overwhelmed" versions of this error.</figcaption>
+  </figure>
+
+  <p>This is the honest argument for a <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">managed MySQL database</a>. When the database isn't fighting your PHP for memory and is sized and kept running on its own, the "overwhelmed" and "down" causes largely stop happening. A lot of these incidents just quietly disappear.</p>
+
+  <h2>Cause 4: A corrupted database</h2>
+  <p>Least common, but real. After an unclean shutdown, a disk problem, or a botched update, a database table can get corrupted. WordPress connects, but the data it reads back is damaged, so it reports the connection error, and here it will sometimes name a specific table. WordPress ships a repair tool for exactly this. Turn it on by adding one line to <code>wp-config.php</code>:</p>
+  <pre><code>define( 'WP_ALLOW_REPAIR', true );</code></pre>
+  <p>Then visit <code>https://yoursite.com/wp-admin/maint/repair.php</code> and run the repair. This part matters: <strong>delete that line as soon as you're done</strong>, because the repair page has no password and leaving it enabled is a real security hole. If repair fixes it, you're back. If it doesn't, stop fiddling and restore from a recent backup. Corruption is precisely the moment a good backup earns its keep, which is why the <a href="https://www.kloudbean.com/blog/server-backups-guide/">backups guide</a> is worth reading before you need it, not after.</p>
+
+  <!-- Add image here. To use your own screenshot, replace this block with a real figure and set src -> images/wp-repair-page.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The WordPress database repair page at /wp-admin/maint/repair.php with the repair buttons.</em><small>Enable it, run it, then remove the line.</small></span></figure>
+
+  <h2>Read the symptom, skip the guessing</h2>
+  <p>You don't have to try everything. The symptom usually points straight at the cause:</p>
+  <ul>
+    <li><strong>It started right after a change</strong> (migration, host switch, password reset, an edit to <code>wp-config.php</code>). That's credentials or host. Causes 1 and 2. Start there.</li>
+    <li><strong>It's intermittent and worse under traffic.</strong> The database is running out of connections. Cause 3. You need capacity, not a config edit.</li>
+    <li><strong>It followed a crash or bad update and mentions a table.</strong> Corruption. Cause 4. Repair, then restore if repair fails.</li>
+    <li><strong>The admin at <code>/wp-admin</code> also can't connect,</strong> sometimes with a slightly different message hinting at a table. That's a lean toward corruption too.</li>
+  </ul>
+  <p>A mistake we see often: someone whose site went down right after a migration spends an hour restarting services and resizing servers, when a single mistyped <code>DB_PASSWORD</code> in <code>wp-config.php</code> was the whole story. Match the symptom to the cause first. It saves the hour.</p>
+
+  <h2>Why this mostly stops happening on managed hosting</h2>
+  <p>Once you've fixed it, the goal is to not see it again. A few of these causes basically evaporate on managed hosting, and it's worth being clear about which. When your database runs as a <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">managed service on a private network</a>, the credentials are set once and don't drift, the database sits at a known private host reachable by your site, it's sized and monitored so it doesn't fall over under a spike, and it's backed up so corruption is a quick restore instead of a bad day. That takes Causes 2, 3, and much of 4 largely off the table.</p>
+  <p>Under the hood this is ordinary managed Linux hosting. The platform keeps the database service, the stack, SSL, and backups healthy, and you still own your content and your schema to export whenever you want. Managed hosting can't stop you mistyping a password during a migration. But it removes the infrastructure triggers, which are most of them, and it makes the restore fast when you do need one.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">A database that stays up under load.</p>
+    <p style="margin:0 0 .7em">Run WordPress on a managed database that's sized, monitored, and backed up, so most of these errors never start, and a restore is quick when one does. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; color:#c9b8ff">Managed MySQL &amp; MariaDB · Private network · Automatic backups · Free migration · Free SSL</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What causes "error establishing a database connection" in WordPress?</h3>
+    <p>WordPress couldn't reach its database. The usual causes, in order: wrong credentials in wp-config.php (most common, especially after a migration or password change), the wrong DB_HOST or a database it can't reach, the database being down or out of connections under load, and a corrupted database. The message tells you the connection failed, not that your files or theme are broken.</p>
+    <h3>How do I fix the WordPress database connection error?</h3>
+    <p>Start with the credentials in wp-config.php: check DB_NAME, DB_USER, DB_PASSWORD, and DB_HOST against your real database, since a mismatch is the top cause. If those are right, test whether the database is reachable and not out of connections. If it followed a crash and names a table, run WordPress's built-in repair, and restore from a backup if repair doesn't fix it.</p>
+    <h3>Where is wp-config.php and what do I check in it?</h3>
+    <p>It's in the root folder of your WordPress install, alongside wp-content and wp-admin. Check the four define lines for DB_NAME, DB_USER, DB_PASSWORD, and DB_HOST, and make sure each exactly matches your actual database. A single wrong character in the password or a stale host value is enough to throw the error.</p>
+    <h3>Why does the error come and go?</h3>
+    <p>Intermittent errors that get worse under traffic almost always mean the database is hitting its connection limit. A spike of visitors exhausts the available connections and new requests get refused, then things recover when the rush passes. That's a capacity signal: the database needs more resources or its own managed service, not a credentials change.</p>
+    <h3>What does "Too many connections" mean?</h3>
+    <p>It's the MySQL error (ERROR 1040) behind many intermittent versions of this problem. The database has a max_connections limit, and once every slot is in use, new connections are rejected, which WordPress shows as the database connection error. You fix it with more capacity or connection reuse, not by refreshing until it clears.</p>
+    <h3>How do I repair a corrupted WordPress database?</h3>
+    <p>Add define( 'WP_ALLOW_REPAIR', true ); to wp-config.php, visit yoursite.com/wp-admin/maint/repair.php, and run the repair. Then remove that line straight away, because the repair page is unauthenticated and a security risk if left on. If repair doesn't resolve it, restoring from a recent backup is the reliable fix.</p>
+    <h3>What should DB_HOST be set to?</h3>
+    <p>It depends on where your database lives. If the database is on the same server as WordPress, localhost is usually correct. If it runs on its own managed instance, DB_HOST needs to be the private host or address your provider gives you, sometimes with a port like 10.0.0.5:3306. The right value always comes from your host or database service.</p>
+    <h3>Can I still get into wp-admin when this happens?</h3>
+    <p>Usually not, because the admin needs the same database connection to load. Sometimes the login screen shows a slightly different message that hints at corruption specifically. If neither the front end nor the admin can connect, work the tree from the top: reachability and credentials first, then capacity, then corruption.</p>
+    <h3>Can managed hosting prevent this error?</h3>
+    <p>It prevents most versions of it. A managed database is sized, monitored, kept running, and backed up on its own private network, so the "down," "overwhelmed," and "unreachable" causes largely disappear, and corruption becomes a quick restore. It can't stop a credential you type wrong during a migration, but that's the one cause left, and it's a one-line fix.</p>
+    <h3>Will I lose data, and how do backups help?</h3>
+    <p>A connection error by itself doesn't delete anything. Your data is still in the database; WordPress just can't reach it right now. The risk is real corruption, which is exactly what backups guard against. With recent, tested backups, even a genuinely damaged database is a restore away rather than a loss, which is why automatic backups matter here.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Loud error, short list of suspects.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Error Establishing a Database Connection in WordPress: A Fix-It Decision Tree","description":"What the WordPress database connection error means, the four causes in order of likelihood, and the exact fix for each.","image":"https://www.kloudbean.com/blog/fix-error-establishing-database-connection-wordpress/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/fix-error-establishing-database-connection-wordpress/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What causes error establishing a database connection in WordPress?","acceptedAnswer":{"@type":"Answer","text":"WordPress couldn't reach its database. The usual causes, in order: wrong credentials in wp-config.php (most common, especially after a migration or password change), the wrong DB_HOST or a database it can't reach, the database being down or out of connections under load, and a corrupted database. The message tells you the connection failed, not that your files or theme are broken."}},
+{"@type":"Question","name":"How do I fix the WordPress database connection error?","acceptedAnswer":{"@type":"Answer","text":"Start with the credentials in wp-config.php: check DB_NAME, DB_USER, DB_PASSWORD, and DB_HOST against your real database, since a mismatch is the top cause. If those are right, test whether the database is reachable and not out of connections. If it followed a crash and names a table, run WordPress's built-in repair, and restore from a backup if repair doesn't fix it."}},
+{"@type":"Question","name":"Where is wp-config.php and what do I check in it?","acceptedAnswer":{"@type":"Answer","text":"It's in the root folder of your WordPress install, alongside wp-content and wp-admin. Check the four define lines for DB_NAME, DB_USER, DB_PASSWORD, and DB_HOST, and make sure each exactly matches your actual database. A single wrong character in the password or a stale host value is enough to throw the error."}},
+{"@type":"Question","name":"Why does the error come and go?","acceptedAnswer":{"@type":"Answer","text":"Intermittent errors that get worse under traffic almost always mean the database is hitting its connection limit. A spike of visitors exhausts the available connections and new requests get refused, then things recover when the rush passes. That's a capacity signal: the database needs more resources or its own managed service, not a credentials change."}},
+{"@type":"Question","name":"What does Too many connections mean?","acceptedAnswer":{"@type":"Answer","text":"It's the MySQL error (ERROR 1040) behind many intermittent versions of this problem. The database has a max_connections limit, and once every slot is in use, new connections are rejected, which WordPress shows as the database connection error. You fix it with more capacity or connection reuse, not by refreshing until it clears."}},
+{"@type":"Question","name":"How do I repair a corrupted WordPress database?","acceptedAnswer":{"@type":"Answer","text":"Add define( 'WP_ALLOW_REPAIR', true ); to wp-config.php, visit yoursite.com/wp-admin/maint/repair.php, and run the repair. Then remove that line straight away, because the repair page is unauthenticated and a security risk if left on. If repair doesn't resolve it, restoring from a recent backup is the reliable fix."}},
+{"@type":"Question","name":"What should DB_HOST be set to?","acceptedAnswer":{"@type":"Answer","text":"It depends on where your database lives. If the database is on the same server as WordPress, localhost is usually correct. If it runs on its own managed instance, DB_HOST needs to be the private host or address your provider gives you, sometimes with a port like 10.0.0.5:3306. The right value always comes from your host or database service."}},
+{"@type":"Question","name":"Can I still get into wp-admin when this happens?","acceptedAnswer":{"@type":"Answer","text":"Usually not, because the admin needs the same database connection to load. Sometimes the login screen shows a slightly different message that hints at corruption specifically. If neither the front end nor the admin can connect, work the tree from the top: reachability and credentials first, then capacity, then corruption."}},
+{"@type":"Question","name":"Can managed hosting prevent this error?","acceptedAnswer":{"@type":"Answer","text":"It prevents most versions of it. A managed database is sized, monitored, kept running, and backed up on its own private network, so the down, overwhelmed, and unreachable causes largely disappear, and corruption becomes a quick restore. It can't stop a credential you type wrong during a migration, but that's the one cause left, and it's a one-line fix."}},
+{"@type":"Question","name":"Will I lose data, and how do backups help?","acceptedAnswer":{"@type":"Answer","text":"A connection error by itself doesn't delete anything. Your data is still in the database; WordPress just can't reach it right now. The risk is real corruption, which is exactly what backups guard against. With recent, tested backups, even a genuinely damaged database is a restore away rather than a loss, which is why automatic backups matter here."}}
+]}
+]}
+</script>
+</body>
+</html>

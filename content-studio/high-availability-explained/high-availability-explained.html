@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What Is High Availability? How Apps Stay Up When Things Fail</title>
+<meta name="description" content="High availability means your app keeps serving even when a component fails. Learn how redundancy, failover, and health checks remove single points of failure.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/high-availability-explained/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="What Is High Availability? How Apps Stay Up When Things Fail">
+<meta property="og:description" content="HA in plain English: redundancy, failover, health checks, and no single point of failure. Plus the honest line between high availability, backups, and disaster recovery.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Reliability &amp; uptime</span>
+  <h1>What Is High Availability? Staying Up When Things Break</h1>
+
+  <figure><img src="images/hero.png" alt="What is high availability: how apps stay up when a component fails"></figure>
+
+  <p class="lead">Your server reboots at 3am for a kernel patch. For ninety seconds it answers nothing, and the checkout page a customer had open just dies on them. On one box, that ninety seconds is an outage. On a high availability setup it's a non-event, because a second machine was already serving and traffic never stopped. That's the whole promise of high availability: the system keeps running even when a piece of it fails.</p>
+  <p>So let's define high availability, build it from the parts that make it work, and draw the line most articles blur between HA, backups, and disaster recovery. By the end you'll know what to build, what to skip, and when one solid server is still the right call.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>High availability (HA) means a system stays available even when a component fails, because there's no single point of failure and traffic fails over to a healthy replica. You get there with redundancy (more than one of everything that matters), a load balancer running health checks, and automatic failover. HA is not backups and not disaster recovery. Those protect against different problems, and a serious setup uses all three.</p>
+  </div>
+
+  <h2>What high availability actually means</h2>
+  <p>High availability is a design property, not a feature you buy. A system is highly available when it keeps serving through the failure of an individual component. A disk dies, a server locks up, a whole availability zone blinks out, and users still get a response because something else picks up the work.</p>
+  <p>Contrast the setup most apps start on: one server running the app and the database, doing everything. Cheap, simple, and fine right up until it isn't. That single box is a <strong>single point of failure</strong>. It goes down, your site goes down, because there's only one of it.</p>
+  <p>HA is the deliberate removal of those single points. Add a second server so one can die. Put a load balancer in front so traffic steers to a healthy node. The test is simple: if you can point at one component and say "when that dies, we're down," you don't have HA yet. You have a to-do item.</p>
+
+  <figure>
+    <svg viewBox="0 0 790 320" role="img" aria-label="Left: a single server is a single point of failure, so when it goes down the whole site is offline. Right: a high availability setup puts a load balancer in front of two replicas, so when one replica fails traffic reroutes to the healthy one and the site stays up." xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="an" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#000f27"/></marker>
+        <marker id="ap" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4F1AF3"/></marker>
+        <marker id="ag" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#40b75f"/></marker>
+        <marker id="ar" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#e5484d"/></marker>
+      </defs>
+
+      <!-- divider -->
+      <line x1="392" y1="20" x2="392" y2="300" stroke="#e6e9f2" stroke-width="1.5" stroke-dasharray="4 5"/>
+
+      <!-- LEFT: single point of failure -->
+      <text x="26" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="15" font-weight="700">Single point of failure</text>
+      <text x="26" y="54" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">One box. It goes down, everything goes down.</text>
+
+      <rect x="34" y="150" width="92" height="40" rx="20" fill="#000f27"/>
+      <text x="80" y="175" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="600" fill="#fff">Visitors</text>
+      <line x1="126" y1="170" x2="192" y2="170" stroke="#000f27" stroke-width="2.2" marker-end="url(#an)"/>
+
+      <rect x="196" y="140" width="128" height="60" rx="12" fill="#fff" stroke="#e5484d" stroke-width="2" stroke-dasharray="6 5"/>
+      <text x="260" y="166" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="700" fill="#8a94a6">One server</text>
+      <text x="260" y="184" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#e5484d">app + database, DOWN</text>
+      <line x1="206" y1="150" x2="314" y2="190" stroke="#e5484d" stroke-width="2"/>
+      <line x1="314" y1="150" x2="206" y2="190" stroke="#e5484d" stroke-width="2"/>
+
+      <rect x="196" y="238" width="128" height="34" rx="8" fill="#fdecec" stroke="#e5484d"/>
+      <text x="260" y="260" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" font-weight="600" fill="#c13b3f">Whole site offline</text>
+
+      <!-- RIGHT: high availability -->
+      <text x="410" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="15" font-weight="700">High availability</text>
+      <text x="410" y="54" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">Balancer + replicas. One fails, traffic reroutes.</text>
+
+      <rect x="410" y="150" width="86" height="40" rx="20" fill="#000f27"/>
+      <text x="453" y="175" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="600" fill="#fff">Visitors</text>
+      <line x1="496" y1="170" x2="536" y2="170" stroke="#4F1AF3" stroke-width="2.4" marker-end="url(#ap)"/>
+
+      <rect x="538" y="144" width="108" height="56" rx="12" fill="#fff" stroke="#4F1AF3" stroke-width="2"/>
+      <text x="592" y="168" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="700" fill="#000f27">Load balancer</text>
+      <text x="592" y="186" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#5b6a86">health checks</text>
+
+      <rect x="684" y="112" width="94" height="44" rx="10" fill="#fff" stroke="#40b75f" stroke-width="1.8"/>
+      <text x="731" y="134" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" font-weight="600" fill="#000f27">Replica A</text>
+      <text x="731" y="149" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#40b75f">healthy</text>
+
+      <rect x="684" y="188" width="94" height="44" rx="10" fill="#fff" stroke="#e5484d" stroke-width="1.8" stroke-dasharray="6 5"/>
+      <text x="731" y="210" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" font-weight="600" fill="#8a94a6">Replica B</text>
+      <text x="731" y="225" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#e5484d">down</text>
+
+      <line x1="646" y1="164" x2="680" y2="138" stroke="#40b75f" stroke-width="2.2" marker-end="url(#ag)"/>
+      <line x1="646" y1="180" x2="680" y2="208" stroke="#e5484d" stroke-width="1.6" stroke-dasharray="6 5" opacity=".75"/>
+      <text x="663" y="205" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9" fill="#e5484d">no traffic</text>
+
+      <rect x="538" y="252" width="240" height="34" rx="8" fill="#ecf7f0" stroke="#40b75f"/>
+      <text x="658" y="274" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" font-weight="600" fill="#2e8c48">Site stays up</text>
+    </svg>
+    <figcaption>Same failure, two outcomes. One server down is an outage. A replica down behind a load balancer is a shrug, because the healthy node keeps answering.</figcaption>
+  </figure>
+
+  <p>Our explainer on <a href="https://www.kloudbean.com/blog/how-cloud-hosting-works/">how cloud hosting works</a> covers where servers, networking, and storage live, the ground floor HA builds on.</p>
+
+  <h2>The nines, and what 99.9% uptime really buys you</h2>
+  <p>Availability gets measured in "nines." You've seen them on every pricing page: 99.9%, 99.99%, and up. They sound like near perfection. They're not. Each percentage maps to a hard amount of downtime that still counts as fine, and the gap between one nine and the next is huge. This is plain arithmetic off a year of about 8,760 hours, not a claim about any provider:</p>
+
+  <table class="cmp">
+    <thead><tr><th>Uptime target</th><th>Downtime allowed / year</th><th>Downtime / month</th></tr></thead>
+    <tbody>
+      <tr><td><strong>99%</strong> (two nines)</td><td>~3.65 days</td><td>~7.3 hours</td></tr>
+      <tr><td><strong>99.9%</strong> (three nines)</td><td>~8.77 hours</td><td>~43.8 minutes</td></tr>
+      <tr><td><strong>99.99%</strong> (four nines)</td><td>~52.6 minutes</td><td>~4.4 minutes</td></tr>
+      <tr><td><strong>99.999%</strong> (five nines)</td><td>~5.26 minutes</td><td>~26 seconds</td></tr>
+    </tbody>
+  </table>
+
+  <p>Read the 99.9% row again. Three nines still allows almost nine hours of downtime a year, a whole working day dark, with nothing promised that wasn't delivered. One more nine, 99.99%, drops the yearly budget under an hour. Here's the catch: an uptime number on a sales page promises the provider's infrastructure, not your app. Your server can reboot, your database can fall over, you can ship a bad Friday deploy, and the provider's nines stay intact while users see errors. HA is how you close that gap. For what these promises legally mean, read our <a href="https://www.kloudbean.com/blog/cloud-sla-explained/">cloud SLA explainer</a>. The number is the floor. Your architecture is the building.</p>
+
+  <!-- ADD IMAGE: a before and after uptime timeline, one server with a red outage gap versus a two node setup with no gap. Swap for a real screenshot: src -> images/uptime-timeline.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A before and after uptime timeline: one server with a red outage gap versus a redundant pair with none.</em><small>Makes the nines feel concrete instead of abstract.</small></span></figure>
+
+  <h2>The building blocks of high availability</h2>
+  <p>HA isn't one product. It's a few ideas working together, each removing a specific way your system can die. Here's what they are, and why each exists.</p>
+
+  <h3>Redundancy: more than one of everything that matters</h3>
+  <p>Redundancy is the foundation. If losing a component takes you down, run more than one of it. Two web servers, not one. A database with a standby copy. Ideally across more than one availability zone, so a single data center problem doesn't kill every copy at once. Redundancy turns "the server died" into "a server died." It costs money, because you pay for capacity you hope never to fully use.</p>
+
+  <h3>A load balancer with health checks</h3>
+  <p>Redundant servers are useless if traffic still points at a dead one. The load balancer fixes that. It sits in front, spreads requests, and runs a <strong>health check</strong> against each node on a schedule, often a small request to <code>/health</code> every few seconds. Miss a few in a row and the node is pulled from rotation automatically, then added back when it recovers. That health check is the quiet hero. Without it, the balancer keeps feeding users to a server that's timing out. Our <a href="https://www.kloudbean.com/blog/cloud-load-balancer-explained/">cloud load balancer explainer</a> takes routing, sticky sessions, and SSL apart. For HA, one idea: the balancer is how a failed node stops being an outage.</p>
+
+  <h3>Failover: active-passive vs active-active</h3>
+  <p>Failover is shifting work off a failed component onto a healthy one. Two broad shapes, and knowing which you run matters.</p>
+  <table class="cmp">
+    <thead><tr><th>&nbsp;</th><th>Active-passive</th><th>Active-active</th></tr></thead>
+    <tbody>
+      <tr><td>Normal state</td><td>One node serves, a standby waits</td><td>All nodes serve traffic at once</td></tr>
+      <tr><td>On failure</td><td>Promote the standby, short failover gap</td><td>Survivors absorb the load, no promotion</td></tr>
+      <tr><td>Cost</td><td>You pay for a standby that mostly idles</td><td>Every node you pay for is working</td></tr>
+      <tr><td>Complexity</td><td>Simpler, but the failover must be tested</td><td>Harder, state has to be shared cleanly</td></tr>
+      <tr><td>Fits</td><td>Databases, stateful services</td><td>Stateless web and app tiers</td></tr>
+    </tbody>
+  </table>
+  <p>Active-passive keeps a warm spare ready, which suits databases where only one node should accept writes. Active-active runs everything at once and loses a slice of capacity when a node dies, more efficient and more resilient, but it demands your app hold no important state on any single node. That constraint is exactly where the database gets hard.</p>
+
+  <h3>No single point of failure, including the balancer itself</h3>
+  <p>Removing single points of failure is a mindset, not a checkbox. Walk your request path and ask at each hop, "what if this one thing dies?" The web tier is easy, add a node. Don't forget the overlooked pieces: the database (a single primary is a single point of failure), the balancer itself, and the zone or region everything sits in. A managed platform usually runs the balancer redundantly, so it isn't the weak link.</p>
+
+  <h2>High availability is not backups, and not disaster recovery</h2>
+  <p>This is the distinction most articles smear together, and getting it wrong leaves a real hole. HA, backups, and disaster recovery solve three different problems. You need all three.</p>
+  <table class="cmp">
+    <thead><tr><th>&nbsp;</th><th>High availability</th><th>Backups</th><th>Disaster recovery</th></tr></thead>
+    <tbody>
+      <tr><td>Protects against</td><td>A component failing (node, disk, balancer)</td><td>Data loss or corruption (bad deploy, dropped table, ransomware)</td><td>A big event (region outage, fire, a whole account gone)</td></tr>
+      <tr><td>Time to recover</td><td>Seconds, automatic</td><td>Minutes to hours, a restore</td><td>Hours or more, a planned rebuild</td></tr>
+      <tr><td>Keeps you</td><td>Up</td><td>Recoverable</td><td>Recoverable after catastrophe</td></tr>
+      <tr><td>You still also need</td><td>Backups and DR</td><td>HA and DR</td><td>HA and backups</td></tr>
+    </tbody>
+  </table>
+  <p>One example makes it click. Someone runs <code>DELETE FROM orders</code> with no <code>WHERE</code> clause. HA faithfully replicates that empty table to every replica in milliseconds. It did its job perfectly, and your data is still gone. Only a backup saves you. Flip it: your primary region goes dark for an afternoon. Backups are safe, but a backup sitting in that same dead region doesn't get you online right now. That's disaster recovery. Sell one of the three as if it covers all three and you've quietly left two holes. Our <a href="https://www.kloudbean.com/blog/server-backups-guide/">guide to server backups</a> covers the layer HA can't.</p>
+
+  <!-- ADD IMAGE: a three column visual separating high availability, backups, and disaster recovery by the problem each one solves. Swap for a real screenshot: src -> images/ha-backup-dr.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Three columns separating HA, backups, and DR by the problem each one solves.</em><small>The distinction readers most often get wrong.</small></span></figure>
+
+  <h2>Where the database fits, and why it's the hard part</h2>
+  <p>Making the web tier redundant is easy. Web and app servers can be <strong>stateless</strong>, holding nothing important between requests, so you run a few identical copies behind a balancer. Any node serves any request. Lose one, who cares.</p>
+  <p>The database is the opposite. It's <strong>stateful</strong>. It holds the one authoritative copy of your data that has to stay correct, so you can't just clone it five times. A single primary is the classic hidden single point of failure, still one-of-a-kind after everything else is redundant.</p>
+  <p>The general answer is replication: the primary streams its changes to one or more replicas, and if it fails, a replica is promoted to take writes. Done well, that's real failover. Done carelessly you hit ugly edge cases, replication lag where a replica trails behind, or split-brain where two nodes both think they're in charge. This is genuinely hard distributed-systems work, which is why database HA is a bigger project than web HA. A lighter move helps: put sessions in a shared store like <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis</a> every node reads from, and write uploads to object storage, not local disk. Then any node can serve any user.</p>
+
+  <h2>Do you actually need high availability?</h2>
+  <p>Here's where I'll take a position, since a lot of writing on this won't. Most small apps do not need full active-active HA on day one. They really don't.</p>
+  <p>HA adds real cost and complexity: more servers, a balancer, a stateless app, a replicated database, more moving parts that can misbehave. If you run a blog, a brochure site, or an early product with a handful of users, a rare hour offline is annoying, not existential. Engineering five nines in month one instead of building the product solves a problem you don't have yet.</p>
+  <p>My honest advice: start with one well-sized server on reliable infrastructure, plus good, tested backups. Add redundancy the moment downtime costs more than the HA setup does. That crossover is the trigger. When an hour offline means lost sales, angry paying customers, or an SLA you signed, redundancy pays for itself and you build it deliberately. Not before. And if the pressure is really just traffic growth, look first at <a href="https://www.kloudbean.com/blog/autoscaling-explained/">whether you need autoscaling</a>, a related but separate question.</p>
+
+  <h2>High availability hosting on Kloudbean</h2>
+  <p>So what does a managed platform give you as a foundation? Start with the floor. Kloudbean runs your servers on tier-1 cloud infrastructure across <strong>seven providers</strong>: AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud. That's the same hardware and networking the largest sites on the internet run on. No amount of clever architecture saves you if the ground floor is shaky.</p>
+
+  <figure>
+    <img src="../assets/console/flb-load-balancer.png" alt="The Kloudbean console showing the built-in Flexible Load Balancer spreading traffic across a pool of servers">
+    <figcaption>The built-in Flexible Load Balancer sits in front of an application pool and routes each request to a healthy node.</figcaption>
+  </figure>
+
+  <p>The floor was never the whole story. The <strong>Flexible Load Balancer (FLB) is built into every account</strong>. It's off by default, but it isn't a separate product or a tier you buy up into. Switch it on, point it at an application pool of two or more servers, and a dead node becomes a rerouted request instead of an outage. You also get SSL management and access logs. That's the core HA move, redundant servers behind a health-checked balancer, as a feature you enable, not a project you assemble.</p>
+
+  <figure>
+    <img src="../assets/console/server-health.png" alt="The Kloudbean console showing per-server health with CPU, memory, and disk usage">
+    <figcaption>Server health at a glance. Spotting a node under strain before it falls over is half the battle.</figcaption>
+  </figure>
+
+  <p>Underneath, automatic backups cover the data layer HA can't protect, and <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">VPC and private networking</a> keep your database and backend nodes off the public internet. It's all one dashboard, which matters more than it sounds: redundancy you can set up in a few clicks is redundancy you'll actually set up.</p>
+  <p>Two honest boundaries. Kloudbean manages Linux stacks (PHP, Node, Python, Ruby, Java and their databases), not Windows or IIS. And the heavier machinery, Kubernetes, autoscaling, and fully custom HA architectures, is an enterprise and custom offering, where Kloudbean acts like your in-house infrastructure team. On the SLA question: real uptime comes from redundancy you build on a solid base, not a banner percentage. Check the current terms for your plan directly.</p>
+
+  <!-- ADD IMAGE: the Kloudbean dashboard showing a two node application pool behind the load balancer. Swap for a real screenshot: src -> images/ha-pool.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A two node application pool behind the Flexible Load Balancer in the dashboard.</em><small>Shows redundancy set up in the real console.</small></span></figure>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Turn one box that can die into a setup that stays up.</p>
+    <p style="margin:0 0 .6em">Run redundant servers behind a built-in load balancer, on tier-1 cloud infrastructure, with automatic backups and private networking, all from one dashboard. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; compare plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Built-in load balancer · Automatic backups · Private networking · 7 clouds · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is high availability?</h3>
+    <p>High availability (HA) means a system keeps serving even when one component fails. You remove single points of failure, run redundant copies of anything critical, and let a load balancer route traffic around a dead node. One failure becomes a non-event, not an outage.</p>
+    <h3>What does 99.9% uptime mean in real downtime?</h3>
+    <p>99.9% uptime, three nines, allows about 8.77 hours of downtime a year, roughly 43.8 minutes a month, and still counts as kept. Moving to 99.99% cuts that to under an hour a year. It's plain arithmetic off 8,760 hours, not a provider guarantee.</p>
+    <h3>What is a single point of failure?</h3>
+    <p>A single point of failure is any one component whose failure takes down the whole system, the classic example being a lone server running your app and database. HA is largely the discipline of finding those points, the database, the balancer, a single zone, and making each redundant.</p>
+    <h3>Is high availability the same as backups?</h3>
+    <p>No. HA keeps you online through component failures. Backups protect data against loss and corruption, like a bad deploy or an accidental delete, which HA would faithfully replicate to every node. Different problems, so you need both.</p>
+    <h3>What is failover?</h3>
+    <p>Failover is shifting work from a failed component to a healthy one. A load balancer pulls a dead web node from rotation and sends traffic to the survivors; with databases, a standby replica gets promoted. Good failover is automatic and fast, which is why teams test it before relying on it.</p>
+    <h3>What is the difference between active-active and active-passive?</h3>
+    <p>In active-passive, one node serves while a standby waits and takes over on failure, simpler and common for databases. In active-active, all nodes serve at once and survivors absorb the load when one dies, more efficient but it needs a stateless design with shared session state.</p>
+    <h3>Do I need high availability for a small app?</h3>
+    <p>Usually not on day one. HA adds cost and complexity, and a small blog or early product survives a rare hour offline just fine. Start with one solid server plus tested backups, and add redundancy when downtime costs more than the HA setup does.</p>
+    <h3>How is high availability different from disaster recovery?</h3>
+    <p>HA handles small, frequent failures automatically in seconds, keeping you up. Disaster recovery is your plan for a rare, large event like a whole region going offline, usually a slower rebuild measured in hours. A complete setup has both, plus backups.</p>
+    <h3>Does Kloudbean offer high availability hosting?</h3>
+    <p>Kloudbean gives you the foundation and the building blocks. Servers run on tier-1 infrastructure across seven clouds, the Flexible Load Balancer is built into every account for redundant servers with health checks, and automatic backups plus private networking cover the rest. Kubernetes, autoscaling, and custom HA are enterprise offerings; check your plan's SLA terms directly.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Designed Not to Fall Over.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"What Is High Availability? Staying Up When Things Break","description":"High availability means your app keeps serving even when a component fails. How redundancy, failover, and health checks remove single points of failure, and the honest line between HA, backups, and disaster recovery.","image":"https://www.kloudbean.com/blog/high-availability-explained/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/high-availability-explained/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is high availability?","acceptedAnswer":{"@type":"Answer","text":"High availability (HA) means a system keeps serving even when one component fails. You remove single points of failure, run redundant copies of anything critical, and let a load balancer route traffic around a dead node. One failure becomes a non-event, not an outage."}},
+{"@type":"Question","name":"What does 99.9% uptime mean in real downtime?","acceptedAnswer":{"@type":"Answer","text":"99.9% uptime, three nines, allows about 8.77 hours of downtime a year, roughly 43.8 minutes a month, and still counts as kept. Moving to 99.99% cuts that to under an hour a year. It's plain arithmetic off 8,760 hours, not a provider guarantee."}},
+{"@type":"Question","name":"What is a single point of failure?","acceptedAnswer":{"@type":"Answer","text":"A single point of failure is any one component whose failure takes down the whole system, the classic example being a lone server running your app and database. HA is largely the discipline of finding those points, the database, the balancer, a single zone, and making each redundant."}},
+{"@type":"Question","name":"Is high availability the same as backups?","acceptedAnswer":{"@type":"Answer","text":"No. HA keeps you online through component failures. Backups protect data against loss and corruption, like a bad deploy or an accidental delete, which HA would faithfully replicate to every node. Different problems, so you need both."}},
+{"@type":"Question","name":"What is failover?","acceptedAnswer":{"@type":"Answer","text":"Failover is shifting work from a failed component to a healthy one. A load balancer pulls a dead web node from rotation and sends traffic to the survivors; with databases, a standby replica gets promoted. Good failover is automatic and fast, which is why teams test it before relying on it."}},
+{"@type":"Question","name":"What is the difference between active-active and active-passive?","acceptedAnswer":{"@type":"Answer","text":"In active-passive, one node serves while a standby waits and takes over on failure, simpler and common for databases. In active-active, all nodes serve at once and survivors absorb the load when one dies, more efficient but it needs a stateless design with shared session state."}},
+{"@type":"Question","name":"Do I need high availability for a small app?","acceptedAnswer":{"@type":"Answer","text":"Usually not on day one. HA adds cost and complexity, and a small blog or early product survives a rare hour offline just fine. Start with one solid server plus tested backups, and add redundancy when downtime costs more than the HA setup does."}},
+{"@type":"Question","name":"How is high availability different from disaster recovery?","acceptedAnswer":{"@type":"Answer","text":"HA handles small, frequent failures automatically in seconds, keeping you up. Disaster recovery is your plan for a rare, large event like a whole region going offline, usually a slower rebuild measured in hours. A complete setup has both, plus backups."}},
+{"@type":"Question","name":"Does Kloudbean offer high availability hosting?","acceptedAnswer":{"@type":"Answer","text":"Kloudbean gives you the foundation and the building blocks. Servers run on tier-1 infrastructure across seven clouds, the Flexible Load Balancer is built into every account for redundant servers with health checks, and automatic backups plus private networking cover the rest. Kubernetes, autoscaling, and custom HA are enterprise offerings; check your plan's SLA terms directly."}}
+]}
+]}
+</script>
+</body>
+</html>

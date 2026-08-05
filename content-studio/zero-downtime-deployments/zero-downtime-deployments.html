@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zero Downtime Deployment: How to Ship Without an Outage</title>
+<meta name="description" content="A zero downtime deployment ships a new version with no failed requests. Learn rolling vs blue-green vs canary, health checks, graceful shutdown, and safe migrations.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/zero-downtime-deployments/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Zero Downtime Deployment: How to Ship Without an Outage">
+<meta property="og:description" content="Deploy without downtime the real way: overlap old and new, gate traffic on health checks, drain connections, and keep every database migration backward compatible.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Deployments · reliability</span>
+  <h1>Zero Downtime Deployment: How to Ship Without an Outage</h1>
+  <p class="byline">By Kloudbean · Ship Without the Outage.</p>
+
+  <figure><img src="images/hero.png" alt="Zero downtime deployment: overlap the old and new version so no request ever fails"></figure>
+
+  <p class="lead">A zero downtime deployment means you ship a new version and not one user sees an error while you do it. No 503, no spinner that never resolves, no "we'll be right back" page. The naive way to deploy breaks that promise: you stop the old version, start the new one, and every request in the gap fails. This is how teams actually deploy without downtime. We'll cover the three real strategies (rolling, blue-green, canary), then the parts people quietly get wrong: health checks, graceful shutdown, and the database migration that takes you down even when your code is perfect.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>A zero downtime deployment ships a new version without a single failed request. The trick is overlap: never stop the old version before the new one is proven up. Run more than one instance behind a load balancer, only route traffic to an instance once its health check passes, drain the old ones gracefully so in-flight requests finish, and keep every database migration backward compatible. Rolling, blue-green, and canary are three ways to sequence that overlap. Pick the simplest one your app needs.</p>
+  </div>
+
+  <h2>Why do normal deploys cause downtime?</h2>
+  <p>Picture the simplest possible deploy. Stop the app, swap the files, start it again. Clean, obvious, and it has a hole in the middle. Between "old process stopped" and "new process serving," nobody answers requests. If the new version boots in 150ms you might get away with it. Apps rarely boot that fast.</p>
+  <p>Real boots are slow. The process starts, opens a database pool, warms a cache, maybe runs a migration, loads config, then finally binds the port. That's a few seconds. Every request in that window gets a connection refused or a 503.</p>
+  <p>The worse case is a crash on startup: a missing environment variable, a bad config value, a half-finished migration. The old version is already gone and the new one won't come up, so the gap never closes. One typo, full outage. Zero downtime means never letting the count of healthy instances hit zero, so you keep the old version serving until the new one is proven and taking traffic. Every strategy below arranges that overlap.</p>
+
+  <h2>What is a zero downtime deployment, exactly?</h2>
+  <p>Here's a definition you can quote. A zero downtime deployment is a release where the new version starts serving and the old version stops in an overlapping sequence, so at every instant at least one healthy instance is handling requests. Traffic shifts from old to new without a break.</p>
+  <p>Three things make that work, and you need all three: more than one place to run the app with a load balancer in front, a real health check so the balancer knows who's ready, and changes that are safe to run side by side, because for a moment both versions are live against the same database. Miss one and "zero downtime" quietly becomes "downtime, occasionally."</p>
+
+  <!-- ADD IMAGE: show the outage window on a timeline. Swap for a real screenshot: src -> images/deploy-gap-timeline.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A timeline of a naive deploy: old version stops, a red gap of failed requests, then the new version becomes healthy. Beside it, an overlapping deploy where the red gap is gone.</em><small>Makes the "gap equals outage" idea land visually.</small></span></figure>
+
+  <h2>Blue-green vs rolling deployment (and where canary fits)</h2>
+  <p>Three strategies are worth knowing. They all overlap old and new. They differ in how much extra hardware they need and how fast you can undo a bad release. The comparison first, then the detail.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Strategy</th><th>How it works</th><th>Extra capacity</th><th>Rollback</th><th>Best when</th></tr></thead>
+    <tbody>
+      <tr><td>Recreate (naive)</td><td>Stop the old version, then start the new one</td><td>None</td><td>Redeploy, more downtime</td><td>Local dev only. The outage baseline.</td></tr>
+      <tr><td>Rolling</td><td>Replace instances a few at a time behind a load balancer</td><td>A little headroom</td><td>Roll the previous build back through</td><td>Most production apps</td></tr>
+      <tr><td>Blue-green</td><td>Two full environments, flip traffic once the new one is verified</td><td>Double, briefly</td><td>Flip back to the old environment, near instant</td><td>Risky releases, you want instant undo</td></tr>
+      <tr><td>Canary</td><td>Send a small share of traffic to the new version, watch it, then ramp</td><td>A little</td><td>Route the slice back to stable</td><td>Catching a bad release early, at scale</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Rolling deployment</h3>
+  <p>Rolling is the workhorse, and it's what most teams should reach for first. You run several instances behind a load balancer. To deploy, you pull one instance from the pool, put the new version on it, wait for its health check, add it back, then move to the next. Old and new run together for the length of the rollout. It's cheap: no second environment, just enough headroom to lose one instance and keep serving. The catch is that mixed versions are live at once, so the new version has to be backward compatible with the old, same schema, responses the old front end can still read. Rollback is the roll in reverse.</p>
+
+  <h3>Blue-green deployment</h3>
+  <p>Blue-green trades money for a cleaner switch. You keep two full environments. Blue is live. You deploy the new version to green, which sits idle, smoke-test it privately, then point the load balancer at green and all traffic moves in one motion. Blue stays warm and untouched. That's the whole point: if green misbehaves, flip back to blue and you're on the old version in seconds. The cost is real, you pay for two environments during the cutover. And the database is usually shared between blue and green, so schema changes still need care. Blue-green makes the app cutover instant. It does not make your migrations safe. People forget that and get burned.</p>
+
+  <h3>Canary deployment</h3>
+  <p>Canary catches a bad release before it reaches everyone. You run the new version alongside the stable one and route a small slice of traffic to it, say 1 to 5%. Watch error rates, latency, logs. Healthy? Ramp to 25%, then 50%, then everyone. Ugly? Route the slice back to stable and only a sliver of users ever felt it. Canary is the most demanding of the three. It needs traffic splitting and, more important, monitoring good enough to make an honest go or no-go call. If you can't see the canary's error rate climb, you're not running a canary, you're running two versions and hoping.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 430" width="100%" role="img" aria-label="Blue-green deployment diagram. User traffic reaches a load balancer. The blue environment ran the previous version and is now idle but kept warm for rollback. The green environment runs the new version, has been verified, and is receiving all live traffic. A flip arrow between them shows that rollback is switching traffic back to blue." xmlns="http://www.w3.org/2000/svg">
+      <rect x="1" y="1" width="718" height="428" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="360" y="34" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="17" font-weight="700" fill="#000f27">Blue-green: verify green, flip the load balancer, keep blue for rollback</text>
+
+      <rect x="34" y="180" width="120" height="66" rx="10" fill="#000f27"/>
+      <text x="94" y="210" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="600" fill="#fff">Users</text>
+      <text x="94" y="230" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#c9d0e3">live traffic</text>
+
+      <rect x="250" y="176" width="140" height="74" rx="12" fill="#4F1AF3"/>
+      <text x="320" y="206" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="700" fill="#fff">Load balancer</text>
+      <text x="320" y="226" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#d9d2ff">routes to the</text>
+      <text x="320" y="240" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#d9d2ff">chosen environment</text>
+
+      <g stroke="#c9d0e3" stroke-width="2.5" fill="#c9d0e3">
+        <path d="M154 213 L244 213"/><path d="M244 206 L244 220 L254 213 Z"/>
+      </g>
+
+      <rect x="500" y="70" width="196" height="96" rx="12" fill="#eef1fb" stroke="#3b6fd6" stroke-width="2"/>
+      <circle cx="522" cy="94" r="6" fill="#3b6fd6"/>
+      <text x="536" y="99" font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="700" fill="#3b6fd6">BLUE</text>
+      <text x="522" y="122" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#1c2536">Previous version</text>
+      <text x="522" y="140" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#1c2536">Idle, kept warm</text>
+      <text x="522" y="158" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#5b6a86">rollback target</text>
+
+      <rect x="500" y="258" width="196" height="96" rx="12" fill="#e9f7ee" stroke="#40b75f" stroke-width="2"/>
+      <circle cx="522" cy="282" r="6" fill="#40b75f"/>
+      <text x="536" y="287" font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="700" fill="#40b75f">GREEN</text>
+      <text x="522" y="310" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#1c2536">New version</text>
+      <text x="522" y="328" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#1c2536">Verified, taking traffic</text>
+      <text x="522" y="346" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#2e8b52">live now</text>
+
+      <g stroke="#40b75f" stroke-width="3" fill="#40b75f">
+        <path d="M390 226 C 440 250, 460 290, 496 300"/><path d="M486 292 L500 306 L482 306 Z"/>
+      </g>
+      <g stroke="#b7c0d6" stroke-width="2" stroke-dasharray="5 5" fill="none">
+        <path d="M390 200 C 440 176, 460 130, 496 120"/>
+      </g>
+      <text x="452" y="150" font-family="Poppins,Arial,sans-serif" font-size="10.5" fill="#8a93aa">no traffic</text>
+
+      <g stroke="#4F1AF3" stroke-width="2" fill="none">
+        <path d="M598 166 L598 258" stroke-dasharray="4 4"/>
+      </g>
+      <path d="M593 176 L603 176 L598 166 Z" fill="#4F1AF3"/>
+      <path d="M593 248 L603 248 L598 258 Z" fill="#4F1AF3"/>
+      <text x="612" y="216" font-family="Poppins,Arial,sans-serif" font-size="10.5" font-weight="600" fill="#4F1AF3">flip =</text>
+      <text x="612" y="230" font-family="Poppins,Arial,sans-serif" font-size="10.5" font-weight="600" fill="#4F1AF3">rollback</text>
+
+      <text x="360" y="404" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#5b6a86">The database is shared between blue and green, so schema changes still have to be backward compatible.</text>
+    </svg>
+    <figcaption>Blue-green in one picture: green is verified and live, blue stays warm, and rollback is a single flip back to blue. The shared database is the part that still needs care.</figcaption>
+  </figure>
+
+  <h2>The health check is the whole game</h2>
+  <p>Every strategy leans on one thing: the load balancer must never send traffic to an instance that isn't ready. That decision is the health check, and getting it honest is what separates a real zero downtime deployment from a hopeful one.</p>
+  <p>The trap is a lazy check. Plenty of apps expose <code>/health</code> as a route that returns 200 the instant the process starts. But the process starts before the app is usable: the database pool isn't connected, the cache is cold, config hasn't loaded. The balancer sees 200, marks the instance healthy, sends real users in, and they hit errors. You built a health check that lies.</p>
+  <p>Make it honest. A readiness check returns 200 only when the app can actually serve a request, usually including a quick database ping. Worth separating two ideas: liveness means the process is alive and shouldn't be killed, readiness means it's ready for traffic. During a deploy, readiness gates the cutover. The balancer runs that check on a schedule and routes only to instances that pass, the same mechanism that survives a bad node in normal operation. If that's new to you, the <a href="https://www.kloudbean.com/blog/cloud-load-balancer-explained/">plain-English load balancer explainer</a> walks through how health checks pull a node from rotation.</p>
+
+  <h2>Graceful shutdown and connection draining</h2>
+  <p>Health checks bring new instances up safely. The other half is taking the old ones down without dropping anyone: graceful shutdown on the app side, connection draining on the balancer side.</p>
+  <p>When it's time to retire an instance, the orchestrator sends it a <code>SIGTERM</code>. If your app dies instantly, every in-flight request gets cut off. So catch <code>SIGTERM</code>, stop accepting new connections, let active requests finish, close the database pool, then exit. The balancer drains in parallel: it stops sending new requests, waits for existing ones up to a timeout, then removes the instance. The shape of it in Node and Express:</p>
+  <pre><code>const server = app.listen(process.env.PORT);
+
+// SIGTERM arrives when the platform wants this instance to go away.
+process.on('SIGTERM', () =&gt; {
+  // Stop taking new connections, let in-flight requests finish.
+  server.close(() =&gt; {
+    // Then close the DB pool and exit cleanly.
+    pool.end(() =&gt; process.exit(0));
+  });
+
+  // Safety net: if a request hangs, do not block the deploy forever.
+  setTimeout(() =&gt; process.exit(1), 10000).unref();
+});</code></pre>
+  <p>Two details. <code>server.close()</code> refuses new connections but lets active ones drain, which is what you want. And the timeout isn't optional: without it, one stuck request holds the whole deploy hostage. On Node with PM2 running multiple workers, <code>pm2 reload</code> restarts them one at a time so there's always a live worker, a genuine zero downtime reload on a single server. The full Express path is in the <a href="https://www.kloudbean.com/blog/deploy-express-app/">deploy an Express app guide</a>, and closing the pool cleanly ties into <a href="https://www.kloudbean.com/blog/database-connection-pooling/">how connection pooling works</a>.</p>
+
+  <!-- ADD IMAGE: show a drain in the deploy log. Swap for a real screenshot: src -> images/drain-log.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A deploy log showing the old instance receiving SIGTERM, draining in-flight requests, then exiting, while the new instance reports healthy.</em><small>Proves the overlap actually happens in order.</small></span></figure>
+
+  <h2>The part nobody warns you about: database migrations</h2>
+  <p>This is the section I wish more guides led with, because it's where a zero downtime deployment most often falls apart, and the code is usually fine. The problem is the database.</p>
+  <p>During a rolling or blue-green deploy, old and new run at once against the same database. Say your release renames a column from <code>name</code> to <code>full_name</code>. The migration runs, and every old instance still serving traffic breaks instantly, because it's querying a column that no longer exists. You didn't take the app down. The migration did.</p>
+  <p>The rule: schema changes must be backward compatible, and destructive ones get split across deploys. The pattern is expand and contract (also called parallel change). Never rename or drop in one shot. Expand, migrate, contract, over separate releases:</p>
+  <pre><code>-- Release 1, EXPAND: add the new column, nullable. No rewrite of old rows.
+ALTER TABLE users ADD COLUMN full_name text;
+-- Ship code that WRITES both name and full_name, still READS name.
+-- Old instances only know name, and name is untouched, so they're fine.
+
+-- Between releases, BACKFILL in batches so you don't lock the table.
+UPDATE users SET full_name = name WHERE full_name IS NULL LIMIT 5000;
+-- repeat until no rows remain
+
+-- Release 2: ship code that READS full_name, still writes both.
+
+-- Release 3, CONTRACT: nothing reads name anymore, so it's safe to drop.
+ALTER TABLE users DROP COLUMN name;</code></pre>
+  <p>Yes, it's more steps than a one-line rename. That's the price of changing a live schema with no maintenance window, and there's no shortcut that's also safe. Same shape for the rest. Adding a column? Make it nullable or give it a default, never <code>NOT NULL</code> with no default on a big table mid-deploy. Removing one? Stop reading it, ship, then drop it later. Changing a type? Add the new column, dual-write, backfill, switch, drop.</p>
+  <p>One more thing that bites at scale. Some migrations take a lock. Adding an index on a large table can block writes for its duration, a little outage of its own. On PostgreSQL, <code>CREATE INDEX CONCURRENTLY</code> avoids the heavy lock, and you batch backfills instead of one giant <code>UPDATE</code>. The <a href="https://www.kloudbean.com/blog/database-migration-pg_dump-mysqldump/">database migration guide</a> covers moving data during a cutover. The anti-pattern to memorize: the most common zero downtime deploy failure isn't a code bug, it's a migration written as if only the new version were running.</p>
+
+  <h2>Always have a rollback</h2>
+  <p>However careful the deploy, sometimes the new version is just bad. Slow, wrong, throwing errors under real load in a way staging never showed. A mature deploy process isn't one where this never happens. It's one where going back is boring.</p>
+  <p>Blue-green gives the cleanest rollback there is: flip traffic to the environment that was live a minute ago. For rolling and everything else, rollback means redeploying the previous known-good build, which is why a deployment history that maps each deploy to a commit earns its keep. You pick the last green one and redeploy. Feature flags add another layer: ship code in a dormant state and turn it on later, so you kill a bad feature by flipping a flag instead of running a whole deploy.</p>
+  <p>The uncomfortable part: rolling back code is easy, rolling back a destructive migration is not, because the data may already be gone. That's the second reason expand and contract matters. Every step is reversible right up until that final <code>DROP COLUMN</code>, so a bad release almost always rolls back at the code layer with the schema left alone. Plan the rollback before you deploy, not while the site is down.</p>
+
+  <h2>Do you actually need blue-green? An honest take</h2>
+  <p>Here's an opinion, because teams over-build this. Most apps do not need canary releases and full blue-green on day one. I've watched people wire up elaborate traffic-splitting for an app serving a few hundred people a day. Effort in the wrong place.</p>
+  <p>For most teams this is enough: a rolling deploy behind a load balancer, an honest health check that pings the database, graceful shutdown, and backward-compatible migrations. That covers something like 95% of what production apps need, and it costs almost nothing beyond a little headroom. Canary earns its place when a bad release is genuinely expensive and you have the monitoring to judge one slice against another. Blue-green earns its when you need instant rollback and can afford double capacity for a few minutes. Add sophistication when a real incident asks for it, not because a conference talk did. Don't build a deployment platform you don't need.</p>
+
+  <h2>How to deploy without downtime on Kloudbean</h2>
+  <p>Kloudbean doesn't ship a magic "zero downtime" button, and you should be a little suspicious of anyone who claims one. Zero downtime is a property of how you sequence a release, not a checkbox. What a platform gives you is the primitives. Here's what's there and how each maps to the strategies above.</p>
+  <p><strong>Managed CI/CD from Git.</strong> Connect your repo and every push builds and deploys on the server, with the build log streaming live and a deployment history you can scroll back through. That history is your rollback: pick the last good commit and redeploy. It's also where you run migrations as part of the deploy so schema and code travel together. Full setup in the <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">auto-deploy from GitHub guide</a>.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean console Git deployment screen showing deploy on push, deployment history, and live build logs">
+    <figcaption>Managed Git deploys with a live build log and a deployment history. Redeploying an earlier commit is how you roll back a bad release.</figcaption>
+  </figure>
+
+  <p><strong>The built-in Flexible Load Balancer.</strong> This is the horizontal primitive behind rolling and blue-green. It's built into every account, off by default, enable it when you need it. Put your instances in an application pool and the balancer runs health checks and routes only to healthy members, with SSL managed at the balancer and access logs. Health-gated cutover across instances is exactly what a rolling deploy needs, and it's the switch you flip for blue-green.</p>
+
+  <figure>
+    <img src="../assets/console/flb-load-balancer.png" alt="The Kloudbean Flexible Load Balancer distributing traffic across healthy backend nodes in an application pool">
+    <figcaption>The Flexible Load Balancer with an application pool and health checks. Only healthy instances receive traffic, which is the backbone of a health-gated rolling deploy.</figcaption>
+  </figure>
+
+  <p><strong>PM2 multi-process for Node.</strong> On a Node app, <code>pm2 reload</code> restarts your workers one at a time so there's always a live worker serving, a real single-server zero downtime reload with no load balancer required.</p>
+  <p><strong>Staging to verify first.</strong> The safest deploy is one you already tested. Kloudbean has staging sites for WordPress and Laravel, so you can rehearse a release before it touches production. For other stacks, run a staging copy as <a href="https://www.kloudbean.com/blog/host-multiple-apps-one-server/">another app on the server you already own</a>, with its own database and env vars. And since a crash-on-boot from a missing value is such a common way to turn a deploy into an outage, get your <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a> before you lean on any automation.</p>
+  <p>One honest boundary. True autoscaling and Kubernetes-style orchestration are enterprise and custom-setup territory, not a standard-account toggle. For most teams that's fine, because a fixed pool behind the load balancer, deployed with rolling releases and backward-compatible migrations, is all a zero downtime deployment actually requires.</p>
+
+  <!-- ADD IMAGE: show the deployment history list. Swap for a real screenshot: src -> images/deployment-history.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A deployment history list with the current green deploy at the top and an older successful deploy below it, ready to redeploy as a rollback.</em><small>Grounds the "rollback is a redeploy of the last good commit" point.</small></span></figure>
+
+  <div class="note"><b>A calm deploy checklist.</b> Run more than one instance behind the load balancer. Make the health check ping the database, not just return 200. Handle <code>SIGTERM</code> and drain in-flight requests. Split every destructive migration into expand, backfill, contract. Keep the previous build one redeploy away. Rehearse on staging. That's a zero downtime deployment without any exotic tooling.</div>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Ship the new version without the outage.</p>
+    <p style="margin:0">Deploy from Git with a live build log and a rollback that's one redeploy away, put your instances behind a built-in load balancer with health checks, and rehearse on staging first. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> and check server sizes on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">Managed Git deploys · Deployment history · Built-in load balancer · Health checks · Staging · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is a zero downtime deployment?</h3>
+    <p>It's a release where the new version starts serving and the old version stops in an overlapping sequence, so at every instant at least one healthy instance is handling requests. Users never hit a gap. You get there by running more than one instance behind a load balancer, gating traffic on health checks, and keeping database changes backward compatible.</p>
+    <h3>What is the difference between blue-green, rolling, and canary?</h3>
+    <p>Rolling replaces instances a few at a time behind a load balancer, so old and new run together, and it needs almost no extra capacity. Blue-green keeps two full environments and flips traffic once the new one is verified, which gives near-instant rollback but needs double capacity briefly. Canary sends a small share of traffic to the new version, watches its error rate, then ramps up, which is best for catching bad releases early but needs good monitoring.</p>
+    <h3>How do I deploy without downtime?</h3>
+    <p>Never let the number of healthy instances hit zero. Run at least two instances behind a load balancer, bring the new version up and only send it traffic after its health check passes, and drain the old instances gracefully so in-flight requests finish. Keep every schema change backward compatible so both versions can share the database during the overlap.</p>
+    <h3>How do I handle database migrations during a zero downtime deploy?</h3>
+    <p>Use expand and contract. Add new structure without removing the old, deploy code that writes to both, backfill the data, switch reads to the new column, and only drop the old column in a later release once nothing uses it. Never rename or drop a column in the same deploy that's still rolling, because the old version is still querying the old schema and breaks the moment the migration runs.</p>
+    <h3>What is connection draining and graceful shutdown?</h3>
+    <p>Graceful shutdown is the app catching SIGTERM, refusing new connections, letting in-flight requests finish, closing its database pool, then exiting. Connection draining is the load balancer side: it stops sending new requests to an instance and waits for existing ones to complete before removing it. Together they retire an old instance without dropping anyone mid-request. Always add a timeout so a hung request can't block the deploy forever.</p>
+    <h3>Why does a health check matter so much for zero downtime?</h3>
+    <p>Because it's what tells the load balancer an instance is actually ready, not just started. A lazy check that returns 200 the moment the process boots will route users to an app whose database isn't connected yet, and they get errors. A good readiness check returns 200 only when the app can truly serve a request, usually including a quick database ping.</p>
+    <h3>How do I roll back a bad deploy?</h3>
+    <p>With blue-green, flip traffic back to the environment that was live a minute ago. Otherwise redeploy the previous known-good build, which is easy when your deployment history maps each deploy to a commit. Remember that rolling back code is simple but rolling back a destructive migration is not, which is why you split schema changes into reversible steps.</p>
+    <h3>Do I need blue-green for a small app?</h3>
+    <p>Usually no. For most apps a rolling deploy behind a load balancer, with an honest health check, graceful shutdown, and backward-compatible migrations, covers what you need and costs very little. Reach for blue-green when you want instant rollback and can afford double capacity briefly, and for canary when a bad release is expensive and you have the monitoring to judge it.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · Ship Without the Outage.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Zero Downtime Deployment: How to Ship Without an Outage","description":"How to deploy without downtime: rolling vs blue-green vs canary, health-gated cutover, graceful shutdown and connection draining, and backward-compatible database migrations.","image":"https://www.kloudbean.com/blog/zero-downtime-deployments/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/zero-downtime-deployments/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is a zero downtime deployment?","acceptedAnswer":{"@type":"Answer","text":"It is a release where the new version starts serving and the old version stops in an overlapping sequence, so at every instant at least one healthy instance is handling requests. Users never hit a gap. You get there by running more than one instance behind a load balancer, gating traffic on health checks, and keeping database changes backward compatible."}},
+{"@type":"Question","name":"What is the difference between blue-green, rolling, and canary?","acceptedAnswer":{"@type":"Answer","text":"Rolling replaces instances a few at a time behind a load balancer, so old and new run together, and it needs almost no extra capacity. Blue-green keeps two full environments and flips traffic once the new one is verified, which gives near-instant rollback but needs double capacity briefly. Canary sends a small share of traffic to the new version, watches its error rate, then ramps up, which is best for catching bad releases early but needs good monitoring."}},
+{"@type":"Question","name":"How do I deploy without downtime?","acceptedAnswer":{"@type":"Answer","text":"Never let the number of healthy instances hit zero. Run at least two instances behind a load balancer, bring the new version up and only send it traffic after its health check passes, and drain the old instances gracefully so in-flight requests finish. Keep every schema change backward compatible so both versions can share the database during the overlap."}},
+{"@type":"Question","name":"How do I handle database migrations during a zero downtime deploy?","acceptedAnswer":{"@type":"Answer","text":"Use expand and contract. Add new structure without removing the old, deploy code that writes to both, backfill the data, switch reads to the new column, and only drop the old column in a later release once nothing uses it. Never rename or drop a column in the same deploy that is still rolling, because the old version is still querying the old schema and breaks the moment the migration runs."}},
+{"@type":"Question","name":"What is connection draining and graceful shutdown?","acceptedAnswer":{"@type":"Answer","text":"Graceful shutdown is the app catching SIGTERM, refusing new connections, letting in-flight requests finish, closing its database pool, then exiting. Connection draining is the load balancer side: it stops sending new requests to an instance and waits for existing ones to complete before removing it. Together they retire an old instance without dropping anyone mid-request. Always add a timeout so a hung request cannot block the deploy forever."}},
+{"@type":"Question","name":"Why does a health check matter so much for zero downtime?","acceptedAnswer":{"@type":"Answer","text":"Because it is what tells the load balancer an instance is actually ready, not just started. A lazy check that returns 200 the moment the process boots will route users to an app whose database is not connected yet, and they get errors. A good readiness check returns 200 only when the app can truly serve a request, usually including a quick database ping."}},
+{"@type":"Question","name":"How do I roll back a bad deploy?","acceptedAnswer":{"@type":"Answer","text":"With blue-green, flip traffic back to the environment that was live a minute ago. Otherwise redeploy the previous known-good build, which is easy when your deployment history maps each deploy to a commit. Remember that rolling back code is simple but rolling back a destructive migration is not, which is why you split schema changes into reversible steps."}},
+{"@type":"Question","name":"Do I need blue-green for a small app?","acceptedAnswer":{"@type":"Answer","text":"Usually no. For most apps a rolling deploy behind a load balancer, with an honest health check, graceful shutdown, and backward-compatible migrations, covers what you need and costs very little. Reach for blue-green when you want instant rollback and can afford double capacity briefly, and for canary when a bad release is expensive and you have the monitoring to judge it."}}
+]}
+]}
+</script>
+</body>
+</html>

@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Secure Compliant Hosting: The Shared-Responsibility Guide</title>
+<meta name="description" content="Secure compliant hosting via the shared-responsibility model: what the platform secures (firewall, SSL, backups, VPC) and what you own, plus how GDPR, PCI, and SOC 2 map.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/secure-compliant-hosting/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Secure Compliant Hosting: The Shared-Responsibility Guide">
+<meta property="og:description" content="Who secures what in secure, compliant hosting. The shared-responsibility model, a defense-in-depth walk-through, and how GDPR, PCI DSS, and SOC 2 map to it.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Security &amp; compliance</span>
+  <h1>Secure, Compliant Hosting: Who Actually Secures What</h1>
+
+  <figure><img src="images/hero.png" alt="Secure compliant hosting explained through the shared-responsibility model and defense in depth"></figure>
+
+  <p class="lead">You picked a host, switched on SSL, and the marketing page promised enterprise-grade security. So you're covered, right? Not quite. Secure compliant hosting isn't a checkbox you buy once. It's a split of duties between the platform and you, and the breaches that make the news almost always land on the wrong side of that split. This is the trust hub for teams that answer to auditors, customers, or regulators: fintech, health, agencies holding client data, anyone shipping to the EU. We'll map who secures what, walk the layers of a hardened stack, and show honestly where GDPR, PCI DSS, and SOC 2 begin and end.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>Hosting is secure and compliant when two things line up. The platform hardens the infrastructure (network isolation, firewall, patching, encryption in transit, backups) and you handle the app-level parts (your code, who has access, what data you collect and keep). That division is the shared-responsibility model. No host can be compliant on your behalf. It gives you the controls, and you build compliance on top.</p>
+  </div>
+
+  <h2>What secure compliant hosting actually means</h2>
+  <p>Two words, two jobs. <strong>Secure</strong> is about controls: firewalls, encryption, access limits, backups, the machinery that keeps attackers out and keeps you running. <strong>Compliant</strong> is about proof: showing an auditor that those controls exist, work, and are followed. You can be secure without a single certificate. You cannot be compliant without being secure first.</p>
+  <p>A host can hand you excellent security and you can still fail an audit, because half the requirements are about your app, your team, and your data handling. Secure cloud hosting gives you a strong foundation. It does not fill in the forms for you. So the useful question is never whether a host is secure. It's where the platform's job ends and yours begins.</p>
+
+  <h2>The shared-responsibility model: platform versus you</h2>
+  <p>Every serious cloud runs on a shared responsibility model, and it's worth internalizing because it decides who gets the 2am call. The platform owns the layers under your app: datacenter, network, operating system, backups. You own the layers inside it: your code, your users, your data, your decisions about what to collect. Managed hosting shifts more of the middle (patching, the stack, SSL) onto the platform than raw infrastructure does, but it never absorbs the top. The table below is the whole article in one grid.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Area</th><th>Platform provides</th><th>You own</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Physical + datacenter</strong></td><td>Tier-1 provider facilities (AWS, Google Cloud, Linode, Vultr, DigitalOcean, UpCloud, Lightsail)</td><td>Nothing at this layer. You inherit it.</td></tr>
+      <tr><td><strong>Network isolation</strong></td><td>VPC / private networking so services talk internally</td><td>Don't expose what should be private; keep the database off the public internet</td></tr>
+      <tr><td><strong>Firewall + intrusion</strong></td><td>Shorewall firewall and Fail2ban, on by default</td><td>IP allowlists and app-level rate limits you choose to add</td></tr>
+      <tr><td><strong>OS + stack patching</strong></td><td>Kernel, runtime, and stack updates handled for you</td><td>Your dependencies and framework versions, your package CVEs</td></tr>
+      <tr><td><strong>Encryption in transit</strong></td><td>Free, auto-renewing SSL/TLS</td><td>Force HTTPS, set HSTS, encrypt sensitive fields in your app</td></tr>
+      <tr><td><strong>Backups</strong></td><td>Automatic, restorable backups</td><td>Test a restore, set retention, back up anything you add outside</td></tr>
+      <tr><td><strong>Access control</strong></td><td>Subusers, UAC, 2FA, social login, HttpOnly sessions</td><td>Who you invite, least-privilege roles, removing people who leave</td></tr>
+      <tr><td><strong>Secrets</strong></td><td>Environment variable storage outside your code</td><td>Never commit a .env file, rotate keys, scope tokens</td></tr>
+      <tr><td><strong>Data + privacy</strong></td><td>Infrastructure to store data in a region you choose</td><td>What you collect, consent, retention, DSARs, your processor agreements</td></tr>
+      <tr><td><strong>Audit + evidence</strong></td><td>Audit trail (Enterprise), access logs</td><td>Your policies, monitoring, incident response, the audit itself</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note"><b>The number-one misconception:</b> "our host is compliant, so we're compliant." No host makes you compliant. It supplies the infrastructure controls an auditor wants to see, and you supply everything above the app boundary. Read the right column as your homework.</div>
+
+  <!-- ADD IMAGE: a one-page shared-responsibility matrix an admin can hand to an auditor. Swap for a real screenshot: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A one-page shared-responsibility matrix you can share with an auditor or a client.</em><small>Optional: brand it with your own logo.</small></span></figure>
+
+  <h2>Defense in depth: the layers a platform should give you</h2>
+  <p>Security isn't one wall. It's a stack of them, so when one fails (and one eventually does) the next still holds. Attackers call it work; defenders call it defense in depth. A managed platform should hand you most of these layers already switched on, not as a paid upsell you find after an incident.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 600" role="img" aria-label="Defense in depth: layered controls between the internet and your app and data" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="34" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Defense in depth: layers between the internet and your data</text>
+      <text x="34" y="54" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">The platform runs the outer layers. The green core is yours.</text>
+      <text x="40" y="82" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">Traffic in</text>
+      <line x1="52" y1="90" x2="52" y2="512" stroke="#c9d0e3" stroke-width="2"/>
+      <path d="M52 512 l-5 -11 h10 z" fill="#c9d0e3"/>
+      <!-- Band 1 -->
+      <rect x="96" y="86" width="584" height="58" rx="12" fill="#4F1AF3"/>
+      <text x="116" y="112" fill="#ffffff" font-family="Poppins,sans-serif" font-size="15" font-weight="600">Edge: Cloudflare (add-on)</text>
+      <text x="116" y="132" fill="#d8ccff" font-family="Poppins,sans-serif" font-size="12">Soaks up DDoS, filters bad requests before they reach the origin</text>
+      <text x="662" y="120" text-anchor="end" fill="#d8ccff" font-family="Poppins,sans-serif" font-size="10.5" letter-spacing="1">PLATFORM</text>
+      <!-- Band 2 -->
+      <rect x="96" y="154" width="584" height="58" rx="12" fill="#000f27"/>
+      <text x="116" y="180" fill="#ffffff" font-family="Poppins,sans-serif" font-size="15" font-weight="600">Firewall: Shorewall + Fail2ban</text>
+      <text x="116" y="200" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="12">On by default, bans hosts that keep knocking on closed doors</text>
+      <text x="662" y="188" text-anchor="end" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="10.5" letter-spacing="1">PLATFORM</text>
+      <!-- Band 3 -->
+      <rect x="96" y="222" width="584" height="58" rx="12" fill="#4F1AF3"/>
+      <text x="116" y="248" fill="#ffffff" font-family="Poppins,sans-serif" font-size="15" font-weight="600">Encryption in transit: SSL/TLS</text>
+      <text x="116" y="268" fill="#d8ccff" font-family="Poppins,sans-serif" font-size="12">Free, auto-renewing HTTPS on every domain</text>
+      <text x="662" y="256" text-anchor="end" fill="#d8ccff" font-family="Poppins,sans-serif" font-size="10.5" letter-spacing="1">PLATFORM</text>
+      <!-- Band 4 -->
+      <rect x="96" y="290" width="584" height="58" rx="12" fill="#000f27"/>
+      <text x="116" y="316" fill="#ffffff" font-family="Poppins,sans-serif" font-size="15" font-weight="600">Access: UAC + 2FA</text>
+      <text x="116" y="336" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="12">Least-privilege subusers, two-factor, HttpOnly sessions</text>
+      <text x="662" y="324" text-anchor="end" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="10.5" letter-spacing="1">PLATFORM</text>
+      <!-- Band 5 -->
+      <rect x="96" y="358" width="584" height="58" rx="12" fill="#4F1AF3"/>
+      <text x="116" y="384" fill="#ffffff" font-family="Poppins,sans-serif" font-size="15" font-weight="600">Private network: VPC</text>
+      <text x="116" y="404" fill="#d8ccff" font-family="Poppins,sans-serif" font-size="12">The database and internal services stay off the public internet</text>
+      <text x="662" y="392" text-anchor="end" fill="#d8ccff" font-family="Poppins,sans-serif" font-size="10.5" letter-spacing="1">PLATFORM</text>
+      <!-- Band 6 -->
+      <rect x="96" y="426" width="584" height="58" rx="12" fill="#000f27"/>
+      <text x="116" y="452" fill="#ffffff" font-family="Poppins,sans-serif" font-size="15" font-weight="600">Resilience: backups + audit trail</text>
+      <text x="116" y="472" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="12">Automatic backups; an immutable activity log on Enterprise</text>
+      <text x="662" y="460" text-anchor="end" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="10.5" letter-spacing="1">PLATFORM</text>
+      <!-- Core -->
+      <rect x="96" y="520" width="584" height="66" rx="12" fill="#ffffff" stroke="#40b75f" stroke-width="2"/>
+      <text x="116" y="548" fill="#000f27" font-family="Poppins,sans-serif" font-size="15" font-weight="700">Your app and your data</text>
+      <text x="116" y="568" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">Code, dependencies, access decisions, what you collect and keep</text>
+      <text x="662" y="556" text-anchor="end" fill="#40b75f" font-family="Poppins,sans-serif" font-size="10.5" letter-spacing="1" font-weight="700">YOU OWN THIS</text>
+    </svg>
+    <figcaption>A request passes through each layer on its way in. Remove any one and the layers under it carry more load than they should.</figcaption>
+  </figure>
+
+  <h3>The edge: soak up floods, filter bad requests</h3>
+  <p>The outermost layer sits in front of your server and screens traffic before it lands. On Kloudbean that's the Cloudflare add-on: edge caching, plus the ability to absorb volumetric DDoS and filter malicious requests. A web application firewall lives here too, watching for the patterns behind SQL injection and cross-site scripting. Want the mechanics? Start with <a href="https://www.kloudbean.com/blog/what-a-waf-does/">what a WAF actually does and when you need one</a>. One honest note: the baseline hardening below is always on, and true edge WAF and DDoS scrubbing come through Cloudflare, a paid add-on that's free for Enterprise. No separate magic appliance beyond that.</p>
+
+  <h3>The firewall: Shorewall and Fail2ban, on by default</h3>
+  <p>Under the edge sits the firewall on the server itself. Every Kloudbean server ships with a Shorewall firewall and Fail2ban, on from the first minute. Shorewall decides which ports are reachable. Fail2ban watches the logs and bans an IP that keeps failing to log in, which is exactly what a brute-force bot looks like. Turn that off and your SSH port becomes a 24/7 guessing game for every scanner online.</p>
+  <p>Want an extra layer? BitNinja is available as an added security option on Premium and Enterprise. Treat it as a bonus, not the baseline. The firewall and Fail2ban are the floor, and they're already under your feet.</p>
+
+  <figure>
+    <img src="../assets/console/firewall.png" alt="The Kloudbean console firewall settings showing Shorewall and Fail2ban enabled by default, with BitNinja as an added option">
+    <figcaption>Security settings: the Shorewall firewall and Fail2ban are on by default; BitNinja shows up as an added layer, not a requirement.</figcaption>
+  </figure>
+
+  <h3>Encryption in transit: free, auto-renewing SSL</h3>
+  <p>Every byte between a visitor and your app should be encrypted, always, no exceptions. That's SSL/TLS, and on Kloudbean it's free and renews itself, so you never wake up to an expired certificate and a browser scaring your users away. Without it, logins and session cookies travel as plain text that anyone on the network path can read. With it, that traffic is unreadable in flight. If a certificate ever misbehaves, the usual suspects are DNS, mixed content, or a stale cache, and the fixes live in <a href="https://www.kloudbean.com/blog/fix-ssl-certificate-errors/">how to fix common SSL certificate errors</a>.</p>
+  <p>One boundary worth stating. Encryption in transit is the platform's job, and it's handled. Encryption at rest for the fields you consider sensitive, a national ID, a card token, is an app-level decision you make in your own code. The platform protects the pipe. You decide what deserves an extra lock inside the payload.</p>
+
+  <figure>
+    <img src="../assets/console/ssl-certificate.png" alt="The Kloudbean console SSL certificate screen with free, auto-renewing HTTPS enabled for a domain">
+    <figcaption>SSL: issue a free certificate, and it renews on its own. HTTPS everywhere, without the calendar reminder.</figcaption>
+  </figure>
+
+  <h3>Least-privilege access: subusers, UAC, and 2FA</h3>
+  <p>Most incidents you'll ever read about aren't exotic zero-days. They're a leaked password or a token with far more power than it needed. The fix is old and it works: give every person and every key the least privilege that still lets them do the job. Kloudbean does this with subusers and User Access Control, granular permissions set per resource and per action. Your junior dev can deploy one app without touching billing, the database, or the other twenty projects.</p>
+  <p>Layer identity on top. Two-factor authentication means a stolen password alone isn't enough to get in. Social login (Google, GitHub, LinkedIn) leans on providers that already do hard identity work. And sessions use HttpOnly cookies, so a cross-site scripting bug can't read the session token out of JavaScript. None of it is flashy. All of it closes the doors attackers use most.</p>
+
+  <figure>
+    <img src="../assets/console/subusers-uac.png" alt="The Kloudbean console subusers and User Access Control screen assigning least-privilege, per-resource permissions">
+    <figcaption>Subusers + UAC: grant per-resource, per-action permissions so nobody carries more access than the task needs.</figcaption>
+  </figure>
+
+  <h3>Lock the doors you rarely use</h3>
+  <p>Admin panels, staging sites, and internal dashboards don't need to greet the whole internet. Two cheap controls shrink that surface fast. IP Access Control allows or denies by address or CIDR range, so only your office or VPN reaches a sensitive path. A Basic Auth gate puts a username and password wall in front of an app before anyone sees it, ideal for staging you don't want indexed or probed. Neither is fancy. The bots can't attack a door they can't reach.</p>
+
+  <h3>Private networking: keep the database off the public internet</h3>
+  <p>The most common self-inflicted wound in hosting is a database with a public IP and a weak password. Scanners find it in hours. So keep internal services internal. On Kloudbean your app talks to its database over a VPC and private networking, so the database isn't sitting on the open web waiting to be discovered. The app reaches it on the inside; the internet can't. For admin work you tunnel in through the server rather than exposing a port to the world.</p>
+
+  <!-- ADD IMAGE: a simple topology showing app and database on a private network, with the internet blocked from the database. Swap for a real screenshot: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Network topology: app and database on a private network, public internet blocked from the database.</em><small>Optional: highlight the VPC boundary.</small></span></figure>
+
+  <h3>Backups: the first step of resilience</h3>
+  <p>People file backups under "recovery," but they belong in any honest security conversation. Ransomware, a bad migration, a fat-fingered delete: what saves you is a clean, recent, restorable copy. Kloudbean backs up automatically. The step almost everyone skips is testing a restore before they actually need one. Do it once, so the path is proven. A backup you've never restored is a hope, not a plan. There's more on cadence and retention in the <a href="https://www.kloudbean.com/blog/server-backups-guide/">guide to server backups and restore testing</a>.</p>
+
+  <figure>
+    <img src="../assets/console/manage-backups.png" alt="The Kloudbean console backups screen showing automatic, restorable server and application backups">
+    <figcaption>Backups run automatically. The habit to build is restoring one on purpose, before a real incident forces it.</figcaption>
+  </figure>
+
+  <h3>Audit trail: proof of who did what</h3>
+  <p>When something changes, compliance and incident response ask the same question: who did that, and when? An audit trail answers it. Kloudbean's Audit Trail, on Enterprise, is an immutable, searchable, account-wide log of activity with CSV export, built with compliance in mind. For a SOC 2 review or a post-incident timeline, that log is the difference between "we think" and "we can show you." It's the layer that turns a pile of good controls into evidence an auditor accepts.</p>
+
+  <!-- ADD IMAGE: the audit trail view with a searchable, timestamped activity log and a CSV export button. Swap for a real screenshot: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Audit trail: a searchable, timestamped activity log with CSV export.</em><small>Enterprise feature.</small></span></figure>
+
+  <h2>Your side of the line: what no host can do for you</h2>
+  <p>Now the right column of that table, because this is where audits are won or lost. The platform hands you a hardened base. Your application is still yours to secure.</p>
+  <ul>
+    <li><strong>Your code.</strong> Injection, broken access checks, and cross-site scripting are app bugs, not server bugs. Validate input, use parameterized queries, and set proper HTTP security headers so browsers help defend your users. Start with the <a href="https://www.kloudbean.com/blog/security-headers-guide/">security headers guide</a> for CSP, HSTS, and the rest.</li>
+    <li><strong>Your dependencies.</strong> A patched server won't save you from a known CVE in a package you shipped. Run your language's audit (<code>npm audit</code>, <code>pip-audit</code>) and keep libraries current. If you ship containers, scan the images before they go out.</li>
+    <li><strong>Your secrets.</strong> API keys and connection strings live in environment variables, never in the repo. A leaked key in Git history is one of the fastest ways to get breached, and it's entirely on your side of the line.</li>
+    <li><strong>Your access hygiene.</strong> Least-privilege only works if you actually use it. Remove people when they leave, review who has what, and turn on 2FA for everyone, not just admins.</li>
+    <li><strong>Your data decisions.</strong> What you collect, how long you keep it, who you share it with, and whether you have consent are legal and product choices. No infrastructure control makes them for you.</li>
+  </ul>
+
+  <!-- ADD IMAGE: a terminal showing an npm audit or pip-audit run flagging a vulnerable dependency. Swap for a real screenshot: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A dependency audit run (npm audit or pip-audit) flagging a vulnerable package.</em><small>Reinforces that patching your code is your job.</small></span></figure>
+
+  <h2>How GDPR, PCI DSS, and SOC 2 map to shared responsibility</h2>
+  <p>Compliance frameworks look scary from outside, but each one splits along the same platform-versus-you line. Read them as two columns, not one wall. Here's how GDPR, PCI DSS, and SOC 2 hosting map to who does what.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Framework</th><th>Platform provides (infra controls)</th><th>You own (app + process)</th></tr></thead>
+    <tbody>
+      <tr><td><strong>GDPR</strong></td><td>Data stored in a region you choose, encryption in transit, access controls, backups</td><td>Lawful basis, consent, data minimization, DSAR handling, your processor agreements</td></tr>
+      <tr><td><strong>PCI DSS</strong></td><td>Network segmentation, firewall, TLS, patched infrastructure</td><td>Scope of cardholder data, tokenizing or outsourcing card capture, not storing what you don't need</td></tr>
+      <tr><td><strong>SOC 2</strong></td><td>Infrastructure controls, audit trail, access logs, backups as evidence</td><td>Your written policies, onboarding and offboarding, monitoring, and the audit itself</td></tr>
+    </tbody>
+  </table>
+
+  <h3>GDPR: where the data lives and what you collect</h3>
+  <p>GDPR cares a lot about where personal data sits and how it's handled. The platform side is picking a region and keeping data encrypted and access-controlled once it's there. Kloudbean spans seven clouds, so you can place workloads in the region your policy calls for. The rest is yours: a lawful basis for processing, honest consent, collecting the minimum you need, and answering data subject access requests. Deeper detail lives in the <a href="https://www.kloudbean.com/blog/gdpr-compliant-hosting/">guide to GDPR-compliant hosting</a>.</p>
+
+  <h3>PCI DSS: shrink the scope, then defend it</h3>
+  <p>The best PCI move most teams can make is to touch as little card data as possible. Hand card entry to a payment provider, store tokens instead of PANs, and your compliance scope shrinks dramatically. The platform supports you with network segmentation, a firewall, TLS, and patched infrastructure. You own keeping cardholder data out of places it shouldn't be. See the <a href="https://www.kloudbean.com/blog/pci-compliant-hosting/">PCI-compliant hosting breakdown</a> for the full split.</p>
+
+  <h3>SOC 2: controls plus the evidence they ran</h3>
+  <p>SOC 2 is less about a specific technology and more about proving your controls operate over time. This is where the audit trail, access logs, and backups earn their keep as evidence. The platform provides those controls and their records; you provide the policies, the process, and the discipline to follow them. The <a href="https://www.kloudbean.com/blog/soc2-compliant-hosting/">SOC 2 hosting guide</a> walks through the Trust Services Criteria and who covers each one.</p>
+
+  <h2>The honest answer on certifications</h2>
+  <p>Straight talk, because this is where a lot of hosting copy quietly lies. Kloudbean provides the infrastructure controls that support GDPR, PCI DSS, and SOC 2. That does not mean your app is certified, and it does not mean you can skip your own work. Certification and attestation are a shared, ongoing effort, and some certifications are in progress rather than finished. Any vendor that says their hosting alone makes you "certified" is selling a story an auditor will unwind in five minutes.</p>
+  <p>What you can lean on: a hardened base, encryption in transit, private networking, least-privilege access, automatic backups, and, on Enterprise, an audit trail that produces the evidence an assessor asks for. That's a real, defensible starting position. If you're weighing managed platforms on security posture rather than logos, a like-for-like read such as <a href="https://www.kloudbean.com/blog/kloudbean-vs-cloudways/">Kloudbean vs Cloudways</a> beats any badge on a homepage.</p>
+
+  <h2>A practical hardening checklist</h2>
+  <p>If you do nothing else this week, do these.</p>
+  <ul>
+    <li>Turn on 2FA for every account, not just the owner.</li>
+    <li>Create least-privilege subusers with UAC; delete access nobody uses anymore.</li>
+    <li>Put the database on the private network; confirm it has no public IP.</li>
+    <li>Verify HTTPS is forced and the certificate auto-renews.</li>
+    <li>Set your app's security headers (CSP, HSTS) and validate all input.</li>
+    <li>Move every secret into environment variables; scrub keys from Git history.</li>
+    <li>Restore a backup on purpose, once, to prove the path works.</li>
+  </ul>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">A hardened base, on day one.</p>
+    <p style="margin:0 0 .6em">Ship on infrastructure that arrives secured, so you can spend your effort on the app-level controls only you can own. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>, and always verify current details there.</p>
+    <p style="margin:0">Firewall + Fail2ban baseline · Free auto-renewing SSL · Private networking · Subusers + UAC · 2FA · Automatic backups · Audit trail (Enterprise)</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What makes hosting secure and compliant?</h3>
+    <p>Two jobs done together. The platform hardens the infrastructure with network isolation, a firewall, patching, encryption in transit, and backups. You handle the app-level parts: your code, who has access, and what data you collect and keep. Secure means the controls exist and work. Compliant means you can prove it to an auditor. You need both, and they sit on opposite sides of the shared-responsibility line.</p>
+    <h3>What is the shared-responsibility model in hosting?</h3>
+    <p>It's the split of security duties between the platform and the customer. The platform owns the layers under your app: the datacenter, network, operating system, and backups. You own the layers inside it: your code, your users, your data, and your decisions about what to collect. Managed hosting moves more of the middle, like patching and SSL, onto the platform, but it never takes over your application.</p>
+    <h3>Is Kloudbean GDPR, PCI, or SOC 2 certified?</h3>
+    <p>Kloudbean provides the infrastructure controls that support GDPR, PCI DSS, and SOC 2, such as encryption in transit, private networking, access controls, backups, and an Enterprise audit trail. Certification and attestation are a shared, ongoing effort, and some certifications are in progress. No host makes your application compliant on its own. You still own the app-level and process requirements each framework asks for.</p>
+    <h3>What security is on by default?</h3>
+    <p>Every Kloudbean server ships with a Shorewall firewall and Fail2ban already enabled, plus free, auto-renewing SSL for your domains. You can also keep your database on a private network so it never faces the public internet. Extra layers like BitNinja are available on Premium and Enterprise, but the firewall, Fail2ban, and SSL are the baseline you start with.</p>
+    <h3>Does secure hosting include a WAF?</h3>
+    <p>The always-on baseline is the Shorewall firewall plus Fail2ban on the server. A web application firewall and DDoS scrubbing at the edge come through the Cloudflare add-on, which is paid and free for Enterprise. That is the honest scope. There is no separate managed WAF appliance beyond the baseline hardening and the Cloudflare edge.</p>
+    <h3>Who is responsible for encrypting my data?</h3>
+    <p>Encryption in transit is the platform's job and it is handled with free, auto-renewing SSL/TLS on every domain. Encrypting specific sensitive fields inside your data, like a card token or a national ID, is an app-level decision you make in your own code. The platform protects the connection. You decide what deserves an extra lock inside the payload.</p>
+    <h3>How do I limit who can access my servers?</h3>
+    <p>Use least privilege. Create subusers with User Access Control so each person gets only the permissions their task needs, set per resource and per action. Turn on two-factor authentication for everyone, and use IP Access Control or a Basic Auth gate to keep admin and staging paths off the open internet. Remove access promptly when someone leaves.</p>
+    <h3>What is an audit trail and do I need one?</h3>
+    <p>An audit trail is an immutable, searchable log of who did what and when, with CSV export, available on Enterprise. You need it when you have to prove your controls operated over time, which is central to SOC 2, and it is invaluable for reconstructing an incident timeline. It turns a set of good controls into evidence an assessor will accept.</p>
+    <h3>Does compliance mean my app is automatically secure?</h3>
+    <p>No. Compliance shows that a defined set of controls exists and is followed, but plenty of the requirements live in your application and your process. A platform can give you a hardened, well-documented foundation, and you can still ship an insecure app on top of it. Security and compliance are shared. The platform covers the infrastructure, and the rest is yours.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Security · Shared responsibility, minus the hand-waving. What we secure, what you own, and where the line sits.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Secure, Compliant Hosting: Who Actually Secures What","description":"Secure compliant hosting explained through the shared-responsibility model: what the platform secures (network, firewall, SSL, backups, VPC) versus what you own, plus a defense-in-depth walk-through and how GDPR, PCI DSS, and SOC 2 map.","image":"https://www.kloudbean.com/blog/secure-compliant-hosting/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/secure-compliant-hosting/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What makes hosting secure and compliant?","acceptedAnswer":{"@type":"Answer","text":"Two jobs done together. The platform hardens the infrastructure with network isolation, a firewall, patching, encryption in transit, and backups. You handle the app-level parts: your code, who has access, and what data you collect and keep. Secure means the controls exist and work. Compliant means you can prove it to an auditor. You need both, and they sit on opposite sides of the shared-responsibility line."}},
+{"@type":"Question","name":"What is the shared-responsibility model in hosting?","acceptedAnswer":{"@type":"Answer","text":"It is the split of security duties between the platform and the customer. The platform owns the layers under your app: the datacenter, network, operating system, and backups. You own the layers inside it: your code, your users, your data, and your decisions about what to collect. Managed hosting moves more of the middle, like patching and SSL, onto the platform, but it never takes over your application."}},
+{"@type":"Question","name":"Is Kloudbean GDPR, PCI, or SOC 2 certified?","acceptedAnswer":{"@type":"Answer","text":"Kloudbean provides the infrastructure controls that support GDPR, PCI DSS, and SOC 2, such as encryption in transit, private networking, access controls, backups, and an Enterprise audit trail. Certification and attestation are a shared, ongoing effort, and some certifications are in progress. No host makes your application compliant on its own. You still own the app-level and process requirements each framework asks for."}},
+{"@type":"Question","name":"What security is on by default?","acceptedAnswer":{"@type":"Answer","text":"Every Kloudbean server ships with a Shorewall firewall and Fail2ban already enabled, plus free, auto-renewing SSL for your domains. You can also keep your database on a private network so it never faces the public internet. Extra layers like BitNinja are available on Premium and Enterprise, but the firewall, Fail2ban, and SSL are the baseline you start with."}},
+{"@type":"Question","name":"Does secure hosting include a WAF?","acceptedAnswer":{"@type":"Answer","text":"The always-on baseline is the Shorewall firewall plus Fail2ban on the server. A web application firewall and DDoS scrubbing at the edge come through the Cloudflare add-on, which is paid and free for Enterprise. That is the honest scope. There is no separate managed WAF appliance beyond the baseline hardening and the Cloudflare edge."}},
+{"@type":"Question","name":"Who is responsible for encrypting my data?","acceptedAnswer":{"@type":"Answer","text":"Encryption in transit is the platform job and it is handled with free, auto-renewing SSL and TLS on every domain. Encrypting specific sensitive fields inside your data, like a card token or a national ID, is an app-level decision you make in your own code. The platform protects the connection. You decide what deserves an extra lock inside the payload."}},
+{"@type":"Question","name":"How do I limit who can access my servers?","acceptedAnswer":{"@type":"Answer","text":"Use least privilege. Create subusers with User Access Control so each person gets only the permissions their task needs, set per resource and per action. Turn on two-factor authentication for everyone, and use IP Access Control or a Basic Auth gate to keep admin and staging paths off the open internet. Remove access promptly when someone leaves."}},
+{"@type":"Question","name":"What is an audit trail and do I need one?","acceptedAnswer":{"@type":"Answer","text":"An audit trail is an immutable, searchable log of who did what and when, with CSV export, available on Enterprise. You need it when you have to prove your controls operated over time, which is central to SOC 2, and it is invaluable for reconstructing an incident timeline. It turns a set of good controls into evidence an assessor will accept."}},
+{"@type":"Question","name":"Does compliance mean my app is automatically secure?","acceptedAnswer":{"@type":"Answer","text":"No. Compliance shows that a defined set of controls exists and is followed, but plenty of the requirements live in your application and your process. A platform can give you a hardened, well-documented foundation, and you can still ship an insecure app on top of it. Security and compliance are shared. The platform covers the infrastructure, and the rest is yours."}}
+]}
+]}
+</script>
+</body>
+</html>

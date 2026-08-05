@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deploying a Rails App: The Questions Everyone Actually Asks</title>
+<meta name="description" content="You want to deploy a Rails app and it already runs with rails server. Production raises real questions — RAILS_MASTER_KEY, assets:precompile, migrations, Puma, Sidekiq. Plain answers to each.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/deploy-rails-app/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Deploying a Rails App: The Questions Everyone Actually Asks">
+<meta property="og:description" content="Plain answers to the real questions a Rails deploy raises — the master key, assets, migrations, Puma, and background jobs.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">App deployment</span>
+  <h1>Deploying a Rails App: The Questions Everyone Actually Asks</h1>
+
+  <figure><img src="images/hero.png" alt="Deploy a Ruby on Rails app — the ordered deploy sequence, Puma, Postgres and Sidekiq, on a server you own"></figure>
+
+  <p class="lead">Your Rails app runs locally. You type <code>rails server</code>, open localhost, and it works. Then you go to deploy your Rails app to a production server and a small pile of questions lands all at once: what does the server need, why does it refuse to boot over some encryption key, how do assets work, do you need that background jobs thing?</p>
+  <p>None of it is hard once someone answers it straight. So that's the format here: the real questions, in the order they tend to hit, with short answers and the commands that go with them.</p>
+
+  <div class="tldr"><strong>Short version</strong><p>A Rails deploy is an ordered sequence: <code>bundle install</code>, <code>assets:precompile</code>, <code>db:migrate</code>, then boot <strong>Puma</strong>. Set <code>RAILS_ENV=production</code>, <code>RAILS_MASTER_KEY</code> (or <code>SECRET_KEY_BASE</code>) and <code>DATABASE_URL</code> as env vars first, or it won't start. Uploads go to object storage via Active Storage. Add Sidekiq only if you have background jobs.</p></div>
+
+  <h2>What does a Rails app actually need in production?</h2>
+  <p>Not much, and nothing exotic:</p>
+  <ul>
+    <li><strong>Ruby</strong> (the version pinned in your <code>.ruby-version</code>) and <strong>Bundler</strong> for gems.</li>
+    <li><strong>A database.</strong> Postgres is the usual pick for a rails production server; MySQL is fine too.</li>
+    <li><strong>An app server.</strong> <strong>Puma</strong> runs your Rails app, and it's already in your Gemfile.</li>
+    <li><strong>Node and a JS bundler</strong> at build time, only if your app compiles JavaScript. Plenty of modern Rails apps barely touch this.</li>
+  </ul>
+  <p>On a managed platform Ruby and that stack are already provisioned, so you're placing your app onto a ready server instead of building one from scratch. That's most of why "how do I host Ruby on Rails" feels heavier than it is: the old guides make you install the world first. You get to skip that part.</p>
+
+  <h2>So how do I deploy a Rails app?</h2>
+  <p>Think of it as four ordered stages, not one big scary "deploy." Push your code to GitHub, connect the repo, and set the sequence. Each stage feeds the next.</p>
+
+  <figure>
+    <svg viewBox="0 0 700 372" width="100%" role="img" aria-label="Diagram: the Rails deploy sequence in order. Stage 1 bundle install for gems, stage 2 assets:precompile fingerprints CSS and JS, stage 3 db:migrate keeps the schema in step with code, stage 4 Puma boots and listens on the assigned PORT. A warning: before Puma boots, set RAILS_MASTER_KEY or Rails cannot decrypt config/credentials.yml.enc and will not start; set SECRET_KEY_BASE and DATABASE_URL too, as env vars. Optionally, a Sidekiq worker runs alongside the web process, backed by managed Redis, for background jobs.">
+      <rect x="0.5" y="0.5" width="699" height="371" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="350" y="30" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="16.5" font-weight="700" fill="#000f27">The Rails deploy sequence, in order</text>
+
+      <!-- pipeline stages -->
+      <g font-family="Poppins,Arial,sans-serif">
+        <rect x="28" y="50" width="132" height="64" rx="10" fill="#f6f7fb" stroke="#e6e9f2"/>
+        <text x="44" y="76" font-size="12.5" font-weight="700" fill="#4F1AF3">1</text>
+        <text x="94" y="76" text-anchor="middle" font-size="12.5" font-weight="600" fill="#000f27">bundle install</text>
+        <text x="94" y="97" text-anchor="middle" font-size="10.5" fill="#5b6a86">install your gems</text>
+
+        <rect x="196" y="50" width="132" height="64" rx="10" fill="#f6f7fb" stroke="#e6e9f2"/>
+        <text x="212" y="76" font-size="12.5" font-weight="700" fill="#4F1AF3">2</text>
+        <text x="262" y="76" text-anchor="middle" font-size="12" font-weight="600" fill="#000f27">assets:precompile</text>
+        <text x="262" y="97" text-anchor="middle" font-size="10.5" fill="#5b6a86">CSS + JS, fingerprinted</text>
+
+        <rect x="364" y="50" width="132" height="64" rx="10" fill="#f6f7fb" stroke="#e6e9f2"/>
+        <text x="380" y="76" font-size="12.5" font-weight="700" fill="#4F1AF3">3</text>
+        <text x="430" y="76" text-anchor="middle" font-size="12.5" font-weight="600" fill="#000f27">db:migrate</text>
+        <text x="430" y="97" text-anchor="middle" font-size="10.5" fill="#5b6a86">schema follows code</text>
+
+        <rect x="532" y="50" width="140" height="64" rx="10" fill="#000f27"/>
+        <text x="548" y="76" font-size="12.5" font-weight="700" fill="#c9b8ff">4</text>
+        <text x="602" y="76" text-anchor="middle" font-size="12.5" font-weight="600" fill="#fff">Puma boots</text>
+        <text x="602" y="97" text-anchor="middle" font-size="10.5" fill="#c9b8ff">listens on $PORT</text>
+      </g>
+      <g stroke="#4F1AF3" stroke-width="2" fill="none">
+        <line x1="160" y1="82" x2="192" y2="82"/><polygon points="192,76 204,82 192,88" fill="#4F1AF3"/>
+        <line x1="328" y1="82" x2="360" y2="82"/><polygon points="360,76 372,82 360,88" fill="#4F1AF3"/>
+        <line x1="496" y1="82" x2="528" y2="82"/><polygon points="528,76 540,82 528,88" fill="#4F1AF3"/>
+      </g>
+
+      <!-- won't-boot warning strip -->
+      <rect x="28" y="134" width="644" height="58" rx="10" fill="#f6f8ff" stroke="#e2e8ff"/>
+      <text x="44" y="158" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">Before step 4: set RAILS_MASTER_KEY, or Rails can't decrypt config/credentials.yml.enc and won't start.</text>
+      <text x="44" y="178" font-family="Poppins,Arial,sans-serif" font-size="12" fill="#5b6a86">Set SECRET_KEY_BASE and DATABASE_URL too. All as environment variables, never in git.</text>
+
+      <!-- optional background branch -->
+      <text x="350" y="222" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="600" fill="#4F1AF3">OPTIONAL: BACKGROUND JOBS (RUN ALONGSIDE THE WEB PROCESS)</text>
+      <g font-family="Poppins,Arial,sans-serif">
+        <rect x="150" y="236" width="200" height="52" rx="10" fill="#eef0ff" stroke="#d7ddff"/>
+        <text x="250" y="258" text-anchor="middle" font-size="12.5" font-weight="600" fill="#000f27">Sidekiq worker</text>
+        <text x="250" y="276" text-anchor="middle" font-size="10.5" fill="#5b6a86">bundle exec sidekiq</text>
+        <rect x="410" y="236" width="200" height="52" rx="10" fill="#eaf7ef" stroke="#cdebd6"/>
+        <text x="510" y="258" text-anchor="middle" font-size="12.5" font-weight="600" fill="#000f27">Managed Redis</text>
+        <text x="510" y="276" text-anchor="middle" font-size="10.5" fill="#40b75f">holds the jobs</text>
+      </g>
+      <g stroke="#4F1AF3" stroke-width="2" fill="none">
+        <line x1="350" y1="262" x2="406" y2="262"/><polygon points="406,256 418,262 406,268" fill="#4F1AF3"/>
+      </g>
+
+      <text x="350" y="322" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#5b6a86">rails server is nowhere in this picture. Puma is the app server in production.</text>
+      <text x="350" y="344" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#5b6a86">On managed cloud the web server, SSL and process supervision are already there.</text>
+    </svg>
+    <figcaption>A Rails deploy is an ordered pipeline. Set the secrets first, run the three build stages, then Puma boots.</figcaption>
+  </figure>
+
+  <pre><code># Install
+bundle install
+# Build
+bundle exec rails assets:precompile
+# Release (runs each deploy, before new code goes live)
+bundle exec rails db:migrate
+# Start
+bundle exec puma -C config/puma.rb   # listens on the assigned port</code></pre>
+
+  <p>Push once to wire it up. From then on, deploying is a <code>git push</code>: the precompile and migrate steps run themselves in order, and Puma restarts on the new code. That's the payoff for setting the sequence up once. On <a href="https://www.kloudbean.com/">Kloudbean</a> you connect the repo under <strong>Deploy Code &#8594; Git Deployment</strong> and fill those fields.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean Deploy Code / Git Deployment screen: a Rails repo connected with bundle install, assets:precompile, db:migrate and the Puma start command set">
+    <figcaption>Deploy Code &#8594; Git Deployment: set the build sequence and the Puma start command once, then push to deploy.</figcaption>
+  </figure>
+
+  <h2>Why won't it boot with "Missing encryption key" or SECRET_KEY_BASE?</h2>
+  <p>This is the one that gets almost everybody on the first production boot, and it's worth understanding rather than just pasting a fix. Modern Rails encrypts your secrets into <code>config/credentials.yml.enc</code>, which can only be read with a key kept in <code>config/master.key</code>. That key file is gitignored on purpose, so it isn't in your repo, which means production doesn't have it unless you provide it. When Rails tries to read credentials and can't decrypt them, it stops dead:</p>
+
+  <pre><code>Missing encryption key to decrypt file with.
+Ask your team for your master key and write it to
+config/master.key or put it in the ENV["RAILS_MASTER_KEY"].</code></pre>
+
+  <p>We see this constantly, and the fix is one environment variable. Set <code>RAILS_MASTER_KEY</code> to the contents of your local <code>config/master.key</code> and Rails can decrypt credentials and boot. Related but separate is <code>SECRET_KEY_BASE</code>, the value Rails uses to sign cookies and sessions. In modern Rails it can live inside credentials, or you can set it directly as its own env var (<code>rails secret</code> prints a fresh one). Either approach is valid. What you can't do is skip both and expect production to start.</p>
+  <p>So the boot-critical trio, set as environment variables and never committed: <code>RAILS_MASTER_KEY</code>, <code>SECRET_KEY_BASE</code> (unless it's in credentials), and <code>DATABASE_URL</code>. Add <code>RAILS_ENV=production</code> and <code>RAILS_SERVE_STATIC_FILES=true</code> while you're there.</p>
+
+  <pre><code># the boot-critical environment (set on the server, not in git)
+RAILS_ENV=production
+RAILS_MASTER_KEY=...        # equals your local config/master.key
+SECRET_KEY_BASE=...         # or keep it inside encrypted credentials
+DATABASE_URL=postgres://myapp:pass@127.0.0.1:5432/myapp
+RAILS_SERVE_STATIC_FILES=true
+RAILS_MAX_THREADS=5</code></pre>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean Environment Variables screen: RAILS_MASTER_KEY, SECRET_KEY_BASE and DATABASE_URL set for a Rails app via Paste .env">
+    <figcaption>Runtime Configuration: paste the env block and Rails reads the master key, secret base and database URL from the server.</figcaption>
+  </figure>
+
+  <p>More on why secrets belong in the environment and not the codebase: <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a>.</p>
+
+  <!-- Swap this slot for a real screenshot. src -> images/rails-boot-error.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The boot failure in context: a production.log tail showing the "Missing encryption key" error, or the app-error log with the same message.</em><small>Makes the number-one Rails first-deploy failure recognizable.</small></span></figure>
+
+  <h2>What about the database and migrations?</h2>
+  <p>Launch a managed Postgres and connect it with a single <code>DATABASE_URL</code> environment variable. Rails reads that automatically, no config file editing needed.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean Launch Database screen: creating a managed Postgres for a Rails app, connected with DATABASE_URL">
+    <figcaption>Launch a managed Postgres, then connect Rails with one <code>DATABASE_URL</code>. It's backed up and on the same box.</figcaption>
+  </figure>
+
+  <p>Migrations are the part people fret over, but the pattern is boring on purpose: run <code>rails db:migrate</code> as a release step on every deploy, right before the new code goes live. Each version applies its own schema changes, in order, so the database never drifts behind the code. You don't run migrations by hand on production. You let the deploy do it, every time.</p>
+  <p>One quiet gotcha: your database <strong>connection pool</strong> has to be big enough for Puma. Each Puma worker runs several threads, and each thread wants its own connection, so set the pool in <code>database.yml</code> to at least <code>RAILS_MAX_THREADS</code>. Set it too small and requests queue up waiting for a free connection under load. It looks like a slow database, but it's really a number set too low. Background on the engine choice is in <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a> and <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">add a managed database to your app</a>.</p>
+
+  <h2>Where do my assets and uploaded files go?</h2>
+  <p>Two different things, handled two different ways. Mixing them up is a classic first-deploy mistake.</p>
+  <ul>
+    <li><strong>Assets</strong> (the CSS, JS and images that ship <em>with</em> the app) are handled by <code>assets:precompile</code> at build time. Rails fingerprints them for caching and serves them fast. Skip precompile and you ship an app with no CSS or JS, so it loads as naked HTML. Set <code>RAILS_SERVE_STATIC_FILES=true</code> so Rails serves them, and put a CDN in front later if you want.</li>
+    <li><strong>Uploads</strong> (files your <em>users</em> send, like avatars and PDFs) go through <strong>Active Storage</strong>. The catch: the default local-disk service saves them on that one server, so they vanish on a rebuild and don't exist if you run more than one instance. Point Active Storage at <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage</a> instead. It's a few lines of config plus credentials, because Rails ships the adapter. Do it early. Migrating uploads later is a chore.</li>
+  </ul>
+
+  <h2>Is <code>rails server</code> fine for production, or do I need Puma?</h2>
+  <p>Use Puma. <code>rails server</code> is a development convenience that boots one process, which is exactly wrong for real traffic. Puma is built for it: multiple workers and threads handling concurrent requests, and it's already configured in a standard Rails app at <code>config/puma.rb</code>. So you're not setting up anything new. You start the app with <code>bundle exec puma</code> instead of <code>rails server</code>, and that's the whole change.</p>
+  <p>An opinion, since people ask: don't hand-roll your process setup for a normal Rails app. Puma with its default config is the sane default and it's what the community standardizes on. The default worker and thread counts are a fine starting point on a small-to-medium server. Tune them later if you measure a reason to, not before. Guessing at Puma tuning on day one is effort spent on a problem you probably don't have yet.</p>
+
+  <h2>Do I need Sidekiq?</h2>
+  <p>Only if your app does background work: sending email, generating reports, calling slow third-party APIs. If it does, that work usually runs through <strong>Sidekiq</strong>, which needs two things: a <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis</a> to hold the jobs, and a worker process running <code>bundle exec sidekiq</code> alongside your web app, kept alive by the process manager. Launch a small Redis, start the worker, and jobs get processed. No background work yet? Skip all of it. You can add it the day you need it, and not a moment sooner.</p>
+
+  <h2>Do I need Capistrano or Docker to deploy Rails?</h2>
+  <p>For a single Rails app, honestly, no. Capistrano is a fine tool, but a git-based deploy that runs your build sequence and boots Puma covers the same ground with less to maintain. Docker and Kubernetes solve orchestration problems that appear when you're running many services at scale; one Rails app plus Sidekiq plus a database isn't that. Reach for them when you actually have the problem they solve. Starting simple is not a compromise here, it's the right call for most apps.</p>
+
+  <h2>What breaks first?</h2>
+  <p>In rough order of likelihood, the first-deploy failures are:</p>
+  <ol>
+    <li><strong>Won't boot: missing <code>RAILS_MASTER_KEY</code> or <code>SECRET_KEY_BASE</code>.</strong> Rails can't decrypt credentials or sign cookies. Set the env vars.</li>
+    <li><strong>Wrong mode: missing <code>RAILS_ENV=production</code>.</strong> The app runs as if it's in development. Set it.</li>
+    <li><strong>No styling: assets 404.</strong> You skipped <code>assets:precompile</code>, or <code>RAILS_SERVE_STATIC_FILES</code> isn't set.</li>
+    <li><strong>Database errors.</strong> <code>DATABASE_URL</code> is wrong or missing, or the pool is too small for Puma.</li>
+    <li><strong>Uploads disappear.</strong> Active Storage is still on local disk. Move it to object storage.</li>
+  </ol>
+  <p>Rails writes to <code>log/production.log</code>, and the server keeps an app error log at <code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/app.error.log</code>. Read those before you touch code. Nearly every first-deploy problem is one of the five above, and each is a one-line fix once you've seen it. The step-by-step for a stubborn boot is <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fixing a 503 after deploying your app</a>.</p>
+
+  <h2>What you own, what Kloudbean runs</h2>
+  <p>Rails is a Ruby app, and Ruby on Linux is exactly what a managed server runs, so nothing here fights the platform. Kloudbean keeps the box healthy: the Ruby stack, the web server in front of Puma, free SSL, the firewall, and server-level backups, on any of its seven clouds. You own the Rails app: its credentials, its migrations, its Active Storage config, any Sidekiq workers. It's a standard Linux server running standard Ruby, so you can move hosts whenever you like. Working in other frameworks too? The Python checklist is <a href="https://www.kloudbean.com/blog/deploy-django-app/">deploy a Django app</a>, and running app plus database on one box is covered in <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">host your app, API, and database on one server</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Puma, Postgres, and Sidekiq if you need it.</p>
+    <p style="margin:0">Deploy your Rails app on a server you own at <a href="https://www.kloudbean.com/">kloudbean.com</a>, and let the release step run migrations on every push. Managed Postgres &amp; Redis · Automatic backups · Free Let's Encrypt SSL · Git deploy · Free migration · Free trial. Sizes on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I deploy a Ruby on Rails app?</h3>
+    <p>Push it to GitHub, connect the repo, and set the ordered sequence: a build step (<code>bundle install</code> plus <code>assets:precompile</code>), a release step (<code>rails db:migrate</code>), and a start command (<code>bundle exec puma</code>). Add your environment variables first, especially <code>RAILS_MASTER_KEY</code>, <code>SECRET_KEY_BASE</code>, <code>RAILS_ENV=production</code> and <code>DATABASE_URL</code>, then deploy.</p>
+
+    <h3>Why does my Rails app say "Missing encryption key" on boot?</h3>
+    <p>Rails can't decrypt <code>config/credentials.yml.enc</code> because the master key isn't present in production. That key is gitignored, so you provide it as an environment variable. Set <code>RAILS_MASTER_KEY</code> to the contents of your local <code>config/master.key</code> and the app boots.</p>
+
+    <h3>What is the difference between RAILS_MASTER_KEY and SECRET_KEY_BASE?</h3>
+    <p><code>RAILS_MASTER_KEY</code> decrypts your encrypted credentials file. <code>SECRET_KEY_BASE</code> is the value Rails uses to sign cookies and sessions. In modern Rails the secret base can live inside credentials, or you can set it as its own env var. If neither is available in production, Rails refuses to start.</p>
+
+    <h3>How do I run Rails migrations when I deploy?</h3>
+    <p>Run <code>rails db:migrate</code> as a release step that fires on every deploy, right before the new code goes live. That keeps the schema in step with the code automatically. You don't run migrations by hand on production.</p>
+
+    <h3>Why does my Rails app load with no CSS or JavaScript?</h3>
+    <p>Your assets weren't precompiled or aren't being served. Run <code>bundle exec rails assets:precompile</code> in the build step and set <code>RAILS_SERVE_STATIC_FILES=true</code>. Broken styling right after a deploy almost always traces back to one of those two.</p>
+
+    <h3>Where should Rails store user uploads in production?</h3>
+    <p>In S3-compatible object storage, through Active Storage. The default local-disk service loses files on a server rebuild and won't work across multiple instances. Pointing Active Storage at object storage is a small config change plus credentials in the environment.</p>
+
+    <h3>Should I use rails server in production?</h3>
+    <p>No. That's the development server. Production Rails is served by Puma, which handles concurrent traffic with workers and threads and is already configured in a standard Rails app. Start the app with <code>bundle exec puma</code>.</p>
+
+    <h3>Do I need Sidekiq to deploy a Rails app?</h3>
+    <p>Only if you run background jobs. Sidekiq needs a managed Redis to hold jobs and a worker process running alongside the web app. If your app has no background work yet, skip it and add it later when you do.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Rails in production, minus the server babysitting.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Deploying a Rails App: The Questions Everyone Actually Asks","description":"Plain answers to the real questions a Rails deploy raises: the master key, assets, migrations, Puma, and background jobs.","image":"https://www.kloudbean.com/blog/deploy-rails-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/deploy-rails-app/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I deploy a Ruby on Rails app?","acceptedAnswer":{"@type":"Answer","text":"Push it to GitHub, connect the repo, and set the ordered sequence: a build step (bundle install plus assets:precompile), a release step (rails db:migrate), and a start command (bundle exec puma). Add your environment variables first, especially RAILS_MASTER_KEY, SECRET_KEY_BASE, RAILS_ENV=production and DATABASE_URL, then deploy."}},
+{"@type":"Question","name":"Why does my Rails app say Missing encryption key on boot?","acceptedAnswer":{"@type":"Answer","text":"Rails can't decrypt config/credentials.yml.enc because the master key isn't present in production. That key is gitignored, so you provide it as an environment variable. Set RAILS_MASTER_KEY to the contents of your local config/master.key and the app boots."}},
+{"@type":"Question","name":"What is the difference between RAILS_MASTER_KEY and SECRET_KEY_BASE?","acceptedAnswer":{"@type":"Answer","text":"RAILS_MASTER_KEY decrypts your encrypted credentials file. SECRET_KEY_BASE is the value Rails uses to sign cookies and sessions. In modern Rails the secret base can live inside credentials, or you can set it as its own env var. If neither is available in production, Rails refuses to start."}},
+{"@type":"Question","name":"How do I run Rails migrations when I deploy?","acceptedAnswer":{"@type":"Answer","text":"Run rails db:migrate as a release step that fires on every deploy, right before the new code goes live. That keeps the schema in step with the code automatically. You don't run migrations by hand on production."}},
+{"@type":"Question","name":"Why does my Rails app load with no CSS or JavaScript?","acceptedAnswer":{"@type":"Answer","text":"Your assets weren't precompiled or aren't being served. Run bundle exec rails assets:precompile in the build step and set RAILS_SERVE_STATIC_FILES=true. Broken styling right after a deploy almost always traces back to one of those two."}},
+{"@type":"Question","name":"Where should Rails store user uploads in production?","acceptedAnswer":{"@type":"Answer","text":"In S3-compatible object storage, through Active Storage. The default local-disk service loses files on a server rebuild and won't work across multiple instances. Pointing Active Storage at object storage is a small config change plus credentials in the environment."}},
+{"@type":"Question","name":"Should I use rails server in production?","acceptedAnswer":{"@type":"Answer","text":"No. That's the development server. Production Rails is served by Puma, which handles concurrent traffic with workers and threads and is already configured in a standard Rails app. Start the app with bundle exec puma."}},
+{"@type":"Question","name":"Do I need Sidekiq to deploy a Rails app?","acceptedAnswer":{"@type":"Answer","text":"Only if you run background jobs. Sidekiq needs a managed Redis to hold jobs and a worker process running alongside the web app. If your app has no background work yet, skip it and add it later when you do."}}
+]}
+]}
+</script>
+</body>
+</html>

@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>When to Use a NoSQL Database: An Honest Decision Guide</title>
+<meta name="description" content="When to use a NoSQL database, and when relational wins. An honest SQL vs NoSQL guide: document stores, JSONB in Postgres, ACID vs BASE, and polyglot persistence.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/when-to-use-a-nosql-database/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="When to Use a NoSQL Database: An Honest Decision Guide">
+<meta property="og:description" content="A calm SQL vs NoSQL decision guide: what NoSQL really means, when a document store fits, when relational is the better default, and the JSONB middle path.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Databases &amp; storage</span>
+  <h1>When to Use a NoSQL Database (and When You Really Don't)</h1>
+
+  <figure><img src="images/hero.png" alt="When to use a NoSQL database, a decision guide weighing document stores against relational"></figure>
+
+  <p class="lead">Deciding when to use a NoSQL database is a call that gets made badly, and early. Someone reads that MongoDB scales, picks it for a booking app, then spends month three rebuilding joins in JavaScript. This is a plain SQL vs NoSQL decision guide, not a sales pitch. You'll get what NoSQL actually means (it's a family, not one product), when a document store fits, and why relational is still the right default for most apps.</p>
+
+  <div class="tldr">
+    <strong>Short answer</strong>
+    <p>Use a NoSQL database when your data is genuinely document-shaped, like content, catalogs with varied fields, or events and logs, or when a scale or access pattern beats what relational handles well. For most apps, built around users, orders, and things that reference each other, start relational with PostgreSQL or MySQL. And remember the middle path: Postgres JSONB stores schemaless documents inside a relational database, so you often don't need a second one.</p>
+  </div>
+
+  <h2>First, "NoSQL" isn't one thing</h2>
+  <p>Before you decide when to use a NoSQL database, accept that "NoSQL" isn't a product. It's a loose label for every database that isn't relational, and they have little in common with each other. Lumping Redis and Neo4j together makes about as much sense as lumping a bicycle and a cargo ship together because neither is a car.</p>
+  <p>Four families cover nearly everything people mean by the word:</p>
+  <ul>
+    <li><strong>Document databases</strong> (MongoDB, Couchbase). JSON-like documents in collections. A record nests objects and arrays, so a whole order lives in one document. This is the family people picture when they say "NoSQL," and the one that competes head-on with relational for app data.</li>
+    <li><strong>Key-value stores</strong> (Redis, Memcached). A giant, blazing-fast hash map: give it a key, get back a value. Great for caching, sessions, and queues. Not where your source-of-truth data should live.</li>
+    <li><strong>Wide-column stores</strong> (Cassandra, ScyllaDB). Built for huge write throughput across many machines. Time-series, telemetry, and event firehoses at a scale most apps never touch.</li>
+    <li><strong>Graph databases</strong> (Neo4j). The relationships are the point. Social graphs, fraud rings, recommendation webs, anywhere the connections matter more than the things.</li>
+  </ul>
+  <p>Document databases are the ones people weigh against SQL for app data, so that's this guide's focus. "Should I use NoSQL?" nearly always means "should I use MongoDB instead of Postgres?"</p>
+
+  <!-- ADD IMAGE: a simple whiteboard-style sketch of the four NoSQL families with one example each. Swap for a real screenshot: src -> images/nosql-families.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A sketch of the four families, one example database under each.</em></span></figure>
+
+  <h2>SQL vs NoSQL: the differences that actually decide it</h2>
+  <p>A relational database stores rows in tables with fixed columns, and it's very good at connecting them. A document database stores self-contained documents and would rather you didn't connect them at all. That one difference, joins are cheap here and awkward there, ripples into everything else. The honest side-by-side, not the marketing one:</p>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>Relational (SQL)</th><th>Document (NoSQL)</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Schema</strong></td><td>Defined up front, enforced by the database</td><td>Flexible, can differ per record</td></tr>
+      <tr><td><strong>Relationships / joins</strong></td><td>First-class; JOIN across tables in one query</td><td>Better avoided; joins land in app code or <code>$lookup</code></td></tr>
+      <tr><td><strong>Transactions</strong></td><td>ACID, central to correctness</td><td>Historically limited; MongoDB added multi-document ACID</td></tr>
+      <tr><td><strong>Query flexibility</strong></td><td>Ad-hoc SQL, ask any question later</td><td>Fast on the access patterns you modeled for</td></tr>
+      <tr><td><strong>Scaling model</strong></td><td>Scale up first, then read replicas</td><td>Built to shard and scale out horizontally</td></tr>
+      <tr><td><strong>Typical fit</strong></td><td>Users, orders, payments, most CRUD apps</td><td>Content, catalogs, events, logs, telemetry</td></tr>
+    </tbody>
+  </table>
+
+  <p>Two rows carry most of the weight: relationships and transactions. If your data is a web of things that reference each other (a user has orders, an order has line items pointing at products), relational was built for that, and joins query across it without procedural code. If correctness under concurrent writes matters, moving money, decrementing stock, relational transactions have been hardened for decades. Document databases trade some of that for schema flexibility and easier scale-out. Whether that trade is worth it is the whole question.</p>
+
+  <p>So the decision is one fork:</p>
+
+  <figure>
+    <svg viewBox="0 0 760 428" role="img" aria-labelledby="fork-t" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#fff;border:1px solid #e6e9f2;border-radius:16px">
+      <title id="fork-t">A decision fork: relational-shaped data versus document-shaped data, and the JSONB middle path</title>
+      <defs>
+        <marker id="fk" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#5b6a86"></path>
+        </marker>
+      </defs>
+
+      <rect x="278" y="16" width="204" height="46" rx="23" fill="#000f27"></rect>
+      <text x="380" y="44" text-anchor="middle" font-family="Poppins,sans-serif" font-size="14.5" font-weight="600" fill="#ffffff">What shape is your data?</text>
+
+      <path d="M330 62 C 250 78, 200 82, 180 96" fill="none" stroke="#5b6a86" stroke-width="1.6" marker-end="url(#fk)"></path>
+      <path d="M430 62 C 510 78, 560 82, 580 96" fill="none" stroke="#5b6a86" stroke-width="1.6" marker-end="url(#fk)"></path>
+
+      <text x="180" y="90" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600" letter-spacing="1.2" fill="#4F1AF3">RELATIONAL SHAPE</text>
+      <text x="580" y="90" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600" letter-spacing="1.2" fill="#40b75f">DOCUMENT SHAPE</text>
+
+      <rect x="40" y="102" width="280" height="150" rx="12" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.8"></rect>
+      <g font-family="Poppins,sans-serif" font-size="13" fill="#1c2536">
+        <rect x="58" y="126" width="8" height="8" rx="2" fill="#4F1AF3" transform="rotate(45 62 130)"></rect>
+        <text x="80" y="134">Records reference each other</text>
+        <rect x="58" y="150" width="8" height="8" rx="2" fill="#4F1AF3" transform="rotate(45 62 154)"></rect>
+        <text x="80" y="158">You query across them (joins)</text>
+        <rect x="58" y="174" width="8" height="8" rx="2" fill="#4F1AF3" transform="rotate(45 62 178)"></rect>
+        <text x="80" y="182">Transactions must be safe</text>
+        <rect x="58" y="198" width="8" height="8" rx="2" fill="#4F1AF3" transform="rotate(45 62 202)"></rect>
+        <text x="80" y="206">New questions show up later</text>
+      </g>
+
+      <rect x="440" y="102" width="280" height="150" rx="12" fill="#ffffff" stroke="#40b75f" stroke-width="1.8"></rect>
+      <g font-family="Poppins,sans-serif" font-size="13" fill="#1c2536">
+        <rect x="458" y="126" width="8" height="8" rx="2" fill="#40b75f" transform="rotate(45 462 130)"></rect>
+        <text x="480" y="134">Each record is self-contained</text>
+        <rect x="458" y="150" width="8" height="8" rx="2" fill="#40b75f" transform="rotate(45 462 154)"></rect>
+        <text x="480" y="158">Fields differ record to record</text>
+        <rect x="458" y="174" width="8" height="8" rx="2" fill="#40b75f" transform="rotate(45 462 178)"></rect>
+        <text x="480" y="182">You read it as one blob</text>
+        <rect x="458" y="198" width="8" height="8" rx="2" fill="#40b75f" transform="rotate(45 462 202)"></rect>
+        <text x="480" y="206">Joins are rare</text>
+      </g>
+
+      <line x1="180" y1="252" x2="180" y2="272" stroke="#5b6a86" stroke-width="1.6" marker-end="url(#fk)"></line>
+      <line x1="580" y1="252" x2="580" y2="272" stroke="#5b6a86" stroke-width="1.6" marker-end="url(#fk)"></line>
+
+      <rect x="56" y="274" width="248" height="46" rx="23" fill="#000f27"></rect>
+      <text x="180" y="302" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#ffffff">Default: Postgres / MySQL</text>
+
+      <rect x="456" y="274" width="248" height="46" rx="23" fill="#40b75f"></rect>
+      <text x="580" y="302" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#ffffff">Document store (MongoDB)</text>
+
+      <rect x="212" y="356" width="336" height="56" rx="14" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.6" stroke-dasharray="5 4"></rect>
+      <text x="380" y="380" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#4F1AF3">Only a few fields vary?</text>
+      <text x="380" y="400" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" fill="#1c2536">Use Postgres JSONB and skip the second database.</text>
+    </svg>
+    <figcaption>Follow the shape of your data, not the hype. Relational is the safe default; a document store fits self-contained records; JSONB covers the messy middle.</figcaption>
+  </figure>
+
+  <h2>So, when should you actually use a NoSQL database?</h2>
+  <p>Reach for a document database when your data's shape points there, not when a trend does. A few genuine fits:</p>
+  <ul>
+    <li><strong>Content and CMS data.</strong> Articles, pages, marketing blocks. Each piece has slightly different fields and reads as one whole thing. Nesting blocks in a document beats scattering them across six tables.</li>
+    <li><strong>Catalogs with varying attributes.</strong> A shoe has a size and color. A laptop has RAM and a screen. A book has an ISBN. Forcing all of that into one rigid table hurts, so documents let each product carry its own fields.</li>
+    <li><strong>Events, logs, and activity streams.</strong> High write volume, append-mostly, rarely joined. You write a lot and read back by time or by key.</li>
+    <li><strong>Per-user config blobs.</strong> Settings that differ per record and always load as a single unit.</li>
+  </ul>
+  <p>The common thread is <strong>denormalization</strong>. You store data the way you read it, even if that repeats some values, so one read returns everything the screen needs with no joins. Here's a CMS post as one self-contained document, nothing to join:</p>
+<pre><code>{
+  "_id": "post_918",
+  "title": "Choosing a database",
+  "tags": ["databases", "architecture"],
+  "author": { "name": "Ada", "handle": "@ada" },
+  "blocks": [
+    { "type": "heading",   "text": "Intro" },
+    { "type": "paragraph", "text": "..." }
+  ]
+}</code></pre>
+  <p>There's a scale argument too, since document and wide-column stores were built to shard across many machines. But be honest about whether that's you. "It might scale someday" is not "I have a sharding problem today," and picking for a scale you don't have buys complexity.</p>
+
+  <h2>When a relational database is the better default</h2>
+  <p>Now the position I'll commit to: most apps should start relational. PostgreSQL or MySQL, and Postgres if you have no strong reason to prefer otherwise. The <a href="https://www.kloudbean.com/blog/mysql-vs-postgresql/">MySQL vs PostgreSQL breakdown</a> settles that by workload.</p>
+  <p>Why default to SQL? Because most software is about relationships. Users, teams, projects, orders, invoices, permissions. That data is naturally tables that point at each other, and relational makes those links cheap to store and query. A few things you get close to free:</p>
+  <ul>
+    <li><strong>A schema that catches mistakes.</strong> Declaring <code>email</code> unique and <code>order_total</code> not-null means the database rejects bad data at write time, not in a report months later.</li>
+    <li><strong>Joins instead of app code.</strong> Ask for "every order from customers in Berlin" in one query. In a document store that avoids joins, you'd stitch that together by hand.</li>
+    <li><strong>Real transactions.</strong> Wrap "charge the card and mark the order paid" so either both happen or neither does. For anything touching money or inventory, that isn't optional.</li>
+    <li><strong>Ad-hoc questions.</strong> The business asks something nobody designed for. With SQL you write a new query; with a store modeled around fixed access patterns, a new question can mean a data migration.</li>
+  </ul>
+  <p>The mistake I see most often: a team picks MongoDB because it "felt easier" to throw JSON at, then the data turns out deeply relational, and they rebuild joins by hand with <code>$lookup</code> or three round trips from the app. They've bought every downside of a document store and rebuilt the one thing relational does best. When you catch yourself doing that, listen to the database. Document databases aren't bad; relational is just the safer opening bet, and usually you're unsure.</p>
+
+  <h2>The middle path most teams miss: JSONB in Postgres</h2>
+  <p>This rarely makes it into the SQL vs NoSQL debate, and it should: you often don't have to choose. Postgres has a <code>JSONB</code> column type, binary, indexable JSON stored inside a normal table. So you keep structured data as columns and stash the messy, varying part in a JSONB field on the same row, covering a big slice of "but I need flexible fields" without a second database:</p>
+<pre><code>-- structured columns for the relational part,
+-- a JSONB column for the fields that vary per product
+CREATE TABLE products (
+  id     serial   PRIMARY KEY,
+  name   text     NOT NULL,
+  price  numeric  NOT NULL,
+  attrs  jsonb
+);
+
+-- index the JSON so lookups inside it stay fast
+CREATE INDEX idx_attrs ON products USING GIN (attrs);
+
+-- query inside the document, no second database required
+SELECT name FROM products WHERE attrs @&gt; '{"waterproof": true}';</code></pre>
+  <p>Now <code>id</code>, <code>name</code>, and <code>price</code> are typed columns with constraints, and <code>attrs</code> holds whatever per-product fields you like. Relational integrity where it matters, document flexibility where it helps, in one engine with one connection string. MySQL has a JSON type too, but Postgres JSONB is the more capable of the two.</p>
+  <p>My rule of thumb: if the only reason you're eyeing a document database is "some of my fields vary," try JSONB first. Reach for a real document store when your data is document-shaped all the way down, not just at the edges. The <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a> guide goes deeper on what Postgres can absorb before you add anything else.</p>
+
+  <!-- ADD IMAGE: a SQL client (psql or TablePlus) showing a JSONB query returning rows. Swap for a real screenshot: src -> images/jsonb-query.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A SQL client running the JSONB query and returning matching rows.</em></span></figure>
+
+  <h2>ACID vs BASE, and the consistency you're actually trading</h2>
+  <p><strong>ACID</strong> (atomicity, consistency, isolation, durability) is what relational databases are famous for. A transaction fully happens or fully doesn't, and once committed it stays committed. That's why people trust SQL with money.</p>
+  <p><strong>BASE</strong> (basically available, soft state, eventual consistency) is the looser model many distributed NoSQL systems chose so they could stay available across many machines. "Eventual consistency" means a write might take a moment to show up everywhere. Fine for a like count. Not fine for a bank balance.</p>
+  <p>Now the up-to-date part, because plenty of old posts get this wrong. MongoDB added multi-document ACID transactions back in 2018, so "document databases can't do transactions" is out of date. What stays true is the default posture: relational leans on strong consistency, while many NoSQL systems favor availability and scale first. Know which guarantees your data needs before you pick.</p>
+
+  <h2>Polyglot persistence, and when a second database isn't worth it</h2>
+  <p>Polyglot persistence is using more than one kind of database in one system, each for what it's best at: Postgres as the source of truth, Redis for caching, Elasticsearch for search, a document store for one document-shaped feature. Big systems do this all the time.</p>
+  <p>But every database you add is a real cost: one more thing to secure, patch, back up, monitor, and reconcile when data drifts out of sync. So don't add a second database because a diagram looked impressive. Add one when a specific workload clearly earns it. A sane progression for most teams:</p>
+  <ol>
+    <li>Start with one relational database. Use JSONB for the flexible bits.</li>
+    <li>Add <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">Redis</a> when database load or session handling calls for a cache. Usually the first and cheapest win; the <a href="https://www.kloudbean.com/blog/when-to-use-redis-vs-postgres/">Redis vs Postgres</a> guide covers where that line sits.</li>
+    <li>Add a document store, a <a href="https://www.kloudbean.com/blog/managed-elasticsearch-hosting/">search engine</a>, or another specialized database only when a real workload outgrows the first two.</li>
+  </ol>
+  <p>Two databases can be right. Two you added "just in case" are usually double the operational pain.</p>
+
+  <h2>Start relational, add a document store when you need it</h2>
+  <p>On Kloudbean the families in this guide aren't abstract. They're one-click managed engines on the same dashboard as your app: relational (PostgreSQL, MySQL, MariaDB), document (MongoDB), key-value (Redis and Memcached), and search (Elasticsearch). Seven engines, one login. So you can start relational and add a document store or cache later, no new vendor, no separate bill.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console Launch Database screen showing relational and document engines side by side">
+    <figcaption>Launch Database: relational (PostgreSQL, MySQL, MariaDB) and document (MongoDB) sit in the same engine list, one click either way.</figcaption>
+  </figure>
+
+  <p>Every engine lands on a private network, gets automatic backups, and hands you a connection string for an environment variable. Your app reads its connection from config, not code, so switching engines is a config change. The <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">how-to on adding a managed database to your app</a> covers that wiring.</p>
+
+  <figure>
+    <img src="../assets/console/dashboard.png" alt="The Kloudbean dashboard showing servers, applications, and managed databases on one screen">
+    <figcaption>Relational as the backbone, a document store or Redis alongside it, one dashboard. Polyglot persistence, no second bill to chase.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: an architecture sketch of an app talking to Postgres plus Redis plus a document store. Swap for a real screenshot: src -> images/polyglot-architecture.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>An architecture sketch: app, Postgres as source of truth, Redis cache, a document store for one feature.</em><small>Polyglot done sensibly.</small></span></figure>
+
+  <p>If MongoDB is the piece you need, the <a href="https://www.kloudbean.com/blog/managed-mongodb-hosting/">managed MongoDB hosting</a> guide covers modeling and connecting it. If you're staying relational, you're already on the well-paved road.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Start relational, scale into more when the workload demands it.</p>
+    <p style="margin:0 0 .6em">Launch PostgreSQL, MySQL, MongoDB, Redis, or Elasticsearch in a click, each on a private network, backed up automatically, and connected with one environment variable. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">One-click databases · Automatic backups · Private networking · Free migration · Free trial · From $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>When should I use a NoSQL database?</h3>
+    <p>Use one when your data is genuinely document-shaped, like content, catalogs with varied fields, or events and logs, or when a scale pattern beats what relational handles. For apps built around relationships (users, orders, products), relational is usually the better call. Pick for the data shape, not the trend.</p>
+    <h3>What is the difference between SQL and NoSQL?</h3>
+    <p>SQL databases are relational: rows in tables with an enforced schema, connected by joins and transactions. NoSQL is a broad label for non-relational databases, most often document stores that keep flexible, self-contained records and avoid joins. One is built for related data, the other for flexibility and scaling out.</p>
+    <h3>Is MongoDB better than PostgreSQL?</h3>
+    <p>Neither wins outright. MongoDB fits document-shaped data you rarely join, while PostgreSQL is stronger for relational data, complex queries, and strict integrity. For a general app when you're unsure, Postgres is the safer default, and its JSONB type covers the occasional flexible field.</p>
+    <h3>Do I need NoSQL to scale?</h3>
+    <p>Usually not. A well-indexed relational database, with a Redis cache in front and read replicas when reads pile up, carries most apps a long way. NoSQL's sharding helps at scales most apps never reach, so don't pick for a scale you don't have yet.</p>
+    <h3>Can PostgreSQL store JSON documents?</h3>
+    <p>Yes. Postgres has a JSONB type that stores binary, indexable JSON inside a normal table, so structured columns and schemaless fields live on the same row. You can query inside the JSON and index it. For many flexible-fields cases, that removes the need for a separate document database.</p>
+    <h3>What is polyglot persistence?</h3>
+    <p>It's using more than one type of database in one system, each for what it does best, such as Postgres for core data, Redis for caching, and a document store for one feature. It's powerful but adds real operational cost, so add a second engine only when a workload justifies it.</p>
+    <h3>Should I start with SQL or NoSQL?</h3>
+    <p>For most new apps, start with SQL, meaning PostgreSQL or MySQL. Most software is about relationships, and relational gives you schema safety, joins, and transactions from day one. Add or move to NoSQL later when a specific part of your data calls for it.</p>
+    <h3>What does NoSQL actually mean?</h3>
+    <p>NoSQL is an umbrella for databases that aren't traditional relational ones. It spans four families: document (MongoDB), key-value (Redis), wide-column (Cassandra), and graph (Neo4j). They share little beyond not being relational, so "should I use NoSQL?" nearly always means "should I use a document database?"</p>
+    <h3>What is the difference between ACID and BASE?</h3>
+    <p>ACID is the strong-consistency model of relational databases: transactions fully succeed or fully fail, and committed data is durable. BASE is the looser model many distributed NoSQL systems use, favoring availability and eventual consistency. MongoDB added multi-document ACID transactions in 2018, so the line is blurrier than it once was.</p>
+    <h3>Is NoSQL faster than SQL?</h3>
+    <p>Not inherently. A document store can be faster for reads it was modeled for, since the data is denormalized and needs no joins. A relational database is often faster for related data and ad-hoc queries. For most apps the bottleneck is a missing index or a bad query, not the database category.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Database Team · Document or Table?</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"When to Use a NoSQL Database (and When You Really Don't)","description":"An honest SQL vs NoSQL decision guide: what NoSQL really means, when a document store fits, when a relational database is the better default, JSONB in Postgres, ACID vs BASE, and polyglot persistence.","image":"https://www.kloudbean.com/blog/when-to-use-a-nosql-database/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/when-to-use-a-nosql-database/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"When should I use a NoSQL database?","acceptedAnswer":{"@type":"Answer","text":"Use one when your data is genuinely document-shaped, like content, catalogs with varied fields, or events and logs, or when a scale pattern beats what relational handles. For apps built around relationships (users, orders, products), relational is usually the better call. Pick for the data shape, not the trend."}},
+{"@type":"Question","name":"What is the difference between SQL and NoSQL?","acceptedAnswer":{"@type":"Answer","text":"SQL databases are relational: rows in tables with an enforced schema, connected by joins and transactions. NoSQL is a broad label for non-relational databases, most often document stores that keep flexible, self-contained records and avoid joins. One is built for related data, the other for flexibility and scaling out."}},
+{"@type":"Question","name":"Is MongoDB better than PostgreSQL?","acceptedAnswer":{"@type":"Answer","text":"Neither wins outright. MongoDB fits document-shaped data you rarely join, while PostgreSQL is stronger for relational data, complex queries, and strict integrity. For a general app when you're unsure, Postgres is the safer default, and its JSONB type covers the occasional flexible field."}},
+{"@type":"Question","name":"Do I need NoSQL to scale?","acceptedAnswer":{"@type":"Answer","text":"Usually not. A well-indexed relational database, with a Redis cache in front and read replicas when reads pile up, carries most apps a long way. NoSQL's sharding helps at scales most apps never reach, so don't pick for a scale you don't have yet."}},
+{"@type":"Question","name":"Can PostgreSQL store JSON documents?","acceptedAnswer":{"@type":"Answer","text":"Yes. Postgres has a JSONB type that stores binary, indexable JSON inside a normal table, so structured columns and schemaless fields live on the same row. You can query inside the JSON and index it. For many flexible-fields cases, that removes the need for a separate document database."}},
+{"@type":"Question","name":"What is polyglot persistence?","acceptedAnswer":{"@type":"Answer","text":"It's using more than one type of database in one system, each for what it does best, such as Postgres for core data, Redis for caching, and a document store for one feature. It's powerful but adds real operational cost, so add a second engine only when a workload justifies it."}},
+{"@type":"Question","name":"Should I start with SQL or NoSQL?","acceptedAnswer":{"@type":"Answer","text":"For most new apps, start with SQL, meaning PostgreSQL or MySQL. Most software is about relationships, and relational gives you schema safety, joins, and transactions from day one. Add or move to NoSQL later when a specific part of your data calls for it."}},
+{"@type":"Question","name":"What does NoSQL actually mean?","acceptedAnswer":{"@type":"Answer","text":"NoSQL is an umbrella for databases that aren't traditional relational ones. It spans four families: document (MongoDB), key-value (Redis), wide-column (Cassandra), and graph (Neo4j). They share little beyond not being relational, so should I use NoSQL nearly always means should I use a document database."}},
+{"@type":"Question","name":"What is the difference between ACID and BASE?","acceptedAnswer":{"@type":"Answer","text":"ACID is the strong-consistency model of relational databases: transactions fully succeed or fully fail, and committed data is durable. BASE is the looser model many distributed NoSQL systems use, favoring availability and eventual consistency. MongoDB added multi-document ACID transactions in 2018, so the line is blurrier than it once was."}},
+{"@type":"Question","name":"Is NoSQL faster than SQL?","acceptedAnswer":{"@type":"Answer","text":"Not inherently. A document store can be faster for reads it was modeled for, since the data is denormalized and needs no joins. A relational database is often faster for related data and ad-hoc queries. For most apps the bottleneck is a missing index or a bad query, not the database category."}}
+]}
+]}
+</script>
+</body>
+</html>

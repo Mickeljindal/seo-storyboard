@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deploy Flask in 10 Minutes — Then the Reference You'll Keep</title>
+<meta name="description" content="Flask is a micro-framework, so deploying it comes down to one question: what runs it in production? The answer is Gunicorn. Here's the fast path, then a reference for workers, static files, and the usual gotchas.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/deploy-flask-app/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Deploy Flask in 10 Minutes — Then the Reference You'll Keep">
+<meta property="og:description" content="The fast path to a live Flask app with Gunicorn, plus a reference for workers, static files, secrets, and the usual gotchas.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">App deployment</span>
+  <h1>Deploy Flask in 10 Minutes: Then the Reference You'll Keep</h1>
+
+  <figure><img src="images/hero.png" alt="Deploy a Flask app — Gunicorn out front, on a small server you own"></figure>
+
+  <p class="lead">Flask is a micro-framework. It hands you just enough to build a web app and then gets out of your way. That minimalism is a joy while you build, and it leaves one honest question when it's time to deploy a Flask app for real: <em>what actually runs it?</em> The command you've been using won't do. Flask itself tells you so, right there in the terminal.</p>
+  <p>Run <code>flask run</code> and it prints a warning in plain English: this is a development server, don't use it in a production deployment, use a production WSGI server instead. That's the whole article in one line. The production WSGI server is <strong>Gunicorn</strong>. Below is the fast path to live, then a reference you'll come back to.</p>
+
+  <div class="tldr"><strong>The short version</strong><p>Add <code>gunicorn</code> to <code>requirements.txt</code>, then start your Flask app with <code>gunicorn app:app --bind 0.0.0.0:$PORT</code> instead of <code>flask run</code>. Gunicorn runs a master process plus several sync workers, so it handles real concurrent traffic and restarts a worker if one dies. Bind the port the platform assigns, set your secrets as env vars, and you're done.</p></div>
+
+  <h2>Why the built-in server can't take real traffic</h2>
+  <p>The server behind <code>flask run</code> is Werkzeug's development server. It's built for one job: fast feedback while you code, with the auto-reloader and a friendly debugger. It's not built to sit on the public internet. It handles concurrency poorly, it has no process supervision, and running it with <code>debug=True</code> exposes an interactive debugger that lets a visitor execute Python on your box. That last part isn't a style nit, it's a genuine remote-code-execution hole.</p>
+  <p>So my opinion is easy here: Flask's own warning is correct, so don't argue with it. Put Gunicorn in front and move on. Gunicorn is a real WSGI server. It runs a master process that binds the port and supervises a pool of worker processes, and each worker runs your app. That's what turns "it works on my machine" into something that survives strangers hitting it.</p>
+
+  <figure>
+    <svg viewBox="0 0 700 452" width="100%" role="img" aria-label="Diagram: Gunicorn runs one master process bound to the assigned port. The master supervises several worker processes, each handling one request at a time. If a worker crashes, the master respawns it. Four workers means four concurrent requests; one worker is a bottleneck.">
+      <rect x="1" y="1" width="698" height="450" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="350" y="32" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="17" font-weight="700" fill="#000f27">Gunicorn: one master, N workers, all sharing the port</text>
+      <text x="350" y="54" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#5b6a86">WSGI: each worker handles one request at a time</text>
+
+      <!-- incoming requests -->
+      <g font-family="Poppins,Arial,sans-serif" font-size="10.5" fill="#5b6a86">
+        <rect x="18" y="92" width="70" height="24" rx="6" fill="#f6f7fb" stroke="#e6e9f2"/><text x="53" y="108" text-anchor="middle">request</text>
+        <rect x="18" y="122" width="70" height="24" rx="6" fill="#f6f7fb" stroke="#e6e9f2"/><text x="53" y="138" text-anchor="middle">request</text>
+        <rect x="18" y="152" width="70" height="24" rx="6" fill="#f6f7fb" stroke="#e6e9f2"/><text x="53" y="168" text-anchor="middle">request</text>
+      </g>
+      <line x1="90" y1="130" x2="228" y2="130" stroke="#4F1AF3" stroke-width="2"/>
+      <polygon points="228,124 240,130 228,136" fill="#4F1AF3"/>
+
+      <!-- master -->
+      <rect x="242" y="98" width="216" height="66" rx="12" fill="#000f27"/>
+      <text x="350" y="126" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="14" font-weight="600" fill="#fff">Gunicorn master</text>
+      <text x="350" y="146" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11.5" fill="#c9b8ff">binds 0.0.0.0:$PORT</text>
+      <text x="490" y="120" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#5b6a86">supervises +</text>
+      <text x="490" y="136" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#5b6a86">respawns</text>
+      <text x="490" y="152" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#5b6a86">workers</text>
+
+      <!-- arrows to workers -->
+      <g stroke="#c9d0e3" stroke-width="2">
+        <line x1="300" y1="164" x2="95" y2="250"/>
+        <line x1="330" y1="164" x2="258" y2="250"/>
+        <line x1="370" y1="164" x2="425" y2="250"/>
+        <line x1="400" y1="164" x2="590" y2="250"/>
+      </g>
+
+      <!-- workers -->
+      <g font-family="Poppins,Arial,sans-serif">
+        <rect x="20" y="252" width="150" height="86" rx="11" fill="#f6f7fb" stroke="#e6e9f2"/>
+        <text x="95" y="278" text-anchor="middle" font-size="12.5" font-weight="600" fill="#000f27">Worker 1</text>
+        <rect x="36" y="292" width="118" height="28" rx="7" fill="#eaf7ef" stroke="#cdebd6"/><text x="95" y="311" text-anchor="middle" font-size="11" fill="#40b75f">1 request</text>
+
+        <rect x="185" y="252" width="150" height="86" rx="11" fill="#f6f7fb" stroke="#e6e9f2"/>
+        <text x="260" y="278" text-anchor="middle" font-size="12.5" font-weight="600" fill="#000f27">Worker 2</text>
+        <rect x="201" y="292" width="118" height="28" rx="7" fill="#eaf7ef" stroke="#cdebd6"/><text x="260" y="311" text-anchor="middle" font-size="11" fill="#40b75f">1 request</text>
+
+        <rect x="350" y="252" width="150" height="86" rx="11" fill="#fff" stroke="#f6cccc"/>
+        <text x="425" y="278" text-anchor="middle" font-size="12.5" font-weight="600" fill="#c0392b">Worker 3</text>
+        <rect x="366" y="292" width="118" height="28" rx="7" fill="#fdecec" stroke="#f6cccc"/><text x="425" y="311" text-anchor="middle" font-size="11" fill="#c0392b">crashed</text>
+
+        <rect x="515" y="252" width="150" height="86" rx="11" fill="#f6f7fb" stroke="#e6e9f2"/>
+        <text x="590" y="278" text-anchor="middle" font-size="12.5" font-weight="600" fill="#000f27">Worker 4</text>
+        <rect x="531" y="292" width="118" height="28" rx="7" fill="#eaf7ef" stroke="#cdebd6"/><text x="590" y="311" text-anchor="middle" font-size="11" fill="#40b75f">1 request</text>
+      </g>
+
+      <!-- respawn arrow -->
+      <path d="M458 131 C 560 190, 470 210, 430 248" stroke="#40b75f" stroke-width="2" fill="none" stroke-dasharray="5 4"/>
+      <polygon points="424,242 429,254 435,244" fill="#40b75f"/>
+      <text x="540" y="200" font-family="Poppins,Arial,sans-serif" font-size="10.5" font-weight="600" fill="#40b75f">master respawns it</text>
+
+      <text x="350" y="376" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#5b6a86">4 workers = 4 requests at once. The master restarts any worker that dies.</text>
+      <text x="350" y="398" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">One worker = one request at a time. That's the classic bottleneck.</text>
+      <text x="350" y="426" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#5b6a86">On managed cloud the master is kept alive for you, and a web server terminates HTTPS in front.</text>
+    </svg>
+    <figcaption>Gunicorn's model: a master binds the port and supervises sync workers. This is why worker count is your main tuning knob, and why one worker bottlenecks everything.</figcaption>
+  </figure>
+
+  <h2>Deploy a Flask app in 10 minutes</h2>
+  <p>Assume you have an <code>app.py</code> that defines <code>app = Flask(__name__)</code> and a <code>requirements.txt</code>. Here's the whole path on <a href="https://www.kloudbean.com/">Kloudbean</a>:</p>
+  <ol>
+    <li><strong>Add Gunicorn</strong> to <code>requirements.txt</code> (one line: <code>gunicorn</code>). It's the only new dependency deploying adds.</li>
+    <li><strong>Push</strong> the project to GitHub.</li>
+    <li><strong>Provision a small server.</strong> Flask apps are light, so a modest box is plenty. Pick one of seven clouds and a size, and launch.</li>
+    <li><strong>Connect the repo</strong> under Deploy Code, and set <strong>Install</strong> to <code>pip install -r requirements.txt</code>.</li>
+    <li><strong>Set the Start command</strong> to <code>gunicorn app:app --bind 0.0.0.0:$PORT</code>. (What <code>app:app</code> means is two sections down.)</li>
+    <li><strong>Paste your environment variables</strong>: <code>SECRET_KEY</code>, any API keys, a database URL if you have one.</li>
+    <li><strong>Pull &amp; Deploy.</strong> The platform installs your dependencies, starts Gunicorn, gives you a domain, and puts free HTTPS in front.</li>
+  </ol>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="The Kloudbean Add Server screen: provisioning a small server for a lightweight Flask app across one of seven clouds">
+    <figcaption>Flask is light, so a small server does the job. Pick a cloud and size, and launch. The Python runtime, web server and SSL come configured.</figcaption>
+  </figure>
+
+  <p>A basic Flask app really is a few-minutes deploy, because there's so little to it. The start command is the one line that matters:</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean Git Deployment tab: Install set to pip install requirements, Start set to gunicorn app:app binding the assigned port">
+    <figcaption>Git Deployment: Install runs <code>pip install -r requirements.txt</code>, Start runs <code>gunicorn app:app --bind 0.0.0.0:$PORT</code>. Everything below is the "why" and the "when you need more."</figcaption>
+  </figure>
+
+  <h2>Reference: what <code>app:app</code> (or <code>wsgi:app</code>) means</h2>
+  <p>The start command <code>gunicorn app:app</code> looks cryptic, but it's just two names split by a colon: <code>module:callable</code>. The first part is the module (the file <code>app.py</code>, minus the <code>.py</code>). The second is the WSGI object inside it. You wrote <code>app = Flask(__name__)</code>, so the object is <code>app</code>. Larger projects use the <strong>app factory</strong> pattern, where a function builds the app. Then you expose it in a small <code>wsgi.py</code> and point Gunicorn at that instead.</p>
+  <pre><code># app.py (simple): the Flask object lives right here
+app = Flask(__name__)
+# start command:  gunicorn app:app --bind 0.0.0.0:$PORT
+
+# wsgi.py (app factory): build the app, then expose it as "app"
+from myapp import create_app
+app = create_app()
+# start command:  gunicorn wsgi:app --bind 0.0.0.0:$PORT</code></pre>
+  <p>That's the whole rule: <code>gunicorn &lt;file&gt;:&lt;object&gt;</code>. Get it wrong and Gunicorn says it can't find your application object. Now you know exactly why, and exactly what to change.</p>
+
+  <h2>Reference: how many Gunicorn workers?</h2>
+  <p>Gunicorn runs your app in several <strong>worker</strong> processes so it can handle more than one request at once. The well-worn starting formula is <strong>(2 × CPU cores) + 1</strong>: on a 1-core box that's 3 workers, on 2 cores it's 5. You set it with a flag, and you can add a timeout or threads while you're there:</p>
+  <table class="cmp">
+    <thead><tr><th>You want</th><th>Start command</th></tr></thead>
+    <tbody>
+      <tr><td>Simple default</td><td><code>gunicorn app:app --bind 0.0.0.0:$PORT</code></td></tr>
+      <tr><td>Set worker count</td><td><code>gunicorn app:app --workers 3 --bind 0.0.0.0:$PORT</code></td></tr>
+      <tr><td>Add a timeout</td><td><code>gunicorn app:app --workers 3 --timeout 60 --bind 0.0.0.0:$PORT</code></td></tr>
+      <tr><td>Threads per worker</td><td><code>gunicorn app:app --workers 3 --threads 2 --bind 0.0.0.0:$PORT</code></td></tr>
+    </tbody>
+  </table>
+  <p>Two failure modes sit at the extremes. Leave it at a single worker and every request queues behind the one before it, which is the bottleneck the diagram warns about, and the app feels slow for no obvious reason. Crank it to 50 and each worker's own memory footprint adds up until a small box thrashes and slows down anyway. Start with the formula, watch memory, adjust from there. Reach for <code>--timeout</code> only if you have slow endpoints Gunicorn keeps killing at its default 30 seconds.</p>
+
+  <h2>Reference: never <code>flask run</code> in production</h2>
+  <p>Worth stating flatly, because it's the number-one Flask deploy mistake: don't ship <code>flask run</code> or <code>app.run()</code> to production. Both start the development server, and <code>debug=True</code> hands visitors a debugger that runs code on your server. In production, Gunicorn is the server and debug is off. Set <code>FLASK_DEBUG=0</code> or simply don't enable it, and let Gunicorn do the serving. The moment you catch yourself thinking "I'll just run it the way I do locally," that's the mistake.</p>
+
+  <h2>Reference: static files, secrets, and a database</h2>
+  <p>Three quick pieces that cover most real Flask apps:</p>
+  <ul>
+    <li><strong>Static files.</strong> Files in your <code>static/</code> folder work as-is, but for production it's nicer to let something purpose-built serve them. <strong>WhiteNoise</strong> is the least-effort win: <code>pip install whitenoise</code>, wrap your app, and it serves static assets efficiently with caching, no extra config.</li>
+    <li><strong>Secrets and config.</strong> Flask's <code>SECRET_KEY</code> signs sessions, so set it as an environment variable and keep it stable. Change it between deploys and you log everyone out. API keys and database URLs live in the environment too, never in the repo. The full reasoning is in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a>.</li>
+    <li><strong>A database.</strong> Flask ships without one on purpose. If your app stores data, launch a <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">managed Postgres or MySQL</a> and connect with a URL you set as an env var. Your code (via SQLAlchemy or a driver) reads it and connects. Running it on the same box is covered in <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">host your app, API, and database on one server</a>.</li>
+  </ul>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean Environment Variables screen: Flask's SECRET_KEY and database URL pasted in as a .env">
+    <figcaption>Environment Variables, Paste .env. Flask reads <code>SECRET_KEY</code>, the database URL and API keys from here, so nothing sensitive lives in the repo.</figcaption>
+  </figure>
+
+  <h2>Reference: when it won't start</h2>
+  <p>Most first-deploy failures fall into a short list, and each has a clear tell in the logs:</p>
+  <ul>
+    <li><strong>"Failed to find application object" / "No module named app".</strong> Your Start command doesn't match your file or variable. Fix the <code>module:object</code> part.</li>
+    <li><strong>App starts but the URL times out.</strong> You bound a fixed port instead of <code>$PORT</code>. This is the one we see most: someone keeps <code>app.run(port=5000)</code> or hard-codes <code>:5000</code> in the bind, the platform's router can't reach it, and the page just hangs. Bind <code>0.0.0.0:$PORT</code> and it's gone.</li>
+    <li><strong>"ModuleNotFoundError" for a package you use.</strong> It's missing from <code>requirements.txt</code>. Add it and redeploy; the build installs only what's listed.</li>
+    <li><strong>"WORKER TIMEOUT", workers being killed.</strong> A slow request is exceeding Gunicorn's default 30-second limit. Raise <code>--timeout</code>, or move the slow work to a background task.</li>
+  </ul>
+  <p>Gunicorn logs to standard output, which the platform captures, and the app's own errors land in <code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/app.error.log</code>. Read those first, before changing code on a hunch. The full 503 playbook is <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">here</a>.</p>
+
+  <!-- ADD IMAGE: swap this slot for a real <figure> with an <img> (src -> images/gunicorn-boot.png) and a <figcaption>. -->
+  <figure class="img-slot"><span><b>Add image</b><em>Terminal showing Gunicorn's boot log: "Starting gunicorn", the bound address, and Booting worker lines for each worker PID.</em><small>Makes the master-plus-workers model concrete.</small></span></figure>
+
+  <h2>What you own, what Kloudbean runs</h2>
+  <p>Flask runs on Python, and Python is right at home on a Linux server, so nothing here is a workaround. Kloudbean runs the box: it keeps Gunicorn's master alive and restarts it if it ever exits, terminates HTTPS in front, and takes server-level backups. You own the Flask app, its worker count, its secrets, and its data. Because Flask asks so little of a server, it's one of the cheapest things to run well; a small box carries it comfortably. Building an async API instead of a classic app? That's <a href="https://www.kloudbean.com/blog/deploy-fastapi-app/">deploy a FastAPI app</a>. Something bigger and batteries-included? <a href="https://www.kloudbean.com/blog/deploy-django-app/">Deploy a Django app</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">A micro-framework deserves a quick deploy.</p>
+    <p style="margin:0">Deploy your Flask app with Gunicorn out front at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Git deploy · Managed Postgres · Free Let's Encrypt SSL · A small server is plenty · Free migration · Free trial. Sizes on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I deploy a Flask app to production?</h3>
+    <p>Add <code>gunicorn</code> to <code>requirements.txt</code>, push to GitHub, connect the repo, set Install to <code>pip install -r requirements.txt</code> and Start to <code>gunicorn app:app --bind 0.0.0.0:$PORT</code>, add your environment variables, and deploy. The platform serves it over HTTPS.</p>
+
+    <h3>What does <code>app:app</code> mean in the Gunicorn command?</h3>
+    <p>It's <code>module:object</code>. The first <code>app</code> is your <code>app.py</code> file; the second is the Flask object inside it (<code>app = Flask(__name__)</code>). If your file or variable is named differently, adjust it, for example <code>wsgi:app</code> for an app factory exposed in <code>wsgi.py</code>.</p>
+
+    <h3>What's the app factory pattern, and how do I run it with Gunicorn?</h3>
+    <p>An app factory is a <code>create_app()</code> function that builds and returns the Flask app. Expose the result in a small <code>wsgi.py</code> (<code>app = create_app()</code>) and start it with <code>gunicorn wsgi:app --bind 0.0.0.0:$PORT</code>. Gunicorn just needs a module and a WSGI callable to import.</p>
+
+    <h3>Why shouldn't I use <code>flask run</code> in production?</h3>
+    <p><code>flask run</code> is a single-threaded development server not built for real traffic, and it even prints a warning saying so. Running with <code>debug=True</code> exposes a debugger that lets visitors execute code on your server. Use Gunicorn as the production server and keep debug off.</p>
+
+    <h3>How many Gunicorn workers should I use?</h3>
+    <p>A common starting point is (2 × CPU cores) + 1, so 3 workers on a 1-core server. Set it with <code>--workers</code>. Start there for a small app and increase only when real traffic calls for it. One worker means one request at a time, which is the usual cause of a Flask app feeling slow.</p>
+
+    <h3>Why does my Flask app deploy but the URL just hangs?</h3>
+    <p>Almost always because it bound a hard-coded port instead of the one the platform assigned. Bind <code>0.0.0.0:$PORT</code> in the Gunicorn command so the web server in front can reach it. A fixed port like 5000 leaves the router talking to nothing.</p>
+
+    <h3>Does Flask need a database?</h3>
+    <p>Only if your app stores data. Flask ships without one by design. If you need persistence, launch a managed Postgres or MySQL and connect with a connection string set as an environment variable.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Flask and Gunicorn, quietly kept alive.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Deploy Flask in 10 Minutes — Then the Reference You'll Keep","description":"The fast path to a live Flask app with Gunicorn, plus a reference for workers, static files, secrets, and the usual gotchas.","image":"https://www.kloudbean.com/blog/deploy-flask-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/deploy-flask-app/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I deploy a Flask app to production?","acceptedAnswer":{"@type":"Answer","text":"Add gunicorn to requirements.txt, push to GitHub, connect the repo, set Install to pip install -r requirements.txt and Start to gunicorn app:app --bind 0.0.0.0:$PORT, add your environment variables, and deploy. The platform serves it over HTTPS."}},
+{"@type":"Question","name":"What does app:app mean in the Gunicorn command?","acceptedAnswer":{"@type":"Answer","text":"It's module:object. The first app is your app.py file; the second is the Flask object inside it (app = Flask(__name__)). If your file or variable is named differently, adjust it, for example wsgi:app for an app factory exposed in wsgi.py."}},
+{"@type":"Question","name":"What's the app factory pattern, and how do I run it with Gunicorn?","acceptedAnswer":{"@type":"Answer","text":"An app factory is a create_app() function that builds and returns the Flask app. Expose the result in a small wsgi.py (app = create_app()) and start it with gunicorn wsgi:app --bind 0.0.0.0:$PORT. Gunicorn just needs a module and a WSGI callable to import."}},
+{"@type":"Question","name":"Why shouldn't I use flask run in production?","acceptedAnswer":{"@type":"Answer","text":"flask run is a single-threaded development server not built for real traffic, and it even prints a warning saying so. Running with debug=True exposes a debugger that lets visitors execute code on your server. Use Gunicorn as the production server and keep debug off."}},
+{"@type":"Question","name":"How many Gunicorn workers should I use?","acceptedAnswer":{"@type":"Answer","text":"A common starting point is (2 x CPU cores) + 1, so 3 workers on a 1-core server. Set it with --workers. Start there for a small app and increase only when real traffic calls for it. One worker means one request at a time, which is the usual cause of a Flask app feeling slow."}},
+{"@type":"Question","name":"Why does my Flask app deploy but the URL just hangs?","acceptedAnswer":{"@type":"Answer","text":"Almost always because it bound a hard-coded port instead of the one the platform assigned. Bind 0.0.0.0:$PORT in the Gunicorn command so the web server in front can reach it. A fixed port like 5000 leaves the router talking to nothing."}},
+{"@type":"Question","name":"Does Flask need a database?","acceptedAnswer":{"@type":"Answer","text":"Only if your app stores data. Flask ships without one by design. If you need persistence, launch a managed Postgres or MySQL and connect with a connection string set as an environment variable."}}
+]}
+]}
+</script>
+</body>
+</html>

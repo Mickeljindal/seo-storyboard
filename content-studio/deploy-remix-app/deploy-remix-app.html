@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Deploy a Remix App to Production (Node Server)</title>
+<meta name="description" content="Deploy a Remix app to production the honest way. Remix server-renders, so its loaders and actions need a running Node process, not static files. Full path inside.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/deploy-remix-app/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Deploy a Remix App to Production (Node Server)">
+<meta property="og:description" content="A Remix app isn't static. Loaders and actions run on the server every request, so you deploy a real Node process. Here's the full path to production.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Deploy Remix</span>
+  <h1>How to Deploy a Remix App to Production, the Honest Way</h1>
+  <p class="byline">By Kloudbean Engineering · Server-Rendered, Server-Run.</p>
+
+  <figure><img src="images/hero.png" alt="Deploy a Remix app to production: a request hits the Remix Node server, the loader runs, queries a database, and returns HTML with data"></figure>
+
+  <p class="lead">So you built something with Remix and now you want to deploy your Remix app to production. Quick gut check first. Your instinct might be to drop the built files on a static host, the way you would a plain React SPA. Don't. A Remix app isn't static. It renders on the server, runs your loaders on every request, and hands the browser real HTML with the data already baked in. To deploy a Remix app to production you need a running Node process, not a bucket of files.</p>
+
+  <p>That one fact fixes most of the "why is my Remix app blank in production" pain before it starts. This guide walks the whole path on a server you own: the build output, running it with <code>remix-serve</code> or your own Express server, wiring loaders and actions to a database, Remix environment variables, and the React Router v7 twist. Real commands, no hand-waving.</p>
+
+  <div class="tldr">
+    <strong>How do I deploy a Remix app to production?</strong>
+    <p>Run <code>npm run build</code> (that runs <code>remix vite:build</code>), which writes a server handler to <code>build/server/index.js</code> and client assets to <code>build/client/</code>. Start it with <code>remix-serve ./build/server/index.js</code>, or run your own Express server, on a box with Node. It listens on <code>PORT</code>, sits behind a reverse proxy for SSL, and a process manager keeps it alive on crash or reboot. Your loaders and actions talk to a managed database over an environment variable. That's the whole shape.</p>
+  </div>
+
+  <h2>No, a Remix app is not static</h2>
+  <p>The trap is simple. Remix is React, and React apps are famously "just files" you serve off a CDN, so a Remix app must be files too. It isn't.</p>
+  <p>A classic React SPA (Create React App, a plain Vite build) ships an HTML shell plus a JavaScript bundle. The browser downloads it, then fetches data from an API after load. The server only hands over files. Remix works the other way. When a request arrives, it runs the matching route's <code>loader</code> on the server, gets the data, renders your components to HTML with that data already in place, and sends a finished page. It hydrates in the browser and behaves like an SPA from there.</p>
+  <p>That server step is the whole difference. Code has to run, live, for every request, and a folder of files can't run a loader. So Remix hosting is Node hosting: a process that stays up on a port. It's the "run the artifact as a long-running process" move from our <a href="https://www.kloudbean.com/blog/how-to-deploy-any-app/">mental model behind every deploy</a>.</p>
+
+  <table class="cmp">
+    <thead><tr><th>&nbsp;</th><th>Static React SPA</th><th>Remix app</th></tr></thead>
+    <tbody>
+      <tr><td><strong>What ships to prod</strong></td><td>HTML shell + JS bundle (files)</td><td>A running Node server</td></tr>
+      <tr><td><strong>Where data is fetched</strong></td><td>In the browser, after load</td><td>In loaders, on the server, before HTML</td></tr>
+      <tr><td><strong>Needs a Node process?</strong></td><td>No, just serve the files</td><td>Yes, <code>remix-serve</code> or Express</td></tr>
+      <tr><td><strong>Can secrets stay hidden?</strong></td><td>Hard, most logic is client-side</td><td>Yes, loaders and actions run server-side</td></tr>
+      <tr><td><strong>First paint</strong></td><td>Blank, then a data fetch</td><td>Server-rendered HTML with data</td></tr>
+      <tr><td><strong>Host it as</strong></td><td>A static site</td><td>A Node app behind a proxy</td></tr>
+    </tbody>
+  </table>
+  <p>If your project is genuinely all static, you'd use a plain static build and skip this. You picked Remix, so you wanted the server render. Let's deploy the server.</p>
+
+  <figure>
+    <svg viewBox="0 0 800 430" role="img" aria-label="A single request to a Remix app. The browser sends GET slash products to the Remix Node server. Inside the server, build slash server slash index.js receives it, the route loader runs and queries a managed database over the private network, then React is rendered to HTML that already contains the data. The finished HTML plus data is sent back to the browser, which then hydrates. The loader and the database call both run on the server." style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb;font-family:'Poppins',sans-serif">
+      <defs>
+        <marker id="rr" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5b6a86"></path></marker>
+        <marker id="rrG" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#40b75f"></path></marker>
+      </defs>
+      <text x="28" y="34" fill="#000f27" font-size="17" font-weight="700">One request to a Remix app: the loader runs on the server</text>
+      <text x="28" y="55" fill="#5b6a86" font-size="12.5">Data is fetched and HTML is rendered before the browser sees anything. That is why it needs a server.</text>
+
+      <!-- Browser -->
+      <rect x="28" y="150" width="132" height="86" rx="12" fill="#000f27"></rect>
+      <text x="94" y="186" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">Browser</text>
+      <text x="94" y="207" text-anchor="middle" fill="#aab6d4" font-size="10.5" font-family="'JetBrains Mono',monospace">GET /products</text>
+
+      <!-- request arrow -->
+      <path d="M160 178 L210 178" fill="none" stroke="#5b6a86" stroke-width="2" marker-end="url(#rr)"></path>
+      <text x="185" y="170" text-anchor="middle" fill="#5b6a86" font-size="10">request</text>
+
+      <!-- server boundary -->
+      <rect x="214" y="92" width="372" height="300" rx="16" fill="#fff" stroke="#4F1AF3" stroke-width="1.6" stroke-dasharray="6 5"></rect>
+      <text x="232" y="116" fill="#4F1AF3" font-size="11" font-weight="600" letter-spacing="1">YOUR REMIX NODE SERVER (your box)</text>
+
+      <!-- server entry -->
+      <rect x="238" y="130" width="324" height="40" rx="9" fill="#f6f7fb" stroke="#e6e9f2"></rect>
+      <text x="400" y="155" text-anchor="middle" fill="#1c2536" font-size="11.5" font-family="'JetBrains Mono',monospace">build/server/index.js</text>
+
+      <!-- loader -->
+      <rect x="238" y="184" width="324" height="52" rx="10" fill="#4F1AF3"></rect>
+      <text x="400" y="207" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="600" font-family="'JetBrains Mono',monospace">loader() runs</text>
+      <text x="400" y="225" text-anchor="middle" fill="#d8ccff" font-size="10.5">server-side data fetch for this route</text>
+
+      <!-- render -->
+      <rect x="238" y="302" width="324" height="52" rx="10" fill="#000f27"></rect>
+      <text x="400" y="325" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">render React to HTML</text>
+      <text x="400" y="343" text-anchor="middle" fill="#aab6d4" font-size="10.5">the HTML now contains the data</text>
+
+      <!-- loader to render arrow -->
+      <line x1="400" y1="236" x2="400" y2="300" stroke="#5b6a86" stroke-width="2" marker-end="url(#rr)"></line>
+
+      <!-- DB -->
+      <rect x="616" y="184" width="158" height="72" rx="12" fill="#eafaef" stroke="#40b75f" stroke-width="1.7"></rect>
+      <text x="695" y="214" text-anchor="middle" fill="#2f7d45" font-size="12.5" font-weight="600">Managed database</text>
+      <text x="695" y="233" text-anchor="middle" fill="#2f7d45" font-size="10" font-family="'JetBrains Mono',monospace">private network</text>
+
+      <!-- loader <-> db -->
+      <path d="M562 202 L614 202" fill="none" stroke="#40b75f" stroke-width="2" marker-end="url(#rrG)"></path>
+      <path d="M614 226 L564 226" fill="none" stroke="#40b75f" stroke-width="2" marker-end="url(#rrG)"></path>
+      <text x="588" y="195" text-anchor="middle" fill="#2f7d45" font-size="9.5">query</text>
+      <text x="588" y="243" text-anchor="middle" fill="#2f7d45" font-size="9.5">rows</text>
+
+      <!-- response back to browser -->
+      <path d="M238 332 C 150 372, 94 322, 94 240" fill="none" stroke="#40b75f" stroke-width="2" marker-end="url(#rrG)"></path>
+      <text x="118" y="300" text-anchor="middle" fill="#2f7d45" font-size="10">HTML + data</text>
+      <text x="94" y="262" text-anchor="middle" fill="#2f7d45" font-size="9.5">then hydrates</text>
+    </svg>
+    <figcaption>One request, start to finish. The loader and the database call both happen inside the server boundary, before any HTML reaches the browser. That server is what you deploy.</figcaption>
+  </figure>
+
+  <h2>Loaders and actions: the reason Remix needs a server</h2>
+  <p>Two functions carry the whole framework, and both run on the server. Learn them and Remix deployment stops being mysterious.</p>
+  <p>A <code>loader</code> is server-side data fetching for a route. On a GET request, Remix calls the loader for every matched route, in parallel, before it renders, and you read the result with <code>useLoaderData()</code>. An <code>action</code> is the write side. When a form submits (POST, PUT, PATCH, DELETE), Remix runs the route's action on the server, then reruns the loaders so the page reflects the new state. No manual refetch, no client-side cache to babysit.</p>
+  <pre><code>// app/routes/products.tsx
+import { json } from "@remix-run/node";
+import { useLoaderData } from "@remix-run/react";
+import { db } from "~/db.server";
+
+export async function loader() {
+  const products = await db.product.findMany();   // runs on the server
+  return json({ products });
+}
+
+export async function action({ request }) {
+  const form = await request.formData();
+  await db.product.create({ data: { name: form.get("name") } });
+  return json({ ok: true });
+}
+
+export default function Products() {
+  const { products } = useLoaderData&lt;typeof loader&gt;();
+  return &lt;ul&gt;{products.map((p) =&gt; &lt;li key={p.id}&gt;{p.name}&lt;/li&gt;)}&lt;/ul&gt;;
+}</code></pre>
+  <p>Look at where <code>db.product.findMany()</code> runs. On the server, inside the loader, every request. That code never ships to the browser, and it can't, because it needs a database connection the client should never see. That's the Remix SSR model in one screen, and why "just upload the files" fails. No file runs the query. A process does.</p>
+
+  <h2>What npm run build actually produces</h2>
+  <p>Remix builds on Vite, so it's a Vite build under the hood. Run it and see what lands on disk:</p>
+  <pre><code>npm run build          # runs: remix vite:build
+
+# creates:
+#   build/server/index.js   the server request handler (SSR + your loaders and actions)
+#   build/client/           static client assets: JS, CSS, images</code></pre>
+  <p>Two artifacts, two jobs. <code>build/client/</code> is the static stuff a browser downloads, served off disk or a CDN. <code>build/server/index.js</code> is the interesting half: the server module holding all your routes, loaders, and actions, ready to render. That file has to run in production. The client folder just rides along.</p>
+  <p>People trip here by uploading only <code>build/client/</code> and wondering why the app is blank or 404s on real routes. Nothing is running the loaders. You shipped the passengers and left the driver at home.</p>
+
+  <!-- ADD IMAGE: a file tree of the build folder after npm run build, showing build/server/index.js next to build/client. Swap for a real screenshot: src -> images/remix-build-output.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The build folder after npm run build, with build/server/index.js sitting next to the build/client assets.</em><small>Lands the "there are two halves, and one of them runs" point.</small></span></figure>
+
+  <h2>Two ways to run it: remix-serve or your own Express server</h2>
+  <p>Once you have a build, you need something to run <code>build/server/index.js</code> and listen on a port. There are two shapes, and both are fine.</p>
+
+  <h3>Option one: remix-serve</h3>
+  <p>Remix ships a small production server called <code>remix-serve</code> (the <code>@remix-run/serve</code> package). It's the zero-config path. Point it at your server build and it runs:</p>
+  <pre><code>remix-serve ./build/server/index.js
+# a minimal Express-based server, reads PORT from the environment (default 3000)</code></pre>
+  <p>Your <code>package.json</code> stays boring, which is the goal:</p>
+  <pre><code>{
+  "scripts": {
+    "build": "remix vite:build",
+    "start": "remix-serve ./build/server/index.js"
+  }
+}</code></pre>
+  <p>For most apps, <code>remix-serve</code> is all you need. Don't reach for a custom server without a reason.</p>
+
+  <h3>Option two: your own Express server</h3>
+  <p>Need custom middleware, extra routes, a websocket, or tighter caching control? Swap in your own Express server. Remix gives you a request handler that plugs straight in:</p>
+  <pre><code>// server.js
+import { createRequestHandler } from "@remix-run/express";
+import express from "express";
+
+const app = express();
+
+// serve the built client assets
+app.use(express.static("build/client", { immutable: true, maxAge: "1y" }));
+
+// hand everything else to Remix
+const build = await import("./build/server/index.js");
+app.all("*", createRequestHandler({ build }));
+
+app.listen(process.env.PORT || 3000, () =&gt; {
+  console.log("Remix app listening");
+});</code></pre>
+  <p>Same server build, you're just wrapping it. The rule that bites people: read the port from <code>process.env.PORT</code>, never hard-code it. A managed host assigns the port and points its proxy there. Hard-code 3000 when the platform expects 8080 and the proxy can't find you. That's a 502 over a perfectly healthy process.</p>
+
+  <div class="note"><b>Founder take:</b> start with <code>remix-serve</code>. I've watched people write a custom Express server on day one because a tutorial did, then lose an afternoon to static-asset caching they never needed to touch. Add the custom server when you have a concrete reason, a webhook route or shared middleware. Not before.</div>
+
+  <h2>How do I deploy a Remix app to production on a server I own?</h2>
+  <p>Here's the concrete path through the Kloudbean console. Remix runs as a standard Node app, so there's no special runtime to hunt for. You deploy it on the Node.js stack, like an Express or a <a href="https://www.kloudbean.com/blog/deploy-fullstack-react-app-to-production/">full-stack React app</a>.</p>
+
+  <h3>Add the app on the Node.js stack</h3>
+  <p>In <strong>Applications, Add Application</strong>, pick the Node.js stack and a datacenter near your users. Remix builds are Vite builds, and Vite likes memory, so give the box headroom. 2 GB of RAM is a comfortable start. The platform sets up the Node runtime, a process manager, a reverse proxy, and a firewall so you're not wiring those by hand.</p>
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean Add Application screen: adding a Remix app on the Node.js stack">
+    <figcaption>Add Application: a Remix app is a Node app. Pick the Node.js stack and the platform provisions the process manager and proxy around it.</figcaption>
+  </figure>
+
+  <h3>Connect Git and set the build</h3>
+  <p>Deploys come from Git, so your repo is the source of truth, not a folder on your laptop. On the <strong>Git Deployment</strong> screen, connect GitHub over OAuth, paste the repo URL, pick a branch, and clone. Then fill the runtime fields:</p>
+  <ul>
+    <li><strong>App Directory:</strong> the folder with your <code>package.json</code>.</li>
+    <li><strong>Node Version:</strong> match your local build, 20 or newer for a current Remix.</li>
+    <li><strong>Port:</strong> the port your app listens on, read from <code>PORT</code>.</li>
+    <li><strong>Install / Build / Start:</strong> <code>npm ci</code>, then <code>npm run build</code>, then <code>npm start</code> (which runs <code>remix-serve ./build/server/index.js</code>).</li>
+  </ul>
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean Git Deployment tab: connect the repo, set Build to npm run build and Start to remix-serve, then Pull and Deploy">
+    <figcaption>Git Deployment: connect the repo, set Build to npm run build and Start to npm start, then Pull and Deploy. The build log streams live as it clones, installs, builds, and boots.</figcaption>
+  </figure>
+  <p>Hit <strong>Pull &amp; Deploy</strong> and the console streams every step, so a failure shows the exact line, not a spinner. Turn on automated deployment and each push to your branch rebuilds and ships itself, the Git-to-live loop the per-seat platforms rent you, on a server you control. The pattern is covered in <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD auto-deploy from GitHub</a>.</p>
+
+  <!-- ADD IMAGE: live build logs streaming a Remix vite build in the console. Swap for a real screenshot: src -> images/remix-build-logs.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Live build logs streaming a Remix Vite build, line by line, during a deploy.</em><small>Shows where you catch a failed build in real time.</small></span></figure>
+
+  <h3>The proxy and SSL you don't have to build</h3>
+  <p>In production your Remix server listens on a port, and a reverse proxy sits in front on 443 to terminate SSL and forward traffic. On a managed server that proxy and a free auto-renewing certificate are handled, so you add your domain, point DNS, and you're on HTTPS. New to the proxy layer? <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">Nginx as a reverse proxy for Node</a> walks the whole thing. Keeping the process alive across crashes and reboots is a process manager's job, the <a href="https://www.kloudbean.com/blog/pm2-vs-systemd/">PM2 versus systemd</a> question, and it's wired up for you.</p>
+
+  <h2>Wiring loaders and actions to a real database</h2>
+  <p>Loaders and actions earn their keep the moment they talk to a database. Because that code runs on the server, the normal setup is a managed Postgres or MySQL plus an ORM like Prisma or Drizzle, with the connection string in an environment variable. Never in code, never in the client bundle.</p>
+  <p>Keep your database client in a server-only module. Remix treats any <code>*.server.ts</code> (or <code>.server.js</code>) file as server-only and keeps it out of the browser bundle:</p>
+  <pre><code>// app/db.server.ts   (the .server suffix keeps this off the client)
+import { PrismaClient } from "@prisma/client";
+
+export const db = new PrismaClient();   // reads DATABASE_URL from the environment</code></pre>
+  <p>Then any loader or action imports <code>db</code> and queries away, like the products example earlier. Launch a managed database, copy its connection string into <code>DATABASE_URL</code>, and reach it over the private network so the trip from your Remix server to the database stays off the public internet. Kloudbean runs seven managed engines (PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Memcached, and Elasticsearch), each with automatic backups. The full pattern is in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a>, and the Prisma details are in <a href="https://www.kloudbean.com/blog/connect-prisma-to-a-managed-database/">connecting Prisma to a managed database</a>.</p>
+  <div class="note"><b>Run migrations in the deploy, not by hand.</b> Add your migration command to the build step, for example <code>npx prisma migrate deploy</code>, so the schema exists before the app serves a request. A first deploy against a database with no tables fails in a confusing way. A common mistake we see: skipping this, then chasing a loader error that's really a missing table.</div>
+
+  <h2>Remix environment variables and the server/client boundary</h2>
+  <p>Remix keeps this refreshingly simple. In a loader or an action, you read <code>process.env</code>. It's plain Node on the server, so your <code>DATABASE_URL</code>, API secrets, and session keys are right there, and none of them touch the browser.</p>
+  <pre><code>export async function loader() {
+  const key = process.env.STRIPE_SECRET_KEY;   // server-only, never shipped
+  // ...use it to talk to Stripe from the server
+}</code></pre>
+  <p>The one thing to understand is the boundary. Anything the browser needs, you expose deliberately, usually by returning it from your root loader onto <code>window.ENV</code>:</p>
+  <pre><code>// app/root.tsx
+export async function loader() {
+  return json({
+    ENV: {
+      STRIPE_PUBLIC_KEY: process.env.STRIPE_PUBLIC_KEY,   // safe, meant to be public
+    },
+  });
+}</code></pre>
+  <p>The split is worth saying out loud: secrets live in loaders and actions and stay on the server, public values get handed to the client on purpose. Nothing leaks by accident, because nothing crosses the boundary unless you send it. That beats frameworks that inline a prefixed variable into the client bundle at build time, where a mislabeled key is public forever. If build-time versus runtime is fuzzy, <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a> covers it.</p>
+  <p>In the console, set these under <strong>Environment Variables</strong>. A <strong>Paste .env Content</strong> tab lets you drop your whole file in as key/value pairs. Set <code>DATABASE_URL</code> and your secrets, save, and they're on <code>process.env</code> at runtime, out of Git and out of the client bundle.</p>
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean environment variables editor with DATABASE_URL and secret keys set for a Remix app">
+    <figcaption>Environment Variables: paste your .env, set DATABASE_URL and your secrets, save. Loaders and actions read them from process.env at runtime.</figcaption>
+  </figure>
+
+  <h2>Wait, isn't Remix just React Router now?</h2>
+  <p>Good question, and yes, mostly. In late 2024 the Remix team folded Remix v2's features into React Router v7, moving the bundler and server runtime into what they call React Router "framework mode." Remix had become such a thin layer over React Router that the split stopped making sense. So the loaders, actions, and server rendering you know all live in React Router v7 now.</p>
+  <p>What matters for deployment: the shape is the same. React Router v7 framework mode builds to a server plus client assets and runs as a Node process, just like Remix. The commands rename, they don't change meaning:</p>
+  <pre><code># React Router v7 framework mode, same idea, different names:
+react-router build                            # -&gt; build/server + build/client
+react-router-serve ./build/server/index.js    # the production server</code></pre>
+  <p>My honest read: starting fresh today, I'd reach for React Router v7 framework mode. Sitting on a Remix v2 app in production? There's no fire. It still builds and deploys exactly as described here, and everything in this guide applies to both. Frameworks move fast, so check the current React Router docs for exact package names when you upgrade. But the deploy target hasn't budged. It's still a Node server.</p>
+
+  <h2>Where Remix deploys actually break</h2>
+  <p>First deploys stumble in predictable places. Knowing them turns a 30-minute stall into a 30-second fix.</p>
+  <p><strong>Deployed like a static site.</strong> The number one Remix deploy mistake. Someone uploads <code>build/client/</code> to a static host and gets a blank page or 404s, because nothing runs the loaders. Remix needs the Node process from <code>build/server/index.js</code>. Run the server.</p>
+  <p><strong>Start command runs the dev server.</strong> Setting Start to <code>npm run dev</code> out of habit runs the Vite dev server, which is for local reloading, not traffic. Start must be your production server, <code>remix-serve ./build/server/index.js</code> or your Express start, after Build has run.</p>
+  <p><strong>Server code leaked into a component.</strong> Import your database client or a secret straight into a component instead of a loader, action, or <code>*.server</code> file, and Vite tries to bundle it for the browser. Best case, the build errors. Worst case, a key lands in the client bundle. Keep server-only code in loaders, actions, or <code>.server</code> modules.</p>
+  <p><strong>Hard-coded port.</strong> The app listens on a fixed 3000 while the platform assigns a different port, so the proxy can't reach it and you get a 502 over a healthy process. Read <code>process.env.PORT</code>.</p>
+  <p><strong>Build tooling skipped.</strong> Something sets <code>NODE_ENV=production</code> before install, npm skips <code>devDependencies</code> where Vite and the Remix plugin live, and the build dies with a missing-module error. Let install pull everything, then build. When a deploy 503s, read the app's error log first. It's almost always one of these, in plain text.</p>
+
+  <!-- ADD IMAGE: the app error log open showing a missing module or a leaked-server-import build error. Swap for a real screenshot: src -> images/remix-error-log.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The app error log with a build failure line highlighted, such as a missing module or a server import pulled into the client.</em><small>Reinforces reading the log before guessing.</small></span></figure>
+
+  <h2>The honest limits</h2>
+  <p>Two things worth saying straight. First, this is a Linux Node deployment. Remix compiles to a standard Node server that runs great on a managed Linux box. It isn't a Windows or .NET target and was never meant to be, so you're on the happy path.</p>
+  <p>Second, your server lives in one region, not a global edge. Remix can target edge runtimes, but on a server you own it runs in the datacenter you picked. For most apps a well-placed server with its database beside it is faster than people expect, since you skip cold starts and the trip to a far-off database. If you serve a latency-critical audience worldwide, put Cloudflare in front (a paid add-on, free on Enterprise) so pages cache at the edge while your app runs on your hardware. "Managed" means the server, stack, SSL, backups, and patching are handled. Your code and data stay yours, on an ordinary Linux box you can move whenever you like.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Build it. Push it. Watch the server boot.</p>
+    <p style="margin:0 0 .6em">Deploy your Remix app from Git onto a managed Node server you own, with the reverse proxy, SSL, and process manager already handled, and a managed database a click away. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> from $8/mo, or talk to us about Enterprise. Sizes on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Node.js stack · Git deploy with live logs · Free auto-renewing SSL · Managed databases · Private networking · Automatic backups · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I deploy a Remix app to production?</h3>
+    <p>Run <code>npm run build</code> to produce <code>build/server/index.js</code> and <code>build/client/</code>, then start the server with <code>remix-serve ./build/server/index.js</code> or your own Express server. Run it on a box with Node, listening on the assigned <code>PORT</code>, behind a reverse proxy for SSL, with a process manager to keep it alive. Connect a managed database over an environment variable and point a domain at it.</p>
+
+    <h3>Does a Remix app need a Node server?</h3>
+    <p>Yes. Remix is a full-stack framework that server-renders, so its loaders and actions run on the server for every request. That requires a live Node process, not a folder of static files. The only time you'd skip the server is if you deliberately built a fully static or SPA-mode output, which most Remix apps are not.</p>
+
+    <h3>What does remix-serve do?</h3>
+    <p><code>remix-serve</code> is the small production server that ships with Remix, in the <code>@remix-run/serve</code> package. You run <code>remix-serve ./build/server/index.js</code> and it serves your built app, reading the port from the <code>PORT</code> environment variable and defaulting to 3000. It's the zero-config option, and most apps never need more than it.</p>
+
+    <h3>Remix vs Next.js for deployment, what's the difference?</h3>
+    <p>Both are full-stack React frameworks that build to a Node server you can run on your own box, so the deploy shape is similar: build, then run a long-lived process behind a proxy. Remix leans on route loaders and actions for data, while Next.js uses Server Components and route handlers. Neither locks you in for self-hosting, and both run happily on a managed Node stack.</p>
+
+    <h3>How do loaders and actions work in production?</h3>
+    <p>A loader runs on the server on GET requests to fetch data before the page renders, and you read it with <code>useLoaderData()</code>. An action runs on the server for form submissions and other writes, then Remix reruns the loaders so the page reflects the change. Both execute inside your running Node process, which is why the app can't be purely static.</p>
+
+    <h3>How do I connect a Remix app to a database?</h3>
+    <p>Put your database client in a server-only module such as <code>db.server.ts</code>, read the connection string from an environment variable like <code>DATABASE_URL</code>, and import it into your loaders and actions. Use a managed Postgres or MySQL with an ORM like Prisma or Drizzle, and reach it over a private network. Run migrations in your deploy step so the schema exists before the first request.</p>
+
+    <h3>Is Remix the same as React Router now?</h3>
+    <p>Effectively, yes. In late 2024 the Remix team merged Remix v2's features into React Router v7's framework mode, moving the bundler and server runtime there. Loaders, actions, and server rendering all carried over, and the deployment target is unchanged: a Node server built from your routes. New projects can start on React Router v7, while existing Remix v2 apps still build and deploy the same way.</p>
+
+    <h3>How do I set environment variables for Remix?</h3>
+    <p>Read them with <code>process.env</code> inside loaders and actions, which run on the server, so secrets like <code>DATABASE_URL</code> stay off the client. To expose a value to the browser, return it from your root loader so it lands on <code>window.ENV</code>. Set the values in your host's environment variables panel and never commit them to Git.</p>
+
+    <h3>Why is my Remix app blank or 404ing in production?</h3>
+    <p>The usual cause is deploying it like a static site: only the <code>build/client/</code> assets got uploaded and nothing is running <code>build/server/index.js</code>, so no loader ever runs. Make sure your production process starts the server build with <code>remix-serve</code> or your Express server. If it still fails, read the app's error log, since a missing env var or a skipped build is the next most common reason.</p>
+
+    <h3>What Node version and start command should I use for Remix?</h3>
+    <p>Use Node 20 or newer to match a current Remix, and set your production Start command to run the built server, <code>remix-serve ./build/server/index.js</code> (usually wrapped as <code>npm start</code>). Do not use <code>npm run dev</code> in production, since that runs the Vite dev server, which is built for local reloading rather than real traffic.</p>
+  </div>
+
+  <p class="byline">Kloudbean · A Remix app is a program that runs, not a folder you upload. Deploy it like one.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Deploy a Remix App to Production, the Honest Way","description":"Deploy a Remix app to production the right way. Remix server-renders, so its loaders and actions run on a Node process, not static files. Build to build/server/index.js, run it with remix-serve or a custom Express server behind a reverse proxy, wire loaders to a managed database, and handle env vars across the server and client boundary. Includes the React Router v7 note and the failures that break first deploys.","image":"https://www.kloudbean.com/blog/deploy-remix-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/deploy-remix-app/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I deploy a Remix app to production?","acceptedAnswer":{"@type":"Answer","text":"Run npm run build to produce build/server/index.js and build/client/, then start the server with remix-serve ./build/server/index.js or your own Express server. Run it on a box with Node, listening on the assigned PORT, behind a reverse proxy for SSL, with a process manager to keep it alive. Connect a managed database over an environment variable and point a domain at it."}},
+{"@type":"Question","name":"Does a Remix app need a Node server?","acceptedAnswer":{"@type":"Answer","text":"Yes. Remix is a full-stack framework that server-renders, so its loaders and actions run on the server for every request. That requires a live Node process, not a folder of static files. The only time you would skip the server is if you deliberately built a fully static or SPA-mode output, which most Remix apps are not."}},
+{"@type":"Question","name":"What does remix-serve do?","acceptedAnswer":{"@type":"Answer","text":"remix-serve is the small production server that ships with Remix, in the @remix-run/serve package. You run remix-serve ./build/server/index.js and it serves your built app, reading the port from the PORT environment variable and defaulting to 3000. It is the zero-config option, and most apps never need more than it."}},
+{"@type":"Question","name":"Remix vs Next.js for deployment, what is the difference?","acceptedAnswer":{"@type":"Answer","text":"Both are full-stack React frameworks that build to a Node server you can run on your own box, so the deploy shape is similar: build, then run a long-lived process behind a proxy. Remix leans on route loaders and actions for data, while Next.js uses Server Components and route handlers. Neither locks you in for self-hosting, and both run happily on a managed Node stack."}},
+{"@type":"Question","name":"How do loaders and actions work in production?","acceptedAnswer":{"@type":"Answer","text":"A loader runs on the server on GET requests to fetch data before the page renders, and you read it with useLoaderData(). An action runs on the server for form submissions and other writes, then Remix reruns the loaders so the page reflects the change. Both execute inside your running Node process, which is why the app cannot be purely static."}},
+{"@type":"Question","name":"How do I connect a Remix app to a database?","acceptedAnswer":{"@type":"Answer","text":"Put your database client in a server-only module such as db.server.ts, read the connection string from an environment variable like DATABASE_URL, and import it into your loaders and actions. Use a managed Postgres or MySQL with an ORM like Prisma or Drizzle, and reach it over a private network. Run migrations in your deploy step so the schema exists before the first request."}},
+{"@type":"Question","name":"Is Remix the same as React Router now?","acceptedAnswer":{"@type":"Answer","text":"Effectively, yes. In late 2024 the Remix team merged Remix v2 features into React Router v7 framework mode, moving the bundler and server runtime there. Loaders, actions, and server rendering all carried over, and the deployment target is unchanged: a Node server built from your routes. New projects can start on React Router v7, while existing Remix v2 apps still build and deploy the same way."}},
+{"@type":"Question","name":"How do I set environment variables for Remix?","acceptedAnswer":{"@type":"Answer","text":"Read them with process.env inside loaders and actions, which run on the server, so secrets like DATABASE_URL stay off the client. To expose a value to the browser, return it from your root loader so it lands on window.ENV. Set the values in your host environment variables panel and never commit them to Git."}},
+{"@type":"Question","name":"Why is my Remix app blank or 404ing in production?","acceptedAnswer":{"@type":"Answer","text":"The usual cause is deploying it like a static site: only the build/client/ assets got uploaded and nothing is running build/server/index.js, so no loader ever runs. Make sure your production process starts the server build with remix-serve or your Express server. If it still fails, read the app error log, since a missing env var or a skipped build is the next most common reason."}},
+{"@type":"Question","name":"What Node version and start command should I use for Remix?","acceptedAnswer":{"@type":"Answer","text":"Use Node 20 or newer to match a current Remix, and set your production Start command to run the built server, remix-serve ./build/server/index.js, usually wrapped as npm start. Do not use npm run dev in production, since that runs the Vite dev server, which is built for local reloading rather than real traffic."}}
+]}
+]}
+</script>
+</body>
+</html>

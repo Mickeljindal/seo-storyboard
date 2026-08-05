@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Server Backups That Actually Restore: The Practical Guide</title>
+<meta name="description" content="Everyone has a backup, right up until they need it and find it never ran or won't restore. Here's how to set up server backups you can actually trust: what to back up, where they belong, the 3-2-1 rule, and how to test a restore.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/server-backups-guide/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Server Backups That Actually Restore: The Practical Guide">
+<meta property="og:description" content="What to back up, where backups belong, the 3-2-1 rule in plain English, retention windows, and the one habit that makes backups real: testing a restore before you need it.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Security &amp; scaling</span>
+  <h1>Server Backups That Actually Restore: A Practical Guide</h1>
+
+  <figure><img src="images/hero.png" alt="Server backups that actually restore: what to back up, where it belongs, and how to test a restore"></figure>
+
+  <p class="lead">Everyone has backups. Right up until the day they reach for one and find it never ran, or it ran fine but won't restore, or it was quietly sitting on the same disk that just died. That last one really stings.</p>
+  <p>Server backups are one of those jobs that feel finished the moment you flip a switch, which is exactly why so many of them silently aren't. This guide is about the gap between having a backup and having one you'd bet the business on. We'll cover what to protect, where copies belong, the old 3-2-1 rule in plain English, how long to keep things, and the one habit that turns a backup from a hope into a safeguard.</p>
+
+  <div class="tldr">
+    <strong>Short version</strong>
+    <p>Back up the three things you can't regenerate: your database, user uploads, and config. Keep them off the server they protect, in object storage. Automate the schedule, keep a rolling set of versions, and here's the part almost everyone skips: restore one on purpose before you ever need to. A backup you've never restored is a guess.</p>
+  </div>
+
+  <h2>Why the backups people already have still fail them</h2>
+  <p>Nearly every backup horror story is one of a few predictable failures. Not exotic ones. The boring, avoidable kind.</p>
+  <ul>
+    <li><strong>The restore was never tested.</strong> The job runs, a file appears, everyone relaxes. Then the day comes, the file is truncated or the dump is from a schema three migrations ago, and you find out live. The most common thing we see isn't a missing backup. It's a backup nobody has ever restored, quietly failing for weeks.</li>
+    <li><strong>The backup lived on the same box.</strong> A copy on the same disk, or even the same server, shares fate with the thing it's protecting. One dead volume, one compromised server, one <code>rm -rf</code> in the wrong directory, and both the original and the "backup" are gone together.</li>
+    <li><strong>Nobody thought about versions.</strong> If you only keep the latest copy, a problem that hid for a few days (a bad migration, creeping corruption, ransomware) gets faithfully backed up too. Now your newest backup holds the broken state and you've no clean point to fall back to.</li>
+    <li><strong>It stopped running and no one noticed.</strong> Cron jobs die. Credentials expire. Disks fill. A backup with no success alert can be broken for months in total silence.</li>
+  </ul>
+  <p>None of these are hard to prevent. They just need a plan that treats "the backup exists" as step one, not the finish line.</p>
+
+  <h2>The one question that tells you if you're actually covered</h2>
+  <p>Skip the checklists for a second and ask this: <strong>could a single bad day destroy every copy of my data at once?</strong> A failed disk, a hacked server, one wrong command. If the honest answer is yes, you don't have backups yet. You have copies sitting in the blast radius. Everything below is really just ways of answering "no" to that question with confidence. The 3-2-1 rule is the fastest way there.</p>
+
+  <h2>The 3-2-1 rule, without the jargon</h2>
+  <p>It's an old rule and it has aged well: <strong>3 copies</strong> of your data, on <strong>2 different kinds of media</strong>, with <strong>1 copy kept off-site.</strong> That's it. Here's what each part means for a server.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 300" role="img" aria-label="The 3-2-1 backup rule: three copies of your data, on two different kinds of media, with one copy kept off-site" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="30" y="40" fill="#000f27" font-family="Poppins,sans-serif" font-size="17" font-weight="700">The 3-2-1 rule, on one screen</text>
+      <text x="30" y="61" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12.5">Three copies. Two kinds of media. One kept somewhere else.</text>
+
+      <!-- Panel 1: 3 copies -->
+      <rect x="28" y="82" width="224" height="196" rx="14" fill="#ffffff" stroke="#e6e9f2"/>
+      <text x="140" y="150" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="62" font-weight="700">3</text>
+      <text x="140" y="176" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="14.5" font-weight="600">copies of the data</text>
+      <!-- three stacked copy cards -->
+      <rect x="64" y="196" width="152" height="20" rx="4" fill="#eef0f8" stroke="#d7dcea"/><text x="74" y="210" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">Live data (in use)</text>
+      <rect x="64" y="222" width="152" height="20" rx="4" fill="#eef0f8" stroke="#d7dcea"/><text x="74" y="236" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">Backup copy</text>
+      <rect x="64" y="248" width="152" height="20" rx="4" fill="#eef0f8" stroke="#d7dcea"/><text x="74" y="262" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">Another backup copy</text>
+
+      <!-- Panel 2: 2 media -->
+      <rect x="268" y="82" width="224" height="196" rx="14" fill="#ffffff" stroke="#e6e9f2"/>
+      <text x="380" y="150" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="62" font-weight="700">2</text>
+      <text x="380" y="176" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="14.5" font-weight="600">kinds of media</text>
+      <!-- disk cylinder -->
+      <ellipse cx="330" cy="212" rx="26" ry="8" fill="#000f27"/>
+      <path d="M304 212 v30 a26 8 0 0 0 52 0 v-30" fill="#1c2536"/>
+      <ellipse cx="330" cy="212" rx="26" ry="8" fill="#3a4560"/>
+      <text x="330" y="266" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">server disk</text>
+      <!-- bucket -->
+      <path d="M410 206 h60 l-6 42 a4 4 0 0 1 -4 4 h-40 a4 4 0 0 1 -4 -4 z" fill="#4F1AF3"/>
+      <ellipse cx="440" cy="206" rx="30" ry="7" fill="#6b3cff"/>
+      <text x="440" y="266" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">object storage</text>
+
+      <!-- Panel 3: 1 off-site (highlighted) -->
+      <rect x="508" y="82" width="224" height="196" rx="14" fill="#f2fbf5" stroke="#40b75f" stroke-width="2"/>
+      <text x="620" y="150" text-anchor="middle" fill="#40b75f" font-family="Poppins,sans-serif" font-size="62" font-weight="700">1</text>
+      <text x="620" y="176" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="14.5" font-weight="600">copy kept off-site</text>
+      <!-- location pin -->
+      <path d="M620 202 a22 22 0 0 1 22 22 c0 16 -22 34 -22 34 c0 0 -22 -18 -22 -34 a22 22 0 0 1 22 -22 z" fill="#40b75f"/>
+      <circle cx="620" cy="224" r="8" fill="#f2fbf5"/>
+      <text x="620" y="272" text-anchor="middle" fill="#2f7d45" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600">the one people skip</text>
+    </svg>
+    <figcaption>3-2-1 for a server: your live data, a backup on different media (object storage, not the same disk), and at least one copy kept somewhere else entirely.</figcaption>
+  </figure>
+
+  <p><strong>Three copies</strong> means the live data plus two backups, so losing any one still leaves you covered. <strong>Two media</strong> means don't keep both backups on the same kind of storage that can fail the same way. Your server's disk is one; durable object storage is a good second. <strong>One off-site</strong> is the part people quietly drop, and it's the one that saves you when a whole server or region has a bad day. You don't have to be religious about the exact numbers. Treat 3-2-1 as a sanity check: if any single event could wipe all your copies, you're not there yet.</p>
+
+  <h2>What to actually back up (and what you can skip)</h2>
+  <p>Not everything on a server is equally precious. Backing up the wrong things wastes storage and, worse, distracts you from the data that genuinely can't be replaced. Three things need a real plan.</p>
+  <ul>
+    <li><strong>The database.</strong> Almost always the crown jewels. It's your users, orders, posts, the stuff that changes every minute and can't be recreated from anywhere else. If you back up one thing, back up this.</li>
+    <li><strong>Uploads and user files.</strong> Avatars, PDFs, invoices, anything people put into the app. These usually live outside the database, and they're just as irreplaceable. If your app writes uploads to local disk, they're one redeploy away from gone, which is its own reason to move them to <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">object storage</a>.</li>
+    <li><strong>Configuration.</strong> Environment variables, web server config, cron jobs, the small settings that make the app actually run. Losing these turns a restore into an archaeology project. Keep a copy of your env somewhere safe (never in the repo), and see <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a> for how to handle them without leaking secrets.</li>
+  </ul>
+  <p>What you can usually skip: your application code (it lives in Git already), and anything the server can rebuild on its own, like installed packages or <code>node_modules</code>. Write your short list down. In a real recovery you'll want to tick items off, not trust your memory at 3am.</p>
+
+  <h2>Where backups belong: anywhere but the server they protect</h2>
+  <p>This is the rule that turns a copy into a backup. <strong>The backup has to live somewhere other than the machine it's protecting.</strong> A backup on the same disk dies with the disk. A backup on the same server dies with the server. So send them off-box, to object storage: a bucket that's separate, durable, and cheap enough that keeping several versions doesn't hurt.</p>
+
+  <figure>
+    <img src="../assets/console/s3-buckets.png" alt="The Kloudbean console: creating an S3-compatible bucket to hold server backups off the server">
+    <figcaption>Off-server object storage is the natural home for backups: a dead disk can't take a bucket down with it.</figcaption>
+  </figure>
+
+  <p>Object storage fits backups almost perfectly. It's off the box, so a total server loss doesn't touch it. It's durable, replicated across hardware rather than trusting one fragile drive. And it's inexpensive at the sizes backups reach, so keeping history is affordable. On Kloudbean the buckets are S3-compatible and sit in the same dashboard as your servers and databases, so shipping a nightly dump to a bucket is a short script, not a separate vendor contract. If you remember one line from this guide, make it this: a backup that shares a disk with the original is just a second copy of the same risk.</p>
+
+  <h2>How often to run server backups, and how many to keep</h2>
+  <p>Frequency comes down to a single honest question: <strong>how much data can you afford to lose?</strong> If an hour of lost orders would hurt, you need frequent or continuous backups. If it's a slow-moving brochure site, nightly is plenty. There's a fancy term for this (your recovery point), but you don't need the jargon, just the answer to "if we restore, how far back is acceptable?" Match the schedule to that. More frequent means less lost data and more storage. Pick the point that fits what the data is worth.</p>
+  <p>Retention is the other half, and it's where the "keep versions" lesson pays off. Keep a rolling set rather than a single latest file: frequent recent backups, thinning out as they age into a few older ones. That way a problem you didn't catch for days still has a clean point behind it to recover from. I won't hand you a magic number of days, because the right window depends on your data and your rules. The shape is what matters: enough recent history to undo a mistake you spotted late, without hoarding every backup forever.</p>
+
+  <h2>Test a restore before you need one</h2>
+  <p>Here's the founder-level opinion, and I'll say it plainly: <strong>an untested backup is a rumor, not a backup.</strong> It's the single most skipped step and the single most important one. Backups fail silently in a dozen ways, and the only way to know yours works is to use it on purpose, before the day you're forced to.</p>
+  <p>So run a restore drill. Pull a recent backup, restore it into a scratch database (not production), and check that the data comes back whole. For a Postgres or MySQL dump that's a couple of commands:</p>
+<pre><code># PostgreSQL: restore into a throwaway database and sanity-check it
+createdb restore_test
+psql restore_test &lt; backup.sql
+psql restore_test -c "SELECT count(*) FROM users;"   # does that number look right?
+
+# MySQL / MariaDB: same idea
+mysql -e "CREATE DATABASE restore_test;"
+mysql restore_test &lt; backup.sql
+mysql restore_test -e "SELECT COUNT(*) FROM users;"</code></pre>
+  <p>Then do the part people forget: point a copy of the app at that restored database and confirm it actually boots and behaves. A dump that imports without error but breaks the app on a missing table hasn't really passed. Two things worth noticing while you're in there. First, <em>time it</em>. How long a full restore takes is your real recovery time, and "longer than I thought" is the usual verdict. Second, do this soon after you set backups up, and again every so often, because a restore that worked in March can quietly rot by September. If you're restoring onto fresh infrastructure, the same muscle covers a <a href="https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/">zero-downtime migration</a> too.</p>
+
+  <!-- IMAGE SLOT: replace with a real figure + img (src -> images/restore-drill.png) + figcaption -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal running the restore drill: psql importing a dump into restore_test, then a row count coming back with a believable number.</em><small>A real terminal shot here proves the whole point of the article.</small></span></figure>
+
+  <h2>How this looks on a managed host</h2>
+  <p>The point of a managed platform is that most of this runs without you babysitting it. On Kloudbean, servers get automatic backups, and every managed database (Postgres, MySQL, MariaDB, Redis, Elasticsearch, MongoDB) is backed up on its own, so your data layer isn't riding on you remembering. Your off-server copies go to S3-compatible object storage in the same console, which handles the "different media, off the box" half of 3-2-1 without a second provider. Servers, databases, and buckets all live under one login, so there's no stitching three dashboards together to answer "is this protected?" And if you're moving in from somewhere else, migration help is free, restored and verified for you.</p>
+  <p>Here's the honest division, because "managed" isn't magic. The platform handles the automated server and database backups and keeps them off-box. It's a Linux server underneath, and your data stays yours to export whenever you like. What stays your job is the thinking: knowing what's on your short list, deciding how far back you need to go, and, non-negotiably, running that restore drill so you know the path works. Do those, lean on the automation for the rest, and a disaster shrinks to a minor inconvenience. Setting up the database side from scratch? The <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">managed database guide</a> and the <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a> walkthrough pick up there, and keeping the data on a <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">private network</a> keeps it off the open internet in the first place.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Backups you don't have to think about, and a restore you've proven.</p>
+    <p style="margin:0 0 .6em">Run on a managed host with automatic backups, S3-compatible object storage for off-server copies, and managed databases backed up on their own. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>. Then go test a restore.</p>
+    <p style="margin:0">Automatic backups · Off-server object storage · Managed database backups · Private networking · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I back up a server?</h3>
+    <p>Back up the three things you can't regenerate: the database, uploaded files, and configuration (your code already lives in Git). Send those copies off the server into durable object storage, run them on an automatic schedule, keep a rolling set of versions, and test a restore so you know they actually work. That sequence is the whole job.</p>
+    <h3>Why should backups be stored off the server?</h3>
+    <p>Because a backup on the same disk or server shares fate with the thing it protects. A disk failure, a compromised server, or an accidental wipe takes the original and the backup together. Storing copies in separate object storage means they survive a total loss of the server, which is the entire reason to have them.</p>
+    <h3>What is the 3-2-1 backup rule?</h3>
+    <p>Keep 3 copies of your data, on 2 different kinds of media, with 1 copy off-site. For a server that's usually your live data, an automated backup in off-server object storage, and a further copy in another location or region. It's a sanity check: if one event could destroy every copy at once, you don't yet have real protection.</p>
+    <h3>How often should I back up a server?</h3>
+    <p>As often as your tolerance for lost data demands. If losing an hour would hurt, back up hourly or continuously. For a slow-moving site, nightly is fine. Ask "if we restore, how far back is acceptable?" and set the frequency to match. More frequent means less potential loss but more storage.</p>
+    <h3>How do I test that a backup works?</h3>
+    <p>Restore it on purpose, into a scratch environment, not production. Import a recent backup into a throwaway database, check row counts and key tables look right, then point a copy of the app at it and confirm it boots. Time how long the restore takes, since that's your real recovery time, and repeat the drill periodically.</p>
+    <h3>How many backups should I keep?</h3>
+    <p>Keep a rolling set, not just the latest file. Frequent recent backups thinning out to a few older ones lets you roll back to a clean point if a problem hid for days. The exact window depends on your data and any rules you're held to, so tune it to "enough history to undo a mistake I caught late" without keeping everything forever.</p>
+    <h3>What should I back up, and what can I skip?</h3>
+    <p>Back up the database, user uploads, and configuration. Skip things the server can rebuild, like installed packages or <code>node_modules</code>, and skip your code if it's already in Git. Backing up only what's irreplaceable keeps restores fast and storage sane.</p>
+    <h3>Are managed database backups enough on their own?</h3>
+    <p>They're a strong foundation, since your most valuable data is covered automatically. But "enough" also means the copies live off the box, you keep multiple versions, and you've tested a restore. On Kloudbean, managed databases are backed up on their own and servers get automatic backups, and you still own deciding retention and proving the restore.</p>
+    <h3>What's the difference between a backup and a snapshot?</h3>
+    <p>A snapshot is a point-in-time image of a disk or server, great for fast rollback but often stored near the thing it captures. A backup is a separate, restorable copy of your actual data, ideally off-site. Snapshots are convenient; backups are what save you when the whole server is gone. Use both, and don't mistake one for the other.</p>
+  </div>
+
+  <p class="byline">Kloudbean · An untested backup is just a rumor.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Server Backups That Actually Restore: A Practical Guide","description":"A practical guide to server backups you can trust: what to back up, where copies belong, the 3-2-1 rule in plain English, retention windows, and how to test a restore before you need it.","image":"https://www.kloudbean.com/blog/server-backups-guide/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/server-backups-guide/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I back up a server?","acceptedAnswer":{"@type":"Answer","text":"Back up the three things you can't regenerate: the database, uploaded files, and configuration (your code already lives in Git). Send those copies off the server into durable object storage, run them on an automatic schedule, keep a rolling set of versions, and test a restore so you know they actually work. That sequence is the whole job."}},
+{"@type":"Question","name":"Why should backups be stored off the server?","acceptedAnswer":{"@type":"Answer","text":"Because a backup on the same disk or server shares fate with the thing it protects. A disk failure, a compromised server, or an accidental wipe takes the original and the backup together. Storing copies in separate object storage means they survive a total loss of the server, which is the entire reason to have them."}},
+{"@type":"Question","name":"What is the 3-2-1 backup rule?","acceptedAnswer":{"@type":"Answer","text":"Keep 3 copies of your data, on 2 different kinds of media, with 1 copy off-site. For a server that's usually your live data, an automated backup in off-server object storage, and a further copy in another location or region. It's a sanity check: if one event could destroy every copy at once, you don't yet have real protection."}},
+{"@type":"Question","name":"How often should I back up a server?","acceptedAnswer":{"@type":"Answer","text":"As often as your tolerance for lost data demands. If losing an hour would hurt, back up hourly or continuously. For a slow-moving site, nightly is fine. Ask if we restore, how far back is acceptable, and set the frequency to match. More frequent means less potential loss but more storage."}},
+{"@type":"Question","name":"How do I test that a backup works?","acceptedAnswer":{"@type":"Answer","text":"Restore it on purpose, into a scratch environment, not production. Import a recent backup into a throwaway database, check row counts and key tables look right, then point a copy of the app at it and confirm it boots. Time how long the restore takes, since that's your real recovery time, and repeat the drill periodically."}},
+{"@type":"Question","name":"How many backups should I keep?","acceptedAnswer":{"@type":"Answer","text":"Keep a rolling set, not just the latest file. Frequent recent backups thinning out to a few older ones lets you roll back to a clean point if a problem hid for days. The exact window depends on your data and any rules you're held to, so tune it to enough history to undo a mistake you caught late without keeping everything forever."}},
+{"@type":"Question","name":"What should I back up, and what can I skip?","acceptedAnswer":{"@type":"Answer","text":"Back up the database, user uploads, and configuration. Skip things the server can rebuild, like installed packages or node_modules, and skip your code if it's already in Git. Backing up only what's irreplaceable keeps restores fast and storage sane."}},
+{"@type":"Question","name":"Are managed database backups enough on their own?","acceptedAnswer":{"@type":"Answer","text":"They're a strong foundation, since your most valuable data is covered automatically. But enough also means the copies live off the box, you keep multiple versions, and you've tested a restore. On Kloudbean, managed databases are backed up on their own and servers get automatic backups, and you still own deciding retention and proving the restore."}},
+{"@type":"Question","name":"What's the difference between a backup and a snapshot?","acceptedAnswer":{"@type":"Answer","text":"A snapshot is a point-in-time image of a disk or server, great for fast rollback but often stored near the thing it captures. A backup is a separate, restorable copy of your actual data, ideally off-site. Snapshots are convenient; backups are what save you when the whole server is gone. Use both, and don't mistake one for the other."}}
+]}
+]}
+</script>
+</body>
+</html>

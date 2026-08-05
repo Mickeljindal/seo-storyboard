@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A Netlify Alternative for Full-Stack Apps</title>
+<meta name="description" content="The day your static site grew a real backend, Netlify starts to strain. Here's a Netlify alternative guide built around the signs you've outgrown it — and where a persistent server you own picks up.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/netlify-alternative-for-full-stack-apps/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="A Netlify Alternative for Full-Stack Apps">
+<meta property="og:description" content="Netlify is great for static and JAMstack — until your app grows a backend. The signs you've outgrown it, what moves where, and how a server you own compares. A trigger-based Netlify alternative guide.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Netlify alternative</span>
+  <h1>A Netlify Alternative for Full-Stack Apps</h1>
+
+  <figure><img src="images/hero.png" alt="A Netlify alternative for full-stack apps — the day a static site grows a backend and database on one server you own"></figure>
+
+  <p class="lead">Most people looking for a Netlify alternative aren't unhappy with Netlify. They just crossed a line. The site that started as a few static pages picked up a login, then a database, then a job that needs to run at midnight, and the platform that made shipping a static site feel effortless is now bending to hold something it wasn't shaped for. This guide is organized around that line: the specific signs you've outgrown a static-first host, and where a persistent server you own takes over.</p>
+
+  <div class="tldr">
+    <strong>Short answer</strong>
+    <p>Netlify is excellent for static sites and JAMstack front ends. You outgrow it the day you need a process that's always running, a real database next to your code, or more than serverless functions can comfortably do. The best Netlify alternative for that moment is a server you own: your backend, database, auth, and routing in one place, at a flat price, still deployed by pushing to Git.</p>
+  </div>
+
+  <h2>Netlify is great, right up until one specific day</h2>
+  <p>Let me be fair before the critique, because the strengths are real. Netlify took the pain out of shipping the modern web. Connect a repo, and every push builds and lands on a fast global edge with SSL, previews, and rollbacks for free. For a marketing site, a docs site, a blog, or a front end that talks to third-party APIs, it's a genuinely good tool. If that's your project, close this tab and keep using it. I mean that.</p>
+  <p>The trouble starts on a particular day. Not gradually. There's usually a single feature request, or a single 3am bug, where you realize the platform and your app want different things. It tends to arrive in stages, and it looks like this.</p>
+
+  <figure>
+    <svg viewBox="0 0 700 316" width="100%" role="img" aria-label="A growth timeline for a web project across four stages: a static site, then a form or function added, then auth and a real database, then a full app with jobs and websockets. The first two stages sit in a comfort zone for a static host; the last two cross a ceiling into a strain zone where the static-first model fights the app.">
+      <rect x="1" y="1" width="698" height="314" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="350" y="30" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="16" font-weight="700" fill="#000f27">Where a static-first host starts to strain</text>
+
+      <!-- zones -->
+      <rect x="42" y="50" width="330" height="212" rx="10" fill="#eaf7ef" stroke="#cdebd6"/>
+      <rect x="380" y="50" width="276" height="212" rx="10" fill="#f4f1ff" stroke="#ddd3fb"/>
+      <text x="207" y="70" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" font-weight="700" letter-spacing="1" fill="#40b75f">COMFORT ZONE</text>
+      <text x="518" y="70" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" font-weight="700" letter-spacing="1" fill="#4F1AF3">STRAIN ZONE</text>
+
+      <!-- ceiling marker -->
+      <line x1="376" y1="50" x2="376" y2="262" stroke="#000f27" stroke-width="1.5" stroke-dasharray="5 4"/>
+      <text x="376" y="282" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="600" fill="#000f27">the ceiling</text>
+
+      <!-- axis -->
+      <line x1="70" y1="176" x2="632" y2="176" stroke="#c2ccdf" stroke-width="2"/>
+
+      <!-- nodes -->
+      <g font-family="Poppins,Arial,sans-serif">
+        <!-- node 1 -->
+        <circle cx="122" cy="176" r="9" fill="#40b75f"/>
+        <rect x="66" y="104" width="112" height="46" rx="8" fill="#fff" stroke="#cdebd6"/>
+        <text x="122" y="124" text-anchor="middle" font-size="12.5" font-weight="600" fill="#000f27">Static site</text>
+        <text x="122" y="141" text-anchor="middle" font-size="11" fill="#5b6a86">pages, assets</text>
+        <text x="122" y="206" text-anchor="middle" font-size="11.5" fill="#40b75f">perfect fit</text>
+        <!-- node 2 -->
+        <circle cx="270" cy="176" r="9" fill="#40b75f"/>
+        <rect x="210" y="104" width="120" height="46" rx="8" fill="#fff" stroke="#cdebd6"/>
+        <text x="270" y="124" text-anchor="middle" font-size="12.5" font-weight="600" fill="#000f27">+ form, function</text>
+        <text x="270" y="141" text-anchor="middle" font-size="11" fill="#5b6a86">a little dynamic</text>
+        <text x="270" y="206" text-anchor="middle" font-size="11.5" fill="#40b75f">still great</text>
+        <!-- node 3 -->
+        <circle cx="452" cy="176" r="9" fill="#4F1AF3"/>
+        <rect x="392" y="104" width="120" height="46" rx="8" fill="#fff" stroke="#ddd3fb"/>
+        <text x="452" y="124" text-anchor="middle" font-size="12.5" font-weight="600" fill="#000f27">+ auth, real DB</text>
+        <text x="452" y="141" text-anchor="middle" font-size="11" fill="#5b6a86">stateful now</text>
+        <text x="452" y="206" text-anchor="middle" font-size="11.5" fill="#4F1AF3">straining</text>
+        <!-- node 4 -->
+        <circle cx="600" cy="176" r="9" fill="#4F1AF3"/>
+        <rect x="540" y="104" width="120" height="46" rx="8" fill="#fff" stroke="#ddd3fb"/>
+        <text x="600" y="124" text-anchor="middle" font-size="12.5" font-weight="600" fill="#000f27">full app</text>
+        <text x="600" y="141" text-anchor="middle" font-size="11" fill="#5b6a86">jobs, sockets</text>
+        <text x="600" y="206" text-anchor="middle" font-size="11.5" fill="#4F1AF3">fighting it</text>
+      </g>
+
+      <!-- growth arrow -->
+      <line x1="70" y1="240" x2="612" y2="240" stroke="#5b6a86" stroke-width="1.4"/>
+      <polygon points="612,234 626,240 612,246" fill="#5b6a86"/>
+      <text x="70" y="234" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#5b6a86">your app grows</text>
+    </svg>
+    <figcaption>A static host is a perfect fit at the left. The trouble is that most projects don't stay on the left. Somewhere around "real database plus stateful auth," a static-first model starts working against you.</figcaption>
+  </figure>
+
+  <h2>Five signs you've outgrown Netlify</h2>
+  <p>You don't decide to leave Netlify on a whim. Something specific pushes you. In my experience it's one of these five, and usually more than one at once.</p>
+
+  <h3>1. You need something running when nobody's visiting</h3>
+  <p>Netlify Functions spin up per request, do their thing, and stop. That's fine for a form handler. It falls apart the moment you need a process that's just... on. A websocket connection that stays open. A queue worker chewing through jobs. A cron task that fires at midnight whether or not a single person is on the site. A per-request function has nowhere to keep any of that alive. This is the sign that most cleanly says "you want a server, not functions."</p>
+
+  <h3>2. The build-minute and bandwidth meters started mattering</h3>
+  <p>On a static-first platform, you pay for build minutes every time the site rebuilds, and bandwidth is metered. When you were pushing twice a week nobody noticed. Now you deploy ten times a day, the build got slower as the app grew, and a good traffic spike (the kind you wanted) shows up as an overage in the same month you were celebrating. The bill moves with how often you ship and how popular you are, which are exactly the things you don't want to ration.</p>
+
+  <h3>3. Your data outgrew a hosted add-on</h3>
+  <p>Early on, wiring in a hosted database somewhere else is fine. Then the app gets data-heavy, every request makes a round trip across the public internet to that separate service, and you're paying for it as its own metered line item. At that point you want the database next to the app, not a network away. That's a different architecture than a static host is built to offer.</p>
+
+  <h3>4. Netlify Identity or Forms quietly became load-bearing</h3>
+  <p>This is the sneaky one. Netlify Identity for logins and Netlify Forms for submissions are convenient, so you lean on them. Then one day a real chunk of your app depends on platform features you can't take with you. That's the definition of lock-in, and it's easy to walk into without noticing because each individual use felt harmless.</p>
+
+  <h3>5. You're writing redirects to make a site behave like an app</h3>
+  <p>If your <code>netlify.toml</code> and <code>_redirects</code> file have grown into a small routing engine, that's a tell. You're using platform config to fake behavior your own server would just do. Rewrites, proxying, SPA fallbacks, all of it is the app straining against a model that assumes it's serving files.</p>
+
+  <div class="note">
+    <b>Coming from Netlify Identity or Forms?</b> Don't panic, and don't treat it as lost work. Both map to standard pieces: Identity becomes your app's own authentication (sessions, social login), and Forms becomes an ordinary form endpoint writing rows to your database. You're getting your auth and your data back under your own roof, where they were going to have to live eventually anyway.
+  </div>
+
+  <!-- IMAGE SLOT: replace this figure with a real <figure><img><figcaption> (src -> images/netlify-usage.png) -->
+  <figure class="img-slot"><span><b>Add image</b><em>A Netlify dashboard showing build minutes and bandwidth usage climbing toward the plan limit.</em><small>Anchors sign 2 in something real. Author supplies.</small></span></figure>
+
+  <h2>Choosing a Netlify alternative: what to move to</h2>
+  <p>Once two or three of those signs are true, you don't want another static-first platform. You want the opposite: a persistent process, a database on the same machine, your own auth and routing, a flat price, and standard code you can pick up and move. The catch most people fear is losing the deploy experience. You don't have to.</p>
+
+  <p>That's the model <a href="https://www.kloudbean.com/">Kloudbean</a> runs. Your app lives as a normal always-on process on a real server it provisions and manages, on the cloud you pick (seven of them: AWS, Google Cloud, DigitalOcean, Linode, Vultr, UpCloud, Lightsail). You still connect a Git repo and deploy from a console, with auto-deploy on push and live build logs. The familiar part stays familiar.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="Kloudbean console Deploy Code / Git Deployment tab: connect the repo, set the runtime, and Pull and Deploy">
+    <figcaption>Application Administration, then Deploy Code: connect the repo, set the build and start commands, Pull and Deploy. Push to the branch and it rebuilds on its own, logs streaming live.</figcaption>
+  </figure>
+
+  <p>The database launches right beside the app instead of across a network. Pick from six managed engines (Postgres, MySQL, MariaDB, Redis, MongoDB, Elasticsearch) and connect over localhost.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="Kloudbean Launch Database screen for creating a managed Postgres or MySQL instance next to the app">
+    <figcaption>Launch a managed database from the same console. It runs on the same box, backed up, reached over the local network rather than the public internet.</figcaption>
+  </figure>
+
+  <h2>What moves where</h2>
+  <p>The migration is less scary once you see it as a mapping. Each Netlify-specific piece has a plain, portable equivalent on a server.</p>
+
+  <table class="cmp">
+    <thead><tr><th>On Netlify</th><th>On a server you own</th></tr></thead>
+    <tbody>
+      <tr><td>Netlify Functions (per request)</td><td>Routes in your always-on app process</td></tr>
+      <tr><td>Routing via <code>_redirects</code> and <code>netlify.toml</code></td><td>Your app (or web server) routes directly</td></tr>
+      <tr><td>Netlify Identity for auth</td><td>Your app's own auth: sessions, social login</td></tr>
+      <tr><td>Netlify Forms for submissions</td><td>A normal form endpoint writing to your database</td></tr>
+      <tr><td>A separate hosted database</td><td>Managed Postgres or MySQL on the same box</td></tr>
+      <tr><td>Build minutes and bandwidth meters</td><td>Build runs on the server you already pay for</td></tr>
+    </tbody>
+  </table>
+
+  <p>The gotcha we watch people hit: they forget Identity and Forms were doing real work until the app breaks in the new place with nobody able to log in. Inventory those two before you move, not after. Once you've mapped them, the step-by-step <a href="https://www.kloudbean.com/blog/move-lovable-app-off-netlify/">move-off-Netlify guide</a> covers the mechanics, and <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database</a> and <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">putting the app and database on one server</a> fill in the data layer. A fresh build instead? The <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploy walkthrough</a> starts from scratch.</p>
+
+  <h2>When staying on Netlify is the right call</h2>
+  <p>I'll say it plainly, because a fair guide has to: if your project is genuinely a static site or a JAMstack front end, moving it to a server is a downgrade. Don't do it to yourself. Stay on Netlify when the site is mostly static, your backend is a couple of Functions that fit the model comfortably, and the build pipeline and edge are worth what you pay. None of the five signs above apply to a brochure site, and forcing one onto a server buys you maintenance you didn't need.</p>
+  <p>The alternative is for the other case, the app that quietly became an application. There, one server holding your backend, database, auth, and routing is simpler to reason about than a static host plus a functions layer plus a hosted database spread across three bills.</p>
+
+  <!-- IMAGE SLOT: replace this figure with a real <figure><img><figcaption> (src -> images/app-live.png) -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your app live on its own domain with the SSL padlock, a login working, and data served from your own server instead of a platform feature.</em><small>The payoff shot after the migration. Author supplies.</small></span></figure>
+
+  <h2>A fair word on cost, and the honest limits</h2>
+  <p>No promise of a smaller number every time. Netlify's free and starter tiers are hard to beat at very low traffic, and a server you rent by the month costs the same in a dead week as a busy one. A flat server tends to win as build minutes, function usage, bandwidth, and seats climb, and it wins on predictability at any size. Predictable, not always cheapest, is the honest claim.</p>
+  <p>The limits, straight: Kloudbean runs Linux web stacks (Node, PHP, Python, Ruby, Java, plus React, Next.js, Vue, Laravel, Django), which covers what nearly every Netlify app is built on. It isn't for Windows, .NET, or IIS. "Managed" means Kloudbean runs the server, stack, SSL, patching, and backups; you own and maintain the app and its data. A single server isn't a global edge CDN either. It lives in the regions you pick, and if you want edge-class delivery you can put Cloudflare Enterprise edge caching in front (a paid add-on, free on Enterprise). Prefer this evaluated against a purely serverless platform? The sibling <a href="https://www.kloudbean.com/blog/vercel-alternative-for-full-stack-apps/">Vercel alternative</a> piece runs the same reasoning from the serverless angle.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Beyond static-first.</p>
+    <p style="margin:0">Bring your backend, database, and auth under one roof at <a href="https://www.kloudbean.com/">kloudbean.com</a>. One-click databases, automatic backups, private networking, free migration, free trial, and git deploy. Plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What's the best Netlify alternative for a full-stack app?</h3>
+    <p>A managed server rather than another static-first platform. You want a real always-on backend, a database launched next to the app, your own auth and forms, a flat price, and standard code you can move, while keeping git-push-to-deploy. Kloudbean offers that model across seven cloud providers.</p>
+
+    <h3>When should I move off Netlify?</h3>
+    <p>When you hit the signs: you need a process that stays running, the build-minute or bandwidth meters start to pinch, your data wants to sit next to the app, or Netlify Identity and Forms have quietly become load-bearing. For a genuinely static site, none of that applies and you should stay.</p>
+
+    <h3>What happens to Netlify Identity and Forms?</h3>
+    <p>They become standard, portable pieces of your own app. Identity turns into your app's authentication (sessions and social login), and Forms turns into an ordinary form endpoint that writes submissions to your database. Auth and data come back under your control instead of living in platform features.</p>
+
+    <h3>Do I keep push-to-deploy and preview builds?</h3>
+    <p>Yes. You connect your repo, deploy from the console, and enable auto-deploy so every push builds and ships, with logs streaming live. For previews, run a second application from a staging branch on the same server to get a stable preview URL.</p>
+
+    <h3>Can I still host my static or JAMstack front end this way?</h3>
+    <p>Yes. A server runs a static front end perfectly well, and Kloudbean also has free static site hosting with custom domains and SSL. The point of moving isn't to abandon static. It's that your app is no longer only static, so it wants a backend and database in the same place.</p>
+
+    <h3>Is a server cheaper than Netlify?</h3>
+    <p>Not always. At very low traffic Netlify's free tier can be cheaper than any always-on server. A flat server usually wins as usage and team grow, and it's more predictable regardless, since it costs the same whether the month was quiet or busy.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"A Netlify Alternative for Full-Stack Apps","description":"Netlify is great for static and JAMstack until your app grows a backend. The signs you've outgrown it, what moves where, and how a server you own compares — a trigger-based Netlify alternative guide.","image":"https://www.kloudbean.com/blog/netlify-alternative-for-full-stack-apps/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/netlify-alternative-for-full-stack-apps/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What's the best Netlify alternative for a full-stack app?","acceptedAnswer":{"@type":"Answer","text":"A managed server rather than another static-first platform. You want a real always-on backend, a database launched next to the app, your own auth and forms, a flat price, and standard code you can move, while keeping git-push-to-deploy. Kloudbean offers that model across seven cloud providers."}},
+{"@type":"Question","name":"When should I move off Netlify?","acceptedAnswer":{"@type":"Answer","text":"When you hit the signs: you need a process that stays running, the build-minute or bandwidth meters start to pinch, your data wants to sit next to the app, or Netlify Identity and Forms have quietly become load-bearing. For a genuinely static site, none of that applies and you should stay."}},
+{"@type":"Question","name":"What happens to Netlify Identity and Forms?","acceptedAnswer":{"@type":"Answer","text":"They become standard, portable pieces of your own app. Identity turns into your app's authentication (sessions and social login), and Forms turns into an ordinary form endpoint that writes submissions to your database. Auth and data come back under your control instead of living in platform features."}},
+{"@type":"Question","name":"Do I keep push-to-deploy and preview builds?","acceptedAnswer":{"@type":"Answer","text":"Yes. You connect your repo, deploy from the console, and enable auto-deploy so every push builds and ships, with logs streaming live. For previews, run a second application from a staging branch on the same server to get a stable preview URL."}},
+{"@type":"Question","name":"Can I still host my static or JAMstack front end this way?","acceptedAnswer":{"@type":"Answer","text":"Yes. A server runs a static front end perfectly well, and Kloudbean also has free static site hosting with custom domains and SSL. The point of moving is not to abandon static. It is that your app is no longer only static, so it wants a backend and database in the same place."}},
+{"@type":"Question","name":"Is a server cheaper than Netlify?","acceptedAnswer":{"@type":"Answer","text":"Not always. At very low traffic Netlify's free tier can be cheaper than any always-on server. A flat server usually wins as usage and team grow, and it is more predictable regardless, since it costs the same whether the month was quiet or busy."}}
+]}
+]}
+</script>
+</body>
+</html>

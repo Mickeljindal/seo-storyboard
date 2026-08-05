@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AWS Amplify Alternative: Full-Stack Hosting Without the Maze (2026)</title>
+<meta name="description" content="An honest AWS Amplify alternative for full-stack apps: why Amplify's pricing and CloudFormation deploys get painful, and how to run your frontend, backend, a managed database, and object storage in one clear dashboard.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/aws-amplify-alternative/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="AWS Amplify Alternative: Full-Stack Hosting Without the Maze">
+<meta property="og:description" content="Where Amplify's bundle and CloudFormation get painful, and how to get frontend, backend, a managed database, and object storage in one dashboard with a price you can forecast.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">AWS Amplify alternative</span>
+  <h1>AWS Amplify Alternative: Full-Stack Hosting Without the Maze</h1>
+
+  <p class="byline">By Kloudbean Platform · Full-stack without the maze.</p>
+
+  <figure><img src="images/hero.png" alt="An AWS Amplify alternative for full-stack apps: frontend, backend, a managed database, and object storage in one dashboard"></figure>
+
+  <p class="lead">Amplify is a quick way to bolt together a frontend, auth, an API, and storage when your team already lives inside AWS. Then the app grows. The bill starts moving in ways you can't predict, a deploy dies somewhere deep in a CloudFormation stack you never wrote, and you go looking for an AWS Amplify alternative that's calmer to run. This is the honest version of that decision. Where Amplify genuinely earns its place, where full-stack apps hit its rough edges, and how to get your frontend, your Node or Python backend, a managed database, and object storage in one clear dashboard at a price you can forecast.</p>
+
+  <div class="tldr">
+    <strong>Short answer</strong>
+    <p>Amplify bundles hosting, auth, and APIs on top of many separate AWS services and a generated CloudFormation stack. That's fast to start with and awkward to debug and forecast once you scale. A calmer AWS Amplify alternative for a full-stack app is a managed server that runs your frontend and your own backend, with a managed database and S3-compatible object storage beside it, all in one dashboard from $8/mo flat. One honest caveat up front: Amplify's Cognito auth and AppSync GraphQL are AWS-managed services, so on your own stack you bring your own auth library and API framework instead.</p>
+  </div>
+
+  <h2>First, the fair part: Amplify is quick if you already live in AWS</h2>
+  <p>Let's give Amplify its due. If your team is all-in on AWS, it wires up hosting, Cognito auth, an AppSync API, and S3 storage faster than almost anything else, and the pieces are built to talk to each other out of the box. For a prototype, or a team that wants AWS primitives with less glue code, that's a real strength and I won't pretend otherwise. The friction shows up later, when the thing you launched turns into a product with real invoices and a deploy pipeline you have to babysit.</p>
+
+  <h2>Why teams look for an AWS Amplify alternative</h2>
+  <p>Nobody leaves on day one. People start searching around the time three or four of these begin biting at once.</p>
+
+  <p><strong>The bill is several meters, not one number.</strong> Amplify charges for build minutes, hosting, and data transfer. Then the backend it stands up bills separately underneath: Cognito by monthly active users, AppSync by query, DynamoDB by read, write, and stored data, Lambda by invocation, S3 on top. Each line looks small until it isn't. When people type "Amplify pricing too expensive" into Google, the real complaint is usually that no single number tells them what next month costs. A flat server does.</p>
+
+  <p><strong>CloudFormation is the thing you actually operate.</strong> Amplify provisions your backend as a generated CloudFormation stack. That's invisible right up until a deploy fails. Then you're reading stack events, watching a rollback crawl, and occasionally staring at a stack wedged in <code>UPDATE_ROLLBACK_FAILED</code> that you have to fix by hand before you can ship anything again. You didn't write that stack. At 2am it's yours anyway.</p>
+
+  <p><strong>Category lock-in.</strong> Amplify's power is its categories: auth, api, storage, function, all wired by the Amplify CLI and, for the data API, a GraphQL transform that generates resolvers for you. It's genuinely fast. It's also Amplify-shaped. The more of your app leans on <code>amplify push</code> and generated backend resources, the more "leaving" means unwinding rather than copying.</p>
+
+  <p><strong>Rollbacks aren't a button.</strong> When an environment gets stuck mid-update, recovery isn't a tidy revert click. You reconcile stack state, sometimes delete and recreate resources, sometimes edit the stack directly to unstick it. It works. It's also exactly the kind of infrastructure babysitting you hoped a managed platform would spare you.</p>
+
+  <p><strong>Opaque build failures.</strong> The Amplify build runs in a container you don't fully control. When it goes red, you're scrolling logs trying to reproduce an environment you can't see, tweaking a build spec, and pushing again just to test a theory. The loop is slow, and slow loops are where afternoons go to die.</p>
+
+  <!-- ADD IMAGE: a real CloudFormation stack events view showing a failed or rolling-back Amplify deploy. Swap for a real screenshot: src -> images/cloudformation-rollback.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A CloudFormation stack events view with a failed or rolling-back Amplify deploy highlighted.</em><small>Grounds the "you debug the stack" point in something real. Author supplies.</small></span></figure>
+
+  <h2>Amplify vs a managed server: the shape of the difference</h2>
+  <p>Strip away the logos and the difference is structural. Amplify spreads one app across many AWS services stitched together by a stack you didn't author. A managed server keeps the same app in one place. Here's the two shapes side by side.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 392" width="100%" role="img" aria-label="A comparison diagram. On the left, AWS Amplify sits on top of six separate AWS services (Amplify Hosting, Cognito, AppSync API, DynamoDB, Lambda, S3 storage) that are provisioned by a generated CloudFormation stack you have to debug when a deploy fails. On the right, Kloudbean shows one dashboard that holds your app, a managed database, S3-compatible object storage, and automatic backups together.">
+      <rect x="1" y="1" width="718" height="390" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="360" y="30" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="16" font-weight="700" fill="#000f27">Two ways to run the same full-stack app</text>
+      <line x1="360" y1="46" x2="360" y2="300" stroke="#e6e9f2" stroke-width="1" stroke-dasharray="5 5"/>
+
+      <!-- LEFT: AWS Amplify spread across services -->
+      <text x="187" y="66" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="700" letter-spacing="1" fill="#5b6a86">AWS AMPLIFY + AWS SERVICES</text>
+      <g font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#1c2536">
+        <rect x="44" y="82" width="100" height="34" rx="8" fill="#f6f7fb" stroke="#c9c0f5"/><text x="94" y="103" text-anchor="middle">Amplify Hosting</text>
+        <rect x="156" y="82" width="100" height="34" rx="8" fill="#f6f7fb" stroke="#c9c0f5"/><text x="206" y="103" text-anchor="middle">Cognito (auth)</text>
+        <rect x="44" y="124" width="100" height="34" rx="8" fill="#f6f7fb" stroke="#c9c0f5"/><text x="94" y="145" text-anchor="middle">AppSync API</text>
+        <rect x="156" y="124" width="100" height="34" rx="8" fill="#f6f7fb" stroke="#c9c0f5"/><text x="206" y="145" text-anchor="middle">DynamoDB</text>
+        <rect x="44" y="166" width="100" height="34" rx="8" fill="#f6f7fb" stroke="#c9c0f5"/><text x="94" y="187" text-anchor="middle">Lambda</text>
+        <rect x="156" y="166" width="100" height="34" rx="8" fill="#f6f7fb" stroke="#c9c0f5"/><text x="206" y="187" text-anchor="middle">S3 storage</text>
+      </g>
+      <g stroke="#4F1AF3" stroke-width="1.6">
+        <line x1="94" y1="200" x2="94" y2="212"/>
+        <line x1="150" y1="200" x2="150" y2="212"/>
+        <line x1="206" y1="200" x2="206" y2="212"/>
+      </g>
+      <rect x="44" y="212" width="212" height="42" rx="8" fill="#000f27"/>
+      <text x="150" y="231" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#fff">CloudFormation stack</text>
+      <text x="150" y="247" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="10.5" fill="#9db4d8">generated, and yours to debug</text>
+      <text x="187" y="284" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-style="italic" fill="#5b6a86">Great to start. A lot to trace when it breaks.</text>
+
+      <!-- RIGHT: Kloudbean one dashboard -->
+      <text x="537" y="66" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-weight="700" letter-spacing="1" fill="#40b75f">KLOUDBEAN</text>
+      <rect x="392" y="80" width="286" height="174" rx="12" fill="#eaf7ef" stroke="#cdebd6"/>
+      <text x="535" y="99" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" font-weight="700" letter-spacing="1" fill="#2f7d4a">ONE DASHBOARD</text>
+      <rect x="410" y="108" width="250" height="34" rx="8" fill="#000f27"/><text x="535" y="130" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#fff">Your app (Node / Python / more)</text>
+      <rect x="410" y="148" width="250" height="30" rx="8" fill="#fff" stroke="#cdebd6"/><text x="535" y="168" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" fill="#1c2536">Managed database</text>
+      <rect x="410" y="184" width="250" height="30" rx="8" fill="#fff" stroke="#cdebd6"/><text x="535" y="204" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" fill="#1c2536">S3-compatible object storage</text>
+      <rect x="410" y="220" width="250" height="26" rx="8" fill="#fff" stroke="#cdebd6"/><text x="535" y="238" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" fill="#1c2536">Automatic backups</text>
+      <text x="537" y="284" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12" font-style="italic" fill="#2f9350">One place to look. One flat bill.</text>
+
+      <!-- bottom band -->
+      <rect x="40" y="312" width="640" height="60" rx="10" fill="#000f27"/>
+      <text x="360" y="336" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#fff">Left: a bundle spread across many AWS services and a stack you did not write.</text>
+      <text x="360" y="356" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#9db4d8">Right: your app, its database, object storage, and backups in one managed place.</text>
+    </svg>
+    <figcaption>Amplify bundles hosting, auth, an API, and storage, but each piece maps to a separate AWS service provisioned by CloudFormation. Kloudbean keeps your app, a managed database, object storage, and backups in one dashboard. Both ship apps. One is calmer to run at scale.</figcaption>
+  </figure>
+
+  <h2>AWS Amplify vs Kloudbean, row by row</h2>
+  <p>If you want an Amplify alternative for full-stack apps, the criteria write themselves. This is Amplify vs managed hosting laid out plainly, and I've kept the auth row honest, because that's the one place the bundle wins.</p>
+
+  <table class="cmp">
+    <thead><tr><th>What you need</th><th>AWS Amplify</th><th>Kloudbean (managed server)</th></tr></thead>
+    <tbody>
+      <tr><td>Frontend hosting</td><td>Built-in static and SSR hosting on the AWS CDN</td><td>Free static site hosting (custom domain and SSL), or served by your own app</td></tr>
+      <tr><td>Backend runtime</td><td>Lambda functions, event-shaped and short-lived</td><td>Always-on Node, Python, PHP, Ruby, or Java process you control</td></tr>
+      <tr><td>Managed relational database</td><td>Defaults to DynamoDB (NoSQL); relational means wiring up RDS yourself</td><td>One-click managed PostgreSQL or MySQL (seven engines) beside the app</td></tr>
+      <tr><td>Object storage</td><td>S3 through the storage category</td><td>Built-in S3-compatible buckets plus GCS, public or private per bucket</td></tr>
+      <tr><td>Built-in auth</td><td><strong>Cognito wins here.</strong> Hosted auth as a bundled managed service</td><td>You bring your own auth library. No hosted Cognito clone</td></tr>
+      <tr><td>Pricing clarity</td><td>Several AWS meters stacked together, harder to forecast</td><td>Flat monthly price from $8/mo</td></tr>
+      <tr><td>One dashboard</td><td>Amplify console plus the AWS console for each service underneath</td><td>One dashboard for the whole stack</td></tr>
+      <tr><td>Lock-in and portability</td><td>Amplify categories and CloudFormation, AWS-specific</td><td>Standard Linux, standard SQL, S3 API. Move anytime, even run on AWS via Kloudbean</td></tr>
+    </tbody>
+  </table>
+
+  <p>Read the rows honestly. If Cognito and AppSync are carrying real weight and your org is committed to AWS, staying put is defensible. If most of your rows land on the right, you've found your reason to move.</p>
+
+  <h2>What you run instead: your own app, your own config</h2>
+  <p>So what does the calmer version actually look like? Instead of a bundle spread across AWS services, you run your app as one always-on process on a managed server, with full-stack hosting and a managed database beside it, all from one dashboard. Your frontend is a free static site or served by the same app. Your backend is a normal process. Nothing is a special "category." It's your code, reading config from the environment.</p>
+
+  <p>Config lives in environment variables, never in code. If that discipline is new to you, our guide to <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a> is the companion piece.</p>
+
+<pre><code># One place for config: environment variables, not a generated category
+PORT=8080
+DATABASE_URL=postgres://appuser:s3cret@127.0.0.1:5432/appdb
+
+# S3-compatible object storage, the same SDK you already use for AWS S3
+S3_ENDPOINT=https://s3.your-region.example.com
+S3_BUCKET=app-uploads
+S3_ACCESS_KEY=your-key
+S3_SECRET_KEY=your-secret</code></pre>
+
+  <p>Your backend reads that and runs. Here's a plain Node and Express API with no Amplify categories and no generated backend behind it.</p>
+
+<pre><code>// Node + Express: config from the environment, database over the local network
+const express = require('express')
+const { Pool } = require('pg')
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL })
+const app = express()
+
+app.get('/api/health', async (req, res) =&gt; {
+  const { rows } = await pool.query('select now()')
+  res.json({ ok: true, time: rows[0].now })
+})
+
+app.listen(process.env.PORT || 8080)</code></pre>
+
+  <p>Prefer Python? Same idea, same env var, different framework.</p>
+
+<pre><code># FastAPI: the database URL is an env var, not a category
+import os, asyncpg
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/api/health")
+async def health():
+    conn = await asyncpg.connect(os.environ["DATABASE_URL"])
+    now = await conn.fetchval("select now()")
+    await conn.close()
+    return {"ok": True, "time": str(now)}</code></pre>
+
+  <p>That <code>DATABASE_URL</code> points at a managed database on the same private network, not out across the public internet to a metered service. The <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploy a Node app to managed cloud</a> guide walks the runtime setup, and <a href="https://www.kloudbean.com/blog/deploy-fullstack-react-app-to-production/">deploying a full-stack React app to production</a> covers the frontend-plus-API shape end to end.</p>
+
+  <p>Deploys are Git-driven. You set the build and start commands once, and every push builds and ships.</p>
+
+<pre><code># Set these once in the console; every git push then builds and deploys
+npm ci &amp;&amp; npm run build     # build step
+node server.js               # start: a long-lived process on the port you set</code></pre>
+
+  <h2>How to move off AWS Amplify</h2>
+  <p>The move is less dramatic than it sounds. It's four or five clear steps, and you keep the push-to-deploy flow the whole way.</p>
+
+  <h3>Step 1: Put your app on a server</h3>
+  <p>Add a server on the cloud you want, then add an application on it and pick the runtime (Node, Python, PHP, and so on). This is the single box your frontend and backend will live on, instead of a dozen services with their own consoles.</p>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="Kloudbean console Add Application screen for deploying a Node or Python app on a managed server">
+    <figcaption>Add Application: choose your runtime and the server it runs on. One process, one place, no build spec to reverse-engineer.</figcaption>
+  </figure>
+
+  <h3>Step 2: Connect Git and deploy on every push</h3>
+  <p>Open Deploy Code, connect your GitHub repo (OAuth works), set the build and start commands, and turn on auto-deploy. Every push builds and ships, with live build logs streaming in the console and a deployment history you can roll back through. If you want the full pipeline write-up, see <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD auto-deploy from GitHub</a>.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="Kloudbean console Git Deployment tab: connect a GitHub repo, set build and start commands, and deploy on push">
+    <figcaption>Deploy Code: connect the repo, set build and start commands, Pull and Deploy. Live logs, not an opaque build container.</figcaption>
+  </figure>
+
+  <h3>Step 3: Launch a managed database beside the app</h3>
+  <p>From the databases section, launch a managed MySQL or PostgreSQL. Seven engines are available, including Redis and MongoDB, and each comes provisioned, backed up, and reachable over the private network. Point <code>DATABASE_URL</code> at it and you're done. The deep dives live in <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a> and <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">managed MySQL hosting</a>.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="Kloudbean console Launch Database screen with managed PostgreSQL, MySQL, and other engines">
+    <figcaption>Launch Database: pick an engine, and it's provisioned on your server, on a private network, already being backed up.</figcaption>
+  </figure>
+
+  <h3>Step 4: Move your files to S3-compatible object storage</h3>
+  <p>Create an S3-compatible bucket for user uploads and assets. It speaks the AWS S3 API, so the same SDK and CLI you used with Amplify's storage category keep working. Set public or private access per bucket, and manage objects right from the dashboard.</p>
+
+  <figure>
+    <img src="../assets/console/s3-buckets.png" alt="Kloudbean console S3-compatible object storage buckets with public and private access controls">
+    <figcaption>Object storage: create a bucket, set access, and point your existing S3 SDK at the new endpoint.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: the finished Kloudbean dashboard showing the server, the app, its managed database, and a bucket together. Swap for a real screenshot: src -> images/one-dashboard.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The finished view: your server, app, managed database, and a bucket together in one dashboard.</em><small>Reinforces the whole-stack-in-one-place payoff. Author supplies.</small></span></figure>
+
+  <h3>Step 5: Bring your own auth, then set the env vars</h3>
+  <p>This is the honest part. Amplify gave you Cognito. Here you bring an auth library for your framework and store users in your managed database. It's a bit more wiring than a hosted auth service, and it's the real tradeoff for owning the whole thing instead of renting a piece of it. Put every secret in an environment variable, never in code, and the app is running.</p>
+
+  <h2>Migration and portability: your code, your data</h2>
+  <p>None of this traps you, and that's the point of moving in the first place. Your app is standard code on a standard Linux server. Your relational data moves with the same tools you'd use anywhere: <code>pg_dump</code> and <code>psql</code> for Postgres, <code>mysqldump</code> and <code>mysql</code> for MySQL. Your files move over the S3-compatible API with the AWS CLI you already have.</p>
+
+  <div class="note"><b>Coming from Amplify?</b> Point the AWS CLI at your Amplify S3 bucket to pull your files, then sync them into a Kloudbean bucket with <code>--endpoint-url</code>. If your Amplify backend used DynamoDB, treat the database as a re-model rather than a copy, since DynamoDB is NoSQL and you're likely landing on relational tables. Kloudbean's free migration assistance can help plan the re-model and the cutover so you're not doing it at 1am alone.</div>
+
+<pre><code># Relational data moves with standard tools (Postgres shown; MySQL is mysqldump/mysql)
+pg_dump "$SOURCE_DATABASE_URL" &gt; dump.sql
+psql "$DATABASE_URL" &lt; dump.sql
+
+# Files move over the S3-compatible API with the AWS CLI you already use
+aws s3 sync s3://old-amplify-bucket ./files
+aws s3 sync ./files s3://app-uploads --endpoint-url https://s3.your-region.example.com</code></pre>
+
+  <!-- ADD IMAGE: a simple before-and-after sketch, Amplify services on one side and the Kloudbean one-server stack on the other. Swap for a real screenshot: src -> images/amplify-to-kloudbean.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Before and after: the spread of Amplify services beside the single Kloudbean server that replaces them.</em><small>A plain box diagram works well here. Author supplies.</small></span></figure>
+
+  <h2>When Amplify is still the right call</h2>
+  <p>I don't want to talk you out of a tool that fits. Stay on Amplify if your organization is committed to AWS and wants to keep building on AWS primitives, if Cognito and AppSync are doing real work you'd rather not rebuild, or if you're early and the bundled speed matters more to you than the bill or the portability. Those are good reasons.</p>
+  <p>My honest opinion, for what it's worth: Amplify is a strong way to start inside AWS and an awkward place to be once you're fighting CloudFormation more than you're shipping features. If that's where you've landed, an alternative to AWS Amplify hosting that gives you one dashboard and a flat price is worth the move. Weighing other platforms in the same breath? The <a href="https://www.kloudbean.com/blog/vercel-alternative-for-full-stack-apps/">Vercel</a> and <a href="https://www.kloudbean.com/blog/heroku-alternative-for-modern-apps/">Heroku</a> comparisons run the same reasoning from different starting points.</p>
+
+  <h2>The honest limits</h2>
+  <p>Two things worth saying plainly, because a guide that only flatters one side isn't a guide. First, Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and the frameworks on top like React, Next.js, Vue, Django, and Laravel. It isn't for Windows, .NET, or IIS workloads. "Managed" means Kloudbean runs the server, the stack, SSL, patching, and backups, while your application and its data stay yours to export anytime. Second, about the one thing Amplify bundles that this model doesn't: there's no drop-in Cognito or AppSync here. You bring your own auth and your own API framework. What you get back is one dashboard, a flat price, and real portability, including the option to run on AWS or Lightsail through Kloudbean if you want AWS infrastructure without the AWS console. If private networking is part of your plan, <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">what is a VPC</a> covers how that fits.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Full-stack, minus the maze.</p>
+    <p style="margin:0 0 .6em">Run your frontend, your backend, a managed database, and object storage on one server you control, priced flat from $8/mo. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>; check current plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Frontend + backend on one server · One-click managed databases · S3-compatible object storage · Automatic backups · Private networking · Free SSL · Free migration · Free trial · Git deploy</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Is there a cheaper alternative to AWS Amplify?</h3>
+    <p>It depends on your traffic, and it's fair to say so. At very low usage, Amplify's metered model can be cheap. The bigger win for most teams is predictability: a flat managed server, from $8/mo on Kloudbean, costs the same in a quiet month and a busy one, so you can actually budget it. Check current plans on the pricing page before you commit.</p>
+
+    <h3>Can I still deploy a React or Next.js frontend?</h3>
+    <p>Yes. Host the frontend as a free static site with a custom domain and SSL, or serve it from the same Node app that runs your API. React, Vue, and Angular build to static assets, and Next.js runs as a normal Node process with next build and next start. No Amplify-specific adapter is needed.</p>
+
+    <h3>Does Kloudbean replace Cognito auth?</h3>
+    <p>Honestly, not as a drop-in. Kloudbean doesn't ship a hosted Cognito clone. You bring an auth library for your framework and store users in your managed database. That's more setup than Cognito, and it's the tradeoff for owning your auth instead of renting it. It's the one area where Amplify's bundle genuinely saves you work.</p>
+
+    <h3>What replaces AppSync and the GraphQL API?</h3>
+    <p>Your own API. You run Express, Fastify, FastAPI, Django, or Rails, and you can put a GraphQL server in front if you want GraphQL. There's no managed AppSync equivalent here. You trade generated resolvers for a plain API you fully control and can host anywhere.</p>
+
+    <h3>Can I run on AWS through Kloudbean?</h3>
+    <p>Yes. AWS and AWS Lightsail are two of the seven clouds Kloudbean supports, so you can keep your app on AWS infrastructure while managing it from one dashboard, without living in the AWS console or hand-writing CloudFormation. GCP, DigitalOcean, Linode, Vultr, and UpCloud are options too.</p>
+
+    <h3>How do I move my database off Amplify?</h3>
+    <p>If your Amplify backend used a relational database, it's a standard dump and restore: pg_dump and psql for Postgres, mysqldump and mysql for MySQL. If it used DynamoDB, expect a re-model, since DynamoDB is NoSQL and you're likely moving to relational tables. Kloudbean's free migration assistance can help plan that step.</p>
+
+    <h3>Is Amplify pricing really the problem, or just the shape of the bill?</h3>
+    <p>Usually it's the shape. Amplify splits across build minutes, hosting, and transfer, plus Cognito, AppSync, DynamoDB, Lambda, and S3 underneath, each metered on its own. Any single line looks reasonable while the total is hard to forecast. A flat server trades that for one number you can plan around.</p>
+
+    <h3>Do I lose push-to-deploy if I move off AWS Amplify?</h3>
+    <p>No. Kloudbean has managed CI/CD from GitHub, including OAuth. Connect the repo, set build and start commands, and every push builds and deploys with live build logs and deployment history. The part of Amplify hosting you actually liked stays.</p>
+
+    <h3>What about object storage and file uploads?</h3>
+    <p>Kloudbean has built-in S3-compatible object storage, plus managed Google Cloud Storage. It speaks the AWS S3 API, so the same SDK and CLI you used with Amplify's storage category keep working. You set public or private access per bucket and manage objects from the dashboard.</p>
+
+    <h3>Is Amplify still a good choice for some teams?</h3>
+    <p>Definitely. If you're committed to AWS, leaning on Cognito and AppSync, and moving fast on a prototype, Amplify is one of the quickest ways to ship inside AWS. The case for an alternative shows up when the app becomes a product and you want one dashboard, a flat price, and the freedom to move.</p>
+  </div>
+
+  <p class="byline">By Kloudbean Platform · One dashboard, whole stack.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"AWS Amplify Alternative: Full-Stack Hosting Without the Maze","description":"An honest AWS Amplify alternative for full-stack apps: why Amplify's bundle and CloudFormation get painful to forecast and debug, and how to run your frontend, backend, a managed database, and object storage in one dashboard with a flat price.","image":"https://www.kloudbean.com/blog/aws-amplify-alternative/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/aws-amplify-alternative/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Is there a cheaper alternative to AWS Amplify?","acceptedAnswer":{"@type":"Answer","text":"It depends on your traffic, and it's fair to say so. At very low usage, Amplify's metered model can be cheap. The bigger win for most teams is predictability: a flat managed server, from $8/mo on Kloudbean, costs the same in a quiet month and a busy one, so you can actually budget it. Check current plans on the pricing page before you commit."}},
+{"@type":"Question","name":"Can I still deploy a React or Next.js frontend?","acceptedAnswer":{"@type":"Answer","text":"Yes. Host the frontend as a free static site with a custom domain and SSL, or serve it from the same Node app that runs your API. React, Vue, and Angular build to static assets, and Next.js runs as a normal Node process with next build and next start. No Amplify-specific adapter is needed."}},
+{"@type":"Question","name":"Does Kloudbean replace Cognito auth?","acceptedAnswer":{"@type":"Answer","text":"Honestly, not as a drop-in. Kloudbean does not ship a hosted Cognito clone. You bring an auth library for your framework and store users in your managed database. That's more setup than Cognito, and it's the tradeoff for owning your auth instead of renting it. It's the one area where Amplify's bundle genuinely saves you work."}},
+{"@type":"Question","name":"What replaces AppSync and the GraphQL API?","acceptedAnswer":{"@type":"Answer","text":"Your own API. You run Express, Fastify, FastAPI, Django, or Rails, and you can put a GraphQL server in front if you want GraphQL. There is no managed AppSync equivalent here. You trade generated resolvers for a plain API you fully control and can host anywhere."}},
+{"@type":"Question","name":"Can I run on AWS through Kloudbean?","acceptedAnswer":{"@type":"Answer","text":"Yes. AWS and AWS Lightsail are two of the seven clouds Kloudbean supports, so you can keep your app on AWS infrastructure while managing it from one dashboard, without living in the AWS console or hand-writing CloudFormation. GCP, DigitalOcean, Linode, Vultr, and UpCloud are options too."}},
+{"@type":"Question","name":"How do I move my database off Amplify?","acceptedAnswer":{"@type":"Answer","text":"If your Amplify backend used a relational database, it's a standard dump and restore: pg_dump and psql for Postgres, mysqldump and mysql for MySQL. If it used DynamoDB, expect a re-model, since DynamoDB is NoSQL and you're likely moving to relational tables. Kloudbean's free migration assistance can help plan that step."}},
+{"@type":"Question","name":"Is Amplify pricing really the problem, or just the shape of the bill?","acceptedAnswer":{"@type":"Answer","text":"Usually it's the shape. Amplify splits across build minutes, hosting, and transfer, plus Cognito, AppSync, DynamoDB, Lambda, and S3 underneath, each metered on its own. Any single line looks reasonable while the total is hard to forecast. A flat server trades that for one number you can plan around."}},
+{"@type":"Question","name":"Do I lose push-to-deploy if I move off AWS Amplify?","acceptedAnswer":{"@type":"Answer","text":"No. Kloudbean has managed CI/CD from GitHub, including OAuth. Connect the repo, set build and start commands, and every push builds and deploys with live build logs and deployment history. The part of Amplify hosting you actually liked stays."}},
+{"@type":"Question","name":"What about object storage and file uploads?","acceptedAnswer":{"@type":"Answer","text":"Kloudbean has built-in S3-compatible object storage, plus managed Google Cloud Storage. It speaks the AWS S3 API, so the same SDK and CLI you used with Amplify's storage category keep working. You set public or private access per bucket and manage objects from the dashboard."}},
+{"@type":"Question","name":"Is Amplify still a good choice for some teams?","acceptedAnswer":{"@type":"Answer","text":"Definitely. If you're committed to AWS, leaning on Cognito and AppSync, and moving fast on a prototype, Amplify is one of the quickest ways to ship inside AWS. The case for an alternative shows up when the app becomes a product and you want one dashboard, a flat price, and the freedom to move."}}
+]}
+]}
+</script>
+</body>
+</html>

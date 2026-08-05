@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connect SQLAlchemy to a Database in Production (Postgres, MySQL)</title>
+<meta name="description" content="Connect SQLAlchemy to a database in production: build create_engine from DATABASE_URL, size the pool (pool_size, max_overflow, pool_pre_ping, pool_recycle), manage sessions, and run Alembic migrations on managed Postgres or MySQL.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/connect-sqlalchemy-to-a-database/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Connect SQLAlchemy to a Database in Production (Postgres, MySQL)">
+<meta property="og:description" content="The production wiring for SQLAlchemy: an engine built from DATABASE_URL, a sized connection pool, short-lived sessions, and Alembic migrations, on managed Postgres or MySQL.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Python ORMs in production</span>
+  <h1>How to Connect SQLAlchemy to a Database in Production</h1>
+
+  <p class="byline">By Kloudbean Engineering · Engines, sessions, migrations</p>
+
+  <figure><img src="images/hero.png" alt="Connect SQLAlchemy to a managed PostgreSQL or MySQL database in production"></figure>
+
+  <p class="lead">SQLAlchemy powers a huge slice of Python's backend, from small Flask apps to FastAPI services under load. On your laptop it just works. Then you ship, and the gap between a tutorial and production shows up fast. This guide is how to connect SQLAlchemy to a database in production: the engine and connection URL, a pool sized on purpose, sessions that don't leak, and Alembic migrations instead of <code>create_all()</code>. Postgres and MySQL, with code for Flask-SQLAlchemy, FastAPI, and plain SQLAlchemy 2.0.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>To connect SQLAlchemy to a database in production, build one <code>Engine</code> from <code>os.environ["DATABASE_URL"]</code> with <code>create_engine</code>, and set <code>pool_size</code>, <code>max_overflow</code>, <code>pool_pre_ping=True</code> and <code>pool_recycle</code> so your workers don't exhaust the database. Hand out short-lived <code>Session</code> objects from a <code>sessionmaker</code>. Don't call <code>create_all()</code> in production; run Alembic (<code>alembic upgrade head</code>) on deploy. Same wiring for Flask-SQLAlchemy, FastAPI, and plain SQLAlchemy 2.0.</p>
+  </div>
+
+  <h2>Why SQLAlchemy apps break the moment they leave localhost</h2>
+  <p>The library is rarely the problem. Almost every SQLAlchemy incident traces back to the setup around it: the URL, the pool, the session lifecycle, the missing migration.</p>
+  <ul>
+    <li><strong>Hardcoded localhost.</strong> The engine points at <code>localhost</code> with a password in the file, so in production you get <code>sqlalchemy.exc.OperationalError: could not connect to server: Connection refused</code>.</li>
+    <li><strong>Leaked sessions exhaust the pool.</strong> A request opens a session and never closes it, so under load the pool drains until you hit <code>QueuePool limit of size 5 overflow 10 reached, connection timed out, timeout 30.00</code>.</li>
+    <li><strong>Stale connections after a restart.</strong> The database gets patched, your pooled connections are dead, and the next query throws <code>server closed the connection unexpectedly</code>. That's what <code>pool_pre_ping</code> and <code>pool_recycle</code> prevent.</li>
+    <li><strong>create_all() instead of migrations.</strong> The app hits a missing table and throws a <code>ProgrammingError</code>, or you edit a model and the live schema silently drifts.</li>
+    <li><strong>SSL required, plaintext sent.</strong> A public managed Postgres refuses plaintext: <code>no pg_hba.conf entry for host ... no encryption</code>. You need <code>sslmode=require</code>, or a private network.</li>
+  </ul>
+
+  <h2>Connect SQLAlchemy to a database: the engine and the URL</h2>
+  <p>The <code>Engine</code> is the heart of it. Create one per process at import time and keep it for the life of the app, because it owns the connection pool. Build a new one per request and you leak connections you never get back. Here's a production-shaped engine that reads its string from the environment:</p>
+
+<pre><code># db.py : one engine and one Session factory for the whole process
+import os
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+engine = create_engine(
+    os.environ["DATABASE_URL"],
+    pool_size=10,        # persistent connections kept open in the pool
+    max_overflow=5,      # extra connections allowed under burst load
+    pool_pre_ping=True,  # test a connection before use, drop dead ones
+    pool_recycle=1800,   # recycle connections older than 30 minutes
+)
+
+SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)</code></pre>
+
+  <p>The string says which database, which driver, and where. The shape is <code>dialect+driver://user:password@host:port/dbname</code>. Keep it in one environment variable:</p>
+
+<pre><code># DATABASE_URL, set in Runtime Configuration, Environment Variables (never in code)
+
+# Postgres, psycopg 3 driver:
+postgresql+psycopg://appuser:s3cret@10.0.0.5:5432/appdb
+
+# MySQL, PyMySQL driver:
+mysql+pymysql://appuser:s3cret@10.0.0.5:3306/appdb</code></pre>
+
+  <p>One gotcha bites constantly, especially Flask users on Heroku-style URLs. A string starting with <code>postgres://</code> (no "ql") is rejected on modern SQLAlchemy with <code>NoSuchModuleError: Can't load plugin: sqlalchemy.dialects:postgres</code>. The alias was removed in 1.4. Normalize the scheme before <code>create_engine</code>:</p>
+
+<pre><code>url = os.environ["DATABASE_URL"]
+if url.startswith("postgres://"):
+    url = url.replace("postgres://", "postgresql+psycopg://", 1)
+
+engine = create_engine(url, pool_pre_ping=True)</code></pre>
+
+  <figure>
+    <svg viewBox="0 0 780 320" role="img" aria-label="Two web workers, each with a SQLAlchemy engine and a QueuePool of up to fifteen connections, add up to thirty connections crossing a private network to one managed Postgres or MySQL database with automatic backups" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="28" y="36" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">One engine per worker: the math that protects your database</text>
+
+      <rect x="26" y="64" width="224" height="206" rx="14" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="138" y="90" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Gunicorn / Uvicorn · 2 workers</text>
+
+      <rect x="44" y="104" width="188" height="66" rx="10" fill="#f6f7fb" stroke="#000f27" stroke-width="1.2"/>
+      <text x="138" y="130" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12.5">Python + SQLAlchemy</text>
+      <rect x="70" y="139" width="136" height="22" rx="11" fill="#4F1AF3"/>
+      <text x="138" y="154" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="11" font-weight="600">Engine · pool 10+5</text>
+
+      <rect x="44" y="184" width="188" height="66" rx="10" fill="#f6f7fb" stroke="#000f27" stroke-width="1.2"/>
+      <text x="138" y="210" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12.5">Python + SQLAlchemy</text>
+      <rect x="70" y="219" width="136" height="22" rx="11" fill="#4F1AF3"/>
+      <text x="138" y="234" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="11" font-weight="600">Engine · pool 10+5</text>
+
+      <line x1="250" y1="137" x2="368" y2="175" stroke="#4F1AF3" stroke-width="2"/>
+      <line x1="250" y1="217" x2="368" y2="175" stroke="#4F1AF3" stroke-width="2"/>
+      <circle cx="368" cy="175" r="5" fill="#4F1AF3"/>
+      <text x="309" y="150" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="13" font-weight="700">2 × 15 = 30</text>
+
+      <rect x="438" y="72" width="26" height="196" rx="8" fill="#eaf7ef" stroke="#40b75f" stroke-width="1.4"/>
+      <text x="451" y="170" text-anchor="middle" fill="#1c7a3f" font-family="Poppins,sans-serif" font-size="11" font-weight="600" transform="rotate(-90 451 170)">private network</text>
+
+      <line x1="368" y1="175" x2="436" y2="175" stroke="#40b75f" stroke-width="2"/>
+      <line x1="464" y1="175" x2="560" y2="175" stroke="#40b75f" stroke-width="2"/>
+      <path d="M560 175 l-11 -5 v10 z" fill="#40b75f"/>
+
+      <ellipse cx="642" cy="118" rx="68" ry="16" fill="#6b3cff"/>
+      <path d="M574 118 v92 a68 16 0 0 0 136 0 v-92" fill="#4F1AF3"/>
+      <ellipse cx="642" cy="118" rx="68" ry="16" fill="#6b3cff"/>
+      <text x="642" y="156" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Managed</text>
+      <text x="642" y="175" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Postgres / MySQL</text>
+      <text x="642" y="202" text-anchor="middle" fill="#dfe4ff" font-family="Poppins,sans-serif" font-size="10.5">max_connections 100</text>
+
+      <rect x="588" y="236" width="108" height="24" rx="12" fill="#eaf7ef" stroke="#40b75f" stroke-width="1.2"/>
+      <text x="642" y="252" text-anchor="middle" fill="#1c7a3f" font-family="Poppins,sans-serif" font-size="11" font-weight="600">auto backups</text>
+
+      <text x="28" y="300" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="13">Cap the pool on purpose. workers × (pool_size + max_overflow) must stay under the database ceiling.</text>
+    </svg>
+    <figcaption>Two web workers, each with its own engine and a pool of up to fifteen (pool_size 10 plus max_overflow 5), add up to thirty live connections to one managed database. Run six workers and you're at ninety, brushing Postgres's default of a hundred.</figcaption>
+  </figure>
+
+  <div class="note"><b>Coming from Django's ORM?</b> SQLAlchemy is more explicit on purpose: you build the engine, manage sessions, and run Alembic yourself. More wiring, more control, and it runs under any framework, not one.</div>
+
+  <h2>Size the connection pool: pool_size, max_overflow, and friends</h2>
+  <p>This is where SQLAlchemy apps live or die under load. The engine keeps a pool of open connections and lends them to sessions. Five settings shape the behavior:</p>
+
+  <table class="cmp">
+    <thead><tr><th>Option</th><th>What it does</th><th>Sensible default</th></tr></thead>
+    <tbody>
+      <tr><td><code>pool_size</code></td><td>Connections the engine keeps open and ready in the pool</td><td>5 to 10</td></tr>
+      <tr><td><code>max_overflow</code></td><td>Extra connections allowed above pool_size during bursts</td><td>5 to 10</td></tr>
+      <tr><td><code>pool_pre_ping</code></td><td>Checks a connection before use, recycles dead ones</td><td><code>True</code> in prod</td></tr>
+      <tr><td><code>pool_recycle</code></td><td>Recycles any connection older than N seconds</td><td>1800 (under the DB idle timeout)</td></tr>
+      <tr><td><code>pool_timeout</code></td><td>Seconds a request waits for a free connection before erroring</td><td>30</td></tr>
+    </tbody>
+  </table>
+
+  <p>The ceiling that matters isn't in your app, it's in the database. Postgres defaults to 100 total connections. Your pool is per engine and you run one engine per worker, so the arithmetic is <code>workers × (pool_size + max_overflow)</code>. Two workers with <code>pool_size=10, max_overflow=5</code> is up to 30 connections; bump to six and you're at 90, one busy admin query from <code>sorry, too many clients already</code>. For thousands of short-lived connections, put a pooler like PgBouncer in front. Full mechanics in <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>.</p>
+
+  <p>Two options fix the "worked yesterday, broken today" bugs. <code>pool_pre_ping=True</code> tests a connection on checkout, so one that died while idle gets swapped for a live one instead of failing the query. <code>pool_recycle=1800</code> retires connections older than 30 minutes, which keeps you under MySQL's <code>wait_timeout</code>. Set both in production.</p>
+
+  <h2>Sessions and scoped sessions (where the leaks hide)</h2>
+  <p>The engine manages connections. The <code>Session</code> manages your work inside a transaction. The rule: a session is short-lived. Open one per request, use it, close it. Closing it returns the connection to the pool.</p>
+
+<pre><code># a session as a unit of work (SQLAlchemy 2.0)
+from sqlalchemy import select
+from db import SessionLocal
+from models import User
+
+with SessionLocal() as session:            # closes automatically at the end
+    user = session.get(User, 1)            # fetch by primary key
+    actives = session.scalars(
+        select(User).where(User.active.is_(True))
+    ).all()
+    session.commit()</code></pre>
+
+  <p>That <code>with</code> block is the trick: it closes the session no matter what, so the connection goes back. The classic bug is a session held across a slow call and never closed; under load that gives you <code>QueuePool limit ... reached</code>. Hunt for un-closed sessions before you touch <code>pool_size</code>. Usually it's a leak, not sizing.</p>
+
+  <p>Plain SQLAlchemy in a threaded server needs one session per thread, which is what <code>scoped_session</code> gives you. The catch: remove it when the request ends, or the connection never returns.</p>
+
+<pre><code># plain SQLAlchemy in a threaded server: one session per thread
+from sqlalchemy.orm import scoped_session, sessionmaker
+
+Session = scoped_session(sessionmaker(bind=engine))
+
+# ... use Session() anywhere during the request ...
+
+Session.remove()   # CRITICAL: hands the connection back to the pool</code></pre>
+
+  <p>The frameworks do this for you: Flask-SQLAlchemy removes its scoped session after every request, and FastAPI does it with a dependency.</p>
+
+  <!-- ADD IMAGE: your editor open on db.py with create_engine and sessionmaker visible. Swap for a real screenshot: src -> images/sqlalchemy-engine.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your editor open on db.py, the create_engine and sessionmaker calls visible.</em><small>Grounds the one-engine-one-factory idea.</small></span></figure>
+
+  <h2>Declarative models, SQLAlchemy 2.0 style</h2>
+  <p>A model maps a Python class to a table. SQLAlchemy 2.0 uses typed <code>Mapped</code> annotations with <code>mapped_column</code>, which reads cleanly and satisfies type checkers:</p>
+
+<pre><code># models.py
+from sqlalchemy import String
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+class Base(DeclarativeBase):
+    pass
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True)
+    name: Mapped[str | None] = mapped_column(default=None)
+    active: Mapped[bool] = mapped_column(default=True)</code></pre>
+
+  <p>Defining the class does not touch the live schema. Creating the table is a separate step: in production, a migration, not <code>create_all()</code>.</p>
+
+  <h2>Flask-SQLAlchemy and FastAPI: the same engine, wired two ways</h2>
+  <p>The engine and pool ideas don't change between frameworks, only where the config lives. Flask-SQLAlchemy reads the URL from <code>SQLALCHEMY_DATABASE_URI</code> and takes engine settings through <code>SQLALCHEMY_ENGINE_OPTIONS</code>:</p>
+
+<pre><code># app.py  (Flask-SQLAlchemy)
+import os
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+
+app = Flask(__name__)
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ["DATABASE_URL"]
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_size": 10,
+    "max_overflow": 5,
+    "pool_pre_ping": True,
+    "pool_recycle": 1800,
+}
+
+db = SQLAlchemy(app)   # db.session is a scoped session, removed each request</code></pre>
+
+  <p>This is where the <code>postgres://</code> scheme error shows up most, so normalize the URL first. Walkthrough: <a href="https://www.kloudbean.com/blog/deploy-flask-app/">deploy a Flask app</a>. FastAPI has no built-in ORM, so you wire SQLAlchemy with a dependency that yields a session and always closes it:</p>
+
+<pre><code># main.py  (FastAPI)
+from fastapi import Depends, FastAPI
+from sqlalchemy.orm import Session
+from db import SessionLocal
+from models import User
+
+app = FastAPI()
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db          # hand the session to the endpoint
+    finally:
+        db.close()        # always return it to the pool
+
+@app.get("/users/{user_id}")
+def read_user(user_id: int, db: Session = Depends(get_db)):
+    return db.get(User, user_id)</code></pre>
+
+  <p>That <code>finally: db.close()</code> is the FastAPI version of the <code>with</code> block. See <a href="https://www.kloudbean.com/blog/deploy-fastapi-app/">deploy a FastAPI app</a>.</p>
+
+  <h2>Run Alembic migrations, don't create_all() in production</h2>
+  <p>SQLAlchemy has a tempting shortcut, <code>Base.metadata.create_all(engine)</code>. It reads your models and creates missing tables. Great for a test fixture, a trap in production:</p>
+
+<pre><code># fine for a quick prototype or a test fixture. WRONG for production:
+Base.metadata.create_all(engine)   # creates missing tables, never alters, no history</code></pre>
+
+  <p>The problem isn't that it's destructive, it's that it does too little. It never alters an existing table, so the day you add a column it does nothing and your schema drifts from the code. Alembic fixes that: versioned, reviewable migration files with an upgrade and a downgrade.</p>
+
+<pre><code># one-time setup
+alembic init alembic
+
+# after changing your models, generate a migration from the diff
+alembic revision --autogenerate -m "create users table"
+
+# apply migrations. THIS is your deploy step, not create_all()
+alembic upgrade head
+
+# roll back the last migration if something is wrong
+alembic downgrade -1</code></pre>
+
+  <p>Point Alembic at the same URL and metadata your app uses:</p>
+
+<pre><code># alembic/env.py : reuse the app's URL and models
+import os
+from models import Base
+
+config.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"])
+target_metadata = Base.metadata</code></pre>
+
+  <p>Run <code>alembic upgrade head</code> on deploy, after the build and before the new version serves traffic. On Kloudbean's managed CI/CD it's a deploy step you watch in the live build logs. See <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD auto-deploy from GitHub</a>.</p>
+
+  <!-- ADD IMAGE: a terminal showing alembic upgrade head applying a revision. Swap for a real screenshot: src -> images/alembic-upgrade-head.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Terminal output of alembic upgrade head applying a pending revision.</em><small>Shows migrations running, not create_all.</small></span></figure>
+
+  <h2>Postgres or MySQL: same SQLAlchemy, different driver</h2>
+  <p>SQLAlchemy speaks both through a driver you pick in the URL. Install psycopg for Postgres, PyMySQL for MySQL. Your models, sessions, and Alembic commands don't change.</p>
+
+<pre><code># Postgres:  pip install "psycopg[binary]"
+postgresql+psycopg://appuser:s3cret@10.0.0.5:5432/appdb
+
+# MySQL:     pip install pymysql
+mysql+pymysql://appuser:s3cret@10.0.0.5:3306/appdb</code></pre>
+
+  <p>SSL is the one place the URL grows. On a public Postgres endpoint that requires encryption, append <code>sslmode=require</code>, which libpq-based drivers read from the query string:</p>
+
+<pre><code># public endpoint that requires SSL:
+postgresql+psycopg://appuser:s3cret@db.example.com:5432/appdb?sslmode=require</code></pre>
+
+  <p>My honest take: the cleanest way to handle database SSL is to not need it. Put the app and database on one private network, give the database no public address, and nothing is exposed in transit. That's the common Kloudbean setup. Weighing the engines? See <a href="https://www.kloudbean.com/blog/mysql-vs-postgresql/">MySQL vs PostgreSQL</a>, plus <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a> and <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">managed MySQL hosting</a>.</p>
+
+  <h2>Deploy your SQLAlchemy app on Kloudbean, step by step</h2>
+  <p>Everything above assumes a real database behind it: always on, backed up, patched, private.</p>
+
+  <p><strong>Step 1. Launch a managed database.</strong> Open DBS and launch PostgreSQL, MySQL, or MariaDB. It comes up provisioned, patched, and backed up, with a private address your app can reach.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="Launching a managed PostgreSQL or MySQL database in the Kloudbean console to connect a SQLAlchemy app to">
+    <figcaption>DBS, Launch Database: pick PostgreSQL, MySQL, or MariaDB and it arrives provisioned, patched, and backed up.</figcaption>
+  </figure>
+
+  <p><strong>Step 2. Put the connection string in an environment variable.</strong> Assemble host, port, database, user, and password into one <code>DATABASE_URL</code> under Runtime Configuration, Environment Variables, out of your code. More in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console Environment Variables screen where the SQLAlchemy DATABASE_URL is stored instead of in code">
+    <figcaption>Runtime Configuration, Environment Variables: DATABASE_URL lives here, out of the repo and easy to rotate.</figcaption>
+  </figure>
+
+  <p><strong>Step 3. Connect your Git repo and deploy on push.</strong> Link the repository and Kloudbean builds and deploys on every push, with live build logs. Set the Python runtime and start command (Gunicorn or Uvicorn) in the UI.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean Git deployment screen building and deploying a Python SQLAlchemy app on every push">
+    <figcaption>Connect a Git repo and each push builds and deploys, with live logs streaming the whole run.</figcaption>
+  </figure>
+
+  <p><strong>Step 4. Run migrations on deploy.</strong> Add <code>alembic upgrade head</code> to the deploy step so the schema updates before the new code serves a request.</p>
+
+  <!-- ADD IMAGE: the managed database connection details panel after launch, host and port visible. Swap for a real screenshot: src -> images/db-connection-details.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The connection details panel after launch: host, port, database, user.</em><small>Shows exactly what feeds DATABASE_URL.</small></span></figure>
+
+  <p><strong>Step 5. Verify.</strong> Hit an endpoint that reads from the database, or run <code>select(1)</code> through the engine at startup. A clean read means the URL, the network, and the pool all agree.</p>
+
+  <h2>SQLAlchemy vs Django ORM vs raw psycopg</h2>
+  <p>Wondering if you picked the right tool? One honest line each:</p>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>SQLAlchemy</th><th>Django ORM</th><th>raw psycopg</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Ships with</strong></td><td>Standalone (any framework)</td><td>Django only</td><td>Just the driver</td></tr>
+      <tr><td><strong>Query style</strong></td><td>ORM + Core <code>select()</code></td><td>QuerySets</td><td>You write SQL</td></tr>
+      <tr><td><strong>Migrations</strong></td><td>Alembic</td><td>Built-in <code>migrate</code></td><td>Hand-written DDL</td></tr>
+      <tr><td><strong>Pooling</strong></td><td>QueuePool built in</td><td>Its own (CONN_MAX_AGE)</td><td>Manual / psycopg_pool</td></tr>
+      <tr><td><strong>Reach for it when</strong></td><td>Flask, FastAPI, or you want control</td><td>You're already on Django</td><td>Scripts, hot paths, raw SQL</td></tr>
+    </tbody>
+  </table>
+
+  <p>SQLAlchemy is framework-agnostic and gives you a full ORM plus a lower-level Core. Django's ORM is more batteries-included but tied to Django; raw psycopg is simplest when you just want SQL. All three connect to the same managed Postgres or MySQL, so the database choice is independent of the tool. On Django, stick with its ORM.</p>
+
+  <h2>A short security checklist</h2>
+  <ul>
+    <li><strong>Read credentials from the environment.</strong> Every snippet here uses <code>os.environ</code>.</li>
+    <li><strong>Keep <code>.env</code> out of Git.</strong> A string committed once lives in history forever.</li>
+    <li><strong>Put the database on a private network.</strong> With no public address, most of the internet can't reach it.</li>
+    <li><strong>Use a least-privilege database user.</strong> Your app doesn't need superuser; grant what it uses.</li>
+    <li><strong>Rotate passwords, and build so you can.</strong> With the secret in an env var, rotating it is a config change.</li>
+    <li><strong>Keep automatic backups on.</strong> A managed database backs up on a schedule.</li>
+  </ul>
+
+  <h2>Performance: pooling, indexes, and the N+1 trap</h2>
+  <p>Once it connects cleanly, performance is three things. Pooling first: size <code>pool_size</code> and <code>max_overflow</code> to your worker count and keep <code>pool_pre_ping</code> on. Indexes next: add them on the columns you filter and join on, and run <code>EXPLAIN ANALYZE</code> on Postgres when a query feels slow.</p>
+  <p>Then the N+1 trap, the quiet SQLAlchemy killer. You load a list of users, touch each user's <code>posts</code>, and every access fires its own lazy query. Ten users, eleven queries. Fix it with eager loading:</p>
+
+<pre><code># N+1: one query for users, then one per user for their posts
+users = session.scalars(select(User)).all()
+for u in users:
+    print(u.posts)          # a lazy query fires on every loop
+
+# fixed: load posts up front in one extra batched query
+from sqlalchemy.orm import selectinload
+users = session.scalars(
+    select(User).options(selectinload(User.posts))
+).all()</code></pre>
+
+  <p>If a list endpoint got slow right after you added a relationship, this is almost always why. Use <code>selectinload</code> for collections and <code>joinedload</code> for single related rows.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Give your SQLAlchemy app a database that's ready for production.</p>
+    <p style="margin:0 0 .6em">Launch managed PostgreSQL or MySQL, drop the connection string into one environment variable, size the pool, and run <code>alembic upgrade head</code> on a private network with automatic backups. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, and see plans from $8/mo on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">One-click databases · Automatic backups · Private networking · Env vars in the UI · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I connect SQLAlchemy to a database in production?</h3>
+    <p>Build one engine from a connection string kept in an environment variable, hand out short-lived sessions from a sessionmaker, and run Alembic migrations on deploy over a private network.</p>
+
+    <h3>What is pool_pre_ping in SQLAlchemy?</h3>
+    <p>pool_pre_ping runs a cheap test on a pooled connection before use. If it died while idle, SQLAlchemy swaps in a live one instead of failing the query, which kills stale-connection errors after a restart.</p>
+
+    <h3>How do I fix the QueuePool limit reached error?</h3>
+    <p>QueuePool limit of size 5 overflow 10 reached means every pooled connection is checked out and none came free within pool_timeout. The usual cause is sessions that are never closed, so fix the leak before raising pool_size.</p>
+
+    <h3>Should I use create_all() in production?</h3>
+    <p>No. create_all creates missing tables but never alters them and keeps no history, so schema and models drift the moment you change a column. Fine for tests; in production use Alembic and run alembic upgrade head.</p>
+
+    <h3>What is the difference between Flask-SQLAlchemy and SQLAlchemy?</h3>
+    <p>SQLAlchemy is the toolkit and ORM. Flask-SQLAlchemy wires it into Flask, reading SQLALCHEMY_DATABASE_URI, taking engine settings from SQLALCHEMY_ENGINE_OPTIONS, and managing a per-request scoped session. Same SQLAlchemy underneath.</p>
+
+    <h3>How do I set the SQLAlchemy pool size?</h3>
+    <p>Pass pool_size and max_overflow to create_engine, or set them in SQLALCHEMY_ENGINE_OPTIONS with Flask-SQLAlchemy. The pool is per worker, so multiply workers by pool_size plus max_overflow and keep the total under the database limit.</p>
+
+    <h3>What is the SQLAlchemy connection string for PostgreSQL and MySQL?</h3>
+    <p>Use postgresql+psycopg://user:password@host:5432/dbname for Postgres and mysql+pymysql://user:password@host:3306/dbname for MySQL. The shape is dialect+driver://user:password@host:port/dbname, and it belongs in a DATABASE_URL variable.</p>
+
+    <h3>How do I connect SQLAlchemy to a database over SSL?</h3>
+    <p>For libpq-based Postgres drivers, append sslmode=require to the URL query string. MySQL takes SSL through connect_args passed to create_engine. On a private network the database has no public endpoint, so no SSL is needed.</p>
+
+    <h3>Why do I get Can't load plugin sqlalchemy.dialects postgres?</h3>
+    <p>Your URL starts with postgres:// but modern SQLAlchemy only accepts postgresql://; the short alias was removed in 1.4. Replace the scheme before you call create_engine.</p>
+
+    <h3>Do I still need Alembic if I have SQLAlchemy models?</h3>
+    <p>Yes, beyond a prototype. Models describe the schema but don't evolve the live database safely on their own. Alembic turns model changes into versioned, reviewable migrations with an upgrade and a downgrade.</p>
+  </div>
+
+  <p class="byline">Kloudbean · You bring the models and the migrations. We keep the database underneath them healthy.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Connect SQLAlchemy to a Database in Production","description":"Connect SQLAlchemy to a database in production: build create_engine from DATABASE_URL, size the connection pool with pool_pre_ping and pool_recycle, manage sessions, and run Alembic migrations on managed Postgres or MySQL.","image":"https://www.kloudbean.com/blog/connect-sqlalchemy-to-a-database/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/connect-sqlalchemy-to-a-database/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I connect SQLAlchemy to a database in production?","acceptedAnswer":{"@type":"Answer","text":"Build one engine from a connection string kept in an environment variable, hand out short-lived sessions from a sessionmaker, and run Alembic migrations on deploy over a private network."}},
+{"@type":"Question","name":"What is pool_pre_ping in SQLAlchemy?","acceptedAnswer":{"@type":"Answer","text":"pool_pre_ping runs a cheap test on a pooled connection before use. If it died while idle, SQLAlchemy swaps in a live one instead of failing the query, which kills stale-connection errors after a restart."}},
+{"@type":"Question","name":"How do I fix the QueuePool limit reached error?","acceptedAnswer":{"@type":"Answer","text":"QueuePool limit of size 5 overflow 10 reached means every pooled connection is checked out and none came free within pool_timeout. The usual cause is sessions that are never closed, so fix the leak before raising pool_size."}},
+{"@type":"Question","name":"Should I use create_all() in production?","acceptedAnswer":{"@type":"Answer","text":"No. create_all creates missing tables but never alters them and keeps no history, so schema and models drift the moment you change a column. Fine for tests; in production use Alembic and run alembic upgrade head."}},
+{"@type":"Question","name":"What is the difference between Flask-SQLAlchemy and SQLAlchemy?","acceptedAnswer":{"@type":"Answer","text":"SQLAlchemy is the toolkit and ORM. Flask-SQLAlchemy wires it into Flask, reading SQLALCHEMY_DATABASE_URI, taking engine settings from SQLALCHEMY_ENGINE_OPTIONS, and managing a per-request scoped session. Same SQLAlchemy underneath."}},
+{"@type":"Question","name":"How do I set the SQLAlchemy pool size?","acceptedAnswer":{"@type":"Answer","text":"Pass pool_size and max_overflow to create_engine, or set them in SQLALCHEMY_ENGINE_OPTIONS with Flask-SQLAlchemy. The pool is per worker, so multiply workers by pool_size plus max_overflow and keep the total under the database limit."}},
+{"@type":"Question","name":"What is the SQLAlchemy connection string for PostgreSQL and MySQL?","acceptedAnswer":{"@type":"Answer","text":"Use postgresql+psycopg://user:password@host:5432/dbname for Postgres and mysql+pymysql://user:password@host:3306/dbname for MySQL. The shape is dialect+driver://user:password@host:port/dbname, and it belongs in a DATABASE_URL variable."}},
+{"@type":"Question","name":"How do I connect SQLAlchemy to a database over SSL?","acceptedAnswer":{"@type":"Answer","text":"For libpq-based Postgres drivers, append sslmode=require to the URL query string. MySQL takes SSL through connect_args passed to create_engine. On a private network the database has no public endpoint, so no SSL is needed."}},
+{"@type":"Question","name":"Why do I get Cant load plugin sqlalchemy.dialects postgres?","acceptedAnswer":{"@type":"Answer","text":"Your URL starts with postgres but modern SQLAlchemy only accepts postgresql; the short alias was removed in 1.4. Replace the scheme before you call create_engine."}},
+{"@type":"Question","name":"Do I still need Alembic if I have SQLAlchemy models?","acceptedAnswer":{"@type":"Answer","text":"Yes, beyond a prototype. Models describe the schema but do not evolve the live database safely on their own. Alembic turns model changes into versioned, reviewable migrations with an upgrade and a downgrade."}}
+]}
+]}
+</script>
+</body>
+</html>

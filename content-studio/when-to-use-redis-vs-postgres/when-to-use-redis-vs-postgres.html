@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Redis vs Postgres: When to Use Each, and When Both</title>
+<meta name="description" content="Redis vs Postgres, decided the way engineers actually decide. When to use Redis vs PostgreSQL, when you need both, and the patterns and mistakes that matter.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/when-to-use-redis-vs-postgres/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis vs Postgres: When to Use Each, and When Both">
+<meta property="og:description" content="Postgres holds your real data. Redis makes the hot paths fast. A decision guide for when to use Redis vs PostgreSQL, with real code and the common mistakes.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Databases &amp; caching</span>
+  <h1>Redis vs Postgres: When to Use Each, and When You Need Both</h1>
+  <p class="byline">By Kloudbean Engineering · Right Tool, Right Job.</p>
+
+  <figure><img src="images/hero.png" alt="Redis vs Postgres, a decision guide: Postgres as the durable source of truth, Redis as the fast in-memory layer"></figure>
+
+  <p class="lead">You're building on Express, Django, Laravel, or whatever your AI tool handed you, and someone on a forum told you to add Redis. So now you're stuck on <strong>Redis vs Postgres</strong>, trying to work out whether you need both, or one, or which does what. Good news. They aren't rivals. Postgres is the durable database that holds your real data. Redis is a fast in-memory store that sits beside it for the throwaway stuff.</p>
+  <p>This is the decision made the way engineers actually make it. Not "which is better," but "which job is this."</p>
+
+  <div class="tldr">
+    <strong>Short answer</strong>
+    <p><strong>Redis vs Postgres</strong> is the wrong framing for most apps. Postgres is your durable source of truth: ACID, joins, the data you can't afford to lose. Redis is a fast in-memory layer for caching, sessions, rate limits, and queues. Small apps often need only Postgres on day one. Reach for Redis once you've measured a hot path, or you need TTLs, atomic counters, or a shared session store. Plenty of production stacks run both, and that's normal.</p>
+  </div>
+
+  <h2>Redis vs Postgres: two different jobs, not a contest</h2>
+  <p>Here's the mental model that makes the rest obvious. Postgres writes to disk and guarantees your data survives a crash, a restart, a power cut. Redis keeps everything in RAM so it answers in a fraction of the time, and treats most of that data as disposable.</p>
+  <p>One keeps the truth. The other keeps things fast. Every question about your data lands in one lane. Is this the only copy of something a user would hate to lose? Postgres. A cheap-to-rebuild accelerator, a counter, a short-lived token? Redis.</p>
+  <p>The classic slip is treating Redis like a smaller, faster Postgres. It isn't. Once you see two jobs, "do I need Redis" stops being a versus question and becomes "do I have a job that fits Redis yet."</p>
+
+  <figure>
+<svg viewBox="0 0 760 440" width="100%" role="img" aria-labelledby="lanes-t" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#fff;border:1px solid #e6e9f2;border-radius:16px">
+  <title id="lanes-t">Two lanes: Postgres as the durable system of record and Redis as the fast ephemeral layer</title>
+  <defs>
+    <marker id="an" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5b6a86"></path></marker>
+  </defs>
+
+  <text x="30" y="36" font-family="Poppins,sans-serif" font-size="17" font-weight="700" fill="#000f27">Two jobs, two stores</text>
+
+  <!-- App -->
+  <rect x="28" y="176" width="132" height="88" rx="14" fill="#000f27"></rect>
+  <text x="94" y="214" text-anchor="middle" font-family="Poppins,sans-serif" font-size="15" font-weight="700" fill="#ffffff">Your app</text>
+  <text x="94" y="236" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" fill="#aeb6d4">reads + writes</text>
+
+  <!-- durable lane -->
+  <rect x="206" y="66" width="524" height="140" rx="16" fill="#eaf6ee" stroke="#cbe6d3" stroke-width="1.5"></rect>
+  <text x="228" y="92" font-family="Poppins,sans-serif" font-size="12" font-weight="700" letter-spacing="0.1em" fill="#2f8f4e">DURABLE / SYSTEM OF RECORD</text>
+  <rect x="228" y="104" width="150" height="82" rx="12" fill="#000f27"></rect>
+  <text x="303" y="140" text-anchor="middle" font-family="Poppins,sans-serif" font-size="16" font-weight="700" fill="#ffffff">PostgreSQL</text>
+  <text x="303" y="162" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#9fb0d8">on disk, ACID</text>
+  <text x="404" y="126" font-family="Poppins,sans-serif" font-size="13" fill="#1c2536">Joins, constraints, transactions</text>
+  <text x="404" y="150" font-family="Poppins,sans-serif" font-size="13" fill="#1c2536">Complex SQL, real types (JSONB)</text>
+  <text x="404" y="174" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#2f8f4e">Survives a restart</text>
+
+  <!-- ephemeral lane -->
+  <rect x="206" y="238" width="524" height="140" rx="16" fill="#efeaff" stroke="#d8ccff" stroke-width="1.5"></rect>
+  <text x="228" y="264" font-family="Poppins,sans-serif" font-size="12" font-weight="700" letter-spacing="0.1em" fill="#4F1AF3">EPHEMERAL / HOT LAYER</text>
+  <rect x="228" y="276" width="150" height="82" rx="12" fill="#4F1AF3"></rect>
+  <text x="303" y="312" text-anchor="middle" font-family="Poppins,sans-serif" font-size="16" font-weight="700" fill="#ffffff">Redis</text>
+  <text x="303" y="334" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#d9ccff">in memory</text>
+  <text x="404" y="298" font-family="Poppins,sans-serif" font-size="13" fill="#1c2536">Cache, sessions, counters</text>
+  <text x="404" y="322" font-family="Poppins,sans-serif" font-size="13" fill="#1c2536">Queues, leaderboards, pub/sub</text>
+  <text x="404" y="346" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#4F1AF3">Volatile, TTLs, optional persistence</text>
+
+  <!-- arrows -->
+  <path d="M160,204 C 188,204 184,145 224,145" fill="none" stroke="#5b6a86" stroke-width="2" marker-end="url(#an)"></path>
+  <path d="M160,236 C 188,236 184,317 224,317" fill="none" stroke="#5b6a86" stroke-width="2" marker-end="url(#an)"></path>
+
+  <!-- footer teaching line -->
+  <text x="380" y="416" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" fill="#5b6a86">Lose Redis and the app gets slow. Lose Postgres and you lose data.</text>
+</svg>
+    <figcaption>Same request, two stores. Postgres keeps the truth on disk. Redis keeps the hot bits fast in memory.</figcaption>
+  </figure>
+
+  <h2>Redis vs Postgres at a glance</h2>
+  <p>Before the code, the whole comparison on one screen.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Dimension</th><th>Redis</th><th>PostgreSQL</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Data model</strong></td><td>Key/value plus data structures (strings, hashes, lists, sets, sorted sets, streams)</td><td>Relational tables and rows, rich types (JSONB, arrays), foreign keys</td></tr>
+      <tr><td><strong>Where data lives</strong></td><td>In memory (RAM)</td><td>On disk, cached in RAM</td></tr>
+      <tr><td><strong>Durability</strong></td><td>Volatile by default; optional persistence via RDB snapshots or the AOF log</td><td>Durable and ACID, backed by a write-ahead log</td></tr>
+      <tr><td><strong>Query power</strong></td><td>Fast structure ops, no joins, no ad-hoc SQL</td><td>Full SQL: joins, aggregates, transactions, window functions</td></tr>
+      <tr><td><strong>Latency profile</strong></td><td>Sub-millisecond in-memory reads</td><td>Disk-backed, quick with the right indexes, more work per query</td></tr>
+      <tr><td><strong>Typical role</strong></td><td>Cache, sessions, rate limits, queues, leaderboards, pub/sub</td><td>Source of truth, relationships, reporting, anything you can't lose</td></tr>
+      <tr><td><strong>Survives a restart</strong></td><td>Only if persistence is on, and a small recent window can still be lost</td><td>Yes, that's the entire point</td></tr>
+    </tbody>
+  </table>
+
+  <h2>What Postgres is built for</h2>
+  <p>Postgres is a relational database, and the one I'd put at the center of almost any app. It writes every committed change to a write-ahead log before acknowledging it, so a crash mid-write can't corrupt your data. That property, durability, is the whole reason a system of record exists.</p>
+  <p>On top of durability, Postgres models real relationships and answers hard questions:</p>
+  <ul>
+    <li><strong>ACID transactions.</strong> Wrap several writes in one transaction and they all land or none do. An order and its line items commit together, or roll back together.</li>
+    <li><strong>Joins and constraints.</strong> Foreign keys, unique, and check constraints let the database enforce your rules, so bad data can't sneak in through a buggy code path.</li>
+    <li><strong>Real query power.</strong> Aggregations, window functions, and CTEs, with a planner that turns a hard question into an efficient plan. Reporting and analytics live here.</li>
+    <li><strong>Rich types.</strong> JSONB, arrays, ranges, and extensions like PostGIS and pgvector for when you grow into geo or AI search.</li>
+  </ul>
+  <p>Choosing between the relational engines themselves is a separate call, covered in <a href="https://www.kloudbean.com/blog/mysql-vs-postgresql/">MySQL vs PostgreSQL</a>. Treat Postgres here as the stand-in for "your durable relational database." The Redis story is the same whether the truth lives in Postgres or MySQL.</p>
+
+  <h2>What Redis is built for</h2>
+  <p>Redis keeps its whole dataset in memory, which is why it answers in well under a millisecond. And it isn't just a key/value bin. It ships real data structures, which make it feel like a Swiss Army knife once you know them. A few jobs it's genuinely great at:</p>
+  <ul>
+    <li><strong>Caching.</strong> Put Redis in front of an expensive Postgres query and serve the repeat reads from memory. The number one reason teams add it.</li>
+    <li><strong>Sessions.</strong> A shared store so users stay logged in across more than one app server. A <strong>session store in Redis</strong> is close to mandatory the day you run a second instance.</li>
+    <li><strong>Rate limiting.</strong> Atomic counters with a TTL make per-user or per-IP limits trivial. Postgres can do it, just not this cheaply.</li>
+    <li><strong>Queues and jobs.</strong> Lists and streams give you a fast work queue for background jobs like email or processing an upload.</li>
+    <li><strong>Leaderboards and counters.</strong> Sorted sets rank things in real time. Live view counts, "top 10 today," presence.</li>
+    <li><strong>Pub/sub.</strong> Lightweight fan-out messaging between parts of your system.</li>
+  </ul>
+  <p>The thread through all of these: the data is either a copy of something durable (a cache) or cheap to lose (a counter, a session, a retryable job). When it doesn't fit that shape, Redis is a loaded gun pointed at your data.</p>
+
+  <!-- ADD IMAGE: redis-cli running INCR and ZADD then GET, so readers see the data structures in action. Swap for a real screenshot: src -> images/redis-cli-structures.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A redis-cli session running INCR, ZADD, then GET, so the reader sees the data structures are real, not theory.</em><small>Optional: show TTL counting down on a key.</small></span></figure>
+
+  <h2>When to use Redis vs PostgreSQL: a decision guide</h2>
+  <p>The part you came for. Three buckets: reach for Postgres, reach for Redis, or use both. Most apps end up in the third, but you get there by understanding the first two.</p>
+
+  <h3>Reach for Postgres when</h3>
+  <p>Default here. If the data has to survive, has relationships, or you'll query it in ways you can't fully predict, it belongs in Postgres. Orders, users, invoices, posts, anything a person created and would miss. Anything you'll report on later, too, because SQL is built for exactly that. Not sure where a piece of data goes? It goes in Postgres.</p>
+
+  <h3>Reach for Redis when</h3>
+  <p>Add Redis when you have a specific, measured problem it solves. You're reading the same rows thousands of times and the database is feeling it. You need atomic counters for rate limits, a shared session store across servers, or a fast queue for background work. These are jobs, not "I heard Redis is fast." The trigger is a real symptom.</p>
+
+  <h3>Use both when (the common case)</h3>
+  <p>Here's where most production apps land, and it's the honest recommendation. Postgres is the source of truth, Redis a thin fast layer in front of the hot paths. A read checks Redis, and on a miss falls through to Postgres and caches the result. Writes go to Postgres, then drop the matching Redis key so the next read refreshes it. The two aren't fighting. Redis does the reps Postgres shouldn't have to.</p>
+  <div class="note"><b>Founder's take.</b> Don't add Redis on day one out of habit. I've watched too many small apps carry a Redis instance that caches nothing hot and just adds a moving part to break. Ship on Postgres, watch your slow query log, and add Redis the moment a real hot path shows up. Doing it later is a config change and a few lines of code, not a rewrite.</div>
+
+  <h2>Do you actually need Redis? Postgres can fake it at small scale</h2>
+  <p>Something people rarely say out loud: for a while, Postgres can do several of Redis's jobs well enough that you don't need a second system yet. Fewer moving parts is a feature. Two tricks worth knowing.</p>
+  <p><strong>Postgres as a simple job queue.</strong> You don't need Redis or a broker for background jobs at low volume. Postgres has <code>SELECT ... FOR UPDATE SKIP LOCKED</code>, which lets many workers pull jobs off a table without colliding. One grabs a row, the others skip the locked ones:</p>
+
+<pre><code>-- One worker claims a job, others skip the locked row and move on
+DELETE FROM job_queue
+WHERE id = (
+  SELECT id FROM job_queue
+  ORDER BY id
+  FOR UPDATE SKIP LOCKED
+  LIMIT 1
+)
+RETURNING payload;</code></pre>
+
+  <p>That's a real, production-grade queue for thousands of jobs a day. It only strains at high throughput or when you want blocking pops and fan-out, which is exactly when Redis or a proper broker earns its place.</p>
+  <p><strong>Postgres as fast ephemeral storage.</strong> Need a scratch table written to constantly that doesn't need to survive a crash? An <strong>UNLOGGED table</strong> skips the write-ahead log, so writes are noticeably faster. The catch is in the name: not crash-safe, and truncated on crash recovery. Perfect for throwaway data, wrong for anything you'd miss.</p>
+
+<pre><code>-- Faster writes because it skips the WAL; NOT crash-safe
+CREATE UNLOGGED TABLE cache_kv (
+  k text PRIMARY KEY,
+  v jsonb NOT NULL,
+  expires_at timestamptz
+);</code></pre>
+
+  <p>So, do you need Redis? Not always, and not always yet. But the moment you're hammering the same rows, need real TTLs, or want sub-millisecond atomic counters, stop bending Postgres into a cache.</p>
+
+  <h2>The patterns you'll actually reach for</h2>
+  <p>When you do run both, four patterns cover almost everything.</p>
+
+  <h3>Cache-aside: Redis in front of a Postgres read</h3>
+  <p>The workhorse. Check Redis first, and on a miss read Postgres, then store the result with a TTL so the next request is a fast hit. Keep the connection in an environment variable, never in code.</p>
+
+<pre><code>import Redis from "ioredis";
+import { pool } from "./db.js";              // node-postgres
+const redis = new Redis(process.env.REDIS_URL);
+
+async function getProduct(id) {
+  const key = `product:${id}`;
+  const hit = await redis.get(key);
+  if (hit) return JSON.parse(hit);           // Redis answered
+
+  const { rows } = await pool.query(
+    "SELECT * FROM products WHERE id = $1", [id]);   // Postgres is the truth
+  await redis.set(key, JSON.stringify(rows[0]), "EX", 120);  // cache 2 min
+  return rows[0];
+}</code></pre>
+
+  <p>When the product changes, write Postgres first, then delete the key so the next read repopulates it. There's real depth here (TTL choices, invalidation, cache stampede), all covered in <a href="https://www.kloudbean.com/blog/redis-caching-patterns/">Redis caching patterns</a>.</p>
+
+  <!-- ADD IMAGE: redis-cli MONITOR streaming GET and SET as the app serves traffic, proving cache-aside is live. Swap for a real screenshot: src -> images/cache-aside-monitor.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal running redis-cli MONITOR while the app serves traffic, showing GET on a hit and SET on a miss.</em><small>Makes cache-aside feel real.</small></span></figure>
+
+  <h3>Session store: one shared login state</h3>
+  <p>By default many frameworks keep sessions on one server's disk or memory. That breaks the moment you run a second instance: a user's session lives on a machine they might not hit next. Point sessions at Redis and every server shares one fast store. Usually a one-line change:</p>
+
+<pre><code># Laravel .env
+SESSION_DRIVER=redis
+
+# Django settings.py
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+
+# Express: connect-redis wired into express-session</code></pre>
+
+  <p>Sessions fit Redis perfectly. They're short-lived (a TTL is literally a session timeout), and losing one just means logging in again.</p>
+
+  <h3>Rate limiting: atomic counters with a TTL</h3>
+  <p>Here's where Redis quietly wins over Postgres. A counter that increments atomically and expires on its own is a couple of commands. <code>INCR</code> bumps the count, <code>EXPIRE</code> starts the clock on the first hit:</p>
+
+<pre><code>import time, redis
+r = redis.from_url(os.environ["REDIS_URL"])
+
+# Fixed window: 100 requests per IP per minute
+def allow(ip):
+    key = f"rl:{ip}:{int(time.time() // 60)}"
+    count = r.incr(key)
+    if count == 1:
+        r.expire(key, 60)         # start the 60s clock on first request
+    return count &lt;= 100</code></pre>
+
+  <p>Doing this in Postgres means a row per counter, an update per request, and a cleanup job for expired rows. It works, but you're paying disk writes for something Redis does in memory and forgets on its own.</p>
+
+  <h3>A job queue: Redis vs Postgres, side by side</h3>
+  <p>You saw the Postgres version above with <code>SKIP LOCKED</code>. The Redis version uses a list and a worker that blocks until a job arrives, no polling:</p>
+
+<pre><code># Producer pushes a job
+r.lpush("jobs:email", json.dumps(payload))
+
+# Worker blocks on BRPOP until there's something to do
+_, raw = r.brpop("jobs:email")
+job = json.loads(raw)
+send_email(job)</code></pre>
+
+  <p>Redis gives you instant blocking pops and scales to high throughput. Postgres gives you durability and transactions for free, since the job lives in the same database as everything else. Low-volume queue? Postgres is often simpler. High-volume? Redis or a real broker earns the extra moving part. That's the <strong>queue: Redis vs Postgres</strong> call in one line.</p>
+
+  <h2>Common mistakes with Redis and Postgres</h2>
+  <p>These come up constantly, and every one is avoidable once you've named it.</p>
+  <ul>
+    <li><strong>Using Redis as the system of record.</strong> The big one. Someone stores the only copy of real data in Redis because it's fast, then a restart or eviction wipes it. Persistence (RDB, AOF) reduces the risk but doesn't make it a database. If you'd cry when it's lost, it lives in Postgres.</li>
+    <li><strong>Caching without a TTL.</strong> A key with no expiry can be stale forever. Always set a TTL, even when you also delete on write. It's your backstop for the invalidation you forgot to wire up.</li>
+    <li><strong>Cache invalidation traps.</strong> Update Postgres but forget to drop the Redis key, and reads serve the old value until the TTL saves you. Write the database first, then delete the key. Don't overwrite the cached value in place, it invites races.</li>
+    <li><strong>Double source-of-truth drift.</strong> Writing "the truth" to both stores and letting them disagree. Pick one source of truth (Postgres) and treat Redis as a derived copy you can always rebuild.</li>
+    <li><strong>Adding Redis with nothing hot to cache.</strong> A cache that never gets a hit is just latency and one more thing to monitor. Measure first, then cache the path that's actually slow.</li>
+  </ul>
+  <p>The unifying rule fits in one sentence. If Redis disappeared this second, your app should get slow, not lose data. If that isn't true, something durable is in the wrong lane.</p>
+
+  <!-- ADD IMAGE: a memory/eviction chart showing Redis hitting maxmemory and evicting keys, to make the "not a database" point land. Swap for a real screenshot: src -> images/redis-eviction.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A Redis memory graph reaching maxmemory and evicting keys, so the volatility point is visible.</em><small>Reinforces why Redis is not your source of truth.</small></span></figure>
+
+  <h2>Running Postgres and Redis together on Kloudbean</h2>
+  <p>The patterns above run anywhere. What changes is how much babysitting is yours. On Kloudbean, PostgreSQL and Redis are both managed engines, two of the seven on offer (alongside MySQL, MariaDB, <a href="https://www.kloudbean.com/blog/managed-memcached-hosting/">Memcached</a>, Elasticsearch, and MongoDB). Launch each from the same place, and the platform patches and backs them up while you use them.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed database, with PostgreSQL, Redis, MySQL, MariaDB, and more as one-click choices">
+    <figcaption>Launch managed PostgreSQL and managed Redis from the same screen. One click each, both provisioned and backed up.</figcaption>
+  </figure>
+
+  <p>Because each is a one-click launch, running both is just two launches in one account, on the same private network. Your app reaches Postgres and Redis internally, not over the public internet, which erases a class of connection and firewall headaches and keeps connection reuse cheap (the same reason an always-on server makes <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a> simpler than serverless).</p>
+
+  <p>You wire both the same way: one connection value each, read from the environment, so rotating a password is a config change, not a code change.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console environment variables screen holding DATABASE_URL and REDIS_URL for the app to read">
+    <figcaption>Runtime Configuration: <code>DATABASE_URL</code> and <code>REDIS_URL</code> live here, side by side, never in your repository.</figcaption>
+  </figure>
+
+<pre><code># Both connections as environment variables, on the same private network
+DATABASE_URL=postgresql://appuser:secret@10.0.0.5:5432/appdb
+REDIS_URL=redis://:secret@10.0.0.6:6379/0</code></pre>
+
+  <!-- ADD IMAGE: the Kloudbean dashboard showing a Postgres instance and a Redis instance side by side in one account. Swap for a real screenshot: src -> images/both-engines-dashboard.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The dashboard with a managed Postgres and a managed Redis in the same account, to show both engines living together.</em><small>Optional: highlight the private network they share.</small></span></figure>
+
+  <p>Managed means the platform provisions, patches, and backs up the engine on a private network, while your schema and data stay yours to export anytime. Both run on Linux. Setting up the durable side first? <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">Adding a managed database to your app</a> walks the full flow, and adding Redis after is the same pattern with one more env var. For engine details, see <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a> and <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis hosting</a>. One honest note: Kloudbean doesn't autoscale a standard app. Autoscaling and Kubernetes are enterprise and custom setups, not a toggle on a normal account.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Run the truth and the fast layer side by side.</p>
+    <p style="margin:0 0 .6em">Launch managed PostgreSQL for your source of truth and managed Redis for the hot paths, both one click, both on a private network, both backed up. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">One-click Postgres and Redis · Private networking · Automatic backups · Free migration · Free trial · Simple Git deploy</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Do I need Redis if I have Postgres?</h3>
+    <p>Not always, and rarely on day one. Postgres alone handles most small and mid-size apps and can even fake a simple queue or cache at low scale. Add Redis once you hit a measured hot path, need atomic counters, or want a shared session store.</p>
+    <h3>Can Postgres be used as a cache?</h3>
+    <p>Yes, at small scale. An UNLOGGED table makes cache-in-a-table writes faster by skipping the write-ahead log. Once you're hammering the same data thousands of times, reach for an in-memory store like Redis.</p>
+    <h3>Is Redis persistent, or does it lose data on restart?</h3>
+    <p>Redis is in memory and volatile by default, but offers persistence through RDB snapshots and the AOF log. Even with it on, a crash can lose the most recent writes. Treat it as a recovery safety net, not your only copy of the data.</p>
+    <h3>Redis vs Postgres for sessions: which should I use?</h3>
+    <p>Use Redis once you run more than one app server, so a user stays logged in whatever instance they hit. Sessions fit Redis naturally: short-lived and cheap to lose. On a single server, the default store is fine.</p>
+    <h3>Which is faster, Redis or Postgres, and why?</h3>
+    <p>Redis is faster for simple key lookups because it answers from memory in well under a millisecond, while Postgres reads from disk and does more work per query. But that only matters for the repetitive reads a cache absorbs. For complex queries and anything you can't lose, Postgres wins.</p>
+    <h3>Can I use Redis and Postgres together?</h3>
+    <p>Yes, and it's the common production setup. Postgres is the durable source of truth; Redis sits in front of the hot paths for caching, sessions, counters, and queues. Reads check Redis first and fall through to Postgres on a miss.</p>
+    <h3>When should I add Redis to my app?</h3>
+    <p>When you can name the problem it solves: a slow endpoint reading the same rows repeatedly, per-user rate limits, a shared session store, or a fast background queue. Adding Redis with no hot path just adds a moving part with nothing to do.</p>
+    <h3>Is Redis a database or just a cache?</h3>
+    <p>It's a real in-memory data store, so more than a cache, but treat it as a fast helper, not a system of record. It's great for caching, sessions, rate limits, queues, and leaderboards. Durable data belongs in Postgres.</p>
+    <h3>Can Postgres handle a job queue without Redis?</h3>
+    <p>Yes. Postgres supports SELECT FOR UPDATE SKIP LOCKED, letting multiple workers pull jobs off a table without colliding, with durability for free. That handles low to moderate volume. Move to Redis or a broker for blocking pops, fan-out, or high throughput.</p>
+    <h3>Redis vs Memcached: which cache should I pick?</h3>
+    <p>Both are fast in-memory caches. Memcached is simpler and does plain key/value well, while Redis adds data structures, optional persistence, and pub/sub, which is why most teams pick it. Kloudbean offers both as managed engines, so choose per project.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Right tool, right job.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Redis vs Postgres: When to Use Each, and When You Need Both","description":"Redis vs Postgres, decided the way engineers actually decide: when to use Redis vs PostgreSQL, when you need both, and the patterns and mistakes that matter.","image":"https://www.kloudbean.com/blog/when-to-use-redis-vs-postgres/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/when-to-use-redis-vs-postgres/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Do I need Redis if I have Postgres?","acceptedAnswer":{"@type":"Answer","text":"Not always, and rarely on day one. Postgres alone handles most small and mid-size apps and can even fake a simple queue or cache at low scale. Add Redis once you hit a measured hot path, need atomic counters, or want a shared session store."}},
+{"@type":"Question","name":"Can Postgres be used as a cache?","acceptedAnswer":{"@type":"Answer","text":"Yes, at small scale. An UNLOGGED table makes cache-in-a-table writes faster by skipping the write-ahead log. Once you are hammering the same data thousands of times, reach for an in-memory store like Redis."}},
+{"@type":"Question","name":"Is Redis persistent, or does it lose data on restart?","acceptedAnswer":{"@type":"Answer","text":"Redis is in memory and volatile by default, but offers persistence through RDB snapshots and the AOF log. Even with it on, a crash can lose the most recent writes. Treat it as a recovery safety net, not your only copy of the data."}},
+{"@type":"Question","name":"Redis vs Postgres for sessions: which should I use?","acceptedAnswer":{"@type":"Answer","text":"Use Redis once you run more than one app server, so a user stays logged in whatever instance they hit. Sessions fit Redis naturally: short-lived and cheap to lose. On a single server, the default store is fine."}},
+{"@type":"Question","name":"Which is faster, Redis or Postgres, and why?","acceptedAnswer":{"@type":"Answer","text":"Redis is faster for simple key lookups because it answers from memory in well under a millisecond, while Postgres reads from disk and does more work per query. But that only matters for the repetitive reads a cache absorbs. For complex queries and anything you cannot lose, Postgres wins."}},
+{"@type":"Question","name":"Can I use Redis and Postgres together?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it is the common production setup. Postgres is the durable source of truth; Redis sits in front of the hot paths for caching, sessions, counters, and queues. Reads check Redis first and fall through to Postgres on a miss."}},
+{"@type":"Question","name":"When should I add Redis to my app?","acceptedAnswer":{"@type":"Answer","text":"When you can name the problem it solves: a slow endpoint reading the same rows repeatedly, per-user rate limits, a shared session store, or a fast background queue. Adding Redis with no hot path just adds a moving part with nothing to do."}},
+{"@type":"Question","name":"Is Redis a database or just a cache?","acceptedAnswer":{"@type":"Answer","text":"It is a real in-memory data store, so more than a cache, but treat it as a fast helper, not a system of record. It is great for caching, sessions, rate limits, queues, and leaderboards. Durable data belongs in Postgres."}},
+{"@type":"Question","name":"Can Postgres handle a job queue without Redis?","acceptedAnswer":{"@type":"Answer","text":"Yes. Postgres supports SELECT FOR UPDATE SKIP LOCKED, letting multiple workers pull jobs off a table without colliding, with durability for free. That handles low to moderate volume. Move to Redis or a broker for blocking pops, fan-out, or high throughput."}},
+{"@type":"Question","name":"Redis vs Memcached: which cache should I pick?","acceptedAnswer":{"@type":"Answer","text":"Both are fast in-memory caches. Memcached is simpler and does plain key/value well, while Redis adds data structures, optional persistence, and pub/sub, which is why most teams pick it. Kloudbean offers both as managed engines, so choose per project."}}
+]}
+]}
+</script>
+</body>
+</html>

@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What Is a VPC? A Private Room for Your Servers, Explained</title>
+<meta name="description" content="What is a VPC? A Virtual Private Cloud is a private, isolated network for your servers. Learn public vs private subnets, private IP ranges, security groups, and why your database should never sit on the open internet.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/what-is-a-vpc/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="What Is a VPC? A Private Room for Your Servers, Explained">
+<meta property="og:description" content="A Virtual Private Cloud, in plain English: public front, private back, and why your database should never face the open internet.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Enterprise &amp; networking</span>
+  <h1>What Is a VPC? A Private Room for Your Servers, Explained</h1>
+
+  <figure><img src="images/hero.png" alt="What is a VPC: a private room for your servers, explained"></figure>
+
+  <p class="lead">Point a tool like Shodan at the open internet and you'll turn up thousands of databases answering to anyone who knocks. No private network in front of them. No VPN. Just a database port hanging out in public.</p>
+  <p>Most of those weren't left open on purpose. Someone spun up a server, gave the database a public address so they could reach it from their laptop, shipped the feature, and forgot. A VPC is how you stay off that list. So what is a VPC? Short for Virtual Private Cloud, it's a private, isolated network for your own resources inside the cloud, where the sensitive parts of your stack never get a public door at all.</p>
+
+  <div class="tldr">
+    <strong>Short answer</strong>
+    <p>A VPC (Virtual Private Cloud) is your own private, isolated network inside the cloud. Public-facing things like your web app go in a <em>public subnet</em>. Sensitive things like your database and cache go in a <em>private subnet</em> with no public address. Your app reaches the database over an internal private IP, and the open internet has no route to it.</p>
+  </div>
+
+  <h2>So what is a VPC, exactly?</h2>
+  <p>A VPC is a walled-off slice of a cloud provider's network that belongs to you. Inside that boundary, your resources get private addresses and can talk to each other over an internal network. Nothing inside is reachable from the outside world unless you deliberately hand it a public address and open a path to it.</p>
+  <p>That last part is the whole game. By default you keep everything private, then you poke exactly one hole for the traffic that genuinely needs to come in from the internet. Your web server. Maybe a load balancer. That's usually it. Everything else stays in the back.</p>
+
+  <h2>Public subnet, private subnet: the split that does the work</h2>
+  <p>A VPC gets carved into <strong>subnets</strong>, which is just a fancy word for "sections of the network." You'll deal with two kinds:</p>
+  <ul>
+    <li>A <strong>public subnet</strong> for things that must face the world. Your web or app server lives here, and so does a load balancer if you run one. These get public addresses on purpose.</li>
+    <li>A <strong>private subnet</strong> for things that must not face the world. Your database, your Redis cache, internal APIs, background workers. These get private addresses only.</li>
+  </ul>
+  <p>Private addresses come from reserved ranges: <code>10.0.0.0/8</code>, <code>172.16.0.0/12</code>, and <code>192.168.0.0/16</code>. Those blocks aren't routable across the public internet. So a machine that only has a private IP can't be dialed up from outside, full stop. It isn't hidden behind a clever lock. It has no phone number the internet can call.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 420" role="img" aria-label="Two topologies compared. On the left, an exposed setup where the public internet reaches both the app and the database directly. On the right, a VPC where the app sits in a public subnet and the database sits in a private subnet the internet cannot reach." xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="vg" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#40b75f"/></marker>
+        <marker id="vr" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#e5484d"/></marker>
+        <marker id="vp" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4F1AF3"/></marker>
+      </defs>
+      <text x="175" y="26" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="700" letter-spacing="1.4" fill="#e5484d">EXPOSED</text>
+      <text x="540" y="26" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="700" letter-spacing="1.4" fill="#40b75f">INSIDE A VPC</text>
+
+      <!-- LEFT: exposed -->
+      <rect x="70" y="46" width="210" height="30" rx="15" fill="#000f27"/>
+      <text x="175" y="66" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#fff">Public internet</text>
+      <rect x="105" y="150" width="140" height="46" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="175" y="178" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">App server</text>
+      <rect x="105" y="270" width="140" height="46" rx="10" fill="#fff" stroke="#e5484d" stroke-width="1.6"/>
+      <text x="175" y="292" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">Database</text>
+      <text x="175" y="308" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#e5484d">public IP, open port</text>
+      <line x1="175" y1="78" x2="175" y2="146" stroke="#40b75f" stroke-width="2" marker-end="url(#vg)"/>
+      <path d="M110,70 C40,150 40,230 100,285" fill="none" stroke="#e5484d" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#vr)"/>
+      <text x="52" y="200" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#e5484d" transform="rotate(-90 52 200)">anyone can reach the DB</text>
+
+      <!-- RIGHT: VPC -->
+      <rect x="435" y="46" width="210" height="30" rx="15" fill="#000f27"/>
+      <text x="540" y="66" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#fff">Public internet</text>
+      <rect x="400" y="104" width="280" height="266" rx="14" fill="none" stroke="#4F1AF3" stroke-width="1.6" stroke-dasharray="7 6"/>
+      <text x="412" y="124" font-family="Poppins,sans-serif" font-size="11" font-weight="700" letter-spacing="1" fill="#4F1AF3">VPC</text>
+      <rect x="470" y="150" width="140" height="46" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="540" y="172" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">App server</text>
+      <text x="540" y="188" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">public subnet</text>
+      <rect x="440" y="250" width="200" height="96" rx="12" fill="#f6f7fb" stroke="#40b75f" stroke-width="1.4" stroke-dasharray="5 5"/>
+      <text x="452" y="270" font-family="Poppins,sans-serif" font-size="10.5" font-weight="700" letter-spacing=".5" fill="#40b75f">PRIVATE SUBNET</text>
+      <rect x="470" y="282" width="140" height="46" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="540" y="304" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">Database</text>
+      <text x="540" y="320" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#40b75f">private IP only</text>
+      <line x1="540" y1="78" x2="540" y2="146" stroke="#40b75f" stroke-width="2" marker-end="url(#vg)"/>
+      <line x1="540" y1="196" x2="540" y2="278" stroke="#4F1AF3" stroke-width="2" marker-end="url(#vp)"/>
+      <text x="600" y="240" font-family="Poppins,sans-serif" font-size="10.5" fill="#4F1AF3">private hop</text>
+    </svg>
+    <figcaption>Same two servers, two very different risk profiles. Exposed, the database has its own door to the street. Inside a VPC, it only answers the app, over a private IP.</figcaption>
+  </figure>
+
+  <h2>Follow one request through a VPC</h2>
+  <p>Watch a single page load and the design clicks. A visitor's browser hits your app at its public address. That's allowed. It's the front door, and it's the only door. The app then needs data, so it opens a connection to the database at a private address like <code>10.0.4.12:5432</code>. That hop happens entirely inside the VPC, over the internal network, and never touches the public internet.</p>
+  <p>The visitor has no route to the database. Not a locked one. None. They talk to the app, the app talks to the database in the back, and the two conversations never mix. You've shrunk the attack surface by removing a door, which beats guarding one.</p>
+
+  <h2>Security groups: deciding what's allowed to talk to what</h2>
+  <p>A private subnet keeps the internet out. Security groups (some clouds call them network ACLs or firewall rules) control traffic <em>inside</em> the fence. Think of a security group as a short allow-list attached to a resource. The database's rule might read: accept connections on port 5432 from the app servers only, and refuse everything else.</p>
+  <p>The habit worth building is default-deny. Start with nothing allowed, then open the specific paths your app actually needs. On Kloudbean every server also ships with a <strong>Shorewall firewall and Fail2ban</strong> turned on from the start, so brute-force login attempts get throttled and blocked without you configuring anything. That's the network-layer equivalent of least privilege: a resource can reach exactly what its job requires and nothing else.</p>
+
+  <!-- ADD IMAGE: swap this slot for a real screenshot. src -> images/security-group-rules.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A firewall or security-group rule list: database port open only to the app tier, everything else denied.</em><small>Shows least-privilege network rules in practice.</small></span></figure>
+
+  <h2>Why a public database is a breach waiting to happen</h2>
+  <p>This is the part I'll be blunt about. A database reachable from the open internet is a breach waiting to happen, so put data services on a private network from day one. Automated scanners sweep the entire IPv4 space constantly, and an open database with a weak or default password gets found fast, sometimes within hours of going live.</p>
+  <p>Remember the "Meow" attacks in 2020? A bot roamed the internet finding exposed databases and simply wiped them, overwriting thousands of unsecured Elasticsearch and MongoDB instances with the word "meow" and no ransom, no warning. The common thread wasn't a clever exploit. It was databases left facing the public internet. A private subnet removes that entire category of mistake before you can make it.</p>
+
+  <table class="cmp">
+    <thead><tr><th>&nbsp;</th><th>Database on the public internet</th><th>Database in a private subnet</th></tr></thead>
+    <tbody>
+      <tr><td>Address</td><td>Public IP, reachable anywhere</td><td>Private IP only</td></tr>
+      <tr><td>Who can connect</td><td>Anyone who finds the port</td><td>Only your app, from inside</td></tr>
+      <tr><td>Attack surface</td><td>The whole internet</td><td>Your own network</td></tr>
+      <tr><td>If credentials leak</td><td>Direct hit, they can log straight in</td><td>They still can't route to it</td></tr>
+      <tr><td>App-to-DB latency</td><td>A detour through public routing</td><td>A short internal hop</td></tr>
+    </tbody>
+  </table>
+
+  <h2>How this looks on a managed platform</h2>
+  <p>You rarely hand-build this anymore, and honestly you shouldn't have to. A sensible managed host puts the private side in place for you. On Kloudbean, <strong>managed databases sit on a private network</strong> and answer your app internally, not the open internet. You launch one, wire your app to it over the private connection, and the "back room" arrangement is just how the stack is shaped from the first click.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed database that lives on the private network, reachable by the app but not the public internet">
+    <figcaption>Launch a managed database and it comes up on the private network by default, reachable by your app, not by the world.</figcaption>
+  </figure>
+
+  <p>Your app server lives on the public side so visitors can reach it, and it talks to the database privately. If you want the deeper how-to, see <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a>, or the engine-specific guides for <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">managed MySQL</a> and <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis</a>. Enterprise and custom setups can run in their own dedicated VPC when isolation requirements go further.</p>
+
+  <!-- ADD IMAGE: swap this slot for a real screenshot. src -> images/private-network-topology.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your own topology diagram: app in the public subnet, database and cache in the private subnet, traffic staying internal.</em><small>A labelled version of the SVG above, using your real resource names.</small></span></figure>
+
+  <h2>The one mistake that quietly undoes it</h2>
+  <p>If there's a single trap here, it's giving the database a public address "just so I can connect from my laptop." That puts the door back on the street and cancels the whole point of the VPC. Do the tidy thing instead: tunnel in through your app server over SSH, or use a bastion host, and leave the database on its private IP. It's one extra step at setup and it keeps you off the scanner lists for good.</p>
+
+  <h2>What a VPC won't do for you</h2>
+  <p>A VPC is one strong wall, not the whole castle. It gives you <strong>network isolation</strong>, and on a managed Linux platform that private networking gets wired up for you, so your database sits safely in the back without you editing routing tables. But it only guards the network layer. You still have to secure the public-facing app that <em>does</em> have a door, write code that doesn't leak, protect your credentials, and keep the stack patched.</p>
+  <p>Think of it as layered defence. A VPC handles one important layer very well. The rest still needs attention, which is why it pairs naturally with <a href="https://www.kloudbean.com/blog/ddos-protection-explained/">DDoS protection</a>, <a href="https://www.kloudbean.com/blog/secure-wordpress-hosting/">hardened application hosting</a>, and, for regulated teams, <a href="https://www.kloudbean.com/blog/data-residency-explained/">data residency controls</a> and <a href="https://www.kloudbean.com/blog/single-tenant-vs-multi-tenant/">single-tenant isolation</a>. Take the database off the sidewalk first. Then keep locking the doors that remain.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Your database belongs in the back room.</p>
+    <p style="margin:0 0 .6em">Run your app on a private network with the database off the public internet, on infrastructure you actually own. Managed databases on a private network, a Shorewall firewall and Fail2ban on every server, automatic backups, and free migration help to get there.</p>
+    <p style="margin:0">Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> · see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">Private networking · Managed databases · Shorewall + Fail2ban · Automatic backups · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is a VPC in simple terms?</h3>
+    <p>A VPC (Virtual Private Cloud) is your own private, isolated network inside the cloud. Resources you put in it talk to each other over private addresses, and you choose exactly what, if anything, gets exposed to the public internet. The simple picture: a shop with a public front counter and a private back room only staff can reach.</p>
+    <h3>What is a VPC used for?</h3>
+    <p>Keeping the sensitive parts of your stack off the open internet. Your database, cache, and internal services live in a private subnet with no public address, while your web app sits in a public subnet and talks to them privately. It also keeps internal traffic internal, which is tidier and usually a little faster.</p>
+    <h3>What's the difference between a public and private subnet?</h3>
+    <p>They're the two sections of a VPC. A public subnet holds resources that need to face the world, like your web server. A private subnet holds resources that shouldn't, like your database and cache. Machines in a private subnet only have private IPs, so the public internet has no route to them.</p>
+    <h3>Why should my database be inside a VPC?</h3>
+    <p>Because it holds your most sensitive data and should never answer the open internet. Inside a private subnet it has no public address, so only your own app can reach it. Scanners constantly hunt for exposed databases, and a private network means yours simply isn't there to find.</p>
+    <h3>Is a VPC the same as a VPN?</h3>
+    <p>No, and people mix them up. A VPC is a private network that your cloud resources live inside. A VPN is a secure tunnel that lets a person or office connect into a private network from somewhere else. You might use a VPN to reach resources that live in a VPC, but they're solving different problems.</p>
+    <h3>What is a security group in a VPC?</h3>
+    <p>A security group is a small allow-list attached to a resource that decides which traffic it accepts. A database's security group might allow port 5432 from the app servers only and deny everything else. Start default-deny, then open the specific paths your app needs.</p>
+    <h3>Do I have to set up a VPC myself?</h3>
+    <p>Not on a good managed platform. Building private networking by hand can be fiddly, but a managed host can wire it up for you so your database comes up on the private network and your app reaches it internally. You get the isolation without configuring routing tables.</p>
+    <h3>Can I still connect to a private database from my laptop?</h3>
+    <p>Yes, without giving it a public address. Tunnel in through your app server over SSH, or use a bastion host, and connect through that. It's one extra step and it keeps the database on its private IP where it belongs, instead of exposing it to the whole internet for convenience.</p>
+    <h3>Does a VPC make my app fully secure?</h3>
+    <p>No. It secures the network layer by taking sensitive resources off the public internet, which is a big win, but it's one wall in a layered defence. You still have to secure the public-facing app, write safe code, protect credentials, and keep everything patched.</p>
+    <h3>Does a VPC cost extra or slow things down?</h3>
+    <p>Private networking is a normal part of how a well-built platform is shaped, not a premium bolt-on for typical setups, and dedicated VPCs come into play for enterprise isolation. As for speed, it usually helps: your app and database chat over a short private link instead of taking a detour through public routing.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Keep the database off the open internet.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"What Is a VPC? A Private Room for Your Servers, Explained","description":"A Virtual Private Cloud in plain English: public subnet, private subnet, private IP ranges, security groups, and why your database should never face the open internet.","image":"https://www.kloudbean.com/blog/what-is-a-vpc/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/what-is-a-vpc/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is a VPC in simple terms?","acceptedAnswer":{"@type":"Answer","text":"A VPC (Virtual Private Cloud) is your own private, isolated network inside the cloud. Resources you put in it talk to each other over private addresses, and you choose exactly what, if anything, gets exposed to the public internet. The simple picture: a shop with a public front counter and a private back room only staff can reach."}},
+{"@type":"Question","name":"What is a VPC used for?","acceptedAnswer":{"@type":"Answer","text":"Keeping the sensitive parts of your stack off the open internet. Your database, cache, and internal services live in a private subnet with no public address, while your web app sits in a public subnet and talks to them privately. It also keeps internal traffic internal, which is tidier and usually a little faster."}},
+{"@type":"Question","name":"What's the difference between a public and private subnet?","acceptedAnswer":{"@type":"Answer","text":"They are the two sections of a VPC. A public subnet holds resources that need to face the world, like your web server. A private subnet holds resources that should not, like your database and cache. Machines in a private subnet only have private IPs, so the public internet has no route to them."}},
+{"@type":"Question","name":"Why should my database be inside a VPC?","acceptedAnswer":{"@type":"Answer","text":"Because it holds your most sensitive data and should never answer the open internet. Inside a private subnet it has no public address, so only your own app can reach it. Scanners constantly hunt for exposed databases, and a private network means yours simply is not there to find."}},
+{"@type":"Question","name":"Is a VPC the same as a VPN?","acceptedAnswer":{"@type":"Answer","text":"No, and people mix them up. A VPC is a private network that your cloud resources live inside. A VPN is a secure tunnel that lets a person or office connect into a private network from somewhere else. You might use a VPN to reach resources that live in a VPC, but they solve different problems."}},
+{"@type":"Question","name":"What is a security group in a VPC?","acceptedAnswer":{"@type":"Answer","text":"A security group is a small allow-list attached to a resource that decides which traffic it accepts. A database's security group might allow port 5432 from the app servers only and deny everything else. Start default-deny, then open the specific paths your app needs."}},
+{"@type":"Question","name":"Do I have to set up a VPC myself?","acceptedAnswer":{"@type":"Answer","text":"Not on a good managed platform. Building private networking by hand can be fiddly, but a managed host can wire it up for you so your database comes up on the private network and your app reaches it internally. You get the isolation without configuring routing tables."}},
+{"@type":"Question","name":"Can I still connect to a private database from my laptop?","acceptedAnswer":{"@type":"Answer","text":"Yes, without giving it a public address. Tunnel in through your app server over SSH, or use a bastion host, and connect through that. It is one extra step and it keeps the database on its private IP where it belongs, instead of exposing it to the whole internet for convenience."}},
+{"@type":"Question","name":"Does a VPC make my app fully secure?","acceptedAnswer":{"@type":"Answer","text":"No. It secures the network layer by taking sensitive resources off the public internet, which is a big win, but it is one wall in a layered defence. You still have to secure the public-facing app, write safe code, protect credentials, and keep everything patched."}},
+{"@type":"Question","name":"Does a VPC cost extra or slow things down?","acceptedAnswer":{"@type":"Answer","text":"Private networking is a normal part of how a well-built platform is shaped, not a premium bolt-on for typical setups, and dedicated VPCs come into play for enterprise isolation. As for speed, it usually helps: your app and database chat over a short private link instead of taking a detour through public routing."}}
+]}
+]}
+</script>
+</body>
+</html>

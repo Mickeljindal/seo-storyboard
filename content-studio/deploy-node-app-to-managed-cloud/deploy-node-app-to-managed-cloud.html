@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Deploy a Node App to Managed Cloud</title>
+<meta name="description" content="node server.js works on your laptop. Here's what turns it into a service that stays up: deploy a Node app to managed cloud with a process manager, process.env.PORT, graceful shutdown, and all your CPU cores.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Deploy a Node App to Managed Cloud">
+<meta property="og:description" content="The gap between node server.js and a real service: a process manager that restarts on crash, reading process.env.PORT, graceful shutdown, and running across every CPU core.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Deploy Node to managed cloud</span>
+  <h1>How to Deploy a Node App to Managed Cloud</h1>
+
+  <figure><img src="images/hero.png" alt="Deploy a Node app to managed cloud — a process manager keeps it always-on across every CPU core"></figure>
+
+  <p class="lead">On your laptop, <code>node server.js</code> is the whole story. It runs, you hit it in the browser, and when it crashes you see the stack trace and press up-arrow-enter. You are the process manager. You are the log viewer. You are the thing that restarts it. To deploy a Node app to managed cloud is really to hand those three jobs to something that never sleeps.</p>
+
+  <p>Framework tutorials skip this. They teach you Express routes and stop at "it works locally." So this guide is about the other half, the production half: what actually keeps a Node process alive, answering, and using the machine you're paying for.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>Deploy a Node app to managed cloud and a process manager (PM2) turns <code>node server.js</code> into a service: it stays up, restarts on crash, and can run across every CPU core. Your app reads <code>process.env.PORT</code>, handles <code>SIGTERM</code> for clean restarts, and writes logs somewhere you can read them. On Kloudbean that layer is set up for you. You connect a repo, set your start command, and deploy.</p>
+  </div>
+
+  <h2>The gap between "node server.js" and a service</h2>
+  <p>Here's the uncomfortable truth about a plain <code>node server.js</code> in production: the instant your app throws an unhandled exception, runs out of memory, or hits some once-a-week edge case, the process exits. And nothing brings it back. Your site is down until a human notices, SSHes in, and starts it again. That could be minutes. On a bad night it's hours.</p>
+  <p>That single failure mode is the most common reason a Node app is "down," and it has nothing to do with the server being slow or the code being bad. It's just that a bare process has no one watching it. A real service needs a supervisor: something that notices the crash and restarts the app in about a second, every time, without you. That supervisor is a process manager, and it's the first thing that separates a deploy from a demo.</p>
+
+  <figure>
+    <svg viewBox="0 0 700 452" width="100%" role="img" aria-label="Diagram: a process manager runs the crash-and-restart loop (start, running, crash, auto-restart back to running), and cluster mode fans one app across four CPU cores.">
+      <rect x="1" y="1" width="698" height="450" rx="16" fill="#fff" stroke="#e6e9f2"/>
+      <text x="350" y="34" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="17" font-weight="700" fill="#000f27">A process manager does the two things you can't</text>
+
+      <!-- lifecycle loop -->
+      <text x="350" y="62" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="600" fill="#4F1AF3">1 · KEEPS IT ALIVE</text>
+      <rect x="40" y="78" width="150" height="52" rx="10" fill="#f6f7fb" stroke="#e6e9f2"/>
+      <text x="115" y="103" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="12.5" fill="#1c2536">node server.js</text>
+      <text x="115" y="120" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#5b6a86">start</text>
+
+      <rect x="275" y="78" width="150" height="52" rx="10" fill="#eaf7ef" stroke="#cdebd6"/>
+      <text x="350" y="103" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="600" fill="#000f27">running</text>
+      <text x="350" y="120" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#40b75f">serving requests</text>
+
+      <rect x="510" y="78" width="150" height="52" rx="10" fill="#fff" stroke="#c9d0e3" stroke-dasharray="5 4"/>
+      <text x="585" y="103" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="600" fill="#000f27">crash</text>
+      <text x="585" y="120" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" fill="#5b6a86">exception / OOM</text>
+
+      <g stroke="#4F1AF3" stroke-width="2" fill="none">
+        <line x1="190" y1="104" x2="270" y2="104"/><polygon points="270,98 282,104 270,110" fill="#4F1AF3"/>
+        <line x1="425" y1="104" x2="505" y2="104"/><polygon points="505,98 517,104 505,110" fill="#4F1AF3"/>
+      </g>
+      <!-- restart arrow -->
+      <path d="M585 130 L585 168 L350 168 L350 134" stroke="#40b75f" stroke-width="2" fill="none"/>
+      <polygon points="344,138 350,126 356,138" fill="#40b75f"/>
+      <text x="468" y="162" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11.5" font-weight="600" fill="#40b75f">auto-restart in ~1s</text>
+
+      <line x1="40" y1="196" x2="660" y2="196" stroke="#e6e9f2" stroke-width="1"/>
+
+      <!-- cluster -->
+      <text x="350" y="228" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="600" fill="#4F1AF3">2 · USES EVERY CORE</text>
+      <rect x="250" y="244" width="200" height="48" rx="10" fill="#000f27"/>
+      <text x="350" y="267" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="600" fill="#fff">one app, cluster mode</text>
+      <text x="350" y="284" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="11" fill="#c9b8ff">PM2 -i max</text>
+
+      <g stroke="#c9d0e3" stroke-width="2">
+        <line x1="300" y1="292" x2="150" y2="330"/>
+        <line x1="335" y1="292" x2="290" y2="330"/>
+        <line x1="365" y1="292" x2="430" y2="330"/>
+        <line x1="400" y1="292" x2="560" y2="330"/>
+      </g>
+      <g font-family="Poppins,Arial,sans-serif" font-size="12" fill="#1c2536">
+        <rect x="95" y="332" width="120" height="46" rx="9" fill="#f6f7fb" stroke="#e6e9f2"/><text x="155" y="360" text-anchor="middle">CPU core 1</text>
+        <rect x="235" y="332" width="120" height="46" rx="9" fill="#f6f7fb" stroke="#e6e9f2"/><text x="295" y="360" text-anchor="middle">CPU core 2</text>
+        <rect x="375" y="332" width="120" height="46" rx="9" fill="#f6f7fb" stroke="#e6e9f2"/><text x="435" y="360" text-anchor="middle">CPU core 3</text>
+        <rect x="515" y="332" width="120" height="46" rx="9" fill="#f6f7fb" stroke="#e6e9f2"/><text x="575" y="360" text-anchor="middle">CPU core 4</text>
+      </g>
+      <text x="350" y="416" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="12.5" fill="#5b6a86">Node runs on one thread. Cluster mode runs a copy per core, so one box does more.</text>
+    </svg>
+    <figcaption>Two jobs your terminal won't do: restart the app the instant it dies, and run a copy on every CPU core.</figcaption>
+  </figure>
+
+  <h2>What "managed cloud" adds on top of a bare server</h2>
+  <p>Managed cloud sits between two things you know. On one side, a raw box from AWS or DigitalOcean where you install and babysit everything. On the other, a locked-down platform that trades control for convenience. Managed cloud is the middle: you run on a real cloud provider's infrastructure, but the operational layer (OS, Node runtime, web server, the process manager, firewall, SSL, backups) is provisioned and maintained for you. You own the server. You skip the part where you hand-configure it and then patch it forever.</p>
+  <p>For a Node app specifically, that means the survival machinery below is already in place when your code lands. You don't install PM2 or write an Nginx reverse proxy or set up a cert-renewal cron. You bring the app. Here's what the platform is handling, mapped against what you'd otherwise do by hand.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Production need</th><th>On your laptop / a bare box</th><th>On managed cloud</th></tr></thead>
+    <tbody>
+      <tr><td>Restart after a crash</td><td>You notice and rerun <code>node server.js</code></td><td>A process manager restarts it in ~1s</td></tr>
+      <tr><td>Use all CPU cores</td><td>One process, one core</td><td>Cluster mode runs a copy per core</td></tr>
+      <tr><td>Survive a redeploy cleanly</td><td>Ctrl-C, kill in-flight requests</td><td><code>SIGTERM</code> for graceful shutdown</td></tr>
+      <tr><td>HTTPS</td><td>You buy and wire up a cert</td><td>Free Let's Encrypt, auto-renewed</td></tr>
+      <tr><td>Read the logs</td><td>Scroll your terminal</td><td>Written to a log file you can open</td></tr>
+    </tbody>
+  </table>
+
+  <h2>The four properties that make a Node app production-ready</h2>
+  <p>Whatever your app is (an Express or Fastify or NestJS API, a websocket server, a Discord bot, a queue worker) the same four properties decide whether it survives contact with real traffic. Get these right and the deploy is almost boring.</p>
+
+  <h3>1. It restarts itself when it crashes</h3>
+  <p>Covered above, and it's number one for a reason. The anti-pattern we see most often is running <code>node server.js</code> straight, maybe inside <code>tmux</code> or <code>nohup</code> so it survives logout, with nothing set to restart it. That's a demo pretending to be a deploy. The first unhandled rejection takes the whole thing down and it stays down. A process manager (PM2 is the standard, and it's what Kloudbean configures) watches the process and restarts it immediately. You don't set it up. It's already there.</p>
+
+  <h3>2. It reads the port from the environment</h3>
+  <p>This one line is behind a huge share of failed first deploys. Local code says <code>app.listen(3000)</code> because 3000 was free on your machine. In production the platform assigns the port, and if your app ignores that and grabs 3000 anyway, the router in front of it connects to nothing. You get a 503, and the log looks fine because the app didn't crash. It's just listening in the wrong place.</p>
+  <pre><code>// works on your laptop, breaks in production
+app.listen(3000);
+
+// reads the assigned port, works anywhere
+const port = process.env.PORT || 3000;
+app.listen(port, () =&gt; console.log(`listening on ${port}`));</code></pre>
+  <p>That <code>|| 3000</code> keeps your local workflow unchanged while letting production hand you the real port. It's the single most valuable two-line change in this whole article.</p>
+
+  <h3>3. It shuts down gracefully</h3>
+  <p>Every time you deploy, the platform stops the old version and starts the new one. It does that by sending your process a <code>SIGTERM</code> signal. If you ignore it, the process gets killed mid-flight: in-progress requests drop, database connections don't close cleanly, a half-written job is left half-written. Catch the signal and finish what you're doing first.</p>
+  <pre><code>const server = app.listen(process.env.PORT || 3000);
+
+process.on("SIGTERM", () =&gt; {
+  console.log("SIGTERM received, closing gracefully");
+  server.close(() =&gt; process.exit(0));
+});</code></pre>
+  <p>Most small apps limp along without this, and then someone notices random errors during every deploy. It's ten lines to make deploys invisible to your users. Worth it the moment real people are on the app.</p>
+
+  <h3>4. It uses more than one CPU core</h3>
+  <p>Node runs your JavaScript on a single thread. One plain process uses one core, no matter how many the server has. For most apps that's genuinely fine, because the work is I/O-bound (waiting on the database or network), and one Node process handles a lot of that. But when you're CPU-bound or just want to use the whole box, you run several copies of the app behind the same port. That's cluster mode, and PM2 does it with a flag:</p>
+  <pre><code># run one instance per CPU core
+pm2 start server.js -i max</code></pre>
+  <p>Kloudbean supports PM2 multi-process, so this is a config choice, not a rewrite. Start with one instance. Turn on clustering when your metrics actually ask for it. One caveat that bites people: the moment you run more than one instance, in-memory state (a sessions object, a local rate-limiter, a cache that's just a Map) stops being shared. Each instance has its own copy, so a user's login works on one and fails on the next. Move that state into managed Redis and it's shared across every instance.</p>
+
+  <h2>Deploy your Node app to managed cloud</h2>
+  <p>With the concepts clear, the actual deploy is short. Here's the path through the <a href="https://www.kloudbean.com/">Kloudbean</a> console.</p>
+  <p>Click <strong>Add Server</strong>, pick a <strong>Cloud Provider</strong> (that's the cloud part: AWS, Lightsail, GCP, Linode, Vultr, DigitalOcean, or UpCloud), choose <strong>Node.js</strong>, pick the nearest datacenter, and size it. 2-4 GB is a comfortable start. <strong>Launch Now</strong>, and a few minutes later the box is ready with Node, the process manager, a web server, firewall, and SSL. You configured none of it by hand.</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="Kloudbean Add Server screen: choosing a cloud provider, Node.js application, datacenter, and server size">
+    <figcaption>Add Server: pick one of seven clouds, choose Node.js, size it, launch. PM2 and the reverse proxy come configured.</figcaption>
+  </figure>
+
+  <p>Open the app, go to <strong>Application Administration &#8594; Deploy Code</strong>, connect GitHub, paste the repository URL, pick the branch, and <strong>Clone Repository</strong>. Then set the runtime:</p>
+  <ul>
+    <li><strong>App Directory:</strong> the folder with your <code>package.json</code>.</li>
+    <li><strong>Port:</strong> the assigned port, which your app reads from <code>process.env.PORT</code> (property 2 above).</li>
+    <li><strong>Node Version:</strong> match what you built on. Node 20+ is a safe default.</li>
+    <li><strong>Install / Build / Start:</strong> usually <code>npm ci</code>, an optional <code>npm run build</code>, then <code>npm start</code>. Start is whatever launches your app: your server's entry point, or your worker's if it isn't a web app.</li>
+  </ul>
+  <p>Hit <strong>Pull &amp; Deploy</strong> and the build log streams live. Your app comes up as a managed, always-on process under PM2.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean console Deploy Code / Git Deployment tab: connect the repo, set the package.json scripts and port, then Pull and Deploy">
+    <figcaption>Deploy Code, then Git Deployment: connect the repo, set your scripts and port, Pull and Deploy.</figcaption>
+  </figure>
+
+  <p>Need a database? Launch a managed one from <strong>DBS &#8594; Launch Database</strong>. Kloudbean runs six engines (Postgres, MySQL, MariaDB, Redis, MongoDB, Elasticsearch), on the same box, backed up, reached over the local network. Set your connection string and other secrets under <strong>Runtime Configuration &#8594; Environment Variables</strong> using the <strong>Paste .env Content</strong> tab. A missing variable is the most common reason a Node app builds but won't start, so copy them all over. The whole picture of an app, its API, and its database sharing one server is in <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">host your app, API, and database on one server</a>, and the env var details are in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a>.</p>
+
+  <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
+  <figure class="img-slot"><span><b>Add image</b><em>Terminal running pm2 list, showing the app online with its restart count and a per-core cluster.</em><small>Makes the process-manager point concrete. Optional.</small></span></figure>
+
+  <p>For a web-facing app, add your domain under <strong>Domain Aliases</strong>, point DNS at the server, install a free <strong>Let's Encrypt</strong> certificate, and turn on <strong>automated deployment</strong> so every push rebuilds and ships. A pure worker or bot with no web interface skips the domain and just runs as a process, but auto-deploy still applies.</p>
+
+  <h2>The apps that need a real server, not serverless</h2>
+  <p>Plenty of Node apps aren't request-in, response-out. And those are exactly the ones an always-on process suits and serverless fights.</p>
+  <ul>
+    <li><strong>Real-time servers.</strong> Websockets (chat, presence, collaborative editing) hold a connection open. A long-lived process keeps it open. Serverless functions, which spin up per request and vanish, don't.</li>
+    <li><strong>Background workers and queues.</strong> A queue consumer or job runner needs a continuous runtime to sit and process work. That's a process, running.</li>
+    <li><strong>Scheduled tasks.</strong> A cron entry on the server, no extra service to wire up.</li>
+    <li><strong>Bots.</strong> A Discord or Slack bot is a process that stays connected and reacts. Same shape.</li>
+  </ul>
+  <p>If your Node app is anything more than a stateless API, owning a server beats stitching serverless pieces together. My opinion, stated plainly: for one Node app, you do not need Docker or Kubernetes. A Dockerfile and an orchestrator solve fleet-of-services problems, teams shipping in parallel, scheduling across many machines. A single app is a process. A managed server runs it directly, restarts it when it falls over, and stays out of your way. If you're one day running dozens of services that genuinely need orchestration, that's an enterprise conversation (Kloudbean does Kubernetes for those), not the default for shipping your API this week.</p>
+
+  <h2>When it 503s after deploying</h2>
+  <p>A 503 means nothing is answering on the expected port. For a Node app the causes are short: the app isn't listening on <code>process.env.PORT</code>, a required environment variable is missing, the Start command doesn't actually launch the app, or a dependency is imported but missing from <code>package.json</code>. Read the app's error log:</p>
+  <pre><code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/app.error.log</code></pre>
+  <p>A Node crash writes its stack trace there and usually names the exact line. A non-web worker won't serve HTTP at all, so you judge it by its logs and behavior, not a URL. Fix the specific thing and <strong>Pull &amp; Deploy</strong> again. The full checklist is in <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fixing a 503 after deploying your app</a>.</p>
+
+  <h2>What you own, and what you don't</h2>
+  <p>Kloudbean runs Node on Linux managed cloud: provisioning, the runtime, the process manager, the web server, SSL, and backups handled, on whichever of the seven clouds you pick. It isn't for Windows or .NET workloads. "Managed" means the platform keeps the server and its stack healthy while you own the application, its data, and its config (the port, the env vars, the start command). Because it's a standard Linux box running standard code, you can move hosts whenever you want, with no per-app tax as you add more. Running a Next.js app instead? See <a href="https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/">deploy Next.js to your own server</a>. A React front end with this API? That's <a href="https://www.kloudbean.com/blog/deploy-fullstack-react-app-to-production/">deploy a full-stack React app</a>. And more than one app on the same box is <a href="https://www.kloudbean.com/blog/host-multiple-apps-one-server/">hosting multiple apps on one server</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Any Node app. Cloud you own. No sysadmin.</p>
+    <p style="margin:0">Deploy your Node app at <a href="https://www.kloudbean.com/">kloudbean.com</a> with a free trial and the first migration on us. New to deploying? Start with the <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploy an app to production</a> walkthrough. Server sizes are on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I deploy a Node.js app to the cloud?</h3>
+    <p>Push it to GitHub, launch a managed server on your chosen cloud provider, and deploy from the repo in Deploy Code: set your install, build, and start scripts, make the app listen on <code>process.env.PORT</code>, add a database and environment variables, and point a domain with SSL for web apps. The managed layer runs and supervises the server, and you own the app.</p>
+
+    <h3>What keeps my Node app running if it crashes?</h3>
+    <p>A process manager. On Kloudbean that's PM2, configured as part of the managed environment. It watches your process and restarts it in about a second if it exits, so a single crash doesn't become downtime until someone notices. You don't set it up yourself.</p>
+
+    <h3>Do I need Docker or Kubernetes to deploy one Node app?</h3>
+    <p>No. A single Node app is a process, and a managed server runs it directly and restarts it on crash. Docker and Kubernetes solve orchestration problems that appear when you run many services at scale. For shipping one app, you can skip them.</p>
+
+    <h3>How do I use all the CPU cores on my server?</h3>
+    <p>Run the app in cluster mode, which starts one instance per core behind the same port (<code>pm2 start server.js -i max</code>). Kloudbean supports PM2 multi-process. Start with a single instance and turn on clustering when your metrics call for it. Move any in-memory state into Redis first, since it won't be shared across instances.</p>
+
+    <h3>Do websockets and background jobs work on managed cloud?</h3>
+    <p>Yes. An always-on process holds persistent websocket connections and runs background jobs, queues, and scheduled tasks. Those are exactly the workloads serverless functions struggle with. On a server they're just features of a running app, with no extra infrastructure.</p>
+
+    <h3>Should I handle SIGTERM in my Node app?</h3>
+    <p>Yes, once real users are on it. On each deploy the platform sends <code>SIGTERM</code> to stop the old version. Listen for it, stop accepting new requests, finish in-flight ones, close database connections, then exit. It makes deploys invisible to users instead of dropping requests mid-flight.</p>
+
+    <h3>Why does my Node app 503 after deploying?</h3>
+    <p>Usually it isn't listening on <code>process.env.PORT</code>, an environment variable is missing, the Start command doesn't launch the app, or a dependency isn't in <code>package.json</code>. Read <code>app.error.log</code> for the stack trace, fix the specific issue, and redeploy.</p>
+  </div>
+
+  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Deploy a Node App to Managed Cloud","description":"The gap between node server.js and a real service: a process manager that restarts on crash, reading process.env.PORT, graceful shutdown, and running across every CPU core.","image":"https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I deploy a Node.js app to the cloud?","acceptedAnswer":{"@type":"Answer","text":"Push it to GitHub, launch a managed server on your chosen cloud provider, and deploy from the repo in Deploy Code: set your install, build, and start scripts, make the app listen on process.env.PORT, add a database and environment variables, and point a domain with SSL for web apps. The managed layer runs and supervises the server, and you own the app."}},
+{"@type":"Question","name":"What keeps my Node app running if it crashes?","acceptedAnswer":{"@type":"Answer","text":"A process manager. On Kloudbean that is PM2, configured as part of the managed environment. It watches your process and restarts it in about a second if it exits, so a single crash does not become downtime until someone notices. You do not set it up yourself."}},
+{"@type":"Question","name":"Do I need Docker or Kubernetes to deploy one Node app?","acceptedAnswer":{"@type":"Answer","text":"No. A single Node app is a process, and a managed server runs it directly and restarts it on crash. Docker and Kubernetes solve orchestration problems that appear when you run many services at scale. For shipping one app, you can skip them."}},
+{"@type":"Question","name":"How do I use all the CPU cores on my server?","acceptedAnswer":{"@type":"Answer","text":"Run the app in cluster mode, which starts one instance per core behind the same port (pm2 start server.js -i max). Kloudbean supports PM2 multi-process. Start with a single instance and turn on clustering when your metrics call for it. Move any in-memory state into Redis first, since it will not be shared across instances."}},
+{"@type":"Question","name":"Do websockets and background jobs work on managed cloud?","acceptedAnswer":{"@type":"Answer","text":"Yes. An always-on process holds persistent websocket connections and runs background jobs, queues, and scheduled tasks. Those are exactly the workloads serverless functions struggle with. On a server they are just features of a running app, with no extra infrastructure."}},
+{"@type":"Question","name":"Should I handle SIGTERM in my Node app?","acceptedAnswer":{"@type":"Answer","text":"Yes, once real users are on it. On each deploy the platform sends SIGTERM to stop the old version. Listen for it, stop accepting new requests, finish in-flight ones, close database connections, then exit. It makes deploys invisible to users instead of dropping requests mid-flight."}},
+{"@type":"Question","name":"Why does my Node app 503 after deploying?","acceptedAnswer":{"@type":"Answer","text":"Usually it isn't listening on process.env.PORT, an environment variable is missing, the Start command doesn't launch the app, or a dependency isn't in package.json. Read app.error.log for the stack trace, fix the specific issue, and redeploy."}}
+]}
+]}
+</script>
+</body>
+</html>

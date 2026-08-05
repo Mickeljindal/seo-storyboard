@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Headless WordPress Hosting: The Architecture and the Two Things You Now Host</title>
+<meta name="description" content="Headless WordPress hosting means running two things: a WordPress content backend and a decoupled front end. Here is the architecture, when it's worth it, when it isn't, and how to host both without the pain.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/headless-wordpress-hosting/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Headless WordPress Hosting: The Architecture and the Two Things You Now Host">
+<meta property="og:description" content="The architecture of headless WordPress, the hosting reality of running two apps, when it's genuinely worth it, and when classic WordPress wins.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">WordPress &amp; frontend</span>
+  <h1>Headless WordPress Hosting: The Architecture and the Two Things You Now Host</h1>
+
+  <figure><img src="images/hero.png" alt="Headless WordPress hosting topology: a WordPress backend feeding a decoupled front end through a content API, both on one platform"></figure>
+
+  <p class="lead">You want the WordPress editor your writers already love, and a Next.js front end your developers actually want to build. Headless is how you get both. It's also how you quietly end up running two apps instead of one, which is the part most tutorials skip right past.</p>
+  <p>So let's treat this as what it really is: an architecture decision with a hosting bill attached. Here's how headless WordPress fits together, when the split earns its keep, when it just makes your life harder, and how headless WordPress hosting works once you're running a backend and a front end at the same time.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>Headless WordPress keeps WordPress as the content backend (PHP and MySQL, the admin you know) and moves the public site to a separate front-end app that pulls content over the REST API or WPGraphQL. The catch: you now host two things, a WordPress backend and a decoupled front end. Keep them on one platform so they talk over a fast private link. And skip headless entirely if you lean on page builders or you're building a small site.</p>
+  </div>
+
+  <h2>What "headless WordPress" actually means</h2>
+  <p>Normal WordPress does two jobs at once. It <em>stores</em> your content (the CMS) and it <em>renders</em> your pages (the theme). Headless splits those apart. WordPress keeps doing the thing it's genuinely great at, managing content through a familiar editor and admin. But instead of a theme drawing the public site, WordPress hands its content out through an API: the built-in <strong>WordPress REST API</strong>, or <strong>GraphQL</strong> via the WPGraphQL plugin.</p>
+  <p>A separate front-end app then fetches that content and renders the site. React or Next.js, Vue or Nuxt, Astro, whatever your team likes. WordPress is the body (the content engine). Your front end is the head. Take the usual head off and you've gone headless. Simple idea. The interesting part is what it does to your hosting.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 432" width="100%" role="img" aria-label="Topology diagram: writers edit in the WordPress backend, which exposes content through a REST or GraphQL API to a decoupled front end that serves visitors across web, mobile and kiosk, with both apps hosted on one platform">
+      <defs>
+        <marker id="arrowH" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5b6a86"></path></marker>
+      </defs>
+      <rect x="0" y="0" width="760" height="432" fill="#ffffff"></rect>
+
+      <rect x="16" y="120" width="96" height="52" rx="9" fill="#f0f2f8" stroke="#c9d0e3"></rect>
+      <text x="64" y="142" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" fill="#1c2536">Writers /</text>
+      <text x="64" y="158" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" fill="#1c2536">editors</text>
+      <line x1="112" y1="146" x2="140" y2="146" stroke="#5b6a86" stroke-width="2" marker-end="url(#arrowH)"></line>
+
+      <rect x="144" y="96" width="168" height="100" rx="13" fill="#f3f0ff" stroke="#4F1AF3" stroke-width="1.5"></rect>
+      <text x="228" y="130" text-anchor="middle" font-family="Poppins,sans-serif" font-size="14" font-weight="700" fill="#4F1AF3">WordPress backend</text>
+      <text x="228" y="152" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" fill="#1c2536">PHP + MySQL</text>
+      <text x="228" y="170" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" fill="#5b6a86">the admin you know</text>
+      <line x1="312" y1="146" x2="344" y2="146" stroke="#5b6a86" stroke-width="2" marker-end="url(#arrowH)"></line>
+
+      <rect x="348" y="104" width="86" height="84" rx="12" fill="#000f27"></rect>
+      <text x="391" y="140" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="700" fill="#ffffff">Content</text>
+      <text x="391" y="157" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="700" fill="#ffffff">API</text>
+      <text x="391" y="176" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#c9b8ff">REST / GraphQL</text>
+      <line x1="434" y1="146" x2="466" y2="146" stroke="#5b6a86" stroke-width="2" marker-end="url(#arrowH)"></line>
+
+      <rect x="470" y="96" width="168" height="100" rx="13" fill="#eefaf1" stroke="#40b75f" stroke-width="1.5"></rect>
+      <text x="554" y="130" text-anchor="middle" font-family="Poppins,sans-serif" font-size="14" font-weight="700" fill="#2f8f49">Decoupled front end</text>
+      <text x="554" y="152" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" fill="#1c2536">Next.js / Astro / Nuxt</text>
+      <text x="554" y="170" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" fill="#5b6a86">Node SSR or static</text>
+      <line x1="638" y1="146" x2="668" y2="146" stroke="#5b6a86" stroke-width="2" marker-end="url(#arrowH)"></line>
+
+      <g font-family="Poppins,sans-serif" font-size="11.5" fill="#1c2536">
+        <rect x="672" y="98" width="76" height="30" rx="7" fill="#f6f7fb" stroke="#c9d0e3"></rect><text x="710" y="117" text-anchor="middle">Website</text>
+        <rect x="672" y="131" width="76" height="30" rx="7" fill="#f6f7fb" stroke="#c9d0e3"></rect><text x="710" y="150" text-anchor="middle">Mobile app</text>
+        <rect x="672" y="164" width="76" height="30" rx="7" fill="#f6f7fb" stroke="#c9d0e3"></rect><text x="710" y="183" text-anchor="middle">Kiosk</text>
+      </g>
+
+      <line x1="228" y1="196" x2="228" y2="300" stroke="#4F1AF3" stroke-width="1.5" stroke-dasharray="4 4"></line>
+      <line x1="554" y1="196" x2="554" y2="300" stroke="#40b75f" stroke-width="1.5" stroke-dasharray="4 4"></line>
+      <rect x="144" y="300" width="494" height="76" rx="14" fill="#f6f7fb" stroke="#4F1AF3" stroke-dasharray="5 4"></rect>
+      <text x="391" y="332" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13.5" font-weight="700" fill="#000f27">One platform, one bill</text>
+      <text x="391" y="356" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" fill="#5b6a86">both apps on a private network, on the cloud you choose</text>
+
+      <text x="150" y="418" font-family="Poppins,sans-serif" font-size="11.5" fill="#4F1AF3">&#9632; WordPress (backend)</text>
+      <text x="470" y="418" font-family="Poppins,sans-serif" font-size="11.5" fill="#2f8f49">&#9632; Your front end</text>
+    </svg>
+    <figcaption>The shape of headless: writers work in WordPress, the front end pulls content over an API, and both apps live on one platform so the link between them stays fast.</figcaption>
+  </figure>
+
+  <h2>Headless WordPress hosting means running two apps</h2>
+  <p>This is the consequence people underestimate, and it's the whole reason "headless WordPress hosting" is even a phrase. With a classic site you host one thing. Go headless and you host two: the WordPress backend (PHP, a database, the admin) and a separate front-end app (a Node server if you're rendering on the server, or static files if you're pre-building). Both need a home. And where they live matters more than people expect.</p>
+  <p>Keep them together. When the front end and the backend sit on the same platform, they can talk over a fast internal connection instead of the public internet, and you've got one dashboard and one bill instead of two. Split them across unrelated providers and you invite the annoying stuff: extra latency on every content fetch, CORS headers to wrangle, auth to coordinate across two systems, and two invoices to reconcile at month end.</p>
+  <p>This mixed setup is exactly what Kloudbean is built for. It runs the WordPress backend on its managed PHP and MySQL stack, and it runs a Node or static front end right alongside it, on whichever of the seven supported clouds you pick. One place, one login, both halves on a private network. That's the practical difference between headless being tidy and headless being a chore.</p>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean console: adding the WordPress backend and a separate front-end app side by side on one platform">
+    <figcaption>Two apps, one console: the WordPress backend and the decoupled front end deployed side by side.</figcaption>
+  </figure>
+
+  <!-- Author: replace this slot with a real screenshot. src -> images/headless-two-apps-dashboard.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The dashboard listing both apps: the WordPress backend and the Next.js or Astro front end, on the same server.</em><small>Shows the two halves of a headless setup living in one place.</small></span></figure>
+
+  <h2>When headless is genuinely worth it</h2>
+  <p>Headless earns its extra complexity in a handful of real situations. If two or more of these describe you, it's worth a serious look.</p>
+  <ul>
+    <li><strong>You want a modern JavaScript front end.</strong> Your team would rather build in React, Next, Vue, or Astro for the interactivity and the developer experience. Headless lets them, while your writers keep the WordPress editor.</li>
+    <li><strong>The same content feeds several places.</strong> One backend can serve a website, a mobile app, and an in-store display, all pulling from one content API. If content has to live in more than one front end, headless is the clean way to do it.</li>
+    <li><strong>Your team is front-end strong.</strong> You've got developers who are comfortable building and shipping a JavaScript app. Headless plays straight to that.</li>
+    <li><strong>You want to shrink WordPress's exposed surface.</strong> A pre-built static front end can be very fast, and keeping wp-admin off the public site reduces what an attacker can even reach. If security is a driver, pair this with a proper look at <a href="https://www.kloudbean.com/blog/secure-wordpress-hosting/">secure WordPress hosting</a>.</li>
+  </ul>
+
+  <h2>When you should just stay classic</h2>
+  <p>Now the honest half, the part the hype skips. The same split turns into pure friction here, and I'll say it plainly: most simple sites should not go headless.</p>
+  <ul>
+    <li><strong>You live in page builders and themes.</strong> Elementor, Divi, the customizer, the block editor's front-end output. All of that renders the <em>normal</em> WordPress site. Go headless and most of that ecosystem stops applying. You're rebuilding the presentation layer yourself, by hand.</li>
+    <li><strong>You want true what-you-see-is-what-you-get previews.</strong> In classic WordPress, "Preview" shows the real page. In headless, previewing a draft in the separate front end takes extra wiring, and it's rarely as smooth.</li>
+    <li><strong>It's a small site or a small team.</strong> Brochure site, a blog, a local business page? Headless is a pile of extra moving parts for almost no gain. Classic WordPress ships faster and is easier to keep alive.</li>
+    <li><strong>Your plugins render on the front end.</strong> Loads of plugins output HTML, forms, and scripts into the theme. Headless bypasses the theme, so those don't "just work." You reimplement their front-end behaviour yourself.</li>
+  </ul>
+  <p>If those hit home, classic WordPress is almost certainly the right call, and there's no shame in it. Headless is a tool, not a trophy.</p>
+
+  <h2>Classic vs headless, side by side</h2>
+  <table class="cmp">
+    <thead><tr><th></th><th>Classic WordPress</th><th>Headless WordPress</th></tr></thead>
+    <tbody>
+      <tr><td>Build speed</td><td>Fast, theme does the work</td><td>Slower, you build the front end</td></tr>
+      <tr><td>Front-end freedom</td><td>Bounded by the theme</td><td>Total (any framework)</td></tr>
+      <tr><td>Previews</td><td>Instant and accurate</td><td>Extra wiring, less seamless</td></tr>
+      <tr><td>Page builders / plugins</td><td>Work out of the box</td><td>Many stop applying</td></tr>
+      <tr><td>Multi-channel content</td><td>One site</td><td>Web, app, displays from one API</td></tr>
+      <tr><td>Things to host</td><td>One (WordPress)</td><td>Two (backend + front end)</td></tr>
+      <tr><td>Best for</td><td>Most sites, small teams</td><td>JS teams, multi-channel, custom UX</td></tr>
+    </tbody>
+  </table>
+
+  <h2>REST API or WPGraphQL? Decide this early</h2>
+  <p>Once you're headless, the front end talks to WordPress through an API, and there are two common ways to do it. Pick early, because it shapes how you write the front end.</p>
+  <p>The built-in <strong>WordPress REST API</strong> needs nothing extra. It's already live at <code>/wp-json/</code>, and it's perfect for straightforward "give me these posts" requests:</p>
+  <pre><code>// REST: fetch the latest posts, no plugin needed
+const res = await fetch('https://cms.example.com/wp-json/wp/v2/posts?per_page=5');
+const posts = await res.json();</code></pre>
+  <p><strong>WPGraphQL</strong> (a plugin) lets the front end ask for exactly the fields it wants in a single request, which is handy for a complex page that would otherwise fire several REST calls:</p>
+  <pre><code># GraphQL: one request, only the fields you need
+query {
+  posts(first: 5) {
+    nodes { title excerpt uri }
+  }
+}</code></pre>
+  <p>Neither is "better." REST is zero-setup and dead simple. GraphQL is more efficient when your pages pull lots of related data. Start with REST unless you already know your pages are query-heavy. For the full how-to on endpoints, auth, and custom fields, the <a href="https://www.kloudbean.com/blog/wp-rest-api-guide/">WordPress REST API guide</a> is the reference; this piece is the architecture and hosting decision that sits above it.</p>
+
+  <!-- Author: replace this slot with a real screenshot. src -> images/wpgraphql-explorer.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The WPGraphQL explorer running a query against your content, or the REST response in a browser at /wp-json/.</em></span></figure>
+
+  <h2>Where headless quietly goes wrong</h2>
+  <p>A pattern worth flagging, because we see it land teams in trouble. Someone reads that headless is faster and more modern, so they rebuild a small marketing site as headless. Then the weeks disappear. Rebuilding navigation, contact forms, SEO tags, sitemaps, redirects, and draft preview, all things a decent theme handed over for free. The site isn't meaningfully faster to the visitor, and now there are two apps to maintain instead of one.</p>
+  <p>The other classic snag is the split-provider setup. Backend on one host, front end on another, and suddenly you're debugging CORS, coordinating SSL on two domains, and adding a network hop to every content request. None of it is fatal. All of it is avoidable by keeping the two halves on one platform from the start. Headless is worth real complexity when the payoff is real. It's a bad trade when you're buying complexity you didn't need.</p>
+
+  <h2>How the two halves fit your stack</h2>
+  <p>Running headless well is mostly about treating it as one system with two deployables. The front end deploys from Git like any modern app: push, build, go live, with the WordPress API URL stored as an <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">environment variable</a> rather than hard-coded. If you're on Next.js, the <a href="https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/">Next.js deployment guide</a> covers the shape; on Astro, see <a href="https://www.kloudbean.com/blog/deploy-astro-app/">deploying Astro</a>.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="The Kloudbean console: the decoupled front end deploying from a connected Git repository on every push">
+    <figcaption>The front end deploys from Git on every push, with the WordPress API URL kept as an environment variable.</figcaption>
+  </figure>
+  <p>A few other pieces slot in naturally. Media can go to <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">object storage</a> so uploads aren't stuck on one server's disk. When the backend gets busy, it scales like any other WordPress site, covered in <a href="https://www.kloudbean.com/blog/scalable-wordpress-hosting/">scalable WordPress hosting</a>. And the backend still benefits from the usual <a href="https://www.kloudbean.com/blog/speed-up-wordpress/">WordPress speed work</a>, because a slow API makes for a slow front end no matter how quick your framework is.</p>
+
+  <h2>The honest boundary</h2>
+  <p>Under the hood it's all Linux, headless or not. The platform manages the server, the WordPress stack, SSL, and backups, and you own both your WordPress content and your front-end code. Going headless doesn't change who owns what. It changes how many pieces you're running and how carefully they need to fit together. Be honest about whether your project actually needs that, and the decision more or less makes itself.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">One backend. Any front end. One place to run both.</p>
+    <p style="margin:0">Host the WordPress backend and your decoupled front end together at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.7em 0 0; font-size:15px; color:#c9b8ff">Managed WordPress + Node/static · One private network · Git deploy · Staging · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is headless WordPress hosting?</h3>
+    <p>It's hosting for a headless WordPress setup, which means two things instead of one: a WordPress content backend (PHP and MySQL) and a separate front-end app that renders the site. Good headless hosting runs both on one platform so they share a fast private connection, one dashboard, and one bill, rather than splitting them across separate providers.</p>
+    <h3>What is headless WordPress in plain terms?</h3>
+    <p>It's using WordPress only as a content backend while a separate front-end app displays the site. WordPress exposes content through its REST API or WPGraphQL, and a front end built in React, Vue, Astro, or similar fetches and renders it. You keep the WordPress editor and admin but replace the theme-rendered public site.</p>
+    <h3>Should I use headless WordPress?</h3>
+    <p>Use it if you want a modern JavaScript front end, you're serving the same content to multiple places like a site and an app, and your team can build and deploy a front-end app. Skip it if you rely on page builders and themes, want seamless previews, or run a small site. For most simple sites, classic WordPress is faster to build and easier to maintain.</p>
+    <h3>What hosting does headless WordPress need?</h3>
+    <p>Two homes: a managed PHP and MySQL host for the WordPress backend, and a host for the front-end app (a Node server for server-side rendering, or static hosting for a pre-built site). Running both on one platform keeps latency low and management simple. Kloudbean runs the PHP backend and a Node or static front end side by side on the cloud you choose.</p>
+    <h3>REST API or WPGraphQL for headless WordPress?</h3>
+    <p>Start with the REST API. It's built in, needs no plugin, and handles most content fetching cleanly. Move to WPGraphQL when your pages pull lots of related data and you'd rather ask for exactly the fields you need in one request. Neither is universally better; REST is simpler, GraphQL is more efficient for complex queries.</p>
+    <h3>Do WordPress plugins work with headless?</h3>
+    <p>Plugins that manage content in the admin generally still work. Plugins that render output on the front end, like page builders, form displays, and front-end scripts, do not, because headless bypasses the theme layer. You reimplement that front-end behaviour in your separate app, which is a big reason headless suits some projects and not others.</p>
+    <h3>Is headless WordPress faster?</h3>
+    <p>It can be, because a static or server-rendered front end can be very fast and is decoupled from WordPress's PHP rendering. But speed depends on how you build and host the front end, and a slow content API will still slow you down. Headless enables high performance; it doesn't hand it to you automatically.</p>
+    <h3>Can I host the WordPress backend and the front end together?</h3>
+    <p>Yes, and you should. Keeping both on one platform lets them talk over a private network instead of the public internet, avoids CORS and cross-provider auth headaches, and gives you one dashboard and one bill. Kloudbean is built for this mixed stack, running managed WordPress alongside a Node or static front end.</p>
+    <h3>Does going headless change who manages the server?</h3>
+    <p>No. It's still a Linux stack, and on managed hosting the platform handles the server, the WordPress stack, SSL, and backups. You own your WordPress content and your front-end code. Headless changes the number of moving parts you run, not the split between what the platform manages and what you own.</p>
+  </div>
+
+  <p class="byline">Kloudbean · One backend, any front end.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Headless WordPress Hosting: The Architecture and the Two Things You Now Host","description":"The architecture of headless WordPress, the hosting reality of running two apps, when it's genuinely worth it, and when classic WordPress wins.","image":"https://www.kloudbean.com/blog/headless-wordpress-hosting/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/headless-wordpress-hosting/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is headless WordPress hosting?","acceptedAnswer":{"@type":"Answer","text":"It's hosting for a headless WordPress setup, which means two things instead of one: a WordPress content backend (PHP and MySQL) and a separate front-end app that renders the site. Good headless hosting runs both on one platform so they share a fast private connection, one dashboard, and one bill, rather than splitting them across separate providers."}},
+{"@type":"Question","name":"What is headless WordPress in plain terms?","acceptedAnswer":{"@type":"Answer","text":"It's using WordPress only as a content backend while a separate front-end app displays the site. WordPress exposes content through its REST API or WPGraphQL, and a front end built in React, Vue, Astro, or similar fetches and renders it. You keep the WordPress editor and admin but replace the theme-rendered public site."}},
+{"@type":"Question","name":"Should I use headless WordPress?","acceptedAnswer":{"@type":"Answer","text":"Use it if you want a modern JavaScript front end, you're serving the same content to multiple places like a site and an app, and your team can build and deploy a front-end app. Skip it if you rely on page builders and themes, want seamless previews, or run a small site. For most simple sites, classic WordPress is faster to build and easier to maintain."}},
+{"@type":"Question","name":"What hosting does headless WordPress need?","acceptedAnswer":{"@type":"Answer","text":"Two homes: a managed PHP and MySQL host for the WordPress backend, and a host for the front-end app (a Node server for server-side rendering, or static hosting for a pre-built site). Running both on one platform keeps latency low and management simple. Kloudbean runs the PHP backend and a Node or static front end side by side on the cloud you choose."}},
+{"@type":"Question","name":"REST API or WPGraphQL for headless WordPress?","acceptedAnswer":{"@type":"Answer","text":"Start with the REST API. It's built in, needs no plugin, and handles most content fetching cleanly. Move to WPGraphQL when your pages pull lots of related data and you'd rather ask for exactly the fields you need in one request. Neither is universally better; REST is simpler, GraphQL is more efficient for complex queries."}},
+{"@type":"Question","name":"Do WordPress plugins work with headless?","acceptedAnswer":{"@type":"Answer","text":"Plugins that manage content in the admin generally still work. Plugins that render output on the front end, like page builders, form displays, and front-end scripts, do not, because headless bypasses the theme layer. You reimplement that front-end behaviour in your separate app, which is a big reason headless suits some projects and not others."}},
+{"@type":"Question","name":"Is headless WordPress faster?","acceptedAnswer":{"@type":"Answer","text":"It can be, because a static or server-rendered front end can be very fast and is decoupled from WordPress's PHP rendering. But speed depends on how you build and host the front end, and a slow content API will still slow you down. Headless enables high performance; it doesn't hand it to you automatically."}},
+{"@type":"Question","name":"Can I host the WordPress backend and the front end together?","acceptedAnswer":{"@type":"Answer","text":"Yes, and you should. Keeping both on one platform lets them talk over a private network instead of the public internet, avoids CORS and cross-provider auth headaches, and gives you one dashboard and one bill. Kloudbean is built for this mixed stack, running managed WordPress alongside a Node or static front end."}},
+{"@type":"Question","name":"Does going headless change who manages the server?","acceptedAnswer":{"@type":"Answer","text":"No. It's still a Linux stack, and on managed hosting the platform handles the server, the WordPress stack, SSL, and backups. You own your WordPress content and your front-end code. Headless changes the number of moving parts you run, not the split between what the platform manages and what you own."}}
+]}
+]}
+</script>
+</body>
+</html>
