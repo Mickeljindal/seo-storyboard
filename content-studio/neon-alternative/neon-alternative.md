@@ -6,7 +6,7 @@ If you're looking for a Neon alternative, odds are you don't dislike Neon. You b
 
 So this is the honest version: what Neon is genuinely great at, why teams look for a Neon Postgres alternative once they're in always-on production, and how an always-on managed PostgreSQL next to your app changes the trade. No fake parity here.
 
-> **The short answer:** If you want database branching and scale-to-zero for preview environments, dev and test, or projects that idle most of the day, Neon is a great fit and you should probably keep it. If you want an always-on managed Postgres colocated with your app on a private network, at predictable server-based pricing, with no cold starts and no serverless connection gymnastics, this managed Postgres alternative is what the page is about. Kloudbean runs managed PostgreSQL from $8/mo in one dashboard. Verify current pricing before you commit.
+> **The short answer:** If you want database branching and scale-to-zero for preview environments, dev and test, or projects that idle most of the day, Neon is a great fit and you should probably keep it. If you want an always-on managed Postgres colocated with your app in one dashboard, at predictable server-based pricing, with no cold starts and no serverless connection gymnastics, this managed Postgres alternative is what the page is about. Kloudbean runs managed PostgreSQL from $8/mo in one dashboard. Verify current pricing before you commit.
 
 ## Why teams look for a Neon alternative
 
@@ -34,9 +34,9 @@ Fair is fair. This is where a plain managed Postgres can't compete, and if these
 
 So if your world is preview environments, spiky traffic, and per-PR databases, Neon is the right tool and this article isn't for you. Still reading? Then your app is probably always-on. And always-on is where the math flips.
 
-![Serverless Postgres scales to zero and cold-starts the next request across the public internet, while an always-on managed Postgres stays warm next to your app on a private network](svg-diagram)
+![Serverless Postgres scales to zero and cold-starts the next request across the public internet, while an always-on managed Postgres stays warm next to your app in the same account](svg-diagram)
 
-*Same engine, different posture. Serverless lets the database sleep and pays a cold start to wake it; an always-on managed Postgres stays warm next to your app on a private network.*
+*Same engine, different posture. Serverless lets the database sleep and pays a cold start to wake it; an always-on managed Postgres stays warm next to your app in the same account.*
 
 ## Neon vs Kloudbean managed Postgres, honestly
 
@@ -49,36 +49,36 @@ Here's the comparison without a thumb on the scale. Not which is better in the a
 | **Database branching** | Yes, copy-on-write branches (a real strength) | No branching; use normal migrations and a staging database |
 | **Scale-to-zero for idle** | Yes, pay nothing while idle (a real strength) | No; always on, always billed |
 | **Pricing shape** | Usage-based (compute + storage) | Server-based flat plan, from $8/mo |
-| **Network** | Over the public internet, often via a pooled endpoint | Private network, colocated with your app |
+| **Network** | Over the public internet, often via a pooled endpoint | In the same account as your app; private networking (VPC) on Enterprise |
 | **Connection handling** | Pooler or serverless driver for serverless callers | One persistent pool on the app server, no external pooler |
 | **Backups** | Automatic | Automatic |
 | **Best fit** | Preview and dev environments, spiky or idle workloads | Always-on production that wants low latency and a predictable bill |
 
-Look at the pattern, not the score. The right column isn't a worse Neon. It's a different product for a different job: a boring, always-on Postgres that does what Postgres always has, minus the operations work, on the same private network as the app that queries it. For the full argument, [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) spells out what managed takes off your plate.
+Look at the pattern, not the score. The right column isn't a worse Neon. It's a different product for a different job: a boring, always-on Postgres that does what Postgres always has, minus the operations work, in the same account as the app that queries it. For the full argument, [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) spells out what managed takes off your plate.
 
 ## What always-on, colocated Postgres actually buys you
 
 **A database that's always awake.** No suspend, no wake, no first-request penalty. The 3am cron and the 9am login hit a warm database every time. If tail latency matters, removing the cold start removes a whole category of "why was that one request slow" tickets.
 
-**One private network, app and database together.** On Kloudbean the managed Postgres and your app server share a private network, so queries never touch the public internet. Lower latency, smaller attack surface, one fewer thing between a request and its data.
+**One account, app and database together.** On Kloudbean the managed Postgres and your app live in the same account and can run on the same server, so there's no separate database vendor in the path. Lower latency, one fewer thing between a request and its data. If you need traffic kept fully off the public internet, private networking (VPC) and VPN are Enterprise features.
 
 **A bill you can forecast.** Server-based pricing is a flat monthly number, from $8/mo, that you can drop in a spreadsheet. A traffic spike doesn't rewrite your invoice. Check the pricing page for current numbers, but the shape is the point: predictable, not metered.
 
 **One dashboard, and you own it.** The same console runs your app, the database, backups, and object storage. It's standard Postgres underneath, so your schema and data stay yours to export whenever you like.
 
-<!-- ADD IMAGE: the one-dashboard overview showing the app server and its managed Postgres together on one private network -->
+<!-- ADD IMAGE: the one-dashboard overview showing the app server and its managed Postgres together in one account -->
 
 ## The connection story: no pooler dance
 
 This is where colocating quietly pays off. On serverless, each function instance may open its own connection, and Postgres allows only so many, so you reach for a pooler or a serverless driver. On an always-on app server you have one long-lived process with one connection pool it reuses. No external pooler, no HTTP driver to swap in. Just a normal pool.
 
-The connection string tells the same story. A serverless setup often points at a pooled host with SSL required, plus a separate driver for edge functions. The colocated version is one plain string on a private host that any Postgres driver understands:
+The connection string tells the same story. A serverless setup often points at a pooled host with SSL required, plus a separate driver for edge functions. The colocated version is one plain string on an internal host in your account that any Postgres driver understands:
 
 ```bash
 # Neon (serverless): often a pooled host, sslmode required, plus a serverless driver for edge
 DATABASE_URL=postgresql://user:pass@ep-cool-name-123456-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require
 
-# Always-on managed Postgres on a private network: one plain string, any driver
+# Always-on managed Postgres in the same account as your app: one plain string, any driver
 DATABASE_URL=postgresql://appuser:s3cret@10.0.0.5:5432/appdb
 ```
 
@@ -108,11 +108,11 @@ For the deeper version, [database connection pooling](https://www.kloudbean.com/
 
 The switch is less dramatic than it sounds. Five steps, most of it a plain dump and load.
 
-1. **Launch a managed PostgreSQL.** Open the DBS section, hit Launch Database, pick PostgreSQL, name it, create it. A minute or two later it's provisioned, on a private network, and already being backed up.
+1. **Launch a managed PostgreSQL.** Open the DBS section, hit Launch Database, pick PostgreSQL, name it, create it. A minute or two later it's provisioned, in your account, and already being backed up.
 
-![The Kloudbean console launching a managed PostgreSQL database, provisioned, patched, and backed up on a private network](../assets/console/launch-database.png)
+![The Kloudbean console launching a managed PostgreSQL database, provisioned, patched, and backed up in your account](../assets/console/launch-database.png)
 
-2. **Put your app on the same private network.** Deploy your Node or Python app in the same account so it and the database share the private network. Connect a GitHub repo and managed CI/CD builds and deploys on every push. If your app is Next.js, [deploy a Next.js app to your own server](https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/) walks the app side end to end.
+2. **Put your app in the same account.** Deploy your Node or Python app in the same account so it and the database sit together, one dashboard for both. Connect a GitHub repo and managed CI/CD builds and deploys on every push. If your app is Next.js, [deploy a Next.js app to your own server](https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/) walks the app side end to end.
 3. **Set DATABASE_URL as an environment variable.** In Runtime Configuration, add the connection string. Never in code, never in Git. Rotate it later without touching source.
 
 ![The Kloudbean console showing the Postgres connection string stored as an environment variable, not in code](../assets/console/env-vars.png)
@@ -148,20 +148,20 @@ My honest take, after watching teams make this call: these are two different job
 
 ## How an always-on Postgres fits the rest of your stack
 
-The database is one tile. On Kloudbean it sits in the same dashboard as everything else, wired into your app through environment variables, on the private network. When reads get heavy, [PostgreSQL performance tuning](https://www.kloudbean.com/blog/postgresql-performance-tuning/) is the next lever (indexes first, then `EXPLAIN`, then sizing). Weighing this against leaving a serverless app platform more broadly? The [best Vercel alternative for databases](https://www.kloudbean.com/blog/best-vercel-alternative-for-databases/) piece covers the same move from the app-platform angle.
+The database is one tile. On Kloudbean it sits in the same dashboard as everything else, wired into your app through environment variables, in the same account. When reads get heavy, [PostgreSQL performance tuning](https://www.kloudbean.com/blog/postgresql-performance-tuning/) is the next lever (indexes first, then `EXPLAIN`, then sizing). Weighing this against leaving a serverless app platform more broadly? The [best Vercel alternative for databases](https://www.kloudbean.com/blog/best-vercel-alternative-for-databases/) piece covers the same move from the app-platform angle.
 
-On pricing, standard plans start from $8/mo and Enterprise is custom, so a small project stays cheap and the number is easy to plan around. The honest boundary, once: these are Linux-based managed engines, and managed means the platform handles provisioning, patching, backups, and monitoring while your schema, queries, and data stay yours, exportable with a standard `pg_dump` anytime. Kloudbean doesn't offer database branching or scale-to-zero, and autoscaling Postgres is an enterprise or custom arrangement, not the serverless model Neon runs.
+On pricing, standard plans start from $8/mo and Enterprise is custom, so a small project stays cheap and the number is easy to plan around. The honest boundary, once: these are Linux-based managed engines, and managed means the platform handles provisioning, patching, backups, and monitoring while your schema, queries, and data stay yours, exportable with a standard `pg_dump` anytime. Kloudbean doesn't offer database branching or scale-to-zero, and autoscaling Postgres is an enterprise or custom arrangement, not the serverless model Neon runs. Private networking (VPC), VPN and Kubernetes are Enterprise features too, not defaults on a standard plan.
 
 ---
 
-**Give your app a Postgres that's awake when your users are.** Launch an always-on managed PostgreSQL next to your app, on a private network, with automatic backups from minute one and a bill you can forecast. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
+**Give your app a Postgres that's awake when your users are.** Launch an always-on managed PostgreSQL next to your app, in the same account, with automatic backups from minute one and a bill you can forecast. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
 
-One-click PostgreSQL · Always-on, no cold starts · Automatic backups · Private networking · Predictable pricing · Free migration · Free trial
+One-click PostgreSQL · Always-on, no cold starts · Automatic backups · Colocated with your app · Predictable pricing · Free migration · Free trial
 
 ## FAQ
 
 **Is there an always-on alternative to Neon?**
-Yes. A managed PostgreSQL that runs on a server, not serverless compute, stays always on, so there's no scale-to-zero and no cold start. On Kloudbean it sits on a private network next to your app, backed up automatically at a flat rate, trading branching and scale-to-zero for warm latency and a predictable bill.
+Yes. A managed PostgreSQL that runs on a server, not serverless compute, stays always on, so there's no scale-to-zero and no cold start. On Kloudbean it sits in the same account next to your app, backed up automatically at a flat rate, trading branching and scale-to-zero for warm latency and a predictable bill.
 
 **Does serverless Postgres have cold starts?**
 It can, by design. When a serverless database scales to zero while idle, the compute suspends, and the next request has to wake it before the first query runs. Low-traffic APIs, occasional crons, and internal tools feel that pause most.
@@ -173,7 +173,7 @@ No. Branching is Neon's feature and Kloudbean has no equivalent, so this is wher
 Neon is real Postgres underneath, so it's a plain dump and load: pg_dump against your Neon connection string, psql into the new managed database, then repoint DATABASE_URL and redeploy. Kloudbean's free migration assistance can run the first cutover with you and keep downtime minimal.
 
 **Neon vs a managed Postgres server, which should I pick?**
-Pick Neon for branching, scale-to-zero, and instant throwaway databases in preview and dev, or if your workload idles a lot. Pick an always-on managed Postgres if your app serves traffic through the day and you want no cold starts, a private network next to the app, and a flat bill. Most production apps are always-on.
+Pick Neon for branching, scale-to-zero, and instant throwaway databases in preview and dev, or if your workload idles a lot. Pick an always-on managed Postgres if your app serves traffic through the day and you want no cold starts, the database in the same account as the app, and a flat bill. Most production apps are always-on.
 
 **Is a managed Postgres cheaper than Neon?**
 It depends on your traffic, and the difference is shape, not size. Neon pricing is usage-based on compute and storage, cheap when idle and climbing with activity, while a managed Postgres is a flat plan (from $8/mo on Kloudbean) you can forecast. Compare a busy month, not a quiet one, and check both pricing pages.
