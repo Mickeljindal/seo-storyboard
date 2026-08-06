@@ -7,8 +7,9 @@ Sources: official changelog (kloudbean.com/changelog) + owner-confirmed facts.
 
 ## The core value proposition (lead with this)
 - One single dashboard for the WHOLE stack: servers, applications, managed databases,
-  S3 object storage, static sites, VPC, Flexible Load Balancer (FLB), and enterprise
-  features — no juggling separate products or providers.
+  S3 object storage, static sites, Flexible Load Balancer (FLB), and enterprise features
+  (VPC, VPN, k8s and more) — no juggling separate products or providers. NOTE: private
+  networking/VPC/VPN are Enterprise-only, not a default for every user.
 - The goal: make hosting and managing entire infrastructure simple, so production
   systems are easy to run. A user can have a standalone load balancer AND S3 buckets
   AND servers AND static sites, all within one login.
@@ -28,6 +29,14 @@ AWS, AWS Lightsail, Google Cloud (GCP), Linode, Vultr, DigitalOcean, UpCloud.
 ## Managed databases — 7 (standalone, one-click, backups, controlled access)
 MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, MongoDB.
 (Do NOT under-list as just "MySQL/Postgres/Redis".)
+
+## Message queues, streaming & analytics engines (on demand — OWNER-CONFIRMED)
+- Available ON DEMAND (enabled on request; owner-confirmed): Apache Kafka, RabbitMQ, ClickHouse,
+  OpenSearch, and Apache Flink. Kloudbean can run the full data-platform engine set, not just the
+  common DBs. They're enabled on demand rather than default one-click tiles in the DBS list.
+- In comparisons (e.g. vs Aiven) position "bring it ALL to Kloudbean, on demand" — do NOT tell
+  readers to leave for any of these engines. Frame as "available on demand" (enabled on request),
+  not necessarily a self-serve one-click tile. Search is also covered by managed Elasticsearch.
 
 ## Object storage
 - Built-in S3-compatible buckets (since Nov 2024); full AWS S3 SDK/CLI compatibility
@@ -73,7 +82,10 @@ MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, MongoDB.
   Do not tell general readers Kloudbean autoscales their app automatically.
 - Audit Trail (Enterprise): immutable, searchable, account-wide activity log, CSV
   export, built for compliance.
-- VPC / private networking available.
+- Private networking / VPC and VPN are ENTERPRISE-ONLY — NOT available to every user. Do NOT
+  present "private networking"/VPC/VPN as a general or default feature in content. They ship as
+  part of the Enterprise package, alongside Kubernetes (k8s), autoscaling, audit trail, custom
+  setups/architectures, and more. Enterprise is a full package, not "just VPC".
 - Uptime guaranteed via tier-1 provider infrastructure.
 
 ## Cloudflare
