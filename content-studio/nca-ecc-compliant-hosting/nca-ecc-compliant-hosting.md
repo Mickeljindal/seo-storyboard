@@ -4,6 +4,8 @@ By Kloudbean MENA · ECC is controls plus the evidence they ran. We harden the i
 
 If you're bidding on a Saudi government contract, or selling into a bank, a hospital group, or any operator of critical national infrastructure, someone in procurement will eventually ask about NCA ECC. And some vendor will promise that their NCA ECC compliant hosting ticks the box for you. It doesn't work like that. The Essential Cybersecurity Controls are a security framework, not a hosting feature you switch on. A platform can genuinely cover a slice of the controls, the infrastructure-shaped ones. The governance, the policies, the people, that half stays yours. This guide draws the line so you know exactly which parts a host helps with and which parts land on your desk.
 
+> **In the Kingdom:** On the infrastructure half of the ECC, Kloudbean gives you a baseline few platforms match: it's one of the only managed-cloud platforms to deliver fully managed databases with true in-Kingdom data sovereignty, run on Google Cloud's Dammam region and aligned with the NCA ECC and PDPL, all from one dashboard. That's a strong control baseline, not a certification on its own.
+
 > **Does hosting help with NCA ECC, and what's my part?** Yes, hosting covers the infrastructure-shaped controls: network security, system hardening and patching, cryptography in transit, backups, and logging. Your part is the larger half: cybersecurity governance, risk management, policies, staff training, and incident response. No host makes you ECC compliant on its own. Treat the platform as a strong, defensible control baseline that your own program is built on top of.
 
 ## What is NCA ECC? Saudi Arabia's Essential Cybersecurity Controls

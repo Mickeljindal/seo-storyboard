@@ -13,6 +13,8 @@ By Kloudbean MENA · me-central2, without the raw-GCP wrestling match.
 
 If your users, your auditors, or a government tender need your data physically inside Saudi Arabia, the GCP Dammam region is the name to know. It's Google Cloud's in-Kingdom Saudi region, code `me-central2`, live since November 2023. This guide is the technical version: what a cloud region and its zones actually are, what me-central2 means for latency and data residency, and how you launch on it through a managed platform without ever opening the raw Google Cloud console. Short version, you pick Dammam at launch and the rest is handled.
 
+> **In the Kingdom:** The region is only half the story. Kloudbean is one of the only managed-cloud platforms to run fully managed databases on Dammam (me-central2) with true in-Kingdom data sovereignty, PDPL and NCA ECC aligned, so you get the region and a managed stack from one dashboard instead of raw GCP.
+
 > **What is the Google Cloud Dammam region, and how do I use it?**
 > The Dammam region (me-central2) is Google Cloud's data center region physically inside Saudi Arabia, launched in November 2023. It's the in-Kingdom option among Kloudbean's seven clouds. You use it by picking it when you add a server. Kloudbean then provisions and manages your server, database, and backups in that region, so your stack sits on Saudi soil and you never touch raw GCP or its projects, IAM, and reseller billing yourself.
 

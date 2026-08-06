@@ -4,6 +4,8 @@ By Kloudbean MENA · Your data, inside the Kingdom.
 
 Search "cloud hosting Saudi Arabia" and most of what comes back is generic resellers who can't tell you which country your data will physically sit in. That's the wrong place to start. If you sell to Saudi users, bid on a government or enterprise tender, or hold personal data on people in the Kingdom, your first question isn't price or vCPU count. It's location. Where do the bytes actually live, and how far are they from your users in Riyadh, Jeddah, and Dammam? This is a buyer's guide to hosting inside Saudi Arabia: what in-Kingdom residency really means, what it doesn't, and how to set it up without overclaiming.
 
+> **In the Kingdom:** Among managed-cloud platforms, very few pair fully managed databases with true in-Kingdom data sovereignty. Kloudbean is one of them: your server, your managed database, and your backups sit in Google Cloud's Dammam region, PDPL and NCA ECC aligned, managed from a single dashboard.
+
 > **Can I host in Saudi Arabia with data staying in-Kingdom?** Yes. On Kloudbean you provision on Google Cloud's Dammam region (me-central2), a region physically inside Saudi Arabia, so your server, your managed database, and your backups all sit on Saudi soil. That settles the residency question at the infrastructure layer. The app-level parts of PDPL, what you collect and how you handle it, stay your responsibility.
 
 ## Is cloud hosting in Saudi Arabia different from hosting anywhere else?
