@@ -33,9 +33,28 @@ export function ScaledStage({
     <div
       ref={ref}
       className={className}
-      style={{ position: "relative", width: "100%", aspectRatio: `${w} / ${h}`, overflow: "hidden", borderRadius: radius }}
+      style={{
+        position: "relative",
+        width: "100%",
+        aspectRatio: `${w} / ${h}`,
+        overflow: "hidden",
+        borderRadius: radius,
+      }}
     >
-      <div style={{ position: "absolute", top: 0, left: 0, width: w, height: h, transformOrigin: "top left", transform: `scale(${scale})` }}>
+      <div
+        data-export-stage=""
+        data-export-w={w}
+        data-export-h={h}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: w,
+          height: h,
+          transformOrigin: "top left",
+          transform: `scale(${scale})`,
+        }}
+      >
         {children}
       </div>
     </div>
