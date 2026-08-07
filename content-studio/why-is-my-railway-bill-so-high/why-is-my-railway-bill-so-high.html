@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why Is My Railway Bill So High? (And How to Make It Predictable)</title>
+<meta name="description" content="Why your Railway bill is higher than the $5 or $20 plan: how the plan fee plus metered CPU, RAM, database, and egress combine, why idle services still bill, how to cap it, and when a flat host fits better.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/why-is-my-railway-bill-so-high/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Why Is My Railway Bill So High? (And How to Make It Predictable)">
+<meta property="og:description" content="Railway combines a plan fee with metered usage, and idle containers still bill. Here's what drives a surprise bill, how to control it, and when a flat-price host makes more sense.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Node.js hosting · Railway</span>
+  <h1>Why Is My Railway Bill So High? (And How to Make It Predictable)</h1>
+  <p class="byline">By Kloudbean Engineering · The $5 plan is a floor, not a ceiling.</p>
+
+  <figure><img src="images/hero.png" alt="A Railway invoice higher than the expected plan price, with the metered usage that drives it broken down"></figure>
+
+  <p class="lead">If you're asking why your Railway bill is so high, you're in a big crowd. The confusion is almost always the same: the Hobby plan looks like $5 and Pro looks like $20, so people read those as a flat hosting price. They aren't. Railway charges a plan fee plus metered usage, and a running service costs money even when nobody's using it. This is what actually drives the number, how to get it under control, and when a flat-price host is simply a better fit.</p>
+
+  <div class="tldr">
+    <strong>Why is my Railway bill higher than the plan price?</strong>
+    <p>Because the plan fee and your resource usage are two different things. Railway bills a subscription (about $5 Hobby or $20 Pro) plus metered CPU, RAM, databases, storage, and network egress on top, and a container is charged for the resources it holds even while idle. So a tiny test app with no users can still climb to $20 to $30 a month. Set a spending limit, keep database traffic on private networking, right-size or sleep idle services, and if you want a number you can budget, a flat-price host is a different model entirely.</p>
+  </div>
+
+  <h2>What you're actually paying for</h2>
+  <p>Railway's pricing is two layers, and the trouble starts when people only see the first. There's a plan fee, a subscription that also includes a small amount of usage (Hobby around $5, Pro around $20 per seat). Then there's metered usage: the CPU, memory, disk, database, and outbound network your services actually consume, billed on top once you pass what the plan includes. The headline number is the floor. The bill is the floor plus everything your app used.</p>
+  <p>That model is completely reasonable, and it's genuinely cheap for a small, sleepy project. The problem is purely mental math: the plan fee, the included usage, any prepaid credits, and the metered overage are four different things that are hard to combine in your head, so the invoice surprises people who expected a flat $5.</p>
+
+  <h2>The usual suspects behind a surprise bill</h2>
+  <p>When a Railway bill is higher than expected, it's almost always one of these. Open the one that sounds like yours.</p>
+
+  <details class="kb-acc">
+    <summary>Idle services still bill</summary>
+    <div class="kb-acc-body">A running container is charged for the CPU and RAM it holds whether or not anyone is using it. Developers regularly report a chatbot or test app with no users quietly climbing month over month, simply because it was left running. If you don't need a service, remove or pause it; an always-allocated container is an always-billing container.</div>
+  </details>
+  <details class="kb-acc">
+    <summary>Network egress you didn't expect</summary>
+    <div class="kb-acc-body">Outbound data transfer is metered, and it's easy to rack up without noticing, especially if your app talks to its database over a public URL instead of private networking. A common report is several gigabytes of egress on an app that's "just being tested." Route internal traffic over the private network so it doesn't cross a metered boundary.</div>
+  </details>
+  <details class="kb-acc">
+    <summary>Databases and add-ons are separate meters</summary>
+    <div class="kb-acc-body">A Postgres or Redis instance, a worker, extra storage: each is its own resource consuming CPU, RAM, and disk, billed on top of your app. Add three or four services and the total climbs well past the plan price. Price the whole stack, not just the web service.</div>
+  </details>
+  <details class="kb-acc">
+    <summary>Plan fee vs included usage vs prepaid credit</summary>
+    <div class="kb-acc-body">This is the big one. The subscription fee, the usage it includes, and any prepaid credit you topped up are distinct balances. People report paying the $5 Hobby fee and still seeing overage, or buying credit and having services pause when it runs out even though a card is on file. Check which balance actually ran down before assuming an error.</div>
+  </details>
+  <details class="kb-acc">
+    <summary>A memory leak or oversized service</summary>
+    <div class="kb-acc-body">If a Node process leaks memory or you allocated far more RAM than the app needs, you pay for it continuously. Watch actual usage per service, right-size the allocation, and fix leaks (see our guide on the "JavaScript heap out of memory" error) so you're not paying for headroom you never use.</div>
+  </details>
+
+  <h2>How to make Railway's bill predictable</h2>
+  <p>You can tame the number without leaving. A few habits do most of the work:</p>
+  <ul>
+    <li><strong>Set a hard spending limit.</strong> Railway lets you cap usage. Set it, so a runaway service or a traffic spike can't produce a surprise invoice.</li>
+    <li><strong>Keep internal traffic on private networking.</strong> Point your app at the database over the private network, not a public host, so those bytes aren't metered as egress.</li>
+    <li><strong>Right-size and remove idle services.</strong> Match RAM and CPU to what each service actually uses, and delete the demo you forgot about. Idle allocation is the quiet budget killer.</li>
+    <li><strong>Watch usage per service.</strong> Check the usage page regularly so you catch a climbing service before the invoice does.</li>
+  </ul>
+  <p>Do those and Railway stays affordable for what it's best at: shipping fast. But if the reason you're here is that you want to know the number in advance, no amount of tuning changes the fact that it's a metered model. That's a different question.</p>
+
+  <h2>Metered vs flat: two different deals</h2>
+  <table class="cmp">
+    <thead><tr><th></th><th>Metered (Railway)</th><th>Flat (managed cloud)</th></tr></thead>
+    <tbody>
+      <tr><td>Idle cost</td><td>Still billed for allocation</td><td>Same fixed price</td></tr>
+      <tr><td>Traffic spike</td><td>Bill goes up</td><td>Bill unchanged</td></tr>
+      <tr><td>Database</td><td>Separate meter</td><td>Included in the plan, beside the app</td></tr>
+      <tr><td>Egress</td><td>Metered</td><td>Not metered (on Kloudbean)</td></tr>
+      <tr><td>Best when</td><td>Small or spiky, DX matters most</td><td>Always-on, you want a budgetable number</td></tr>
+    </tbody>
+  </table>
+
+  <h2>When a flat-price host makes more sense</h2>
+  <p>Here's the honest split. If your app is a prototype, or traffic is low and spiky, or you mostly value Railway's excellent developer experience, staying and tuning the bill is the right call. Railway is genuinely great at going from repo to live URL fast.</p>
+  <p>But if it's an always-on production app, it has a database, and you need a monthly number you can put in a budget, a flat-price managed host is a cleaner fit. On Kloudbean your Node app runs always-on under PM2, deploys from GitHub, and sits next to a one-click managed database in the same dashboard, on a flat plan from $8/mo with no egress meter. The bill is the same whether you get ten visitors or ten thousand. When you switch, free migration assistance runs the first cutover with you, database included. A widely shared sentiment from developers who moved off a metered platform: the new bill was sometimes higher, but they could finally stop watching the meter.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console showing a managed database launched next to the app on a flat monthly plan">
+    <figcaption>A flat plan with the database in the same dashboard: the number doesn't move with traffic, and internal app-to-database traffic isn't metered.</figcaption>
+  </figure>
+
+  <h2>How it fits the rest of your stack</h2>
+  <p>Weighing your options? <a href="https://www.kloudbean.com/blog/render-vs-railway-vs-kloudbean/">Render vs Railway vs Kloudbean</a> compares all three, and the interactive <a href="https://www.kloudbean.com/blog/nodejs-hosting-decision-tool/">Node.js host decision tool</a> picks one for your situation. For the wider field, <a href="https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/">where to deploy a Node.js app</a>. If a leak is inflating your bill, <a href="https://www.kloudbean.com/blog/fix-javascript-heap-out-of-memory-node/">fix "JavaScript heap out of memory"</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Want the number before the invoice?</p>
+    <p style="margin:0 0 .6em">Run your Node app always-on on a flat plan from $8/mo, with a managed database in the same dashboard and no egress meter. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Flat pricing from $8/mo · No egress meter · Managed database included · Always-on · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Why is my Railway bill $30 for a tiny test service?</h3>
+    <p>Because a running container is billed for the CPU and RAM it holds even with no users, and any database, storage, or egress adds on top of the plan fee. A small always-on service plus a database can reach $20 to $30 a month easily. Remove idle services, right-size the rest, and set a spending limit to keep it in check.</p>
+
+    <h3>Does Railway charge for idle services?</h3>
+    <p>Yes, in effect. You're billed for the resources a service has allocated while it's running, not only for active requests, so an idle-but-running container keeps costing money. If a service isn't needed, pause or delete it rather than leaving it up.</p>
+
+    <h3>Why did my Railway services stop even though I had credit?</h3>
+    <p>Developers report this when the balance that ran out isn't the one they expected. The plan fee, the usage included with it, and any prepaid credit are separate, and a service can pause when the relevant balance is exhausted. Check the usage and billing pages to see which balance ran down.</p>
+
+    <h3>How do I set a spending limit on Railway?</h3>
+    <p>Railway supports a usage or spending limit in the billing settings; set it so a runaway service or traffic spike can't produce a surprise invoice. Pair it with private networking for internal traffic and regular checks of the usage page. Treat the limit as a safety net, not a substitute for right-sizing.</p>
+
+    <h3>Is Railway cheaper than a VPS or a flat-price host?</h3>
+    <p>For a small, idle, or spiky app, often yes. For a steady always-on app with a database, a metered bill can pass a flat plan and keep climbing with traffic. Compare a busy month, not a quiet one, and include the database and egress. If predictability matters more than pay-as-you-go, a flat plan is easier to budget.</p>
+
+    <h3>Is Railway a scam or overcharging me?</h3>
+    <p>No. The billing is real metered usage, not a trick; the issue is that it's hard to predict because the plan fee, included usage, credits, and overage combine in ways that aren't obvious. Understanding the model, and setting limits, resolves most of the surprise. If you simply prefer a fixed number, that's a reason to choose a flat-price host, not evidence of wrongdoing.</p>
+
+    <h3>How do I move a Node app off Railway without downtime?</h3>
+    <p>Point a new server at the same GitHub repo, copy your environment variables, and restore the database with a standard dump and load. Bring it up, verify it, then switch traffic. Kloudbean's free migration assistance can run that first cutover with you so downtime stays minimal, database included.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Metered is fine until you want to forecast. Then flat wins.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Why Is My Railway Bill So High? (And How to Make It Predictable)","description":"Why a Railway bill is higher than the plan price: the plan fee plus metered CPU, RAM, database, and egress, why idle services still bill, how to control it, and when a flat host fits better.","image":"https://www.kloudbean.com/blog/why-is-my-railway-bill-so-high/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/why-is-my-railway-bill-so-high/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Why is my Railway bill $30 for a tiny test service?","acceptedAnswer":{"@type":"Answer","text":"Because a running container is billed for the CPU and RAM it holds even with no users, and any database, storage, or egress adds on top of the plan fee. A small always-on service plus a database can reach 20 to 30 dollars a month easily. Remove idle services, right-size the rest, and set a spending limit to keep it in check."}},
+{"@type":"Question","name":"Does Railway charge for idle services?","acceptedAnswer":{"@type":"Answer","text":"Yes, in effect. You are billed for the resources a service has allocated while it is running, not only for active requests, so an idle-but-running container keeps costing money. If a service is not needed, pause or delete it rather than leaving it up."}},
+{"@type":"Question","name":"Why did my Railway services stop even though I had credit?","acceptedAnswer":{"@type":"Answer","text":"Developers report this when the balance that ran out is not the one they expected. The plan fee, the usage included with it, and any prepaid credit are separate, and a service can pause when the relevant balance is exhausted. Check the usage and billing pages to see which balance ran down."}},
+{"@type":"Question","name":"How do I set a spending limit on Railway?","acceptedAnswer":{"@type":"Answer","text":"Railway supports a usage or spending limit in the billing settings; set it so a runaway service or traffic spike cannot produce a surprise invoice. Pair it with private networking for internal traffic and regular checks of the usage page. Treat the limit as a safety net, not a substitute for right-sizing."}},
+{"@type":"Question","name":"Is Railway cheaper than a VPS or a flat-price host?","acceptedAnswer":{"@type":"Answer","text":"For a small, idle, or spiky app, often yes. For a steady always-on app with a database, a metered bill can pass a flat plan and keep climbing with traffic. Compare a busy month, not a quiet one, and include the database and egress. If predictability matters more than pay-as-you-go, a flat plan is easier to budget."}},
+{"@type":"Question","name":"Is Railway a scam or overcharging me?","acceptedAnswer":{"@type":"Answer","text":"No. The billing is real metered usage, not a trick; the issue is that it is hard to predict because the plan fee, included usage, credits, and overage combine in ways that are not obvious. Understanding the model, and setting limits, resolves most of the surprise. If you simply prefer a fixed number, that is a reason to choose a flat-price host, not evidence of wrongdoing."}},
+{"@type":"Question","name":"How do I move a Node app off Railway without downtime?","acceptedAnswer":{"@type":"Answer","text":"Point a new server at the same GitHub repo, copy your environment variables, and restore the database with a standard dump and load. Bring it up, verify it, then switch traffic. Kloudbean's free migration assistance can run that first cutover with you so downtime stays minimal, database included."}}
+]}
+]}
+</script>
+</body>
+</html>
