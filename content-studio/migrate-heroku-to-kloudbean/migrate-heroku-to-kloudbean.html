@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Migrate a Node.js App from Heroku to Kloudbean</title>
+<meta name="description" content="A real migration runbook for moving a Node app off Heroku: inventory your dynos and add-ons, map the Procfile to PM2, export config vars, move Postgres with pg_dump, cut over DNS, and keep a rollback path.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/migrate-heroku-to-kloudbean/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Migrate a Node.js App from Heroku to Kloudbean">
+<meta property="og:description" content="A staged runbook for moving a Node app off Heroku: inventory dynos and add-ons, map Procfile to PM2, export config vars, move Postgres, cut over DNS, keep a rollback.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Migration · Heroku · Node.js</span>
+  <h1>How to Migrate a Node.js App from Heroku to Kloudbean</h1>
+  <p class="byline">By Kloudbean Engineering · A production migration is more than connecting a Git repo.</p>
+
+  <figure><img src="images/hero.png" alt="A Heroku app with web dyno, worker, Postgres, and Redis being mapped onto a single Kloudbean server"></figure>
+
+  <p class="lead">Moving off Heroku is very doable, and the teams who do it smoothly all share one habit: they inventory everything before they touch anything. The pain isn't deploying your code, that part takes minutes. It's the surrounding stuff, the worker dyno you forgot, the add-on that quietly holds state, the twenty config vars nobody documented, the DNS cutover. This is the runbook for a Node.js app: what to catalog, how Heroku concepts map onto a real server, the exact commands, and how to keep a rollback path the whole way.</p>
+
+  <div class="tldr">
+    <strong>How do I migrate from Heroku to Kloudbean?</strong>
+    <p>Work in five stages. Inventory every dyno, add-on, config var, and scheduled job. Provision the equivalents on Kloudbean (a server for the app, a managed database, managed Redis if you use it). Map your <code>Procfile</code> processes to PM2, and copy config vars in as environment variables. Move data with <code>pg_dump</code> and restore, verify on a temporary URL, then cut DNS over during a quiet window. Keep Heroku running until you've verified, so rollback is just a DNS change.</p>
+  </div>
+
+  <h2>Stage 1: inventory before you migrate anything</h2>
+  <p>This is the step people skip and regret. When ReadMe moved its eight-year-old app off Heroku, its documented approach started with taking inventory of all services, then deploying the main app as a proof of concept, migrating low-risk services first and saving the difficult ones for last. That ordering exists because surprises live in the corners. Write down:</p>
+  <ul>
+    <li><strong>Every process type</strong> in your <code>Procfile</code>: web, worker, clock/scheduler, one-off release tasks.</li>
+    <li><strong>Every add-on</strong>: Postgres, Redis, mail, logging, monitoring. Note which hold data you must move.</li>
+    <li><strong>Every config var</strong>, including ones only used by an add-on.</li>
+    <li><strong>Scheduled jobs</strong> (Heroku Scheduler entries) and what they run.</li>
+    <li><strong>Domains, SSL, and DNS TTLs</strong>, plus anything sitting in front like Cloudflare.</li>
+    <li><strong>Dyno sizes</strong> and current resource usage, so you size the new server sensibly.</li>
+  </ul>
+  <p>A team that migrated a mature SaaS off Heroku summarized the honest reality well: a production migration involves far more than connecting a Git repository. Processes, workers, scheduled jobs, domains, and cutover sequencing are the actual work. Two hours of inventory saves a bad afternoon.</p>
+
+  <h2>Stage 2: how Heroku concepts map to Kloudbean</h2>
+  <p>The mental model shift is from "a collection of separately billed dynos and add-ons" to "one server running your processes, with managed data services alongside." Here's the translation:</p>
+
+  <table class="cmp">
+    <thead><tr><th>On Heroku</th><th>On Kloudbean</th></tr></thead>
+    <tbody>
+      <tr><td>Web dyno</td><td>Node app, always-on under PM2</td></tr>
+      <tr><td>Worker dyno</td><td>A second PM2 process on the same server</td></tr>
+      <tr><td>Clock dyno / Heroku Scheduler</td><td>Cron jobs from the dashboard</td></tr>
+      <tr><td>Heroku Postgres</td><td>Managed PostgreSQL, automatic backups</td></tr>
+      <tr><td>Heroku Key-Value Store (Redis)</td><td>Managed Redis</td></tr>
+      <tr><td>Config vars</td><td>Environment variables per app</td></tr>
+      <tr><td>Git push deploys</td><td>GitHub deploys with live build logs</td></tr>
+      <tr><td>Add-on per capability, billed separately</td><td>One flat plan from $8/mo</td></tr>
+    </tbody>
+  </table>
+
+  <p>Your <code>Procfile</code> becomes a PM2 ecosystem file. Same idea, one file:</p>
+  <pre><code># Procfile (Heroku)
+web: node dist/server.js
+worker: node dist/worker.js</code></pre>
+  <pre><code>// ecosystem.config.js (Kloudbean, running under PM2)
+module.exports = {
+  apps: [
+    { name: "web",    script: "dist/server.js" },
+    { name: "worker", script: "dist/worker.js" },
+  ],
+};</code></pre>
+  <p>One genuine improvement here: on Heroku a web process and a worker are two separately billed dynos. On one server they're two processes sharing the resources you already pay for, which is where a lot of the cost difference comes from.</p>
+
+  <h2>Stage 3: export your config vars</h2>
+  <p>Get everything out of Heroku in one shot so nothing gets missed. The <code>-s</code> flag prints them in <code>KEY=value</code> shell format:</p>
+  <pre><code># Dump all config vars from Heroku
+heroku config -s --app your-app-name &gt; heroku-vars.txt</code></pre>
+  <p>Then set them as environment variables on your Kloudbean app, with two edits. Change <code>DATABASE_URL</code> and <code>REDIS_URL</code> to the new managed instances (you'll get those connection strings when you create them), and drop anything that only existed for a Heroku add-on you're not carrying over. Validate the list against the app before cutover, unset variables are the single most common cause of a crash on the first boot. Our <a href="https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/">deploy crash field guide</a> covers that failure mode in detail.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="Setting migrated Heroku config vars as environment variables in the Kloudbean console">
+    <figcaption>Paste your exported config vars in as environment variables, then swap DATABASE_URL and REDIS_URL for the new managed instances.</figcaption>
+  </figure>
+
+  <h2>Stage 4: move the database</h2>
+  <p>Create the managed PostgreSQL database first, then dump from Heroku and restore into it. Heroku's <code>DATABASE_URL</code> gives you everything you need:</p>
+  <pre><code># Dump directly from Heroku Postgres (custom format)
+pg_dump "$(heroku config:get DATABASE_URL --app your-app-name)" -Fc -f heroku.dump
+
+# Restore into the new managed database
+pg_restore --no-owner -d "postgres://user:pass@new-host:5432/appdb" heroku.dump</code></pre>
+  <p>Use <code>--no-owner</code> so the restore doesn't try to recreate Heroku's role names. Then verify before you trust it, count rows in your biggest tables on both sides:</p>
+  <pre><code>psql "postgres://user:pass@new-host:5432/appdb" -c "SELECT count(*) FROM users;"</code></pre>
+  <p>One thing worth planning for: database region. ReadMe's migration forced a MongoDB move between regions because of where the new platform ran, which added work nobody budgeted for. Put your app and database in the same region from the start and you avoid that latency tax entirely.</p>
+
+  <h2>Stage 5: verify, cut over, and keep a rollback</h2>
+  <p>Deploy the app on Kloudbean from GitHub and test it on the temporary URL while Heroku is still serving real traffic. Walk the app: log in, hit the slow endpoints, trigger a background job, confirm the worker picks it up, run a scheduled task manually. Then cut over:</p>
+  <ol>
+    <li>Lower your DNS TTL a day ahead (to 300 seconds) so the switch propagates fast.</li>
+    <li>Pick a quiet window. Put Heroku in maintenance mode if you need a clean data freeze.</li>
+    <li>Take a final <code>pg_dump</code> and restore, so you don't lose writes made during testing.</li>
+    <li>Point DNS at Kloudbean and issue SSL for the domain.</li>
+    <li>Watch logs and error rates for the first hour.</li>
+    <li>Leave Heroku running for a few days. Rollback is then just pointing DNS back.</li>
+  </ol>
+  <p>Done this way the hard downtime is small. ReadMe reported roughly 90 seconds of hard downtime on its final cutover, which is a fair benchmark for a careful move on a real app. The unglamorous secret is the final dump-and-restore window, not the deploy.</p>
+
+  <h2>What actually gets better, and what to watch</h2>
+  <p>Being straight with you: migrating off Heroku is not automatically cheaper, and there are documented cases where a team's first month elsewhere cost more than the old Heroku bill, because they moved for control or roadmap reasons rather than price. Where the savings do show up is consolidation. If your Heroku bill is a web dyno plus a worker dyno plus Postgres plus Redis plus staging, collapsing that onto one flat plan is usually a real reduction, and we broke the arithmetic down in <a href="https://www.kloudbean.com/blog/heroku-cost-after-free-tier/">Heroku costs after the free tier</a>.</p>
+  <p>What you gain beyond price: your whole stack in one dashboard, no per-piece add-on billing, no egress metering, and a persistent process that can hold WebSockets and run real background workers. Credit where it's due, Heroku's git-push simplicity was genuinely excellent and set the standard, which is exactly why a GitHub-push deploy with live build logs is the workflow to keep. And if you'd rather not do the steps above yourself, migration assistance is included, we'll do the inventory and the cutover with you.</p>
+
+  <h2>Related reading</h2>
+  <p>Useful companions: <a href="https://www.kloudbean.com/blog/heroku-alternative-for-modern-apps/">a Heroku alternative for modern apps</a> for the platform comparison, <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a> for the database side, <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a> for config, and <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD auto-deploy from GitHub</a> to replace git-push deploys. For workers, see <a href="https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/">background jobs with BullMQ</a>, and for a clean cutover, <a href="https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/">how to migrate hosting with zero downtime</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Let us do the migration with you.</p>
+    <p style="margin:0 0 .6em">Move your Node app, worker, Postgres, and Redis onto one flat plan from $8/mo, with GitHub deploys, live build logs, and free migration assistance including the inventory and cutover. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Free migration assistance · Whole stack, one dashboard · Managed Postgres and Redis · No egress metering · Flat from $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How long does a Heroku migration take?</h3>
+    <p>For a straightforward Node app with one database, plan a few hours of setup and testing plus a short cutover window. Bigger apps with multiple process types, add-ons, and scheduled jobs take longer, mostly in inventory and verification. Teams that migrated mature apps report the deploy is quick and the surrounding work is what takes the time.</p>
+
+    <h3>Will my app be down during the migration?</h3>
+    <p>Only briefly, if you sequence it well. Keep Heroku serving traffic while you deploy and test elsewhere, then take a final database dump and switch DNS in a quiet window. One documented Heroku migration reported around 90 seconds of hard downtime at final cutover. Lowering your DNS TTL beforehand keeps propagation quick.</p>
+
+    <h3>How do I move my Heroku Postgres database?</h3>
+    <p>Dump it with <code>pg_dump</code> using the connection string from <code>heroku config:get DATABASE_URL</code>, then restore into your new managed database with <code>pg_restore --no-owner</code>. Verify by comparing row counts on key tables. Take a final dump right before cutover so writes made during testing aren't lost.</p>
+
+    <h3>What happens to my worker dynos and scheduled jobs?</h3>
+    <p>Worker dynos become additional PM2 processes on the same server, defined in an ecosystem config, so you aren't paying for a separate dyno per process. Heroku Scheduler entries become cron jobs you set up in the dashboard. Test both explicitly after deploying, worker setup is the thing most likely to need adjustment.</p>
+
+    <h3>Is moving off Heroku actually cheaper?</h3>
+    <p>Often, but not automatically. There are documented migrations where the first month elsewhere cost more, because the team moved for control or roadmap reasons. The savings come from consolidation: if you pay separately for a web dyno, worker, Postgres, Redis, and staging, collapsing that onto one flat plan is usually a genuine reduction. Compare your whole stack, not one dyno.</p>
+
+    <h3>Can I roll back if something goes wrong?</h3>
+    <p>Yes, and you should plan for it. Leave your Heroku app running for a few days after cutover so rolling back is just pointing DNS at Heroku again. Keep your final database dump too. Having that path available is what makes a migration low-stress rather than a leap.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Inventory first, cut over last, keep the rollback.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Migrate a Node.js App from Heroku to Kloudbean","description":"A staged runbook for moving a Node app off Heroku: inventory dynos and add-ons, map Procfile to PM2, export config vars, move Postgres with pg_dump, cut over DNS, keep a rollback.","image":"https://www.kloudbean.com/blog/migrate-heroku-to-kloudbean/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/migrate-heroku-to-kloudbean/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How long does a Heroku migration take?","acceptedAnswer":{"@type":"Answer","text":"For a straightforward Node app with one database, plan a few hours of setup and testing plus a short cutover window. Bigger apps with multiple process types, add-ons, and scheduled jobs take longer, mostly in inventory and verification. Teams that migrated mature apps report the deploy is quick and the surrounding work is what takes the time."}},
+{"@type":"Question","name":"Will my app be down during the migration?","acceptedAnswer":{"@type":"Answer","text":"Only briefly, if you sequence it well. Keep Heroku serving traffic while you deploy and test elsewhere, then take a final database dump and switch DNS in a quiet window. One documented Heroku migration reported around 90 seconds of hard downtime at final cutover. Lowering your DNS TTL beforehand keeps propagation quick."}},
+{"@type":"Question","name":"How do I move my Heroku Postgres database?","acceptedAnswer":{"@type":"Answer","text":"Dump it with pg_dump using the connection string from heroku config:get DATABASE_URL, then restore into your new managed database with pg_restore and the no-owner flag. Verify by comparing row counts on key tables. Take a final dump right before cutover so writes made during testing are not lost."}},
+{"@type":"Question","name":"What happens to my worker dynos and scheduled jobs?","acceptedAnswer":{"@type":"Answer","text":"Worker dynos become additional PM2 processes on the same server, defined in an ecosystem config, so you are not paying for a separate dyno per process. Heroku Scheduler entries become cron jobs you set up in the dashboard. Test both explicitly after deploying, worker setup is the thing most likely to need adjustment."}},
+{"@type":"Question","name":"Is moving off Heroku actually cheaper?","acceptedAnswer":{"@type":"Answer","text":"Often, but not automatically. There are documented migrations where the first month elsewhere cost more, because the team moved for control or roadmap reasons. The savings come from consolidation: if you pay separately for a web dyno, worker, Postgres, Redis, and staging, collapsing that onto one flat plan is usually a genuine reduction. Compare your whole stack, not one dyno."}},
+{"@type":"Question","name":"Can I roll back if something goes wrong?","acceptedAnswer":{"@type":"Answer","text":"Yes, and you should plan for it. Leave your Heroku app running for a few days after cutover so rolling back is just pointing DNS at Heroku again. Keep your final database dump too. Having that path available is what makes a migration low-stress rather than a leap."}}
+]}
+]}
+</script>
+</body>
+</html>

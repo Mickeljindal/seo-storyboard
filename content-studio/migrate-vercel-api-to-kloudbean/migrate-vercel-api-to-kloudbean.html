@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Move Your API Off Vercel: Migrating Serverless Functions to a Node Server</title>
+<meta name="description" content="Keep your Next.js frontend on Vercel and move the API to a persistent Node server. How to convert route handlers to Express, handle CORS and auth across origins, move the database, and cut over safely.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/migrate-vercel-api-to-kloudbean/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Move Your API Off Vercel: Migrating Serverless Functions to a Node Server">
+<meta property="og:description" content="A practical guide to moving a Vercel API to a persistent Node server: convert route handlers to Express, fix CORS and cookies across origins, move the database, cut over per endpoint.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Migration · Vercel · Node.js APIs</span>
+  <h1>Move Your API Off Vercel: Migrating Serverless Functions to a Node Server</h1>
+  <p class="byline">By Kloudbean Engineering · You don't have to move the whole app. Just the part that hates being serverless.</p>
+
+  <figure><img src="images/hero.png" alt="A Next.js frontend staying on Vercel while its API routes move to a persistent Node server"></figure>
+
+  <p class="lead">This migration is different from the others, because the right answer usually isn't "leave Vercel." Vercel is very good at hosting a Next.js frontend. What tends to hurt is running a real backend as serverless functions: duration ceilings on long work, no durable background workers, database connections multiplying under bursts, and a bill made of several meters you don't fully control. The clean fix most teams land on is a split. Frontend stays on Vercel, the API moves to a persistent Node server, and the two talk over HTTPS. Here's how to do that without breaking auth.</p>
+
+  <div class="tldr">
+    <strong>How do I move my API off Vercel?</strong>
+    <p>Keep the frontend where it is and move the backend to a persistent Node server. Convert your Vercel route handlers into Express (or NestJS/Fastify) routes, host the API on its own subdomain like <code>api.example.com</code>, and update the frontend to call that base URL. Then handle the three things that actually break: CORS (allow your frontend's origin), cookies and auth across origins, and the database connection string. Migrate endpoint by endpoint rather than all at once, starting with the slowest ones.</p>
+  </div>
+
+  <h2>Decide what actually needs to move</h2>
+  <p>Be selective. A short, stateless endpoint that reads a row and returns JSON is genuinely well served by a serverless function, and moving it buys you nothing. The endpoints worth moving are the ones fighting the model:</p>
+  <ul>
+    <li><strong>Long-running work</strong>: report and PDF generation, AI calls, video or image processing, large exports, scraping, data migrations. Vercel's current limits are far more generous than the old 10-second days, but a hard ceiling still exists.</li>
+    <li><strong>Background jobs</strong>: anything you'd want to queue and retry. Functions are request-scoped, so durable workers need an external service.</li>
+    <li><strong>WebSockets and real-time</strong>: supported now with Fluid Compute, but bound by function limits and requiring external state for rooms and presence.</li>
+    <li><strong>Database-heavy endpoints</strong>: bursts of invocations can each open connections and exhaust your database's limit.</li>
+    <li><strong>High-volume API traffic</strong>: this is the cost one, and it's the trigger a founder at an API company described plainly, saying a per-request pricing model was never going to work long term for a product with heavy ingest, since they wanted to pay for CPU, bandwidth, and memory instead of request count.</li>
+  </ul>
+  <p>If none of those describe your API, honestly, stay put. If two or more do, the split is worth doing.</p>
+
+  <h2>Converting a route handler to Express</h2>
+  <p>The code change is smaller than people expect, because the logic inside your handler barely changes. What changes is the wrapper. A Vercel route handler:</p>
+  <pre><code>// app/api/orders/route.js (Vercel)
+export async function POST(request) {
+  const body = await request.json();
+  const order = await createOrder(body);
+  return Response.json({ id: order.id }, { status: 201 });
+}</code></pre>
+  <p>becomes an Express route:</p>
+  <pre><code>// routes/orders.js (persistent Node server)
+router.post("/orders", async (req, res) => {
+  const order = await createOrder(req.body);   // same business logic
+  res.status(201).json({ id: order.id });
+});</code></pre>
+  <p>Your database code, validation, and third-party calls come across unchanged. The upside once you're on a persistent process: one connection pool shared by every request instead of a new connection per invocation, no duration ceiling on your own handlers, and you can start a real worker beside the API.</p>
+
+  <h2>The three things that actually break</h2>
+  <p>Not the handlers. These:</p>
+  <p><strong>1. CORS.</strong> Your frontend is now calling a different origin, so the browser enforces CORS. Allow your frontend's exact origin, driven from an environment variable so each environment lists its own:</p>
+  <pre><code>const allowedOrigins = (process.env.CORS_ORIGINS || "").split(",").filter(Boolean);
+
+app.use(cors({
+  origin: allowedOrigins,   // e.g. https://app.example.com
+  credentials: true,        // needed if you send cookies
+}));</code></pre>
+  <p>You cannot combine a wildcard origin with credentials, so name the origins explicitly. The full set of traps is in <a href="https://www.kloudbean.com/blog/fix-cors-error-node-production/">CORS errors in production</a>.</p>
+  <p><strong>2. Cookies and auth across origins.</strong> This is the one that quietly breaks logins. A cookie set by <code>api.example.com</code> won't be sent to a frontend on a different site unless it's configured for cross-site use, meaning <code>SameSite=None</code> and <code>Secure</code>, and the frontend must send credentials with its requests. The cleaner alternative is keeping both on the same parent domain (<code>app.example.com</code> and <code>api.example.com</code>) so cookies can be scoped to <code>.example.com</code>. If you use bearer tokens in an Authorization header instead of cookies, this problem mostly disappears.</p>
+  <p><strong>3. The database connection.</strong> Point the new server at your database and, ideally, move the database next to it so the app talks over a private network rather than the public internet. Then set a sane pool size, since a persistent server holds a stable pool instead of the per-invocation connections that caused the exhaustion problem in the first place. See <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>.</p>
+
+  <h2>Migrate endpoint by endpoint</h2>
+  <p>Do not attempt a big-bang switch. Point the frontend at a configurable API base URL, then move routes across in batches:</p>
+  <pre><code># Frontend env: flip this per environment as you migrate
+NEXT_PUBLIC_API_BASE_URL=https://api.example.com</code></pre>
+  <p>Start with the endpoints that time out or run long, since those give the biggest immediate win and are the easiest to justify. Keep the rest on Vercel until you're ready. Someone who migrated a Vercel app off by feature took exactly this approach, moving the parts that struggled (a process running past 30 seconds, a library that didn't build well in the serverless environment) rather than the whole thing at once. Incremental means every step is verifiable and reversible.</p>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="Deploying a persistent Node.js API from GitHub in the Kloudbean console">
+    <figcaption>Deploy the API as an always-on Node app from GitHub, on its own subdomain, while the frontend stays where it is.</figcaption>
+  </figure>
+
+  <h2>Moving the data</h2>
+  <p>If your database is moving too, it's the same dump-and-restore as any migration. Create the managed database first, then:</p>
+  <pre><code>pg_dump "postgres://user:pass@old-host/dbname" -Fc -f api.dump
+pg_restore --no-owner -d "postgres://user:pass@new-host:5432/appdb" api.dump
+psql "postgres://user:pass@new-host:5432/appdb" -c "SELECT count(*) FROM users;"</code></pre>
+  <p>Take the final dump during a quiet window so writes made while you tested aren't lost, and keep the old database until you've verified. If your database stays where it is, just make sure the new server can reach it and that latency between the two is acceptable, region matters here.</p>
+
+  <h2>What you get from a persistent API</h2>
+  <p>Concretely: no duration ceiling on your own request handling, so long jobs stop needing to be re-architected around a timeout. Real background workers, run beside the API under PM2 with managed Redis for a BullMQ queue. WebSockets on an actual long-lived process. A single stable connection pool instead of per-invocation connections. And a flat bill from $8/mo with no egress metering, so bot traffic or a heavy response payload doesn't turn into a surprise invoice. Everything (app, worker, database, Redis, object storage) sits in one dashboard.</p>
+  <p>The genuinely fair part, and worth repeating: keep your Next.js frontend on Vercel if you like it there. It's excellent at that job. This migration is about matching each workload to the right runtime, not about picking a single winner. We laid out the full set of constraints in <a href="https://www.kloudbean.com/blog/vercel-for-node-backends-limits/">Vercel for Node.js backends</a>.</p>
+
+  <h2>Related reading</h2>
+  <p>Next steps and context: <a href="https://www.kloudbean.com/blog/vercel-alternative-for-full-stack-apps/">a Vercel alternative for full-stack apps</a>, <a href="https://www.kloudbean.com/blog/deploy-express-app/">deploy an Express app</a> and <a href="https://www.kloudbean.com/blog/deploy-nestjs-app/">deploy a NestJS app</a> for the API side, <a href="https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/">background jobs with BullMQ</a> for the queue you couldn't run before, <a href="https://www.kloudbean.com/blog/scale-websockets-nodejs/">scaling WebSockets</a> for real-time, and <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a> for the config split.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Give your API a persistent home.</p>
+    <p style="margin:0 0 .6em">Run an always-on Node API under PM2 with real background workers, managed PostgreSQL and Redis, and no egress metering, on a flat plan from $8/mo. Keep your frontend wherever you like. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">No duration limits on your handlers · Real workers and WebSockets · Managed Postgres and Redis · No egress metering · Flat from $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Should I move my whole app off Vercel or just the API?</h3>
+    <p>Usually just the API. Vercel is strong at hosting a Next.js frontend, and the friction is specific to backend workloads: long-running jobs, durable queues, WebSockets, and heavy database use. A common setup is frontend on Vercel, API on a persistent Node server, communicating over HTTPS. Move only what's fighting the serverless model.</p>
+
+    <h3>How hard is it to convert Vercel route handlers to Express?</h3>
+    <p>Easier than expected, because the business logic inside the handler doesn't change. You swap the request and response wrapper: reading <code>req.body</code> instead of awaiting <code>request.json()</code>, and calling <code>res.status().json()</code> instead of returning a <code>Response</code>. Database code, validation, and third-party calls come across as-is.</p>
+
+    <h3>What breaks when I split the frontend and API?</h3>
+    <p>Three things: CORS, since the frontend now calls a different origin and you must allow it explicitly; cookies and auth, because cross-site cookies need <code>SameSite=None</code> and <code>Secure</code> or a shared parent domain; and the database connection string. Handle those and the endpoints themselves generally just work.</p>
+
+    <h3>How do I keep my login working across two domains?</h3>
+    <p>The simplest approach is putting both on the same parent domain, like <code>app.example.com</code> and <code>api.example.com</code>, so cookies can be scoped to <code>.example.com</code>. Otherwise you need cross-site cookies with <code>SameSite=None</code> and <code>Secure</code>, plus credentialed requests from the frontend. Using bearer tokens in an Authorization header avoids most of the complication.</p>
+
+    <h3>Can I migrate gradually instead of all at once?</h3>
+    <p>Yes, and you should. Put the API base URL in an environment variable on the frontend, then move endpoints in batches, starting with the ones that time out or run long. Each batch is independently testable and reversible. One developer migrating off Vercel moved by feature, relocating the parts that struggled rather than the entire app.</p>
+
+    <h3>Will moving my API off Vercel save money?</h3>
+    <p>It depends on your traffic shape. Serverless billing combines invocations, active CPU, provisioned memory, and data transfer, which is hard to forecast for a high-volume API and exposed to bot traffic. A flat plan with no egress metering is more predictable, and predictability is often the real win. For a low-traffic API the difference may be small.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Right runtime for each workload, not one home for everything.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Move Your API Off Vercel: Migrating Serverless Functions to a Node Server","description":"A practical guide to moving a Vercel API to a persistent Node server: convert route handlers to Express, fix CORS and cookies across origins, move the database, cut over per endpoint.","image":"https://www.kloudbean.com/blog/migrate-vercel-api-to-kloudbean/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/migrate-vercel-api-to-kloudbean/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Should I move my whole app off Vercel or just the API?","acceptedAnswer":{"@type":"Answer","text":"Usually just the API. Vercel is strong at hosting a Next.js frontend, and the friction is specific to backend workloads: long-running jobs, durable queues, WebSockets, and heavy database use. A common setup is frontend on Vercel, API on a persistent Node server, communicating over HTTPS. Move only what is fighting the serverless model."}},
+{"@type":"Question","name":"How hard is it to convert Vercel route handlers to Express?","acceptedAnswer":{"@type":"Answer","text":"Easier than expected, because the business logic inside the handler does not change. You swap the request and response wrapper: reading the request body from req.body instead of awaiting a json call, and using res.status and res.json instead of returning a Response object. Database code, validation, and third-party calls come across as-is."}},
+{"@type":"Question","name":"What breaks when I split the frontend and API?","acceptedAnswer":{"@type":"Answer","text":"Three things: CORS, since the frontend now calls a different origin and you must allow it explicitly; cookies and auth, because cross-site cookies need SameSite None and Secure or a shared parent domain; and the database connection string. Handle those and the endpoints themselves generally just work."}},
+{"@type":"Question","name":"How do I keep my login working across two domains?","acceptedAnswer":{"@type":"Answer","text":"The simplest approach is putting both on the same parent domain, so cookies can be scoped to the shared parent. Otherwise you need cross-site cookies with SameSite None and Secure, plus credentialed requests from the frontend. Using bearer tokens in an Authorization header avoids most of the complication."}},
+{"@type":"Question","name":"Can I migrate gradually instead of all at once?","acceptedAnswer":{"@type":"Answer","text":"Yes, and you should. Put the API base URL in an environment variable on the frontend, then move endpoints in batches, starting with the ones that time out or run long. Each batch is independently testable and reversible. One developer migrating off Vercel moved by feature, relocating the parts that struggled rather than the entire app."}},
+{"@type":"Question","name":"Will moving my API off Vercel save money?","acceptedAnswer":{"@type":"Answer","text":"It depends on your traffic shape. Serverless billing combines invocations, active CPU, provisioned memory, and data transfer, which is hard to forecast for a high-volume API and exposed to bot traffic. A flat plan with no egress metering is more predictable, and predictability is often the real win. For a low-traffic API the difference may be small."}}
+]}
+]}
+</script>
+</body>
+</html>

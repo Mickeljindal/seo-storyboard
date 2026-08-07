@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Migrate a Node.js App from Railway to Kloudbean</title>
+<meta name="description" content="Moving off Railway because usage billing is unpredictable? Here's the runbook: inventory your services and volumes, export variables, move Postgres and Redis, cut over DNS, and swap a metered bill for a flat one.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/migrate-railway-to-kloudbean/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Migrate a Node.js App from Railway to Kloudbean">
+<meta property="og:description" content="A runbook for moving a Node app off Railway: inventory services and volumes, export variables, move Postgres and Redis, cut over DNS, and trade metered billing for flat pricing.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Migration · Railway · Node.js</span>
+  <h1>How to Migrate a Node.js App from Railway to Kloudbean</h1>
+  <p class="byline">By Kloudbean Engineering · Trading a meter you can't predict for a number you can.</p>
+
+  <figure><img src="images/hero.png" alt="Railway services and volumes being consolidated onto a single Kloudbean server with managed databases"></figure>
+
+  <p class="lead">Most people who move off Railway aren't unhappy with the product, they're unhappy with not knowing what next month costs. Railway's developer experience is genuinely good and it's a great place to get something running fast. The friction shows up later, when a plan fee plus metered CPU, memory, database, and egress adds up in ways that are hard to forecast, and idle services still bill. If you've decided you want a flat number instead, here's the runbook for moving a Node app across without drama.</p>
+
+  <div class="tldr">
+    <strong>How do I migrate from Railway to Kloudbean?</strong>
+    <p>Inventory every Railway service in your project (app, workers, databases, cron), your variables, and any volumes holding data. Create the equivalents on Kloudbean: one always-on server running your app and workers under PM2, plus managed PostgreSQL and Redis. Export variables with <code>railway variables</code>, dump your database with <code>pg_dump</code> using Railway's public connection URL, restore into the managed database, verify on the temporary URL, then cut DNS over in a quiet window and keep Railway up briefly for rollback.</p>
+  </div>
+
+  <h2>Why teams make this move</h2>
+  <p>Worth being precise, because it shapes what you should check before migrating. Railway charges a plan fee plus metered usage across CPU, memory, databases, storage, and egress. Two things follow. First, a service that's up but idle still consumes resources and bills, so a forgotten staging environment or a test service quietly costs money. Second, developers frequently report that the combination of plan fee, included usage, and prepaid credit is hard to reason about, which is why "why is my Railway bill so high" is such a common question. It isn't overcharging, it's real metered usage that's genuinely difficult to forecast. We walked through the mechanics in <a href="https://www.kloudbean.com/blog/why-is-my-railway-bill-so-high/">why is my Railway bill so high</a>.</p>
+  <p>One more billing detail worth knowing before you migrate: if your app connects to its database over a public URL rather than the private network, that traffic can count as egress. Check that now, because it's often a chunk of an unexplained bill.</p>
+
+  <h2>Stage 1: inventory the project</h2>
+  <p>Railway projects hold several services, and the data-bearing ones need care:</p>
+  <ul>
+    <li><strong>Every service</strong>: the Node app, any worker services, and their start commands.</li>
+    <li><strong>Databases</strong>: Postgres, MySQL, Redis, Mongo, whichever you provisioned.</li>
+    <li><strong>Volumes</strong>: any persistent disk holding uploads or generated files. This is the one people forget, and it does not come across in a database dump.</li>
+    <li><strong>Variables</strong>, including references between services.</li>
+    <li><strong>Cron jobs</strong> and scheduled services.</li>
+    <li><strong>Custom domains</strong>, DNS records, and TTLs.</li>
+    <li><strong>Environments</strong> (production, staging, PR environments) so you know what to recreate and what to retire.</li>
+  </ul>
+  <p>Note anything on a volume separately. Files on disk need their own copy step, and losing user uploads because you only migrated the database is a genuinely bad day.</p>
+
+  <h2>Stage 2: how Railway concepts map to Kloudbean</h2>
+
+  <table class="cmp">
+    <thead><tr><th>On Railway</th><th>On Kloudbean</th></tr></thead>
+    <tbody>
+      <tr><td>Node service (metered CPU + RAM)</td><td>Node app always-on under PM2, flat plan</td></tr>
+      <tr><td>Second service for a worker</td><td>A second PM2 process on the same server</td></tr>
+      <tr><td>Postgres / MySQL plugin</td><td>Managed PostgreSQL or MySQL, automatic backups</td></tr>
+      <tr><td>Redis plugin</td><td>Managed Redis</td></tr>
+      <tr><td>Volume for persistent files</td><td>Server disk, or S3-compatible object storage</td></tr>
+      <tr><td>Variables (per service)</td><td>Environment variables per app</td></tr>
+      <tr><td>Deploy on push</td><td>GitHub deploys with live build logs</td></tr>
+      <tr><td>Plan fee plus metered usage and egress</td><td>Flat from $8/mo, no egress metering</td></tr>
+    </tbody>
+  </table>
+
+  <p>Your processes go into a PM2 ecosystem file instead of being separate metered services:</p>
+  <pre><code>// ecosystem.config.js
+module.exports = {
+  apps: [
+    { name: "web",    script: "dist/server.js" },
+    { name: "worker", script: "dist/worker.js" },
+  ],
+};</code></pre>
+
+  <h2>Stage 3: export variables and data</h2>
+  <p>Pull your variables out with the Railway CLI so nothing is missed:</p>
+  <pre><code># List variables for the current service
+railway variables
+
+# Or, if you prefer piping into a file to review
+railway variables --kv &gt; railway-vars.txt</code></pre>
+  <p>Then move the database. Railway exposes a connection URL for each database service; use it to dump, then restore into your new managed instance:</p>
+  <pre><code># Dump from Railway Postgres
+pg_dump "postgres://user:pass@host.proxy.rlwy.net:PORT/railway" -Fc -f railway.dump
+
+# Restore into the managed database
+pg_restore --no-owner -d "postgres://user:pass@new-host:5432/appdb" railway.dump
+
+# Verify a couple of tables
+psql "postgres://user:pass@new-host:5432/appdb" -c "SELECT count(*) FROM users;"</code></pre>
+  <p>For MySQL it's the same shape with <code>mysqldump</code> and <code>mysql</code>. If you have Redis data that matters (sessions, a job queue), decide deliberately whether to migrate it or drain the queue before cutover, most teams find it cleaner to let workers finish the queue on Railway, then start fresh.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="Launching managed PostgreSQL and Redis in the Kloudbean console to replace Railway plugins">
+    <figcaption>Launch managed PostgreSQL and Redis in the same dashboard as the app, then restore your Railway dump.</figcaption>
+  </figure>
+
+  <h2>Stage 4: don't forget the volume</h2>
+  <p>If a Railway volume holds user uploads or generated files, copy that content across before cutover. Two sensible destinations: the server's own disk if the volume is small and single-instance, or S3-compatible object storage if you'd rather your files not live on the same box as the app. Object storage is the better long-term answer, since it survives server changes and scales past one instance. Kloudbean includes S3-compatible buckets with full AWS SDK and CLI compatibility, so if you're already using the AWS SDK in your code, pointing it at a new endpoint and bucket is a config change rather than a rewrite. More in <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage</a>.</p>
+
+  <h2>Stage 5: verify and cut over</h2>
+  <ol>
+    <li>Lower your DNS TTL to 300 seconds a day ahead of the switch.</li>
+    <li>Deploy from GitHub, set your variables, and test on the temporary URL while Railway serves production.</li>
+    <li>Exercise everything: auth, the endpoints that matter, a background job end to end, a cron command by hand.</li>
+    <li>In a quiet window, drain your queue on Railway, then take the final <code>pg_dump</code> and restore.</li>
+    <li>Point DNS at Kloudbean and issue SSL.</li>
+    <li>Watch logs and error rates for the first hour.</li>
+    <li>Leave the Railway project running for a few days, then delete it so it stops billing. Rollback until then is a DNS change.</li>
+  </ol>
+  <p>That last point matters on a metered platform specifically: an idle Railway service still bills, so once you're confident, actually tear the project down rather than leaving it parked.</p>
+
+  <h2>What you gain, and the honest tradeoff</h2>
+  <p>The main thing you get is predictability. One flat plan from $8/mo covering the app, its worker, and the managed database and Redis in a single dashboard, with no egress metering, so a traffic spike or a chatty database connection doesn't rewrite your invoice. The app runs always-on under PM2, which suits background workers, WebSockets, and long-running jobs. And migration assistance is included if you'd like us to run the inventory and cutover with you.</p>
+  <p>The honest tradeoff: Railway's instant-provisioning developer experience is excellent, and for a prototype where you genuinely want spiky usage-based pricing and don't care about forecasting, metered billing is a defensible choice. Flat pricing wins when the app is real and you'd rather know the number. Pick based on which of those you are, not on which platform markets harder.</p>
+
+  <h2>Related reading</h2>
+  <p>Useful next reads: <a href="https://www.kloudbean.com/blog/why-is-my-railway-bill-so-high/">why is my Railway bill so high</a> for the billing mechanics, <a href="https://www.kloudbean.com/blog/render-vs-railway-vs-kloudbean/">Render vs Railway vs Kloudbean</a> for the model comparison, and <a href="https://www.kloudbean.com/blog/railway-alternative-for-vibe-coded-apps/">a Railway alternative</a> for the platform view. On the mechanics: <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a>, <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>, <a href="https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/">background jobs with BullMQ</a>, and <a href="https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/">migrating with zero downtime</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Swap the meter for a flat number.</p>
+    <p style="margin:0 0 .6em">Run your Node app, worker, managed database, and Redis in one dashboard on a flat plan from $8/mo with no egress metering, deployed from GitHub. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Flat from $8/mo · No egress metering · Managed Postgres and Redis · Always-on under PM2 · Free migration</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Why do developers migrate off Railway?</h3>
+    <p>Mostly for cost predictability. Railway charges a plan fee plus metered CPU, memory, database, storage, and egress usage, idle services still bill, and the interaction of plan fee, included usage, and credits is hard to forecast. It's real metered usage rather than overcharging, but teams often prefer a flat number once an app is in production.</p>
+
+    <h3>How do I export my Railway database?</h3>
+    <p>Use the connection URL Railway provides for the database service and run <code>pg_dump</code> with the custom-format flag, then restore into your new managed database with <code>pg_restore --no-owner</code>. For MySQL use <code>mysqldump</code> and <code>mysql</code>. Verify by comparing row counts on a few important tables before you cut over.</p>
+
+    <h3>How do I get my environment variables out of Railway?</h3>
+    <p>Use the Railway CLI's <code>railway variables</code> command to list them for a service, and repeat per service since variables are scoped that way. Then set them on your new app, changing the database and Redis URLs to the new managed instances. Verify nothing is missing before deploying, since an unset variable is the usual cause of a first-boot crash.</p>
+
+    <h3>What about my Railway volume and uploaded files?</h3>
+    <p>Volumes aren't included in a database dump, so copy that content separately. Either move it to the server's disk if it's small, or better, to S3-compatible object storage so files survive server changes and can be shared across instances. If your code already uses the AWS SDK, that's a config change rather than a rewrite.</p>
+
+    <h3>Will my Node app need code changes?</h3>
+    <p>Rarely. If your app reads its config from environment variables, the main change is pointing <code>DATABASE_URL</code> and <code>REDIS_URL</code> at the new managed instances. Processes that were separate Railway services become entries in a PM2 ecosystem file. The build and start commands generally carry over unchanged.</p>
+
+    <h3>Should I delete my Railway project after migrating?</h3>
+    <p>Yes, once you've verified the new setup and no longer need rollback. On a metered platform an idle service still consumes resources and bills, so leaving the old project parked keeps costing you. Keep it for a few days as a rollback path, take a final database dump, then tear it down deliberately.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Inventory the volumes, drain the queue, then switch DNS.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Migrate a Node.js App from Railway to Kloudbean","description":"A runbook for moving a Node app off Railway: inventory services and volumes, export variables, move Postgres and Redis, cut over DNS, and trade metered billing for flat pricing.","image":"https://www.kloudbean.com/blog/migrate-railway-to-kloudbean/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/migrate-railway-to-kloudbean/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Why do developers migrate off Railway?","acceptedAnswer":{"@type":"Answer","text":"Mostly for cost predictability. Railway charges a plan fee plus metered CPU, memory, database, storage, and egress usage, idle services still bill, and the interaction of plan fee, included usage, and credits is hard to forecast. It is real metered usage rather than overcharging, but teams often prefer a flat number once an app is in production."}},
+{"@type":"Question","name":"How do I export my Railway database?","acceptedAnswer":{"@type":"Answer","text":"Use the connection URL Railway provides for the database service and run pg_dump with the custom-format flag, then restore into your new managed database with pg_restore and the no-owner flag. For MySQL use mysqldump and mysql. Verify by comparing row counts on a few important tables before you cut over."}},
+{"@type":"Question","name":"How do I get my environment variables out of Railway?","acceptedAnswer":{"@type":"Answer","text":"Use the Railway CLI variables command to list them for a service, and repeat per service since variables are scoped that way. Then set them on your new app, changing the database and Redis URLs to the new managed instances. Verify nothing is missing before deploying, since an unset variable is the usual cause of a first-boot crash."}},
+{"@type":"Question","name":"What about my Railway volume and uploaded files?","acceptedAnswer":{"@type":"Answer","text":"Volumes are not included in a database dump, so copy that content separately. Either move it to the server's disk if it is small, or better, to S3-compatible object storage so files survive server changes and can be shared across instances. If your code already uses the AWS SDK, that is a config change rather than a rewrite."}},
+{"@type":"Question","name":"Will my Node app need code changes?","acceptedAnswer":{"@type":"Answer","text":"Rarely. If your app reads its config from environment variables, the main change is pointing DATABASE_URL and REDIS_URL at the new managed instances. Processes that were separate Railway services become entries in a PM2 ecosystem file. The build and start commands generally carry over unchanged."}},
+{"@type":"Question","name":"Should I delete my Railway project after migrating?","acceptedAnswer":{"@type":"Answer","text":"Yes, once you have verified the new setup and no longer need rollback. On a metered platform an idle service still consumes resources and bills, so leaving the old project parked keeps costing you. Keep it for a few days as a rollback path, take a final database dump, then tear it down deliberately."}}
+]}
+]}
+</script>
+</body>
+</html>

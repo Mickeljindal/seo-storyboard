@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Migrate a Node.js App from Render to Kloudbean</title>
+<meta name="description" content="Leaving Render because of cold starts, an expiring free database, or cost? Here's the migration runbook: map services to processes, export env vars, move Postgres before it expires, cut over DNS, and keep a rollback.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/migrate-render-to-kloudbean/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Migrate a Node.js App from Render to Kloudbean">
+<meta property="og:description" content="A runbook for moving a Node app off Render: map web services and workers to PM2 processes, export env vars, move Postgres before expiry, cut over DNS, keep a rollback.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Migration · Render · Node.js</span>
+  <h1>How to Migrate a Node.js App from Render to Kloudbean</h1>
+  <p class="byline">By Kloudbean Engineering · If your free database has an expiry date, that's your deadline.</p>
+
+  <figure><img src="images/hero.png" alt="A Render web service and Postgres database being moved onto a Kloudbean server with a managed database"></figure>
+
+  <p class="lead">People leave Render for three fairly specific reasons: free services that spin down and cold-start on the first visitor, a free Postgres instance with an expiry clock on it, or a bill that grew as they added a worker and a paid database. If any of those is your situation, the move is straightforward, Render's model is close enough to a normal server that there's no rearchitecting involved. This is the runbook: what to inventory, how services map to processes, the database commands, and the cutover.</p>
+
+  <div class="tldr">
+    <strong>How do I migrate from Render to Kloudbean?</strong>
+    <p>Inventory your Render services (web service, workers, cron jobs), your environment variables, and your database. Create the equivalents on Kloudbean: one always-on server running your app and workers under PM2, plus a managed PostgreSQL database. Copy env vars over, changing <code>DATABASE_URL</code> to the new instance. Dump and restore your data with <code>pg_dump</code> and <code>pg_restore</code>, verify on the temporary URL, then switch DNS. If you're on Render's free Postgres, do the dump now rather than near the expiry date.</p>
+  </div>
+
+  <h2>First, if you're on the free tier: check your deadline</h2>
+  <p>Two Render free-tier behaviors are time-sensitive, so deal with them before anything else. Free web services spin down after roughly 15 minutes of inactivity and take about a minute to cold-start on the next request, per Render's docs. Annoying, but not urgent. The urgent one is the database: free PostgreSQL instances expire around 30 days after creation and are deleted after a grace period. If that's your setup, take a backup today, before you plan anything:</p>
+  <pre><code># Do this first if you're on free Postgres
+pg_dump "postgres://user:pass@host.oregon-postgres.render.com/dbname" -Fc -f render.dump</code></pre>
+  <p>Now you have a copy off the platform and the clock stops being scary. We covered that expiry in detail in <a href="https://www.kloudbean.com/blog/render-free-database-expiry/">Render's free Postgres expiry</a>, and the cold-start behavior in <a href="https://www.kloudbean.com/blog/render-cold-starts-fix/">Render cold starts</a>.</p>
+
+  <h2>Stage 1: inventory what you're running</h2>
+  <p>Render splits an app into separate services, so list them all before you move:</p>
+  <ul>
+    <li><strong>Web services</strong>: your Node app, its build command, start command, and instance type.</li>
+    <li><strong>Background workers</strong>: any separate worker services and what they consume.</li>
+    <li><strong>Cron jobs</strong>: scheduled tasks and their commands.</li>
+    <li><strong>Environment variables</strong>, per service. Note which are shared.</li>
+    <li><strong>Databases</strong>: Postgres, plus Redis or Key Value if you use it, and their regions.</li>
+    <li><strong>Custom domains and SSL</strong>, plus current DNS records and TTLs.</li>
+    <li><strong>Disks</strong> or persistent storage, if any, and what writes to them.</li>
+  </ul>
+  <p>The value here is catching the things that aren't your main app. A worker or a cron job that nobody thinks about until it silently stops running is the classic post-migration bug.</p>
+
+  <h2>Stage 2: how Render concepts map to Kloudbean</h2>
+  <p>Render gives you a service per process, each with its own instance and price. On Kloudbean you get a server that runs multiple processes under PM2, with managed data services alongside:</p>
+
+  <table class="cmp">
+    <thead><tr><th>On Render</th><th>On Kloudbean</th></tr></thead>
+    <tbody>
+      <tr><td>Web service (paid, to avoid spin-down)</td><td>Node app always-on under PM2, no spin-down</td></tr>
+      <tr><td>Background worker service</td><td>A second PM2 process on the same server</td></tr>
+      <tr><td>Cron job service</td><td>Cron jobs from the dashboard</td></tr>
+      <tr><td>Render Postgres (free one expires)</td><td>Managed PostgreSQL, no expiry, automatic backups</td></tr>
+      <tr><td>Key Value / Redis</td><td>Managed Redis</td></tr>
+      <tr><td>Environment variables per service</td><td>Environment variables per app</td></tr>
+      <tr><td>Auto-deploy from Git</td><td>GitHub deploys with live build logs</td></tr>
+    </tbody>
+  </table>
+
+  <p>The build and start commands carry over almost unchanged, which is why this migration is one of the easier ones. Your <code>npm ci &amp;&amp; npm run build</code> stays the same; the start command becomes a PM2 process:</p>
+  <pre><code>// ecosystem.config.js
+module.exports = {
+  apps: [
+    { name: "web",    script: "dist/server.js" },
+    { name: "worker", script: "dist/worker.js" },
+  ],
+};</code></pre>
+
+  <h2>Stage 3: move the database</h2>
+  <p>Create your managed PostgreSQL database, then dump from Render and restore. Grab Render's External Database URL from its dashboard page:</p>
+  <pre><code># Dump from Render
+pg_dump "postgres://user:pass@host.oregon-postgres.render.com/dbname" -Fc -f render.dump
+
+# Restore into the new managed database
+pg_restore --no-owner -d "postgres://user:pass@new-host:5432/appdb" render.dump
+
+# Verify: compare counts on your biggest tables
+psql "postgres://user:pass@new-host:5432/appdb" -c "SELECT count(*) FROM users;"</code></pre>
+  <p>Keep the app and database in the same region. A documented Heroku-to-Render migration had to move its database between regions because of where the new platform ran, which added unplanned latency work. Choosing matching regions up front avoids that entirely.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="Launching a managed PostgreSQL database with backups in the Kloudbean console">
+    <figcaption>Launch managed PostgreSQL with automatic backups and no expiry clock, then restore your Render dump into it.</figcaption>
+  </figure>
+
+  <h2>Stage 4: environment variables</h2>
+  <p>Copy each service's environment variables from the Render dashboard into your Kloudbean app, then change two things: point <code>DATABASE_URL</code> (and <code>REDIS_URL</code> if you have one) at the new managed instances, and drop anything Render-specific you no longer need. Do this before you deploy. A missing variable is the most common reason an app crashes on its first boot somewhere new, which is the whole subject of our <a href="https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/">deploy crash field guide</a>.</p>
+
+  <h2>Stage 5: verify, then cut over</h2>
+  <p>Deploy from GitHub and test on the temporary URL while Render still serves production. Then:</p>
+  <ol>
+    <li>Lower your DNS TTL to 300 seconds a day ahead.</li>
+    <li>Exercise the app properly: log in, hit the endpoints that matter, trigger a job, confirm the worker consumes it, run a cron command by hand.</li>
+    <li>In a quiet window, take a final <code>pg_dump</code> from Render and restore, so writes during testing aren't lost.</li>
+    <li>Point DNS at Kloudbean and issue SSL for your domain.</li>
+    <li>Watch logs and errors for the first hour.</li>
+    <li>Leave the Render service up for a few days so rollback is just a DNS change.</li>
+  </ol>
+  <p>Sequenced like this, real downtime is measured in seconds, not hours. One well-documented migration of a mature app reported roughly 90 seconds of hard downtime at final cutover, which is a reasonable expectation when you do the final dump inside a maintenance window.</p>
+
+  <h2>What changes for the better</h2>
+  <p>The headline difference is that nothing sleeps. Your Node app runs always-on under PM2, so the first request of the morning is as fast as the hundredth, and there's no keep-warm cron to maintain. Your database has no expiry clock and takes automatic backups. The app, its worker, the database, and Redis all sit in one dashboard on one flat plan from $8/mo rather than a service-per-process bill, and there's no egress metering. Migration help is included if you'd rather we ran the steps above with you.</p>
+  <p>Fair credit: Render's Git-based deploys and clean service model are genuinely pleasant, and its free tier is a legitimate way to prototype something you don't mind sleeping. The reason to move is when the app stops being a prototype, at which point always-on and a database that doesn't expire are worth more than a free tier.</p>
+
+  <h2>Related reading</h2>
+  <p>Context and companions: <a href="https://www.kloudbean.com/blog/render-vs-railway-vs-kloudbean/">Render vs Railway vs Kloudbean</a> for the model comparison, <a href="https://www.kloudbean.com/blog/render-cold-starts-fix/">Render cold starts</a> and <a href="https://www.kloudbean.com/blog/render-free-database-expiry/">free Postgres expiry</a> for the two triggers, plus <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a>, <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>, and <a href="https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/">how to migrate hosting with zero downtime</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Move to a server that never sleeps.</p>
+    <p style="margin:0 0 .6em">Run your Node app and worker always-on under PM2 with managed PostgreSQL that doesn't expire, all in one dashboard on a flat plan from $8/mo. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">No spin-down · Managed Postgres with backups, no expiry · Free migration · GitHub deploys · Flat from $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Why do people migrate off Render?</h3>
+    <p>Three common triggers: free web services spinning down and cold-starting on the first request, free PostgreSQL instances expiring after about 30 days and then being deleted, and a bill that grows once you add a paid instance, a worker, and a database. Teams also move to consolidate a service-per-process setup onto one plan.</p>
+
+    <h3>How do I export my database from Render?</h3>
+    <p>Copy the External Database URL from the database's page in the Render dashboard and run <code>pg_dump</code> with the <code>-Fc</code> flag to produce a compressed dump, then restore it with <code>pg_restore --no-owner</code>. If you're on a free instance, do this now rather than near the expiry date, since the database is deleted after its grace period.</p>
+
+    <h3>Do I need to change my code to migrate off Render?</h3>
+    <p>Usually not. Your build and start commands carry over, and the app should already read config from environment variables. The main changes are pointing <code>DATABASE_URL</code> at the new managed database and defining your processes in a PM2 ecosystem file instead of separate Render services.</p>
+
+    <h3>What happens to my Render workers and cron jobs?</h3>
+    <p>Worker services become extra PM2 processes on the same server, so you're not paying per service, and Render cron jobs become cron jobs you configure in the dashboard. Test both explicitly after deploying: a worker that isn't consuming or a cron that never fires is the classic thing missed during a migration.</p>
+
+    <h3>Will migrating stop the cold starts?</h3>
+    <p>Yes, if you move to an always-on process. Cold starts exist because a free service scales to zero; on Kloudbean the Node app runs continuously under PM2, so there's no spin-down and no keep-warm ping to maintain. The first request after an idle period is as fast as any other.</p>
+
+    <h3>How much downtime should I expect?</h3>
+    <p>Seconds to a couple of minutes if you sequence it well. Keep Render serving traffic while you deploy and test, lower your DNS TTL beforehand, then take a final database dump and switch DNS in a quiet window. A documented migration of a mature production app reported around 90 seconds of hard downtime at cutover.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Back up first, test on the temp URL, switch DNS last.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Migrate a Node.js App from Render to Kloudbean","description":"A runbook for moving a Node app off Render: map web services and workers to PM2 processes, export env vars, move Postgres before expiry, cut over DNS, keep a rollback.","image":"https://www.kloudbean.com/blog/migrate-render-to-kloudbean/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/migrate-render-to-kloudbean/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Why do people migrate off Render?","acceptedAnswer":{"@type":"Answer","text":"Three common triggers: free web services spinning down and cold-starting on the first request, free PostgreSQL instances expiring after about 30 days and then being deleted, and a bill that grows once you add a paid instance, a worker, and a database. Teams also move to consolidate a service-per-process setup onto one plan."}},
+{"@type":"Question","name":"How do I export my database from Render?","acceptedAnswer":{"@type":"Answer","text":"Copy the External Database URL from the database's page in the Render dashboard and run pg_dump with the custom-format flag to produce a compressed dump, then restore it with pg_restore and the no-owner flag. If you are on a free instance, do this now rather than near the expiry date, since the database is deleted after its grace period."}},
+{"@type":"Question","name":"Do I need to change my code to migrate off Render?","acceptedAnswer":{"@type":"Answer","text":"Usually not. Your build and start commands carry over, and the app should already read config from environment variables. The main changes are pointing DATABASE_URL at the new managed database and defining your processes in a PM2 ecosystem file instead of separate Render services."}},
+{"@type":"Question","name":"What happens to my Render workers and cron jobs?","acceptedAnswer":{"@type":"Answer","text":"Worker services become extra PM2 processes on the same server, so you are not paying per service, and Render cron jobs become cron jobs you configure in the dashboard. Test both explicitly after deploying: a worker that is not consuming or a cron that never fires is the classic thing missed during a migration."}},
+{"@type":"Question","name":"Will migrating stop the cold starts?","acceptedAnswer":{"@type":"Answer","text":"Yes, if you move to an always-on process. Cold starts exist because a free service scales to zero; on Kloudbean the Node app runs continuously under PM2, so there is no spin-down and no keep-warm ping to maintain. The first request after an idle period is as fast as any other."}},
+{"@type":"Question","name":"How much downtime should I expect?","acceptedAnswer":{"@type":"Answer","text":"Seconds to a couple of minutes if you sequence it well. Keep Render serving traffic while you deploy and test, lower your DNS TTL beforehand, then take a final database dump and switch DNS in a quiet window. A documented migration of a mature production app reported around 90 seconds of hard downtime at cutover."}}
+]}
+]}
+</script>
+</body>
+</html>
