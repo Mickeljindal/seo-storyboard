@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Structured Logging in Node.js: Stop Using console.log in Production</title>
+<meta name="description" content="console.log gives you unsearchable text. Structured JSON logging with Pino gives you queryable events: levels, request IDs, redacted secrets, and logs you can actually debug with. Here's how to set it up.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/structured-logging-nodejs/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Structured Logging in Node.js: Stop Using console.log in Production">
+<meta property="og:description" content="How to set up structured JSON logging in Node.js with Pino: log levels, request IDs for tracing, redacting secrets, and why you should log to stdout.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Node.js · Production · Observability</span>
+  <h1>Structured Logging in Node.js: Stop Using console.log in Production</h1>
+  <p class="byline">By Kloudbean Engineering · At 2am you don't want to read logs. You want to search them.</p>
+
+  <figure><img src="images/hero.png" alt="Plain console.log text output next to structured JSON logs with levels and request IDs"></figure>
+
+  <p class="lead">There's a moment every Node developer hits: something broke in production twenty minutes ago, you open the logs, and you're scrolling through thousands of lines of <code>console.log("here")</code> and half-formatted objects trying to piece together what one user's request actually did. You can't filter by severity. You can't follow a single request. That's the cost of unstructured logs. Structured logging fixes it by making every log line a machine-readable event you can query, and in Node it's about fifteen minutes of work.</p>
+
+  <div class="tldr">
+    <strong>What is structured logging in Node.js?</strong>
+    <p>Structured logging means emitting logs as machine-readable JSON objects with consistent fields (level, timestamp, message, plus your own context) instead of free-form text. That makes logs searchable and filterable: you can query all errors, or every line belonging to one request ID. In Node, use a fast logger like Pino, write JSON to stdout, attach a request ID to every log, and redact secrets. Skip <code>console.log</code> in production.</p>
+  </div>
+
+  <h2>Why console.log fails in production</h2>
+  <p>It's fine locally, where you're watching one request at a time. In production it falls apart for concrete reasons. There's no severity, so an error looks exactly like a debug note and you can't filter noise from emergencies. There's no structure, so you can't query "all failures for user 4821." Concurrent requests interleave, so a single user's story is shredded across unrelated lines. Objects get stringified inconsistently, sometimes as <code>[object Object]</code>. And <code>console.log</code> can behave synchronously depending on where its output goes, which means high-volume logging can actually block your event loop and slow down request handling. That last one surprises people, and it's a real performance argument, not a style preference.</p>
+
+  <h2>What a structured log looks like</h2>
+  <p>Here's the difference in practice. Unstructured:</p>
+  <pre><code>Payment failed for user 4821</code></pre>
+  <p>Structured:</p>
+  <pre><code>{"level":"error","time":1754006400000,"reqId":"c3f1a2","userId":4821,"orderId":"ord_92","msg":"payment failed","err":"card_declined"}</code></pre>
+  <p>The second one you can search. Filter by <code>level: error</code>, group by <code>err</code>, pull every line with that <code>reqId</code> to replay the whole request. Same information, but now a log aggregator (or plain <code>jq</code>) can answer questions instead of you reading prose.</p>
+
+  <h2>Setting up Pino</h2>
+  <p>Pino is the standard choice in Node for a reason: it's fast, writes JSON by default, and stays out of the way. Install it and create a logger:</p>
+  <pre><code>// logger.js
+import pino from "pino";
+
+export const logger = pino({
+  level: process.env.LOG_LEVEL || "info",
+  redact: ["req.headers.authorization", "password", "token", "*.secret"],
+});</code></pre>
+  <p>Then log events with context objects rather than concatenated strings:</p>
+  <pre><code>logger.info({ userId: user.id, plan: "pro" }, "subscription created");
+logger.warn({ retries: 3, host: "smtp.example.com" }, "email retry limit reached");
+logger.error({ err, orderId }, "payment failed");</code></pre>
+  <p>Notice the shape: object first, message second. The object becomes queryable fields; the message stays human-readable. That's the whole discipline, and it pays off the first time you need to answer a question about production.</p>
+
+  <h2>Log levels, and picking one</h2>
+  <p>Levels are how you separate signal from noise. Pino's ladder runs <code>trace</code>, <code>debug</code>, <code>info</code>, <code>warn</code>, <code>error</code>, <code>fatal</code>. Set the threshold with an environment variable so you can run <code>debug</code> locally and <code>info</code> in production without touching code. My rule of thumb: <code>info</code> for business events worth knowing about (a signup, an order), <code>warn</code> for something recovered but suspicious (a retry, a degraded dependency), <code>error</code> for a request that failed, and <code>fatal</code> for the app going down. Resist logging everything at <code>info</code>, that's how you end up back where you started with unsearchable noise, just in JSON.</p>
+
+  <h2>Request IDs: the feature that saves debugging</h2>
+  <p>This is the single highest-value habit here. Give every incoming request a unique ID, put it on the logger for that request, and every line produced while handling it carries the same ID. Then one filter reconstructs the entire request:</p>
+  <pre><code>import { randomUUID } from "crypto";
+
+app.use((req, res, next) => {
+  req.id = req.headers["x-request-id"] || randomUUID();
+  req.log = logger.child({ reqId: req.id });   // child logger with context
+  res.setHeader("x-request-id", req.id);
+  next();
+});
+
+// Later, anywhere in the request
+app.post("/orders", async (req, res) => {
+  req.log.info({ items: req.body.items.length }, "creating order");
+  // ...
+});</code></pre>
+  <p>The <code>child()</code> logger is the trick: it inherits config and permanently attaches <code>reqId</code> so you never pass it around manually. Honoring an incoming <code>x-request-id</code> header also lets you trace a request across services, which matters once you have more than one.</p>
+
+  <h2>Never log secrets</h2>
+  <p>Logs get shipped, stored, and read by people, so treat them as a place secrets can leak. Two habits prevent almost all of it. Use your logger's <code>redact</code> option (shown above) to strip authorization headers, passwords, tokens, and API keys automatically. And never log a whole request or user object without thinking, <code>logger.info(req.body)</code> is how card details and passwords end up in a log aggregator forever. Log the fields you need, not the object you happen to have. This is one of those things that costs nothing up front and is genuinely painful to clean up later.</p>
+
+  <h2>Log to stdout, not to files</h2>
+  <p>Write logs to stdout and let the platform handle the rest. Your app shouldn't own log rotation, disk space, or shipping, and writing to a local file on an ephemeral server means the logs disappear with the server. Process managers and platforms capture stdout, and that's the interface everything else understands. If you want pretty output locally, pipe it rather than changing what your app emits:</p>
+  <pre><code># Human-readable logs in development only
+node app.js | npx pino-pretty</code></pre>
+  <p>Keep production emitting raw JSON. Pretty-printing in production just makes the output harder to parse.</p>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>console.log</th><th>Structured (Pino)</th></tr></thead>
+    <tbody>
+      <tr><td>Format</td><td>Free-form text</td><td>JSON with consistent fields</td></tr>
+      <tr><td>Severity levels</td><td>None</td><td>trace to fatal, filterable</td></tr>
+      <tr><td>Searchable</td><td>Text matching only</td><td>Query by any field</td></tr>
+      <tr><td>Trace one request</td><td>Manual guesswork</td><td>Filter by request ID</td></tr>
+      <tr><td>Secret redaction</td><td>Manual, easy to forget</td><td>Built-in redact config</td></tr>
+      <tr><td>Performance</td><td>Can block the event loop</td><td>Designed to be low-overhead</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Reading logs on Kloudbean</h2>
+  <p>Structured logs only pay off if you can get at them. On Kloudbean your Node app runs always-on under PM2 with its output captured, so writing JSON to stdout means your logs are there in the console when you need them, alongside live build logs from your GitHub deploys. Because the app is a persistent process rather than short-lived functions, a request ID actually follows a full request through one process, which makes tracing straightforward. Ship the JSON to an external aggregator later if you want dashboards; the point is your app's logging stays simple and portable either way.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="Live logs from a Node app deployment in the Kloudbean console">
+    <figcaption>Logs and live build output in the console, so structured JSON on stdout is immediately useful.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>Logging is one leg of production visibility. Pair it with <a href="https://www.kloudbean.com/blog/nodejs-health-checks/">Node.js health checks</a> and <a href="https://www.kloudbean.com/blog/uptime-monitoring/">uptime monitoring</a> so you know when to go looking, and keep <code>LOG_LEVEL</code> and friends tidy with <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>. When logs point at a crash, the <a href="https://www.kloudbean.com/blog/pm2-app-keeps-restarting/">PM2 restart guide</a> and <a href="https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/">deploy crash field guide</a> take it from there.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Logs you can search when it matters.</p>
+    <p style="margin:0 0 .6em">Run always-on Node under PM2 with output captured in the console and live build logs on every GitHub deploy, so structured JSON logging is useful from day one. Flat pricing from $8/mo. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Always-on under PM2 · Logs in the console · Live build logs · GitHub deploys · Flat from $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Why shouldn't I use console.log in production?</h3>
+    <p>Because it produces unstructured text with no severity levels, so you can't filter or query it, concurrent requests interleave into an unreadable stream, and objects stringify inconsistently. It can also behave synchronously depending on the output destination, so heavy logging may block the event loop. A structured logger fixes all of that.</p>
+
+    <h3>What's the best logging library for Node.js?</h3>
+    <p>Pino is the common default: it emits JSON by default, is built for low overhead, and supports child loggers and redaction. Winston is another established option with more transport flexibility. Either is a big improvement over <code>console.log</code>; the important part is structured JSON output and consistent fields.</p>
+
+    <h3>How do I trace a single request through my logs?</h3>
+    <p>Assign every request a unique ID in middleware, create a child logger with that ID attached, and use it for all logging during the request. Then filter your logs by that ID to see the whole story in order. Honor an incoming <code>x-request-id</code> header so the same ID can follow a request across services.</p>
+
+    <h3>How do I keep secrets out of my logs?</h3>
+    <p>Use your logger's redaction config to automatically strip fields like authorization headers, passwords, tokens, and API keys. Beyond that, log specific fields rather than whole request or user objects, since <code>logger.info(req.body)</code> is the usual way credentials end up stored in a log system. Assume anything logged will be read by someone.</p>
+
+    <h3>Should I log to a file or stdout?</h3>
+    <p>Write to stdout and let the platform capture it. Your app shouldn't manage rotation or disk space, and files on an ephemeral server vanish with it. Process managers and hosting platforms collect stdout, and log shippers read from there, so stdout is the portable interface. Pretty-print locally by piping the output, not by changing what the app emits.</p>
+
+    <h3>What log level should I use in production?</h3>
+    <p>Usually <code>info</code>, with <code>warn</code> and <code>error</code> above it, and keep <code>debug</code> for local work. Set the threshold from an environment variable so you can change it without a code change. Be selective about what you log at <code>info</code>, logging everything there recreates the noise problem in JSON form.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Log events with fields, not sentences.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Structured Logging in Node.js: Stop Using console.log in Production","description":"How to set up structured JSON logging in Node.js with Pino: log levels, request IDs for tracing, redacting secrets, and why you should log to stdout.","image":"https://www.kloudbean.com/blog/structured-logging-nodejs/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/structured-logging-nodejs/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Why shouldn't I use console.log in production?","acceptedAnswer":{"@type":"Answer","text":"Because it produces unstructured text with no severity levels, so you cannot filter or query it, concurrent requests interleave into an unreadable stream, and objects stringify inconsistently. It can also behave synchronously depending on the output destination, so heavy logging may block the event loop. A structured logger fixes all of that."}},
+{"@type":"Question","name":"What's the best logging library for Node.js?","acceptedAnswer":{"@type":"Answer","text":"Pino is the common default: it emits JSON by default, is built for low overhead, and supports child loggers and redaction. Winston is another established option with more transport flexibility. Either is a big improvement over console.log; the important part is structured JSON output and consistent fields."}},
+{"@type":"Question","name":"How do I trace a single request through my logs?","acceptedAnswer":{"@type":"Answer","text":"Assign every request a unique ID in middleware, create a child logger with that ID attached, and use it for all logging during the request. Then filter your logs by that ID to see the whole story in order. Honor an incoming x-request-id header so the same ID can follow a request across services."}},
+{"@type":"Question","name":"How do I keep secrets out of my logs?","acceptedAnswer":{"@type":"Answer","text":"Use your logger's redaction config to automatically strip fields like authorization headers, passwords, tokens, and API keys. Beyond that, log specific fields rather than whole request or user objects, since logging an entire request body is the usual way credentials end up stored in a log system. Assume anything logged will be read by someone."}},
+{"@type":"Question","name":"Should I log to a file or stdout?","acceptedAnswer":{"@type":"Answer","text":"Write to stdout and let the platform capture it. Your app should not manage rotation or disk space, and files on an ephemeral server vanish with it. Process managers and hosting platforms collect stdout, and log shippers read from there, so stdout is the portable interface. Pretty-print locally by piping the output, not by changing what the app emits."}},
+{"@type":"Question","name":"What log level should I use in production?","acceptedAnswer":{"@type":"Answer","text":"Usually info, with warn and error above it, and keep debug for local work. Set the threshold from an environment variable so you can change it without a code change. Be selective about what you log at info, logging everything there recreates the noise problem in JSON form."}}
+]}
+]}
+</script>
+</body>
+</html>
