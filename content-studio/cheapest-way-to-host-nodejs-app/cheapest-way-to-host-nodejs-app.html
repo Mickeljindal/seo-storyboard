@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Cheapest Way to Host a Node.js App (and What Cheap Actually Costs)</title>
+<meta name="description" content="Free tiers, cheap VPSes, and usage-based platforms all look cheap in different ways. Here's how to compare the whole cost of hosting a Node.js app, including the parts that don't appear on the invoice.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/cheapest-way-to-host-nodejs-app/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="The Cheapest Way to Host a Node.js App (and What Cheap Actually Costs)">
+<meta property="og:description" content="How to compare the real cost of hosting a Node app: free tiers, cheap VPSes, usage meters, and the hidden line items that make cheap expensive.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Cost · Node.js hosting</span>
+  <h1>The Cheapest Way to Host a Node.js App (and What Cheap Actually Costs)</h1>
+  <p class="byline">By Kloudbean Engineering · The sticker price is the least interesting number on the page.</p>
+
+  <figure><img src="images/hero.png" alt="A cost breakdown comparing a free tier, a cheap VPS, a usage-metered platform, and a flat managed plan"></figure>
+
+  <p class="lead">"Cheapest" is a genuinely reasonable thing to optimize for, especially early. The trap is that hosting costs come in four different shapes, and comparing them by their headline number is like comparing a lease payment to a purchase price. A free tier, a $5 VPS, a usage meter, and a flat managed plan can all be the cheapest option depending on your traffic and how much of your own time you're willing to spend. This article gives you a way to work out which one is actually cheapest for you, without pretending prices we can't verify.</p>
+
+  <div class="tldr">
+    <strong>What's the cheapest way to host a Node.js app?</strong>
+    <p>It depends on stage. For a demo or learning project, a free tier is cheapest, accepting that it sleeps and the first visitor waits. For a real app, the cheapest option is usually a flat plan that bundles the app, its database, and bandwidth, because per-piece and per-usage billing add up faster than a single server does. A bare VPS is cheapest on the invoice and most expensive in your time, since patching, backups, and incidents become your job.</p>
+  </div>
+
+  <h2>The four cost shapes</h2>
+  <p>Every Node hosting option is one of these. Recognize the shape and you'll stop comparing apples to invoices:</p>
+  <ol>
+    <li><strong>Free tier.</strong> Costs nothing in money. Pays for it with scale-to-zero: the app sleeps when idle and cold-starts on the next request. Often the database is time-limited too.</li>
+    <li><strong>Cheap unmanaged VPS.</strong> A small fixed monthly fee for a box. Cheapest invoice available. You own the OS, the patching, the process manager, the reverse proxy, SSL renewal, backups, monitoring, and the 2am incident.</li>
+    <li><strong>Usage-metered platform.</strong> A plan fee plus consumption: CPU, memory, database, storage, and egress. Efficient when you're tiny or spiky, hard to forecast, and it can move sharply for reasons you didn't cause.</li>
+    <li><strong>Flat managed plan.</strong> One predictable monthly number that includes the managed server, the stack, and usually a database and bandwidth. Costs more than a free tier and often less than a metered platform once traffic is real.</li>
+  </ol>
+
+  <h2>Count the whole stack, not the app</h2>
+  <p>This is where most cost comparisons go wrong. People compare the price of running the app process and forget that a working app needs more than that. Before you decide anything cheap, write down what you actually need:</p>
+  <ul>
+    <li>The app process itself.</li>
+    <li>A background worker, if you have queues or scheduled jobs. On per-service platforms that's a second billable thing.</li>
+    <li>A database, and whether it's free-but-expiring or a real paid instance.</li>
+    <li>Redis, if you cache or run a queue.</li>
+    <li>A staging environment, if you'd rather not test in production.</li>
+    <li>Bandwidth, and whether it's metered.</li>
+    <li>Object storage for uploads, if files can't live on an ephemeral disk.</li>
+  </ul>
+  <p>A single app process is cheap almost everywhere. Five separately billed pieces is where a bill stops being cheap, which is exactly the pattern behind Heroku sticker shock: a web dyno plus a worker plus Postgres plus Redis plus staging, each priced on its own.</p>
+
+  <h2>The costs that never appear on the invoice</h2>
+  <p>Three real expenses that no pricing page lists, and they're often bigger than the hosting:</p>
+  <p><strong>Your time.</strong> A cheap unmanaged VPS is the clearest example. Patching, configuring PM2 and Nginx, renewing certificates, setting up backups, and actually testing that a restore works is a day of setup and then recurring hours forever. If an hour of your time is worth anything at all, a few dollars of monthly difference disappears fast. Self-hosting is genuinely great value if you enjoy ops and would do it anyway. It's a bad deal if you're doing it purely to save the price of a couple of coffees.</p>
+  <p><strong>Cold starts.</strong> On a free tier the first visitor after an idle stretch waits, often around a minute. That cost lands on a potential customer, a webhook that times out, or a crawler recording a slow response. It's free in dollars and not free in outcomes.</p>
+  <p><strong>Bill variance.</strong> On a metered platform, an unexpected spike is a real financial risk. Developers have reported surprise invoices driven mostly by data transfer, and bot traffic hitting a public endpoint is a recurring cause. Even when the usage is genuine and correctly billed, not knowing next month's number has a cost of its own.</p>
+
+  <h2>How the shapes compare</h2>
+  <table class="cmp">
+    <thead><tr><th>Shape</th><th>Cheapest when</th><th>Hidden cost</th><th>Cold starts</th></tr></thead>
+    <tbody>
+      <tr><td>Free tier</td><td>Demos, learning, genuinely idle projects</td><td>Sleeps, DB may expire</td><td>Yes</td></tr>
+      <tr><td>Cheap unmanaged VPS</td><td>You enjoy ops and have time</td><td>Your hours, no managed backups</td><td>No</td></tr>
+      <tr><td>Usage-metered platform</td><td>Tiny or very spiky traffic</td><td>Unpredictable, egress exposure</td><td>Sometimes</td></tr>
+      <tr><td>Flat managed plan</td><td>A real app with steady traffic</td><td>You pay for idle capacity</td><td>No</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Work out your own cheapest, in five minutes</h2>
+  <p>Skip the listicles and answer these:</p>
+  <ol>
+    <li><strong>Does anyone depend on it?</strong> If no, take a free tier. Genuinely. Save your money for when it matters.</li>
+    <li><strong>List your pieces.</strong> App, worker, database, Redis, staging, storage. Count how many things you'd pay for separately on each option.</li>
+    <li><strong>Estimate bandwidth.</strong> If you serve images, files, or large API responses, treat metered egress as a serious risk rather than a footnote.</li>
+    <li><strong>Price your own time.</strong> Pick any hourly figure. Multiply by the hours per month you'd spend on server maintenance. Add that to the VPS column.</li>
+    <li><strong>Ask what a bad month looks like.</strong> On a flat plan, the answer is the same as a good month. On a meter, work out the worst case and decide if you can absorb it.</li>
+  </ol>
+  <p>Whichever column wins that exercise is your cheapest option, and it won't be the same answer for everyone reading this.</p>
+
+  <h2>Where a flat plan wins</h2>
+  <p>For most apps past the demo stage, bundling beats itemizing. On Kloudbean a flat plan from $8/mo runs your Node app always-on under PM2, and the worker runs as a second process on the same server rather than as a second bill. A managed database sits in the same dashboard on a private network, egress isn't metered, and SSL, firewall hardening, backups, and the reverse proxy are handled rather than being your weekend. Free migration assistance covers moving in.</p>
+  <p>Being straight about the tradeoff: you pay for that server whether it's busy or idle, so if your project truly sits at zero traffic most of the month, a free tier is cheaper and you should use one. The flat plan wins when you have real traffic, more than one moving piece, or a bill you need to predict.</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="Launching a server on a flat plan in the Kloudbean console with provider choice">
+    <figcaption>One flat plan covering the app, its worker, and the managed stack, rather than a separate line per piece.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>Cost-specific deep dives: <a href="https://www.kloudbean.com/blog/heroku-cost-after-free-tier/">Heroku costs after the free tier</a> for per-piece billing, <a href="https://www.kloudbean.com/blog/why-is-my-railway-bill-so-high/">why is my Railway bill so high</a> for metered billing, and <a href="https://www.kloudbean.com/blog/render-cold-starts-fix/">Render cold starts</a> for what free actually costs. For choosing overall: <a href="https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/">best managed Node.js hosting</a> and <a href="https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/">where to deploy a Node.js app</a>. On scaling spend later, see <a href="https://www.kloudbean.com/blog/vertical-vs-horizontal-scaling/">vertical vs horizontal scaling</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">One number, whole stack.</p>
+    <p style="margin:0 0 .6em">Run your Node app and its worker always-on under PM2 with a managed database on a private network, no egress metering, and SSL, firewall, and backups handled, on a flat plan from $8/mo. Free trial and free migration assistance. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Flat from $8/mo · No egress metering · Managed database included in the dashboard · No cold starts · Free migration</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What's the cheapest way to host a Node.js app?</h3>
+    <p>For something nobody depends on, a free tier, accepting that it sleeps and the first visitor waits. For a real app, usually a flat plan that bundles the app, database, and bandwidth, since per-piece and per-usage billing add up faster. An unmanaged VPS has the cheapest invoice but costs the most of your own time.</p>
+
+    <h3>Can I host a Node.js app for free?</h3>
+    <p>Yes, on a free tier, with two documented catches to plan around: the service typically spins down when idle and cold-starts on the next request, and a free database may be time-limited and deleted after a grace period. That's fine for demos and learning. Take your own database backup early if any of the data matters.</p>
+
+    <h3>Is a cheap VPS cheaper than managed hosting?</h3>
+    <p>On the invoice, almost always. In total cost, often not. You take on OS patching, process management, reverse proxy and SSL setup, backups you have to test, monitoring, and incident response. Price your hours honestly and add them in. A VPS is great value if you'd enjoy that work anyway, and poor value if you're only doing it to save a few dollars.</p>
+
+    <h3>Why did my hosting bill go up when my traffic didn't?</h3>
+    <p>Usually because something metered moved: data transfer, invocations, CPU time, or a service that stayed up while idle. Bot traffic on a public endpoint is a common trigger, and it's traffic you didn't ask for. Check whether egress is metered on your plan, and turn on any available spend limits before you need them rather than after.</p>
+
+    <h3>How do I estimate my real hosting cost?</h3>
+    <p>List every piece you need running: app, worker, database, Redis, staging, and storage. Count how many of those each option bills separately. Estimate bandwidth if you serve files or large responses. Add a realistic figure for your own maintenance hours. Then compare totals rather than headline prices, and ask what a bad month looks like on each.</p>
+
+    <h3>Does flat pricing include the database and bandwidth?</h3>
+    <p>On Kloudbean the flat plan covers the server running your app and its processes, managed databases are provisioned in the same account and dashboard, and egress isn't metered, so bandwidth doesn't become a separate variable line. Compare that against platforms where the app, the worker, the database, and transfer are each priced independently.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Count the pieces, count your hours, then compare totals.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"The Cheapest Way to Host a Node.js App (and What Cheap Actually Costs)","description":"How to compare the real cost of hosting a Node app: free tiers, cheap VPSes, usage meters, and the hidden line items that make cheap expensive.","image":"https://www.kloudbean.com/blog/cheapest-way-to-host-nodejs-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/cheapest-way-to-host-nodejs-app/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What's the cheapest way to host a Node.js app?","acceptedAnswer":{"@type":"Answer","text":"For something nobody depends on, a free tier, accepting that it sleeps and the first visitor waits. For a real app, usually a flat plan that bundles the app, database, and bandwidth, since per-piece and per-usage billing add up faster. An unmanaged VPS has the cheapest invoice but costs the most of your own time."}},
+{"@type":"Question","name":"Can I host a Node.js app for free?","acceptedAnswer":{"@type":"Answer","text":"Yes, on a free tier, with two documented catches to plan around: the service typically spins down when idle and cold-starts on the next request, and a free database may be time-limited and deleted after a grace period. That is fine for demos and learning. Take your own database backup early if any of the data matters."}},
+{"@type":"Question","name":"Is a cheap VPS cheaper than managed hosting?","acceptedAnswer":{"@type":"Answer","text":"On the invoice, almost always. In total cost, often not. You take on OS patching, process management, reverse proxy and SSL setup, backups you have to test, monitoring, and incident response. Price your hours honestly and add them in. A VPS is great value if you would enjoy that work anyway, and poor value if you are only doing it to save a few dollars."}},
+{"@type":"Question","name":"Why did my hosting bill go up when my traffic didn't?","acceptedAnswer":{"@type":"Answer","text":"Usually because something metered moved: data transfer, invocations, CPU time, or a service that stayed up while idle. Bot traffic on a public endpoint is a common trigger, and it is traffic you did not ask for. Check whether egress is metered on your plan, and turn on any available spend limits before you need them rather than after."}},
+{"@type":"Question","name":"How do I estimate my real hosting cost?","acceptedAnswer":{"@type":"Answer","text":"List every piece you need running: app, worker, database, Redis, staging, and storage. Count how many of those each option bills separately. Estimate bandwidth if you serve files or large responses. Add a realistic figure for your own maintenance hours. Then compare totals rather than headline prices, and ask what a bad month looks like on each."}},
+{"@type":"Question","name":"Does flat pricing include the database and bandwidth?","acceptedAnswer":{"@type":"Answer","text":"On Kloudbean the flat plan covers the server running your app and its processes, managed databases are provisioned in the same account and dashboard, and egress is not metered, so bandwidth does not become a separate variable line. Compare that against platforms where the app, the worker, the database, and transfer are each priced independently."}}
+]}
+]}
+</script>
+</body>
+</html>
