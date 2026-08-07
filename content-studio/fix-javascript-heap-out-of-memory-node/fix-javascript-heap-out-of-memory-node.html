@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fix "JavaScript heap out of memory" in Node.js (Production Guide)</title>
+<meta name="description" content="Fix the Node.js 'JavaScript heap out of memory' error: what it means, the 60-second triage, raising --max-old-space-size, finding the real leak, and sizing your server right.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/fix-javascript-heap-out-of-memory-node/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Fix &quot;JavaScript heap out of memory&quot; in Node.js (Production Guide)">
+<meta property="og:description" content="The Node.js 'JavaScript heap out of memory' crash, explained and fixed: raise the heap limit to confirm, then find the leak or size the server, with real diagnosis commands.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Node.js · Troubleshooting</span>
+  <h1>Fix "JavaScript heap out of memory" in Node.js</h1>
+  <p class="byline">By Kloudbean Engineering · Raise the limit to confirm, then find the actual leak.</p>
+
+  <figure><img src="images/hero.png" alt="A Node.js process crashing with 'FATAL ERROR: JavaScript heap out of memory' and the path to diagnosing whether it's a leak or an undersized server"></figure>
+
+  <p class="lead">You deploy, traffic builds, and then the log ends with <code>FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory</code> and the process dies. The "JavaScript heap out of memory" error in Node.js means V8 tried to grow its heap past the limit and gave up. Raising that limit is the fast confirmation, not the cure. This guide gives you the 60-second triage, then the real fix: whether you're leaking memory or just running on a box that's too small.</p>
+
+  <div class="tldr">
+    <strong>How do I fix "JavaScript heap out of memory" in Node?</strong>
+    <p>Short term, raise the ceiling to confirm it's memory and buy breathing room: <code>NODE_OPTIONS=--max-old-space-size=2048</code> (megabytes). If the crash comes back no matter how high you set it, you have a leak, not a sizing problem: take a heap snapshot, find what keeps growing (usually an unbounded cache, uncleared timers, or listeners), and fix it. If memory is stable but simply larger than the server, give it more RAM. Bumping the flag forever just delays the same crash.</p>
+  </div>
+
+  <h2>What the error actually means</h2>
+  <p>Node runs on V8, and V8 keeps your objects in a managed heap with a hard ceiling. When your app allocates faster than the garbage collector can free, the heap grows toward that ceiling. Hit it, and V8 doesn't limp along, it aborts the whole process with that fatal error. So this isn't a warning you can ignore. It's a crash.</p>
+  <p>Two very different problems produce the identical message, and telling them apart is the whole game:</p>
+  <ul>
+    <li><strong>Undersized:</strong> your app genuinely needs more memory than the machine or container gives it. Memory usage is stable, just too high for the box.</li>
+    <li><strong>Leaking:</strong> your app holds references it never releases, so memory climbs forever until it hits the wall. More RAM only buys time before the same crash.</li>
+  </ul>
+  <p>Same symptom, opposite fixes. Guess wrong and you either overpay for a bigger server that still crashes, or you starve an app that was fine and just needed room.</p>
+
+  <h2>The 60-second triage</h2>
+  <p>Before you go leak-hunting, run one experiment. Raise the heap limit and watch what happens. This tells you which of the two problems you have.</p>
+<pre><code># Give V8 a bigger old-space heap, in MB. Set it where your app starts.
+NODE_OPTIONS=--max-old-space-size=2048 node server.js
+
+# or bake it into the start script (package.json)
+"scripts": {
+  "start": "node --max-old-space-size=2048 server.js"
+}</code></pre>
+  <p>Now read the result like a test:</p>
+  <ul>
+    <li><strong>It stops crashing and memory settles</strong> at, say, 1.2GB and holds steady. You were undersized. The fix is a server with enough RAM, or trimming what you load into memory.</li>
+    <li><strong>It still crashes,</strong> just later, and climbs past whatever number you set. That's a leak. No flag value saves you. Go find it.</li>
+  </ul>
+  <p>One caution: don't set <code>--max-old-space-size</code> higher than the RAM the machine actually has. If you tell V8 it has 8GB of heap on a 2GB box, the OS kills the process (or the container OOM-kills it) before V8 ever throws, and you lose the nice error message that was helping you.</p>
+
+  <h2>The real causes, and how to fix each</h2>
+  <p>When it's a leak, it's almost always one of a short list of usual suspects. I've debugged the same handful more times than I can count.</p>
+  <p><strong>Unbounded caches and maps.</strong> A module-level <code>Map</code> or object you keep adding to and never evict. It looks like a cache; it's a memory leak with good intentions. Fix it with a bounded cache (an LRU with a max size) or move the cache out of process into Redis.</p>
+  <p><strong>Listeners and timers you never clean up.</strong> Every <code>setInterval</code>, every <code>emitter.on()</code> that's added per request and never removed, holds its closure alive. You'll often see the warning <code>MaxListenersExceededWarning</code> first. Remove listeners when you're done, and clear intervals on shutdown.</p>
+  <p><strong>Buffering big things into memory.</strong> Reading a whole file, upload, or query result into a variable at once. One 500MB file becomes 500MB of heap. Stream instead: <code>fs.createReadStream(...).pipe(res)</code>, cursor-based DB reads, chunked processing. Streaming is the single biggest win for memory-heavy Node apps.</p>
+  <p><strong>Closures holding large scopes.</strong> A callback that captures a big array or request object and lives on in a queue or cache keeps all of it alive. Keep only what you need.</p>
+  <p><strong>A genuinely bigger workload.</strong> Sometimes there's no bug. Concurrency went up, payloads got larger, and the app honestly needs more room. That's a sizing decision, not a code fix.</p>
+
+  <h2>How to find the leak</h2>
+  <p>Stop guessing and measure. Start with the cheapest signal and escalate.</p>
+  <p>First, log memory over time. If <code>heapUsed</code> only ever climbs, you're leaking:</p>
+<pre><code>setInterval(() =&gt; {
+  const m = process.memoryUsage();
+  console.log(
+    `rss=${(m.rss/1e6).toFixed(0)}MB heapUsed=${(m.heapUsed/1e6).toFixed(0)}MB`
+  );
+}, 30_000);</code></pre>
+  <p>Then take heap snapshots and compare them. Start the app with the inspector, open <code>chrome://inspect</code> in Chrome, connect, and grab a snapshot early and another after load. The objects that grew between the two are your leak:</p>
+<pre><code># start with the inspector open
+node --inspect server.js
+
+# or auto-capture a snapshot right before the crash (Node 15+)
+node --heapsnapshot-near-heap-limit=2 server.js</code></pre>
+  <p>For a guided view, <code>clinic doctor</code> and <code>clinic heapprofiler</code> from the Clinic.js toolkit draw the memory curve and point at the hot allocations without you reading raw snapshots. Either way, the goal is the same: find the object count that only goes up.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 380" width="100%" role="img" aria-label="A memory-over-time chart contrasting two Node processes. A healthy app rises then flattens into a sawtooth as garbage collection frees memory, staying well under the heap limit. A leaking app climbs steadily with no recovery until it crosses the heap-limit line and crashes with JavaScript heap out of memory." xmlns="http://www.w3.org/2000/svg">
+      <rect width="760" height="380" rx="16" fill="#f6f7fb"/>
+      <text x="380" y="34" text-anchor="middle" font-family="Poppins,sans-serif" font-size="16" font-weight="700" fill="#000f27">Leak vs healthy: memory over time</text>
+      <line x1="70" y1="300" x2="710" y2="300" stroke="#9fb0d8" stroke-width="1.5"/>
+      <line x1="70" y1="70" x2="70" y2="300" stroke="#9fb0d8" stroke-width="1.5"/>
+      <text x="40" y="80" font-family="JetBrains Mono,monospace" font-size="10" fill="#5b6a86">MB</text>
+      <text x="690" y="318" font-family="JetBrains Mono,monospace" font-size="10" fill="#5b6a86">time</text>
+
+      <line x1="70" y1="104" x2="710" y2="104" stroke="#e0574a" stroke-width="1.6" stroke-dasharray="6 5"/>
+      <text x="590" y="98" font-family="Poppins,sans-serif" font-size="11" font-weight="600" fill="#e0574a">heap limit</text>
+
+      <polyline points="70,290 150,250 210,270 280,225 340,250 410,215 480,240 560,210 640,235 710,208" fill="none" stroke="#40b75f" stroke-width="2.6"/>
+      <text x="470" y="196" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600" fill="#40b75f">healthy: GC keeps it flat</text>
+
+      <polyline points="70,292 160,262 250,232 340,200 430,170 520,140 610,116 660,106" fill="none" stroke="#4F1AF3" stroke-width="2.8"/>
+      <circle cx="668" cy="104" r="7" fill="#e0574a"/>
+      <text x="300" y="150" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600" fill="#4F1AF3">leak: climbs until it crashes</text>
+    </svg>
+    <figcaption>A healthy app sawtooths as garbage collection frees memory and holds a plateau. A leak climbs with no recovery until it crosses the limit and the process dies.</figcaption>
+  </figure>
+
+  <h2>Symptom to cause, fast</h2>
+  <table class="cmp">
+    <thead><tr><th>What you see</th><th>Likely cause</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td>Memory climbs forever, never drops</td><td>Leak (unbounded cache, listeners)</td><td>Heap snapshot, bound the cache, remove listeners</td></tr>
+      <tr><td>Crash only on big files or exports</td><td>Buffering into memory</td><td>Stream with pipes / cursors</td></tr>
+      <tr><td>Stable memory, just too high</td><td>Undersized server</td><td>More RAM, or trim what's loaded</td></tr>
+      <tr><td>Crash right at startup on a small box</td><td>Heap limit above real RAM</td><td>Lower the flag, size the box to the app</td></tr>
+      <tr><td>Fine locally, dies in production</td><td>Container memory cap</td><td>Match the limit to the container, or resize</td></tr>
+    </tbody>
+  </table>
+
+  <h2>PM2 restarts are a seatbelt, not a fix</h2>
+  <p>If you run Node under PM2, you can auto-restart a process when it crosses a memory threshold. That keeps the site up while you fix the real thing:</p>
+<pre><code># ecosystem.config.js: restart a worker if it passes 500MB
+module.exports = {
+  apps: [{ name: "api", script: "server.js", max_memory_restart: "500M" }]
+};</code></pre>
+  <p>Do use it. Just be honest about what it is. A restart on a leak means your users occasionally hit a dropped connection while the process recycles. It buys time; it doesn't repair the leak. Treat the alert as a to-do, not a solution.</p>
+
+  <h2>Why this bites harder on tiny and free tiers</h2>
+  <p>A lot of "heap out of memory" crashes are really "the box is too small" in disguise. Free and micro tiers hand you very little RAM, and a Node app with a few dependencies, a cache, and real traffic can brush the ceiling fast. The two fixes that actually stick: give the app enough memory, and move memory-hungry work out of the Node process.</p>
+  <p>That second one is where a managed setup helps. On Kloudbean your Node app runs on a real server you can resize when it genuinely needs more headroom, no rebuild-from-scratch. And a managed Redis sits in the same dashboard, so the caches and session data that were bloating your heap can live in Redis instead of in-process. PM2 multi-process keeps the app running and restarts a worker if it does spike. Fewer surprise 3am crashes, and a clear place to add memory when the app has earned it.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed Redis instance to move caching and session data off the Node.js heap">
+    <figcaption>Move heap-heavy caching off the Node process: a managed Redis launches in the same dashboard as the app, backed up automatically.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: swap this slot for a real screenshot. src -> images/memory-graph.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A real memory-usage graph before and after the fix: a climbing line that flattens out.</em><small>Author supplies from their monitoring.</small></span></figure>
+
+  <h2>How it fits the rest of your stack</h2>
+  <p>Memory is one of a few things that quietly decide whether a Node app stays up. For the pieces around it, see <a href="https://www.kloudbean.com/blog/pm2-process-manager-guide/">the PM2 process manager guide</a>, <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis hosting</a> for offloading caches, and <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>. Choosing where to run it all in the first place? <a href="https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/">Where to deploy a Node.js app</a> walks the options, and <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploy a Node app to a managed cloud</a> is the hands-on version.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Run your Node app where memory isn't a guessing game.</p>
+    <p style="margin:0 0 .6em">Deploy from GitHub, keep it alive with PM2, resize the server when the app needs it, and move caching to a managed Redis in the same dashboard. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Deploy from GitHub · PM2 process management · Managed Redis · Resize on demand · Automatic backups · Free migration</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does "JavaScript heap out of memory" mean in Node.js?</h3>
+    <p>It means V8, the engine Node runs on, tried to grow its memory heap past the maximum it's allowed and aborted the process. It's a hard crash, not a warning. The cause is either a genuine memory leak (memory climbs forever) or an app that simply needs more RAM than the server provides.</p>
+
+    <h3>How do I increase the Node.js memory limit?</h3>
+    <p>Set the old-space heap size in megabytes with the flag: <code>node --max-old-space-size=2048 server.js</code>, or via <code>NODE_OPTIONS=--max-old-space-size=2048</code>. Don't set it higher than the machine's real RAM, or the OS will kill the process before V8 can. Raising the limit is a confirmation step and a stopgap, not a fix for a leak.</p>
+
+    <h3>Is raising --max-old-space-size a real fix?</h3>
+    <p>Only if your app was truly undersized and memory is otherwise stable. If memory keeps climbing, a higher limit just delays the same crash, because the leak is still there. Use the flag to confirm which problem you have, then either size the server correctly or fix the leak.</p>
+
+    <h3>How do I find a memory leak in a Node app?</h3>
+    <p>Log <code>process.memoryUsage().heapUsed</code> over time; if it only rises, you're leaking. Then take two heap snapshots with the inspector (<code>node --inspect</code>, then <code>chrome://inspect</code>), one early and one after load, and compare them. The object types that grew between snapshots are the leak. Clinic.js can draw the same picture automatically.</p>
+
+    <h3>What usually causes a Node.js memory leak?</h3>
+    <p>Most often an unbounded in-memory cache or map that's never evicted, event listeners or timers added and never removed, or closures that hold large objects alive. Buffering big files or query results into memory instead of streaming them is another common one. Bound your caches, clean up listeners, and stream large data.</p>
+
+    <h3>Why does my app run fine locally but crash in production?</h3>
+    <p>Usually the production container has a memory cap your laptop doesn't, and real traffic pushes past it. Match the heap limit to the container's memory, watch usage under load, and give it enough room. If it climbs without limit under production traffic, it's a leak that your low local traffic never triggered.</p>
+
+    <h3>Does more RAM fix "heap out of memory"?</h3>
+    <p>It fixes the undersized case and does nothing for a leak. If memory is stable but larger than the box, a server with more RAM solves it cleanly. If memory grows without bound, more RAM only lengthens the time between crashes. Diagnose first, then decide.</p>
+
+    <h3>Can Redis help with Node memory problems?</h3>
+    <p>Yes, indirectly and effectively. Caches, sessions, and rate-limit counters kept in a process-level object grow your heap and don't survive a restart. Moving them to Redis takes that load off the Node heap and shares it across processes. On Kloudbean a managed Redis runs in the same dashboard as the app, so it's a small change with a big memory payoff.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Measure the curve before you buy a bigger box.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Fix \"JavaScript heap out of memory\" in Node.js","description":"The Node.js JavaScript heap out of memory crash, explained and fixed: raise the heap limit to confirm, then find the leak or size the server, with real diagnosis commands.","image":"https://www.kloudbean.com/blog/fix-javascript-heap-out-of-memory-node/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/fix-javascript-heap-out-of-memory-node/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does JavaScript heap out of memory mean in Node.js?","acceptedAnswer":{"@type":"Answer","text":"It means V8, the engine Node runs on, tried to grow its memory heap past the maximum it is allowed and aborted the process. It is a hard crash, not a warning. The cause is either a genuine memory leak (memory climbs forever) or an app that simply needs more RAM than the server provides."}},
+{"@type":"Question","name":"How do I increase the Node.js memory limit?","acceptedAnswer":{"@type":"Answer","text":"Set the old-space heap size in megabytes with the flag: node --max-old-space-size=2048 server.js, or via NODE_OPTIONS=--max-old-space-size=2048. Do not set it higher than the machine real RAM, or the OS will kill the process before V8 can. Raising the limit is a confirmation step and a stopgap, not a fix for a leak."}},
+{"@type":"Question","name":"Is raising --max-old-space-size a real fix?","acceptedAnswer":{"@type":"Answer","text":"Only if your app was truly undersized and memory is otherwise stable. If memory keeps climbing, a higher limit just delays the same crash, because the leak is still there. Use the flag to confirm which problem you have, then either size the server correctly or fix the leak."}},
+{"@type":"Question","name":"How do I find a memory leak in a Node app?","acceptedAnswer":{"@type":"Answer","text":"Log process.memoryUsage().heapUsed over time; if it only rises, you are leaking. Then take two heap snapshots with the inspector (node --inspect, then chrome://inspect), one early and one after load, and compare them. The object types that grew between snapshots are the leak. Clinic.js can draw the same picture automatically."}},
+{"@type":"Question","name":"What usually causes a Node.js memory leak?","acceptedAnswer":{"@type":"Answer","text":"Most often an unbounded in-memory cache or map that is never evicted, event listeners or timers added and never removed, or closures that hold large objects alive. Buffering big files or query results into memory instead of streaming them is another common one. Bound your caches, clean up listeners, and stream large data."}},
+{"@type":"Question","name":"Why does my app run fine locally but crash in production?","acceptedAnswer":{"@type":"Answer","text":"Usually the production container has a memory cap your laptop does not, and real traffic pushes past it. Match the heap limit to the container memory, watch usage under load, and give it enough room. If it climbs without limit under production traffic, it is a leak that your low local traffic never triggered."}},
+{"@type":"Question","name":"Does more RAM fix heap out of memory?","acceptedAnswer":{"@type":"Answer","text":"It fixes the undersized case and does nothing for a leak. If memory is stable but larger than the box, a server with more RAM solves it cleanly. If memory grows without bound, more RAM only lengthens the time between crashes. Diagnose first, then decide."}},
+{"@type":"Question","name":"Can Redis help with Node memory problems?","acceptedAnswer":{"@type":"Answer","text":"Yes, indirectly and effectively. Caches, sessions, and rate-limit counters kept in a process-level object grow your heap and do not survive a restart. Moving them to Redis takes that load off the Node heap and shares it across processes. On Kloudbean a managed Redis runs in the same dashboard as the app, so it is a small change with a big memory payoff."}}
+]}
+]}
+</script>
+</body>
+</html>

@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where to Deploy a Node.js App in 2026: An Honest Decision Guide</title>
+<meta name="description" content="Where to deploy a Node.js app in 2026: an honest decision guide to Render, Railway, Fly.io, Heroku, Vercel, a VPS, and managed cloud, with the hidden costs and a clear pick for each kind of app.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Where to Deploy a Node.js App in 2026: An Honest Decision Guide">
+<meta property="og:description" content="Render, Railway, Fly.io, Heroku, Vercel, a plain VPS, or managed cloud? A decision framework for deploying a Node.js app in 2026, with the costs nobody prints on the pricing page.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Node.js hosting · Buyer's guide</span>
+  <h1>Where to Deploy a Node.js App in 2026: An Honest Decision Guide</h1>
+  <p class="byline">By Kloudbean Engineering · The boring choice is usually the right one.</p>
+
+  <figure><img src="images/hero.png" alt="Where to deploy a Node.js app in 2026: Render, Railway, Fly.io, Heroku, Vercel, a VPS, and managed cloud weighed against what your app actually needs"></figure>
+
+  <p class="lead">If you're deciding where to deploy a Node.js app in 2026, the honest answer is that it depends on one thing most listicles skip: what your app actually does when nobody is watching it. A weekend project and a payments API both "run on Node," but they want completely different homes. This guide walks the real options, Render, Railway, Fly.io, Heroku, Vercel, a plain VPS, and managed cloud, tells you which fits which job, and flags the costs that never make it onto a pricing page.</p>
+
+  <div class="tldr">
+    <strong>Where should I deploy a Node.js app?</strong>
+    <p>For a hobby project you don't mind sleeping, a free tier on Render or Railway is fine. For the fastest developer experience on an MVP, Railway. For global edge latency, Fly.io. For a Next.js frontend with a light API, Vercel. For an always-on production app that wants a predictable bill, its database in the same place, and no server ops, a managed cloud like Kloudbean is the steadier pick: your Node app plus a managed database in one dashboard, from $8/mo, no cold starts, deployed straight from GitHub.</p>
+  </div>
+
+  <h2>The real question isn't "where," it's "what does your app need?"</h2>
+  <p>Most "best Node.js hosting" posts hand you a ranked list. That's backwards. The platform that's perfect for a Discord bot is a poor fit for a SaaS backend with background jobs, and the one built for a Next.js site will fight you the moment you add a long-running worker. So start with your app, not the logo.</p>
+  <p>Four questions decide almost everything:</p>
+  <ul>
+    <li><strong>Is it always-on, or is sleeping fine?</strong> An internal tool can nap. A checkout API cannot.</li>
+    <li><strong>Does it hold state or run background work?</strong> WebSockets, queues, cron, file uploads. Serverless hates all four.</li>
+    <li><strong>Where does its data live?</strong> A Node app without a database is rare. Where the database sits drives latency and your bill.</li>
+    <li><strong>Do you want to run the server, or just your app?</strong> This is the real fork. Full control, or someone else handling the box.</li>
+  </ul>
+  <p>Answer those and the shortlist writes itself. Here's my honest take after watching a lot of these decisions play out: most teams over-index on the deploy demo and under-index on month three, when the traffic is real, the background jobs are piling up, and the bill has quietly tripled.</p>
+
+  <h2>The Node.js hosting options in 2026, honestly</h2>
+  <p>Every one of these can run a Node app. They differ in what they hand you and what they keep. Fair credit first, then the catch.</p>
+  <p><strong>Render.</strong> A clean git-push PaaS. You connect a repo, it builds and deploys, and managed Postgres plus background workers are right there. Genuinely pleasant. The catch: the free tier spins your service down after inactivity, so the first request after a quiet stretch pays a cold start, and costs step up as you add services.</p>
+  <p><strong>Railway.</strong> The best developer experience in the group, honestly. Push and it's live, with a slick dashboard. The catch is the bill: usage and credit based, which is cheap while you're small and genuinely hard to forecast once traffic, previews, and databases grow. Plenty of teams love it right up until the invoice surprises them.</p>
+  <p><strong>Fly.io.</strong> Runs your app in containers close to users, in many regions. If low latency for a global audience is a real product requirement, this is its home turf. The catch: you're closer to the metal, so there's more to operate, and multi-region state is your problem to solve.</p>
+  <p><strong>Heroku.</strong> The platform that taught everyone what a git-push deploy should feel like, with a mature add-on ecosystem. Still solid. The catch: there's been no free tier since 2022, dynos get pricey as you scale, and it can feel frozen in time next to newer tools.</p>
+  <p><strong>Vercel.</strong> The best place on earth to host a Next.js frontend. For that job nothing beats it. The catch for a Node backend: it's serverless-first, so long-running processes, WebSockets, heavy background jobs, and always-warm APIs fight the model, and function plus egress costs can climb.</p>
+  <p><strong>DigitalOcean App Platform.</strong> A straightforward PaaS inside the DO ecosystem. Fine and predictable if you're already there. The catch: it's a lighter PaaS than the big three, so you can outgrow its knobs.</p>
+  <p><strong>A plain VPS.</strong> The cheapest control money can buy, from any provider. You get root and a bill that doesn't move. The catch is the whole rest of the job: you are now the person who patches the OS at midnight, configures Nginx, renews SSL, sets up backups, and gets paged when it falls over.</p>
+  <p><strong>Managed cloud (like Kloudbean).</strong> The middle path between a bare VPS and a locked-down PaaS. You get a real server on a tier-1 cloud with your app and a managed database in one dashboard, deployed from GitHub, but the provisioning, patching, SSL, and backups are handled for you. The catch, in fairness: it isn't serverless, so there's no scale-to-zero, and true autoscaling or Kubernetes is an enterprise arrangement, not a default. For an always-on app, that's usually the point, not a loss.</p>
+
+  <figure>
+    <svg viewBox="0 0 780 470" width="100%" role="img" aria-label="A decision tree for where to deploy a Node.js app. First question: is sleeping okay? If yes, a free tier on Render or Railway. If it must stay always-on, next question: does it run background jobs, WebSockets, or hold state? If it is a Next.js frontend with a light API, Vercel. If you need global edge latency, Fly.io. If you want a predictable bill with your database beside the app and no server ops, managed cloud like Kloudbean. If you want full control and will run the ops yourself, a plain VPS." xmlns="http://www.w3.org/2000/svg">
+      <rect width="780" height="470" rx="16" fill="#f6f7fb"/>
+      <text x="390" y="36" text-anchor="middle" font-family="Poppins,sans-serif" font-size="17" font-weight="700" fill="#000f27">Picking a home for your Node app</text>
+
+      <rect x="285" y="58" width="210" height="48" rx="12" fill="#000f27"/>
+      <text x="390" y="80" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#ffffff">Is it okay if it sleeps?</text>
+      <text x="390" y="97" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#aeb6d4">hobby vs production</text>
+
+      <text x="150" y="132" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10.5" fill="#40b75f">yes, hobby</text>
+      <line x1="300" y1="106" x2="170" y2="150" stroke="#9fb0d8" stroke-width="2"/>
+      <rect x="60" y="152" width="200" height="46" rx="11" fill="#ffffff" stroke="#40b75f" stroke-width="1.6"/>
+      <text x="160" y="180" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="600" fill="#000f27">Free tier: Render / Railway</text>
+
+      <text x="470" y="132" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10.5" fill="#4F1AF3">no, always-on</text>
+      <line x1="470" y1="106" x2="470" y2="150" stroke="#9fb0d8" stroke-width="2"/>
+      <rect x="330" y="152" width="300" height="48" rx="12" fill="#000f27"/>
+      <text x="480" y="174" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="600" fill="#ffffff">Jobs, WebSockets, a database?</text>
+      <text x="480" y="191" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#aeb6d4">what does it do at 3am?</text>
+
+      <line x1="360" y1="200" x2="150" y2="250" stroke="#9fb0d8" stroke-width="2"/>
+      <rect x="40" y="252" width="220" height="52" rx="11" fill="#ffffff" stroke="#e6e9f2" stroke-width="1.6"/>
+      <text x="150" y="274" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="600" fill="#000f27">Next.js + light API</text>
+      <text x="150" y="292" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" fill="#5b6a86">Vercel</text>
+
+      <line x1="470" y1="200" x2="470" y2="250" stroke="#9fb0d8" stroke-width="2"/>
+      <rect x="360" y="252" width="220" height="52" rx="11" fill="#ffffff" stroke="#e6e9f2" stroke-width="1.6"/>
+      <text x="470" y="274" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="600" fill="#000f27">Global edge latency</text>
+      <text x="470" y="292" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" fill="#5b6a86">Fly.io</text>
+
+      <line x1="560" y1="200" x2="670" y2="250" stroke="#9fb0d8" stroke-width="2"/>
+      <rect x="590" y="252" width="170" height="52" rx="11" fill="#ffffff" stroke="#e6e9f2" stroke-width="1.6"/>
+      <text x="675" y="274" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="600" fill="#000f27">Full control</text>
+      <text x="675" y="292" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" fill="#5b6a86">Plain VPS (you run ops)</text>
+
+      <rect x="210" y="356" width="360" height="86" rx="14" fill="#ffffff" stroke="#4F1AF3" stroke-width="2"/>
+      <text x="390" y="384" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="700" fill="#4F1AF3">Always-on, predictable bill, DB beside the app, no ops?</text>
+      <text x="390" y="408" text-anchor="middle" font-family="Poppins,sans-serif" font-size="14" font-weight="700" fill="#000f27">Managed cloud (Kloudbean)</text>
+      <text x="390" y="428" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">app + managed database, one dashboard, from $8/mo</text>
+      <line x1="470" y1="304" x2="420" y2="356" stroke="#4F1AF3" stroke-width="2.2" stroke-dasharray="5 4"/>
+    </svg>
+    <figcaption>Start with what the app needs, not the brand. Sleeping is fine for hobby work; an always-on app with a database and background work usually wants a predictable, managed home.</figcaption>
+  </figure>
+
+  <h2>Node.js hosting compared at a glance</h2>
+  <p>Read this as a fit check, not a scoreboard. Every row is a trade, and the "best" column depends entirely on the app you're holding.</p>
+  <table class="cmp">
+    <thead><tr><th>Option</th><th>Best for</th><th>Pricing shape</th><th>The catch</th></tr></thead>
+    <tbody>
+      <tr><td>Render</td><td>Simple git-push apps, side projects</td><td>Free tier, then usage tiers</td><td>Free services sleep (cold starts)</td></tr>
+      <tr><td>Railway</td><td>Fast MVPs, best DX</td><td>Usage / credit based</td><td>Hard to forecast at scale</td></tr>
+      <tr><td>Fly.io</td><td>Global edge latency</td><td>Usage based, per region</td><td>More ops, multi-region is on you</td></tr>
+      <tr><td>Heroku</td><td>Mature add-on ecosystem</td><td>Per-dyno, no free tier</td><td>Gets pricey as you scale</td></tr>
+      <tr><td>Vercel</td><td>Next.js frontends</td><td>Free, then usage + egress</td><td>Serverless fights long-running Node</td></tr>
+      <tr><td>Plain VPS</td><td>Full control, lowest sticker price</td><td>Flat, cheap</td><td>You are the ops team</td></tr>
+      <tr><td>Managed cloud (Kloudbean)</td><td>Always-on production, predictable bills</td><td>Flat server plan, from $8/mo</td><td>Not serverless; autoscaling is Enterprise</td></tr>
+    </tbody>
+  </table>
+
+  <h2>The costs nobody puts on the pricing page</h2>
+  <p>The sticker price is the easy part. These are the line items that show up later, and they're the ones that actually decide total cost.</p>
+  <p><strong>Cold starts.</strong> Scale-to-zero and free tiers save money by putting your app to sleep. The bill for that is latency on the first request after idle, plus the odd timeout. Fine for a demo, quietly painful for anything a customer touches.</p>
+  <p><strong>Pricing that moves with traffic.</strong> Usage and credit based billing reads beautifully on a quiet month and stings on a busy one. If you need a number you can put in a budget, metered pricing is the wrong shape, not a bad deal exactly, just unpredictable.</p>
+  <p><strong>Egress and data transfer.</strong> Bytes leaving the platform can carry a charge that's easy to forget on day one, especially if your database lives on a different vendor than your app. For the record, Kloudbean doesn't meter egress.</p>
+  <p><strong>Background work.</strong> Queues, cron, and workers are often a separate paid service on a PaaS. A real Node backend usually needs at least one, so price it in from the start.</p>
+  <p><strong>The database.</strong> This is the big one. If your app is in one place and your database is a separate metered vendor, you pay in latency and in dollars for every round trip. Keeping the two together is the single most underrated cost decision you'll make.</p>
+
+  <h2>Where a managed cloud like Kloudbean fits</h2>
+  <p>Here's the profile that keeps pointing at managed cloud: your app is past the hobby stage, it needs to stay awake, it has a database and probably a background worker, and you would rather not become a part-time sysadmin. That's most production apps, honestly.</p>
+  <p>On Kloudbean your Node app and its managed database live in the same account, on the same dashboard, on tier-1 cloud infrastructure. You connect a GitHub repo and managed CI/CD builds and deploys on every push. PM2 keeps a multi-process Node app running and restarts it if it falls over. The database (PostgreSQL, MySQL, MongoDB, Redis, and more) is one click and backed up automatically, sitting right next to the app instead of across the public internet on a metered vendor. Pricing is a flat server plan from $8/mo, not a meter, and there's no egress charge.</p>
+  <p>The honest boundary, so this stays a fair guide and not a pitch: Kloudbean is always-on, so there's no scale-to-zero for idle hobby projects, and true autoscaling, Kubernetes, and private networking (VPC) are enterprise arrangements rather than defaults on a standard plan. If your app genuinely idles most of the day, a scale-to-zero platform may cost less. If it serves real traffic, always-on is the feature, not the bug.</p>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean console deploying a Node.js app from a GitHub repository, with the managed database in the same dashboard">
+    <figcaption>Applications then connect your GitHub repo: managed CI/CD builds and deploys the Node app on every push, on the same dashboard as its database.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: swap this slot for a real screenshot. src -> images/node-runtime-config.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Node runtime + environment variables screen, showing the app configured without SSH.</em><small>Author supplies from the Kloudbean console.</small></span></figure>
+
+  <h2>Moving an existing Node app over</h2>
+  <p>If you're already on a PaaS and the bill or the cold starts pushed you here, migrating is less dramatic than it sounds. A standard Node app is a repo, a set of environment variables, and a database. You point a new managed server at the same GitHub repo, copy the environment variables into the dashboard, move the database with a normal dump and restore, then swap the connection string and redeploy.</p>
+  <div class="note"><b>Coming off Heroku, Render, or Railway?</b> Kloudbean's free migration assistance can run the first cutover with you, database included, and there's a free trial so you can prove the app works on the new home before you move any traffic. Nothing here is a proprietary lock-in: it's your code and standard databases the whole way.</div>
+
+  <h2>How it fits the rest of your stack</h2>
+  <p>Deploying is one decision inside a bigger one: owning your whole stack in one place. If you've landed on managed cloud, the framework-specific walkthroughs go deeper: <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploy a Node app to a managed cloud</a>, <a href="https://www.kloudbean.com/blog/deploy-express-app/">deploy an Express app</a>, and <a href="https://www.kloudbean.com/blog/deploy-nestjs-app/">deploy a NestJS app</a>. For the pieces around the app, see <a href="https://www.kloudbean.com/blog/pm2-process-manager-guide/">the PM2 process manager guide</a>, <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>, <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>, and <a href="https://www.kloudbean.com/blog/zero-downtime-deployments/">zero-downtime deployments</a>. Weighing a specific platform? The <a href="https://www.kloudbean.com/blog/heroku-alternative-for-modern-apps/">Heroku alternative</a>, <a href="https://www.kloudbean.com/blog/render-alternative-for-vibe-coded-apps/">Render alternative</a>, and <a href="https://www.kloudbean.com/blog/fly-io-alternative/">Fly.io alternative</a> pieces go one on one.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Give your Node app an always-on home with the database built in.</p>
+    <p style="margin:0 0 .6em">Deploy from GitHub, run it with PM2, and put a managed PostgreSQL, MySQL, MongoDB, or Redis in the same dashboard, with automatic backups and a bill you can forecast. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Deploy from GitHub · Always-on, no cold starts · Managed database included · Automatic backups · Predictable pricing · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Where is the best place to deploy a Node.js app?</h3>
+    <p>There's no single best; it depends on whether the app can sleep and whether it runs background work. For hobby projects, a free tier on Render or Railway. For a fast MVP, Railway. For global latency, Fly.io. For a Next.js frontend, Vercel. For an always-on production app with a database and a predictable bill, a managed cloud like Kloudbean, where the app and database share one dashboard from $8/mo.</p>
+
+    <h3>What's the cheapest way to host a Node.js app?</h3>
+    <p>A free tier is cheapest in raw dollars, but it sleeps, so you pay in cold starts. The cheapest reliable option is either a plain VPS if you're happy running the ops yourself, or a flat managed plan (Kloudbean starts at $8/mo) if you want the server and database handled without a metered bill. Watch the hidden costs: egress, background workers, and a separate database vendor.</p>
+
+    <h3>Do I need Kubernetes to deploy a Node app?</h3>
+    <p>Almost certainly not. Most Node apps run happily as one or more processes managed by PM2 on a single server, scaled up when needed. Kubernetes solves problems of scale and complexity that the large majority of apps never reach. On Kloudbean, Kubernetes and autoscaling are enterprise options for teams that genuinely need them, not something a normal app has to touch.</p>
+
+    <h3>Why does my Render or Railway app cost more than expected?</h3>
+    <p>Usually background work and growth. Free and low tiers cover a quiet app, but add a worker, previews, a database, and steady traffic and usage-based billing climbs. If a predictable monthly number matters more than scale-to-zero, a flat server plan is easier to budget. Compare a busy month, not a quiet one, on every provider's current pricing.</p>
+
+    <h3>Can I run WebSockets and background jobs on a Node host?</h3>
+    <p>On an always-on server, yes, naturally: WebSockets stay connected and a queue worker (like BullMQ on Redis) runs as its own process. On serverless-first platforms it's harder, because functions are short-lived and stateless. If your app leans on real-time connections or background jobs, favor an always-on host over a serverless one.</p>
+
+    <h3>Is Vercel good for a Node.js backend?</h3>
+    <p>Vercel is excellent for a Next.js frontend and light serverless API routes. For a full always-on Node backend with long-running processes, WebSockets, or heavy background jobs, its serverless model gets in the way, and function plus egress costs can climb. Many teams pair a frontend on Vercel with an always-on backend elsewhere.</p>
+
+    <h3>Should my database be on the same host as my Node app?</h3>
+    <p>For most apps, yes. When the app and database live in the same account, every query skips a trip across the public internet to a separate vendor, which cuts latency and avoids egress charges. A managed cloud that runs both in one dashboard removes an entire class of cost and complexity compared with stitching two vendors together.</p>
+
+    <h3>How do I move a Node app off Heroku or Render without downtime?</h3>
+    <p>Point a new server at the same GitHub repo, copy your environment variables, and restore the database with a standard dump and load. Bring the new instance up, verify it, then switch traffic over. Keeping the old one running until the new one is proven keeps downtime near zero. Kloudbean's free migration assistance can run that first cutover with you.</p>
+
+    <h3>Does a managed Node host lock me in?</h3>
+    <p>It shouldn't, and a good one doesn't. Your code stays in your Git repo and your data stays in standard databases you can export anytime with normal tools. On Kloudbean you own the schema and the data, so leaving is a dump and a repo clone, not a rewrite. That portability is worth checking before you commit to any platform.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Pick the home your app will still be happy in at month three.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Where to Deploy a Node.js App in 2026: An Honest Decision Guide","description":"An honest decision guide to deploying a Node.js app in 2026: Render, Railway, Fly.io, Heroku, Vercel, a VPS, and managed cloud, with the hidden costs and a clear pick for each kind of app.","image":"https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Where is the best place to deploy a Node.js app?","acceptedAnswer":{"@type":"Answer","text":"There is no single best; it depends on whether the app can sleep and whether it runs background work. For hobby projects, a free tier on Render or Railway. For a fast MVP, Railway. For global latency, Fly.io. For a Next.js frontend, Vercel. For an always-on production app with a database and a predictable bill, a managed cloud like Kloudbean, where the app and database share one dashboard from 8 dollars a month."}},
+{"@type":"Question","name":"What is the cheapest way to host a Node.js app?","acceptedAnswer":{"@type":"Answer","text":"A free tier is cheapest in raw dollars, but it sleeps, so you pay in cold starts. The cheapest reliable option is either a plain VPS if you are happy running the ops yourself, or a flat managed plan (Kloudbean starts at 8 dollars a month) if you want the server and database handled without a metered bill. Watch the hidden costs: egress, background workers, and a separate database vendor."}},
+{"@type":"Question","name":"Do I need Kubernetes to deploy a Node app?","acceptedAnswer":{"@type":"Answer","text":"Almost certainly not. Most Node apps run happily as one or more processes managed by PM2 on a single server, scaled up when needed. Kubernetes solves problems of scale and complexity that the large majority of apps never reach. On Kloudbean, Kubernetes and autoscaling are enterprise options for teams that genuinely need them, not something a normal app has to touch."}},
+{"@type":"Question","name":"Why does my Render or Railway app cost more than expected?","acceptedAnswer":{"@type":"Answer","text":"Usually background work and growth. Free and low tiers cover a quiet app, but add a worker, previews, a database, and steady traffic and usage-based billing climbs. If a predictable monthly number matters more than scale-to-zero, a flat server plan is easier to budget. Compare a busy month, not a quiet one, on every provider current pricing."}},
+{"@type":"Question","name":"Can I run WebSockets and background jobs on a Node host?","acceptedAnswer":{"@type":"Answer","text":"On an always-on server, yes, naturally: WebSockets stay connected and a queue worker like BullMQ on Redis runs as its own process. On serverless-first platforms it is harder, because functions are short-lived and stateless. If your app leans on real-time connections or background jobs, favor an always-on host over a serverless one."}},
+{"@type":"Question","name":"Is Vercel good for a Node.js backend?","acceptedAnswer":{"@type":"Answer","text":"Vercel is excellent for a Next.js frontend and light serverless API routes. For a full always-on Node backend with long-running processes, WebSockets, or heavy background jobs, its serverless model gets in the way, and function plus egress costs can climb. Many teams pair a frontend on Vercel with an always-on backend elsewhere."}},
+{"@type":"Question","name":"Should my database be on the same host as my Node app?","acceptedAnswer":{"@type":"Answer","text":"For most apps, yes. When the app and database live in the same account, every query skips a trip across the public internet to a separate vendor, which cuts latency and avoids egress charges. A managed cloud that runs both in one dashboard removes an entire class of cost and complexity compared with stitching two vendors together."}},
+{"@type":"Question","name":"How do I move a Node app off Heroku or Render without downtime?","acceptedAnswer":{"@type":"Answer","text":"Point a new server at the same GitHub repo, copy your environment variables, and restore the database with a standard dump and load. Bring the new instance up, verify it, then switch traffic over. Keeping the old one running until the new one is proven keeps downtime near zero. Kloudbean free migration assistance can run that first cutover with you."}},
+{"@type":"Question","name":"Does a managed Node host lock me in?","acceptedAnswer":{"@type":"Answer","text":"It should not, and a good one does not. Your code stays in your Git repo and your data stays in standard databases you can export anytime with normal tools. On Kloudbean you own the schema and the data, so leaving is a dump and a repo clone, not a rewrite. That portability is worth checking before you commit to any platform."}}
+]}
+]}
+</script>
+</body>
+</html>
