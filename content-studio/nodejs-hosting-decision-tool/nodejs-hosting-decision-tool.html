@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Which Node.js Host Should You Use? Interactive Decision Tool</title>
+<meta name="description" content="An interactive tool that recommends where to host your Node.js app based on four questions: sleep vs always-on, background jobs, database, and what matters most. Honest picks for prototypes and production.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/nodejs-hosting-decision-tool/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Which Node.js Host Should You Use? Interactive Decision Tool">
+<meta property="og:description" content="Answer four questions and get an honest hosting recommendation for your Node.js app, from free tiers to Railway, Fly.io, Vercel, a VPS, or a managed cloud.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Node.js hosting · Interactive tool</span>
+  <h1>Which Node.js Host Should You Use? An Interactive Decision Tool</h1>
+  <p class="byline">By Kloudbean Engineering · Skip the listicle. Answer four questions instead.</p>
+
+  <figure><img src="images/hero.png" alt="An interactive decision tool that recommends where to host a Node.js app based on your answers"></figure>
+
+  <p class="lead">Most "which Node.js host should you use" articles hand you a ranked list and hope one fits. The honest answer depends on your app: whether it can sleep, whether it runs background work, whether it needs a database, and what you care about most. So instead of another list, here's a tool. Answer four questions and it recommends a host, fairly, including the ones that aren't us when they fit better.</p>
+
+  <div class="tldr">
+    <strong>Which Node.js host is right for me?</strong>
+    <p>It depends on four things. If your app can sleep, a free tier (Render or Railway) is fine. For the fastest first deploy, Railway. For global edge latency, Fly.io. For a Next.js frontend with a light API, Vercel. For an always-on app with a database and a predictable bill, a managed cloud like Kloudbean. For the lowest sticker price with full control, a plain VPS you run yourself. The tool below asks your specifics and picks one.</p>
+  </div>
+
+  <div class="kb-interactive" id="kbhost">
+    <div class="kb-eyebrow">Interactive · 4 quick questions</div>
+    <h3>Find your Node.js host</h3>
+    <div class="kb-quiz-progress"><i style="width:0%"></i></div>
+    <div class="kb-quiz-body"></div>
+    <noscript>
+      <p><strong>Quick guide (no tool needed):</strong> a project that can sleep fits a free tier on Render or Railway; the fastest first deploy is Railway; global edge latency points to Fly.io; a Next.js frontend with a light API suits Vercel; an always-on app with a database and a predictable bill fits a managed cloud like Kloudbean; and the lowest sticker price with full control means a plain VPS you operate yourself.</p>
+    </noscript>
+    <script data-kb-widget>
+    (function () {
+      var root = document.getElementById("kbhost");
+      if (!root) return;
+      var body = root.querySelector(".kb-quiz-body");
+      var bar = root.querySelector(".kb-quiz-progress > i");
+      var answers = {};
+      var questions = [
+        { key: "awake", q: "Does your app need to stay awake?",
+          opts: [ { t: "It can sleep when idle (hobby, demo, internal)", v: "sleep" },
+                  { t: "It must be always-on (real users, APIs, webhooks)", v: "on" } ] },
+        { key: "work", q: "Does it run background work?",
+          opts: [ { t: "Yes: jobs, queues, or WebSockets", v: "yes" },
+                  { t: "No: simple request and response", v: "no" } ] },
+        { key: "db", q: "Does it need a database?",
+          opts: [ { t: "Yes, it has a database", v: "yes" },
+                  { t: "No, or an external one", v: "no" } ] },
+        { key: "pri", q: "What matters most to you?",
+          opts: [ { t: "Fastest first deploy", v: "dx" },
+                  { t: "A predictable monthly bill", v: "predictable" },
+                  { t: "Global edge latency", v: "edge" },
+                  { t: "Lowest price and full control", v: "control" } ] }
+      ];
+      var step = 0;
+
+      function recommend(a) {
+        if (a.pri === "edge")
+          return { pick: "Fly.io", why: "You put global edge latency first, and running app instances close to users across regions is Fly.io's home turf. Expect more operational work in return.", kb: true };
+        if (a.pri === "control")
+          return { pick: "A plain VPS you run yourself", why: "You want the lowest sticker price and full control. A VPS gives both, as long as you are happy owning patching, backups, SSL, and uptime. A managed cloud is the middle ground if you would rather not.", kb: true };
+        if (a.awake === "sleep" && a.work === "no")
+          return { pick: "A free tier (Render or Railway)", why: "A project that can sleep and has no background work fits a free tier fine. Just expect a cold start on the first request after it has been idle.", kb: true };
+        if (a.pri === "dx")
+          return { pick: "Railway", why: "You want the fastest path from repo to live URL, and Railway's developer experience is the smoothest of the group. Keep an eye on the metered bill as it grows.", kb: true };
+        return { pick: "A managed cloud like Kloudbean", why: "An always-on app" + (a.db === "yes" ? " with a database" : "") + (a.work === "yes" ? " and background work" : "") + " that needs a predictable bill fits a flat-priced managed host: the database sits in the same dashboard, it stays awake, and the price does not move with traffic.", kb: false };
+      }
+
+      function render() {
+        if (step >= questions.length) return renderResult();
+        var qq = questions[step];
+        bar.style.width = Math.round((step / questions.length) * 100) + "%";
+        var h = '<div class="kb-quiz-q">' + (step + 1) + ". " + qq.q + "</div>";
+        h += '<div class="kb-quiz-options">';
+        for (var i = 0; i < qq.opts.length; i++)
+          h += '<button type="button" data-v="' + qq.opts[i].v + '">' + qq.opts[i].t + "</button>";
+        h += "</div>";
+        body.innerHTML = h;
+        var btns = body.querySelectorAll("button");
+        for (var j = 0; j < btns.length; j++) {
+          btns[j].addEventListener("click", function () {
+            answers[qq.key] = this.getAttribute("data-v");
+            step++;
+            render();
+          });
+        }
+      }
+
+      function renderResult() {
+        bar.style.width = "100%";
+        var r = recommend(answers);
+        var h = '<div class="kb-result"><h4>Your best fit: <span class="kb-pick">' + r.pick + "</span></h4>";
+        h += "<p>" + r.why + "</p>";
+        if (r.kb)
+          h += '<p>Consider a managed cloud like Kloudbean too if you also want the database in one dashboard, no cold starts, and a flat bill you can forecast.</p>';
+        h += '<p style="margin:.4em 0 0"><a href="https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/">See the full breakdown of every option &rarr;</a></p>';
+        h += "</div>";
+        h += '<div class="kb-quiz-actions"><button type="button" class="kb-restart">Start over</button></div>';
+        body.innerHTML = h;
+        var rs = body.querySelector(".kb-restart");
+        if (rs) rs.addEventListener("click", function () { answers = {}; step = 0; render(); });
+      }
+
+      render();
+    })();
+    </script>
+  </div>
+
+  <h2>How the tool decides (and why these four questions)</h2>
+  <p>The recommendation isn't random. Four questions do almost all the work of choosing a Node.js host, and each one rules out whole categories.</p>
+  <p><strong>Can it sleep?</strong> This is the biggest fork. Free tiers save money by spinning your app down when idle, then paying that back as a cold start: on Render's free tier, for example, a web service spins down after about 15 minutes and takes roughly a minute to wake. Fine for a demo, quietly bad for anything a customer touches. An always-on app rules the free tier out.</p>
+  <p><strong>Does it do background work?</strong> Queues, cron, WebSockets, and long-running processes need a persistent server. Serverless-first platforms fight all four, because functions are short-lived and stateless. If your app has a worker or a live connection, you want an always-on host.</p>
+  <p><strong>Does it need a database?</strong> Most do. Where the database lives decides latency and a surprising slice of the bill. If the app is in one place and the database is a separate metered vendor, you pay for every round trip. Keeping them together is the underrated win.</p>
+  <p><strong>What do you care about most?</strong> This breaks ties. Fastest deploy points to Railway. Predictable billing points to a flat managed plan. Global latency points to Fly.io. Lowest sticker with full control points to a VPS. There's no universal winner, only the one that fits your priority.</p>
+
+  <h2>The profiles, at a glance</h2>
+  <p>Prefer to skim? Open the situation that sounds like yours.</p>
+
+  <details class="kb-acc">
+    <summary>I'm building a prototype or a demo</summary>
+    <div class="kb-acc-body">Use a free tier on Render or Railway. It's the cheapest way to get a live URL, and a cold start after idle doesn't matter for a demo. Move off it the moment real users show up.</div>
+  </details>
+  <details class="kb-acc">
+    <summary>I want the fastest possible first deploy</summary>
+    <div class="kb-acc-body">Railway. The developer experience is the smoothest of the group, push and it's live. Just watch the metered bill, which is easy to love at first and hard to forecast as the app grows.</div>
+  </details>
+  <details class="kb-acc">
+    <summary>My users are global and latency is a product feature</summary>
+    <div class="kb-acc-body">Fly.io. It runs your app in containers close to users across regions. The trade is more operational work, and multi-region state becomes your problem to design.</div>
+  </details>
+  <details class="kb-acc">
+    <summary>It's a Next.js frontend with a light API</summary>
+    <div class="kb-acc-body">Vercel is excellent for the frontend. For a heavy always-on backend, long jobs, or WebSockets, pair it with an always-on host for the API rather than forcing everything through serverless functions.</div>
+  </details>
+  <details class="kb-acc">
+    <summary>It's an always-on app with a database and I want a predictable bill</summary>
+    <div class="kb-acc-body">A managed cloud like Kloudbean. Your Node app deploys from GitHub, runs always-on under PM2, and sits next to a one-click managed database in the same dashboard, on a flat plan from $8/mo with no egress meter. This is the common production case.</div>
+  </details>
+  <details class="kb-acc">
+    <summary>I want the lowest price and full control</summary>
+    <div class="kb-acc-body">A plain VPS. Cheapest sticker price and total control, but you become the ops team: patching, backups, SSL, and the 2am pager. A managed cloud is the middle path if you want control without the pager.</div>
+  </details>
+
+  <h2>Where a managed cloud fits, honestly</h2>
+  <p>The tool lands on a managed cloud like Kloudbean for one specific shape: an always-on app, usually with a database, where you want a bill you can forecast and would rather not run the server yourself. That's most production apps. Your app and its managed database live in one dashboard, deploys come from GitHub, and the price is flat from $8/mo with free migration to get there.</p>
+  <p>It's genuinely not for everything. If your project idles most of the day and scale-to-zero saves you real money, a free tier wins. If you want the absolute fastest throwaway deploy, Railway wins. A good decision tool should tell you that, which is why this one does.</p>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean console deploying a Node.js app from GitHub with a managed database in the same dashboard">
+    <figcaption>If the tool pointed you at a managed cloud: deploy the Node app from GitHub, with its managed database one click away in the same dashboard.</figcaption>
+  </figure>
+
+  <h2>Related, if you want to go deeper</h2>
+  <p>The full prose version of this decision is <a href="https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/">where to deploy a Node.js app</a>. For head-to-heads, <a href="https://www.kloudbean.com/blog/render-vs-railway-vs-kloudbean/">Render vs Railway vs Kloudbean</a>. For the hands-on side, <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploy a Node app to a managed cloud</a> and <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">If the tool pointed you at a managed cloud, start here.</p>
+    <p style="margin:0 0 .6em">Deploy your Node app from GitHub, run it always-on under PM2, and keep a managed PostgreSQL, MySQL, MongoDB, or Redis in the same dashboard, at a price you know upfront. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Deploy from GitHub · Always-on, no cold starts · Managed database included · Flat pricing from $8/mo · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Which Node.js host should I use?</h3>
+    <p>It depends on whether your app can sleep, whether it runs background work, whether it needs a database, and your top priority. A sleepy hobby project fits a free tier; a prototype fits Railway; global latency fits Fly.io; a Next.js frontend fits Vercel; an always-on app with a database and a predictable bill fits a managed cloud like Kloudbean; and lowest-cost-with-control fits a VPS. The tool above matches your answers to one.</p>
+
+    <h3>Is a free tier okay for a production Node.js app?</h3>
+    <p>Usually not. Free tiers spin down when idle and cold-start on the next request, so the first visitor after a quiet stretch waits, and some free databases are time-limited. That's fine for demos and internal tools, but a customer-facing app generally wants an always-on host so it's warm and durable.</p>
+
+    <h3>Do I need an always-on server or is serverless fine?</h3>
+    <p>Serverless is great for short, stateless requests and spiky traffic. If your app holds WebSocket connections, runs queues or cron, or does long-running work, an always-on server fits better because functions are short-lived and can't hold those cleanly. Match the model to what the app actually does between requests.</p>
+
+    <h3>Does my Node.js host need to include a database?</h3>
+    <p>Not strictly, but it helps a lot. When the app and database share one account, queries skip a trip to a separate metered vendor, which cuts latency and avoids egress charges. A host that runs both in one dashboard removes a whole class of cost and wiring compared with stitching two vendors together.</p>
+
+    <h3>What's the cheapest always-on Node.js host?</h3>
+    <p>Free tiers are cheapest but they sleep, so for always-on the real choices are a plain VPS if you'll run the ops yourself, or a flat managed plan (Kloudbean starts at $8/mo) if you want the server and database handled without a metered bill. Compare the total, including the database, egress, and your own time.</p>
+
+    <h3>Prototype now, production later, should I pick different hosts?</h3>
+    <p>You can, and many do, but switching later has a cost: moving workers, the database, environment variables, and DNS. If you already know the app is heading to always-on production with a database, starting on a predictable managed host can save a migration. If it's genuinely a throwaway, optimize for speed now and move if it survives.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · The right host is the one that fits your app, not the loudest logo.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Which Node.js Host Should You Use? An Interactive Decision Tool","description":"An interactive tool that recommends where to host a Node.js app based on four questions: sleep vs always-on, background jobs, database, and top priority. Honest picks for prototypes and production.","image":"https://www.kloudbean.com/blog/nodejs-hosting-decision-tool/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/nodejs-hosting-decision-tool/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Which Node.js host should I use?","acceptedAnswer":{"@type":"Answer","text":"It depends on whether your app can sleep, whether it runs background work, whether it needs a database, and your top priority. A sleepy hobby project fits a free tier; a prototype fits Railway; global latency fits Fly.io; a Next.js frontend fits Vercel; an always-on app with a database and a predictable bill fits a managed cloud like Kloudbean; and lowest-cost-with-control fits a VPS."}},
+{"@type":"Question","name":"Is a free tier okay for a production Node.js app?","acceptedAnswer":{"@type":"Answer","text":"Usually not. Free tiers spin down when idle and cold-start on the next request, so the first visitor after a quiet stretch waits, and some free databases are time-limited. That is fine for demos and internal tools, but a customer-facing app generally wants an always-on host so it is warm and durable."}},
+{"@type":"Question","name":"Do I need an always-on server or is serverless fine?","acceptedAnswer":{"@type":"Answer","text":"Serverless is great for short, stateless requests and spiky traffic. If your app holds WebSocket connections, runs queues or cron, or does long-running work, an always-on server fits better because functions are short-lived and cannot hold those cleanly. Match the model to what the app actually does between requests."}},
+{"@type":"Question","name":"Does my Node.js host need to include a database?","acceptedAnswer":{"@type":"Answer","text":"Not strictly, but it helps a lot. When the app and database share one account, queries skip a trip to a separate metered vendor, which cuts latency and avoids egress charges. A host that runs both in one dashboard removes a whole class of cost and wiring compared with stitching two vendors together."}},
+{"@type":"Question","name":"What is the cheapest always-on Node.js host?","acceptedAnswer":{"@type":"Answer","text":"Free tiers are cheapest but they sleep, so for always-on the real choices are a plain VPS if you will run the ops yourself, or a flat managed plan (Kloudbean starts at 8 dollars a month) if you want the server and database handled without a metered bill. Compare the total, including the database, egress, and your own time."}},
+{"@type":"Question","name":"Prototype now, production later, should I pick different hosts?","acceptedAnswer":{"@type":"Answer","text":"You can, and many do, but switching later has a cost: moving workers, the database, environment variables, and DNS. If you already know the app is heading to always-on production with a database, starting on a predictable managed host can save a migration. If it is genuinely a throwaway, optimize for speed now and move if it survives."}}
+]}
+]}
+</script>
+</body>
+</html>

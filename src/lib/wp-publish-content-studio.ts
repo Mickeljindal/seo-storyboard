@@ -37,7 +37,9 @@ export function extractArticleBody(fullHtml: string): string {
   let body = art ? art[1] : (fullHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i)?.[1] ?? fullHtml);
 
   body = body
-    .replace(/<script[\s\S]*?<\/script>/gi, "") // JSON-LD etc. (WP meta handles schema)
+    // Strip scripts EXCEPT interactive widgets explicitly marked data-kb-widget,
+    // so a calculator/quiz survives to WordPress while JSON-LD/analytics do not.
+    .replace(/<script(?![^>]*\bdata-kb-widget\b)[\s\S]*?<\/script>/gi, "")
     .replace(/<style[\s\S]*?<\/style>/gi, "")
     .replace(/<link[^>]*>/gi, "")
     .replace(/<!--\s*ADD IMAGE[\s\S]*?-->/gi, "") // author hint comments

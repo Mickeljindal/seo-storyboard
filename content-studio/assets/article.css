@@ -48,3 +48,98 @@ h3{font-size:20px;font-weight:700;color:var(--navy);margin:1.5em 0 .3em}
 .img-slot b{display:block;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--purple);margin-bottom:8px}
 .img-slot em{font-style:normal;font-size:15.5px;color:var(--ink);line-height:1.5}
 .img-slot small{display:block;margin-top:8px;font-size:13px;color:var(--muted)}
+
+/* ------------------------------------------------------------------ *
+ * Interactive components (accordion + decision tool / calculator).
+ * CSS-only accordion works everywhere (no JS). The .kb-interactive widget
+ * carries a data-kb-widget script that the publisher preserves; a <noscript>
+ * fallback keeps it useful when scripts are unavailable.
+ * ------------------------------------------------------------------ */
+details.kb-acc {
+  border: 1px solid #e6e9f2;
+  border-radius: 12px;
+  padding: 0 18px;
+  margin: 12px 0;
+  background: #fff;
+}
+details.kb-acc + details.kb-acc { margin-top: 8px; }
+details.kb-acc > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 16px 0;
+  font-weight: 600;
+  color: #000f27;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+details.kb-acc > summary::-webkit-details-marker { display: none; }
+details.kb-acc > summary::after {
+  content: "+";
+  font-size: 20px;
+  color: #4F1AF3;
+  margin-left: 12px;
+}
+details.kb-acc[open] > summary::after { content: "\2013"; }
+details.kb-acc > summary:hover { color: #4F1AF3; }
+details.kb-acc .kb-acc-body { padding: 0 0 16px; color: #3a4560; }
+
+.kb-interactive {
+  border: 1px solid #d9def0;
+  border-radius: 16px;
+  padding: 22px;
+  margin: 26px 0;
+  background: linear-gradient(180deg, #f8f9fe, #f2f4fb);
+}
+.kb-interactive .kb-eyebrow {
+  font: 600 11px/1 "JetBrains Mono", monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #4F1AF3;
+}
+.kb-interactive h3 { margin: 8px 0 4px; color: #000f27; }
+.kb-quiz-q { font-weight: 600; color: #000f27; margin: 14px 0 10px; }
+.kb-quiz-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.kb-quiz-options button {
+  border: 1px solid #c9d2e8;
+  background: #fff;
+  color: #1c2536;
+  border-radius: 999px;
+  padding: 9px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, color .15s;
+}
+.kb-quiz-options button:hover { border-color: #4F1AF3; color: #4F1AF3; }
+.kb-quiz-options button[aria-pressed="true"] {
+  background: #4F1AF3;
+  border-color: #4F1AF3;
+  color: #fff;
+}
+.kb-quiz-progress {
+  height: 5px;
+  background: #e6e9f2;
+  border-radius: 99px;
+  overflow: hidden;
+  margin: 4px 0 14px;
+}
+.kb-quiz-progress > i { display: block; height: 100%; background: #40b75f; transition: width .25s; }
+.kb-result {
+  border-left: 4px solid #40b75f;
+  background: #fff;
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-top: 14px;
+}
+.kb-result h4 { margin: 0 0 6px; color: #000f27; }
+.kb-result .kb-pick { color: #4F1AF3; font-weight: 700; }
+.kb-quiz-actions { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; }
+.kb-quiz-actions button {
+  border: 1px solid #c9d2e8;
+  background: #fff;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.kb-quiz-actions button:hover { border-color: #4F1AF3; color: #4F1AF3; }
