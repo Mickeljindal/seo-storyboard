@@ -58,7 +58,7 @@ export function markdownToHtml(md: string): string {
     }
   };
 
-  for (let line of lines) {
+  for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) {
       flushList();
@@ -113,9 +113,13 @@ export function articleToHtml(article: {
   // Otherwise render the markdown draft now (rich renderer with tables + schema).
   if (article.content_draft?.trim()) {
     const { renderArticleHtml } = requireRender();
-    return renderArticleHtml(article.content_draft.trim(), article.brief as Record<string, unknown> | null, {
-      clusterName: article.cluster_name ?? null,
-    });
+    return renderArticleHtml(
+      article.content_draft.trim(),
+      article.brief as Record<string, unknown> | null,
+      {
+        clusterName: article.cluster_name ?? null,
+      },
+    );
   }
   return briefToHtml(article.brief, article.meta_description);
 }
@@ -139,7 +143,11 @@ export function briefToHtml(brief: unknown, fallbackExcerpt?: string | null): st
   }
 
   if (Array.isArray(b.outline)) {
-    for (const h2 of b.outline as { h2?: string; description?: string; h3?: { title?: string; description?: string }[] }[]) {
+    for (const h2 of b.outline as {
+      h2?: string;
+      description?: string;
+      h3?: { title?: string; description?: string }[];
+    }[]) {
       if (h2.h2) parts.push(`<h2>${escapeHtml(h2.h2)}</h2>`);
       if (h2.description) parts.push(`<p>${escapeHtml(h2.description)}</p>`);
       if (Array.isArray(h2.h3)) {
@@ -171,10 +179,7 @@ export function briefToHtml(brief: unknown, fallbackExcerpt?: string | null): st
   return parts.join("\n");
 }
 
-function normalizeFaq(
-  faq: unknown,
-  paa?: unknown,
-): { q: string; a: string }[] {
+function normalizeFaq(faq: unknown, paa?: unknown): { q: string; a: string }[] {
   const out: { q: string; a: string }[] = [];
   if (Array.isArray(faq)) {
     for (const item of faq) {
@@ -204,18 +209,23 @@ export type WpPostPayload = {
   meta?: Record<string, string>;
   /** WordPress media ID to set as the post's featured image (optional). */
   featured_media?: number;
+  /** WordPress category term IDs to file the post under (optional). */
+  categories?: number[];
 };
 
-export function buildPostPayload(article: {
-  title: string;
-  url_slug?: string | null;
-  meta_title?: string | null;
-  meta_description?: string | null;
-  brief?: unknown;
-  content_draft?: string | null;
-  content_html?: string | null;
-  cluster_name?: string | null;
-}, status: "draft" | "publish"): WpPostPayload {
+export function buildPostPayload(
+  article: {
+    title: string;
+    url_slug?: string | null;
+    meta_title?: string | null;
+    meta_description?: string | null;
+    brief?: unknown;
+    content_draft?: string | null;
+    content_html?: string | null;
+    cluster_name?: string | null;
+  },
+  status: "draft" | "publish",
+): WpPostPayload {
   const b = (article.brief ?? {}) as Record<string, unknown>;
   const title = String(b.h1 ?? article.title);
   const slug = String(b.url_slug ?? article.url_slug ?? "").trim() || undefined;
@@ -283,6 +293,7 @@ export async function createOrUpdateWpPost(
   existingPostId?: number | null,
 ): Promise<{ id: number; link: string; status: string }> {
   const featured = payload.featured_media ? { featured_media: payload.featured_media } : {};
+  const cats = payload.categories?.length ? { categories: payload.categories } : {};
   const bodyWithMeta = {
     title: payload.title,
     slug: payload.slug,
@@ -291,6 +302,7 @@ export async function createOrUpdateWpPost(
     excerpt: payload.excerpt,
     meta: payload.meta,
     ...featured,
+    ...cats,
   };
 
   const attempt = async (includeMeta: boolean) => {
@@ -303,12 +315,17 @@ export async function createOrUpdateWpPost(
           content: payload.content,
           excerpt: payload.excerpt,
           ...featured,
+          ...cats,
         };
     if (existingPostId) {
       return wpRequest<{ id: number; link: string; status: string }>(
         config,
         `/posts/${existingPostId}`,
-        { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
       );
     }
     return wpRequest<{ id: number; link: string; status: string }>(config, "/posts", {
@@ -341,10 +358,11 @@ export async function testWordPressConnection(config: WpConfig): Promise<{
   error?: string;
   hint?: string;
 }> {
-  const me = await wpRequest<{ name?: string; slug?: string; capabilities?: Record<string, boolean> }>(
-    config,
-    "/users/me?context=edit",
-  );
+  const me = await wpRequest<{
+    name?: string;
+    slug?: string;
+    capabilities?: Record<string, boolean>;
+  }>(config, "/users/me?context=edit");
   if (!me.ok) {
     let hint = "Verify site URL, username, and application password (no spaces).";
     if (me.status === 401) hint = "Invalid username or application password.";
@@ -359,6 +377,55 @@ export async function testWordPressConnection(config: WpConfig): Promise<{
     canPublish,
     hint: canPublish ? undefined : "User can connect but may lack publish_posts capability.",
   };
+}
+
+/** Stable, URL-safe slug for a category name (so renames in WP don't create dupes). */
+export function categorySlug(name: string): string {
+  return (
+    name
+      .toLowerCase()
+      .replace(/&/g, " and ")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 90) || "uncategorized"
+  );
+}
+
+/**
+ * Resolve a category NAME to a WordPress category ID: reuse an existing category
+ * (matched by stable slug first, then by name), else create it. Returns null if
+ * the category can't be resolved or created (e.g. the user lacks
+ * manage_categories) so publishing can proceed without a category.
+ */
+export async function resolveCategoryId(config: WpConfig, name: string): Promise<number | null> {
+  const clean = name.trim();
+  if (!clean) return null;
+  const slug = categorySlug(clean);
+
+  const bySlug = await wpRequest<Array<{ id?: number }>>(
+    config,
+    `/categories?slug=${encodeURIComponent(slug)}`,
+  );
+  if (bySlug.ok && Array.isArray(bySlug.data) && bySlug.data[0]?.id) return bySlug.data[0].id!;
+
+  const byName = await wpRequest<Array<{ id?: number; name?: string }>>(
+    config,
+    `/categories?search=${encodeURIComponent(clean)}&per_page=50`,
+  );
+  if (byName.ok && Array.isArray(byName.data)) {
+    const hit = byName.data.find(
+      (c) => c?.name?.trim().toLowerCase() === clean.toLowerCase() && c.id,
+    );
+    if (hit?.id) return hit.id;
+  }
+
+  const created = await wpRequest<{ id?: number }>(config, "/categories", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: clean, slug }),
+  });
+  if (created.ok && created.data?.id) return created.data.id;
+  return null;
 }
 
 export function getStoredWpPostId(performanceData: unknown): number | null {
