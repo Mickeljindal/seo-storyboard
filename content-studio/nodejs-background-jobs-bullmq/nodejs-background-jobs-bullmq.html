@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Background Jobs in Node.js with BullMQ and Redis: A Practical Guide</title>
+<meta name="description" content="Move slow work out of the request with a background job queue. A practical guide to BullMQ and Redis in Node.js: producer, worker, retries, scheduled jobs, and running the worker as its own process in production.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Background Jobs in Node.js with BullMQ and Redis: A Practical Guide">
+<meta property="og:description" content="How to run background jobs in Node.js with BullMQ and Redis: producer and worker code, retries with backoff, scheduled jobs, and running the worker as its own process.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Node.js · Production · Background jobs</span>
+  <h1>Background Jobs in Node.js with BullMQ and Redis: A Practical Guide</h1>
+  <p class="byline">By Kloudbean Engineering · If the user is waiting on it and it isn't the response, it belongs in a queue.</p>
+
+  <figure><img src="images/hero.png" alt="A Node.js API adding jobs to a Redis queue while a separate worker process consumes them"></figure>
+
+  <p class="lead">The moment your Node app has to send an email, resize an image, generate a report, or call a slow third-party API, you hit a fork in the road. Do it inside the request and the user waits (and your event loop is tied up), or hand it to a background job and respond right away. This guide is the practical version of the second option: BullMQ, a Redis-backed queue that's become the default for background work in Node. We'll cover the producer, the worker, retries, scheduled jobs, and the part tutorials skip, running it properly in production.</p>
+
+  <div class="tldr">
+    <strong>How do I run background jobs in Node.js?</strong>
+    <p>Put slow work on a queue instead of doing it in the request. BullMQ is a Redis-backed job queue for Node: your API (the producer) adds a job, and a separate worker process (the consumer) handles it, with retries, concurrency, and scheduled jobs built in. The two things you need are a persistent Redis instance and a long-running worker process, which is exactly why serverless functions aren't a good home for durable background jobs.</p>
+  </div>
+
+  <h2>Why you need background jobs</h2>
+  <p>Node runs your JavaScript on a single main thread. When a request handler does something slow inline, generating a PDF, waiting on an email provider, processing an upload, that request holds the connection open and can starve the event loop for everyone else. Users see spinners, requests hit gateway timeouts, and under load the whole app feels sluggish. The fix is old and reliable: accept the request, drop the slow task onto a queue, return immediately, and let a worker do the heavy lifting out of band. The user gets a fast response; the work still happens.</p>
+
+  <h2>How BullMQ works</h2>
+  <p>BullMQ has three pieces: a <strong>producer</strong> that adds jobs to a named queue, <strong>Redis</strong> that stores the queue durably, and a <strong>worker</strong> that pulls jobs off and processes them. Redis is the backbone, it's what makes jobs survive a restart and lets multiple workers share the load.</p>
+  <figure>
+    <svg viewBox="0 0 720 150" role="img" aria-label="Background job flow: API producer adds a job to Redis, a worker process consumes and completes it" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
+      <rect x="0" y="0" width="720" height="150" fill="#ffffff"></rect>
+      <rect x="20" y="50" width="150" height="50" rx="8" fill="#eef0f6" stroke="#000f27"></rect>
+      <text x="95" y="72" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">API (producer)</text>
+      <text x="95" y="90" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" fill="#000f27">add(job)</text>
+      <line x1="170" y1="75" x2="280" y2="75" stroke="#4F1AF3" stroke-width="2" marker-end="url(#a)"></line>
+      <rect x="280" y="50" width="150" height="50" rx="8" fill="#efe9fe" stroke="#4F1AF3"></rect>
+      <text x="355" y="72" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#4F1AF3">Redis queue</text>
+      <text x="355" y="90" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" fill="#4F1AF3">durable</text>
+      <line x1="430" y1="75" x2="540" y2="75" stroke="#40b75f" stroke-width="2" marker-end="url(#a)"></line>
+      <rect x="540" y="50" width="160" height="50" rx="8" fill="#eafaf0" stroke="#40b75f"></rect>
+      <text x="620" y="72" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#1e7a43">Worker (consumer)</text>
+      <text x="620" y="90" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" fill="#1e7a43">process + retry</text>
+      <defs><marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#333"></path></marker></defs>
+    </svg>
+    <figcaption>Producer adds a job, Redis holds it durably, a separate worker consumes and retries. Restart-safe by design.</figcaption>
+  </figure>
+
+  <h2>Setting up the queue (producer)</h2>
+  <p>Install <code>bullmq</code> and <code>ioredis</code>, then create a queue backed by your Redis connection. Read the connection string from an environment variable, never hardcode it:</p>
+  <pre><code>// queue.js: the producer, imported by your API
+import { Queue } from "bullmq";
+import IORedis from "ioredis";
+
+// BullMQ requires maxRetriesPerRequest: null on the connection
+const connection = new IORedis(process.env.REDIS_URL, {
+  maxRetriesPerRequest: null,
+});
+
+export const emailQueue = new Queue("email", { connection });</code></pre>
+  <p>Now add a job from a route handler and return immediately, the user doesn't wait for the email to send:</p>
+  <pre><code>app.post("/signup", async (req, res) => {
+  const user = await createUser(req.body);
+  // hand off the slow part
+  await emailQueue.add("welcome", { userId: user.id }, {
+    attempts: 3,
+    backoff: { type: "exponential", delay: 1000 },
+  });
+  res.status(201).json({ id: user.id });   // fast response
+});</code></pre>
+
+  <h2>Processing jobs (the worker)</h2>
+  <p>The worker is a <em>separate</em> long-running process. It connects to the same Redis, pulls jobs, and runs your handler. Concurrency lets one worker process several jobs at once:</p>
+  <pre><code>// worker.js: its own process, not part of the web server
+import { Worker } from "bullmq";
+import IORedis from "ioredis";
+
+const connection = new IORedis(process.env.REDIS_URL, {
+  maxRetriesPerRequest: null,
+});
+
+const worker = new Worker("email", async (job) => {
+  if (job.name === "welcome") {
+    await sendWelcomeEmail(job.data.userId);
+  }
+}, { connection, concurrency: 5 });
+
+worker.on("failed", (job, err) => {
+  console.error(`Job ${job?.id} failed:`, err.message);
+});</code></pre>
+  <p>Keeping the worker separate from the web process is the single most important production decision here, and the next sections build on it.</p>
+
+  <h2>Retries, backoff, and scheduled jobs</h2>
+  <p>You already saw <code>attempts</code> and exponential <code>backoff</code> on the producer, that gives you automatic retries when a job throws, spaced out so a flaky email provider gets a breather instead of a hammering. BullMQ also does delayed and repeatable jobs, so you can replace a lot of cron with the same system:</p>
+  <pre><code>// Run every day at 9am (cron syntax)
+await emailQueue.add("daily-digest", {}, {
+  repeat: { pattern: "0 9 * * *" },
+});
+
+// Or run once, 30 seconds from now
+await emailQueue.add("reminder", { id: 42 }, { delay: 30000 });</code></pre>
+  <p>Failed jobs stay in a failed set you can inspect and retry, which beats losing work silently. That durability is the whole reason to use a real queue instead of <code>setTimeout</code>.</p>
+
+  <h2>Run the worker as its own process</h2>
+  <p>In production you run two processes: the web server and the worker. Don't cram the worker into the web process, a heavy job would compete with request handling for the same event loop, which is the exact problem you're trying to solve. PM2 makes running both clean:</p>
+  <pre><code>// ecosystem.config.js
+module.exports = {
+  apps: [
+    { name: "web",    script: "dist/server.js" },
+    { name: "worker", script: "dist/worker.js", instances: 1 },
+  ],
+};</code></pre>
+  <p>Scale workers independently of web traffic: if jobs pile up, add worker instances without touching the web tier. That separation is a big part of why a queue scales gracefully.</p>
+
+  <h2>Why this needs a persistent Redis and worker</h2>
+  <p>Two hard requirements fall out of the design. You need Redis running continuously (it holds the jobs), and you need a worker process that stays alive to consume them. This is precisely where request-driven serverless platforms struggle: there's no durable, always-on worker, so people end up bolting on external queue services to fill the gap. If background jobs are core to your app, running on infrastructure that gives you a persistent process and a managed Redis in the first place is far simpler. We dug into that tradeoff in <a href="https://www.kloudbean.com/blog/vercel-for-node-backends-limits/">Vercel for Node.js backends</a>.</p>
+
+  <h2>How this fits on Kloudbean</h2>
+  <p>This is a case where the hosting model genuinely matters. On Kloudbean you launch a managed Redis instance in a few clicks (with backups), and it sits in the same dashboard as your app on a private network, so your queue connection is a supplied <code>REDIS_URL</code> over a private link rather than a public endpoint. Your worker runs alongside the web app under PM2, both always-on, so jobs are consumed continuously. It's the persistent-process, managed-Redis setup that BullMQ wants, without you assembling it from separate providers.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="Launching a managed Redis instance in the Kloudbean console to back a BullMQ queue">
+    <figcaption>Launch managed Redis in the same dashboard as your app, then point BullMQ at it over the private network.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>Redis is the engine here, so start with <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis hosting</a>, and if you're replacing scheduled tasks, see <a href="https://www.kloudbean.com/blog/run-a-cron-job-without-ssh/">run a cron job without SSH</a>. Keep your connection config clean with <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>, run both processes well with the <a href="https://www.kloudbean.com/blog/pm2-process-manager-guide/">PM2 process manager guide</a>, and place the whole app with <a href="https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/">where to deploy a Node.js app</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Give BullMQ the Redis and worker it wants.</p>
+    <p style="margin:0 0 .6em">Launch managed Redis in the same dashboard as your always-on Node app, run your worker alongside the web process under PM2, and connect over a private network, on flat pricing from $8/mo. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed Redis · Always-on worker under PM2 · Private networking · GitHub deploys · Flat from $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is BullMQ and why use it?</h3>
+    <p>BullMQ is a Redis-backed job queue for Node.js. You use it to move slow work (emails, image processing, reports, webhooks) out of the request so users get a fast response and your event loop stays free. It adds retries, concurrency, delayed and repeatable jobs, and a failed-job set, all backed by Redis so jobs survive restarts.</p>
+
+    <h3>Do I need Redis to run background jobs in Node?</h3>
+    <p>For BullMQ, yes, Redis is its storage layer and is what makes jobs durable and shareable across workers. There are other approaches (a database-backed queue, for instance), but the Redis-backed model is the common, well-supported one in Node. A managed Redis instance keeps you from operating it yourself.</p>
+
+    <h3>How do I run a BullMQ worker in production?</h3>
+    <p>Run it as its own long-running process, separate from the web server, so heavy jobs don't compete with request handling. A process manager like PM2 can run the web app and the worker together and keep both alive. Scale worker instances independently when jobs back up.</p>
+
+    <h3>How do retries work in BullMQ?</h3>
+    <p>Set <code>attempts</code> and a <code>backoff</code> strategy when you add a job. If the handler throws, BullMQ retries up to that many times, spacing attempts out with (for example) exponential backoff so a flaky dependency isn't hammered. Jobs that exhaust their attempts land in a failed set you can inspect and retry.</p>
+
+    <h3>Can I run background jobs on serverless?</h3>
+    <p>Not durably, without help. Serverless functions are request-scoped and can be torn down after responding, so there's no always-on worker to process a queue. Teams usually add an external queue or job service to compensate. If jobs are central to your app, a persistent worker process on always-on infrastructure is simpler and cheaper to reason about.</p>
+
+    <h3>Should I use BullMQ or cron for scheduled tasks?</h3>
+    <p>BullMQ can do both one-off background jobs and repeatable scheduled jobs (with cron syntax), so if you already run a queue, repeatable jobs keep everything in one system with retries and visibility. A plain system cron is fine for simple, standalone scripts. For app-level scheduled work that needs retries and logging, the queue is usually the better home.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Fast response now, real work in the background.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Background Jobs in Node.js with BullMQ and Redis: A Practical Guide","description":"How to run background jobs in Node.js with BullMQ and Redis: producer and worker code, retries with backoff, scheduled jobs, and running the worker as its own process.","image":"https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is BullMQ and why use it?","acceptedAnswer":{"@type":"Answer","text":"BullMQ is a Redis-backed job queue for Node.js. You use it to move slow work (emails, image processing, reports, webhooks) out of the request so users get a fast response and your event loop stays free. It adds retries, concurrency, delayed and repeatable jobs, and a failed-job set, all backed by Redis so jobs survive restarts."}},
+{"@type":"Question","name":"Do I need Redis to run background jobs in Node?","acceptedAnswer":{"@type":"Answer","text":"For BullMQ, yes, Redis is its storage layer and is what makes jobs durable and shareable across workers. There are other approaches (a database-backed queue, for instance), but the Redis-backed model is the common, well-supported one in Node. A managed Redis instance keeps you from operating it yourself."}},
+{"@type":"Question","name":"How do I run a BullMQ worker in production?","acceptedAnswer":{"@type":"Answer","text":"Run it as its own long-running process, separate from the web server, so heavy jobs do not compete with request handling. A process manager like PM2 can run the web app and the worker together and keep both alive. Scale worker instances independently when jobs back up."}},
+{"@type":"Question","name":"How do retries work in BullMQ?","acceptedAnswer":{"@type":"Answer","text":"Set attempts and a backoff strategy when you add a job. If the handler throws, BullMQ retries up to that many times, spacing attempts out with (for example) exponential backoff so a flaky dependency is not hammered. Jobs that exhaust their attempts land in a failed set you can inspect and retry."}},
+{"@type":"Question","name":"Can I run background jobs on serverless?","acceptedAnswer":{"@type":"Answer","text":"Not durably, without help. Serverless functions are request-scoped and can be torn down after responding, so there is no always-on worker to process a queue. Teams usually add an external queue or job service to compensate. If jobs are central to your app, a persistent worker process on always-on infrastructure is simpler and cheaper to reason about."}},
+{"@type":"Question","name":"Should I use BullMQ or cron for scheduled tasks?","acceptedAnswer":{"@type":"Answer","text":"BullMQ can do both one-off background jobs and repeatable scheduled jobs (with cron syntax), so if you already run a queue, repeatable jobs keep everything in one system with retries and visibility. A plain system cron is fine for simple, standalone scripts. For app-level scheduled work that needs retries and logging, the queue is usually the better home."}}
+]}
+]}
+</script>
+</body>
+</html>

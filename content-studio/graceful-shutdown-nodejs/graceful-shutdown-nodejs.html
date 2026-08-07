@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Graceful Shutdown in Node.js: Handling SIGTERM Without Dropping Requests</title>
+<meta name="description" content="When your platform redeploys or restarts your app it sends SIGTERM. Exit immediately and you drop in-flight requests and leak connections. Here's the graceful shutdown pattern for Node.js, with a timeout and load-balancer draining.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/graceful-shutdown-nodejs/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Graceful Shutdown in Node.js: Handling SIGTERM Without Dropping Requests">
+<meta property="og:description" content="The graceful shutdown pattern for Node.js: catch SIGTERM, stop new connections, drain in-flight requests, close DB and Redis, and exit with a timeout so shutdown can't hang.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Node.js · Production · Deployments</span>
+  <h1>Graceful Shutdown in Node.js: Handling SIGTERM Without Dropping Requests</h1>
+  <p class="byline">By Kloudbean Engineering · Every deploy is a tiny outage unless your app knows how to bow out.</p>
+
+  <figure><img src="images/hero.png" alt="A Node.js server receiving SIGTERM, draining in-flight requests, closing connections, then exiting cleanly"></figure>
+
+  <p class="lead">Here's a bug that hides in plain sight: every time you deploy, a few unlucky users get an error. Not because your new code is broken, but because your old process was killed mid-request. When a platform restarts, redeploys, or scales your app, it sends a SIGTERM and expects the process to wind down. If your Node app just exits on the spot, in-flight requests die and connections leak. Graceful shutdown is the small amount of code that turns a deploy from a blip into a non-event. Let's write it properly.</p>
+
+  <div class="tldr">
+    <strong>How do I handle graceful shutdown in Node.js?</strong>
+    <p>Listen for the <code>SIGTERM</code> signal your platform sends on restart or deploy. On receiving it, stop accepting new connections with <code>server.close()</code>, let in-flight requests finish, close your database pool and Redis, then <code>process.exit(0)</code>. Add a timeout that force-exits if draining hangs, so a stuck connection can't block the shutdown forever. Handle <code>SIGINT</code> too for local Ctrl+C.</p>
+  </div>
+
+  <h2>Why graceful shutdown matters</h2>
+  <p>Think about what a deploy actually does: it starts a new version of your app and stops the old one. To stop the old one, the orchestrator (PM2, systemd, Kubernetes, your platform) sends SIGTERM and gives the process a grace window to exit. If your app ignores that and gets hard-killed a moment later, any request it was serving is cut off, the user sees a failed request or a 502, and half-finished work (an open transaction, a file being written) is left dangling. Multiply that by every deploy and every autoscale event and you've got a steady trickle of avoidable errors. Graceful shutdown closes that gap.</p>
+
+  <h2>The signals: SIGTERM, SIGINT, SIGKILL</h2>
+  <p>Three you should know. <strong>SIGTERM</strong> is the polite "please stop" that orchestrators send on deploy, restart, and scale-down, this is the one you must handle. <strong>SIGINT</strong> is what Ctrl+C sends in your terminal, worth handling so local dev behaves the same way. <strong>SIGKILL</strong> is the forced kill, and it cannot be caught or handled, which is exactly why you want to shut down cleanly during the SIGTERM grace window before a SIGKILL arrives. Your job is to finish and exit on SIGTERM so it never comes to that.</p>
+
+  <h2>The graceful shutdown pattern</h2>
+  <p>The shape is always the same: stop taking new work, finish current work, close resources, exit. Here it is for an HTTP server (Express or plain <code>http</code>):</p>
+  <pre><code>const server = app.listen(process.env.PORT || 3000);
+
+let shuttingDown = false;
+
+async function shutdown(signal) {
+  if (shuttingDown) return;      // ignore repeat signals
+  shuttingDown = true;
+  console.log(`${signal} received, shutting down gracefully`);
+
+  // 1) Stop accepting new connections, let in-flight requests finish
+  server.close(async () => {
+    try {
+      await pool.end();          // close the database pool
+      await redis.quit();        // close Redis
+      console.log("Clean shutdown complete");
+      process.exit(0);
+    } catch (err) {
+      console.error("Error during shutdown:", err);
+      process.exit(1);
+    }
+  });
+
+  // 2) Safety net: force exit if draining hangs
+  setTimeout(() => {
+    console.error("Forced shutdown after timeout");
+    process.exit(1);
+  }, 10000).unref();
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));</code></pre>
+  <p><code>server.close()</code> is the key call: it stops accepting new connections but lets existing requests complete, then fires its callback. That's your cue to close the database and Redis and exit.</p>
+
+  <h2>Always add a timeout</h2>
+  <p>Notice the <code>setTimeout</code> at the end. Without it, a single slow or stuck request (a hung upstream call, a client that won't disconnect) can keep <code>server.close()</code> from ever completing, and your process hangs until something hard-kills it, which is the outage you were trying to avoid. The timeout says "drain for up to 10 seconds, then leave anyway." Set it a little shorter than your platform's kill grace period so you exit on your terms. The <code>.unref()</code> keeps that timer from itself keeping the process alive.</p>
+
+  <h2>Drain the load balancer first</h2>
+  <p>There's a subtlety in front of the app. If a load balancer is still routing traffic to you while you drain, new requests can arrive after you've called <code>server.close()</code> and get refused. The clean sequence is to first mark yourself not-ready (flip your readiness health check to failing) so the load balancer stops sending new requests, wait a moment, then begin draining. That pairs directly with a proper health check, which is worth setting up alongside this. See <a href="https://www.kloudbean.com/blog/nodejs-health-checks/">Node.js health checks</a> for the readiness side.</p>
+
+  <h2>Common mistakes</h2>
+  <ul>
+    <li><strong>Not handling SIGTERM at all.</strong> The default is an immediate exit, so every deploy drops in-flight requests. This is the big one.</li>
+    <li><strong>Calling <code>process.exit()</code> too early.</strong> Exiting before <code>server.close()</code>'s callback cuts off the requests you meant to drain.</li>
+    <li><strong>No timeout.</strong> A stuck connection makes shutdown hang forever.</li>
+    <li><strong>Forgetting resources.</strong> Leaving the DB pool or Redis open can delay exit or leave connections lingering on the server side.</li>
+    <li><strong>Long keep-alive.</strong> Idle keep-alive sockets can slow the drain; consider closing idle connections as part of shutdown.</li>
+  </ul>
+
+  <table class="cmp">
+    <thead><tr><th>Signal</th><th>Where it comes from</th><th>Catchable?</th><th>What to do</th></tr></thead>
+    <tbody>
+      <tr><td>SIGTERM</td><td>Deploy, restart, scale-down</td><td>Yes</td><td>Drain and exit cleanly</td></tr>
+      <tr><td>SIGINT</td><td>Ctrl+C in the terminal</td><td>Yes</td><td>Same graceful path</td></tr>
+      <tr><td>SIGKILL</td><td>Forced kill / timeout</td><td>No</td><td>Can't handle, avoid by exiting on SIGTERM first</td></tr>
+    </tbody>
+  </table>
+
+  <h2>How this enables zero-downtime deploys</h2>
+  <p>Graceful shutdown is the app-side half of zero-downtime deployments. The platform can start a new instance and stop the old one smoothly, but only if the old one drains instead of dying mid-request. On Kloudbean your Node app runs always-on under PM2, and a reload signals the process to stop, so an app that handles SIGTERM drains its in-flight requests during a deploy rather than dropping them. The platform provides the rolling mechanism; your shutdown handler is what makes it truly seamless. It's a genuine shared responsibility, and this handler is your side of it. The full picture is in <a href="https://www.kloudbean.com/blog/zero-downtime-deployments/">zero-downtime deployments</a>.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="A GitHub deploy on Kloudbean reloading a Node app that drains requests on SIGTERM">
+    <figcaption>On deploy the platform reloads the process; an app that handles SIGTERM drains in-flight requests instead of dropping them.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>Shutdown pairs with a few neighbors. Set up the readiness signal in <a href="https://www.kloudbean.com/blog/nodejs-health-checks/">Node.js health checks</a>, get the release mechanism in <a href="https://www.kloudbean.com/blog/zero-downtime-deployments/">zero-downtime deployments</a>, and run the process well with the <a href="https://www.kloudbean.com/blog/pm2-process-manager-guide/">PM2 process manager guide</a>. Closing the pool cleanly connects to <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>, and a mid-deploy blip often shows up as a <a href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/">502 bad gateway</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Deploy without the error blip.</p>
+    <p style="margin:0 0 .6em">Run your Node app always-on under PM2 with GitHub deploys, so a shutdown handler that drains on SIGTERM turns every release into a non-event for your users. Flat pricing from $8/mo. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Always-on under PM2 · Rolling reloads · GitHub deploys · Managed database · Flat from $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is graceful shutdown in Node.js?</h3>
+    <p>It's the process of winding down cleanly when your app is told to stop: catch the <code>SIGTERM</code> signal, stop accepting new connections, let in-flight requests finish, close the database and other resources, then exit. It prevents the dropped requests and leaked connections that happen when a process is killed mid-work during a deploy or restart.</p>
+
+    <h3>How do I handle SIGTERM in Node.js?</h3>
+    <p>Register a handler with <code>process.on("SIGTERM", ...)</code> that calls <code>server.close()</code> to drain in-flight requests, then closes your database pool and Redis and calls <code>process.exit(0)</code>. Add a <code>setTimeout</code> force-exit as a safety net so a stuck connection can't hang the shutdown. Handle <code>SIGINT</code> the same way for local Ctrl+C.</p>
+
+    <h3>Why does my app drop requests during deploys?</h3>
+    <p>Because it's being killed mid-request. The platform sends SIGTERM to stop the old instance, and if your app doesn't handle it and drain, the in-flight requests are cut off when the process is hard-killed. Adding a graceful shutdown handler lets those requests finish before the process exits.</p>
+
+    <h3>Do I need a timeout in my shutdown handler?</h3>
+    <p>Yes. Without one, a single slow or stuck request can prevent <code>server.close()</code> from completing, and the process hangs until it's force-killed, which defeats the purpose. A timeout (say 10 seconds, slightly under your platform's kill grace period) force-exits so you leave on your own terms.</p>
+
+    <h3>What's the difference between SIGTERM and SIGKILL?</h3>
+    <p>SIGTERM is a polite request to stop that your app can catch and respond to, which is what orchestrators send first. SIGKILL is a forced termination that cannot be caught or handled. The whole point of handling SIGTERM well is to finish and exit during the grace window so a SIGKILL never becomes necessary.</p>
+
+    <h3>How does graceful shutdown relate to zero-downtime deploys?</h3>
+    <p>It's the application side of it. The platform can roll a new version in and take the old one out smoothly, but the old instance still needs to drain rather than die mid-request. Your SIGTERM handler is what makes that drain happen, so the two together produce a deploy that users don't notice.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Stop taking new work, finish the old, then leave.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Graceful Shutdown in Node.js: Handling SIGTERM Without Dropping Requests","description":"The graceful shutdown pattern for Node.js: catch SIGTERM, stop new connections, drain in-flight requests, close DB and Redis, and exit with a timeout so shutdown can't hang.","image":"https://www.kloudbean.com/blog/graceful-shutdown-nodejs/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/graceful-shutdown-nodejs/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is graceful shutdown in Node.js?","acceptedAnswer":{"@type":"Answer","text":"It is the process of winding down cleanly when your app is told to stop: catch the SIGTERM signal, stop accepting new connections, let in-flight requests finish, close the database and other resources, then exit. It prevents the dropped requests and leaked connections that happen when a process is killed mid-work during a deploy or restart."}},
+{"@type":"Question","name":"How do I handle SIGTERM in Node.js?","acceptedAnswer":{"@type":"Answer","text":"Register a handler with process.on for SIGTERM that calls server.close() to drain in-flight requests, then closes your database pool and Redis and calls process.exit(0). Add a setTimeout force-exit as a safety net so a stuck connection cannot hang the shutdown. Handle SIGINT the same way for local Ctrl+C."}},
+{"@type":"Question","name":"Why does my app drop requests during deploys?","acceptedAnswer":{"@type":"Answer","text":"Because it is being killed mid-request. The platform sends SIGTERM to stop the old instance, and if your app does not handle it and drain, the in-flight requests are cut off when the process is hard-killed. Adding a graceful shutdown handler lets those requests finish before the process exits."}},
+{"@type":"Question","name":"Do I need a timeout in my shutdown handler?","acceptedAnswer":{"@type":"Answer","text":"Yes. Without one, a single slow or stuck request can prevent server.close() from completing, and the process hangs until it is force-killed, which defeats the purpose. A timeout (say 10 seconds, slightly under your platform's kill grace period) force-exits so you leave on your own terms."}},
+{"@type":"Question","name":"What's the difference between SIGTERM and SIGKILL?","acceptedAnswer":{"@type":"Answer","text":"SIGTERM is a polite request to stop that your app can catch and respond to, which is what orchestrators send first. SIGKILL is a forced termination that cannot be caught or handled. The whole point of handling SIGTERM well is to finish and exit during the grace window so a SIGKILL never becomes necessary."}},
+{"@type":"Question","name":"How does graceful shutdown relate to zero-downtime deploys?","acceptedAnswer":{"@type":"Answer","text":"It is the application side of it. The platform can roll a new version in and take the old one out smoothly, but the old instance still needs to drain rather than die mid-request. Your SIGTERM handler is what makes that drain happen, so the two together produce a deploy that users do not notice."}}
+]}
+]}
+</script>
+</body>
+</html>
