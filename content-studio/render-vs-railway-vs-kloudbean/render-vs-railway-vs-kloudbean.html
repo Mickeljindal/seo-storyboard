@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Render vs Railway vs Kloudbean for Node.js (2026)</title>
+<meta name="description" content="Render vs Railway vs Kloudbean for a Node.js app in 2026: honest pricing, cold starts, databases, and production fit, with a clear pick for prototypes, simple PaaS, and always-on production.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/render-vs-railway-vs-kloudbean/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Render vs Railway vs Kloudbean for Node.js (2026)">
+<meta property="og:description" content="An honest three-way comparison for hosting a Node.js app: usage-based vs flat pricing, cold starts, managed databases, and which fits prototypes vs production.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Alternatives &amp; comparisons · Node.js</span>
+  <h1>Render vs Railway vs Kloudbean for Node.js (2026)</h1>
+  <p class="byline">By Kloudbean Engineering · All three deploy from Git. The difference shows up on the invoice.</p>
+
+  <figure><img src="images/hero.png" alt="Render vs Railway vs Kloudbean compared for hosting a Node.js app: pricing, cold starts, databases, and production fit"></figure>
+
+  <p class="lead">Render vs Railway is the comparison every Node developer runs eventually, usually right after Heroku priced them out or a bill surprised them. All three, Render, Railway, and Kloudbean, deploy a Node app from a GitHub push. So the interesting question isn't "which one runs Node," it's what happens at month three: the bill, the cold starts, and where your database lives. This is the honest three-way, with a clear pick for each kind of project.</p>
+
+  <div class="tldr">
+    <strong>Render vs Railway vs Kloudbean: which should I pick?</strong>
+    <p>For a quick prototype with the smoothest developer experience, Railway. For a simple git-push PaaS with managed Postgres, Render (just know the free tier sleeps). For an always-on production app where you want a predictable flat bill and your database in the same dashboard, Kloudbean, from $8/mo with no per-usage metering and free migration. The real split is prototype convenience versus production predictability.</p>
+  </div>
+
+  <h2>The quick verdict, by what you're building</h2>
+  <p>No single winner, because they're tuned for different moments. Match the tool to the project:</p>
+  <ul>
+    <li><strong>Prototype / hackathon / demo:</strong> Railway. The fastest path from repo to live URL, and the developer experience is genuinely the best of the three.</li>
+    <li><strong>Simple production app, git-push PaaS, managed Postgres in the box:</strong> Render. Clean and familiar, as long as you're on a paid instance so it doesn't sleep.</li>
+    <li><strong>Always-on production with a database and a bill you can forecast:</strong> Kloudbean. Flat pricing from $8/mo, the managed database next to the app, no cold starts, and free migration to get there.</li>
+  </ul>
+  <p>My honest read after watching a lot of these choices: teams pick Railway or Render for how fast the first deploy feels, then re-evaluate once the app is real, the traffic is steady, and the invoice stops being cute. Optimize for month three, not the demo.</p>
+
+  <h2>Pricing: the difference that actually surprises people</h2>
+  <p>This is where the three genuinely diverge, and it's the number one thing developers complain about online.</p>
+  <p><strong>Railway</strong> combines a plan fee with metered usage: CPU, RAM, databases, storage, and network egress are all billed by consumption, and a container is billed for the resources it holds even while idle. That's cheap for a sleepy prototype and hard to forecast once it's real. Developers regularly report small test services quietly billing far more than the headline plan price, and confusion between the plan fee, included usage, and prepaid credits. It isn't that metering is wrong; it's that the total is hard to predict.</p>
+  <p><strong>Render</strong> separates a workspace plan from compute and storage, and bills bandwidth and build minutes on top. Free services can still generate charges once a card is on file, and the pricing model changed with a new workspace structure in 2026, so old articles and the current dashboard may not match. Verify the live numbers before you commit.</p>
+  <p><strong>Kloudbean</strong> is a flat server plan from $8/mo. You know the number before you deploy, it doesn't move with traffic, and there's no separate egress meter to reverse-engineer at the end of the month. For a production app that needs to sit in a budget, predictable beats cheap-when-idle.</p>
+
+  <h2>Cold starts and sleep</h2>
+  <p>This one bites low-traffic apps hardest. <strong>Render's</strong> free web services spin down after about 15 minutes without traffic and take roughly a minute to wake on the next request, so the first visitor after a quiet stretch waits, or sees a loading screen. Paid instances don't spin down, which in practice means paying to remove the sleep. <strong>Railway</strong> keeps services running rather than sleeping, but you pay for that always-on time through metered usage. <strong>Kloudbean</strong> is always-on by default on a real server, so there's no scale-to-zero and no cold-start penalty; the trade, in fairness, is that a genuinely idle hobby project doesn't get to drop to zero cost.</p>
+
+  <h2>The database, where it quietly gets expensive</h2>
+  <p>A Node app almost always needs Postgres, MySQL, MongoDB, or Redis, and this is where the platforms differ in a way that matters. <strong>Render's</strong> free Postgres is a development resource, not a durable one: per their docs it expires 30 days after creation, with a 14-day grace period, after which the database and its data are deleted. Plenty of people have lost a forgotten side-project database that way. <strong>Railway</strong> makes databases easy to add, but each is another metered service on the bill. <strong>Kloudbean</strong> runs seven managed engines one-click (PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Memcached, Elasticsearch) in the same account as the app, backed up automatically, so the app and its data sit together instead of across a metered boundary.</p>
+
+  <h2>Render vs Railway vs Kloudbean, side by side</h2>
+  <table class="cmp">
+    <thead><tr><th>Dimension</th><th>Railway</th><th>Render</th><th>Kloudbean</th></tr></thead>
+    <tbody>
+      <tr><td>Best for</td><td>Prototypes, best DX</td><td>Simple git-push PaaS</td><td>Always-on production</td></tr>
+      <tr><td>Pricing shape</td><td>Plan fee + metered usage</td><td>Workspace + compute + bandwidth</td><td>Flat server plan, from $8/mo</td></tr>
+      <tr><td>Predictability</td><td>Hard to forecast at scale</td><td>Several meters to combine</td><td>Fixed monthly number</td></tr>
+      <tr><td>Cold starts</td><td>None (metered always-on)</td><td>Free tier sleeps (~15 min)</td><td>None (always-on)</td></tr>
+      <tr><td>Managed database</td><td>One-click, metered separately</td><td>Managed Postgres; free tier expires</td><td>7 engines, one-click, beside the app</td></tr>
+      <tr><td>Egress</td><td>Metered</td><td>Metered above the included amount</td><td>Not metered</td></tr>
+      <tr><td>Migration help</td><td>Self-serve</td><td>Self-serve</td><td>Free migration assistance</td></tr>
+      <tr><td>Scale-to-zero</td><td>No</td><td>Yes (free tier)</td><td>No (always-on by design)</td></tr>
+    </tbody>
+  </table>
+  <p>Read it as a fit check, not a scoreboard. Verify each platform's current pricing on its own page; plans and tiers move, and this table is about shape, not exact dollars.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 360" width="100%" role="img" aria-label="A positioning diagram. A horizontal axis runs from prototype convenience on the left to production predictability on the right. Railway sits on the left for fastest developer experience, Render in the middle as a simple PaaS, and Kloudbean on the right for always-on production with flat pricing and a colocated database." xmlns="http://www.w3.org/2000/svg">
+      <rect width="760" height="360" rx="16" fill="#f6f7fb"/>
+      <text x="380" y="38" text-anchor="middle" font-family="Poppins,sans-serif" font-size="16" font-weight="700" fill="#000f27">Prototype convenience to production predictability</text>
+      <line x1="70" y1="150" x2="690" y2="150" stroke="#9fb0d8" stroke-width="2"/>
+      <polygon points="690,150 681,145 681,155" fill="#9fb0d8"/>
+      <text x="80" y="180" font-family="Poppins,sans-serif" font-size="11" fill="#5b6a86">prototype convenience</text>
+      <text x="690" y="180" text-anchor="end" font-family="Poppins,sans-serif" font-size="11" fill="#5b6a86">production predictability</text>
+
+      <circle cx="160" cy="150" r="10" fill="#4F1AF3"/>
+      <text x="160" y="120" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="700" fill="#000f27">Railway</text>
+      <text x="160" y="210" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">best DX, metered usage</text>
+
+      <circle cx="380" cy="150" r="10" fill="#0ea5e9"/>
+      <text x="380" y="120" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="700" fill="#000f27">Render</text>
+      <text x="380" y="210" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">simple PaaS, free tier sleeps</text>
+
+      <circle cx="620" cy="150" r="12" fill="#40b75f"/>
+      <text x="620" y="118" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13.5" font-weight="700" fill="#000f27">Kloudbean</text>
+      <text x="620" y="210" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">always-on, flat price, DB included</text>
+
+      <text x="380" y="300" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" fill="#8a94b0">Start left for speed; move right as the app becomes something you can't afford to have sleep or surprise you.</text>
+    </svg>
+    <figcaption>The three line up on a convenience-to-predictability axis. Most apps start left for the demo and want the right side once they're real.</figcaption>
+  </figure>
+
+  <h2>What developers actually say</h2>
+  <p>The most useful signal isn't a feature list, it's the recurring complaint. Paraphrasing common threads from Reddit and support forums (2024 to 2026), treat these as patterns, not universal truths:</p>
+  <ul>
+    <li><strong>Railway bills are hard to predict.</strong> A frequent theme is a tiny test service with no real users quietly climbing to a few dozen dollars a month, plus confusion over how the plan fee, included usage, and credits combine. Some developers also report services pausing when prepaid credit runs out.</li>
+    <li><strong>Render free services sleep, and free databases expire.</strong> The cold-start delay on the free tier is the most repeated gripe, along with surprise that a free Postgres database is time-limited by design.</li>
+    <li><strong>People migrate for confidence, not just price.</strong> One widely shared sentiment after moving off a metered platform: the new bill was higher, but they could finally sleep at night. Predictability and support mattered more than the raw number.</li>
+  </ul>
+  <p>Fair credit where it's due: the same threads praise Railway's deployment speed and dashboard, and Render's clean git-push workflow and managed Postgres. Neither is a bad product. They're prototype-shaped, and some apps outgrow that shape.</p>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>Kloudbean is the pick when the app is past the demo: it needs to stay awake, it has a database, and you want to know the bill in advance. Your Node app deploys from GitHub, runs always-on under PM2, and sits next to a one-click managed database in the same dashboard, on a flat plan from $8/mo with no egress meter. When you're moving off Railway or Render, free migration assistance runs the first cutover with you.</p>
+  <p>The honest boundary, so this stays a comparison and not a sales pitch: if you want scale-to-zero for a project that genuinely idles, or you just want the fastest possible first deploy for a throwaway, Railway or Render's free tier will serve you better. Kloudbean's case is steady, predictable production, not paying nothing while nobody's looking.</p>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="The Kloudbean console deploying a Node.js app from GitHub with a managed database in the same dashboard">
+    <figcaption>Deploy the Node app from GitHub, with its managed database one click away in the same dashboard, on a flat monthly plan.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: swap this slot for a real screenshot. src -> images/flat-bill-vs-metered.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A flat monthly plan next to a metered usage invoice, to make the predictability point concrete.</em><small>Author supplies; keep any real figures accurate.</small></span></figure>
+
+  <h2>Moving off Railway or Render</h2>
+  <p>Migrating a Node app is a repo, a set of environment variables, and a database. Point a new Kloudbean server at the same GitHub repo, copy the environment variables into the dashboard, move the database with a standard dump and restore, then swap the connection string and redeploy.</p>
+  <div class="note"><b>Coming from Railway or Render?</b> The real work is the workers, the database, the env vars, and the DNS cutover, not the git push. Kloudbean's free migration assistance handles that first cutover with you, database included, and a free trial lets you prove the app runs before you move traffic.</div>
+
+  <h2>How it fits the rest of your stack</h2>
+  <p>Weighing the wider field first? <a href="https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/">Where to deploy a Node.js app</a> covers every option. The one-on-ones go deeper: <a href="https://www.kloudbean.com/blog/render-alternative-for-vibe-coded-apps/">Render alternative</a> and <a href="https://www.kloudbean.com/blog/railway-alternative-for-vibe-coded-apps/">Railway alternative</a>. For the hands-on side, <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploy a Node app to a managed cloud</a> and <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Trade metered surprises for a flat, always-on Node home.</p>
+    <p style="margin:0 0 .6em">Deploy from GitHub, run always-on under PM2, and keep a managed PostgreSQL, MySQL, MongoDB, or Redis in the same dashboard, at a price you know before you deploy. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Flat pricing from $8/mo · Always-on, no cold starts · Managed database beside the app · No egress meter · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Render vs Railway: which is better for a Node.js app?</h3>
+    <p>Railway has the smoother developer experience and is great for prototypes, but its usage-and-credit billing is harder to forecast. Render is a cleaner git-push PaaS with managed Postgres, but its free tier sleeps and its free database is time-limited. For a quick build pick Railway; for a simple paid PaaS pick Render; for predictable always-on production, a flat-priced managed host is the steadier choice.</p>
+
+    <h3>Is Railway expensive?</h3>
+    <p>It's cheap for a small, idle prototype and hard to predict as it grows. Railway bills a plan fee plus metered CPU, RAM, databases, storage, and egress, and a container is charged for the resources it holds even when idle. Developers often report small services costing far more than the headline plan. If a predictable monthly number matters, a flat server plan is easier to budget.</p>
+
+    <h3>Do Render's free services really sleep?</h3>
+    <p>Yes. Per Render's docs, free web services spin down after about 15 minutes without traffic and take roughly a minute to start on the next request, so the first visitor waits. Paid instances don't spin down. For a production site that means paying to remove the sleep, or choosing an always-on host instead.</p>
+
+    <h3>Does Render delete free databases?</h3>
+    <p>Per Render's documentation, a free Postgres database expires 30 days after creation, followed by a 14-day grace period to upgrade, after which the database and its data are deleted. It's meant as a development resource, not durable storage, so back up or upgrade before the window closes.</p>
+
+    <h3>Railway vs Render for production, which is safer?</h3>
+    <p>Both run production apps, but developers frequently move to a more predictable setup once revenue depends on it, citing billing surprises and support gaps rather than raw price. A common sentiment after switching is paying a bit more for the confidence to stop worrying. Weigh predictability and support, not just the sticker.</p>
+
+    <h3>What's the cheapest always-on Node.js host?</h3>
+    <p>Free tiers are cheapest but sleep, so for always-on the real options are a plain VPS if you'll run the ops yourself, or a flat managed plan (Kloudbean starts at $8/mo) if you want the server and database handled without a metered bill. Compare total cost including the database, egress, and your own time.</p>
+
+    <h3>How do I move a Node app from Railway or Render to Kloudbean?</h3>
+    <p>Point a new server at the same GitHub repo, copy your environment variables, and restore the database with a standard dump and load. Bring it up, verify it, then switch traffic. Kloudbean's free migration assistance can run that first cutover with you so downtime stays minimal, database included.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Pick for month three, not the first deploy.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Render vs Railway vs Kloudbean for Node.js (2026)","description":"An honest three-way comparison for hosting a Node.js app: usage-based vs flat pricing, cold starts, managed databases, and which fits prototypes versus production.","image":"https://www.kloudbean.com/blog/render-vs-railway-vs-kloudbean/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/render-vs-railway-vs-kloudbean/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Render vs Railway: which is better for a Node.js app?","acceptedAnswer":{"@type":"Answer","text":"Railway has the smoother developer experience and is great for prototypes, but its usage-and-credit billing is harder to forecast. Render is a cleaner git-push PaaS with managed Postgres, but its free tier sleeps and its free database is time-limited. For a quick build pick Railway; for a simple paid PaaS pick Render; for predictable always-on production, a flat-priced managed host is the steadier choice."}},
+{"@type":"Question","name":"Is Railway expensive?","acceptedAnswer":{"@type":"Answer","text":"It is cheap for a small, idle prototype and hard to predict as it grows. Railway bills a plan fee plus metered CPU, RAM, databases, storage, and egress, and a container is charged for the resources it holds even when idle. Developers often report small services costing far more than the headline plan. If a predictable monthly number matters, a flat server plan is easier to budget."}},
+{"@type":"Question","name":"Do Render's free services really sleep?","acceptedAnswer":{"@type":"Answer","text":"Yes. Per Render's docs, free web services spin down after about 15 minutes without traffic and take roughly a minute to start on the next request, so the first visitor waits. Paid instances do not spin down. For a production site that means paying to remove the sleep, or choosing an always-on host instead."}},
+{"@type":"Question","name":"Does Render delete free databases?","acceptedAnswer":{"@type":"Answer","text":"Per Render's documentation, a free Postgres database expires 30 days after creation, followed by a 14-day grace period to upgrade, after which the database and its data are deleted. It is meant as a development resource, not durable storage, so back up or upgrade before the window closes."}},
+{"@type":"Question","name":"Railway vs Render for production, which is safer?","acceptedAnswer":{"@type":"Answer","text":"Both run production apps, but developers frequently move to a more predictable setup once revenue depends on it, citing billing surprises and support gaps rather than raw price. A common sentiment after switching is paying a bit more for the confidence to stop worrying. Weigh predictability and support, not just the sticker."}},
+{"@type":"Question","name":"What is the cheapest always-on Node.js host?","acceptedAnswer":{"@type":"Answer","text":"Free tiers are cheapest but sleep, so for always-on the real options are a plain VPS if you will run the ops yourself, or a flat managed plan (Kloudbean starts at 8 dollars a month) if you want the server and database handled without a metered bill. Compare total cost including the database, egress, and your own time."}},
+{"@type":"Question","name":"How do I move a Node app from Railway or Render to Kloudbean?","acceptedAnswer":{"@type":"Answer","text":"Point a new server at the same GitHub repo, copy your environment variables, and restore the database with a standard dump and load. Bring it up, verify it, then switch traffic. Kloudbean's free migration assistance can run that first cutover with you so downtime stays minimal, database included."}}
+]}
+]}
+</script>
+</body>
+</html>
