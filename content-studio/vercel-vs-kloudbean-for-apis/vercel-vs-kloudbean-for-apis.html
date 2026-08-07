@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vercel vs Kloudbean for APIs: Serverless Functions or a Persistent Server?</title>
+<meta name="description" content="For a Node.js API, the choice between Vercel and Kloudbean is really serverless functions versus a persistent server. Compared on duration limits, cold starts, workers, WebSockets, database connections, and cost shape.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/vercel-vs-kloudbean-for-apis/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Vercel vs Kloudbean for APIs: Serverless Functions or a Persistent Server?">
+<meta property="og:description" content="Vercel vs Kloudbean for a Node.js API: duration limits, cold starts, durable workers, WebSockets, database connection behavior, and how each one bills.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Comparison · Vercel · Kloudbean · APIs</span>
+  <h1>Vercel vs Kloudbean for APIs: Serverless Functions or a Persistent Server?</h1>
+  <p class="byline">By Kloudbean Engineering · Not a rivalry. An architecture decision with a clear dividing line.</p>
+
+  <figure><img src="images/hero.png" alt="A serverless function spinning up per request compared with a persistent Node process holding a connection pool"></figure>
+
+  <p class="lead">Comparing Vercel and Kloudbean for an API isn't really comparing two companies, it's comparing two execution models. Vercel runs your endpoint as a function that starts, handles a request, and goes away. Kloudbean runs your API as a Node process that stays up. Almost every practical difference below falls out of that single fact, and the dividing line is genuinely easy to find once you know what to look at. So let's skip the marketing and go criterion by criterion.</p>
+
+  <div class="tldr">
+    <strong>Should I run my API on Vercel or a persistent server?</strong>
+    <p>Use Vercel for short, stateless endpoints, especially alongside a Next.js frontend, where per-request scaling is an advantage. Use a persistent server like Kloudbean when your API needs to run long, hold state or connections between requests, process durable background jobs, serve WebSockets, or handle high traffic on a predictable bill. The dividing line is whether your endpoints are request-shaped or process-shaped.</p>
+  </div>
+
+  <h2>The one difference everything else comes from</h2>
+  <p>On Vercel your API code runs as a function. It's invoked, it responds, it can be torn down. Nothing persists between invocations by default, no in-memory cache, no open connection pool, no running job loop. That model is genuinely excellent for spiky, stateless traffic: it scales out without you configuring anything and you're not paying for idle.</p>
+  <p>On Kloudbean your API is a Node process running always-on under PM2. It boots once, holds its database pool, keeps in-memory state if you want it, and can run a worker loop or hold WebSocket connections for hours. You're paying for a server whether it's busy or not, which is the honest tradeoff, and in return nothing is request-scoped.</p>
+  <p>Neither is a better idea in the abstract. What matters is which one matches the shape of your endpoints.</p>
+
+  <h2>Duration limits</h2>
+  <p>The most-quoted difference, and the most out-of-date in people's heads. Old Vercel plans capped functions at roughly 10 seconds on Hobby and 60 on Pro, and those numbers still circulate everywhere. They're historical. Per Vercel's current limitations docs, functions default to around 300 seconds, with Pro reaching up to 800 seconds and an extended maximum near 1,800 for supported Fluid Compute configurations. That's a big improvement and it removes the pain for most endpoints.</p>
+  <p>What hasn't changed is that a ceiling exists. A persistent server has no platform-imposed limit on your own request handling, which matters for report generation, large exports, slow third-party or AI calls, and data migrations. If your slowest endpoint is comfortably inside the limit, this criterion is a tie and you should ignore it.</p>
+
+  <h2>Cold starts</h2>
+  <p>A function that's gone idle has to initialize on the next request, which adds latency, worst on low-traffic endpoints with big dependency trees or heavy SDK initialization. Vercel has genuinely improved this with Fluid Compute and reports that 99.37% of requests see zero cold starts on its own workload. Worth crediting, and worth reading precisely: that's a vendor-reported platform statistic rather than an independent benchmark, and it doesn't promise your quiet endpoint never cold-starts. A persistent process sidesteps the question, since it's already warm.</p>
+
+  <h2>Background jobs and WebSockets</h2>
+  <p>Here the models diverge sharply, and it's usually the deciding factor. Because a function can be torn down after responding, fire-and-forget work isn't safe by default. Fluid Compute adds background processing, but it's still bound by function limits and metered, and it isn't a durable queue with retries and dead-letter handling. In practice teams add Inngest, Trigger.dev, QStash, or a cloud queue, meaning your API is now Vercel plus another vendor.</p>
+  <p>On a persistent server you run a worker beside the API and point BullMQ at managed Redis. That's it. Same for WebSockets: Vercel's docs do support them via Functions with Fluid Compute, but they follow function duration and pricing rules, need reconnect handling, and require external state for rooms and presence. A long-lived Node process running <code>ws</code> or Socket.IO with a Redis adapter is simply the native shape for that workload.</p>
+
+  <h2>Database connections</h2>
+  <p>The quiet one that bites under load. Each function instance can open its own database connection, so a burst of invocations can open a burst of connections and exhaust your database's limit. It's a well-known friction point for Postgres, MySQL, and MongoDB, and for ORMs like Prisma, Sequelize, Mongoose, Drizzle, and TypeORM that assumed a long-lived process. The fixes (serverless-aware drivers, a pooling proxy, hosted adapters) all work, and all add moving parts. A persistent server holds one stable pool, so the problem doesn't arise.</p>
+
+  <h2>Side by side</h2>
+  <table class="cmp">
+    <thead><tr><th></th><th>Vercel (functions)</th><th>Kloudbean (persistent)</th></tr></thead>
+    <tbody>
+      <tr><td>Execution model</td><td>Invoked per request</td><td>Always-on Node under PM2</td></tr>
+      <tr><td>Duration limit</td><td>~300s default, up to 800s or ~1,800s on Pro with Fluid Compute</td><td>No platform limit on your handlers</td></tr>
+      <tr><td>Cold starts</td><td>Possible when idle, much reduced by Fluid Compute</td><td>None, process stays warm</td></tr>
+      <tr><td>Durable background jobs</td><td>External queue service needed</td><td>Worker plus managed Redis, same server</td></tr>
+      <tr><td>WebSockets</td><td>Supported within function limits, external state</td><td>Native on a long-lived process</td></tr>
+      <tr><td>Database connections</td><td>Per-invocation, pooling proxy often needed</td><td>One stable pool</td></tr>
+      <tr><td>Scaling</td><td>Automatic, per request</td><td>Resize the server, or add a load balancer</td></tr>
+      <tr><td>Cost shape</td><td>Invocations, active CPU, memory, transfer, edge requests</td><td>Flat from $8/mo, no egress metering</td></tr>
+      <tr><td>Best at</td><td>Next.js frontends, short stateless APIs</td><td>Persistent APIs, workers, real-time, heavy DB use</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Cost shape, honestly</h2>
+  <p>Vercel bills a combination: invocations, active CPU, provisioned memory, fast data transfer, fast origin transfer, and edge requests. For a predictable frontend that's fine. For an API whose traffic you don't fully control it's harder to forecast, and the failure mode people report is a spike they didn't cause, one developer reported an unexpected bill near $1,141 dominated by data transfer, and bot traffic hitting public endpoints is a recurring trigger. Vercel does offer spend management, though it's opt-in for Pro teams, so it protects you only if you enabled it first.</p>
+  <p>A flat server plan is the other shape: you pay the same whether traffic is quiet or busy, which is worse for a genuinely idle project and better for anything with real or unpredictable volume. Kloudbean starts at $8/mo and doesn't meter egress, so a scraper hammering your API is an annoyance rather than an invoice. Neither model is dishonest. One optimizes for not paying for idle, the other for knowing the number.</p>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="Deploying a persistent Node.js API from GitHub in the Kloudbean console">
+    <figcaption>A persistent API deployed from GitHub, with workers, managed Redis, and a managed database in the same dashboard.</figcaption>
+  </figure>
+
+  <h2>How to decide in about a minute</h2>
+  <p>Run through this and you'll have your answer. If your API is short, stateless endpoints that mostly read and write a database, and especially if it lives alongside a Next.js frontend, stay on Vercel. It's genuinely good at that and moving buys you nothing.</p>
+  <p>If any two of these are true, use a persistent server: an endpoint that runs long or times out, background jobs you need retried reliably, WebSockets or server-sent events, database connection exhaustion under bursts, high or bot-exposed traffic volume, or a bill you can't forecast. My honest opinion after watching plenty of these decisions: the moment a queue enters the design, the persistent server has already won, because everything else you'd bolt on to avoid one costs more in vendors and complexity than the server does.</p>
+  <p>And the answer a lot of teams land on isn't either-or. Keep the Next.js frontend on Vercel, run the API on a persistent server, connect them over HTTPS. We wrote the step-by-step for that split in <a href="https://www.kloudbean.com/blog/migrate-vercel-api-to-kloudbean/">moving your API off Vercel</a>.</p>
+
+  <h2>Related reading</h2>
+  <p>More depth: <a href="https://www.kloudbean.com/blog/vercel-for-node-backends-limits/">Vercel for Node.js backends</a> for the full constraint list, <a href="https://www.kloudbean.com/blog/vercel-alternative-for-full-stack-apps/">a Vercel alternative for full-stack apps</a>, and <a href="https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/">best managed Node.js hosting</a> for the wider field. On the specifics: <a href="https://www.kloudbean.com/blog/database-connection-pooling/">connection pooling</a>, <a href="https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/">background jobs with BullMQ</a>, <a href="https://www.kloudbean.com/blog/scale-websockets-nodejs/">scaling WebSockets</a>, and <a href="https://www.kloudbean.com/blog/fix-cors-error-node-production/">CORS when you split origins</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Run the API where APIs like to live.</p>
+    <p style="margin:0 0 .6em">Always-on Node under PM2 with no duration ceiling on your handlers, real background workers, WebSockets, managed PostgreSQL and Redis in one dashboard, and no egress metering, from $8/mo flat. Keep your frontend wherever it's happy. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">No cold starts · No handler duration ceiling · Workers and WebSockets · Managed databases · No egress metering · Flat from $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Is Vercel good for APIs?</h3>
+    <p>For short, stateless endpoints, yes, and per-request scaling is a real advantage. It gets harder when the API needs to run long, keep state or connections between requests, process durable background jobs, or serve WebSockets, because functions are request-scoped by design. That's an architectural fit question rather than a quality one.</p>
+
+    <h3>What's Vercel's function duration limit now?</h3>
+    <p>Per Vercel's current docs, functions default to around 300 seconds, with Pro reaching up to 800 seconds and an extended maximum near 1,800 for supported Fluid Compute configurations. The widely quoted 10-second Hobby and 60-second Pro limits are historical. A ceiling still exists, so genuinely long work needs a queue or a persistent server.</p>
+
+    <h3>Can I run background workers on Vercel?</h3>
+    <p>Not as durable long-running workers. Fluid Compute adds background processing after a response, but it's bound by function limits and metered, and it isn't a queue with retries and dead-letter handling. Teams usually add an external job service. On a persistent server you run a worker process beside the API with managed Redis and BullMQ.</p>
+
+    <h3>Why do my database connections run out on serverless?</h3>
+    <p>Because each function instance can open its own connection, so a burst of invocations creates a burst of connections and exhausts the database's limit. It's common with Prisma, Sequelize, Mongoose, Drizzle, and TypeORM, which assumed a long-lived process. Serverless-aware drivers or a pooling proxy fix it; a persistent server avoids it by holding one stable pool.</p>
+
+    <h3>Is Vercel or a persistent server cheaper for a high-traffic API?</h3>
+    <p>It depends on traffic shape, but predictability differs sharply. Vercel combines invocations, active CPU, provisioned memory, and data transfer, which is hard to forecast and exposed to bot traffic; one developer reported an unexpected bill near $1,141 driven mostly by transfer. A flat plan with no egress metering costs the same busy or quiet, which is usually better once volume is real.</p>
+
+    <h3>Can I keep my frontend on Vercel and move only the API?</h3>
+    <p>Yes, and it's the setup many teams settle on. Host the Next.js frontend on Vercel, run the API as a persistent Node server on its own subdomain, and connect over HTTPS. The three things to handle are CORS, cross-origin cookies or bearer tokens for auth, and the database connection string. Migrate endpoint by endpoint rather than all at once.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Request-shaped endpoints, functions. Process-shaped APIs, a server.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Vercel vs Kloudbean for APIs: Serverless Functions or a Persistent Server?","description":"Vercel vs Kloudbean for a Node.js API: duration limits, cold starts, durable workers, WebSockets, database connection behavior, and how each one bills.","image":"https://www.kloudbean.com/blog/vercel-vs-kloudbean-for-apis/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/vercel-vs-kloudbean-for-apis/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Is Vercel good for APIs?","acceptedAnswer":{"@type":"Answer","text":"For short, stateless endpoints, yes, and per-request scaling is a real advantage. It gets harder when the API needs to run long, keep state or connections between requests, process durable background jobs, or serve WebSockets, because functions are request-scoped by design. That is an architectural fit question rather than a quality one."}},
+{"@type":"Question","name":"What's Vercel's function duration limit now?","acceptedAnswer":{"@type":"Answer","text":"Per Vercel's current docs, functions default to around 300 seconds, with Pro reaching up to 800 seconds and an extended maximum near 1,800 for supported Fluid Compute configurations. The widely quoted 10-second Hobby and 60-second Pro limits are historical. A ceiling still exists, so genuinely long work needs a queue or a persistent server."}},
+{"@type":"Question","name":"Can I run background workers on Vercel?","acceptedAnswer":{"@type":"Answer","text":"Not as durable long-running workers. Fluid Compute adds background processing after a response, but it is bound by function limits and metered, and it is not a queue with retries and dead-letter handling. Teams usually add an external job service. On a persistent server you run a worker process beside the API with managed Redis and BullMQ."}},
+{"@type":"Question","name":"Why do my database connections run out on serverless?","acceptedAnswer":{"@type":"Answer","text":"Because each function instance can open its own connection, so a burst of invocations creates a burst of connections and exhausts the database's limit. It is common with Prisma, Sequelize, Mongoose, Drizzle, and TypeORM, which assumed a long-lived process. Serverless-aware drivers or a pooling proxy fix it; a persistent server avoids it by holding one stable pool."}},
+{"@type":"Question","name":"Is Vercel or a persistent server cheaper for a high-traffic API?","acceptedAnswer":{"@type":"Answer","text":"It depends on traffic shape, but predictability differs sharply. Vercel combines invocations, active CPU, provisioned memory, and data transfer, which is hard to forecast and exposed to bot traffic; one developer reported an unexpected bill near 1,141 dollars driven mostly by transfer. A flat plan with no egress metering costs the same busy or quiet, which is usually better once volume is real."}},
+{"@type":"Question","name":"Can I keep my frontend on Vercel and move only the API?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it is the setup many teams settle on. Host the Next.js frontend on Vercel, run the API as a persistent Node server on its own subdomain, and connect over HTTPS. The three things to handle are CORS, cross-origin cookies or bearer tokens for auth, and the database connection string. Migrate endpoint by endpoint rather than all at once."}}
+]}
+]}
+</script>
+</body>
+</html>

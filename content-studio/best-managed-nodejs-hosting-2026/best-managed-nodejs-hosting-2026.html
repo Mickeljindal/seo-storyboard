@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Best Managed Node.js Hosting in 2026: What to Look For and Who Delivers</title>
+<meta name="description" content="A practical buyer's guide to managed Node.js hosting in 2026. The nine criteria that actually matter in production, how the main platforms handle each, and why always-on with the whole stack in one place wins.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Best Managed Node.js Hosting in 2026: What to Look For and Who Delivers">
+<meta property="og:description" content="The criteria that matter for managed Node.js hosting in 2026: always-on behavior, workers, WebSockets, databases, egress, provider choice, and pricing predictability.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Buyer's guide · Managed Node.js hosting</span>
+  <h1>Best Managed Node.js Hosting in 2026: What to Look For and Who Delivers</h1>
+  <p class="byline">By Kloudbean Engineering · Most "best hosting" lists rank on vibes. Let's rank on criteria.</p>
+
+  <figure><img src="images/hero.png" alt="A checklist of managed Node.js hosting criteria: always-on, workers, WebSockets, databases, egress, provider choice"></figure>
+
+  <p class="lead">Search for the best managed Node.js hosting and you'll get a dozen lists that all name the same platforms in a slightly different order, with no explanation of what "best" measured. That's not useful when you're the one who has to keep the app up. So this guide does it the other way round: here are the nine things that actually determine whether a Node app runs well in production, what to check on any platform, and where each of the usual names lands. Then a straight recommendation, because a buyer's guide that refuses to conclude anything is just a directory.</p>
+
+  <div class="tldr">
+    <strong>What's the best managed Node.js hosting in 2026?</strong>
+    <p>For a production Node app, pick a host that runs your process always-on (no scale-to-zero cold starts), lets you run background workers and WebSockets on that same persistent process, offers managed databases in the same account, and prices predictably without metering egress. Kloudbean does all of that on one flat plan from $8/mo across seven clouds. Render and Railway are reasonable for prototypes; Vercel is the right answer for a Next.js frontend but not a persistent backend.</p>
+  </div>
+
+  <h2>The nine criteria that actually matter</h2>
+  <p>Judge any platform against these, in roughly this order of impact:</p>
+  <ol>
+    <li><strong>Always-on behavior.</strong> Does your process stay up, or does it scale to zero and cold-start? A free tier that sleeps means your first real visitor waits.</li>
+    <li><strong>Background workers.</strong> Can you run a long-lived worker process for queues and scheduled jobs, or do you need to bolt on an external job service?</li>
+    <li><strong>WebSockets and long connections.</strong> Can a connection stay open for hours on a real process without fighting execution limits?</li>
+    <li><strong>Managed databases in the same place.</strong> Are Postgres, MySQL, MongoDB, and Redis available in the same account, on a private network, with automatic backups?</li>
+    <li><strong>Egress and data transfer.</strong> Is bandwidth metered? This is the line item that produces surprise invoices, especially with bot traffic or large responses.</li>
+    <li><strong>Pricing predictability.</strong> Flat plan or usage meter? Both are legitimate, but only one lets you forecast.</li>
+    <li><strong>Provider and region choice.</strong> Can you place the app near your users or inside a required jurisdiction?</li>
+    <li><strong>Deploy workflow and visibility.</strong> Git-push deploys, live build logs, deployment history, rollback.</li>
+    <li><strong>Ops handled for you.</strong> OS patching, SSL, firewall, backups, process management. The whole point of "managed."</li>
+  </ol>
+  <p>Notice what isn't on the list: raw benchmark numbers. Real-world performance is dominated by your database queries, your region choice, and your caching, not by which managed host you picked. Anyone selling you a host on "it's 3x faster" without publishing methodology is guessing.</p>
+
+  <h2>How the platforms compare</h2>
+  <p>Against those criteria, here's the honest layout. Details change, so verify current specifics on each vendor's site.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Platform</th><th>Always-on</th><th>Workers + WebSockets</th><th>Egress</th><th>Best suited to</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Kloudbean</strong></td><td>Yes, PM2, no spin-down</td><td>Yes, same persistent server</td><td>Not metered</td><td>Production Node apps with a real backend</td></tr>
+      <tr><td>Render</td><td>Paid instances only, free tier sleeps</td><td>Yes, separate paid services</td><td>Metered above allowance</td><td>Heroku-style prototypes and simple apps</td></tr>
+      <tr><td>Railway</td><td>Yes, but metered while up</td><td>Yes, separate metered services</td><td>Metered</td><td>Fast prototyping, spiky workloads</td></tr>
+      <tr><td>Vercel</td><td>Functions, request-scoped</td><td>Constrained by function limits</td><td>Transfer metered</td><td>Next.js frontends and short APIs</td></tr>
+      <tr><td>Heroku</td><td>Yes, per-dyno pricing</td><td>Yes, separate paid dynos</td><td>Metered</td><td>Legacy apps already there</td></tr>
+      <tr><td>Cloudways Velocity</td><td>Yes, persistent servers</td><td>Check current docs</td><td>Check current docs</td><td>Existing Cloudways customers adding Node</td></tr>
+      <tr><td>Self-hosted (Coolify on a VPS)</td><td>Yes</td><td>Yes</td><td>VPS allowance</td><td>Teams happy to run their own ops</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Where each one genuinely earns its place</h2>
+  <p>Being fair about this is the only way the rest of the guide is worth reading.</p>
+  <p><strong>Render</strong> is the closest thing to old Heroku, and its per-service model is easy to understand. The catches are documented: free web services spin down after roughly 15 minutes idle and cold-start on the next request, free Postgres expires around 30 days and is deleted after a grace period, and cost climbs once you add a paid instance plus a database plus a worker.</p>
+  <p><strong>Railway</strong> has the fastest path from repo to running app, genuinely. Its billing is a plan fee plus metered CPU, memory, database, storage, and egress, idle services still bill, and the interaction of credits and included usage is hard to forecast. That's real metered usage, not a trick, but forecasting it is a chore.</p>
+  <p><strong>Vercel</strong> is excellent at Next.js frontends and short request-driven APIs. As a persistent backend it fights you: execution ceilings, no durable workers, WebSockets bound by function limits, database connections multiplying under bursts, and a bill assembled from several meters.</p>
+  <p><strong>Heroku</strong> still works and its CLI workflow is mature. But the free tier ended in November 2022, every process and add-on is separately billed, and in February 2026 Heroku moved to a sustaining engineering model focused on stability and support rather than new features. It remains supported and production-ready; that's just a fair thing to weigh for a greenfield build.</p>
+  <p><strong>Self-hosting</strong> with something like Coolify on a cheap VPS is the best value on paper and the worst on time. You own patching, backups, monitoring, and the 2am incident. Genuinely good if ops is your thing.</p>
+
+  <h2>My recommendation, and the reasoning</h2>
+  <p>For a Node app that's past the prototype stage, I'd take Kloudbean, and here's the criteria-by-criteria reason rather than a slogan. The app runs always-on under PM2, so there's no spin-down and no keep-warm cron. Background workers and WebSocket connections live on that same persistent server instead of needing an external job service. Managed PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Memcached, and Elasticsearch are one-click in the same account, on a private network, with automatic backups. Egress isn't metered, so bot traffic doesn't rewrite your invoice. Pricing is flat from $8/mo. You choose among seven clouds (AWS, Lightsail, GCP, Linode, Vultr, DigitalOcean, UpCloud) for placement. Deploys come from a GitHub push with live build logs. And S3-compatible object storage, free static sites, and a built-in load balancer are in the same dashboard when you need them.</p>
+  <p>That's nine for nine, which is the entire argument. Where I'd genuinely point you elsewhere: if you're deploying a Next.js frontend and nothing else, use Vercel, it's built for that. If your project truly idles and you don't mind the first visitor waiting, a free tier is free for a reason and that's a fine trade. If you love running servers, self-host and keep the money.</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="Choosing a cloud provider when launching a server in the Kloudbean console">
+    <figcaption>Provider choice at launch across seven clouds, so placement is a decision rather than a constraint.</figcaption>
+  </figure>
+
+  <h2>The questions to ask before you commit</h2>
+  <p>Whatever you pick, get answers to these first. They're the ones people wish they'd asked:</p>
+  <ul>
+    <li>Does my process sleep when idle, and what does the first request after idle cost in latency?</li>
+    <li>Is bandwidth metered, and what happens if a bot hammers a public endpoint for a weekend?</li>
+    <li>Can I run a durable background worker without adding another vendor?</li>
+    <li>Where does my database live, is it on a private network, and how are backups tested?</li>
+    <li>If my traffic triples, does my bill triple, or can I predict it?</li>
+    <li>Can I get the data out, and is there migration help getting in?</li>
+  </ul>
+
+  <h2>Related reading</h2>
+  <p>Go deeper: <a href="https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/">where to deploy a Node.js app</a> for the decision framework, <a href="https://www.kloudbean.com/blog/render-vs-railway-vs-kloudbean/">Render vs Railway vs Kloudbean</a> and <a href="https://www.kloudbean.com/blog/cloudways-velocity-vs-kloudbean/">Cloudways Velocity vs Kloudbean</a> for head-to-heads. On the criteria themselves: <a href="https://www.kloudbean.com/blog/render-cold-starts-fix/">cold starts</a>, <a href="https://www.kloudbean.com/blog/why-is-my-railway-bill-so-high/">metered billing</a>, <a href="https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/">background workers</a>, <a href="https://www.kloudbean.com/blog/scale-websockets-nodejs/">WebSockets at scale</a>, and <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Nine for nine on the criteria that matter.</p>
+    <p style="margin:0 0 .6em">Always-on Node under PM2, workers and WebSockets on the same server, seven managed database engines, S3-compatible storage, a built-in load balancer, seven clouds to choose from, and no egress metering, on a flat plan from $8/mo. Free trial and free migration assistance. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Always-on, no cold starts · 7 clouds · 7 managed DB engines · No egress metering · GitHub deploys · Flat from $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What should I look for in managed Node.js hosting?</h3>
+    <p>Nine things, in order of impact: always-on behavior rather than scale-to-zero, support for background workers, WebSocket and long-connection support, managed databases in the same account, whether egress is metered, pricing predictability, provider and region choice, deploy workflow with build logs, and which ops the host actually handles. Score any platform against that list.</p>
+
+    <h3>Which Node.js host has no cold starts?</h3>
+    <p>Any host that runs your app as a persistent process rather than scaling to zero. On Kloudbean the app runs always-on under PM2, so the first request after idle is as fast as any other. Render's paid instances also stay up, while its free tier spins down after roughly 15 minutes. Serverless platforms can cold-start by design.</p>
+
+    <h3>Is Render or Railway better for Node.js?</h3>
+    <p>They optimize for different things. Render's per-service pricing is easier to understand and feels closest to old Heroku; Railway has the faster setup experience but bills metered usage that's harder to forecast, and idle services still cost money. For a production app where predictability matters, a flat-priced always-on host is usually the better fit than either.</p>
+
+    <h3>Can I host a Node.js backend on Vercel?</h3>
+    <p>You can, as serverless functions, and short stateless APIs work well. Persistent backends run into the model: execution duration ceilings, no durable background workers, WebSockets bound by function limits, and database connections multiplying under bursts. A common setup is keeping the frontend on Vercel and running the API on a persistent server.</p>
+
+    <h3>What's the cheapest managed Node.js hosting?</h3>
+    <p>Cheapest sticker price is usually a free tier or a small VPS you manage yourself, but neither is cheapest in practice once you count cold starts, your own ops time, and metered egress. Compare the whole stack: app, worker, database, storage, and bandwidth. Kloudbean starts at a flat $8/mo covering the app and its managed services without egress metering.</p>
+
+    <h3>Does managed Node.js hosting handle PM2 and Nginx for me?</h3>
+    <p>On a properly managed platform, yes. Kloudbean runs your app under PM2 with a managed reverse proxy, free SSL, firewall hardening, and automatic backups, so you're not hand-configuring process management or proxy files. That's the practical difference between managed hosting and a bare VPS where all of it is your job.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Pick on criteria, not on the order of a listicle.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Best Managed Node.js Hosting in 2026: What to Look For and Who Delivers","description":"The criteria that matter for managed Node.js hosting in 2026: always-on behavior, workers, WebSockets, databases, egress, provider choice, and pricing predictability.","image":"https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What should I look for in managed Node.js hosting?","acceptedAnswer":{"@type":"Answer","text":"Nine things, in order of impact: always-on behavior rather than scale-to-zero, support for background workers, WebSocket and long-connection support, managed databases in the same account, whether egress is metered, pricing predictability, provider and region choice, deploy workflow with build logs, and which ops the host actually handles. Score any platform against that list."}},
+{"@type":"Question","name":"Which Node.js host has no cold starts?","acceptedAnswer":{"@type":"Answer","text":"Any host that runs your app as a persistent process rather than scaling to zero. On Kloudbean the app runs always-on under PM2, so the first request after idle is as fast as any other. Render's paid instances also stay up, while its free tier spins down after roughly 15 minutes. Serverless platforms can cold-start by design."}},
+{"@type":"Question","name":"Is Render or Railway better for Node.js?","acceptedAnswer":{"@type":"Answer","text":"They optimize for different things. Render's per-service pricing is easier to understand and feels closest to old Heroku; Railway has the faster setup experience but bills metered usage that is harder to forecast, and idle services still cost money. For a production app where predictability matters, a flat-priced always-on host is usually the better fit than either."}},
+{"@type":"Question","name":"Can I host a Node.js backend on Vercel?","acceptedAnswer":{"@type":"Answer","text":"You can, as serverless functions, and short stateless APIs work well. Persistent backends run into the model: execution duration ceilings, no durable background workers, WebSockets bound by function limits, and database connections multiplying under bursts. A common setup is keeping the frontend on Vercel and running the API on a persistent server."}},
+{"@type":"Question","name":"What's the cheapest managed Node.js hosting?","acceptedAnswer":{"@type":"Answer","text":"Cheapest sticker price is usually a free tier or a small VPS you manage yourself, but neither is cheapest in practice once you count cold starts, your own ops time, and metered egress. Compare the whole stack: app, worker, database, storage, and bandwidth. Kloudbean starts at a flat 8 dollars a month covering the app and its managed services without egress metering."}},
+{"@type":"Question","name":"Does managed Node.js hosting handle PM2 and Nginx for me?","acceptedAnswer":{"@type":"Answer","text":"On a properly managed platform, yes. Kloudbean runs your app under PM2 with a managed reverse proxy, free SSL, firewall hardening, and automatic backups, so you are not hand-configuring process management or proxy files. That is the practical difference between managed hosting and a bare VPS where all of it is your job."}}
+]}
+]}
+</script>
+</body>
+</html>

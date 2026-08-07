@@ -8,7 +8,7 @@ If you're weighing a Cloudways Velocity alternative, first the plain facts: Clou
 
 ## What is Cloudways Velocity?
 
-Cloudways Velocity is the rebranded name for Cloudways' managed Node.js hosting. If you used Cloudways to launch, deploy, and manage a Node.js app before, that's Velocity now. The runtime and the deployment flow are the same idea: a managed place to run JavaScript web apps, APIs, and backend services, on top of the cloud providers Cloudways resells (DigitalOcean, AWS, Google Cloud, Vultr, and Linode).
+Cloudways Velocity is the rebranded name for Cloudways' managed Node.js hosting. If you used Cloudways to launch, deploy, and manage a Node.js app before, that's Velocity now. The runtime and the deployment flow are the same idea: a managed place to run JavaScript web apps, APIs, and backend services. Worth knowing precisely: while the wider Cloudways platform provisions on several clouds, Cloudways' own launch announcement says its managed Node.js hosting runs on the Cloudways Lightning Stack on DigitalOcean infrastructure, and the product has been introduced as early access. So the Node product and the WordPress platform aren't the same footprint. Check their docs for the current position, since early-access products move.
 
 So Velocity is Cloudways answering a real demand: developers wanted managed Node hosting from a platform that had spent years on managed WordPress and PHP. Good move on their part. The thing to understand before you commit is that Velocity is a Node hosting product. Your app runs there. The rest of your stack, the database especially, is a separate decision, and that's the gap this comparison is really about.
 
@@ -97,7 +97,7 @@ If you want more than Node hosting alone, Kloudbean is a strong alternative: it 
 Yes. Kloudbean runs seven managed engines one-click, PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Memcached, and Elasticsearch, in the same account as the app. Because the app and database sit together, you avoid sending every query to a separate product, and both are managed and backed up from one dashboard.
 
 **How many clouds does each platform run on?**
-Cloudways provisions on DigitalOcean, AWS, Google Cloud, Vultr, and Linode. Kloudbean runs on those same five plus AWS Lightsail and UpCloud, seven in total. More provider choice means you can place your app where your users or compliance requirements point, not only where one platform reaches.
+The wider Cloudways platform provisions on DigitalOcean, AWS, Google Cloud, Vultr, and Linode, though Cloudways' own launch announcement places its managed Node.js hosting on DigitalOcean infrastructure. Kloudbean runs on seven: those same five plus AWS Lightsail and UpCloud. More provider choice means you can place your app where your users or compliance requirements point.
 
 **How do I migrate a Node app from Cloudways to Kloudbean?**
 Point a new Kloudbean server at the same GitHub repo, copy your environment variables into the dashboard, and move the database with a standard dump and restore. Swap the connection string, redeploy, and verify before switching traffic. Kloudbean's free migration assistance can run that first cutover with you so downtime stays minimal.
