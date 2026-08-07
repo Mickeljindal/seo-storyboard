@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Node App Crashes on Deploy but Works Locally: A Debugging Field Guide</title>
+<meta name="description" content="Works on my machine, crashes on deploy. Almost always an environment gap: missing env vars, a build that didn't run, missing deps, Linux case sensitivity, a wrong port, or an unreachable database. Here's how to find and fix it fast.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Node App Crashes on Deploy but Works Locally: A Debugging Field Guide">
+<meta property="og:description" content="Why a Node app works locally and crashes on deploy, the environment gaps that cause it, how to reproduce production locally, and how to prevent silent deploy failures.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Node.js · Deploy · Error field guide</span>
+  <h1>Node App Crashes on Deploy but Works Locally: A Debugging Field Guide</h1>
+  <p class="byline">By Kloudbean Engineering · "Works on my machine" is a clue, not a defense.</p>
+
+  <figure><img src="images/hero.png" alt="A Node.js app running locally but crashing on deploy, with a deploy log showing the real error"></figure>
+
+  <p class="lead">Your Node app runs beautifully on your laptop, you deploy, and it immediately falls over. This is one of the most common and most solvable situations in backend work, because "works locally, crashes on deploy" is nearly always the same thing wearing different masks: your production environment isn't your development environment. Different config, a different OS, a different Node version, different dependencies installed. This is a field guide to finding the specific gap and closing it, starting with the log that already holds the answer.</p>
+
+  <div class="tldr">
+    <strong>Why does my Node app work locally but crash on deploy?</strong>
+    <p>Because production differs from your machine in ways your code assumed away. The frequent causes: a missing environment variable, a build or start command that didn't run, a dependency that lives in <code>devDependencies</code>, a filename case bug that only breaks on Linux, an app not reading <code>process.env.PORT</code>, or a database that's unreachable from production. Read the deploy logs first, they name the error, then reproduce the production setup locally to confirm the fix.</p>
+  </div>
+
+  <h2>First: read the deploy logs</h2>
+  <p>Before theorizing, look. A deploy has two log surfaces and the error is in one of them: the <strong>build log</strong> (install and build steps) and the <strong>runtime log</strong> (your app starting and crashing). If the build failed, you'll see it there, a failed <code>npm ci</code>, a TypeScript error, a missing file. If the build passed but the app dies on boot, the runtime log has the stack trace. Whatever the crash is, it's almost certainly written down already. The rest of this guide is really about recognizing which error you're looking at.</p>
+
+  <h2>The environment gap: why "works locally" means little</h2>
+  <p>Your dev machine is a very forgiving place. It has every dependency you've ever installed, environment variables you set months ago and forgot, a case-insensitive filesystem (on macOS and Windows), whatever Node version you happen to run, and the database sitting right there on localhost. Production has none of that unless you arranged it. So a deploy crash is usually the moment one of those hidden assumptions gets tested for real. Name the assumption, fix the gap.</p>
+
+  <h2>The usual culprits, ranked</h2>
+  <ol>
+    <li><strong>Missing environment variables.</strong> The number-one cause. The app reads a config value that isn't set in production, and throws on boot. Set every required variable per environment, and fail loudly at startup if one is missing. See <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>.</li>
+    <li><strong>Build or start command didn't run.</strong> A <code>Cannot find module 'dist/index.js'</code> means the build never produced the output. Confirm the build runs on deploy and the start script points at real files. See <a href="https://www.kloudbean.com/blog/fix-cannot-find-module-node/">Cannot find module</a>.</li>
+    <li><strong>Missing dependency in production.</strong> A runtime package sitting in <code>devDependencies</code> is skipped by a production install. Move it to <code>dependencies</code>.</li>
+    <li><strong>Case sensitivity on Linux.</strong> <code>require("./User")</code> vs a file named <code>user.js</code> works on your Mac and fails on the Linux server. Match the case exactly.</li>
+    <li><strong>Port binding.</strong> The app hardcodes a port or ignores <code>process.env.PORT</code>, so it binds wrong or clashes. See <a href="https://www.kloudbean.com/blog/fix-eaddrinuse-port-already-in-use-node/">EADDRINUSE</a>.</li>
+    <li><strong>Database unreachable.</strong> An <code>ECONNREFUSED</code> because the code points at <code>127.0.0.1</code> instead of the production database host. See <a href="https://www.kloudbean.com/blog/fix-econnrefused-node/">ECONNREFUSED</a>.</li>
+    <li><strong>Out of memory.</strong> A smaller production box hits a limit your laptop never did. See <a href="https://www.kloudbean.com/blog/fix-javascript-heap-out-of-memory-node/">heap out of memory</a>.</li>
+  </ol>
+
+  <h2>Reproduce production locally (the move that saves hours)</h2>
+  <p>You don't have to debug in production. Recreate its conditions on your machine and the crash usually reproduces on the spot:</p>
+  <pre><code># Simulate a production install and run
+export NODE_ENV=production
+
+rm -rf node_modules
+npm ci --omit=dev      # install exactly like production (no devDependencies)
+npm run build          # run the real build step
+node dist/index.js     # run the built output, not your dev server</code></pre>
+  <p>If it crashes here, congratulations, you can now iterate locally instead of pushing commit after commit hoping one sticks. Nine times out of ten this surfaces the missing dependency, the build gap, or the missing env var immediately. Set the same environment variables your production platform uses and you've closed most of the distance.</p>
+
+  <h2>Node version and native modules</h2>
+  <p>Two subtler gaps worth checking. First, the Node version: if you develop on Node 20 and the server runs Node 18, syntax or APIs available locally can fail in production. Pin the version so both agree, and declare it so the platform knows:</p>
+  <pre><code>// package.json
+{
+  "engines": { "node": "&gt;=20.0.0" }
+}</code></pre>
+  <p>Second, native modules. Packages with compiled binaries (things like <code>bcrypt</code> or <code>sharp</code> in some setups) are built for a specific OS and architecture. Committing <code>node_modules</code> from your Mac and running it on a Linux server is a classic way to get a native-module crash. The fix is the same as always: don't commit <code>node_modules</code>, let the server run a clean <code>npm ci</code> so binaries build for the right platform.</p>
+
+  <h2>Prevention: fail loudly, not silently</h2>
+  <p>The best cure is a deploy that tells you immediately when something's off. Three habits do most of the work. Validate required environment variables at startup and exit with a clear message if one is missing, so you get "MISSING DATABASE_URL" instead of a vague crash. Run your build on the server through CI/CD with visible logs, so a bad build shows up in the log rather than as a mystery. And add a health check so the platform knows whether the app actually came up. Together they turn "it crashed, no idea why" into "the log said exactly what was missing."</p>
+
+  <table class="cmp">
+    <thead><tr><th>Symptom on deploy</th><th>Cause</th><th>Where to fix it</th></tr></thead>
+    <tbody>
+      <tr><td>Crashes reading config</td><td>Missing env var</td><td>Set vars per environment</td></tr>
+      <tr><td>Cannot find module 'dist/...'</td><td>Build didn't run</td><td>Cannot find module guide</td></tr>
+      <tr><td>Works local, fails on server</td><td>Case sensitivity (Linux)</td><td>Match filename case</td></tr>
+      <tr><td>ECONNREFUSED on boot</td><td>Wrong DB host (localhost)</td><td>ECONNREFUSED guide</td></tr>
+      <tr><td>EADDRINUSE / wrong port</td><td>Not reading process.env.PORT</td><td>EADDRINUSE guide</td></tr>
+      <tr><td>Killed under load</td><td>Out of memory on smaller box</td><td>Heap out of memory guide</td></tr>
+    </tbody>
+  </table>
+
+  <h2>How Kloudbean makes deploy failures visible</h2>
+  <p>Most of the pain here is a deploy that fails quietly. Kloudbean deploys from a GitHub push through managed CI/CD with live build logs, so a failed install or build shows up in the console as it happens, not as a silent dead app. Environment variables are set per app so production stops falling back to your laptop's values, your Node app runs always-on under PM2 so a crash and its logs are visible, and a managed database sits on the same private network so the localhost trap doesn't apply. You still own your code's bugs, a genuine error will still crash, but the environment gaps that cause "works locally, crashes on deploy" are largely designed out.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="Live build logs during a GitHub deploy in the Kloudbean console showing install and build steps">
+    <figcaption>Live build logs surface a failed install or build as it happens, so a deploy fails loudly instead of silently.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>This guide is a map to the specific fixes. Dig into <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a> (the top cause), <a href="https://www.kloudbean.com/blog/fix-cannot-find-module-node/">Cannot find module</a>, <a href="https://www.kloudbean.com/blog/fix-econnrefused-node/">ECONNREFUSED</a>, <a href="https://www.kloudbean.com/blog/fix-eaddrinuse-port-already-in-use-node/">EADDRINUSE</a>, <a href="https://www.kloudbean.com/blog/pm2-app-keeps-restarting/">PM2 restart loops</a>, and <a href="https://www.kloudbean.com/blog/fix-javascript-heap-out-of-memory-node/">heap out of memory</a>. For a build that runs on every push, see <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD auto-deploy from GitHub</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Deploy with logs you can actually read.</p>
+    <p style="margin:0 0 .6em">Push to GitHub, watch the build run with live logs, set env vars per environment, and run always-on under PM2 next to a managed database, so deploy crashes are visible and the environment gaps are handled. Flat pricing from $8/mo. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Live build logs · Env vars per environment · Always-on Node under PM2 · Managed database · Flat from $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Why does my Node app work locally but crash when deployed?</h3>
+    <p>Because production isn't your machine. It lacks the environment variables you set locally, may run a different Node version, installs only production dependencies, uses a case-sensitive Linux filesystem, and reaches the database over a network instead of localhost. A deploy crash is one of those differences getting tested. Read the deploy log to see which.</p>
+
+    <h3>How do I debug a crash that only happens on deploy?</h3>
+    <p>Reproduce production locally: set <code>NODE_ENV=production</code>, run <code>npm ci --omit=dev</code>, run your build, and start the built output with <code>node dist/index.js</code>. That mirrors the production install and usually reproduces the crash on your machine, where you can fix it quickly instead of pushing commit after commit.</p>
+
+    <h3>What's the most common reason a Node app crashes on deploy?</h3>
+    <p>A missing environment variable. The app reads a config value that exists on your laptop but was never set in production, and throws on startup. Set every required variable per environment and validate them at boot with a clear error message, so a missing one is obvious instead of a cryptic crash.</p>
+
+    <h3>Why does it say "Cannot find module" only after deploying?</h3>
+    <p>Usually the build didn't run on the server (so <code>dist</code> is missing), a runtime package is stuck in <code>devDependencies</code> and skipped by the production install, or a filename case mismatch fails on Linux. Confirm the build runs on deploy, move runtime packages to <code>dependencies</code>, and match import casing exactly.</p>
+
+    <h3>Could a Node version difference cause a deploy crash?</h3>
+    <p>Yes. If you develop on a newer Node version than the server runs, syntax or APIs that work locally can fail in production. Pin the version with an <code>engines</code> field in <code>package.json</code> and make sure the platform runs the same major version. Native modules also need a clean install on the server so binaries match its platform.</p>
+
+    <h3>How do I stop deploys from failing silently?</h3>
+    <p>Make failures loud. Validate required env vars at startup and exit with a clear message, run the build through CI/CD with visible logs so a bad build is obvious, and add a health check so the platform knows if the app actually started. On Kloudbean the live build logs and per-environment config surface these problems as they happen.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Close the gap between your laptop and production, and the crash goes with it.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Node App Crashes on Deploy but Works Locally: A Debugging Field Guide","description":"Why a Node app works locally and crashes on deploy, the environment gaps that cause it, how to reproduce production locally, and how to prevent silent deploy failures.","image":"https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Why does my Node app work locally but crash when deployed?","acceptedAnswer":{"@type":"Answer","text":"Because production is not your machine. It lacks the environment variables you set locally, may run a different Node version, installs only production dependencies, uses a case-sensitive Linux filesystem, and reaches the database over a network instead of localhost. A deploy crash is one of those differences getting tested. Read the deploy log to see which."}},
+{"@type":"Question","name":"How do I debug a crash that only happens on deploy?","acceptedAnswer":{"@type":"Answer","text":"Reproduce production locally: set NODE_ENV to production, run npm ci with the omit-dev flag, run your build, and start the built output with node dist/index.js. That mirrors the production install and usually reproduces the crash on your machine, where you can fix it quickly instead of pushing commit after commit."}},
+{"@type":"Question","name":"What's the most common reason a Node app crashes on deploy?","acceptedAnswer":{"@type":"Answer","text":"A missing environment variable. The app reads a config value that exists on your laptop but was never set in production, and throws on startup. Set every required variable per environment and validate them at boot with a clear error message, so a missing one is obvious instead of a cryptic crash."}},
+{"@type":"Question","name":"Why does it say Cannot find module only after deploying?","acceptedAnswer":{"@type":"Answer","text":"Usually the build did not run on the server so dist is missing, a runtime package is stuck in devDependencies and skipped by the production install, or a filename case mismatch fails on Linux. Confirm the build runs on deploy, move runtime packages to dependencies, and match import casing exactly."}},
+{"@type":"Question","name":"Could a Node version difference cause a deploy crash?","acceptedAnswer":{"@type":"Answer","text":"Yes. If you develop on a newer Node version than the server runs, syntax or APIs that work locally can fail in production. Pin the version with an engines field in package.json and make sure the platform runs the same major version. Native modules also need a clean install on the server so binaries match its platform."}},
+{"@type":"Question","name":"How do I stop deploys from failing silently?","acceptedAnswer":{"@type":"Answer","text":"Make failures loud. Validate required env vars at startup and exit with a clear message, run the build through CI/CD with visible logs so a bad build is obvious, and add a health check so the platform knows if the app actually started. On Kloudbean the live build logs and per-environment config surface these problems as they happen."}}
+]}
+]}
+</script>
+</body>
+</html>

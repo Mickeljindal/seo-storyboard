@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>502 Bad Gateway with Node.js and Nginx: How to Fix It</title>
+<meta name="description" content="A 502 Bad Gateway means Nginx couldn't get a valid response from your Node app upstream. Here's how to read the Nginx error log, find the real cause, and fix the proxy, port, timeout, or crash behind it.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="502 Bad Gateway with Node.js and Nginx: How to Fix It">
+<meta property="og:description" content="Why Nginx returns 502 Bad Gateway for a Node app, how to read the error log, and how to fix the port, proxy_pass, timeout, or crash behind it.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Node.js · Nginx · Error field guide</span>
+  <h1>502 Bad Gateway with Node.js and Nginx: How to Fix It</h1>
+  <p class="byline">By Kloudbean Engineering · Nginx is fine. It's telling you the app behind it isn't answering.</p>
+
+  <figure><img src="images/hero.png" alt="A browser showing 502 Bad Gateway while Nginx tries to reach a Node app upstream that isn't responding"></figure>
+
+  <p class="lead">A 502 Bad Gateway on a Node.js site behind Nginx is one of those errors that looks like a web server problem but almost never is. Nginx is up and answering, that's why you get a styled 502 page. What it's telling you is that when it forwarded the request to your Node app upstream, it got nothing usable back. The app is down, on the wrong port, or too slow. This guide shows you how to find out which, with the one log file that hands you the answer.</p>
+
+  <div class="tldr">
+    <strong>How do I fix a 502 Bad Gateway with Node and Nginx?</strong>
+    <p>A 502 means Nginx couldn't get a valid response from your Node app. Check three things: is the Node process actually running and listening on the port Nginx forwards to; does <code>proxy_pass</code> point at that exact port; and is the app responding in time. Read <code>/var/log/nginx/error.log</code>, it literally says "connection refused" (app down or wrong port) or "upstream timed out" (app too slow). Fix that root cause and the 502 clears.</p>
+  </div>
+
+  <h2>What 502 actually means here</h2>
+  <p>Nginx is acting as a reverse proxy: the browser talks to Nginx, and Nginx forwards the request to your Node app running on something like <code>127.0.0.1:3000</code>. A 502 Bad Gateway means that forwarding step failed, Nginx reached out to the upstream and got a refusal, a timeout, or a malformed response. So the fault is almost always in the Node app or in how Nginx is told to reach it, not in Nginx serving pages. That reframing saves you from editing the wrong thing.</p>
+
+  <h2>Step 1: read the Nginx error log</h2>
+  <p>This is the shortcut. The Nginx error log names the exact failure:</p>
+  <pre><code>tail -f /var/log/nginx/error.log</code></pre>
+  <p>You're looking for one of two lines. The first points at a dead or misplaced app:</p>
+  <pre><code>connect() failed (111: Connection refused) while connecting to upstream</code></pre>
+  <p>That means nothing is listening where Nginx tried to connect, the Node app is down, crashed, or on a different port. The second points at a slow app:</p>
+  <pre><code>upstream timed out (110: Connection timed out) while reading response header from upstream</code></pre>
+  <p>That means the app is up but didn't respond within Nginx's timeout. Two very different fixes, and the log tells you which you have before you touch anything.</p>
+
+  <h2>Fix: connection refused (app down or wrong port)</h2>
+  <p>First confirm the app is even running and answering locally, bypassing Nginx entirely:</p>
+  <pre><code># Is Node responding on its port directly?
+curl -I http://127.0.0.1:3000
+
+# Is the process actually up?
+pm2 list</code></pre>
+  <p>If curl fails, the app is the problem, not Nginx, and you likely have a crash or restart loop to chase. If curl succeeds but the port doesn't match your Nginx config, line them up. The <code>proxy_pass</code> port must equal the port your app listens on:</p>
+  <pre><code>server {
+  listen 80;
+  server_name example.com;
+  location / {
+    proxy_pass http://127.0.0.1:3000;   # must match the app's real port
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_read_timeout 60s;
+  }
+}</code></pre>
+  <p>One more subtlety: make sure your app binds to the address Nginx uses. If Nginx proxies to <code>127.0.0.1:3000</code>, the app should listen on <code>127.0.0.1</code> (or <code>0.0.0.0</code>), and the ports must agree. After a config change, reload Nginx with <code>sudo nginx -t &amp;&amp; sudo systemctl reload nginx</code>.</p>
+
+  <h2>Fix: upstream timed out (app too slow)</h2>
+  <p>If the log says timed out, Nginx gave up waiting. You can raise the ceiling:</p>
+  <pre><code>location / {
+  proxy_pass http://127.0.0.1:3000;
+  proxy_read_timeout 120s;   # give slow responses more room
+}</code></pre>
+  <p>But treat that as a bandage, not a cure. A request that takes over a minute is usually a design smell: a slow query, a synchronous call to a third-party API, a heavy report generated inside the request. The better fix is to make the endpoint fast or move the long work to a background job and return quickly. Raising the timeout keeps the 502 away; fixing the latency keeps your users.</p>
+
+  <h2>When the 502 is really a crash</h2>
+  <p>A flickering 502 that comes and goes often means the Node process is crashing and restarting under load, which is the same underlying issue as a PM2 restart loop or a heap-out-of-memory kill. During each crash-and-restart window, Nginx has no upstream and returns 502. If your 502s correlate with traffic spikes or specific requests, don't tune Nginx, go fix the crash. The error will be in your app's logs, and the neighboring guides below cover the common ones.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Nginx error log says</th><th>Meaning</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td>Connection refused</td><td>App down or wrong port</td><td>Start app, match proxy_pass port</td></tr>
+      <tr><td>Upstream timed out</td><td>App too slow to respond</td><td>Speed up endpoint or raise timeout</td></tr>
+      <tr><td>No live upstreams</td><td>App crash-looping</td><td>Fix the crash in the app logs</td></tr>
+      <tr><td>502 only under load</td><td>OOM or overload</td><td>Fix memory, scale the app</td></tr>
+    </tbody>
+  </table>
+
+  <h2>How managed hosting removes the proxy guesswork</h2>
+  <p>A good share of 502s are really "the Nginx and Node wiring drifted apart," wrong port, missing reload, app listening on the wrong interface. That whole class disappears when the proxy is managed for you. On Kloudbean the reverse proxy in front of your always-on Node app is configured and maintained by the platform, along with SSL, so you're not hand-editing <code>proxy_pass</code> or reloading Nginx at all. A genuine app crash can still cause a 502, that's your code, but the misconfiguration causes are off the table.</p>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="A Node.js app deployed on Kloudbean with the reverse proxy and SSL handled by the platform">
+    <figcaption>The reverse proxy and SSL in front of your Node app are managed, so the port and proxy wiring behind most 502s is handled for you.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>The proxy layer and the crash causes are the two halves of a 502. For the proxy, see <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">Nginx reverse proxy for Node</a> and <a href="https://www.kloudbean.com/blog/reverse-proxy-explained/">reverse proxy explained</a>. For the crashes, see <a href="https://www.kloudbean.com/blog/pm2-app-keeps-restarting/">PM2 app keeps restarting</a>, <a href="https://www.kloudbean.com/blog/fix-econnrefused-node/">ECONNREFUSED</a>, and <a href="https://www.kloudbean.com/blog/fix-javascript-heap-out-of-memory-node/">heap out of memory</a>. To catch 502s early, set up <a href="https://www.kloudbean.com/blog/uptime-monitoring/">uptime monitoring</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Skip the Nginx wiring entirely.</p>
+    <p style="margin:0 0 .6em">Run your always-on Node app behind a managed reverse proxy with SSL handled for you, so the port, proxy, and reload steps behind most 502s are done. Deploy from GitHub on flat pricing from $8/mo. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed reverse proxy · Free SSL · Always-on Node under PM2 · GitHub deploys · Flat from $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What causes a 502 Bad Gateway with Node.js and Nginx?</h3>
+    <p>Nginx returns 502 when it can't get a valid response from your Node app upstream. The usual causes are the app being down or on a different port than <code>proxy_pass</code> expects, the app responding too slowly for Nginx's timeout, or the app crash-looping so there's no upstream during restarts. The Nginx error log tells you which.</p>
+
+    <h3>How do I find out why Nginx returns 502?</h3>
+    <p>Read <code>/var/log/nginx/error.log</code>. "Connection refused" means the app is down or on the wrong port; "upstream timed out" means the app is too slow. Then test the app directly with <code>curl -I http://127.0.0.1:3000</code> to confirm whether it's responding at all, which separates an app problem from a proxy problem.</p>
+
+    <h3>Is 502 an Nginx problem or a Node problem?</h3>
+    <p>Almost always a Node problem or a proxy-configuration problem, not Nginx itself, since Nginx is clearly running if it can serve the 502 page. Either the app isn't answering where Nginx expects, or it's too slow. Fix the app or the <code>proxy_pass</code> target rather than reinstalling Nginx.</p>
+
+    <h3>How do I fix "upstream timed out" 502s?</h3>
+    <p>You can raise <code>proxy_read_timeout</code> to give slow responses more room, but a request taking over a minute usually signals a slow query or a synchronous external call. The durable fix is to speed up the endpoint or move long work to a background job so the request returns quickly. Raising the timeout just hides the latency.</p>
+
+    <h3>Why do I get a 502 only under load?</h3>
+    <p>That pattern points at the app crashing or being killed under pressure, often out of memory, then restarting. During each restart there's no upstream, so Nginx returns 502. Don't tune Nginx for this; find the crash in your app logs, fix the memory or overload issue, and the load-related 502s stop.</p>
+
+    <h3>Does managed hosting prevent 502 errors?</h3>
+    <p>It removes the configuration causes. When the reverse proxy, port wiring, and SSL are managed, the "wrong port" and "forgot to reload Nginx" class of 502 goes away. A real crash in your own code can still cause one, because that's your application, but you're no longer debugging proxy config on top of it.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · The error log names the cause. Start there, every time.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"502 Bad Gateway with Node.js and Nginx: How to Fix It","description":"Why Nginx returns 502 Bad Gateway for a Node app, how to read the error log, and how to fix the port, proxy_pass, timeout, or crash behind it.","image":"https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What causes a 502 Bad Gateway with Node.js and Nginx?","acceptedAnswer":{"@type":"Answer","text":"Nginx returns 502 when it cannot get a valid response from your Node app upstream. The usual causes are the app being down or on a different port than proxy_pass expects, the app responding too slowly for Nginx's timeout, or the app crash-looping so there is no upstream during restarts. The Nginx error log tells you which."}},
+{"@type":"Question","name":"How do I find out why Nginx returns 502?","acceptedAnswer":{"@type":"Answer","text":"Read the Nginx error log at /var/log/nginx/error.log. Connection refused means the app is down or on the wrong port; upstream timed out means the app is too slow. Then test the app directly with curl to confirm whether it is responding at all, which separates an app problem from a proxy problem."}},
+{"@type":"Question","name":"Is 502 an Nginx problem or a Node problem?","acceptedAnswer":{"@type":"Answer","text":"Almost always a Node problem or a proxy-configuration problem, not Nginx itself, since Nginx is clearly running if it can serve the 502 page. Either the app is not answering where Nginx expects, or it is too slow. Fix the app or the proxy_pass target rather than reinstalling Nginx."}},
+{"@type":"Question","name":"How do I fix upstream timed out 502s?","acceptedAnswer":{"@type":"Answer","text":"You can raise proxy_read_timeout to give slow responses more room, but a request taking over a minute usually signals a slow query or a synchronous external call. The durable fix is to speed up the endpoint or move long work to a background job so the request returns quickly. Raising the timeout just hides the latency."}},
+{"@type":"Question","name":"Why do I get a 502 only under load?","acceptedAnswer":{"@type":"Answer","text":"That pattern points at the app crashing or being killed under pressure, often out of memory, then restarting. During each restart there is no upstream, so Nginx returns 502. Do not tune Nginx for this; find the crash in your app logs, fix the memory or overload issue, and the load-related 502s stop."}},
+{"@type":"Question","name":"Does managed hosting prevent 502 errors?","acceptedAnswer":{"@type":"Answer","text":"It removes the configuration causes. When the reverse proxy, port wiring, and SSL are managed, the wrong port and forgot to reload Nginx class of 502 goes away. A real crash in your own code can still cause one, because that is your application, but you are no longer debugging proxy config on top of it."}}
+]}
+]}
+</script>
+</body>
+</html>

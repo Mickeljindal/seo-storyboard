@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CORS Errors in Node.js Production: Why It Works Locally but Fails Live</title>
+<meta name="description" content="A CORS error means the browser blocked a cross-origin request because your server didn't allow the frontend's origin. Here's why it works locally and breaks in production, and how to fix it safely in Express.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/fix-cors-error-node-production/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CORS Errors in Node.js Production: Why It Works Locally but Fails Live">
+<meta property="og:description" content="Why CORS works on localhost and fails in production, how to configure allowed origins in Express safely, the wildcard-plus-credentials trap, preflight, and duplicate-header mistakes.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Node.js · CORS · Error field guide</span>
+  <h1>CORS Errors in Node.js Production: Why It Works Locally but Fails Live</h1>
+  <p class="byline">By Kloudbean Engineering · The browser is enforcing a rule your server forgot to state.</p>
+
+  <figure><img src="images/hero.png" alt="A browser console showing a CORS policy error: no Access-Control-Allow-Origin header on the requested resource"></figure>
+
+  <p class="lead">Almost everyone meets the same wall the first time they split a frontend and a Node API across two domains: the app works perfectly on localhost, ships to production, and the browser console fills with <code>blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present</code>. Nothing in your code changed. What changed is the origin. CORS is a browser rule about who's allowed to call your API, and your server has to say the frontend is on the list. Here's exactly why it flips in production and how to fix it without punching a security hole.</p>
+
+  <div class="tldr">
+    <strong>How do I fix a CORS error in a Node.js app in production?</strong>
+    <p>Configure your server to return an <code>Access-Control-Allow-Origin</code> header that includes your frontend's real production origin, not just localhost. In Express, use the <code>cors</code> package with an allowed-origins list read from an environment variable. If you send cookies, set <code>credentials: true</code> and list the exact origin (you can't use <code>*</code> with credentials). Make sure preflight <code>OPTIONS</code> requests are handled, and don't set CORS headers in both the app and the proxy.</p>
+  </div>
+
+  <h2>What a CORS error actually is</h2>
+  <p>CORS (Cross-Origin Resource Sharing) is a browser security mechanism. When your frontend at <code>https://app.example.com</code> calls an API at <code>https://api.example.com</code>, those are different origins, and the browser refuses to hand the response to your JavaScript unless the API explicitly says that origin is allowed, via response headers like <code>Access-Control-Allow-Origin</code>. The key insight: CORS is enforced by the browser but configured on the server. The request often reaches your API and even runs; the browser just blocks your code from reading the response because the permission header wasn't there. That's why it's a server fix, not a frontend one.</p>
+
+  <h2>Why it works locally and breaks in production</h2>
+  <p>On your machine, the frontend and API usually share an origin or you've wired a dev proxy, so requests are effectively same-origin and CORS never triggers. In production they're typically on separate domains or subdomains, which is genuinely cross-origin, so the browser starts enforcing. The second half is configuration: a lot of CORS setups hardcode <code>http://localhost:3000</code> as the allowed origin, which of course doesn't match your real production frontend. Same code, different origin, and the header no longer matches. That single mismatch is behind most "works locally, CORS in prod" reports.</p>
+
+  <h2>Fix it in Express, the right way</h2>
+  <p>Use the <code>cors</code> package and drive the allowed origins from an environment variable so each environment lists its own real frontend:</p>
+  <pre><code>const cors = require("cors");
+
+// CORS_ORIGINS="https://app.example.com,https://admin.example.com"
+const allowedOrigins = (process.env.CORS_ORIGINS || "").split(",").filter(Boolean);
+
+app.use(cors({
+  origin: allowedOrigins,   // exact origins, no trailing slash
+  credentials: true,        // only if you send cookies / auth headers
+}));</code></pre>
+  <p>Now production allows the production frontend and dev allows localhost, because each environment sets its own <code>CORS_ORIGINS</code>. No code change between them, just config. This is the clean version, and it also keeps you from the lazy fix that causes real problems next.</p>
+
+  <h2>The wildcard-plus-credentials trap</h2>
+  <p>When people get frustrated they reach for <code>origin: "*"</code> to allow everything. Two problems. First, it's a security smell, you're inviting any site to call your API. Second, and this one is a hard browser rule: you cannot combine a wildcard origin with credentials. If you set <code>Access-Control-Allow-Credentials: true</code> (needed for cookies), the browser rejects a <code>*</code> origin outright, so cookie-based auth silently breaks. The correct approach is to reflect only trusted origins from your allowlist:</p>
+  <pre><code>// When you need credentials, echo back only an allowed origin
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+}));</code></pre>
+  <p>Resist the urge to make the error vanish with a wildcard. Allow the origins you actually trust, and keep the door shut to everyone else.</p>
+
+  <h2>Preflight (OPTIONS) requests</h2>
+  <p>For anything beyond a simple request (custom headers, <code>PUT</code>/<code>DELETE</code>, JSON with certain content types), the browser first sends a preflight <code>OPTIONS</code> request asking "am I allowed to do this?" Your server has to answer that too. The good news is the <code>cors</code> middleware handles <code>OPTIONS</code> automatically when applied app-wide. If you set headers by hand or only on specific routes, a common bug is forgetting to respond to <code>OPTIONS</code>, so the preflight fails and the real request never fires. If your GET works but your POST gets blocked, unhandled preflight is the usual suspect.</p>
+
+  <h2>Double headers: app versus proxy</h2>
+  <p>Here's a sneaky one in production. If your Node app sets CORS headers and your Nginx (or other proxy) also adds them, the response can carry <code>Access-Control-Allow-Origin</code> twice. Browsers treat a duplicated allow-origin header as invalid and block the request, even though each layer looks correct on its own. Pick one place to own CORS, usually the app, and make sure the proxy isn't adding its own. If a response looks correct but the browser still complains, inspect the actual response headers for duplicates.</p>
+
+  <h2>Common gotchas checklist</h2>
+  <ul>
+    <li><strong>Protocol and trailing slash.</strong> <code>https://app.example.com</code> and <code>http://app.example.com</code> are different origins, and a trailing slash in the allowed value won't match. Match exactly.</li>
+    <li><strong>Error responses.</strong> If an error path skips your CORS middleware, the browser reports CORS instead of the real error. Make sure headers apply to error responses too.</li>
+    <li><strong>Auth headers.</strong> Sending an <code>Authorization</code> header can trigger preflight; make sure it's allowed.</li>
+    <li><strong>Subdomains.</strong> <code>www.</code> versus the apex domain are different origins. List both if you use both.</li>
+  </ul>
+
+  <table class="cmp">
+    <thead><tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td>No Access-Control-Allow-Origin</td><td>Prod origin not in allowlist</td><td>Add real frontend origin via env</td></tr>
+      <tr><td>Cookies stop working</td><td>Wildcard origin with credentials</td><td>List exact origin, credentials true</td></tr>
+      <tr><td>GET works, POST blocked</td><td>Unhandled preflight OPTIONS</td><td>Let cors middleware handle OPTIONS</td></tr>
+      <tr><td>Header present but still blocked</td><td>Duplicate header from app + proxy</td><td>Set CORS in one place only</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Where managed config helps, and where it doesn't</h2>
+  <p>Straight answer: CORS is your application's responsibility, and no host "fixes" it for you, because only your code knows which origins to trust. What a managed platform does help with is the part that actually causes the production surprise, environment configuration. On Kloudbean you set <code>CORS_ORIGINS</code> (and the rest of your config) per environment in the console, so production naturally lists your production frontend and never quietly falls back to localhost. That removes the config mismatch behind most prod CORS errors, while the policy itself stays where it belongs, in your app.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="Setting CORS_ORIGINS as an environment variable per environment in the Kloudbean console">
+    <figcaption>Set allowed origins per environment, so production trusts the production frontend instead of localhost.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>CORS sits next to your other HTTP security settings. See the <a href="https://www.kloudbean.com/blog/security-headers-guide/">security headers guide</a> for the broader picture, <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a> for the per-environment config that fixes the localhost mismatch, and <a href="https://www.kloudbean.com/blog/deploy-express-app/">deploy an Express app</a> for the framework side. If a proxy is in the mix, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">Nginx reverse proxy for Node</a> covers the duplicate-header trap, and <a href="https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/">custom domain and SSL</a> covers getting your origins onto real HTTPS domains.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Set config per environment, and CORS stops surprising you.</p>
+    <p style="margin:0 0 .6em">Run your Node API with environment variables set per environment in one console, so production trusts your real frontend origin instead of localhost. Deploy from GitHub on flat pricing from $8/mo. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Env vars per environment · Always-on Node · Free SSL · GitHub deploys · Flat from $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Why does CORS work on localhost but fail in production?</h3>
+    <p>Locally your frontend and API are usually the same origin or behind a dev proxy, so CORS never triggers. In production they're on different domains, which is cross-origin, so the browser enforces the policy. If your allowed origin is hardcoded to localhost, it won't match the real frontend, and you get a CORS error. Drive allowed origins from an environment variable instead.</p>
+
+    <h3>How do I fix "No Access-Control-Allow-Origin header is present"?</h3>
+    <p>Configure your server to return that header with your frontend's production origin. In Express, use the <code>cors</code> package with an allowed-origins list from an environment variable. The request may already reach your API, but the browser blocks your code from reading the response until the header names an allowed origin.</p>
+
+    <h3>Can I just set Access-Control-Allow-Origin to *?</h3>
+    <p>You can, but you shouldn't in most cases, and you can't at all if you send cookies. A wildcard invites any site to call your API, and browsers reject a wildcard origin combined with credentials, so cookie auth breaks. Reflect only the origins you trust from an allowlist, and keep credentials working by naming exact origins.</p>
+
+    <h3>Why does my GET work but my POST get blocked by CORS?</h3>
+    <p>Because the POST triggers a preflight <code>OPTIONS</code> request that your server isn't answering. The browser asks permission before the real request, and if that preflight fails, the POST never fires. Applying the <code>cors</code> middleware app-wide handles <code>OPTIONS</code> automatically, which usually clears this immediately.</p>
+
+    <h3>The header looks correct but the browser still blocks it, why?</h3>
+    <p>Check for a duplicated <code>Access-Control-Allow-Origin</code> header. If both your Node app and your proxy add CORS headers, the response carries it twice, which browsers treat as invalid. Own CORS in exactly one layer, usually the app, and make sure the proxy isn't adding its own copy.</p>
+
+    <h3>Is CORS something my host configures?</h3>
+    <p>No, CORS is your application's responsibility, since only your code knows which origins to trust. A host can't set it for you. What a managed platform helps with is per-environment configuration, so production lists your production frontend rather than falling back to a localhost value, which is where most production CORS errors come from.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Allow the origins you trust, name them exactly, own it in one place.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"CORS Errors in Node.js Production: Why It Works Locally but Fails Live","description":"Why CORS works on localhost and fails in production, how to configure allowed origins in Express safely, the wildcard-plus-credentials trap, preflight, and duplicate-header mistakes.","image":"https://www.kloudbean.com/blog/fix-cors-error-node-production/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/fix-cors-error-node-production/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Why does CORS work on localhost but fail in production?","acceptedAnswer":{"@type":"Answer","text":"Locally your frontend and API are usually the same origin or behind a dev proxy, so CORS never triggers. In production they are on different domains, which is cross-origin, so the browser enforces the policy. If your allowed origin is hardcoded to localhost, it will not match the real frontend, and you get a CORS error. Drive allowed origins from an environment variable instead."}},
+{"@type":"Question","name":"How do I fix No Access-Control-Allow-Origin header is present?","acceptedAnswer":{"@type":"Answer","text":"Configure your server to return that header with your frontend's production origin. In Express, use the cors package with an allowed-origins list from an environment variable. The request may already reach your API, but the browser blocks your code from reading the response until the header names an allowed origin."}},
+{"@type":"Question","name":"Can I just set Access-Control-Allow-Origin to a wildcard?","acceptedAnswer":{"@type":"Answer","text":"You can, but you should not in most cases, and you cannot at all if you send cookies. A wildcard invites any site to call your API, and browsers reject a wildcard origin combined with credentials, so cookie auth breaks. Reflect only the origins you trust from an allowlist, and keep credentials working by naming exact origins."}},
+{"@type":"Question","name":"Why does my GET work but my POST get blocked by CORS?","acceptedAnswer":{"@type":"Answer","text":"Because the POST triggers a preflight OPTIONS request that your server is not answering. The browser asks permission before the real request, and if that preflight fails, the POST never fires. Applying the cors middleware app-wide handles OPTIONS automatically, which usually clears this immediately."}},
+{"@type":"Question","name":"The header looks correct but the browser still blocks it, why?","acceptedAnswer":{"@type":"Answer","text":"Check for a duplicated Access-Control-Allow-Origin header. If both your Node app and your proxy add CORS headers, the response carries it twice, which browsers treat as invalid. Own CORS in exactly one layer, usually the app, and make sure the proxy is not adding its own copy."}},
+{"@type":"Question","name":"Is CORS something my host configures?","acceptedAnswer":{"@type":"Answer","text":"No, CORS is your application's responsibility, since only your code knows which origins to trust. A host cannot set it for you. What a managed platform helps with is per-environment configuration, so production lists your production frontend rather than falling back to a localhost value, which is where most production CORS errors come from."}}
+]}
+]}
+</script>
+</body>
+</html>
