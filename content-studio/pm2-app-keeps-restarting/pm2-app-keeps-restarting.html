@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PM2 App Keeps Restarting: How to Diagnose and Fix the Loop</title>
+<meta name="description" content="A climbing restart count in pm2 list means your app is crash-looping on boot. Here's how to read the logs, find the real cause, and stop the loop with min_uptime, max_restarts, and backoff.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/pm2-app-keeps-restarting/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="PM2 App Keeps Restarting: How to Diagnose and Fix the Loop">
+<meta property="og:description" content="Why PM2 keeps restarting your Node app, how to read the logs to find the real crash, and how to stop the loop with min_uptime, max_restarts, and backoff.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Node.js · PM2 · Error field guide</span>
+  <h1>PM2 App Keeps Restarting: How to Diagnose and Fix the Loop</h1>
+  <p class="byline">By Kloudbean Engineering · A restart counter that ticks like a clock is a crash, not a feature.</p>
+
+  <figure><img src="images/hero.png" alt="pm2 list output showing a Node app with a rapidly climbing restart count and seconds of uptime"></figure>
+
+  <p class="lead">You check <code>pm2 list</code> and the restart column is climbing, 40, 60, 200, while uptime resets to a few seconds each time. Your PM2 app keeps restarting because it's crashing on startup, and PM2 is doing exactly its job: bringing a dead process back up. The counter is a symptom, not the disease. The good news is the real error is sitting right there in the logs, and once you read it the fix is usually quick. Here's how to diagnose the loop and stop it for good.</p>
+
+  <div class="tldr">
+    <strong>Why does my PM2 app keep restarting?</strong>
+    <p>Because it's crashing shortly after it starts, so PM2 relaunches it, and it crashes again, a loop. The fix is always the same first move: run <code>pm2 logs</code> to see the actual error before each restart. It's usually a missing environment variable, a port already in use, a missing module, or a database that's unreachable on boot. Fix that root cause, then add <code>min_uptime</code> and <code>max_restarts</code> so a future crash is marked "errored" instead of looping forever.</p>
+  </div>
+
+  <h2>What a restart loop looks like</h2>
+  <p>Two tells in <code>pm2 list</code> (or <code>pm2 status</code>): the restart count (often shown as <code>↺</code>) climbing fast, and uptime that keeps resetting to seconds. A healthy long-running server has a low, stable restart count and uptime that grows. If yours is spinning, the process is exiting almost as fast as PM2 starts it. Don't try to fix it blind, the next step tells you exactly why.</p>
+
+  <h2>Step 1: read the logs (this is most of the fix)</h2>
+  <p>PM2 captures your app's output, so the crash reason is recorded. Look before you theorize:</p>
+  <pre><code># Tail the logs, both output and errors
+pm2 logs
+
+# Just one app, last 200 lines
+pm2 logs api --lines 200
+
+# Restarts, exit code, uptime, memory for one app
+pm2 describe api</code></pre>
+  <p>You're hunting for the stack trace or error line that repeats right before each restart. That single line usually names the problem: an <code>Error:</code> with a message, an <code>EADDRINUSE</code>, a <code>Cannot find module</code>, an <code>ECONNREFUSED</code>. Ninety percent of restart-loop tickets are solved the moment someone actually reads this output.</p>
+
+  <h2>The usual root causes</h2>
+  <p>Once you have the error, match it to the cause:</p>
+  <ul>
+    <li><strong>Missing or wrong env var.</strong> The app reads a config value that isn't set, throws on boot, and dies. Check the environment for that process.</li>
+    <li><strong>Port already in use.</strong> An <code>EADDRINUSE</code> on restart, often a stale process or two instances fighting for one port. See <a href="https://www.kloudbean.com/blog/fix-eaddrinuse-port-already-in-use-node/">the EADDRINUSE guide</a>.</li>
+    <li><strong>Missing module or build.</strong> A <code>Cannot find module</code> means a dependency or build output isn't there. See <a href="https://www.kloudbean.com/blog/fix-cannot-find-module-node/">the Cannot find module guide</a>.</li>
+    <li><strong>Database unreachable on boot.</strong> An <code>ECONNREFUSED</code> with no retry crashes the app before it can serve. See <a href="https://www.kloudbean.com/blog/fix-econnrefused-node/">the ECONNREFUSED guide</a>.</li>
+    <li><strong>Out of memory.</strong> A leak or a low <code>max_memory_restart</code> makes PM2 kill and restart the process. See <a href="https://www.kloudbean.com/blog/fix-javascript-heap-out-of-memory-node/">the heap out of memory guide</a>.</li>
+    <li><strong>Unhandled rejection or exception.</strong> An error thrown outside a try/catch takes the whole process down.</li>
+  </ul>
+
+  <h2>Stop the infinite loop: min_uptime and max_restarts</h2>
+  <p>Even after you fix the cause, you want a guardrail so a future crash doesn't spin forever and hammer your CPU. Two settings do this. <code>min_uptime</code> tells PM2 how long the app must stay up to count as a "successful" start, and <code>max_restarts</code> caps how many rapid restarts it tries before marking the app <code>errored</code> and stopping. Together they turn an endless loop into a clear failure you can see:</p>
+  <pre><code>pm2 start dist/index.js --name api --min-uptime 10000 --max-restarts 10</code></pre>
+  <p>Now if the app can't stay up for 10 seconds after 10 tries, PM2 stops relaunching it and flags it errored, which is far easier to spot than a counter quietly climbing into the thousands.</p>
+
+  <h2>Add backoff and handle crashes cleanly</h2>
+  <p>A tight crash loop can peg a CPU. Adding a restart delay, ideally exponential backoff, spaces the attempts out so a struggling app doesn't take the box down with it. And in your code, make sure a stray rejection logs something useful before the process exits, rather than dying silently:</p>
+  <pre><code>process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled rejection:", reason);
+  process.exit(1); // let PM2 restart a clean process
+});</code></pre>
+  <p>The goal isn't to swallow errors, it's to make them visible and let PM2 restart from a known state. If a specific dependency (a database, say) is the flaky part, prefer a scoped retry there over letting the whole app crash.</p>
+
+  <h2>The "it exits cleanly" case</h2>
+  <p>One sneaky variant: the app isn't crashing at all, it's finishing. If your script runs to completion and exits with code 0, PM2's default behavior brings it back up, because PM2 is built to keep long-running processes alive. Two common causes: you pointed PM2 at a one-off script instead of a server, or you have a server that forgot to actually listen. A real server should stay running because it's holding a port open:</p>
+  <pre><code>// A server stays up because it's listening
+app.listen(process.env.PORT || 3000, () => {
+  console.log("Listening on", process.env.PORT || 3000);
+});</code></pre>
+  <p>If <code>pm2 describe</code> shows exit code 0 and no error in the logs, you're in this case, not a crash loop. For genuine one-shot tasks, use a cron job rather than an always-on PM2 process.</p>
+
+  <h2>A solid ecosystem config</h2>
+  <p>Rather than remembering flags, put the guardrails in an <code>ecosystem.config.js</code> so every deploy is consistent:</p>
+  <pre><code>module.exports = {
+  apps: [{
+    name: "api",
+    script: "dist/index.js",
+    instances: 1,
+    max_memory_restart: "500M",
+    min_uptime: "10s",
+    max_restarts: 10,
+    exp_backoff_restart_delay: 100,
+    watch: false,                 // never true in production
+    env: { NODE_ENV: "production" }
+  }]
+};</code></pre>
+  <p>One note that catches people: <code>watch: true</code> is great in development and a disaster in production, because PM2 restarts the app every time a file changes, including logs or uploads. If your production app restarts "for no reason," check that watch is off.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td>EADDRINUSE in logs</td><td>Port taken / duplicate instance</td><td>Free the port, run one instance</td></tr>
+      <tr><td>Cannot find module</td><td>Missing dep or build</td><td>Install/build before start</td></tr>
+      <tr><td>ECONNREFUSED</td><td>DB not reachable on boot</td><td>Fix host, add a scoped retry</td></tr>
+      <tr><td>Killed / heap OOM</td><td>Memory leak or low limit</td><td>Fix leak, set max_memory_restart</td></tr>
+      <tr><td>Exit code 0, no error</td><td>Script exits / no listen</td><td>Run a server, or use cron</td></tr>
+      <tr><td>Restarts on file change</td><td>watch enabled in prod</td><td>Set watch: false</td></tr>
+    </tbody>
+  </table>
+
+  <h2>How Kloudbean runs PM2 for you</h2>
+  <p>Kloudbean runs your Node app always-on under PM2, so the process management above is handled for you rather than something you wire up on a bare server. Your environment variables are set per app in the console (so the missing-env-var crash is less likely), logs are right there to read when something does go wrong, and deploys come from a GitHub push. You still own your app's behavior, a real bug in your code will still crash, but the plumbing that turns a crash into a visible, recoverable event is already in place.</p>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="A Node.js app running under PM2 in the Kloudbean console, with logs and environment variables">
+    <figcaption>Your Node app runs always-on under PM2 with logs and env vars in the console, so a crash is visible instead of silent.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>PM2 depth and the specific crash causes are covered next door. Start with the <a href="https://www.kloudbean.com/blog/pm2-process-manager-guide/">PM2 process manager guide</a>, then the error guides this article points to: <a href="https://www.kloudbean.com/blog/fix-eaddrinuse-port-already-in-use-node/">EADDRINUSE</a>, <a href="https://www.kloudbean.com/blog/fix-cannot-find-module-node/">Cannot find module</a>, <a href="https://www.kloudbean.com/blog/fix-econnrefused-node/">ECONNREFUSED</a>, and <a href="https://www.kloudbean.com/blog/fix-javascript-heap-out-of-memory-node/">heap out of memory</a>. For clean releases, see <a href="https://www.kloudbean.com/blog/zero-downtime-deployments/">zero-downtime deployments</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Let PM2 be someone else's job.</p>
+    <p style="margin:0 0 .6em">Run your Node app always-on under managed PM2 with env vars and logs in one console and GitHub deploys, so a restart loop is visible and fixable instead of silent. Flat pricing from $8/mo. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed PM2 · Logs in the console · Env vars per app · GitHub deploys · Flat from $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Why does PM2 keep restarting my app?</h3>
+    <p>Because the app is exiting shortly after it starts and PM2 relaunches it, which is what PM2 is designed to do for long-running processes. The climbing restart count is a symptom of a crash on boot. Run <code>pm2 logs</code> to see the error causing the exit, fix that, and the loop stops.</p>
+
+    <h3>How do I see why PM2 is restarting my app?</h3>
+    <p>Run <code>pm2 logs</code> to watch the output and errors, and <code>pm2 describe &lt;app&gt;</code> to see the exit code, restart count, and uptime. The stack trace that repeats just before each restart names the cause, usually a missing env var, a port conflict, a missing module, or an unreachable database.</p>
+
+    <h3>How do I stop a PM2 restart loop?</h3>
+    <p>Fix the underlying crash first, then add guardrails: set <code>min_uptime</code> (how long the app must stay up to count as started) and <code>max_restarts</code> (how many quick restarts before PM2 marks it errored and stops). That converts an endless loop into a clear, visible failure instead of a counter climbing forever.</p>
+
+    <h3>My PM2 restart count is really high, is that bad?</h3>
+    <p>A high, still-climbing count with short uptime is bad, it means crash-looping. A high count that stopped growing (for example after a memory-limit restart earlier) can be harmless history. Check current uptime: if it's growing steadily now, the app is stable; if it keeps resetting to seconds, you're still looping.</p>
+
+    <h3>What does max_memory_restart do?</h3>
+    <p>It tells PM2 to restart the process if it exceeds a memory threshold, like <code>500M</code>. It's a safety valve for leaks, not a cure, if the app grows past the limit repeatedly you'll see regular restarts. Fix the leak, and size the limit to something realistic for your app so normal usage doesn't trip it.</p>
+
+    <h3>Does PM2 restart my app if it crashes?</h3>
+    <p>Yes, that's a core feature, PM2 keeps long-running apps alive by restarting them on exit. That's great for genuine one-off crashes and bad when the app crashes on boot, because it loops. Pair it with <code>min_uptime</code> and <code>max_restarts</code> so a persistent failure is flagged rather than retried endlessly.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · The logs already told you. Go read them first.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"PM2 App Keeps Restarting: How to Diagnose and Fix the Loop","description":"Why PM2 keeps restarting your Node app, how to read the logs to find the real crash, and how to stop the loop with min_uptime, max_restarts, and backoff.","image":"https://www.kloudbean.com/blog/pm2-app-keeps-restarting/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/pm2-app-keeps-restarting/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Why does PM2 keep restarting my app?","acceptedAnswer":{"@type":"Answer","text":"Because the app is exiting shortly after it starts and PM2 relaunches it, which is what PM2 is designed to do for long-running processes. The climbing restart count is a symptom of a crash on boot. Run pm2 logs to see the error causing the exit, fix that, and the loop stops."}},
+{"@type":"Question","name":"How do I see why PM2 is restarting my app?","acceptedAnswer":{"@type":"Answer","text":"Run pm2 logs to watch the output and errors, and pm2 describe with the app name to see the exit code, restart count, and uptime. The stack trace that repeats just before each restart names the cause, usually a missing env var, a port conflict, a missing module, or an unreachable database."}},
+{"@type":"Question","name":"How do I stop a PM2 restart loop?","acceptedAnswer":{"@type":"Answer","text":"Fix the underlying crash first, then add guardrails: set min_uptime (how long the app must stay up to count as started) and max_restarts (how many quick restarts before PM2 marks it errored and stops). That converts an endless loop into a clear, visible failure instead of a counter climbing forever."}},
+{"@type":"Question","name":"My PM2 restart count is really high, is that bad?","acceptedAnswer":{"@type":"Answer","text":"A high, still-climbing count with short uptime is bad, it means crash-looping. A high count that stopped growing (for example after a memory-limit restart earlier) can be harmless history. Check current uptime: if it is growing steadily now, the app is stable; if it keeps resetting to seconds, you are still looping."}},
+{"@type":"Question","name":"What does max_memory_restart do?","acceptedAnswer":{"@type":"Answer","text":"It tells PM2 to restart the process if it exceeds a memory threshold, like 500M. It is a safety valve for leaks, not a cure, if the app grows past the limit repeatedly you will see regular restarts. Fix the leak, and size the limit to something realistic for your app so normal usage does not trip it."}},
+{"@type":"Question","name":"Does PM2 restart my app if it crashes?","acceptedAnswer":{"@type":"Answer","text":"Yes, that is a core feature, PM2 keeps long-running apps alive by restarting them on exit. That is great for genuine one-off crashes and bad when the app crashes on boot, because it loops. Pair it with min_uptime and max_restarts so a persistent failure is flagged rather than retried endlessly."}}
+]}
+]}
+</script>
+</body>
+</html>

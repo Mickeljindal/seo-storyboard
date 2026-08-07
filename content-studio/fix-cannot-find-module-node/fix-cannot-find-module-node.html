@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Error: Cannot Find Module in Node.js: How to Fix It</title>
+<meta name="description" content="Error: Cannot find module means Node can't resolve what you required or imported. Here's how to fix it: the dependencies trap, path and case-sensitivity bugs that only break in production, ESM extensions, and missing builds.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/fix-cannot-find-module-node/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Error: Cannot Find Module in Node.js: How to Fix It">
+<meta property="og:description" content="Fix Error: Cannot find module in Node.js: the dependencies vs devDependencies trap, path and case-sensitivity bugs, ESM extensions, and missing build output.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Node.js · Error field guide</span>
+  <h1>Error: Cannot Find Module in Node.js: How to Fix It</h1>
+  <p class="byline">By Kloudbean Engineering · The one that works on your Mac and dies on the server.</p>
+
+  <figure><img src="images/hero.png" alt="A Node.js stack trace showing Error: Cannot find module, with a highlighted require path"></figure>
+
+  <p class="lead">Few errors waste more time than <code>Error: Cannot find module</code>, because it shows up for at least five unrelated reasons and the message rarely says which one. Sometimes a package isn't installed. Sometimes a path has a typo. And sometimes the code runs perfectly on your laptop and breaks the instant it hits a Linux server, thanks to a case-sensitivity gotcha almost nobody expects. This guide sorts the causes into two clear families and gives you the exact fix for each, so you stop guessing.</p>
+
+  <div class="tldr">
+    <strong>How do I fix "Cannot find module" in Node.js?</strong>
+    <p>First decide what's missing. If it's a package name like <code>express</code>, the module isn't installed, run <code>npm install</code> and confirm it's in <code>dependencies</code>, not <code>devDependencies</code>. If it's a relative path like <code>./routes/user</code>, the path, the filename case, or a missing ESM <code>.js</code> extension is wrong. If it only breaks in production, suspect case sensitivity on Linux or a build step that didn't run. Match the name exactly, fix the path, and make sure your build and install run on deploy.</p>
+  </div>
+
+  <h2>What "Cannot find module" actually means</h2>
+  <p>Node throws this when its module resolver can't locate what you asked for. When you write <code>require("x")</code> or <code>import ... from "x"</code>, Node runs an algorithm: if <code>x</code> is a bare name it looks in <code>node_modules</code>, and if it starts with <code>./</code> or <code>../</code> it resolves a file path relative to the current file. "Cannot find module" simply means that search came up empty. So the very first question is which kind of lookup failed, because the fixes are completely different.</p>
+
+  <h2>Is it a package or a file?</h2>
+  <p>Look at the name in the error. <code>Cannot find module 'express'</code> (no slash, no dot) is a <strong>package</strong> that Node expected in <code>node_modules</code>. <code>Cannot find module './routes/user'</code> (starts with a dot) is a <strong>file</strong> in your own code. That single distinction splits the whole problem in two. Everything below follows from it.</p>
+
+  <h2>Package not found: the dependencies trap</h2>
+  <p>If a package is missing, the obvious first move is to install it. Confirm it's actually there:</p>
+  <pre><code># Is the package installed and at what version?
+npm ls express
+
+# Clean reinstall (matches your lockfile)
+rm -rf node_modules package-lock.json
+npm install</code></pre>
+  <p>The subtler version bites in production. When you deploy with <code>NODE_ENV=production</code> or run <code>npm install --omit=dev</code> (or <code>npm ci --omit=dev</code>), npm skips everything in <code>devDependencies</code>. If your running app imports a package that's listed under <code>devDependencies</code>, it works locally (where dev deps are installed) and throws "Cannot find module" in production (where they aren't). The fix is to put anything the app needs at runtime in <code>dependencies</code>:</p>
+  <pre><code># Move a runtime package into dependencies
+npm install some-runtime-package --save
+
+# Reproducible production install (skips devDependencies)
+npm ci --omit=dev</code></pre>
+  <p>This is one of the most common "works on my machine" failures, and it's always worth a look when the missing module is something like a runtime helper you assumed was a normal dependency.</p>
+
+  <h2>File not found: paths, case, and ESM extensions</h2>
+  <p>For a relative path, there are three usual suspects. The first is a plain wrong path or typo, easy to spot once you look. The second is the big one:</p>
+  <p><strong>Case sensitivity.</strong> macOS and Windows filesystems are typically case-insensitive, so <code>./routes/user</code> happily finds a file named <code>User.js</code>. Linux is case-sensitive, so the same import fails in production with "Cannot find module." This is the classic "worked on my Mac, broke on the server" bug.</p>
+  <pre><code>// File on disk is routes/User.js
+const user = require("./routes/user");  // works on macOS, FAILS on Linux
+const user = require("./routes/User");  // correct on every platform</code></pre>
+  <p>The rule: make the import match the filename's case exactly, every time. The third suspect shows up with ES modules. In ESM, you must include the file extension, so <code>./routes/user</code> won't resolve, it has to be <code>./routes/user.js</code>:</p>
+  <pre><code>// ESM requires the extension
+import { router } from "./routes/user.js";  // not "./routes/user"</code></pre>
+
+  <h2>The build-output trap</h2>
+  <p>If you use TypeScript or a bundler, "Cannot find module" often means the build didn't produce what you're trying to run. Node tries to load <code>dist/index.js</code>, but <code>dist</code> was never generated, or your <code>package.json</code> <code>main</code> and start script point at a file that doesn't exist. Check that the build actually runs before start, and that the paths line up:</p>
+  <pre><code># Make sure the build runs, then start the built output
+npm run build      # e.g. tsc, produces dist/
+node dist/index.js
+
+# package.json should agree
+# "main": "dist/index.js",
+# "scripts": { "build": "tsc", "start": "node dist/index.js" }</code></pre>
+  <p>On a fresh server with no <code>dist</code> committed (as it shouldn't be), forgetting the build step is a guaranteed "Cannot find module" on boot.</p>
+
+  <h2>Fix checklist</h2>
+  <ol>
+    <li>Read the name: package (bare) or file (starts with a dot)?</li>
+    <li>Package: run <code>npm ls &lt;name&gt;</code>; if missing, install it and confirm it's in <code>dependencies</code>.</li>
+    <li>File: check the path and match the filename's case exactly.</li>
+    <li>Using ESM? Add the <code>.js</code> extension to relative imports.</li>
+    <li>Production only? Suspect case sensitivity or a build step that didn't run.</li>
+    <li>TypeScript/bundler? Confirm the build ran and <code>main</code>/<code>start</code> point at real output.</li>
+  </ol>
+
+  <table class="cmp">
+    <thead><tr><th>What you see</th><th>Likely cause</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td>Cannot find module 'express'</td><td>Not installed, or in devDependencies</td><td>Install it into dependencies</td></tr>
+      <tr><td>Cannot find module './routes/user'</td><td>Wrong path or filename case</td><td>Match the exact path and case</td></tr>
+      <tr><td>Works local, fails on server</td><td>Case sensitivity on Linux</td><td>Fix import casing to match the file</td></tr>
+      <tr><td>Cannot find module './x' (ESM)</td><td>Missing file extension</td><td>Add <code>.js</code> to the import</td></tr>
+      <tr><td>Cannot find module 'dist/index.js'</td><td>Build didn't run</td><td>Run the build before start</td></tr>
+    </tbody>
+  </table>
+
+  <h2>How managed CI/CD catches this early</h2>
+  <p>Most of these bugs hide in the gap between "my laptop" and "the server." A consistent build pipeline closes that gap. On Kloudbean, deploys run from a GitHub push through managed CI/CD: your install and build commands run on the server every time, in a Linux environment, with live build logs streaming to the console. That means the case-sensitivity trap and the missing-build trap surface in the build log the first time, not as a 2am production crash. You still have to write the correct import, but you find out immediately when you didn't.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="Live build logs from a GitHub deploy in the Kloudbean console, showing the install and build steps">
+    <figcaption>Live build logs run your install and build on every push, so a missing module or bad case shows up in the log, not in production.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>Clean builds and config prevent most of these. See <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD auto-deploy from GitHub</a> for a build that runs on every push, <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a> for the config side, and framework guides like <a href="https://www.kloudbean.com/blog/deploy-express-app/">deploy an Express app</a> and <a href="https://www.kloudbean.com/blog/deploy-nestjs-app/">deploy a NestJS app</a>. Chasing a different error? Try <a href="https://www.kloudbean.com/blog/fix-econnrefused-node/">ECONNREFUSED in Node.js</a> or <a href="https://www.kloudbean.com/blog/fix-eaddrinuse-port-already-in-use-node/">EADDRINUSE: port already in use</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Build on the server, every push.</p>
+    <p style="margin:0 0 .6em">Deploy your Node app from GitHub with managed CI/CD that runs your install and build in a real Linux environment and streams the logs live, so "Cannot find module" shows up in the build, not in production. Flat pricing from $8/mo. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">GitHub deploys · Live build logs · Consistent Linux builds · Always-on Node · Flat from $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Why does Node say "Cannot find module" when the package is installed?</h3>
+    <p>Usually because it's installed as a <code>devDependency</code> but needed at runtime, so a production install that skips dev dependencies drops it. It can also be a version or workspace mismatch. Run <code>npm ls &lt;name&gt;</code> to confirm what's actually installed, and move any runtime package into <code>dependencies</code>.</p>
+
+    <h3>Why does my app work locally but throw "Cannot find module" on the server?</h3>
+    <p>The most common reason is case sensitivity. macOS and Windows ignore filename case, but Linux doesn't, so importing <code>./User</code> as <code>./user</code> works on your machine and fails on the server. Match the import to the file's exact case. A build step that didn't run on the server is the other frequent cause.</p>
+
+    <h3>How do I fix "Cannot find module" with a relative path?</h3>
+    <p>Check three things: that the path is correct, that the filename case matches exactly, and, if you're using ES modules, that you included the <code>.js</code> extension. ESM requires the extension, so <code>./routes/user</code> must be <code>./routes/user.js</code>. Fixing the case and the extension clears most relative-path failures.</p>
+
+    <h3>Do I need a file extension in Node imports?</h3>
+    <p>With ES modules, yes, relative imports need the explicit extension like <code>.js</code>. With CommonJS <code>require</code>, the extension is optional. If you switched a project to <code>"type": "module"</code> and imports started failing, missing extensions are almost certainly why.</p>
+
+    <h3>How do I fix "Cannot find module 'dist/index.js'"?</h3>
+    <p>That path is build output, so the error means the build didn't produce it. Run your build (for TypeScript, <code>tsc</code> or your build script) before starting, confirm <code>dist</code> exists, and make sure <code>package.json</code> <code>main</code> and the start script point at the real compiled file. On a fresh server the build must run as part of the deploy.</p>
+
+    <h3>Should I commit node_modules to fix this?</h3>
+    <p>No. Commit your <code>package.json</code> and lockfile, and let the deploy run <code>npm ci</code> to install reproducibly. Committing <code>node_modules</code> causes platform and native-binary problems and bloats the repo. A CI/CD pipeline that installs and builds on the server is the reliable fix.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Package or path: name it, and the fix follows.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Error: Cannot Find Module in Node.js: How to Fix It","description":"Fix Error: Cannot find module in Node.js: the dependencies vs devDependencies trap, path and case-sensitivity bugs, ESM extensions, and missing build output.","image":"https://www.kloudbean.com/blog/fix-cannot-find-module-node/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/fix-cannot-find-module-node/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Why does Node say Cannot find module when the package is installed?","acceptedAnswer":{"@type":"Answer","text":"Usually because it is installed as a devDependency but needed at runtime, so a production install that skips dev dependencies drops it. It can also be a version or workspace mismatch. Run npm ls with the package name to confirm what is actually installed, and move any runtime package into dependencies."}},
+{"@type":"Question","name":"Why does my app work locally but throw Cannot find module on the server?","acceptedAnswer":{"@type":"Answer","text":"The most common reason is case sensitivity. macOS and Windows ignore filename case, but Linux does not, so importing ./User as ./user works on your machine and fails on the server. Match the import to the file's exact case. A build step that did not run on the server is the other frequent cause."}},
+{"@type":"Question","name":"How do I fix Cannot find module with a relative path?","acceptedAnswer":{"@type":"Answer","text":"Check three things: that the path is correct, that the filename case matches exactly, and, if you are using ES modules, that you included the .js extension. ESM requires the extension, so ./routes/user must be ./routes/user.js. Fixing the case and the extension clears most relative-path failures."}},
+{"@type":"Question","name":"Do I need a file extension in Node imports?","acceptedAnswer":{"@type":"Answer","text":"With ES modules, yes, relative imports need the explicit extension like .js. With CommonJS require, the extension is optional. If you switched a project to type module and imports started failing, missing extensions are almost certainly why."}},
+{"@type":"Question","name":"How do I fix Cannot find module dist/index.js?","acceptedAnswer":{"@type":"Answer","text":"That path is build output, so the error means the build did not produce it. Run your build (for TypeScript, tsc or your build script) before starting, confirm dist exists, and make sure package.json main and the start script point at the real compiled file. On a fresh server the build must run as part of the deploy."}},
+{"@type":"Question","name":"Should I commit node_modules to fix this?","acceptedAnswer":{"@type":"Answer","text":"No. Commit your package.json and lockfile, and let the deploy run npm ci to install reproducibly. Committing node_modules causes platform and native-binary problems and bloats the repo. A CI/CD pipeline that installs and builds on the server is the reliable fix."}}
+]}
+]}
+</script>
+</body>
+</html>
