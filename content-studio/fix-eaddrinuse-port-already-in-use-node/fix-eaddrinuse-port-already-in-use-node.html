@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fix EADDRINUSE: "port already in use" in Node.js</title>
+<meta name="description" content="Fix the Node.js EADDRINUSE error (port already in use): find and free the port, why it keeps happening, and the production fix (bind to the assigned port, one process, graceful shutdown).">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/fix-eaddrinuse-port-already-in-use-node/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Fix EADDRINUSE: &quot;port already in use&quot; in Node.js">
+<meta property="og:description" content="What EADDRINUSE means, how to find and kill whatever holds the port, why it keeps coming back, and how to stop it for good in development and production.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Node.js · Troubleshooting</span>
+  <h1>Fix EADDRINUSE: "port already in use" in Node.js</h1>
+  <p class="byline">By Kloudbean Engineering · Something's already on that port. Let's find it.</p>
+
+  <figure><img src="images/hero.png" alt="A Node.js process failing to start with Error: listen EADDRINUSE address already in use :::3000, and the steps to find and free the port"></figure>
+
+  <p class="lead">You run <code>npm start</code> and Node quits with <code>Error: listen EADDRINUSE: address already in use :::3000</code>. The EADDRINUSE error means something already holds the port your app wants, so the OS refuses to hand it over. Nine times out of ten it's a stray copy of your own app that never shut down. This guide shows you how to find and free the port in seconds, and then how to stop it happening again, in development and in production.</p>
+
+  <div class="tldr">
+    <strong>How do I fix EADDRINUSE in Node?</strong>
+    <p>Find what's holding the port and stop it. On macOS or Linux: <code>lsof -i :3000</code> to see the process, then <code>kill -9 &lt;PID&gt;</code>. Or one shot with <code>npx kill-port 3000</code>. If it keeps coming back, the cause is usually a previous instance that never exited, a dev watcher starting twice, or two processes told to use the same port. The durable fix is to bind to the port your platform gives you (<code>process.env.PORT</code>), run one process per port, and close the server cleanly on shutdown.</p>
+  </div>
+
+  <h2>What EADDRINUSE actually means</h2>
+  <p>A TCP port can belong to exactly one listening process at a time. When your app calls <code>app.listen(3000)</code>, it asks the OS for port 3000. If another process already has it, the OS returns <code>EADDRINUSE</code> (error, address in use) and Node throws. The full line looks like this:</p>
+<pre><code>Error: listen EADDRINUSE: address already in use :::3000
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)</code></pre>
+  <p>So the message is literal. It isn't a bug in your code so much as a conflict: two things want the same door. The fix is either to evict whoever's there, or to send your app to a different door.</p>
+
+  <h2>Find and free the port</h2>
+  <p>First, see what's holding it. On macOS and Linux, <code>lsof</code> lists the process on a port:</p>
+<pre><code># who is on port 3000?
+lsof -i :3000
+
+# COMMAND   PID   USER   ...   NAME
+# node    48213   you    ...   *:3000 (LISTEN)
+
+# stop it
+kill -9 48213</code></pre>
+  <p>The fastest one-liner, no PID hunting, is the <code>kill-port</code> helper:</p>
+<pre><code>npx kill-port 3000</code></pre>
+  <p>On Windows the same idea, different tools: find the PID with <code>netstat -ano | findstr :3000</code>, then <code>taskkill /PID &lt;PID&gt; /F</code>. Once the port is free, start your app again and it binds cleanly.</p>
+  <p>If you don't actually need that specific port, the other quick escape is to change ports. Set one via an environment variable so you're not editing code:</p>
+<pre><code>PORT=3001 npm start</code></pre>
+
+  <h2>Why it keeps happening</h2>
+  <p>Killing the process clears the symptom. If EADDRINUSE comes back every day, one of these is the real reason.</p>
+  <p><strong>A previous instance never exited.</strong> You hit Ctrl+C but the process detached, or it crashed in a way that left the port held for a moment, or a debugger kept it alive. The old app is still bound to 3000 while you start a new one.</p>
+  <p><strong>Your dev watcher starts the app twice.</strong> nodemon or a bad npm script can spawn two copies, and the second one hits EADDRINUSE against the first. A restart loop that logs the error over and over is the classic tell.</p>
+  <p><strong>Two processes are told to use the same port.</strong> An API and a worker that both default to 3000, or two PM2 apps with the same port, will collide. Give each its own port.</p>
+  <p><strong>You call listen twice.</strong> Importing the server file in a test, or calling <code>app.listen()</code> in two places, binds the port more than once in the same process. Bind in exactly one entry point.</p>
+  <p><strong>PM2 or systemd is already running it.</strong> On a server, your process manager may already have the app up on that port. You then SSH in, run <code>node server.js</code> by hand, and collide with the copy PM2 is already running.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 340" width="100%" role="img" aria-label="A diagram of a port conflict. Port 3000 is a single door. One Node process already holds it and is listening. A second Node process tries to bind to the same port 3000 and is rejected with EADDRINUSE, because a TCP port can only belong to one listening process at a time." xmlns="http://www.w3.org/2000/svg">
+      <rect width="760" height="340" rx="16" fill="#f6f7fb"/>
+      <text x="380" y="36" text-anchor="middle" font-family="Poppins,sans-serif" font-size="16" font-weight="700" fill="#000f27">One port, one process</text>
+
+      <rect x="70" y="120" width="180" height="80" rx="13" fill="#000f27"/>
+      <text x="160" y="155" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13.5" font-weight="700" fill="#ffffff">Process A</text>
+      <text x="160" y="176" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" fill="#8fe3a6">holds :3000</text>
+
+      <rect x="340" y="130" width="80" height="60" rx="10" fill="#40b75f"/>
+      <text x="380" y="160" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="700" fill="#04210f">:3000</text>
+      <text x="380" y="176" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#04210f">the door</text>
+
+      <line x1="250" y1="160" x2="336" y2="160" stroke="#40b75f" stroke-width="2.6"/>
+      <polygon points="340,160 331,155 331,165" fill="#40b75f"/>
+
+      <rect x="510" y="120" width="180" height="80" rx="13" fill="#000f27" stroke="#e0574a" stroke-width="2"/>
+      <text x="600" y="155" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13.5" font-weight="700" fill="#ffffff">Process B</text>
+      <text x="600" y="176" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" fill="#f2a59d">wants :3000</text>
+
+      <line x1="510" y1="160" x2="424" y2="160" stroke="#e0574a" stroke-width="2.6" stroke-dasharray="6 5"/>
+      <text x="470" y="150" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#e0574a">EADDRINUSE</text>
+      <text x="470" y="210" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" fill="#5b6a86">rejected</text>
+
+      <text x="380" y="280" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" fill="#5b6a86">Free the port (kill Process A) or send Process B to a different port.</text>
+    </svg>
+    <figcaption>A TCP port belongs to one listening process. The second app to ask for it is turned away with EADDRINUSE. Evict the first, or move the second.</figcaption>
+  </figure>
+
+  <h2>Symptom to cause, fast</h2>
+  <table class="cmp">
+    <thead><tr><th>What you see</th><th>Likely cause</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td>Error on every restart in dev</td><td>Old instance still bound</td><td><code>npx kill-port 3000</code>, then start</td></tr>
+      <tr><td>Two logs, one crashes</td><td>Watcher started the app twice</td><td>Fix the npm script / nodemon config</td></tr>
+      <tr><td>Fails only after a crash</td><td>No clean shutdown, port held</td><td>Close the server on SIGTERM/SIGINT</td></tr>
+      <tr><td>Fails on the server, not locally</td><td>PM2 already running it</td><td>Don't also start it by hand; use <code>pm2 restart</code></td></tr>
+      <tr><td>Two services collide</td><td>Same port for both</td><td>Give each its own port via env</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Close the server so the port frees</h2>
+  <p>A big source of repeat EADDRINUSE is a process that dies without letting go of the port. Handle the shutdown signals and close the server, so the next start finds the door open:</p>
+<pre><code>const server = app.listen(process.env.PORT || 3000);
+
+for (const sig of ["SIGTERM", "SIGINT"]) {
+  process.on(sig, () =&gt; {
+    server.close(() =&gt; process.exit(0)); // stop listening, then exit
+  });
+}</code></pre>
+  <p>This is the same habit that gives you clean, zero-downtime restarts. Bonus: it makes your app a good citizen under PM2 and any platform that stops it with SIGTERM.</p>
+
+  <h2>The production version of this problem</h2>
+  <p>In production, EADDRINUSE usually means one thing: you started a second copy of an app that was already running. The fixes are boring and reliable.</p>
+  <p><strong>Bind to the port you're given.</strong> Never hardcode a port on a server. Read it from the environment, so the platform decides and nothing collides: <code>const port = process.env.PORT || 3000;</code>. Keep that value in your environment variables, not in code.</p>
+  <p><strong>Let one thing own the process.</strong> If PM2 or systemd runs your app, let it. Use <code>pm2 restart app</code> instead of SSHing in and running <code>node server.js</code> next to the copy PM2 already has up. One owner per port, always.</p>
+  <p>This is where a managed platform quietly removes the whole class of problem. On Kloudbean your Node app is deployed from GitHub and run under PM2 for you, bound to the port the platform assigns, as a single managed process. You don't hand-start a second copy over SSH, so the "two apps, one port" collision that causes most production EADDRINUSE just doesn't come up. Restarts go through the dashboard or a git push, cleanly.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console setting the PORT environment variable so the Node app binds to the port the platform assigns instead of a hardcoded one">
+    <figcaption>Runtime Configuration then Environment Variables: bind to the assigned <code>PORT</code> here instead of hardcoding one, and the collision disappears.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: swap this slot for a real screenshot. src -> images/lsof-terminal.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal running lsof -i :3000 then kill, freeing the port and letting the app start.</em><small>Author supplies from their own terminal.</small></span></figure>
+
+  <h2>How it fits the rest of your stack</h2>
+  <p>Ports, processes, and clean restarts are the same story. Go deeper with <a href="https://www.kloudbean.com/blog/pm2-process-manager-guide/">the PM2 process manager guide</a>, keep your port out of code with <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>, and make restarts seamless with <a href="https://www.kloudbean.com/blog/zero-downtime-deployments/">zero-downtime deployments</a>. Deciding where to run the app? <a href="https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/">Where to deploy a Node.js app</a> covers the options, and <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploy a Node app to a managed cloud</a> is the hands-on version.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Run your Node app as one clean managed process.</p>
+    <p style="margin:0 0 .6em">Deploy from GitHub, let PM2 run it on the assigned port, and restart from the dashboard instead of fighting stray processes over SSH. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Deploy from GitHub · PM2 process management · Clean restarts · Environment variables in the UI · Free migration</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does EADDRINUSE mean in Node.js?</h3>
+    <p>It means the port your app tried to listen on is already taken by another process, so the operating system refused the request and Node threw. A TCP port can only belong to one listening process at a time. The message names the port, for example <code>:::3000</code>, so you know exactly which one to free.</p>
+
+    <h3>How do I find what's using a port?</h3>
+    <p>On macOS or Linux, run <code>lsof -i :3000</code> to see the process and its PID, then <code>kill -9 &lt;PID&gt;</code>. On Windows, use <code>netstat -ano | findstr :3000</code> and <code>taskkill /PID &lt;PID&gt; /F</code>. The shortcut for any platform is <code>npx kill-port 3000</code>, which finds and stops it in one step.</p>
+
+    <h3>How do I kill the process on a port quickly?</h3>
+    <p>The fastest way is <code>npx kill-port 3000</code>, which needs no PID lookup. If you prefer built-in tools, combine lsof and kill: <code>kill -9 $(lsof -t -i:3000)</code> on macOS or Linux. After the port is free, start your app again and it will bind normally.</p>
+
+    <h3>Why does EADDRINUSE keep coming back?</h3>
+    <p>Usually a previous instance never fully exited, a dev watcher is starting the app twice, or two services share the same port. On a server it's often that PM2 already runs the app and you started a second copy by hand. Close the server on shutdown signals, run one process per port, and restart through your process manager.</p>
+
+    <h3>How do I change the port my Node app uses?</h3>
+    <p>Read the port from an environment variable instead of hardcoding it: <code>const port = process.env.PORT || 3000;</code>. Then start with a different value when you need to, like <code>PORT=3001 npm start</code>. In production, let the platform set <code>PORT</code> so nothing collides, and keep the value in your environment configuration, not in source.</p>
+
+    <h3>Does EADDRINUSE mean my code is broken?</h3>
+    <p>Not usually. It's an environment conflict, not a logic bug: two processes want the same port. The exception is calling <code>app.listen()</code> more than once in the same process, for example importing your server file in a test. Bind the port in exactly one entry point and that case goes away.</p>
+
+    <h3>How do I avoid EADDRINUSE in production?</h3>
+    <p>Bind to the port the platform assigns via <code>process.env.PORT</code>, run the app as a single process under a manager like PM2, and never hand-start a second copy next to the one already running. Restart with <code>pm2 restart</code> or a redeploy. A managed host that runs one process on the assigned port removes the collision entirely.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · One process, one port, clean restarts.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Fix EADDRINUSE: port already in use in Node.js","description":"What the Node.js EADDRINUSE error means, how to find and free the port, why it keeps happening, and how to stop it for good in development and production.","image":"https://www.kloudbean.com/blog/fix-eaddrinuse-port-already-in-use-node/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/fix-eaddrinuse-port-already-in-use-node/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does EADDRINUSE mean in Node.js?","acceptedAnswer":{"@type":"Answer","text":"It means the port your app tried to listen on is already taken by another process, so the operating system refused the request and Node threw. A TCP port can only belong to one listening process at a time. The message names the port, for example 3000, so you know exactly which one to free."}},
+{"@type":"Question","name":"How do I find what is using a port?","acceptedAnswer":{"@type":"Answer","text":"On macOS or Linux, run lsof -i :3000 to see the process and its PID, then kill -9 with that PID. On Windows, use netstat -ano findstr :3000 and taskkill /PID with /F. The shortcut for any platform is npx kill-port 3000, which finds and stops it in one step."}},
+{"@type":"Question","name":"How do I kill the process on a port quickly?","acceptedAnswer":{"@type":"Answer","text":"The fastest way is npx kill-port 3000, which needs no PID lookup. If you prefer built-in tools, combine lsof and kill: kill -9 $(lsof -t -i:3000) on macOS or Linux. After the port is free, start your app again and it will bind normally."}},
+{"@type":"Question","name":"Why does EADDRINUSE keep coming back?","acceptedAnswer":{"@type":"Answer","text":"Usually a previous instance never fully exited, a dev watcher is starting the app twice, or two services share the same port. On a server it is often that PM2 already runs the app and you started a second copy by hand. Close the server on shutdown signals, run one process per port, and restart through your process manager."}},
+{"@type":"Question","name":"How do I change the port my Node app uses?","acceptedAnswer":{"@type":"Answer","text":"Read the port from an environment variable instead of hardcoding it: const port = process.env.PORT || 3000. Then start with a different value when you need to, like PORT=3001 npm start. In production, let the platform set PORT so nothing collides, and keep the value in your environment configuration, not in source."}},
+{"@type":"Question","name":"Does EADDRINUSE mean my code is broken?","acceptedAnswer":{"@type":"Answer","text":"Not usually. It is an environment conflict, not a logic bug: two processes want the same port. The exception is calling app.listen() more than once in the same process, for example importing your server file in a test. Bind the port in exactly one entry point and that case goes away."}},
+{"@type":"Question","name":"How do I avoid EADDRINUSE in production?","acceptedAnswer":{"@type":"Answer","text":"Bind to the port the platform assigns via process.env.PORT, run the app as a single process under a manager like PM2, and never hand-start a second copy next to the one already running. Restart with pm2 restart or a redeploy. A managed host that runs one process on the assigned port removes the collision entirely."}}
+]}
+]}
+</script>
+</body>
+</html>
