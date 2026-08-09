@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Fix Slow DNS Lookup: Measure It, Then Fix the Right Thing</title>
+<meta name="description" content="How to fix slow DNS lookup properly. Separate slow resolution from too many lookups, measure both with curl and dig, then fix the cause: DNS provider, TTL, CNAME chains, third-party bloat, or server-side resolution.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/fix-slow-dns-lookup/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Fix Slow DNS Lookup: Measure It, Then Fix the Right Thing">
+<meta property="og:description" content="Slow DNS lookup and too many DNS lookups are different problems with different fixes. Measure with curl and dig, then fix the actual cause.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Performance · DNS · Diagnosis</span>
+  <h1>How to Fix Slow DNS Lookup: Measure It, Then Fix the Right Thing</h1>
+  <p class="byline">By Kloudbean Engineering · Two problems wear the same name. Only one of them is usually yours.</p>
+
+  <figure><img src="images/hero.png" alt="A curl timing breakdown showing DNS lookup time separated from connect and time to first byte"></figure>
+
+  <p class="lead">Almost everyone who wants to fix a slow DNS lookup arrives from the same place: a speed test flagged DNS, or a browser waterfall showed a chunk of time before the request even started. The trouble is that two completely different problems get reported with the same label. One is slow resolution, where a single lookup takes too long. The other is too many lookups, where each one is fast but your page needs thirty of them. They have different causes and different fixes, and treating them as one problem is why so much DNS tuning achieves nothing.</p>
+
+  <div class="tldr">
+    <strong>How do you fix a slow DNS lookup?</strong>
+    <p>Measure first with <code>curl -w "%{time_namelookup}"</code> and <code>dig</code> to see whether a single lookup is genuinely slow or whether you simply have too many. Slow single lookups are fixed on the DNS provider side: use an Anycast provider, set sensible TTLs, flatten CNAME chains, and repair broken delegation. Too many lookups is a front-end problem: cut third-party hostnames and use <code>preconnect</code> for the few origins you keep. Also check the resolver on your own server, which almost nobody does.</p>
+  </div>
+
+  <h2>Which problem do you actually have?</h2>
+  <p>Before touching anything, work out which side you are on. This one distinction saves more wasted effort than any tip further down.</p>
+  <table class="cmp">
+    <thead><tr><th></th><th>Slow resolution</th><th>Too many lookups</th></tr></thead>
+    <tbody>
+      <tr><td>What it looks like</td><td>One lookup takes 200ms or more</td><td>Each lookup is 20ms, but there are 25 of them</td></tr>
+      <tr><td>Where you see it</td><td><code>dig</code> query time, <code>time_namelookup</code></td><td>Waterfall with many distinct hostnames</td></tr>
+      <tr><td>Root cause</td><td>Your DNS provider, TTL, or delegation</td><td>Third-party scripts, fonts, tags, widgets</td></tr>
+      <tr><td>Who fixes it</td><td>Whoever runs your DNS</td><td>Whoever owns the front end</td></tr>
+      <tr><td>Typical real gain</td><td>50ms to 250ms, once per visitor</td><td>Can be several hundred milliseconds</td></tr>
+    </tbody>
+  </table>
+  <p>Most sites flagged by a speed tool have the second problem. Most people go and change their DNS provider anyway.</p>
+
+  <h2>Measure it properly</h2>
+  <p><code>curl</code> is the fastest honest answer, because it separates DNS from everything that follows:</p>
+  <pre><code>curl -o /dev/null -s -w "dns:      %{time_namelookup}s\nconnect:  %{time_connect}s\ntls:      %{time_appconnect}s\nttfb:     %{time_starttransfer}s\ntotal:    %{time_total}s\n" https://example.com</code></pre>
+  <p>Read <code>time_namelookup</code> against <code>total</code>. If DNS is 0.04s of a 1.9s total, DNS is not your problem and no amount of DNS work will make the page feel faster. That comparison is the entire point of measuring.</p>
+  <p>Then look at resolution on its own:</p>
+  <pre><code># Query time from your current resolver
+dig example.com | grep "Query time"
+
+# Compare public resolvers against your local one
+dig @1.1.1.1 example.com | grep "Query time"
+dig @8.8.8.8 example.com | grep "Query time"
+
+# Walk the full delegation chain, root to authoritative
+dig +trace example.com
+
+# Ask your authoritative nameservers directly, bypassing all caching
+dig NS example.com +short
+dig @ns1.your-dns-provider.com example.com | grep "Query time"</code></pre>
+  <p>That last pair matters most. A cached answer from a nearby resolver is always fast, which can hide a slow authoritative server. Querying the nameserver directly shows you the number your first-time visitors actually pay.</p>
+
+  <h2>Reading the numbers</h2>
+  <table class="cmp">
+    <thead><tr><th>What you measure</th><th>What it means</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td>Slow once, near zero after</td><td>Normal cold cache</td><td>Nothing. This is how DNS works.</td></tr>
+      <tr><td>Slow from several countries</td><td>Authoritative DNS is slow or far away</td><td>Move to an Anycast provider</td></tr>
+      <tr><td>Slow from one network only</td><td>That ISP resolver, not your domain</td><td>Not yours to fix</td></tr>
+      <tr><td>Occasional multi-second spikes</td><td>A nameserver not answering, resolver retrying</td><td>Check delegation and glue</td></tr>
+      <tr><td>Consistent extra hops in <code>+trace</code></td><td>CNAME chain</td><td>Flatten it</td></tr>
+      <tr><td>Many hostnames in the waterfall</td><td>Third-party bloat</td><td>Audit and cut</td></tr>
+    </tbody>
+  </table>
+  <p>Those multi-second spikes deserve a note, because they are the ugliest failure in DNS and the least understood. If one of your listed nameservers does not answer, a resolver will wait, time out, and try another. Nothing is broken enough to show up as downtime, but a slice of your visitors gets a pause of seconds before the page begins. Always test every nameserver individually, not just the one that happens to answer first.</p>
+
+  <h2>Fixing slow resolution</h2>
+  <p><strong>Use a provider with Anycast.</strong> This is the single biggest lever. With Anycast, the same nameserver address is announced from many locations and a visitor reaches the nearest one. Without it, someone in Singapore may be querying a nameserver in Virginia on every cold lookup. The free DNS bundled with a cheap registrar or hosting plan is the usual culprit here, and moving your zone to a serious DNS provider is often a fifteen minute job with a real payoff.</p>
+  <p><strong>Set TTLs deliberately.</strong> A low TTL forces more lookups; a high one slows down changes. Sensible defaults:</p>
+  <table class="cmp">
+    <thead><tr><th>Record</th><th>Normal TTL</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>A / AAAA, stable production</td><td>3600</td><td>An hour of caching, still same-day changes</td></tr>
+      <tr><td>A / AAAA, before a migration</td><td>300</td><td>Set 24 to 48 hours ahead, raise it again after</td></tr>
+      <tr><td>CNAME</td><td>3600</td><td>Same reasoning as A records</td></tr>
+      <tr><td>MX, TXT, SPF</td><td>3600 to 86400</td><td>Rarely change</td></tr>
+      <tr><td>NS</td><td>86400</td><td>Should almost never change</td></tr>
+    </tbody>
+  </table>
+  <p>Running a 60 second TTL permanently, just in case, is a habit worth breaking. It multiplies lookups for every visitor to buy agility you use twice a year. Drop the TTL before a planned change, then put it back.</p>
+  <p><strong>Flatten CNAME chains.</strong> A CNAME pointing at a CNAME pointing at a CNAME means extra resolution steps, each with its own latency, and any one of them can be slow. <code>dig +trace</code> exposes the chain. Point at the final target where you can, or use whatever flattening your DNS provider offers at the apex.</p>
+  <p><strong>Watch response size.</strong> Long TXT records, several DKIM keys, and DNSSEC can push a response past what fits comfortably in a single UDP packet. When that happens the resolver has to retry over TCP, which costs a round trip. Check with <code>dig example.com TXT</code> and look for a truncation flag. Housekeeping on stale verification records is the usual fix, and people are often surprised how many old ones are still published.</p>
+
+  <h2>Fixing too many lookups</h2>
+  <p>Every unique hostname on your page is a separate lookup for a first-time visitor. Fonts from one domain, analytics from another, a tag manager, a chat widget, an A/B testing tool, two ad networks, an embedded video. Twelve hostnames is ordinary. Thirty is common on a marketing site.</p>
+  <p>Count them, then decide honestly which ones earn their place. In practice the biggest wins are removing tags nobody looks at any more, and self-hosting fonts so they resolve from your own domain rather than a third party.</p>
+  <p>For the origins you keep and genuinely need early, resolve them ahead of time:</p>
+  <pre><code>&lt;!-- DNS only, cheap, use freely --&gt;
+&lt;link rel="dns-prefetch" href="//cdn.example.com"&gt;
+
+&lt;!-- DNS + TCP + TLS, expensive, keep to a few critical origins --&gt;
+&lt;link rel="preconnect" href="https://fonts.gstatic.com" crossorigin&gt;</code></pre>
+  <p>The difference matters. <code>dns-prefetch</code> resolves the name and stops. <code>preconnect</code> also opens a connection and negotiates TLS, which is a much bigger win but consumes a real connection. Preconnecting to a dozen origins is counterproductive, since you spend resources on connections that may never be used. Two to four is a reasonable ceiling, reserved for things needed to render the page.</p>
+  <p>One habit to retire: sharding assets across several subdomains. That was a sensible workaround for HTTP/1.1 connection limits. Under HTTP/2 it costs you extra lookups and connections for no benefit.</p>
+
+  <h2>The resolver on your own server, which almost nobody checks</h2>
+  <p>Front-end DNS gets all the attention. Meanwhile your application is making outbound calls to payment providers, mail services, and internal APIs, and every one of those needs resolution too. If the server's resolver is slow or uncached, that latency lands inside your response time and shows up as a slow TTFB rather than as a DNS problem, which is exactly why it goes unnoticed for so long.</p>
+  <pre><code># What is this server actually using to resolve?
+cat /etc/resolv.conf
+resolvectl status 2>/dev/null | head -20
+
+# Time an outbound lookup from the server itself
+dig api.stripe.com | grep "Query time"
+
+# Is anything caching locally?
+systemctl status systemd-resolved</code></pre>
+  <p>A local caching resolver turns repeated lookups into memory reads. On a busy app making thousands of outbound requests, this is not a rounding error.</p>
+  <p>Node deserves a specific warning. The default <code>dns.lookup()</code> path runs on the libuv thread pool, which has four threads by default. A burst of outbound requests to many different hostnames can queue behind each other, and the symptom looks like random slowness rather than DNS. Two practical mitigations: reuse connections with a keep-alive agent so you are not resolving the same host repeatedly, and if you genuinely need many concurrent lookups, raise <code>UV_THREADPOOL_SIZE</code> rather than guessing at the network.</p>
+
+  <h2>When DNS is not your problem</h2>
+  <p>Worth saying plainly, because speed tools cause a lot of misdirected work. A DNS lookup normally costs somewhere between twenty and a hundred and fifty milliseconds, once, and then it is cached for the length of your TTL. If your page takes four seconds, DNS is not what is wrong. Optimising a 40ms lookup while a 1.8 second TTFB sits untouched is the most common misallocation in web performance.</p>
+  <p>My rule: if <code>time_namelookup</code> is under about 100ms and under a tenth of your total, close the DNS tab and go and look at server response time, database queries, and render-blocking assets. Come back to DNS when it is actually the largest number in front of you.</p>
+
+  <h2>Where hosting fits, honestly</h2>
+  <p>Being straight about the boundary: authoritative DNS speed belongs to whoever runs your DNS zone, and no hosting provider can make a slow nameserver fast. What hosting genuinely affects is the rest of that timing breakdown, which is usually the bigger number anyway.</p>
+  <p>Two things are relevant on Kloudbean. First, you pick which of seven clouds and which region your server sits in, so you can put the application near the people using it rather than accepting whatever a platform assigns. Second, Cloudflare is available as a paid add-on and is included for enterprise accounts, which brings Anycast DNS and edge caching into the same setup as your hosting. That is the legitimate answer to a slow lookup: a global Anycast network in front of the domain, not a hosting change.</p>
+  <p>And because servers are managed, the server-side resolver path described above is part of what is maintained rather than something you discover during an incident.</p>
+
+  <figure>
+    <img src="../assets/console/add-server-region.png" alt="Choosing a cloud provider and region when launching a server in the Kloudbean console">
+    <figcaption>Region choice across seven clouds, so the application sits near its users. DNS is one hop; placement affects everything after it.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>For the fundamentals of records, resolution, and propagation, start with <a href="https://www.kloudbean.com/blog/dns-explained/">DNS explained</a>. For the caching layer in front of your origin, <a href="https://www.kloudbean.com/blog/cdn-explained/">CDN explained</a>. On the response-time side that usually matters more, <a href="https://www.kloudbean.com/blog/speed-up-wordpress/">speed up WordPress</a> and <a href="https://www.kloudbean.com/blog/speed-up-woocommerce/">speed up WooCommerce</a>. For caching that cuts real server work, <a href="https://www.kloudbean.com/blog/redis-caching-guide/">the Redis caching guide</a>. And when resolution succeeds but the connection is refused, <a href="https://www.kloudbean.com/blog/fix-econnrefused-node/">fixing ECONNREFUSED</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Put the application where your users are.</p>
+    <p style="margin:0 0 .6em">Seven clouds, your choice of region, managed servers with the resolver path maintained, and Cloudflare available as an add-on for Anycast DNS and edge caching. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">7 clouds · Region choice · Cloudflare edge add-on · Managed servers · One dashboard</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is a good DNS lookup time?</h3>
+    <p>Under 50ms is good, and under 100ms is fine for most sites. Anything consistently above about 200ms from multiple locations suggests your authoritative nameservers are slow or geographically distant. Remember the result is cached for the length of your TTL, so this cost is paid once per visitor rather than on every request.</p>
+
+    <h3>How do I check DNS lookup time?</h3>
+    <p>Run <code>curl -o /dev/null -s -w "%{time_namelookup}\n" https://example.com</code> for the number your users experience, and <code>dig example.com | grep "Query time"</code> for resolution on its own. To see the uncached figure, query your authoritative nameservers directly with <code>dig @ns1.provider.com example.com</code>, since a nearby cache will otherwise hide a slow server.</p>
+
+    <h3>Does changing my DNS provider make my website faster?</h3>
+    <p>Only if DNS is genuinely your bottleneck. Moving to an Anycast provider can remove 100 to 250ms from a cold lookup, which is real but happens once per visitor. If your time to first byte is over a second, that is where the time actually is. Measure both before deciding.</p>
+
+    <h3>What TTL should I use?</h3>
+    <p>3600 seconds is a sensible default for A and CNAME records on stable production, with 86400 for NS records. Drop A records to 300 about 24 to 48 hours before a planned migration, then raise them again once traffic has moved. Leaving a 60 second TTL in place permanently just multiplies lookups.</p>
+
+    <h3>What is the difference between dns-prefetch and preconnect?</h3>
+    <p><code>dns-prefetch</code> resolves a hostname only, so it is cheap and can be used for several origins. <code>preconnect</code> also completes the TCP handshake and TLS negotiation, which saves more time but ties up a connection. Use preconnect for the two to four origins needed to render the page, and dns-prefetch for the rest.</p>
+
+    <h3>Why does my DNS lookup occasionally take several seconds?</h3>
+    <p>Usually one of your listed nameservers is not answering, so the resolver waits, times out, and retries against another. It never registers as downtime, but some visitors pay a multi-second pause. Test each nameserver individually with <code>dig @nameserver example.com</code> and check your delegation and glue records rather than assuming the domain is fine because it resolves.</p>
+
+    <h3>How do I reduce the number of DNS lookups on my site?</h3>
+    <p>Count the unique hostnames in your network waterfall and remove the ones you no longer use, which on most marketing sites means old tags and abandoned tools. Self-host fonts so they come from your own domain, avoid sharding assets across subdomains since HTTP/2 removed the reason for it, and add <code>preconnect</code> only for the critical third parties you keep.</p>
+
+    <h3>Can slow DNS on my server affect my application?</h3>
+    <p>Yes, and it is commonly missed. Outbound calls from your application to payment gateways, mail providers, or internal APIs all need resolution, and that latency lands inside your own response time. Check <code>/etc/resolv.conf</code>, make sure a local caching resolver is running, and reuse connections with keep-alive so you are not resolving the same hostname repeatedly.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Measure first. DNS is usually innocent.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Fix Slow DNS Lookup: Measure It, Then Fix the Right Thing","description":"Slow DNS lookup and too many DNS lookups are different problems with different fixes. Measure with curl and dig, then fix the real cause: DNS provider, TTL, CNAME chains, third-party bloat, or server-side resolution.","image":"https://www.kloudbean.com/blog/fix-slow-dns-lookup/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/fix-slow-dns-lookup/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is a good DNS lookup time?","acceptedAnswer":{"@type":"Answer","text":"Under 50ms is good, and under 100ms is fine for most sites. Anything consistently above about 200ms from multiple locations suggests your authoritative nameservers are slow or geographically distant. Remember the result is cached for the length of your TTL, so this cost is paid once per visitor rather than on every request."}},
+{"@type":"Question","name":"How do I check DNS lookup time?","acceptedAnswer":{"@type":"Answer","text":"Use curl with the time_namelookup write-out variable for the number your users experience, and dig with a grep for Query time for resolution on its own. To see the uncached figure, query your authoritative nameservers directly by passing the nameserver to dig, since a nearby cache will otherwise hide a slow server."}},
+{"@type":"Question","name":"Does changing my DNS provider make my website faster?","acceptedAnswer":{"@type":"Answer","text":"Only if DNS is genuinely your bottleneck. Moving to an Anycast provider can remove 100 to 250ms from a cold lookup, which is real but happens once per visitor. If your time to first byte is over a second, that is where the time actually is. Measure both before deciding."}},
+{"@type":"Question","name":"What TTL should I use?","acceptedAnswer":{"@type":"Answer","text":"3600 seconds is a sensible default for A and CNAME records on stable production, with 86400 for NS records. Drop A records to 300 about 24 to 48 hours before a planned migration, then raise them again once traffic has moved. Leaving a 60 second TTL in place permanently just multiplies lookups."}},
+{"@type":"Question","name":"What is the difference between dns-prefetch and preconnect?","acceptedAnswer":{"@type":"Answer","text":"dns-prefetch resolves a hostname only, so it is cheap and can be used for several origins. preconnect also completes the TCP handshake and TLS negotiation, which saves more time but ties up a connection. Use preconnect for the two to four origins needed to render the page, and dns-prefetch for the rest."}},
+{"@type":"Question","name":"Why does my DNS lookup occasionally take several seconds?","acceptedAnswer":{"@type":"Answer","text":"Usually one of your listed nameservers is not answering, so the resolver waits, times out, and retries against another. It never registers as downtime, but some visitors pay a multi-second pause. Test each nameserver individually with dig and check your delegation and glue records rather than assuming the domain is fine because it resolves."}},
+{"@type":"Question","name":"How do I reduce the number of DNS lookups on my site?","acceptedAnswer":{"@type":"Answer","text":"Count the unique hostnames in your network waterfall and remove the ones you no longer use, which on most marketing sites means old tags and abandoned tools. Self-host fonts so they come from your own domain, avoid sharding assets across subdomains since HTTP/2 removed the reason for it, and add preconnect only for the critical third parties you keep."}},
+{"@type":"Question","name":"Can slow DNS on my server affect my application?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it is commonly missed. Outbound calls from your application to payment gateways, mail providers, or internal APIs all need resolution, and that latency lands inside your own response time. Check the resolver configuration on the server, make sure a local caching resolver is running, and reuse connections with keep-alive so you are not resolving the same hostname repeatedly."}}
+]}
+]}
+</script>
+</body>
+</html>

@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Error Establishing a Redis Connection: How to Diagnose and Fix It</title>
+<meta name="description" content="The Redis Object Cache plugin says Error establishing a Redis connection. Here is how to find the real cause: Redis not running, wrong host or port, missing password, no PHP extension, or a memory policy that refuses writes.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/error-establishing-a-redis-connection/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Error Establishing a Redis Connection: How to Diagnose and Fix It">
+<meta property="og:description" content="Diagnose Error establishing a Redis connection in WordPress or Node: service down, wrong host, missing password, missing phpredis extension, or an eviction policy problem.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Redis · WordPress · Error field guide</span>
+  <h1>Error Establishing a Redis Connection: How to Diagnose and Fix It</h1>
+  <p class="byline">By Kloudbean Engineering · Six causes, one command that tells you which.</p>
+
+  <figure><img src="images/hero.png" alt="The Redis Object Cache plugin showing a failed connection status alongside a redis-cli ping test"></figure>
+
+  <p class="lead">If you are reading this you have probably just opened Settings then Redis in WordPress and seen "Error establishing a Redis connection" where you wanted "Connected". Most people meet this message through the Redis Object Cache plugin, though the same wording appears in other object-cache plugins and the underlying causes are identical for a Node or PHP app connecting to Redis directly. The message itself tells you nothing useful, so this guide starts with the one command that narrows it down, then works through the six real causes in order of likelihood.</p>
+
+  <div class="tldr">
+    <strong>How do I fix "Error establishing a Redis connection"?</strong>
+    <p>Run <code>redis-cli ping</code> on the server first. If you do not get <code>PONG</code>, Redis is not running or not reachable, so start it or fix the host and port. If you do get <code>PONG</code>, the service is fine and the problem is in your configuration: a missing password, the wrong host or port in <code>wp-config.php</code>, a missing PHP redis extension, the wrong scheme for a socket connection, or a memory policy refusing writes. Check them in that order.</p>
+  </div>
+
+  <h2>Start here: is Redis actually answering?</h2>
+  <p>This single test splits the problem in half, and it is worth doing before changing any configuration. On the server, run:</p>
+  <pre><code># Is Redis running and answering locally?
+redis-cli ping
+# expected: PONG
+
+# If Redis is on another host or a non-default port
+redis-cli -h 10.0.0.5 -p 6379 ping
+
+# If Redis requires a password
+redis-cli -h 10.0.0.5 -p 6379 -a 'your-password' ping</code></pre>
+  <p>Three possible outcomes, and each points somewhere different. <code>PONG</code> means the service is healthy and your problem is configuration. <code>Connection refused</code> means nothing is listening there, so Redis is down or you have the wrong host or port. <code>NOAUTH Authentication required</code> means Redis is running perfectly and your credentials are missing, which is genuinely good news because it is a one-line fix.</p>
+
+  <h2>Cause 1: Redis is not running</h2>
+  <p>The most common cause, especially after a server reboot or an update. Check and start it:</p>
+  <pre><code>sudo systemctl status redis-server   # or: redis
+sudo systemctl start redis-server
+sudo systemctl enable redis-server   # so it survives a reboot</code></pre>
+  <p>That last line matters more than people expect. A Redis that was started manually and never enabled will come back down at the next reboot, and the cache will silently fail until someone notices the page got slower.</p>
+  <p>Also worth ruling out: on some shared hosting plans Redis is simply not available. If <code>redis-cli</code> is not installed and you have no way to install it, the plugin cannot connect because there is nothing to connect to, and no amount of configuration will change that.</p>
+
+  <h2>Cause 2: wrong host or port</h2>
+  <p>If <code>redis-cli ping</code> works on the server but the plugin still fails, compare what the plugin is told against where Redis actually listens. In WordPress that means the constants in <code>wp-config.php</code>, which must go above the line that requires <code>wp-settings.php</code>:</p>
+  <pre><code>define( 'WP_REDIS_HOST', '127.0.0.1' );
+define( 'WP_REDIS_PORT', 6379 );
+define( 'WP_REDIS_DATABASE', 0 );
+define( 'WP_REDIS_TIMEOUT', 1 );
+define( 'WP_REDIS_READ_TIMEOUT', 1 );</code></pre>
+  <p>Confirm the port Redis is really bound to, and the address it accepts connections on:</p>
+  <pre><code>ss -tlnp | grep redis
+grep -E '^(bind|port|requirepass|maxmemory)' /etc/redis/redis.conf</code></pre>
+  <p>A frequent trap after a migration: <code>wp-config.php</code> still names the old server's Redis host. The site loads, the cache quietly fails, and nobody connects the two until performance is investigated weeks later.</p>
+
+  <h2>Cause 3: a password Redis wants and the plugin does not send</h2>
+  <p>If <code>redis-cli ping</code> returns <code>NOAUTH Authentication required</code>, Redis has <code>requirepass</code> set and your client is not authenticating. Add the password:</p>
+  <pre><code>define( 'WP_REDIS_PASSWORD', 'your-redis-password' );</code></pre>
+  <p>For a managed Redis instance you will usually be given a full connection URL, in which case the scheme, host, port, and credentials all need to match what the provider issued. If the instance requires TLS, a plain connection will fail even with the right password, so check whether you need <code>rediss://</code> rather than <code>redis://</code>.</p>
+
+  <h2>Cause 4: the PHP redis extension is missing</h2>
+  <p>This one confuses people because Redis is running, the credentials are right, and it still will not connect. The reason is that PHP needs a client library to speak the protocol at all. Check whether the extension is present:</p>
+  <pre><code>php -m | grep redis
+php -i | grep -i "redis"</code></pre>
+  <p>If nothing comes back, install the phpredis extension for your PHP version and restart PHP-FPM. Some plugins can fall back to a pure-PHP client such as Predis, which works but is slower, so the extension is the better answer for a cache whose whole purpose is speed. And remember that upgrading PHP can leave the extension behind, which is why this failure sometimes appears immediately after a PHP version change rather than after a Redis change.</p>
+
+  <h2>Cause 5: socket versus TCP mismatch</h2>
+  <p>Redis can accept connections over a TCP port or a Unix socket, and the two need different configuration. If your Redis is set up for a socket, pointing the plugin at a host and port will fail even though everything is running. For a socket connection:</p>
+  <pre><code>define( 'WP_REDIS_SCHEME', 'unix' );
+define( 'WP_REDIS_PATH', '/var/run/redis/redis.sock' );</code></pre>
+  <p>Confirm the socket path from your Redis configuration rather than guessing it, and confirm the web server user can actually read it. A socket with permissions that exclude the PHP process produces a connection failure that looks identical to Redis being down.</p>
+
+  <h2>Cause 6: memory full with the wrong eviction policy</h2>
+  <p>The subtlest one, and it usually appears after weeks of normal operation rather than at setup. If Redis hits its <code>maxmemory</code> limit while <code>maxmemory-policy</code> is set to <code>noeviction</code>, it starts refusing writes instead of discarding old keys. Depending on the client, that surfaces as connection or write errors rather than a clear out-of-memory message.</p>
+  <pre><code>redis-cli info memory | grep -E 'used_memory_human|maxmemory_human|maxmemory_policy'
+redis-cli config get maxmemory-policy</code></pre>
+  <p>For a cache, <code>noeviction</code> is the wrong choice. A cache should be allowed to forget things:</p>
+  <pre><code>redis-cli config set maxmemory-policy allkeys-lru
+# then persist it in redis.conf so it survives a restart
+</code></pre>
+  <p>My honest opinion: if you are using Redis purely as an object cache, <code>allkeys-lru</code> should be the default you set on day one. Leaving it at <code>noeviction</code> turns a full cache into an application error, which is exactly backwards for something that is supposed to be optional.</p>
+
+  <table class="cmp">
+    <thead><tr><th>What you see</th><th>Cause</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td><code>redis-cli ping</code> fails, connection refused</td><td>Redis down or wrong host/port</td><td>Start and enable Redis, verify bind and port</td></tr>
+      <tr><td><code>NOAUTH Authentication required</code></td><td>Password not configured in the client</td><td>Set the password constant</td></tr>
+      <tr><td>PONG works, plugin still fails</td><td>Wrong host, port, or scheme in config</td><td>Match config to the real listener</td></tr>
+      <tr><td>Everything correct, still no connection</td><td>PHP redis extension missing</td><td>Install phpredis, restart PHP-FPM</td></tr>
+      <tr><td>Broke right after a PHP upgrade</td><td>Extension not carried over</td><td>Reinstall for the new PHP version</td></tr>
+      <tr><td>Worked for weeks, then failed</td><td>maxmemory reached, noeviction</td><td>Set <code>allkeys-lru</code></td></tr>
+      <tr><td>Broke right after a migration</td><td>Old Redis host in config</td><td>Update to the new host</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Verifying the fix</h2>
+  <p>Do not trust the plugin's status page alone. Confirm that keys are actually being written:</p>
+  <pre><code># Watch key count while you load a few pages
+redis-cli info keyspace
+
+# Or confirm the object cache is doing something
+redis-cli --stat</code></pre>
+  <p>A connected plugin with an empty keyspace means something is still wrong, usually a database index mismatch or a drop-in file that was not installed. If you use WP-CLI, <code>wp redis status</code> gives you the plugin's own view, which is useful to compare against what <code>redis-cli</code> reports.</p>
+
+  <h2>If you are connecting from Node rather than WordPress</h2>
+  <p>The causes are the same minus the PHP extension. A Node client failing to reach Redis usually surfaces as <code>ECONNREFUSED</code>, which is the same diagnosis path: confirm the service answers, then check the host, port, and credentials your app is actually using. Our <a href="https://www.kloudbean.com/blog/fix-econnrefused-node/">ECONNREFUSED guide</a> covers that in detail, including the localhost trap where code works locally and fails in production because the database or cache is on a separate host. If you are using Redis as a queue backend, <a href="https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/">background jobs with BullMQ</a> covers the connection settings that library expects.</p>
+
+  <h2>How managed Redis removes most of these</h2>
+  <p>Looking at the six causes, four of them are operational rather than application problems: the service not running, not being enabled at boot, the wrong bind address, and a memory policy nobody set deliberately. Those disappear when the instance is managed. On Kloudbean you launch managed Redis in a few clicks, it sits in the same dashboard as your app on a private network, and you get a connection string rather than a configuration puzzle. Because the app and the cache are on the same private network, you are not exposing Redis to the public internet to make it reachable, which is a mistake we see people make while trying to fix this error.</p>
+  <p>What it does not fix, honestly: a wrong constant in <code>wp-config.php</code> is still a wrong constant, and a missing PHP extension is still a PHP matter. Managed Redis removes the service-level causes, not the configuration ones.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="Launching a managed Redis instance in the Kloudbean console">
+    <figcaption>Managed Redis in the same dashboard as the site, reachable over a private network with a supplied connection string.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>For the caching side, see <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis hosting</a>, <a href="https://www.kloudbean.com/blog/redis-caching-guide/">the Redis caching guide</a>, and <a href="https://www.kloudbean.com/blog/redis-caching-patterns/">Redis caching patterns</a>. To decide whether Redis is even the right tool, <a href="https://www.kloudbean.com/blog/when-to-use-redis-vs-postgres/">when to use Redis vs Postgres</a> and <a href="https://www.kloudbean.com/blog/redis-vs-memcached/">Redis vs Memcached</a>. On the WordPress side, <a href="https://www.kloudbean.com/blog/how-to-clear-wordpress-cache/">how to clear WordPress cache</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Let the cache be someone else's uptime problem.</p>
+    <p style="margin:0 0 .6em">Launch managed Redis in the same dashboard as your site or app, on a private network with a supplied connection string, backed up automatically, on a flat plan from $8/mo. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed Redis · Private networking · Automatic backups · One dashboard · Flat from $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What causes "Error establishing a Redis connection"?</h3>
+    <p>Six things, in rough order of likelihood: Redis is not running, the host or port in your configuration is wrong, Redis requires a password your client is not sending, the PHP redis extension is missing, you have a socket versus TCP mismatch, or Redis has hit its memory limit with an eviction policy of <code>noeviction</code>. Running <code>redis-cli ping</code> first tells you which half of the list to look at.</p>
+
+    <h3>How do I test whether Redis is reachable?</h3>
+    <p>Run <code>redis-cli ping</code> on the server and expect <code>PONG</code>. Add <code>-h</code> and <code>-p</code> for a remote host or non-default port, and <code>-a</code> for a password. <code>Connection refused</code> means nothing is listening; <code>NOAUTH Authentication required</code> means Redis is healthy and only your credentials are missing.</p>
+
+    <h3>Why does Redis Object Cache say not connected when Redis is running?</h3>
+    <p>Usually a configuration mismatch or a missing client library. Check that <code>WP_REDIS_HOST</code>, <code>WP_REDIS_PORT</code>, and any password match where Redis actually listens, that the constants sit above the <code>wp-settings.php</code> require line in <code>wp-config.php</code>, and that <code>php -m | grep redis</code> shows the extension. A missing phpredis extension is the cause people overlook most.</p>
+
+    <h3>Why did Redis stop working after a PHP upgrade?</h3>
+    <p>Because the phpredis extension is compiled against a specific PHP version and is not always carried across an upgrade. Check with <code>php -m | grep redis</code>, reinstall the extension for the new version, and restart PHP-FPM. The timing is the giveaway: nothing changed about Redis, so look at PHP.</p>
+
+    <h3>Can a full Redis cause connection errors?</h3>
+    <p>Yes, indirectly. If Redis reaches <code>maxmemory</code> while <code>maxmemory-policy</code> is <code>noeviction</code>, it refuses writes rather than evicting old keys, and clients often report that as a connection or write failure. For a cache, set <code>allkeys-lru</code> so Redis discards the least recently used keys instead of erroring.</p>
+
+    <h3>Should Redis be exposed to the internet to fix this?</h3>
+    <p>No. Binding Redis to a public address to make it reachable is a common and dangerous shortcut, since Redis is designed to run on a trusted network. Keep it on a private network with your application, use a password, and if you genuinely need a remote connection use TLS. A managed instance on a private network gives you this by default.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Ping first. It tells you which half of the problem you have.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Error Establishing a Redis Connection: How to Diagnose and Fix It","description":"Diagnose Error establishing a Redis connection in WordPress or Node: service down, wrong host, missing password, missing phpredis extension, socket mismatch, or an eviction policy problem.","image":"https://www.kloudbean.com/blog/error-establishing-a-redis-connection/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/error-establishing-a-redis-connection/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What causes Error establishing a Redis connection?","acceptedAnswer":{"@type":"Answer","text":"Six things, in rough order of likelihood: Redis is not running, the host or port in your configuration is wrong, Redis requires a password your client is not sending, the PHP redis extension is missing, you have a socket versus TCP mismatch, or Redis has hit its memory limit with an eviction policy of noeviction. Running redis-cli ping first tells you which half of the list to look at."}},
+{"@type":"Question","name":"How do I test whether Redis is reachable?","acceptedAnswer":{"@type":"Answer","text":"Run redis-cli ping on the server and expect PONG. Add the host and port flags for a remote host or non-default port, and the auth flag for a password. Connection refused means nothing is listening; NOAUTH Authentication required means Redis is healthy and only your credentials are missing."}},
+{"@type":"Question","name":"Why does Redis Object Cache say not connected when Redis is running?","acceptedAnswer":{"@type":"Answer","text":"Usually a configuration mismatch or a missing client library. Check that the Redis host, port, and any password match where Redis actually listens, that the constants sit above the wp-settings.php require line in wp-config.php, and that the PHP module list shows the redis extension. A missing phpredis extension is the cause people overlook most."}},
+{"@type":"Question","name":"Why did Redis stop working after a PHP upgrade?","acceptedAnswer":{"@type":"Answer","text":"Because the phpredis extension is compiled against a specific PHP version and is not always carried across an upgrade. Check the PHP module list, reinstall the extension for the new version, and restart PHP-FPM. The timing is the giveaway: nothing changed about Redis, so look at PHP."}},
+{"@type":"Question","name":"Can a full Redis cause connection errors?","acceptedAnswer":{"@type":"Answer","text":"Yes, indirectly. If Redis reaches its maxmemory limit while the eviction policy is noeviction, it refuses writes rather than evicting old keys, and clients often report that as a connection or write failure. For a cache, set allkeys-lru so Redis discards the least recently used keys instead of erroring."}},
+{"@type":"Question","name":"Should Redis be exposed to the internet to fix this?","acceptedAnswer":{"@type":"Answer","text":"No. Binding Redis to a public address to make it reachable is a common and dangerous shortcut, since Redis is designed to run on a trusted network. Keep it on a private network with your application, use a password, and if you genuinely need a remote connection use TLS. A managed instance on a private network gives you this by default."}}
+]}
+]}
+</script>
+</body>
+</html>
