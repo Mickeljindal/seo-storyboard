@@ -126,7 +126,7 @@ Intent: the huge wave of Lovable/Bolt/Cursor/etc. users who built something and 
 ### Silo 11 — Geo wedge: Saudi / KSA (the moat; currently 0 articles)
 **Pillar [CREATE-PILLAR]:** `cloud-hosting-saudi-arabia` (managed hosting in-Kingdom). Per STRATEGY-2026, this is the **defensible wedge few competitors can match** (GCP Dammam in-Kingdom residency). Own it completely.
 
-- **[NEW]** managed-hosting-ksa · gcp-dammam-region-guide · data-residency-saudi-arabia · pdpl-compliance-hosting · nca-ecc-compliant-hosting (shared-responsibility) · saudi-foreign-investor-hosting · saudi-vision-2030-cloud · arabic-wordpress-hosting · hosting-for-saudi-ecommerce · low-latency-hosting-riyadh-jeddah · then replicate the wedge for **UAE** and **India** (residency + latency angles).
+- **[NEW]** managed-hosting-ksa · gcp-dammam-region-guide · data-residency-saudi-arabia · pdpl-compliance-hosting · nca-ecc-compliant-hosting (shared-responsibility) · in-kingdom-hosting-saudi-arabia · saudi-vision-2030-cloud · arabic-wordpress-hosting · hosting-for-saudi-ecommerce · low-latency-hosting-riyadh-jeddah · then replicate the wedge for **UAE** and **India** (residency + latency angles).
 - **Linking rule:** the KSA pillar links to residency (Silo 9/8), the WooCommerce/WordPress pages (Silo 5), and a Silo 4 comparison framed for the region. Keep facts exact: KSA in-Kingdom = GCP Dammam only.
 
 ---
