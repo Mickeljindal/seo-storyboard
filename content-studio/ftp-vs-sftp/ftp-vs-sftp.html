@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FTP vs SFTP vs FTPS: One Is a Different Protocol, Not a Safer FTP</title>
+<meta name="description" content="FTP vs SFTP compared properly, including FTPS. Why SFTP is not FTP at all, why the port count decides most real deployments, and which one to actually use.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/ftp-vs-sftp/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="FTP vs SFTP vs FTPS: One Is a Different Protocol, Not a Safer FTP">
+<meta property="og:description" content="SFTP is not secure FTP. It is a subsystem of SSH that shares no code with FTP. That distinction explains every practical difference between them.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">File transfer · Server access · Security</span>
+  <h1>FTP vs SFTP vs FTPS: One Is a Different Protocol, Not a Safer FTP</h1>
+  <p class="byline">By Kloudbean Engineering · Count the ports and the argument ends.</p>
+
+  <figure><img src="images/hero.png" alt="Comparison of FTP, FTPS, and SFTP showing separate control and data channels versus a single SSH connection"></figure>
+
+  <p class="lead">Most FTP versus SFTP comparisons tell you SFTP is the secure one and stop there, which is true and misses the part that actually matters. SFTP is not FTP with encryption added. It shares no protocol, no ports, and no code with FTP. It is a subsystem of SSH that happens to move files, and it was designed separately by different people for a different purpose. FTPS is the one that genuinely is FTP with TLS bolted on. Once you know which of those two you are looking at, every practical difference, the firewall behaviour, the authentication options, the number of connections, follows from that single fact.</p>
+
+  <div class="tldr">
+    <strong>What is the difference between FTP and SFTP?</strong>
+    <p>FTP sends credentials and file contents in plaintext over two separate connections. SFTP is a completely different protocol that runs inside a single SSH connection on port 22, encrypting everything and reusing SSH key authentication. FTPS is the third option: real FTP with TLS added, which keeps FTP's two-connection design and the firewall problems that come with it. For almost every situation, use SFTP. Never use plain FTP across the internet.</p>
+  </div>
+
+  <h2>Three protocols, and two of them get confused constantly</h2>
+  <p>The naming is genuinely awful and it causes real mistakes, so it is worth being blunt about which is which.</p>
+  <table class="cmp">
+    <thead><tr><th></th><th>FTP</th><th>FTPS</th><th>SFTP</th></tr></thead>
+    <tbody>
+      <tr><td>What it is</td><td>The original protocol</td><td>FTP plus TLS</td><td><strong>An SSH subsystem</strong></td></tr>
+      <tr><td>Encrypted</td><td>No</td><td>Yes</td><td><strong>Yes</strong></td></tr>
+      <tr><td>Connections</td><td>Two</td><td>Two</td><td><strong>One</strong></td></tr>
+      <tr><td>Ports</td><td>21 plus data</td><td>21 or 990, plus data range</td><td><strong>22 only</strong></td></tr>
+      <tr><td>Related to FTP</td><td>Yes</td><td>Yes</td><td><strong>Not at all</strong></td></tr>
+      <tr><td>Key authentication</td><td>No</td><td>No</td><td><strong>Yes, SSH keys</strong></td></tr>
+      <tr><td>Firewall friendly</td><td>No</td><td>No</td><td><strong>Yes</strong></td></tr>
+    </tbody>
+  </table>
+  <p>"Secure FTP" is the phrase that does the most damage, because people use it for both FTPS and SFTP, and sometimes for plain FTP inside a VPN. If a client or vendor asks you to support secure FTP, ask which port and whether they mean TLS or SSH. That question saves a day of failed connections.</p>
+
+  <h2>Plain FTP is not salvageable</h2>
+  <p>FTP dates from the early 1970s, before anyone assumed the network was hostile. Usernames, passwords, and every byte of every file travel in cleartext. Anyone able to observe the traffic reads your credentials directly.</p>
+  <p>People sometimes argue this is fine on a trusted network. Occasionally that is true, for a device on an isolated segment that speaks nothing else. But on the internet it is indefensible, and the practical argument is simpler than the theoretical one: you gain nothing by using it. SFTP is not harder to set up, not slower in any way you will notice, and available on every managed Linux server. There is no tradeoff to weigh.</p>
+
+  <h2>FTPS: real FTP with TLS added</h2>
+  <p>FTPS is what people usually mean when they say secure FTP in a procurement document. It is the FTP protocol with a TLS layer, so it encrypts properly and it inherits FTP's architecture entirely.</p>
+  <p>Two flavours exist, which is another source of failed connections. Implicit FTPS assumes TLS from the first byte, conventionally on port 990. Explicit FTPS connects in the clear on port 21 and then issues <code>AUTH TLS</code> to upgrade. They are not interchangeable, and a client configured for one will simply fail against a server expecting the other.</p>
+  <p>FTPS is not wrong. It is a legitimate, encrypted protocol, and if a partner system requires it then it is what you use. It just carries a cost that SFTP does not, and that cost is the next section.</p>
+
+  <h2>The port count is the difference that bites you</h2>
+  <p>This is the part missing from most comparisons, and it is the reason experienced people reach for SFTP without deliberating.</p>
+  <p>FTP and FTPS use two connections: a control channel for commands and a separate data channel for the actual file bytes. That second connection is negotiated per transfer, and how it gets established is where things break.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 300" width="100%" role="img" aria-label="FTPS uses a control connection on port 21 plus a separate data connection on a dynamic high port, so a firewall must allow a whole range. SFTP uses a single connection on port 22.">
+      <rect x="0" y="0" width="760" height="300" fill="#ffffff"/>
+
+      <text x="20" y="24" font-family="Poppins, sans-serif" font-size="14" font-weight="600" fill="#000f27">FTP / FTPS: two connections</text>
+      <rect x="20" y="38" width="110" height="54" rx="8" fill="#f4f6fb" stroke="#000f27" stroke-width="2"/>
+      <text x="75" y="70" font-family="Poppins, sans-serif" font-size="12" fill="#000f27" text-anchor="middle">client</text>
+      <rect x="270" y="38" width="110" height="54" rx="8" fill="#f4f6fb" stroke="#000f27" stroke-width="2"/>
+      <text x="325" y="70" font-family="Poppins, sans-serif" font-size="12" fill="#000f27" text-anchor="middle">server</text>
+      <line x1="130" y1="55" x2="270" y2="55" stroke="#4F1AF3" stroke-width="2.5"/>
+      <text x="200" y="50" font-family="Poppins, sans-serif" font-size="11" fill="#4F1AF3" text-anchor="middle">control: port 21</text>
+      <line x1="130" y1="80" x2="270" y2="80" stroke="#d13b3b" stroke-width="2.5" stroke-dasharray="6 4"/>
+      <text x="200" y="97" font-family="Poppins, sans-serif" font-size="11" fill="#d13b3b" text-anchor="middle">data: some high port</text>
+      <rect x="20" y="118" width="360" height="52" rx="7" fill="#fdeaea"/>
+      <text x="34" y="138" font-family="Poppins, sans-serif" font-size="11.5" fill="#7d1d1d">Firewall must permit a whole passive range,</text>
+      <text x="34" y="156" font-family="Poppins, sans-serif" font-size="11.5" fill="#7d1d1d">and NAT has to understand the protocol.</text>
+
+      <text x="420" y="24" font-family="Poppins, sans-serif" font-size="14" font-weight="600" fill="#000f27">SFTP: one connection</text>
+      <rect x="420" y="38" width="110" height="54" rx="8" fill="#f4f6fb" stroke="#000f27" stroke-width="2"/>
+      <text x="475" y="70" font-family="Poppins, sans-serif" font-size="12" fill="#000f27" text-anchor="middle">client</text>
+      <rect x="630" y="38" width="110" height="54" rx="8" fill="#f4f6fb" stroke="#000f27" stroke-width="2"/>
+      <text x="685" y="70" font-family="Poppins, sans-serif" font-size="12" fill="#000f27" text-anchor="middle">server</text>
+      <line x1="530" y1="65" x2="630" y2="65" stroke="#40b75f" stroke-width="3.5"/>
+      <text x="580" y="57" font-family="Poppins, sans-serif" font-size="11" fill="#2f8f49" text-anchor="middle">SSH: port 22</text>
+      <text x="580" y="86" font-family="Poppins, sans-serif" font-size="10.5" fill="#2f8f49" text-anchor="middle">commands + data</text>
+      <rect x="420" y="118" width="320" height="52" rx="7" fill="#eaf7ee"/>
+      <text x="434" y="138" font-family="Poppins, sans-serif" font-size="11.5" fill="#1f6b33">One rule, one port. Works through NAT</text>
+      <text x="434" y="156" font-family="Poppins, sans-serif" font-size="11.5" fill="#1f6b33">and load balancers without special handling.</text>
+
+      <text x="20" y="200" font-family="Poppins, sans-serif" font-size="13" font-weight="600" fill="#000f27">Why the second channel is the problem</text>
+      <text x="20" y="222" font-family="Poppins, sans-serif" font-size="12" fill="#000f27">Active mode: the SERVER opens a connection back to the client, which client-side NAT and firewalls block.</text>
+      <text x="20" y="242" font-family="Poppins, sans-serif" font-size="12" fill="#000f27">Passive mode: the client opens a second connection to a high port, so the server must expose a range.</text>
+      <text x="20" y="262" font-family="Poppins, sans-serif" font-size="12" fill="#000f27">With TLS the port negotiation is encrypted, so helper modules that used to read it cannot.</text>
+      <text x="20" y="286" font-family="Poppins, sans-serif" font-size="12" font-weight="600" fill="#4F1AF3">SFTP has none of this, because there is no second channel to negotiate.</text>
+    </svg>
+    <figcaption>The last line is the entire practical case for SFTP. Everything else is a consequence of it.</figcaption>
+  </figure>
+
+  <p>That last point deserves emphasis because it is genuinely counterintuitive: adding TLS to FTP makes the firewall problem worse. Network devices used to inspect the plaintext control channel to learn which data port was coming and open it automatically. Encrypt the control channel and that inspection becomes impossible, so the helper stops helping. You end up hand-configuring a passive port range on the server and matching it in the firewall.</p>
+
+  <h2>So which should you use?</h2>
+  <p>SFTP, unless something external forces your hand. That is not a hedge, it is the answer for the large majority of cases.</p>
+  <ul>
+    <li><strong>Uploading to your own server.</strong> SFTP. You already have SSH, so there is nothing extra to install, expose, or patch.</li>
+    <li><strong>A partner or bank explicitly requires FTPS.</strong> Use FTPS, and get in writing whether they mean implicit on 990 or explicit on 21.</li>
+    <li><strong>A legacy device that only speaks plain FTP.</strong> Keep it off the internet entirely. Restrict it to a private network or reach it through a VPN.</li>
+    <li><strong>Automated transfers between systems you control.</strong> SFTP with key authentication and no password at all.</li>
+    <li><strong>Syncing a directory repeatedly.</strong> Neither, mostly. See the section below.</li>
+  </ul>
+  <p>The opinion I will defend: running an FTP or FTPS service at all is usually a decision to maintain something you did not need. SFTP arrives with the SSH server you are already running and already patching. Adding a second service, with its own configuration, its own port range, and its own vulnerability history, in order to do a job the first one already does, is work you volunteered for.</p>
+
+  <h2>Keys beat passwords, and SFTP gets them for nothing</h2>
+  <p>Because SFTP is SSH, it inherits SSH authentication, which means public key authentication with no protocol extension required. FTP and FTPS have no equivalent, and this is a bigger deal than the encryption difference.</p>
+  <p>A password can be guessed, reused across services, phished, or typed into the wrong window. A key cannot be brute forced in any practical sense, and it is never transmitted. For automation the difference is stark: a script with a stored password is a credential sitting in a file that grants interactive access, while a key can be restricted to one command or one directory.</p>
+  <pre><code># Generate a key for transfers, then install it
+ssh-keygen -t ed25519 -C "deploy@example.com"
+ssh-copy-id -i ~/.ssh/id_ed25519.pub user@server
+
+# Connect, no password involved
+sftp user@server
+
+# Or move a single file without an interactive session
+scp ./build.tar.gz user@server:/var/www/releases/</code></pre>
+  <p>Once keys work, turn password authentication off for that account. Leaving it enabled means your key is a convenience while the password remains the actual attack surface, and automated password guessing against port 22 is constant background noise on any public server.</p>
+
+  <h2>Locking down a transfer-only account</h2>
+  <p>One legitimate objection to SFTP: SSH access normally means shell access, and you may want a user who can move files and nothing else. That is a solved problem, and worth doing properly rather than reaching back for FTP.</p>
+  <p>OpenSSH can confine a user to SFTP alone and to a single directory, using its internal SFTP implementation and a chroot.</p>
+  <pre><code># /etc/ssh/sshd_config
+Match Group sftponly
+    ChrootDirectory /srv/sftp/%u
+    ForceCommand internal-sftp
+    AllowTcpForwarding no
+    X11Forwarding no
+    PermitTunnel no</code></pre>
+  <p><code>ForceCommand internal-sftp</code> means the account cannot get a shell even if it tries. <code>ChrootDirectory</code> confines it to its own tree. Turning off forwarding matters more than people expect, because without it an otherwise restricted account can still use the connection to reach other machines on your network.</p>
+  <p>One requirement catches everyone: the chroot directory must be owned by root and must not be writable by the user. So the user's writable folder has to be a subdirectory inside it. Get that wrong and the connection closes immediately with a message that does not explain why.</p>
+  <p>Anything that touches who can reach your server belongs alongside the rest of your access controls, which is what our <a href="https://www.kloudbean.com/blog/server-hardening-checklist/">server hardening checklist</a> and <a href="https://www.kloudbean.com/blog/fail2ban-shorewall-hardening/">Fail2ban and Shorewall guide</a> cover.</p>
+
+  <h2>When SFTP is the wrong tool anyway</h2>
+  <p>Worth saying plainly, because a lot of file-transfer questions are really deployment questions wearing a disguise.</p>
+  <p>If you are dragging files onto a production server to deploy your application, the protocol is not your problem. Manual uploads have no record of what changed, no way to roll back, and a habit of leaving one stale file behind that takes an afternoon to find. Deploy from version control instead, which is what <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">auto-deploy from Git</a> and <a href="https://www.kloudbean.com/blog/zero-downtime-deployments/">zero downtime deployments</a> are about.</p>
+  <p>If you are synchronising a directory repeatedly, <code>rsync</code> over SSH is the better tool. It transfers only what changed, preserves permissions and timestamps, and can verify as it goes.</p>
+  <pre><code># Same encryption, far less data on repeat runs
+rsync -avz --delete ./public/ user@server:/var/www/site/public/</code></pre>
+  <p>And if you are moving user uploads around by hand because the server keeps filling up, the answer is object storage rather than a better transfer protocol. Our guide to <a href="https://www.kloudbean.com/blog/store-user-uploads-in-object-storage/">storing user uploads in object storage</a> covers why that is the structural fix.</p>
+
+  <h2>Where hosting fits</h2>
+  <p>On a managed Linux server, SFTP is simply there, because it comes with the SSH server rather than being a separate product. That is the honest framing: it is not a feature anyone should be selling you, it is a property of the platform being a real server.</p>
+  <p>What does matter from a host is the surrounding work. Kloudbean servers ship with a Shorewall firewall and Fail2ban configured by default, which is directly relevant here, since port 22 attracts continuous automated password guessing and Fail2ban is what stops that being interesting. Free SSL is issued and renewed for your sites, servers run across seven clouds with your choice of region, and backups are automatic, so a bad upload is recoverable rather than final.</p>
+  <p>For teams, subusers with granular per-resource and per-action permissions mean people get access to the servers and applications they need rather than to everything, and IP access control lets you restrict who can reach what by address or CIDR range. On enterprise engagements the pattern tightens further: remote access through VPN with direct SSH from the internet blocked, and a dedicated bastion for privileged administration.</p>
+
+  <figure>
+    <img src="../assets/console/firewall.png" alt="Firewall configuration in the Kloudbean console">
+    <figcaption>Port 22 sees constant automated login attempts on any public server. The firewall and intrusion prevention are the part worth configuring, not the transfer protocol.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>On securing the server around this, <a href="https://www.kloudbean.com/blog/server-hardening-checklist/">the server hardening checklist</a> and <a href="https://www.kloudbean.com/blog/fail2ban-shorewall-hardening/">Fail2ban and Shorewall</a>. On replacing manual uploads, <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">auto-deploy from GitHub</a> and <a href="https://www.kloudbean.com/blog/zero-downtime-deployments/">zero downtime deployments</a>. On files that should not live on your server at all, <a href="https://www.kloudbean.com/blog/store-user-uploads-in-object-storage/">object storage for user uploads</a> and <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3 compatible object storage</a>. On the transport layer generally, <a href="https://www.kloudbean.com/blog/ssl-tls-explained/">SSL and TLS explained</a>. And for recovering from a mistake, <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Stop uploading. Start deploying.</p>
+    <p style="margin:0 0 .6em">Managed servers across seven clouds with a firewall and intrusion prevention configured by default, free SSL, automatic backups, and Git deploys that replace manual file transfer entirely. From $8/mo, with free migration assistance. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">7 clouds · Firewall and Fail2ban by default · Free SSL · Automatic backups · Flat from $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is the difference between FTP and SFTP?</h3>
+    <p>FTP transmits credentials and file contents in plaintext across two separate connections. SFTP is an unrelated protocol that runs inside a single encrypted SSH connection on port 22 and supports key authentication. They share a similar name and almost nothing else, which is why SFTP is not simply a safer version of FTP.</p>
+
+    <h3>Is SFTP the same as secure FTP?</h3>
+    <p>No, and that phrase is the main source of confusion in this area. "Secure FTP" most often means FTPS, which is genuine FTP with TLS added. SFTP is a subsystem of SSH sharing no design with FTP. When someone asks for secure FTP, confirm the port and whether they mean TLS or SSH before configuring anything.</p>
+
+    <h3>Which is better, SFTP or FTPS?</h3>
+    <p>SFTP for nearly all purposes. It uses one port instead of a control port plus a data range, works through NAT and load balancers without special handling, supports key authentication, and comes with the SSH server you already run. Choose FTPS when an external system specifically requires it, which does happen with banks and older enterprise integrations.</p>
+
+    <h3>What port does SFTP use?</h3>
+    <p>Port 22, the same as SSH, because SFTP is an SSH subsystem rather than a separate service. FTP uses port 21 for control plus a data connection, and implicit FTPS conventionally uses 990. If you have SSH working, SFTP needs no additional firewall rule.</p>
+
+    <h3>Why does FTPS keep failing through my firewall?</h3>
+    <p>Because of its second connection. In passive mode the client opens a data connection to a high port, so the server must expose a configured range and the firewall must permit it. Encrypting the control channel makes this worse, since network devices can no longer read the port negotiation to open the right port automatically. SFTP avoids this by having no second channel.</p>
+
+    <h3>Is plain FTP ever acceptable?</h3>
+    <p>Only on an isolated network with a device that speaks nothing else, and even then it is a constraint rather than a choice. Across the internet it is indefensible, because credentials and file contents are readable by anyone on the path. There is also no upside to weigh, since SFTP is no harder and no slower in practice.</p>
+
+    <h3>Can I give someone SFTP access without shell access?</h3>
+    <p>Yes. In <code>sshd_config</code>, use <code>ForceCommand internal-sftp</code> with <code>ChrootDirectory</code> for that user or group, and disable TCP forwarding so the account cannot use its connection to reach other machines. Note that the chroot directory must be owned by root and not writable by the user, so their writable folder has to sit inside it.</p>
+
+    <h3>Should I use SFTP to deploy my application?</h3>
+    <p>Better not to. Manual uploads leave no record of what changed, no way to roll back, and frequently a stale file that causes a confusing bug later. Deploy from version control so each release is identified and reversible. If you are syncing a directory rather than deploying, <code>rsync</code> over SSH transfers only what changed and is the right tool.</p>
+
+    <h3>Is SFTP slower than FTP?</h3>
+    <p>Encryption adds work, and on modern hardware it is not something you will notice for typical transfers. Where FTP can appear faster is with very many tiny files, since SFTP acknowledges operations within its single channel. If throughput genuinely matters, <code>rsync</code> over SSH usually beats both by transferring only differences, and archiving many small files before sending helps more than changing protocol.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Two channels was always the problem.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"FTP vs SFTP vs FTPS: One Is a Different Protocol, Not a Safer FTP","description":"FTP vs SFTP compared properly, including FTPS. Why SFTP is not FTP at all, why the port count decides most real deployments, and which one to actually use.","image":"https://www.kloudbean.com/blog/ftp-vs-sftp/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/ftp-vs-sftp/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is the difference between FTP and SFTP?","acceptedAnswer":{"@type":"Answer","text":"FTP transmits credentials and file contents in plaintext across two separate connections. SFTP is an unrelated protocol that runs inside a single encrypted SSH connection on port 22 and supports key authentication. They share a similar name and almost nothing else, which is why SFTP is not simply a safer version of FTP."}},
+{"@type":"Question","name":"Is SFTP the same as secure FTP?","acceptedAnswer":{"@type":"Answer","text":"No, and that phrase is the main source of confusion in this area. Secure FTP most often means FTPS, which is genuine FTP with TLS added. SFTP is a subsystem of SSH sharing no design with FTP. When someone asks for secure FTP, confirm the port and whether they mean TLS or SSH before configuring anything."}},
+{"@type":"Question","name":"Which is better, SFTP or FTPS?","acceptedAnswer":{"@type":"Answer","text":"SFTP for nearly all purposes. It uses one port instead of a control port plus a data range, works through NAT and load balancers without special handling, supports key authentication, and comes with the SSH server you already run. Choose FTPS when an external system specifically requires it, which does happen with banks and older enterprise integrations."}},
+{"@type":"Question","name":"What port does SFTP use?","acceptedAnswer":{"@type":"Answer","text":"Port 22, the same as SSH, because SFTP is an SSH subsystem rather than a separate service. FTP uses port 21 for control plus a data connection, and implicit FTPS conventionally uses 990. If you have SSH working, SFTP needs no additional firewall rule."}},
+{"@type":"Question","name":"Why does FTPS keep failing through my firewall?","acceptedAnswer":{"@type":"Answer","text":"Because of its second connection. In passive mode the client opens a data connection to a high port, so the server must expose a configured range and the firewall must permit it. Encrypting the control channel makes this worse, since network devices can no longer read the port negotiation to open the right port automatically. SFTP avoids this by having no second channel."}},
+{"@type":"Question","name":"Is plain FTP ever acceptable?","acceptedAnswer":{"@type":"Answer","text":"Only on an isolated network with a device that speaks nothing else, and even then it is a constraint rather than a choice. Across the internet it is indefensible, because credentials and file contents are readable by anyone on the path. There is also no upside to weigh, since SFTP is no harder and no slower in practice."}},
+{"@type":"Question","name":"Can I give someone SFTP access without shell access?","acceptedAnswer":{"@type":"Answer","text":"Yes. In sshd_config, use ForceCommand internal-sftp with ChrootDirectory for that user or group, and disable TCP forwarding so the account cannot use its connection to reach other machines. Note that the chroot directory must be owned by root and not writable by the user, so their writable folder has to sit inside it."}},
+{"@type":"Question","name":"Should I use SFTP to deploy my application?","acceptedAnswer":{"@type":"Answer","text":"Better not to. Manual uploads leave no record of what changed, no way to roll back, and frequently a stale file that causes a confusing bug later. Deploy from version control so each release is identified and reversible. If you are syncing a directory rather than deploying, rsync over SSH transfers only what changed and is the right tool."}},
+{"@type":"Question","name":"Is SFTP slower than FTP?","acceptedAnswer":{"@type":"Answer","text":"Encryption adds work, and on modern hardware it is not something you will notice for typical transfers. Where FTP can appear faster is with very many tiny files, since SFTP acknowledges operations within its single channel. If throughput genuinely matters, rsync over SSH usually beats both by transferring only differences, and archiving many small files before sending helps more than changing protocol."}}
+]}
+]}
+</script>
+</body>
+</html>

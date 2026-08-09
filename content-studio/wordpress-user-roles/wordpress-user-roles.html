@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WordPress User Roles: Capabilities, Sharp Edges, and Why Admin Count Is Your Attack Surface</title>
+<meta name="description" content="WordPress user roles explained through capabilities, the real primitive underneath. What each role can do, the traps, why roles live in your database, and how to grant least privilege.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/wordpress-user-roles/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="WordPress User Roles: Capabilities, Sharp Edges, and Why Admin Count Is Your Attack Surface">
+<meta property="og:description" content="Roles are named bundles of capabilities. Once you see the capabilities, every confusing permission question answers itself.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">WordPress · Permissions · Security</span>
+  <h1>WordPress User Roles: Capabilities, Sharp Edges, and Why Admin Count Is Your Attack Surface</h1>
+  <p class="byline">By Kloudbean Engineering · Roles are the label. Capabilities are the thing.</p>
+
+  <figure><img src="images/hero.png" alt="Diagram of WordPress roles as named bundles of individual capabilities"></figure>
+
+  <p class="lead">WordPress user roles get taught as five fixed tiers, which is how people end up handing out Administrator because Editor "didn't seem like enough". The tiers are not the model. Underneath, WordPress only ever checks capabilities, individual permissions like <code>publish_posts</code> or <code>install_plugins</code>, and a role is nothing more than a named bundle of them stored in your database. Once you see it that way, the confusing questions stop being confusing: why a Contributor cannot upload an image, why your site Administrator loses the plugin installer on multisite, and why removing a plugin can leave its permissions behind.</p>
+
+  <div class="tldr">
+    <strong>What are the WordPress user roles?</strong>
+    <p>A standard WordPress install has five roles: Administrator, Editor, Author, Contributor, and Subscriber, in descending order of what they can do. Multisite adds a sixth, Super Admin, which controls the whole network. Each role is a set of capabilities, and WordPress checks capabilities rather than role names, so you can add or remove individual permissions without inventing a new role. For security, grant the lowest role that lets someone finish their work, and keep the number of Administrators as small as you can.</p>
+  </div>
+
+  <h2>Roles are bundles, capabilities are the primitive</h2>
+  <p>When a theme or plugin decides whether to show you something, it is not asking "is this person an Editor". It asks whether the current user can do a specific thing, using a check like <code>current_user_can('edit_others_posts')</code>.</p>
+  <p>Roles exist so nobody has to assign several dozen individual permissions per person. Administrator is a bundle containing nearly all of them, Subscriber is a bundle containing almost none, and the three in between are useful staging posts for an editorial workflow.</p>
+  <p>This matters practically, because it means the answer to "Editor is not quite enough but Administrator is too much" is almost never a new role. It is granting one capability to the Editor role and stopping there.</p>
+
+  <h2>The five roles, and what each can genuinely do</h2>
+  <table class="cmp">
+    <thead><tr><th>Role</th><th>Can do</th><th>Cannot do</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Administrator</strong></td><td>Everything on the site: settings, users, themes, plugins, and code editing</td><td>Nothing, on a single site</td></tr>
+      <tr><td><strong>Editor</strong></td><td>Write, edit, publish, and delete anyone's posts and pages; moderate comments; manage categories and tags</td><td>Touch settings, users, themes, or plugins</td></tr>
+      <tr><td><strong>Author</strong></td><td>Write, publish, and delete their own posts; upload files</td><td>Touch anyone else's content, or edit pages</td></tr>
+      <tr><td><strong>Contributor</strong></td><td>Write and edit their own unpublished drafts</td><td>Publish anything, or upload files</td></tr>
+      <tr><td><strong>Subscriber</strong></td><td>Manage their own profile, and read</td><td>Create content of any kind</td></tr>
+    </tbody>
+  </table>
+  <p>Two boundaries do most of the real work here. The jump from Author to Editor is the jump from "my own content" to "everyone's content", which is a trust decision about editorial judgement. The jump from Editor to Administrator is entirely different in kind: it is the jump from content to the site's configuration and code. Those are not adjacent steps on one ladder, and treating them as though they are is how sites end up with nine Administrators.</p>
+
+  <h2>The sharp edges people trip over</h2>
+  <p><strong>A Contributor cannot upload images.</strong> This is the single most common complaint, and it is deliberate rather than a bug. Contributors lack <code>upload_files</code>, so a writer who is meant to submit illustrated drafts cannot attach the illustrations. You have two clean options: make them an Author, or grant that one capability to Contributor and leave the rest alone.</p>
+  <pre><code>// Let Contributors attach media, without making them Authors
+function kb_allow_contributor_uploads() {
+    $role = get_role( 'contributor' );
+    if ( $role &amp;&amp; ! $role-&gt;has_cap( 'upload_files' ) ) {
+        $role-&gt;add_cap( 'upload_files' );
+    }
+}
+add_action( 'init', 'kb_allow_contributor_uploads' );</code></pre>
+  <p><strong>Authors cannot edit Pages.</strong> Posts and pages are separate post types with separate capabilities, and the Author role only covers posts. Someone maintaining your About page needs Editor, or a targeted grant.</p>
+  <p><strong>An Author can delete their own published work.</strong> <code>delete_published_posts</code> sits in the Author bundle. Usually fine, occasionally not what an editorial team expects, and worth knowing before somebody removes a live article.</p>
+  <p><strong>Nobody can edit an Administrator except an Administrator.</strong> Editors cannot manage users at all, so there is no route for an Editor to escalate through the user screen. That is the intended design and it is a good thing.</p>
+
+  <h2>Multisite changes the rules, quietly</h2>
+  <p>If you run a network, the role model shifts in a way that surprises people, and the surprise is usually a support ticket that reads "the plugins menu disappeared".</p>
+  <p>Multisite introduces Super Admin, who administers the entire network. Crucially, it also takes capabilities away from ordinary site Administrators: installing plugins and editing themes become network-level powers. So an Administrator on a single site is meaningfully more powerful than an Administrator of one site inside a network.</p>
+  <p>That is the correct design. A network exists precisely so that individual site owners cannot install arbitrary code that runs on shared infrastructure. If you are moving a standalone site into a network, expect that conversation. Our <a href="https://www.kloudbean.com/blog/wordpress-multisite-hosting/">multisite hosting guide</a> covers the operational side.</p>
+
+  <h2>Your Administrator count is your attack surface</h2>
+  <p>Here is the argument I would make to any site owner, and it is not really about roles at all.</p>
+  <p>An Administrator can install plugins. Installing a plugin means running arbitrary PHP on your server. So every Administrator account is, in security terms, a route to code execution on the machine hosting your site. Not a route to editing content. A route to running code.</p>
+  <p>That reframes the arithmetic. Ten Administrators means ten passwords, ten devices, and ten inboxes, any one of which can be phished or reused from a breached service, and any one of which leads to the same outcome. Compromising an Editor gets someone your content. Compromising an Administrator gets someone your server.</p>
+  <p>So the practical rules are unglamorous and effective. Grant the lowest role that lets the person finish their work, and if you catch yourself thinking "just make them an admin for now", that is the moment to check which single capability is actually missing. Audit the Administrator list on a schedule, because these accounts accumulate through agency handovers and one-off favours and nobody ever removes them. Remove leavers rather than only changing their password. And treat "an Administrator account exists that nobody can account for" as an incident, not an oddity.</p>
+  <p>Two hardening moves worth pairing with this. Disable the built-in file editor, which lets an Administrator rewrite theme and plugin PHP straight from the dashboard, so a stolen session becomes immediate code execution with no upload needed:</p>
+  <pre><code>// wp-config.php
+define( 'DISALLOW_FILE_EDIT', true );</code></pre>
+  <p>And put multi-factor authentication on every account that can reach the dashboard, prioritising Administrators. Neither of these is exotic and both remove a large share of the realistic paths in. Our <a href="https://www.kloudbean.com/blog/secure-wordpress-hosting/">secure WordPress hosting</a> guide covers how sites actually get compromised, and the answer is rarely anything clever.</p>
+
+  <h2>One capability that deserves a warning: unfiltered_html</h2>
+  <p>Worth separating out because it is powerful and almost nobody knows they have granted it.</p>
+  <p><code>unfiltered_html</code> allows a user to save raw HTML without WordPress sanitising it, including <code>&lt;script&gt;</code> tags. On a single-site install, Administrators and Editors hold it. That means an Editor, a role people hand out freely as "just content", can insert JavaScript that runs for every visitor.</p>
+  <p>On multisite, WordPress removes it from everyone except Super Admins, which tells you how the project itself views the risk. If you have Editors who do not need to paste embed codes, removing this capability is a reasonable and rarely disruptive tightening.</p>
+  <pre><code>// Take raw HTML away from Editors
+function kb_restrict_editor_html() {
+    $role = get_role( 'editor' );
+    if ( $role ) {
+        $role-&gt;remove_cap( 'unfiltered_html' );
+    }
+}
+add_action( 'init', 'kb_restrict_editor_html' );</code></pre>
+
+  <h2>Roles live in your database, not your code</h2>
+  <p>This is the detail that explains a whole class of confusing behaviour, and it is genuinely under-known.</p>
+  <p>Role definitions are stored in the <code>wp_options</code> table, under a key ending in <code>user_roles</code>. They are not read from PHP files on each request. So when a plugin calls <code>add_cap()</code> or <code>add_role()</code>, it writes into your database, and that change persists.</p>
+  <p>Two consequences follow. Removing a plugin does not necessarily remove the capabilities or custom roles it created, so permissions can outlive the code that justified them, and a membership plugin you trialled two years ago may still be shaping who can do what. And running <code>add_cap()</code> on every page load, which plenty of tutorials suggest, means a database write on every request; it belongs in an activation hook or behind a check like the one above.</p>
+  <p>It also means role changes are part of your database, so they travel with a database migration and are covered by a database backup rather than a file backup. If you are moving a site, that is one less thing to worry about, and it is also why a database restore can silently revert a permission change you made last week.</p>
+
+  <h2>Inspecting and changing roles without guessing</h2>
+  <p>The dashboard shows you role names. It does not show you capabilities, which is why permission debugging in the admin UI is frustrating. WP-CLI does, and it turns this into a quick job.</p>
+  <pre><code># What roles exist on this site
+wp role list
+
+# Exactly what a role can do
+wp cap list editor
+
+# Who holds which role
+wp user list --fields=ID,user_login,roles
+
+# Find every Administrator, which is the audit you should run
+wp user list --role=administrator --fields=ID,user_login,user_email
+
+# Change one person's role
+wp user set-role 12 editor
+
+# Grant one capability rather than promoting someone
+wp cap add editor manage_categories</code></pre>
+  <p>That fourth command is the one to run today. On most sites that have existed for a few years and been touched by more than one person, the Administrator list contains at least one account nobody remembers creating. Our <a href="https://www.kloudbean.com/blog/wordpress-cli-guide/">WP-CLI guide</a> covers the wider toolkit, and any of these changes belongs on a <a href="https://www.kloudbean.com/blog/wordpress-staging-environment/">staging copy</a> first if the site is busy.</p>
+
+  <h2>WordPress roles are not hosting permissions</h2>
+  <p>Worth being explicit about, because conflating these two layers is a common and consequential mistake.</p>
+  <p>WordPress roles govern what someone can do inside the CMS: content, settings, plugins. They say nothing about the server. A WordPress Administrator has no inherent access to your server, your database credentials, your backups, or your DNS. Those live at the hosting layer and are controlled separately.</p>
+  <p>The mistake runs in both directions. Someone needs to check a plugin update, so they are made a WordPress Administrator when Editor plus one capability would have done. Or a contractor needs to look at one site, so they are given the hosting login that reaches every site on the account.</p>
+  <p>On Kloudbean the hosting layer has its own model: subusers with User Access Control, where permissions are granular per resource and per action. A developer can be given access to one application on one server without being able to see the rest, and access is revoked cleanly when the work ends rather than by rotating a shared password. There is also a Basic Auth gate you can put in front of an application, which is the right tool for keeping a client preview private, and IP access control to allow or deny by address or CIDR range. On enterprise accounts an audit trail records account-wide activity in an immutable, searchable log with CSV export.</p>
+  <p>Keeping the layers separate is the habit worth building: CMS roles for content decisions, hosting permissions for infrastructure. Someone who writes blog posts should never need either the server or the plugin installer. Our <a href="https://www.kloudbean.com/blog/agency-wordpress-hosting/">agency WordPress hosting</a> guide goes deeper on running this across a fleet of client sites.</p>
+
+  <figure>
+    <img src="../assets/console/subusers-uac.png" alt="Subusers and User Access Control in the Kloudbean console">
+    <figcaption>Two separate permission systems. WordPress roles decide who can publish; hosting access control decides who can reach the server at all.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>On locking a site down, <a href="https://www.kloudbean.com/blog/secure-wordpress-hosting/">secure WordPress hosting</a> and the <a href="https://www.kloudbean.com/blog/server-hardening-checklist/">server hardening checklist</a>. On testing changes safely, <a href="https://www.kloudbean.com/blog/wordpress-staging-environment/">staging environments</a> and <a href="https://www.kloudbean.com/blog/server-backups-guide/">backups</a>. On doing this at the command line, the <a href="https://www.kloudbean.com/blog/wordpress-cli-guide/">WP-CLI guide</a>. For fleets and networks, <a href="https://www.kloudbean.com/blog/agency-wordpress-hosting/">agency WordPress hosting</a> and <a href="https://www.kloudbean.com/blog/wordpress-multisite-hosting/">multisite hosting</a>. And if granular permissions are a hard requirement for your project, <a href="https://www.kloudbean.com/blog/joomla-vs-wordpress/">Joomla versus WordPress</a> explains why Joomla's core ACL is a genuine point in its favour.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Two permission layers, one dashboard.</p>
+    <p style="margin:0 0 .6em">Managed WordPress on seven clouds with subusers and granular access control, staging, automatic backups, free SSL, and a firewall with intrusion prevention by default. From $8/mo, with free migration assistance. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Subusers and UAC · Staging · Automatic backups · Free SSL · Flat from $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What are the WordPress user roles?</h3>
+    <p>Administrator, Editor, Author, Contributor, and Subscriber on a standard install, in descending order of permissions. Multisite adds Super Admin for the whole network. Each is a named bundle of capabilities, and WordPress checks capabilities rather than role names when deciding what someone may do.</p>
+
+    <h3>What is the difference between an Author and a Contributor?</h3>
+    <p>An Author can publish their own posts and upload files. A Contributor can only write drafts, cannot publish, and cannot upload files, so their work has to be published by someone else. That upload restriction is the usual sticking point, since a Contributor cannot attach images to the draft they are writing.</p>
+
+    <h3>Why can't my Contributor upload images?</h3>
+    <p>The Contributor role does not include the <code>upload_files</code> capability, by design. Either promote them to Author, or grant that single capability to the Contributor role and leave everything else unchanged. The second option is usually the better fit when you want submitted drafts to stay unpublished.</p>
+
+    <h3>What is the difference between a role and a capability?</h3>
+    <p>A capability is a single permission such as <code>publish_posts</code> or <code>install_plugins</code>. A role is a named collection of capabilities. WordPress only ever checks capabilities, so if a role is almost right you can add or remove one capability rather than creating a new role.</p>
+
+    <h3>How many Administrators should a WordPress site have?</h3>
+    <p>As few as the work genuinely requires, often one or two. An Administrator can install plugins, which means running arbitrary code on your server, so each additional Administrator is another account whose compromise leads to server access rather than just content changes. Audit the list periodically, because these accumulate through handovers and nobody removes them.</p>
+
+    <h3>Can an Editor break my site?</h3>
+    <p>Not through settings, themes, or plugins, which Editors cannot touch. But on a single-site install Editors hold <code>unfiltered_html</code>, so they can save raw HTML including script tags that run for every visitor. If your Editors do not need to paste embed codes, removing that capability is a sensible tightening.</p>
+
+    <h3>Where are WordPress roles stored?</h3>
+    <p>In the database, in the <code>wp_options</code> table under a key ending in <code>user_roles</code>, rather than in PHP files. That is why a plugin can permanently alter your roles, why those changes can outlive the plugin's removal, and why role changes are captured by a database backup rather than a file backup.</p>
+
+    <h3>Do I need a plugin to manage user roles?</h3>
+    <p>Not for adding or removing individual capabilities, which is a few lines of code or one WP-CLI command. A role management plugin is worth it if you need a visual editor, many custom roles, or non-technical people making these changes. Bear in mind that a plugin writes its changes into your database, so they persist after you remove it.</p>
+
+    <h3>Does a WordPress Administrator have server access?</h3>
+    <p>No. WordPress roles only govern the CMS, so an Administrator has no inherent access to your server, database credentials, backups, or DNS. Those are controlled at the hosting layer with separate accounts and permissions, and keeping the two layers distinct is what stops a content request turning into infrastructure access.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Grant the capability, not the role.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"WordPress User Roles: Capabilities, Sharp Edges, and Why Admin Count Is Your Attack Surface","description":"WordPress user roles explained through capabilities, the real primitive underneath. What each role can do, the traps, why roles live in your database, and how to grant least privilege.","image":"https://www.kloudbean.com/blog/wordpress-user-roles/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/wordpress-user-roles/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What are the WordPress user roles?","acceptedAnswer":{"@type":"Answer","text":"Administrator, Editor, Author, Contributor, and Subscriber on a standard install, in descending order of permissions. Multisite adds Super Admin for the whole network. Each is a named bundle of capabilities, and WordPress checks capabilities rather than role names when deciding what someone may do."}},
+{"@type":"Question","name":"What is the difference between an Author and a Contributor?","acceptedAnswer":{"@type":"Answer","text":"An Author can publish their own posts and upload files. A Contributor can only write drafts, cannot publish, and cannot upload files, so their work has to be published by someone else. That upload restriction is the usual sticking point, since a Contributor cannot attach images to the draft they are writing."}},
+{"@type":"Question","name":"Why can't my Contributor upload images?","acceptedAnswer":{"@type":"Answer","text":"The Contributor role does not include the upload_files capability, by design. Either promote them to Author, or grant that single capability to the Contributor role and leave everything else unchanged. The second option is usually the better fit when you want submitted drafts to stay unpublished."}},
+{"@type":"Question","name":"What is the difference between a role and a capability?","acceptedAnswer":{"@type":"Answer","text":"A capability is a single permission such as publish_posts or install_plugins. A role is a named collection of capabilities. WordPress only ever checks capabilities, so if a role is almost right you can add or remove one capability rather than creating a new role."}},
+{"@type":"Question","name":"How many Administrators should a WordPress site have?","acceptedAnswer":{"@type":"Answer","text":"As few as the work genuinely requires, often one or two. An Administrator can install plugins, which means running arbitrary code on your server, so each additional Administrator is another account whose compromise leads to server access rather than just content changes. Audit the list periodically, because these accumulate through handovers and nobody removes them."}},
+{"@type":"Question","name":"Can an Editor break my site?","acceptedAnswer":{"@type":"Answer","text":"Not through settings, themes, or plugins, which Editors cannot touch. But on a single-site install Editors hold unfiltered_html, so they can save raw HTML including script tags that run for every visitor. If your Editors do not need to paste embed codes, removing that capability is a sensible tightening."}},
+{"@type":"Question","name":"Where are WordPress roles stored?","acceptedAnswer":{"@type":"Answer","text":"In the database, in the wp_options table under a key ending in user_roles, rather than in PHP files. That is why a plugin can permanently alter your roles, why those changes can outlive the plugin's removal, and why role changes are captured by a database backup rather than a file backup."}},
+{"@type":"Question","name":"Do I need a plugin to manage user roles?","acceptedAnswer":{"@type":"Answer","text":"Not for adding or removing individual capabilities, which is a few lines of code or one WP-CLI command. A role management plugin is worth it if you need a visual editor, many custom roles, or non-technical people making these changes. Bear in mind that a plugin writes its changes into your database, so they persist after you remove it."}},
+{"@type":"Question","name":"Does a WordPress Administrator have server access?","acceptedAnswer":{"@type":"Answer","text":"No. WordPress roles only govern the CMS, so an Administrator has no inherent access to your server, database credentials, backups, or DNS. Those are controlled at the hosting layer with separate accounts and permissions, and keeping the two layers distinct is what stops a content request turning into infrastructure access."}}
+]}
+]}
+</script>
+</body>
+</html>
