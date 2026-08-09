@@ -535,8 +535,8 @@ All NEW (silo has 0 live articles today). Across-links are within-silo unless br
 | *data-residency-saudi-arabia **(NEW)** | pillar | data-residency-explained, *pdpl-compliance-hosting, *gcp-dammam-region-guide | cloudways-alternatives |
 | *pdpl-compliance-hosting **(NEW)** | pillar | *nca-ecc-compliant-hosting, *data-residency-saudi-arabia, gdpr-compliant-hosting | cloudways-alternatives |
 | *nca-ecc-compliant-hosting **(NEW)** | pillar | *pdpl-compliance-hosting, soc2-compliant-hosting, *data-residency-saudi-arabia | cloudways-alternatives |
-| *misa-investor-hosting **(NEW)** | pillar | *saudi-vision-2030-cloud, *managed-hosting-ksa, *nca-ecc-compliant-hosting | cloudways-alternatives |
-| *saudi-vision-2030-cloud **(NEW)** | pillar | *misa-investor-hosting, *gcp-dammam-region-guide, *managed-hosting-ksa | cloudways-alternatives |
+| *saudi-foreign-investor-hosting **(NEW)** | pillar | *saudi-vision-2030-cloud, *managed-hosting-ksa, *nca-ecc-compliant-hosting | cloudways-alternatives |
+| *saudi-vision-2030-cloud **(NEW)** | pillar | *saudi-foreign-investor-hosting, *gcp-dammam-region-guide, *managed-hosting-ksa | cloudways-alternatives |
 | *arabic-wordpress-hosting **(NEW)** | pillar | *hosting-for-saudi-ecommerce, speed-up-wordpress, managed-wordpress-hosting **(NEW)** | kloudbean-vs-kinsta |
 | *hosting-for-saudi-ecommerce **(NEW)** | pillar | *arabic-wordpress-hosting, *low-latency-hosting-riyadh-jeddah, woocommerce-hosting **(NEW)** | kloudbean-vs-kinsta |
 | *low-latency-hosting-riyadh-jeddah **(NEW)** | pillar | *gcp-dammam-region-guide, *managed-hosting-ksa, cloud-load-balancer-explained | digitalocean-vs-kloudbean |
