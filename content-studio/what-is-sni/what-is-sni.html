@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What Is SNI? The TLS Extension That Made Shared HTTPS Hosting Possible</title>
+<meta name="description" content="SNI (Server Name Indication) lets one IP address serve HTTPS for many domains by sending the hostname before the handshake finishes. How it works, why it is plaintext, and what ECH changes.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/what-is-sni/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="What Is SNI? The TLS Extension That Made Shared HTTPS Hosting Possible">
+<meta property="og:description" content="Without SNI a server must choose a certificate before it knows which site you asked for. Here is how SNI solves that, and the privacy hole it leaves open.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">TLS · Hosting architecture · Networking</span>
+  <h1>What Is SNI? The TLS Extension That Made Shared HTTPS Hosting Possible</h1>
+  <p class="byline">By Kloudbean Engineering · One field, sent early, in the clear.</p>
+
+  <figure><img src="images/hero.png" alt="Diagram showing a browser sending the requested hostname in the TLS ClientHello so the server can select the correct certificate"></figure>
+
+  <p class="lead">SNI stands for Server Name Indication, and it exists to solve a genuine ordering problem in how the web is layered. HTTPS puts HTTP inside TLS, but the field that says which website you want, the <code>Host</code> header, lives in the HTTP request. That request only travels after TLS is already established. So a server hosting fifty domains has to pick and present one certificate before it has any idea which of the fifty you asked for. SNI fixes that by putting the hostname into the very first TLS message, in plaintext, before encryption exists. That single field is the reason a server can host many HTTPS sites on one IP address, and the reason network operators can still see which sites you visit.</p>
+
+  <div class="tldr">
+    <strong>What is SNI in SSL?</strong>
+    <p>Server Name Indication is a TLS extension that lets a client tell the server which hostname it is trying to reach, inside the first handshake message. Because the server learns the hostname before it has to present a certificate, one IP address can serve HTTPS for many different domains, each with its own certificate. Nearly every client made in the last decade sends SNI, and virtually all shared and cloud hosting depends on it. The catch is that SNI is sent unencrypted, which is what Encrypted Client Hello is designed to fix.</p>
+  </div>
+
+  <h2>The ordering problem, stated plainly</h2>
+  <p>Virtual hosting on plain HTTP is easy. Many domains point at one IP, a request arrives, and the server reads <code>Host: example.com</code> and routes accordingly. One address, unlimited sites, no difficulty.</p>
+  <p>HTTPS breaks that, and it breaks it for a structural reason rather than a fixable bug. TLS wraps HTTP, so TLS has to be negotiated first, and part of negotiating TLS is the server sending its certificate. A certificate is bound to specific hostnames. So the server is being asked to prove its identity for a site it has not been told about yet.</p>
+  <p>Before SNI there were exactly two ways around this. Give every HTTPS site its own IP address, which is why hosts used to sell dedicated IPs as an SSL add-on. Or put every hostname on a single certificate as additional subject alternative names, which works but means every site shares one certificate and every change means reissuing it for everybody.</p>
+  <p>SNI is a third option and a much better one: have the client say what it wants up front.</p>
+
+  <h2>What actually goes over the wire, in order</h2>
+  <p>The sequence is the whole explanation, and seeing it in order makes every SNI behaviour obvious.</p>
+
+  <figure>
+    <svg viewBox="0 0 760 330" width="100%" role="img" aria-label="Sequence diagram: TCP connection, then a plaintext ClientHello carrying the SNI hostname, then the server selects a certificate, then the encrypted tunnel is established, and only then does the HTTP request with the Host header travel inside encryption.">
+      <rect x="0" y="0" width="760" height="330" fill="#ffffff"/>
+      <text x="46" y="24" font-family="Poppins, sans-serif" font-size="13" font-weight="600" fill="#000f27">Browser</text>
+      <text x="640" y="24" font-family="Poppins, sans-serif" font-size="13" font-weight="600" fill="#000f27">Server</text>
+      <line x1="70" y1="34" x2="70" y2="300" stroke="#000f27" stroke-width="2"/>
+      <line x1="672" y1="34" x2="672" y2="300" stroke="#000f27" stroke-width="2"/>
+
+      <rect x="86" y="44" width="570" height="26" rx="5" fill="#e9edf6"/>
+      <text x="98" y="62" font-family="Poppins, sans-serif" font-size="12" fill="#000f27">1. TCP connection opens (no encryption yet)</text>
+
+      <rect x="86" y="82" width="570" height="40" rx="5" fill="#4F1AF3"/>
+      <text x="98" y="99" font-family="Poppins, sans-serif" font-size="12" font-weight="600" fill="#ffffff">2. ClientHello, including SNI: server_name = shop.example.com</text>
+      <text x="98" y="115" font-family="Poppins, sans-serif" font-size="11" fill="#ffffff">sent in PLAINTEXT, readable by anything on the path</text>
+
+      <rect x="86" y="134" width="570" height="26" rx="5" fill="#e9edf6"/>
+      <text x="98" y="152" font-family="Poppins, sans-serif" font-size="12" fill="#000f27">3. Server now knows the hostname, so it selects the matching certificate</text>
+
+      <rect x="86" y="172" width="570" height="26" rx="5" fill="#e9edf6"/>
+      <text x="98" y="190" font-family="Poppins, sans-serif" font-size="12" fill="#000f27">4. ServerHello plus that certificate, then key exchange</text>
+
+      <rect x="86" y="210" width="570" height="26" rx="5" fill="#40b75f"/>
+      <text x="98" y="228" font-family="Poppins, sans-serif" font-size="12" fill="#ffffff">5. Encrypted tunnel established</text>
+
+      <rect x="86" y="248" width="570" height="40" rx="5" fill="#000f27"/>
+      <text x="98" y="265" font-family="Poppins, sans-serif" font-size="12" font-weight="600" fill="#ffffff">6. Only now: GET / with Host: shop.example.com</text>
+      <text x="98" y="281" font-family="Poppins, sans-serif" font-size="11" fill="#ffffff">inside the encryption, which is why it was too late to help</text>
+    </svg>
+    <figcaption>Step 6 is what routing normally relies on, and it arrives four steps after the server needed the information. SNI at step 2 is the fix, and its plaintext nature at step 2 is the privacy cost.</figcaption>
+  </figure>
+
+  <p>Two things fall directly out of that ordering. The server can host as many certificates as it likes, because selection happens after it reads the requested name. And the hostname is exposed, because step 2 happens before there is any encryption to hide it in.</p>
+
+  <h2>This is why shared and cloud HTTPS hosting exists at all</h2>
+  <p>It is easy to treat SNI as trivia. It is closer to load-bearing infrastructure.</p>
+  <p>IPv4 addresses are genuinely scarce and providers charge for them. If every HTTPS site still needed its own address, hosting several sites on one server with proper certificates would be expensive and awkward, and the free-certificate era would look very different, because issuing a certificate per site is only useful if a server can serve certificates per site.</p>
+  <p>So when you put four applications on one server, each on its own domain, each with its own certificate, all on one IP, SNI is what makes that legal at the protocol level. Your web server matches the incoming <code>server_name</code> against its virtual hosts and answers with the right certificate.</p>
+  <pre><code># Two sites, one IP, one nginx. SNI is what lets this work.
+server {
+    listen 443 ssl;
+    server_name shop.example.com;
+    ssl_certificate     /etc/ssl/shop/fullchain.pem;
+    ssl_certificate_key /etc/ssl/shop/privkey.pem;
+}
+
+server {
+    listen 443 ssl;
+    server_name blog.example.com;
+    ssl_certificate     /etc/ssl/blog/fullchain.pem;
+    ssl_certificate_key /etc/ssl/blog/privkey.pem;
+}</code></pre>
+  <p>Nothing in that configuration mentions SNI, which is rather the point. You never enable it. It is implied by having more than one <code>server_name</code> with its own certificate.</p>
+
+  <h2>SNI travels in the clear, and that matters</h2>
+  <p>Here is the consequence people miss. HTTPS hides the URL path, the headers, the cookies, and the body. It does not hide which host you asked for, because you announced that before encryption began.</p>
+  <p>Anyone positioned on the network path, an ISP, a corporate proxy, a national filter, someone on the same café wifi, can read the SNI field and know you connected to a given hostname. They cannot see which page or what you sent. They can see where you went.</p>
+  <p>That has practical uses in both directions. It is how corporate firewalls implement per-domain policy without decrypting traffic, which is legitimate and less invasive than interception. It is also how censorship regimes block individual sites on shared infrastructure, and how traffic gets profiled. If you have ever wondered how a network blocks one site but not another on the same CDN without breaking TLS, this field is the answer.</p>
+  <p>Worth being precise about scope: SNI leaks the hostname only. DNS also leaks it unless you use encrypted DNS, so fixing one without the other achieves little, which is a large part of why the two efforts moved together.</p>
+
+  <h2>Encrypted Client Hello, and why it needs DNS</h2>
+  <p>The fix has been through two generations. The earlier proposal, ESNI, encrypted just the server name. It was superseded by Encrypted Client Hello, which encrypts the sensitive parts of the ClientHello as a whole, because encrypting one field while leaving other identifying fields visible was solving half a problem.</p>
+  <p>ECH has an obvious bootstrapping puzzle: to encrypt the hostname to the server, the client needs a public key from the server, but it has not connected yet. The answer is to publish the key in DNS, in the HTTPS resource record, so the client fetches the key during name resolution and encrypts the ClientHello on its first attempt.</p>
+  <p>Which means ECH depends on encrypted DNS to be meaningful. Retrieving an ECH key over plaintext DNS while announcing the hostname in that same query would defeat the purpose entirely. ECH also works best behind a large shared frontend, because the outer, still-visible name can be a shared one while the real hostname hides inside.</p>
+  <p>Practically, this is not something you configure on an origin server today. It arrives through your CDN or edge provider and your visitors' browsers. Reasonable to understand and not something to chase.</p>
+
+  <h2>Testing SNI, and the trap that wastes an afternoon</h2>
+  <p>This is the most useful operational content in the article, so treat it as the takeaway if you skim.</p>
+  <p>When you test TLS with OpenSSL, you must pass <code>-servername</code>. Without it, no SNI is sent, and the server falls back to its default virtual host and hands you that certificate instead.</p>
+  <pre><code># WRONG: sends no SNI, so you get the server's default certificate
+openssl s_client -connect example.com:443
+
+# RIGHT: sends SNI, so you get the certificate for this hostname
+openssl s_client -connect example.com:443 -servername example.com
+
+# Just the identity of the certificate you were served
+openssl s_client -connect example.com:443 -servername example.com &lt;/dev/null 2&gt;/dev/null \
+  | openssl x509 -noout -subject -ext subjectAltName</code></pre>
+  <p>The failure mode is nasty because it is quiet. The first command usually returns a perfectly valid certificate, just for a different site. So the output looks healthy, you conclude TLS is fine, and you go looking for the problem somewhere else. Meanwhile browsers, which always send SNI, are seeing something different from what you tested. Any time a certificate looks correct on the command line but browsers disagree, check whether you sent <code>-servername</code>.</p>
+  <p><code>curl</code> derives SNI from the URL, so it behaves correctly by default. If you are pinning an IP while keeping the hostname, use <code>--resolve</code>, because that preserves SNI where editing the URL to an IP would not send it at all.</p>
+  <pre><code># Keeps SNI and Host as example.com while connecting to a specific IP
+curl -sSI --resolve example.com:443:203.0.113.10 https://example.com/</code></pre>
+
+  <h2>The SNI failures you will actually meet</h2>
+  <table class="cmp">
+    <thead><tr><th>Symptom</th><th>Likely cause</th><th>Where to look</th></tr></thead>
+    <tbody>
+      <tr><td>Wrong site's certificate served</td><td>No matching virtual host, so the default block answered</td><td><code>server_name</code> values, and which block is <code>default_server</code></td></tr>
+      <tr><td>Correct on the command line, wrong in browsers</td><td>You tested without <code>-servername</code></td><td>Re-test with SNI</td></tr>
+      <tr><td>Works for most visitors, fails for a few</td><td>A very old client or a middlebox stripping SNI</td><td>Client versions, corporate proxies</td></tr>
+      <tr><td>CDN reports an origin TLS failure</td><td>Proxy's SNI to origin does not match an origin certificate</td><td>Origin host settings at the edge</td></tr>
+      <tr><td>New domain added, old certificate returned</td><td>Config not reloaded, or hostname absent from any block</td><td>Reload, then re-test with SNI</td></tr>
+    </tbody>
+  </table>
+  <p>The first row is the common one, and it is worth understanding rather than pattern-matching. When SNI arrives with a hostname no virtual host claims, the server does not error. It answers with whichever block is the default. That is deliberate, since refusing would be worse, and it produces the confusing symptom of a valid certificate for the wrong name.</p>
+  <p>If the failure looks like a handshake collapsing rather than a mismatched name, that is a different diagnosis, and our guide to <a href="https://www.kloudbean.com/blog/err-ssl-protocol-error/">ERR_SSL_PROTOCOL_ERROR</a> covers protocol and cipher mismatches. If a CDN is reporting the failure, <a href="https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/">Cloudflare error 525</a> is the specific case where the edge cannot complete TLS to your origin.</p>
+
+  <h2>So do you still need a dedicated IP for SSL?</h2>
+  <p>No. That was true in the 2000s and it has not been true for a long time, though the upsell survived the technical justification by a good decade.</p>
+  <p>Every current browser sends SNI. The clients that could not were Windows XP era Internet Explorer and very early Android, and if your analytics show a meaningful population of those, you have unusual traffic and should verify it rather than trust it, because that signature is also what bots look like.</p>
+  <p>There are still real reasons to want a dedicated address, and none of them are certificates: a third party needs to allowlist your outbound IP, a regulator or partner requires a fixed address, or you are managing sending reputation for email. Buy one for those. Not for HTTPS.</p>
+
+  <h2>Where hosting fits</h2>
+  <p>The honest position is that SNI is not something you should have to think about. It is a protocol detail that a competent server configuration handles implicitly, and the reason to understand it is diagnostic rather than operational.</p>
+  <p>On Kloudbean, certificates are issued and renewed for you, free, and each application on a server gets its own domain and its own certificate on the shared address, which is SNI doing its job without appearing in your workflow. Add a second application, point a second domain at the same server, and it gets its own certificate. Nothing to enable.</p>
+  <p>Where it does become visible is at the edge. Cloudflare is available as a paid add-on and free for enterprise accounts, and if you put an edge proxy in front of an origin, the SNI the proxy presents to your origin has to match a certificate the origin holds. That is the one place this stops being invisible, and it is worth knowing before you debug it.</p>
+
+  <figure>
+    <img src="../assets/console/ssl-certificate.png" alt="SSL certificate management in the Kloudbean console">
+    <figcaption>Several applications, several domains, one server, one address. Each gets its own certificate because the requested hostname arrives before the certificate is chosen.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>For the wider picture, <a href="https://www.kloudbean.com/blog/ssl-tls-explained/">SSL and TLS explained</a> covers the handshake, termination, and why certificates expire. For diagnosis, <a href="https://www.kloudbean.com/blog/fix-ssl-certificate-errors/">fixing SSL certificate errors</a> handles validity and chain problems, <a href="https://www.kloudbean.com/blog/err-ssl-protocol-error/">ERR_SSL_PROTOCOL_ERROR</a> handles handshake failures, and <a href="https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/">Cloudflare 525</a> handles edge-to-origin TLS. On the DNS half of the privacy story, <a href="https://www.kloudbean.com/blog/fix-slow-dns-lookup/">DNS lookups</a>, and for HTTPS redirect loops caused by TLS termination, <a href="https://www.kloudbean.com/blog/err-too-many-redirects/">ERR_TOO_MANY_REDIRECTS</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Certificates you never have to think about.</p>
+    <p style="margin:0 0 .6em">Free SSL issued and renewed automatically for every application and domain on your server, across seven clouds, with managed databases and automatic backups, from $8/mo. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Free SSL, auto-renewed · 7 clouds · Many apps per server · Automatic backups · Flat from $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is SNI in SSL?</h3>
+    <p>Server Name Indication is a TLS extension that carries the hostname the client wants inside the first handshake message, the ClientHello. Because the server receives that name before it has to send a certificate, it can select the right one out of many. Without it, a server holding several certificates would have to guess.</p>
+
+    <h3>Why is SNI needed if HTTP already has a Host header?</h3>
+    <p>Because of ordering. The <code>Host</code> header is part of the HTTP request, which travels inside the encrypted connection, so it only arrives after TLS is finished and the certificate has already been sent. The server needs the hostname before that point, which is exactly the gap SNI fills.</p>
+
+    <h3>Is SNI encrypted?</h3>
+    <p>No, not in standard TLS, including TLS 1.3. It is sent in the clear in the ClientHello because there is no shared encryption yet. Anyone on the network path can see which hostname you connected to, though not the path, headers, or content. Encrypted Client Hello is the mechanism designed to close that gap.</p>
+
+    <h3>What is the difference between SNI and ECH?</h3>
+    <p>SNI is the field that announces the hostname in plaintext. ECH, Encrypted Client Hello, encrypts the sensitive portion of the ClientHello including that hostname, using a public key the server publishes in DNS. ECH replaced the earlier ESNI proposal, which encrypted only the server name and left other identifying fields exposed.</p>
+
+    <h3>Do all browsers support SNI?</h3>
+    <p>Every browser and operating system in current use sends SNI. The historical exceptions were Internet Explorer on Windows XP and very early Android versions, both long past end of support. If your logs suggest a real population of non-SNI clients, verify it before designing around it, because that pattern is also typical of automated traffic.</p>
+
+    <h3>Do I need a dedicated IP address for an SSL certificate?</h3>
+    <p>No. SNI removed that requirement long ago, and one address can serve HTTPS for many domains each with its own certificate. Dedicated addresses still have genuine uses, such as being allowlisted by a partner or managing email sending reputation, but certificates are not among them.</p>
+
+    <h3>Why am I getting the wrong certificate for my domain?</h3>
+    <p>Usually because no virtual host claims that hostname, so the server answered with its default block and that block's certificate. Check that the domain appears in a <code>server_name</code>, that the configuration was reloaded, and which block is marked as the default. Then re-test using <code>-servername</code>, since testing without it reproduces exactly this symptom even when the configuration is correct.</p>
+
+    <h3>How do I test which certificate SNI returns?</h3>
+    <p>Run <code>openssl s_client -connect example.com:443 -servername example.com</code> and inspect the subject and subject alternative names. Omitting <code>-servername</code> is the classic mistake: it sends no SNI, returns the default certificate, and looks healthy while telling you nothing about the hostname you care about. With <code>curl</code>, SNI is taken from the URL, so use <code>--resolve</code> rather than substituting an IP if you need to target a specific server.</p>
+
+    <h3>Does SNI affect performance?</h3>
+    <p>Not measurably. It is one extension field in a message that was being sent regardless, so there is no extra round trip and no meaningful processing cost. Certificate selection is a lookup. If TLS feels slow, look at session resumption, whether you are on TLS 1.3, OCSP stapling, and the network round trip instead.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · The field that arrives before the encryption does.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"What Is SNI? The TLS Extension That Made Shared HTTPS Hosting Possible","description":"SNI (Server Name Indication) lets one IP address serve HTTPS for many domains by sending the hostname before the handshake finishes. How it works, why it is plaintext, and what ECH changes.","image":"https://www.kloudbean.com/blog/what-is-sni/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/what-is-sni/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is SNI in SSL?","acceptedAnswer":{"@type":"Answer","text":"Server Name Indication is a TLS extension that carries the hostname the client wants inside the first handshake message, the ClientHello. Because the server receives that name before it has to send a certificate, it can select the right one out of many. Without it, a server holding several certificates would have to guess."}},
+{"@type":"Question","name":"Why is SNI needed if HTTP already has a Host header?","acceptedAnswer":{"@type":"Answer","text":"Because of ordering. The Host header is part of the HTTP request, which travels inside the encrypted connection, so it only arrives after TLS is finished and the certificate has already been sent. The server needs the hostname before that point, which is exactly the gap SNI fills."}},
+{"@type":"Question","name":"Is SNI encrypted?","acceptedAnswer":{"@type":"Answer","text":"No, not in standard TLS, including TLS 1.3. It is sent in the clear in the ClientHello because there is no shared encryption yet. Anyone on the network path can see which hostname you connected to, though not the path, headers, or content. Encrypted Client Hello is the mechanism designed to close that gap."}},
+{"@type":"Question","name":"What is the difference between SNI and ECH?","acceptedAnswer":{"@type":"Answer","text":"SNI is the field that announces the hostname in plaintext. ECH, Encrypted Client Hello, encrypts the sensitive portion of the ClientHello including that hostname, using a public key the server publishes in DNS. ECH replaced the earlier ESNI proposal, which encrypted only the server name and left other identifying fields exposed."}},
+{"@type":"Question","name":"Do all browsers support SNI?","acceptedAnswer":{"@type":"Answer","text":"Every browser and operating system in current use sends SNI. The historical exceptions were Internet Explorer on Windows XP and very early Android versions, both long past end of support. If your logs suggest a real population of non-SNI clients, verify it before designing around it, because that pattern is also typical of automated traffic."}},
+{"@type":"Question","name":"Do I need a dedicated IP address for an SSL certificate?","acceptedAnswer":{"@type":"Answer","text":"No. SNI removed that requirement long ago, and one address can serve HTTPS for many domains each with its own certificate. Dedicated addresses still have genuine uses, such as being allowlisted by a partner or managing email sending reputation, but certificates are not among them."}},
+{"@type":"Question","name":"Why am I getting the wrong certificate for my domain?","acceptedAnswer":{"@type":"Answer","text":"Usually because no virtual host claims that hostname, so the server answered with its default block and that block's certificate. Check that the domain appears in a server_name, that the configuration was reloaded, and which block is marked as the default. Then re-test using -servername, since testing without it reproduces exactly this symptom even when the configuration is correct."}},
+{"@type":"Question","name":"How do I test which certificate SNI returns?","acceptedAnswer":{"@type":"Answer","text":"Run openssl s_client -connect example.com:443 -servername example.com and inspect the subject and subject alternative names. Omitting -servername is the classic mistake: it sends no SNI, returns the default certificate, and looks healthy while telling you nothing about the hostname you care about. With curl, SNI is taken from the URL, so use --resolve rather than substituting an IP if you need to target a specific server."}},
+{"@type":"Question","name":"Does SNI affect performance?","acceptedAnswer":{"@type":"Answer","text":"Not measurably. It is one extension field in a message that was being sent regardless, so there is no extra round trip and no meaningful processing cost. Certificate selection is a lookup. If TLS feels slow, look at session resumption, whether you are on TLS 1.3, OCSP stapling, and the network round trip instead."}}
+]}
+]}
+</script>
+</body>
+</html>

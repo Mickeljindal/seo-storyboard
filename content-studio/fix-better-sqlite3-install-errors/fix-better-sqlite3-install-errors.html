@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>better-sqlite3: Fixing NODE_MODULE_VERSION and Build Errors on Deploy</title>
+<meta name="description" content="better-sqlite3 is a native module, so it breaks when the Node version or platform changes. How to read the NODE_MODULE_VERSION error, why prebuilt binaries go missing, and the fixes that hold.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/fix-better-sqlite3-install-errors/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="better-sqlite3: Fixing NODE_MODULE_VERSION and Build Errors on Deploy">
+<meta property="og:description" content="The error names two ABI numbers and both matter. Here is what they mean, why the prebuilt binary was missing, and how to stop it recurring.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Node.js · Native modules · Deployment</span>
+  <h1>better-sqlite3: Fixing NODE_MODULE_VERSION and Build Errors on Deploy</h1>
+  <p class="byline">By Kloudbean Engineering · Two numbers in the error, and they are the whole story.</p>
+
+  <figure><img src="images/hero.png" alt="Diagram of a native Node module compiled against one ABI version failing to load on a runtime expecting a different one"></figure>
+
+  <p class="lead">better-sqlite3 is fast and pleasant to use, and it fails in a way that catches people out, because it is not pure JavaScript. It compiles down to a binary, <code>better_sqlite3.node</code>, and that binary is built against one specific Node.js ABI on one specific platform. Change the Node version, change the operating system, or copy <code>node_modules</code> from your laptop to a server, and the binary no longer matches the runtime trying to load it. The error looks alarming and is actually one of the more informative messages in the Node ecosystem: it prints the number it was built for and the number it needs.</p>
+
+  <div class="tldr">
+    <strong>How do I fix the better-sqlite3 NODE_MODULE_VERSION error?</strong>
+    <p>The binary was compiled for a different Node.js version than the one running it. Rebuild it against your current runtime with <code>npm rebuild better-sqlite3 --build-from-source</code>, or delete <code>node_modules</code> and run a fresh <code>npm ci</code> on the machine that will actually run the app. To stop it recurring, pin your Node major version in <code>package.json</code> engines, never copy <code>node_modules</code> between machines, and install dependencies on the target platform rather than shipping them.</p>
+  </div>
+
+  <h2>Read the error, it gives you both numbers</h2>
+  <p>The message is long enough that people skim it, which is a shame because it contains the diagnosis.</p>
+  <pre><code>Error: The module '/app/node_modules/better-sqlite3/build/Release/better_sqlite3.node'
+was compiled against a different Node.js version using
+NODE_MODULE_VERSION 108. This version of Node.js requires
+NODE_MODULE_VERSION 115. Please try re-compiling or re-installing
+the module (for instance, using `npm rebuild` or `npm install`).</code></pre>
+  <p>NODE_MODULE_VERSION is the ABI version, the contract between compiled add-ons and the Node binary. It changes when V8's internals change, which is why it moves with major Node releases and not with patch releases.</p>
+  <p>So this error says: the binary on disk was built for Node 18, and something is trying to load it on Node 20. That is the entire problem. You are not looking for a bug, you are looking for where two Node versions got involved.</p>
+
+  <h2>The ABI table, and how to check what you are running</h2>
+  <p>Map the numbers to versions and the message usually explains itself immediately.</p>
+  <table class="cmp">
+    <thead><tr><th>Node major</th><th>NODE_MODULE_VERSION</th></tr></thead>
+    <tbody>
+      <tr><td>Node 18</td><td>108</td></tr>
+      <tr><td>Node 20</td><td>115</td></tr>
+      <tr><td>Node 22</td><td>127</td></tr>
+      <tr><td>Node 23</td><td>131</td></tr>
+      <tr><td>Node 24</td><td>137</td></tr>
+    </tbody>
+  </table>
+  <p>Older majors have their own numbers, and Node publishes the full registry in its repository if you meet one from an ancient build. Electron has a separate series entirely, which is why Electron projects hit this constantly: the Electron ABI is not the Node ABI even when the Node version inside looks familiar.</p>
+  <p>To see what a given runtime expects, ask it:</p>
+  <pre><code># The ABI your current node expects
+node -p "process.versions.modules"
+
+# Which node is actually being used, which is often the surprise
+node -v &amp;&amp; which -a node</code></pre>
+  <p>That second command earns its place. A remarkable share of these reports come down to two Node installations on one machine, where a version manager is active in an interactive shell but a service, cron job, or process supervisor starts with a different one on its <code>PATH</code>.</p>
+
+  <h2>Why the prebuilt binary is sometimes just absent</h2>
+  <p>better-sqlite3 publishes prebuilt binaries so most people never compile anything. On install it tries to download one matching your exact combination, and if there is no match it falls back to building from source with node-gyp.</p>
+  <p>You can see all four dimensions of that match in the other common error:</p>
+  <pre><code>prebuild-install warn install No prebuilt binaries found
+  (target=20.11.0 runtime=node arch=x64 libc=musl platform=linux)</code></pre>
+  <p>Four things have to line up: the ABI, the CPU architecture, the platform, and the C library. Miss any one and you are compiling from source, which needs a toolchain that many minimal images do not include. Then the failure changes shape entirely, into <code>gyp ERR!</code> output about a missing <code>python3</code> or no C++ compiler, and people reasonably but wrongly conclude the package is broken.</p>
+  <p>So there are two distinct failures wearing similar clothing. An ABI mismatch means a binary exists but is wrong. A build failure means no binary exists and the fallback could not run. The fixes differ, so read which one you have before acting.</p>
+
+  <h2>The situations that actually produce this</h2>
+  <table class="cmp">
+    <thead><tr><th>What happened</th><th>Why it breaks</th><th>Tell</th></tr></thead>
+    <tbody>
+      <tr><td>Committed or uploaded <code>node_modules</code></td><td>Binary built on your OS and Node, loaded on another</td><td>Fails immediately on first boot after deploy</td></tr>
+      <tr><td>Node upgraded on the server</td><td>Existing binary targets the old ABI</td><td>Worked yesterday, broke after a platform or image update</td></tr>
+      <tr><td>Version manager vs service runtime</td><td>Installed under one Node, started under another</td><td><code>which -a node</code> shows more than one</td></tr>
+      <tr><td>Docker build stage differs from run stage</td><td>Compiled in one image, executed in another</td><td>Builds clean, crashes on start</td></tr>
+      <tr><td>Alpine or other musl base</td><td>No matching prebuild, no toolchain to compile</td><td><code>libc=musl</code> in the warning</td></tr>
+      <tr><td>Electron project</td><td>Electron ABI differs from Node ABI</td><td>Works with <code>node</code>, fails in the app</td></tr>
+    </tbody>
+  </table>
+  <p>The first row is the most common and the most avoidable. <code>node_modules</code> is not portable when any dependency is native. Treat it as build output belonging to one machine, not as part of your source.</p>
+
+  <h2>Fixing it, in the order that actually works</h2>
+  <p>Start with the cheapest step and escalate only if needed.</p>
+  <p><strong>1. Rebuild against the current runtime.</strong> Fast, and often sufficient when the source tree is otherwise fine.</p>
+  <pre><code>npm rebuild better-sqlite3 --build-from-source</code></pre>
+  <p><strong>2. Reinstall cleanly.</strong> If a rebuild does not take, remove the artefacts so nothing stale survives. Doing this on the machine that will run the app is the important part.</p>
+  <pre><code>rm -rf node_modules
+npm ci</code></pre>
+  <p><strong>3. Make sure you are on the Node version you think you are.</strong> Pin it so the question stops being ambiguous.</p>
+  <pre><code>// package.json
+{
+  "engines": { "node": "&gt;=20 &lt;21" }
+}</code></pre>
+  <p>Pinning a range like this is more useful than a single exact version, because patch releases do not change the ABI and forcing an exact patch means chasing security updates for no benefit. Pin the major.</p>
+  <p><strong>4. If it must compile, give it a toolchain.</strong> On a Debian or Ubuntu server that is <code>python3</code>, <code>make</code>, and <code>g++</code>. Worth understanding that build tools on a production host are a slight increase in what is installed there, which is one more argument for building during deployment rather than on the running server.</p>
+  <p>The structural fix, though, is not a command. It is that dependencies should be installed by the deploy that targets the machine, so the binary is produced in the environment it will run in. A pipeline that checks out your repository, runs <code>npm ci</code>, builds, and then starts the app cannot produce this error, because there is only ever one Node and one platform involved. That is also why this class of bug quietly disappears once builds are automated. Our guide to <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">auto-deploy from GitHub</a> covers that setup, and <a href="https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/">why Node apps crash on deploy</a> covers the wider family of environment-gap failures.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="Git deployment and build configuration in the Kloudbean console">
+    <figcaption>Installing dependencies on the target during deployment removes the mismatch by construction. There is only one Node version in the story.</figcaption>
+  </figure>
+
+  <h2>Alpine and musl, the quiet one</h2>
+  <p>Alpine gets picked for small images, and it uses musl rather than glibc. Prebuilt binaries for musl are less consistently available across packages, so on Alpine you are more likely to compile from source, and Alpine's minimal base does not ship a compiler.</p>
+  <p>You have two honest choices. Add the toolchain, accepting a larger image and longer installs:</p>
+  <pre><code>apk add --no-cache python3 make g++</code></pre>
+  <p>Or use a glibc base such as a Debian slim image, where a matching prebuild is more likely and nothing needs compiling. My preference for anything with native dependencies is the second one. The image is larger and the build is simpler, faster, and less likely to break when a dependency changes its prebuild matrix. Saving a few dozen megabytes is rarely worth a build that fails on a Friday.</p>
+
+  <h2>The multi-stage build trap</h2>
+  <p>This one is worth calling out because the symptom is misleading: the build succeeds cleanly and the app crashes the moment it starts.</p>
+  <p>It happens when dependencies are installed in one stage and copied into a final stage running a different Node version. The compile was correct for the build image. The runtime is a different ABI. Nothing in the build output hints at it.</p>
+  <p>The fix is to use the same Node major in both stages, and to be suspicious of a floating tag like <code>node:latest</code> in one of them, because that turns your deploy into a moving target that breaks whenever upstream advances a major version. If you pin one stage, pin both.</p>
+
+  <h2>The Python cousin: No module named '_sqlite3'</h2>
+  <p>Python developers meet a related failure with a different root cause, and it is worth including because the fix is genuinely unobvious.</p>
+  <pre><code>ModuleNotFoundError: No module named '_sqlite3'</code></pre>
+  <p>Python's <code>sqlite3</code> module is a wrapper around a C extension that is compiled when Python itself is built. If the SQLite development headers were not present at that moment, Python builds successfully and simply omits the extension. So you get an interpreter that appears healthy and has no SQLite support, which is a confusing state to debug.</p>
+  <p>This bites people who build Python from source or use a version manager. The fix is to install the headers and then rebuild the interpreter, in that order.</p>
+  <pre><code># Debian or Ubuntu
+sudo apt-get install -y libsqlite3-dev
+
+# then rebuild the interpreter, for example with pyenv
+pyenv install 3.12.4</code></pre>
+  <p>Reinstalling packages will not help, because the missing piece is part of Python, not part of your dependencies.</p>
+
+  <h2>If you are keeping SQLite in production, do these three things</h2>
+  <p>Whether SQLite belongs in production at all is a separate question, and we argue it properly in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a>, including the redeploy-wipes-your-data problem and the write-concurrency ceiling. Rather than repeat that, here is the operational side for the cases where SQLite is genuinely the right call, which do exist: read-heavy workloads, a single process, one machine, modest write volume.</p>
+  <p><strong>Turn on WAL mode.</strong> The default journal makes readers and writers block each other. Write-ahead logging lets reads continue during a write, which is the single biggest improvement available.</p>
+  <pre><code>db.pragma('journal_mode = WAL');
+db.pragma('busy_timeout = 5000');</code></pre>
+  <p>Be clear about what WAL does not do: there is still one writer at a time. It reduces contention, it does not give you concurrent writes. The <code>busy_timeout</code> tells a blocked connection to wait rather than fail instantly with <code>SQLITE_BUSY</code>, which converts a large share of transient errors into slightly slower queries.</p>
+  <p><strong>Back it up correctly.</strong> Copying the file with <code>cp</code> while the application is writing can produce a corrupt or torn copy, especially in WAL mode where recent commits live in a separate file. Use an interface that understands the format.</p>
+  <pre><code># A consistent snapshot of a live database
+sqlite3 app.db ".backup '/backups/app-$(date +%F).db'"
+
+# Or, from SQL
+# VACUUM INTO '/backups/app.db';</code></pre>
+  <p><strong>Know where the file lives.</strong> A SQLite database is a file on a disk, so its durability is the durability of that disk and whatever backs it up. On a persistent server volume that is a real answer. On any environment with an ephemeral filesystem it is not, and the data disappears on the next deploy with no error to warn you.</p>
+  <p>One modern note worth knowing: Node 22 and later include a built-in <code>node:sqlite</code> module. It is experimental and its API differs, so it is not a drop-in replacement, but it needs no native build step, which removes this entire category of problem. Worth watching if native compilation is your main pain.</p>
+
+  <h2>Related reading</h2>
+  <p>For the database decision itself, <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a> and <a href="https://www.kloudbean.com/blog/mysql-vs-postgresql/">MySQL versus PostgreSQL</a>. For deployment failures around this one, <a href="https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/">Node apps crashing on deploy</a>, <a href="https://www.kloudbean.com/blog/fix-cannot-find-module-node/">Cannot find module</a>, and <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">auto-deploy from GitHub</a>. On configuration and moving data, <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a> and <a href="https://www.kloudbean.com/blog/database-migration-pg_dump-mysqldump/">migrating with pg_dump and mysqldump</a>. And on keeping copies you can restore, <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Outgrown a file on disk?</p>
+    <p style="margin:0 0 .6em">One-click managed PostgreSQL, MySQL, MariaDB, MongoDB, Redis, and Elasticsearch with automatic backups and private access, plus Git deploys that install on the target so native modules build once, correctly. From $8/mo, with free migration assistance. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">6 managed databases · Automatic backups · Private access · Git deploy with live build logs · Flat from $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does NODE_MODULE_VERSION mean?</h3>
+    <p>It is the Node.js ABI version, the binary contract between compiled add-ons and the Node runtime. It changes with major Node releases because V8 internals change, so a module compiled for one major will refuse to load on another. Node 18 is 108, Node 20 is 115, Node 22 is 127, Node 24 is 137.</p>
+
+    <h3>How do I fix "was compiled against a different Node.js version"?</h3>
+    <p>Rebuild the module against the runtime that will load it: <code>npm rebuild better-sqlite3 --build-from-source</code>. If that does not resolve it, delete <code>node_modules</code> and run <code>npm ci</code> on the machine that runs the app. Then find out why two Node versions were involved, because otherwise it returns on the next deploy.</p>
+
+    <h3>Why does better-sqlite3 need to compile at all?</h3>
+    <p>It is a native module. It bundles SQLite as C code and exposes it through a compiled binary rather than being pure JavaScript, which is where its speed comes from. Prebuilt binaries are published for common combinations, and when none matches your ABI, architecture, platform, and C library, npm falls back to compiling from source.</p>
+
+    <h3>Why do I get "No prebuilt binaries found"?</h3>
+    <p>No published binary matched your exact combination of target ABI, runtime, architecture, platform, and C library. The most frequent cause is a musl-based image such as Alpine. It then tries to build from source, so the next error you see is usually about a missing <code>python3</code> or C++ compiler rather than about SQLite.</p>
+
+    <h3>Can I copy node_modules to my server?</h3>
+    <p>Not safely, and this error is the usual consequence. Any native dependency compiles for one platform and one ABI, so a folder built on macOS will not load on Linux, and one built under Node 18 will not load under Node 20. Ship your <code>package.json</code> and lockfile and install on the target instead.</p>
+
+    <h3>Does npm rebuild always fix it?</h3>
+    <p>It fixes the mismatch when a working toolchain or a matching prebuild is available. It cannot help if the machine has no compiler and no prebuild exists, in which case you need build tools or a different base image. And it does not address the cause, so if your process installs under one Node version and runs under another, the error comes back.</p>
+
+    <h3>How do I stop this happening again?</h3>
+    <p>Pin your Node major version in <code>package.json</code> engines and make sure the runtime matches it. Install dependencies during deployment on the target machine rather than uploading them. Keep <code>node_modules</code> out of version control. If you use multi-stage builds, pin the same Node major in every stage and avoid floating tags.</p>
+
+    <h3>Is SQLite fine for production?</h3>
+    <p>For a single process on one machine with read-heavy traffic and modest writes, yes, provided the file sits on a persistent disk and you back it up with SQLite's own backup command rather than <code>cp</code>. It becomes the wrong choice once you need concurrent writers, more than one application server, or a filesystem that survives redeploys. We cover that decision in detail in our managed database guide.</p>
+
+    <h3>What is the difference between WAL mode and the default?</h3>
+    <p>By default, readers and writers block each other. In write-ahead logging mode, reads proceed while a write is in progress, which removes most everyday contention. There is still only one writer at a time, so WAL improves concurrency without providing concurrent writes. Pair it with <code>busy_timeout</code> so blocked connections wait briefly instead of failing with <code>SQLITE_BUSY</code>.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · node_modules is build output, not source.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"better-sqlite3: Fixing NODE_MODULE_VERSION and Build Errors on Deploy","description":"better-sqlite3 is a native module, so it breaks when the Node version or platform changes. How to read the NODE_MODULE_VERSION error, why prebuilt binaries go missing, and the fixes that hold.","image":"https://www.kloudbean.com/blog/fix-better-sqlite3-install-errors/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/fix-better-sqlite3-install-errors/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does NODE_MODULE_VERSION mean?","acceptedAnswer":{"@type":"Answer","text":"It is the Node.js ABI version, the binary contract between compiled add-ons and the Node runtime. It changes with major Node releases because V8 internals change, so a module compiled for one major will refuse to load on another. Node 18 is 108, Node 20 is 115, Node 22 is 127, Node 24 is 137."}},
+{"@type":"Question","name":"How do I fix \"was compiled against a different Node.js version\"?","acceptedAnswer":{"@type":"Answer","text":"Rebuild the module against the runtime that will load it: npm rebuild better-sqlite3 --build-from-source. If that does not resolve it, delete node_modules and run npm ci on the machine that runs the app. Then find out why two Node versions were involved, because otherwise it returns on the next deploy."}},
+{"@type":"Question","name":"Why does better-sqlite3 need to compile at all?","acceptedAnswer":{"@type":"Answer","text":"It is a native module. It bundles SQLite as C code and exposes it through a compiled binary rather than being pure JavaScript, which is where its speed comes from. Prebuilt binaries are published for common combinations, and when none matches your ABI, architecture, platform, and C library, npm falls back to compiling from source."}},
+{"@type":"Question","name":"Why do I get \"No prebuilt binaries found\"?","acceptedAnswer":{"@type":"Answer","text":"No published binary matched your exact combination of target ABI, runtime, architecture, platform, and C library. The most frequent cause is a musl-based image such as Alpine. It then tries to build from source, so the next error you see is usually about a missing python3 or C++ compiler rather than about SQLite."}},
+{"@type":"Question","name":"Can I copy node_modules to my server?","acceptedAnswer":{"@type":"Answer","text":"Not safely, and this error is the usual consequence. Any native dependency compiles for one platform and one ABI, so a folder built on macOS will not load on Linux, and one built under Node 18 will not load under Node 20. Ship your package.json and lockfile and install on the target instead."}},
+{"@type":"Question","name":"Does npm rebuild always fix it?","acceptedAnswer":{"@type":"Answer","text":"It fixes the mismatch when a working toolchain or a matching prebuild is available. It cannot help if the machine has no compiler and no prebuild exists, in which case you need build tools or a different base image. And it does not address the cause, so if your process installs under one Node version and runs under another, the error comes back."}},
+{"@type":"Question","name":"How do I stop this happening again?","acceptedAnswer":{"@type":"Answer","text":"Pin your Node major version in package.json engines and make sure the runtime matches it. Install dependencies during deployment on the target machine rather than uploading them. Keep node_modules out of version control. If you use multi-stage builds, pin the same Node major in every stage and avoid floating tags."}},
+{"@type":"Question","name":"Is SQLite fine for production?","acceptedAnswer":{"@type":"Answer","text":"For a single process on one machine with read-heavy traffic and modest writes, yes, provided the file sits on a persistent disk and you back it up with SQLite's own backup command rather than cp. It becomes the wrong choice once you need concurrent writers, more than one application server, or a filesystem that survives redeploys. We cover that decision in detail in our managed database guide."}},
+{"@type":"Question","name":"What is the difference between WAL mode and the default?","acceptedAnswer":{"@type":"Answer","text":"By default, readers and writers block each other. In write-ahead logging mode, reads proceed while a write is in progress, which removes most everyday contention. There is still only one writer at a time, so WAL improves concurrency without providing concurrent writes. Pair it with busy_timeout so blocked connections wait briefly instead of failing with SQLITE_BUSY."}}
+]}
+]}
+</script>
+</body>
+</html>
