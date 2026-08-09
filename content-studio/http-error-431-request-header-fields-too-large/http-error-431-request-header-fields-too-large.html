@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTTP Error 431 Request Header Fields Too Large: The Status Code Names the Culprit</title>
+<meta name="description" content="Fix HTTP error 431 Request Header Fields Too Large. Why nginx says 400 while Node and Jetty say 431, how to find which layer rejected it, and the cookie and JWT bloat that causes it.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/http-error-431-request-header-fields-too-large/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HTTP Error 431 Request Header Fields Too Large: The Status Code Names the Culprit">
+<meta property="og:description" content="Which status you get tells you which layer refused you. nginx returns 400, Node returns 431, Jetty says Bad message 431. Then fix the cookies.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">HTTP · Headers · Field guide</span>
+  <h1>HTTP Error 431 Request Header Fields Too Large: The Status Code Names the Culprit</h1>
+  <p class="byline">By Kloudbean Engineering · 400 means nginx said no. 431 means your app did.</p>
+
+  <figure><img src="images/hero.png" alt="A 431 response beside a terminal measuring the size of a request cookie header"></figure>
+
+  <p class="lead">431 is one of the few HTTP status codes that tells you precisely what is wrong: the headers you sent were too big. No ambiguity, no layers of interpretation. What makes it interesting rather than trivial is that the code you receive depends on which component ran out of patience, and that turns out to be genuinely useful information. nginx rejects oversized headers with a 400. Node returns 431. Jetty returns a very specific message you can search for verbatim. So before changing any limits, read which one you got, because it tells you where the ceiling actually is.</p>
+
+  <div class="tldr">
+    <strong>How do you fix HTTP error 431?</strong>
+    <p>Measure your request headers first, since the cause is nearly always accumulated cookies or an oversized JWT. Then raise the limit at whichever layer rejected you: <code>large_client_header_buffers</code> in nginx, <code>--max-http-header-size</code> for Node, <code>requestHeaderSize</code> for Jetty. Raise it only far enough to unblock people, then reduce what you are sending, because a limit raised to accommodate uncontrolled growth just moves the wall further out. Moving session data into Redis and trimming JWT claims are the real fixes.</p>
+  </div>
+
+  <h2>Read the status code, it identifies the layer</h2>
+  <table class="cmp">
+    <thead><tr><th>What you see</th><th>Who rejected it</th><th>Setting</th><th>Common default</th></tr></thead>
+    <tbody>
+      <tr><td><code>400 Bad Request</code></td><td>nginx</td><td><code>large_client_header_buffers</code></td><td>4 buffers of 8k</td></tr>
+      <tr><td><code>431 Request Header Fields Too Large</code></td><td>Node.js</td><td><code>--max-http-header-size</code></td><td>16 KB</td></tr>
+      <tr><td><code>Bad message 431 reason: Request Header Fields Too Large</code></td><td>Jetty</td><td><code>requestHeaderSize</code></td><td>8 KB</td></tr>
+      <tr><td><code>413</code> or <code>414</code></td><td>Usually the request line or body, not headers</td><td>Different limits</td><td></td></tr>
+    </tbody>
+  </table>
+  <p>That third row is worth calling out because the wording is unusual enough to be diagnostic on its own. If you are seeing <code>Bad message 431 reason: Request Header Fields Too Large</code>, that phrasing comes from Jetty, so you are looking at a Java application server and <code>requestHeaderSize</code> is the setting to change. Knowing that from the error text alone saves a lot of searching in the wrong stack.</p>
+  <p>The practical consequence of the whole table: in a typical deployment you have at least two limits in series, and <strong>the smallest one decides</strong>. nginx in front of a Node app means nginx's 8k buffers usually fire before Node's 16 KB does, so you get a 400 and never see a 431. Raise nginx and suddenly the same requests start returning 431 from Node instead. That is progress rather than a new bug, and it surprises people who assumed they had fixed it.</p>
+
+  <h2>Measure before you change anything</h2>
+  <p>Find out how large the headers actually are, because the number tells you whether this is mild accumulation or something badly wrong:</p>
+  <pre><code># Total size of the request headers curl sends
+curl -sv https://example.com 2>&amp;1 | awk '/^&gt; /{n += length($0)} END {print n " bytes of request headers"}'
+
+# Reproduce a failure deliberately with a large cookie
+curl -sI -H "Cookie: bloat=$(head -c 9000 /dev/zero | tr '\0' 'a')" https://example.com</code></pre>
+  <p>In a browser, open DevTools, the Network panel, pick the failing request, and read the request headers. Sum the Cookie header and any Authorization header, since together those are almost always the bulk of it.</p>
+  <p>Rough interpretation. Under 2 KB is normal. Between 4 and 8 KB means you will start hitting default limits. Above 8 KB something is genuinely wrong and raising limits is treating a symptom. I have seen Cookie headers over 12 KB on marketing sites, entirely from tools nobody remembered enabling.</p>
+
+  <h2>Cause one: cookies accumulate</h2>
+  <p>The dominant cause, and it produces a symptom that misleads everybody: the site works perfectly for new visitors and in private windows, and fails for people who have been using it for months. Especially logged-in people.</p>
+  <p>The mechanism is simple once stated. Cookies are sent with every single request to your domain, and they only ever get added. A session cookie, an authentication token, a consent record, two or three analytics identifiers, a feature-flag cookie, a marketing platform storing a small object, an A/B test assignment. Each one was a reasonable decision. Nobody ever audits the total.</p>
+  <p>So the users most invested in your product carry the biggest headers and are the first to be locked out, which is a bad property for a failure mode to have. Then a support conversation happens where the site works fine for whoever is testing it, because they are in a fresh browser.</p>
+  <pre><code># Which cookies are set, and how large is each?
+curl -sI https://example.com | grep -i '^set-cookie' | awk '{print length($0), $0}' | sort -rn</code></pre>
+  <p>The fixes, in the order I would apply them:</p>
+  <p><strong>Move data into server-side sessions.</strong> A cookie should carry an identifier, not a payload. If your cookie contains user preferences, cart contents, or anything resembling a serialised object, that belongs in a session store keyed by a short identifier. <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">Redis</a> is the standard answer, and it also fixes the shared-session problem if you ever run more than one application server.</p>
+  <p><strong>Audit third-party scripts.</strong> Tag managers, chat widgets, analytics, and ad platforms all set cookies on your domain. Removing tools nobody looks at any more is usually the single biggest reduction available, and it is free.</p>
+  <p><strong>Scope cookies narrowly.</strong> A cookie set on the apex domain is sent to every subdomain, so an admin-only cookie travels with every request for a static asset on your CDN subdomain. Setting an explicit path and domain keeps it out of requests that never need it.</p>
+  <p><strong>Set an expiry.</strong> Cookies without one, or with a very distant one, are what makes long-term users the worst affected. If a value is only relevant for a session, say so.</p>
+
+  <h2>Cause two: the JWT that grew</h2>
+  <p>Worth its own section because it is the fastest-growing version of this problem and the fix is a genuine design improvement rather than a workaround.</p>
+  <p>JWTs are attractive because they are self-contained: the token carries the claims, so the server does not need to look anything up. That property is exactly what makes them grow. Somebody adds roles. Then permissions, as an array. Then tenant memberships. Then feature flags. Each addition saves a database query and adds bytes to every request the user makes for the lifetime of the token.</p>
+  <p>Decode one and look at what you are actually carrying:</p>
+  <pre><code># Size of the token
+echo -n "$TOKEN" | wc -c
+
+# What is inside it (payload only, signature not verified)
+echo "$TOKEN" | cut -d. -f2 | base64 -d 2>/dev/null | python3 -m json.tool</code></pre>
+  <p>To be clear about that second command: it reads the claims without verifying the signature, which is fine for inspecting size and content and is not a security check.</p>
+  <p>A token past about 4 KB is a design problem. The fix is to stop treating the token as a database: put a stable user identifier and the minimum needed for authorisation decisions in the token, and look the rest up server-side, cached in Redis so the lookup costs almost nothing.</p>
+  <pre><code>// Instead of embedding a full permission set in the token
+{ "sub": "user_8f14e45", "role": "admin", "exp": 1785312000 }
+
+// Then resolve the details once per request, from cache
+const perms = await redis.get(`perms:${claims.sub}`)
+             ?? await loadAndCachePermissions(claims.sub);</code></pre>
+  <p>There is a real trade here and it is worth naming rather than glossing over. Self-contained tokens genuinely avoid a lookup, and that is their point. Once the token is large enough to break requests, though, you are paying its size on every request from every user to save a cached read that would take under a millisecond. That is a bad exchange, and revocation gets easier as a side effect, since a server-side lookup can refuse a session that a signed token would happily keep honouring.</p>
+
+  <h2>Raising the limits, properly</h2>
+  <p>You will usually need to do this to unblock affected users while you fix the cause. Raise it at the layer that rejected you, and raise every layer that will now see the request.</p>
+  <p><strong>nginx.</strong> Inside the <code>http</code> block:</p>
+  <pre><code>client_header_buffer_size   4k;
+large_client_header_buffers 4 16k;</code></pre>
+  <pre><code>sudo nginx -t &amp;&amp; sudo systemctl reload nginx</code></pre>
+  <p><strong>Node.js.</strong> A process flag, in bytes:</p>
+  <pre><code># 32 KB
+node --max-http-header-size=32768 server.js
+
+# Or via the environment, which is easier under a process manager
+NODE_OPTIONS="--max-http-header-size=32768" node server.js</code></pre>
+  <p><strong>Jetty.</strong> On the HTTP configuration:</p>
+  <pre><code>HttpConfiguration config = new HttpConfiguration();
+config.setRequestHeaderSize(32768);</code></pre>
+  <p>Two cautions on all of this. These buffers are allocated per connection, so a very large value multiplied by your concurrency is real memory, and setting 1 MB because it definitely works is how you turn a header problem into a memory problem. And a raised limit removes your only signal that something is quietly filling your cookies, so raise it to a sane ceiling like 16 or 32 KB rather than to whatever makes the number go away.</p>
+
+  <h2>Cause three: everything else, briefly</h2>
+  <p><strong>Many custom headers.</strong> Tracing and observability tooling adds them, and a request passing through several services can accumulate a surprising number. Check what your service mesh or gateway is appending.</p>
+  <p><strong>A very long Referer.</strong> Deep URLs with long query strings arrive as a header on the next request. Occasionally the cause on its own, more often the thing that pushes an already-large set over the edge.</p>
+  <p><strong>A long request line.</strong> Strictly a different limit, and it fails similarly. If you are putting a large amount of data in a query string, move it into a POST body, which is what bodies are for.</p>
+  <p><strong>Redirect chains carrying state.</strong> Each hop can add or extend parameters, so a request that started reasonable arrives oversized. Another argument for keeping chains to one hop, covered in <a href="https://www.kloudbean.com/blog/302-found-vs-301-redirect/">302 vs 301</a>.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Symptom</th><th>Cause</th><th>First step</th></tr></thead>
+    <tbody>
+      <tr><td>Works in a private window</td><td>Accumulated cookies</td><td>Measure the Cookie header</td></tr>
+      <tr><td>Only logged-in users affected</td><td>Session or auth cookie growth</td><td>Move data to server-side sessions</td></tr>
+      <tr><td>Only users with many permissions</td><td>JWT claim bloat</td><td>Decode the token, check its size</td></tr>
+      <tr><td>400 from nginx, not 431</td><td>nginx buffers fire first</td><td>Raise nginx, expect Node next</td></tr>
+      <tr><td><code>Bad message 431 reason:</code></td><td>Jetty</td><td><code>requestHeaderSize</code></td></tr>
+      <tr><td>Appeared after adding a marketing tool</td><td>Third-party cookies</td><td>Audit <code>Set-Cookie</code> responses</td></tr>
+      <tr><td>Only on requests to one subdomain</td><td>Apex-scoped cookies travelling everywhere</td><td>Scope cookie domain and path</td></tr>
+    </tbody>
+  </table>
+
+  <h2>What to tell affected users</h2>
+  <p>Clearing cookies for your domain fixes it immediately for that person, which is worth saying in a support reply because it unblocks them in seconds. It is a workaround rather than a fix, and if you find yourself sending it more than occasionally, the header size is the thing to change rather than the users.</p>
+
+  <h2>Where hosting fits</h2>
+  <p>Two halves, and it is worth separating them honestly.</p>
+  <p>The limits are configuration. On Kloudbean, nginx comes configured for real applications rather than left at defaults, which is where the 8k buffer ceiling catches people out. That covers the front half of the chain.</p>
+  <p>The cause is usually application design, and the specific fix is somewhere to keep session data that is not a cookie. <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">Managed Redis</a> sits in the same dashboard as the application on a private network, which is the practical answer to both cookie payloads and JWT bloat, since both are solved by storing state server-side and looking it up cheaply.</p>
+  <p>What no platform can do is decide which of your cookies matter or trim your token claims. That is a design decision, and the honest version is that 431 is usually a prompt to make it rather than a limit to raise.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="Launching managed Redis in the Kloudbean console">
+    <figcaption>Server-side session storage is the real fix for headers that keep growing.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>The same root cause with a different status code, <a href="https://www.kloudbean.com/blog/400-bad-request/">400 Bad Request</a>, and its proxy-side version, <a href="https://www.kloudbean.com/blog/cloudflare-error-520/">Cloudflare error 520</a>, where oversized <em>response</em> headers cause the mirror-image problem. For session storage, <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis hosting</a> and <a href="https://www.kloudbean.com/blog/redis-caching-patterns/">caching patterns</a>. On tokens and credentials, <a href="https://www.kloudbean.com/blog/http-error-401-unauthorized/">401 Unauthorized</a> and <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>. For the proxy layer, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">the nginx reverse proxy guide</a>. And on redirect chains, <a href="https://www.kloudbean.com/blog/302-found-vs-301-redirect/">302 vs 301</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Somewhere to put state that is not a cookie.</p>
+    <p style="margin:0 0 .6em">Managed Redis on a private network in the same dashboard as your application, with nginx configured for real workloads rather than defaults, from $8/mo. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed Redis · Private networking · Managed nginx · Automatic backups · Flat from $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does HTTP error 431 mean?</h3>
+    <p>It means the request headers you sent exceeded what the server will accept. It is one of the clearest status codes in HTTP, since the cause is stated in the name. The usual culprits are accumulated cookies and an oversized JWT in the Authorization header, both of which are sent with every request.</p>
+
+    <h3>Why do I get a 400 instead of a 431?</h3>
+    <p>Because nginx returns 400 for oversized headers while Node returns 431, so the code tells you which layer rejected the request. In a typical deployment both limits apply in series and the smaller one fires first. Raise nginx's buffers and the same requests may then start returning 431 from your application, which means you have moved one layer further along rather than broken something new.</p>
+
+    <h3>What does "Bad message 431 reason: Request Header Fields Too Large" mean?</h3>
+    <p>That exact wording comes from Jetty, so you are looking at a Java application server rather than nginx or Node. The setting to change is <code>requestHeaderSize</code> on the HTTP configuration, which commonly defaults to 8 KB. The distinctive phrasing is useful because it identifies the stack from the error text alone.</p>
+
+    <h3>How do I fix a 431 caused by cookies?</h3>
+    <p>Immediately, clearing cookies for the domain unblocks the affected user. Properly, reduce what you send: move payloads out of cookies into a server-side session store such as Redis, remove third-party tools nobody uses, scope cookies to the paths and subdomains that need them, and set sensible expiries. Raising the limit alone just delays the same problem.</p>
+
+    <h3>Why does the error only affect some users?</h3>
+    <p>Because cookies accumulate per browser. New visitors and private windows carry almost none, while people who have used the site for months, accepted every prompt, and logged in repeatedly carry far more. That means your most engaged users are the first to be locked out, and whoever is testing in a fresh browser cannot reproduce it.</p>
+
+    <h3>How large is too large for a JWT?</h3>
+    <p>Past roughly 4 KB you have a design problem, because that size is sent on every request for the token's lifetime. Put a stable user identifier and the minimum needed for authorisation in the token, then resolve roles and permissions server-side from a cache. You trade a sub-millisecond cached read for smaller requests and easier revocation.</p>
+
+    <h3>Is it safe to raise the header limit a long way?</h3>
+    <p>Only within reason. Those buffers are allocated per connection, so a very large value multiplied across concurrent connections becomes real memory usage, turning a header problem into a memory problem. Raise to a sane ceiling such as 16 or 32 KB, and treat it as buying time rather than fixing the cause.</p>
+
+    <h3>Can a long Referer header cause a 431?</h3>
+    <p>It can contribute. A deep URL with a long query string arrives as a Referer header on the following request, and while it is rarely the sole cause it can push an already-large header set past the limit. If you are carrying substantial data in query strings, moving it into a POST body avoids the problem entirely.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · A cookie should carry an identifier, not a payload.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"HTTP Error 431 Request Header Fields Too Large: The Status Code Names the Culprit","description":"Fix HTTP error 431 Request Header Fields Too Large. Why nginx says 400 while Node and Jetty say 431, how to find which layer rejected it, and the cookie and JWT bloat that causes it.","image":"https://www.kloudbean.com/blog/http-error-431-request-header-fields-too-large/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/http-error-431-request-header-fields-too-large/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does HTTP error 431 mean?","acceptedAnswer":{"@type":"Answer","text":"It means the request headers you sent exceeded what the server will accept. It is one of the clearest status codes in HTTP, since the cause is stated in the name. The usual culprits are accumulated cookies and an oversized JWT in the Authorization header, both of which are sent with every request."}},
+{"@type":"Question","name":"Why do I get a 400 instead of a 431?","acceptedAnswer":{"@type":"Answer","text":"Because nginx returns 400 for oversized headers while Node returns 431, so the code tells you which layer rejected the request. In a typical deployment both limits apply in series and the smaller one fires first. Raise nginx's buffers and the same requests may then start returning 431 from your application, which means you have moved one layer further along rather than broken something new."}},
+{"@type":"Question","name":"What does Bad message 431 reason Request Header Fields Too Large mean?","acceptedAnswer":{"@type":"Answer","text":"That exact wording comes from Jetty, so you are looking at a Java application server rather than nginx or Node. The setting to change is requestHeaderSize on the HTTP configuration, which commonly defaults to 8 KB. The distinctive phrasing is useful because it identifies the stack from the error text alone."}},
+{"@type":"Question","name":"How do I fix a 431 caused by cookies?","acceptedAnswer":{"@type":"Answer","text":"Immediately, clearing cookies for the domain unblocks the affected user. Properly, reduce what you send: move payloads out of cookies into a server-side session store such as Redis, remove third-party tools nobody uses, scope cookies to the paths and subdomains that need them, and set sensible expiries. Raising the limit alone just delays the same problem."}},
+{"@type":"Question","name":"Why does the error only affect some users?","acceptedAnswer":{"@type":"Answer","text":"Because cookies accumulate per browser. New visitors and private windows carry almost none, while people who have used the site for months, accepted every prompt, and logged in repeatedly carry far more. That means your most engaged users are the first to be locked out, and whoever is testing in a fresh browser cannot reproduce it."}},
+{"@type":"Question","name":"How large is too large for a JWT?","acceptedAnswer":{"@type":"Answer","text":"Past roughly 4 KB you have a design problem, because that size is sent on every request for the token's lifetime. Put a stable user identifier and the minimum needed for authorisation in the token, then resolve roles and permissions server-side from a cache. You trade a sub-millisecond cached read for smaller requests and easier revocation."}},
+{"@type":"Question","name":"Is it safe to raise the header limit a long way?","acceptedAnswer":{"@type":"Answer","text":"Only within reason. Those buffers are allocated per connection, so a very large value multiplied across concurrent connections becomes real memory usage, turning a header problem into a memory problem. Raise to a sane ceiling such as 16 or 32 KB, and treat it as buying time rather than fixing the cause."}},
+{"@type":"Question","name":"Can a long Referer header cause a 431?","acceptedAnswer":{"@type":"Answer","text":"It can contribute. A deep URL with a long query string arrives as a Referer header on the following request, and while it is rarely the sole cause it can push an already-large header set past the limit. If you are carrying substantial data in query strings, moving it into a POST body avoids the problem entirely."}}
+]}
+]}
+</script>
+</body>
+</html>
