@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SSL Handshake Failed, Error Code 525: The Real Fix (Not Flexible Mode)</title>
+<meta name="description" content="Cloudflare error 525 means the TLS handshake with your origin failed. How to see the certificate your server actually serves, why switching to Flexible mode is a trap, and how a free Origin CA certificate fixes it properly.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SSL Handshake Failed, Error Code 525: The Real Fix (Not Flexible Mode)">
+<meta property="og:description" content="Error 525 is a TLS failure between Cloudflare and your origin. Flexible mode hides it and creates a redirect loop. Here is the correct fix.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Cloudflare · Error 525 · TLS</span>
+  <h1>SSL Handshake Failed, Error Code 525: The Real Fix (Not Flexible Mode)</h1>
+  <p class="byline">By Kloudbean Engineering · There is a one-click way to make this error vanish. Please do not use it.</p>
+
+  <figure><img src="images/hero.png" alt="An SSL handshake failed error page beside an openssl s_client inspection of an origin certificate"></figure>
+
+  <p class="lead">Error 525 means the TLS handshake between Cloudflare and your origin server failed. Visitors reach Cloudflare fine, Cloudflare reaches your server fine, and then the two cannot agree on an encrypted connection so nothing gets through. Search for a fix and you will quickly find advice to switch Cloudflare's SSL mode to Flexible, which does make the error disappear. It also stops encrypting the connection to your server and frequently creates a redirect loop. Worth understanding what is actually broken first.</p>
+
+  <div class="tldr">
+    <strong>How do you fix Cloudflare error 525?</strong>
+    <p>Your origin needs a valid TLS certificate on port 443 that Cloudflare can complete a handshake with. Inspect what your server is really serving using <code>openssl s_client</code> with the <code>-servername</code> flag, then fix the gap: install a certificate if there is none, renew it if expired, open port 443 if it is closed, or update the TLS versions and ciphers your server offers. The clean answer for most sites is a free Cloudflare Origin CA certificate on the origin plus Full (strict) mode. Do not use Flexible.</p>
+  </div>
+
+  <h2>See what your origin is actually serving</h2>
+  <p>Almost every 525 is resolved by this one command. It asks your origin for its certificate the same way Cloudflare does:</p>
+  <pre><code># Replace with your origin IP and hostname
+echo | openssl s_client -connect 203.0.113.10:443 -servername example.com 2>/dev/null \
+  | openssl x509 -noout -subject -issuer -dates
+
+# Is anything listening on 443 at all?
+nc -vz 203.0.113.10 443</code></pre>
+  <p>The <code>-servername</code> flag matters more than it looks. It sends SNI, telling the server which hostname you want. Without it you get whatever default certificate the server serves, which may be completely different from the one your site should use. Plenty of 525s are caused by exactly that mismatch, and testing without SNI hides it.</p>
+  <p>Read three things from the output. The <code>subject</code> should match your hostname, including whether a wildcard actually covers the subdomain you are using. The <code>notAfter</code> date should be in the future. The <code>issuer</code> tells you whether it is a publicly trusted certificate, a Cloudflare Origin CA certificate, or self-signed.</p>
+  <p>If the command returns nothing at all, the problem is not the certificate. Nothing is listening on 443, or a firewall is blocking it, and you should read the <a href="https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/">error 521 guide</a> instead.</p>
+
+  <h2>Understand the SSL modes before changing them</h2>
+  <p>Cloudflare's SSL setting controls the leg between Cloudflare and your server, and choosing wrongly here is the source of most 525 confusion.</p>
+  <table class="cmp">
+    <thead><tr><th>Mode</th><th>Visitor to Cloudflare</th><th>Cloudflare to origin</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr><td>Off</td><td>Plain HTTP</td><td>Plain HTTP</td><td>No.</td></tr>
+      <tr><td>Flexible</td><td>Encrypted</td><td><strong>Not encrypted</strong></td><td>Hides 525, creates redirect loops, leaves traffic in the clear</td></tr>
+      <tr><td>Full</td><td>Encrypted</td><td>Encrypted, certificate not verified</td><td>Acceptable stopgap</td></tr>
+      <tr><td>Full (strict)</td><td>Encrypted</td><td>Encrypted and verified</td><td>What you should be running</td></tr>
+    </tbody>
+  </table>
+  <p>Notice which modes can even produce a 525. Off and Flexible never do, because Cloudflare never attempts TLS to your origin. That is precisely why switching to Flexible appears to fix it. The handshake stops failing because it stops happening.</p>
+
+  <h2>Why Flexible mode is a trap</h2>
+  <p>Two consequences, and the second one is what usually brings people back a day later.</p>
+  <p>First, the connection between Cloudflare and your server is unencrypted. Visitors see a padlock and believe the connection is secure end to end. It is not. For anything handling logins, payments, or personal data, that is a meaningful problem, not a technicality.</p>
+  <p>Second, the redirect loop. Most servers are configured to redirect HTTP to HTTPS, which is correct. Under Flexible mode, Cloudflare requests your page over plain HTTP. Your server responds with a redirect to HTTPS. Cloudflare follows it, and because Flexible means plain HTTP to origin, it asks over HTTP again. Your server redirects again. Visitors get <code>ERR_TOO_MANY_REDIRECTS</code> and you have traded a clear TLS error for a much more confusing one.</p>
+  <pre><code># Confirm a redirect loop
+curl -sIL --max-redirs 10 https://example.com | grep -E "^HTTP|^location"</code></pre>
+  <p>My position: treat Flexible as a diagnostic, not a setting. If flipping to Flexible resolves the outage, you have confirmed the problem is TLS between Cloudflare and your origin. Note that, flip it back, and go and fix the certificate.</p>
+
+  <h2>The fix that works for almost everyone</h2>
+  <p>Install a Cloudflare Origin CA certificate on your server and set the mode to Full (strict). Cloudflare issues these free, they are valid for years rather than months, and they are trusted specifically by Cloudflare for origin connections. Because renewal is not a monthly concern, this removes a whole category of recurring failure.</p>
+  <p>Generate one in the Cloudflare dashboard under SSL/TLS, then Origin Server, then Create Certificate. Install the certificate and key on your server:</p>
+  <pre><code>sudo install -m 644 origin-cert.pem /etc/ssl/certs/cf-origin.pem
+sudo install -m 600 origin-key.pem  /etc/ssl/private/cf-origin.key</code></pre>
+  <p>Point nginx at them:</p>
+  <pre><code>server {
+    listen 443 ssl;
+    http2 on;
+    server_name example.com www.example.com;
+
+    ssl_certificate     /etc/ssl/certs/cf-origin.pem;
+    ssl_certificate_key /etc/ssl/private/cf-origin.key;
+
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+}</code></pre>
+  <pre><code>sudo nginx -t &amp;&amp; sudo systemctl reload nginx</code></pre>
+  <p>Then verify from outside before switching Cloudflare to Full (strict):</p>
+  <pre><code>echo | openssl s_client -connect 203.0.113.10:443 -servername example.com 2>/dev/null \
+  | openssl x509 -noout -subject -issuer -dates</code></pre>
+  <p>One caveat worth knowing: an Origin CA certificate is only trusted by Cloudflare, so if you ever bypass the proxy and hit the origin directly in a browser, it will warn you. That is expected and not a fault. If you need a certificate that is trusted by everyone at the origin, use a normal publicly trusted certificate instead.</p>
+
+  <h2>The other causes, in order</h2>
+  <p><strong>The certificate expired.</strong> Check <code>notAfter</code> in the output above. If renewal is meant to be automatic and did not happen, find out why the renewal hook failed rather than just renewing by hand, because the same silence will repeat. Our <a href="https://www.kloudbean.com/blog/fix-ssl-certificate-errors/">SSL certificate errors guide</a> covers the renewal failures in detail.</p>
+  <p><strong>Port 443 closed to Cloudflare.</strong> If your firewall allows 80 but not 443, or only allows a fixed list of addresses that predates Cloudflare, the handshake never starts. Cloudflare's ranges need to be permitted on 443 specifically, not only 80.</p>
+  <p><strong>TLS version too old.</strong> A server still offering only TLS 1.0 or 1.1 will fail against modern requirements. Set <code>ssl_protocols TLSv1.2 TLSv1.3;</code> and reload. Check what you currently offer:</p>
+  <pre><code>for v in tls1 tls1_1 tls1_2 tls1_3; do printf "%-8s " "$v"; echo | openssl s_client -connect 203.0.113.10:443 -servername example.com -$v 2>/dev/null | grep -q "Cipher is" &amp;&amp; echo supported || echo "not supported"; done</code></pre>
+  <p><strong>Cipher mismatch.</strong> A hardened server can be restricted to such a narrow cipher list that no shared option remains. If someone tightened the TLS configuration recently and 525 appeared, widen it back to a sensible modern set rather than the most restrictive list you can find. Security configuration that takes the site offline is not a security win.</p>
+  <p><strong>The wrong certificate for the hostname.</strong> Common with several sites on one server. If SNI is not configured correctly, your server hands out the first virtual host's certificate regardless of what was requested. The <code>-servername</code> test above is what exposes this, since the subject will not match the hostname you asked for.</p>
+
+  <table class="cmp">
+    <thead><tr><th>What the check shows</th><th>Cause</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td>No output, connection refused</td><td>Nothing listening on 443, or firewall</td><td>Start TLS listener, allow Cloudflare on 443</td></tr>
+      <tr><td><code>notAfter</code> in the past</td><td>Expired certificate</td><td>Renew, and fix the automation that missed it</td></tr>
+      <tr><td>Subject does not match hostname</td><td>Wrong certificate or SNI misconfigured</td><td>Correct the virtual host and certificate</td></tr>
+      <tr><td>Self-signed issuer, Full (strict) enabled</td><td>Certificate cannot be verified</td><td>Install an Origin CA certificate</td></tr>
+      <tr><td>Only old TLS versions supported</td><td>Outdated TLS configuration</td><td>Enable TLS 1.2 and 1.3</td></tr>
+      <tr><td>Broke after a security hardening change</td><td>Cipher list too restrictive</td><td>Restore a sensible modern cipher set</td></tr>
+    </tbody>
+  </table>
+
+  <h2>What this looks like when it is someone else's job</h2>
+  <p>Every cause above is certificate and TLS operations: issuing, installing, renewing, keeping protocol configuration current, and remembering that the firewall needs 443 open to the proxy as well as 80. It is genuinely fiddly work, and the failure mode is a site that goes down without anyone changing anything, usually on the day a certificate expires.</p>
+  <p>On Kloudbean, free SSL is issued and renewed automatically, TLS configuration is maintained rather than left at whatever was current when the server was built, and Shorewall ships configured so the web ports are handled sensibly from the start. Cloudflare is available as a paid add-on and included for enterprise accounts, which is relevant here because the proxy and the origin get set up as one system, so the origin certificate and the SSL mode are consistent instead of being two settings that drifted apart.</p>
+  <p>Where the boundary sits: a platform cannot stop you selecting Flexible mode in your own Cloudflare dashboard, and it cannot fix a certificate for a domain whose DNS does not point at the server yet. What it does remove is expiry, renewal, and protocol maintenance.</p>
+
+  <figure>
+    <img src="../assets/console/ssl-certificate.png" alt="SSL certificate management in the Kloudbean console">
+    <figcaption>Certificates issued and renewed alongside the server and application, rather than tracked in a calendar reminder.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>For the whole family of these codes, see <a href="https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/">Cloudflare error codes 520 to 527</a>, plus <a href="https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/">error 521</a> and <a href="https://www.kloudbean.com/blog/cloudflare-error-520/">error 520</a>. On certificates generally, <a href="https://www.kloudbean.com/blog/fix-ssl-certificate-errors/">fixing SSL certificate errors</a> and <a href="https://www.kloudbean.com/blog/ssl-tls-explained/">SSL and TLS explained</a>. For setting up a custom domain and certificate from scratch, <a href="https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/">custom domain and SSL for your app</a>. And for the records this all depends on, <a href="https://www.kloudbean.com/blog/dns-explained/">DNS explained</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Certificates that renew without you remembering.</p>
+    <p style="margin:0 0 .6em">Free SSL issued and renewed automatically, TLS configuration maintained, Shorewall and Fail2ban configured, and Cloudflare available as an add-on so proxy and origin agree. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Free SSL · Automatic renewal · Maintained TLS config · Cloudflare add-on · One dashboard</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does SSL handshake failed error code 525 mean?</h3>
+    <p>It means Cloudflare reached your origin server but could not complete a TLS handshake with it. The connection itself worked, so this is not a firewall or routing problem in the usual sense. The cause is on the TLS layer: a missing, expired, or mismatched certificate, a closed port 443, or a protocol or cipher configuration your server and Cloudflare cannot agree on.</p>
+
+    <h3>How do I fix error 525 properly?</h3>
+    <p>Inspect the certificate your origin actually serves with <code>openssl s_client -connect YOUR_IP:443 -servername yourdomain.com</code>, then address what you find. For most sites the clean fix is installing a free Cloudflare Origin CA certificate on the server and setting SSL mode to Full (strict). Avoid switching to Flexible, which only stops Cloudflare attempting TLS at all.</p>
+
+    <h3>Should I switch to Flexible SSL to fix a 525?</h3>
+    <p>No. Flexible stops the error by stopping the encrypted connection to your server, so traffic between Cloudflare and your origin travels in plain text while visitors see a padlock. It also causes a redirect loop on any server that redirects HTTP to HTTPS, which is most of them. Use it briefly to confirm TLS is the problem, then switch back and fix the certificate.</p>
+
+    <h3>What is a Cloudflare Origin CA certificate?</h3>
+    <p>A free certificate issued by Cloudflare specifically for the connection between Cloudflare and your origin server. It is valid for years rather than months, which removes the renewal failures that cause recurring outages. Because only Cloudflare trusts it, a browser hitting your origin directly will warn you, which is expected behaviour rather than a fault.</p>
+
+    <h3>Why does my certificate look valid but 525 still happens?</h3>
+    <p>Often SNI. If you test without the <code>-servername</code> flag, your server hands back its default certificate, which can look perfectly valid while being the wrong one for your hostname. Re-run the check with <code>-servername</code> and compare the subject against the hostname you requested. This is common when several sites share one server.</p>
+
+    <h3>Can a firewall cause error 525?</h3>
+    <p>Yes, when port 443 specifically is blocked. A firewall that allows 80 but not 443, or one whose allow list predates Cloudflare, prevents the handshake from starting. Make sure Cloudflare's published address ranges are permitted on 443 as well as 80, since allowing only port 80 is a surprisingly common oversight.</p>
+
+    <h3>Does error 525 mean my site is insecure for visitors?</h3>
+    <p>Visitors are not getting an insecure connection, they are getting no connection, because Cloudflare will not serve a page it could not fetch. The risk arrives if you resolve it by switching to Flexible mode, which does leave the origin leg unencrypted while presenting a padlock to visitors. Fix the certificate and stay on Full (strict).</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Flexible mode is a diagnostic, not a fix.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"SSL Handshake Failed, Error Code 525: The Real Fix (Not Flexible Mode)","description":"Cloudflare error 525 means the TLS handshake with your origin failed. How to see the certificate your server actually serves, why Flexible mode is a trap, and how a free Origin CA certificate fixes it properly.","image":"https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does SSL handshake failed error code 525 mean?","acceptedAnswer":{"@type":"Answer","text":"It means Cloudflare reached your origin server but could not complete a TLS handshake with it. The connection itself worked, so this is not a firewall or routing problem in the usual sense. The cause is on the TLS layer: a missing, expired, or mismatched certificate, a closed port 443, or a protocol or cipher configuration your server and Cloudflare cannot agree on."}},
+{"@type":"Question","name":"How do I fix error 525 properly?","acceptedAnswer":{"@type":"Answer","text":"Inspect the certificate your origin actually serves using openssl s_client with the servername flag, then address what you find. For most sites the clean fix is installing a free Cloudflare Origin CA certificate on the server and setting SSL mode to Full strict. Avoid switching to Flexible, which only stops Cloudflare attempting TLS at all."}},
+{"@type":"Question","name":"Should I switch to Flexible SSL to fix a 525?","acceptedAnswer":{"@type":"Answer","text":"No. Flexible stops the error by stopping the encrypted connection to your server, so traffic between Cloudflare and your origin travels in plain text while visitors see a padlock. It also causes a redirect loop on any server that redirects HTTP to HTTPS, which is most of them. Use it briefly to confirm TLS is the problem, then switch back and fix the certificate."}},
+{"@type":"Question","name":"What is a Cloudflare Origin CA certificate?","acceptedAnswer":{"@type":"Answer","text":"A free certificate issued by Cloudflare specifically for the connection between Cloudflare and your origin server. It is valid for years rather than months, which removes the renewal failures that cause recurring outages. Because only Cloudflare trusts it, a browser hitting your origin directly will warn you, which is expected behaviour rather than a fault."}},
+{"@type":"Question","name":"Why does my certificate look valid but 525 still happens?","acceptedAnswer":{"@type":"Answer","text":"Often SNI. If you test without the servername flag, your server hands back its default certificate, which can look perfectly valid while being the wrong one for your hostname. Re-run the check with the servername flag and compare the subject against the hostname you requested. This is common when several sites share one server."}},
+{"@type":"Question","name":"Can a firewall cause error 525?","acceptedAnswer":{"@type":"Answer","text":"Yes, when port 443 specifically is blocked. A firewall that allows 80 but not 443, or one whose allow list predates Cloudflare, prevents the handshake from starting. Make sure Cloudflare's published address ranges are permitted on 443 as well as 80, since allowing only port 80 is a surprisingly common oversight."}},
+{"@type":"Question","name":"Does error 525 mean my site is insecure for visitors?","acceptedAnswer":{"@type":"Answer","text":"Visitors are not getting an insecure connection, they are getting no connection, because Cloudflare will not serve a page it could not fetch. The risk arrives if you resolve it by switching to Flexible mode, which does leave the origin leg unencrypted while presenting a padlock to visitors. Fix the certificate and stay on Full strict."}}
+]}
+]}
+</script>
+</body>
+</html>

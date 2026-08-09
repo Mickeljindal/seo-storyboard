@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Error 520: Web Server Returned an Unknown Error (How to Find the Real Cause)</title>
+<meta name="description" content="Cloudflare error 520 means your origin sent something Cloudflare could not interpret. How to use the Ray ID to find the exact request, and the five real causes including oversized cookies and empty responses.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/cloudflare-error-520/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Error 520: Web Server Returned an Unknown Error (How to Find the Real Cause)">
+<meta property="og:description" content="520 is Cloudflare's I do not know code. The fix is not in Cloudflare settings, it is in your origin logs. Here is how to correlate them with the Ray ID.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Cloudflare · Error 520 · Field guide</span>
+  <h1>Error 520: Web Server Returned an Unknown Error (How to Find the Real Cause)</h1>
+  <p class="byline">By Kloudbean Engineering · The vaguest code in the set, with the most specific fix.</p>
+
+  <figure><img src="images/hero.png" alt="A Cloudflare 520 error page beside a terminal filtering origin logs by Ray ID"></figure>
+
+  <p class="lead">Of all the Cloudflare error codes, 520 is the one that tells you least. It is effectively the fallback: Cloudflare received <em>something</em> from your origin server and could not make a valid HTTP response out of it. Not a refused connection, not a timeout, not a TLS failure, because each of those has its own code. Something came back and it was unusable. Which sounds hopeless to debug, and actually is not, because there are only a handful of ways a web server produces an unusable response.</p>
+
+  <div class="tldr">
+    <strong>What causes Cloudflare error 520?</strong>
+    <p>Your origin returned a response Cloudflare could not parse: an empty reply, headers that are too large, a connection dropped part-way through, or malformed output. The fastest route to the cause is your origin's error log at the moment of failure, matched to the Cloudflare Ray ID shown on the error page. The most commonly missed cause is oversized response headers, usually from cookies that have quietly grown too large.</p>
+  </div>
+
+  <h2>Why Cloudflare settings are the wrong place to look</h2>
+  <p>Every other code in the 52x family describes something about the connection. 520 describes the content of a response that arrived. That difference should change where you look. There is no firewall rule to fix and no certificate to renew, because the connection worked. Your server answered. The answer was broken.</p>
+  <p>Which means the evidence you need is in your origin logs, not in Cloudflare. So the first job is finding the exact request.</p>
+
+  <h2>Use the Ray ID to find the actual request</h2>
+  <p>Every Cloudflare error page shows a Ray ID, a unique identifier for that request. Cloudflare passes it to your origin in the <code>CF-Ray</code> header, which means you can log it and match a user-reported error to a specific line in your own logs. This is the difference between debugging 520 in minutes and guessing for an afternoon.</p>
+  <p>Add it to your nginx log format:</p>
+  <pre><code>log_format cf '$remote_addr - $host [$time_local] "$request" '
+              '$status $body_bytes_sent rt=$request_time '
+              'ray=$http_cf_ray';
+
+access_log /var/log/nginx/access.log cf;</code></pre>
+  <p>Then, when someone sends you a Ray ID, you can find the request immediately:</p>
+  <pre><code>grep "ray=8a1b2c3d4e5f6789" /var/log/nginx/access.log</code></pre>
+  <p>If you have not set this up yet, do it now rather than later. 520s are often intermittent, affecting a fraction of requests, and without correlation you are reading thousands of log lines hoping to spot the right one. With it, you get the URL, the status your server thought it returned, and the response time.</p>
+
+  <h2>Cause 1: an empty response</h2>
+  <p>The most frequent cause. Your application crashed part-way through handling the request and returned nothing at all. A zero-byte response is not valid HTTP, so Cloudflare reports 520.</p>
+  <p>In PHP this usually means a fatal error, an exhausted memory limit, or a segmentation fault in an extension. Check the places the output does not appear:</p>
+  <pre><code># PHP fatal errors and memory exhaustion
+sudo grep -iE "fatal|allowed memory size" /var/log/php*-fpm.log | tail -20
+
+# PHP-FPM worker deaths and restarts
+sudo journalctl -u php8.2-fpm --since "1 hour ago" --no-pager | tail -30
+
+# nginx upstream complaints
+sudo grep -iE "upstream|recv\(\) failed|reset by peer" /var/log/nginx/error.log | tail -20</code></pre>
+  <p>The tell-tale line is <code>Allowed memory size of X bytes exhausted</code>. When PHP hits its memory limit mid-response, output stops dead. Raising <code>memory_limit</code> gets you running again, though it is worth asking what the request was doing that needed hundreds of megabytes, because usually the honest answer is that it was loading far too many rows at once.</p>
+  <p>For Node, the same shape appears when a process is killed by the out-of-memory killer or crashes without a handler. <code>grep -i "killed process" /var/log/syslog</code> will show the kernel reaping it.</p>
+
+  <h2>Cause 2: response headers that are too large</h2>
+  <p>This is the cause almost nobody checks, and it produces the most confusing 520 because the page works perfectly for most people and fails for a specific subset of users. Cloudflare limits the total size of response headers. Exceed it and the response is rejected even though your server considers it a clean 200.</p>
+  <p>Cookies are the usual culprit, and they grow silently. A session cookie, an auth token, a consent record, several analytics identifiers, and a marketing platform that stores a small object in a cookie. Each addition is reasonable. The total is not.</p>
+  <p>The reason it hits only some users is that cookies accumulate per browser. A first-time visitor has almost none and never sees the error. Someone who has been using the site for months, accepted every prompt, and logged in and out repeatedly carries a much bigger header. That is your bug report.</p>
+  <pre><code># Measure the response headers your origin actually sends
+curl -sD - -o /dev/null --resolve example.com:443:203.0.113.10 https://example.com | wc -c
+
+# See them, sorted by size, to find the offender
+curl -sD - -o /dev/null https://example.com | awk '{print length($0), $0}' | sort -rn | head</code></pre>
+  <p>Fixes, in order of preference. Stop putting data in cookies that belongs in server-side session storage, which is what Redis is for. Cut the number of <code>Set-Cookie</code> headers by consolidating what you actually need. Reduce the payload in any JWT you keep in a cookie, since claims tend to get added and never removed. And check whether a third-party script is setting something large on your behalf.</p>
+
+  <h2>Cause 3: the connection dropped mid-response</h2>
+  <p>Your server began sending a valid response and then stopped. Cloudflare has a partial response it cannot use. In the logs this shows up as a reset:</p>
+  <pre><code>sudo grep -iE "reset by peer|premature|closed connection" /var/log/nginx/error.log | tail -20</code></pre>
+  <p>Common triggers are a PHP-FPM worker being recycled while serving, a process killed for memory, a timeout in the proxy layer that is shorter than the request needs, or a security module aborting a response it considers suspicious. If you run mod_security or similar, check whether it is terminating responses rather than requests.</p>
+  <p>Worth checking your own proxy timeouts too, since a mismatch between nginx and the application produces exactly this:</p>
+  <pre><code>grep -rE "proxy_read_timeout|fastcgi_read_timeout" /etc/nginx/</code></pre>
+
+  <h2>Cause 4: malformed output</h2>
+  <p>Something in your application is emitting bytes before or around the HTTP response that break it. In PHP, the classic is stray output before headers are sent: whitespace after a closing tag in an included file, a stray <code>var_dump</code>, or a warning printed when display_errors is on in production.</p>
+  <p>The signature is a response that looks almost right but has content in the wrong place. Turn <code>display_errors</code> off in production and log instead, which is where those messages belong anyway. Then check the response shape directly:</p>
+  <pre><code>curl -i --resolve example.com:443:203.0.113.10 https://example.com/the-failing-path | head -30</code></pre>
+  <p>Reading the raw response is the step people skip. If there is a PHP warning sitting above your status line, you will see it in one glance.</p>
+
+  <h2>Cause 5: a redirect loop at the origin</h2>
+  <p>If your server keeps redirecting, Cloudflare eventually gives up. The most common version of this comes from an SSL mode mismatch: Cloudflare set to Flexible, so it speaks plain HTTP to your origin, while your origin is configured to redirect all HTTP to HTTPS. Cloudflare asks over HTTP, the server says go to HTTPS, Cloudflare asks over HTTP again. Round and round.</p>
+  <pre><code># Follow redirects and count them
+curl -sIL --max-redirs 10 https://example.com | grep -E "^HTTP|^location"</code></pre>
+  <p>The fix is to stop using Flexible mode. Put a valid certificate on your origin and use Full (strict), which is covered properly in our <a href="https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/">error 525 guide</a>. Flexible mode is a persistent source of trouble and leaves the connection between Cloudflare and your server unencrypted, which is reason enough to avoid it.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Symptom</th><th>Likely cause</th><th>Where to look</th></tr></thead>
+    <tbody>
+      <tr><td>Fails for logged-in or long-term users only</td><td>Oversized headers from accumulated cookies</td><td>Measure response header size</td></tr>
+      <tr><td>Fails on one specific URL</td><td>Application crash on that path</td><td>PHP or app error log</td></tr>
+      <tr><td>Intermittent across all URLs</td><td>Worker recycling or memory pressure</td><td>FPM log, OOM killer</td></tr>
+      <tr><td>Started after a code deploy</td><td>Stray output or a fatal error</td><td><code>curl -i</code> the raw response</td></tr>
+      <tr><td>Every request fails immediately</td><td>Redirect loop, often Flexible SSL mode</td><td><code>curl -sIL</code></td></tr>
+      <tr><td>Only on large or slow pages</td><td>Timeout mismatch cutting the response</td><td>nginx proxy timeouts</td></tr>
+    </tbody>
+  </table>
+
+  <h2>A quick word on what will not help</h2>
+  <p>Clearing Cloudflare's cache, toggling development mode, and changing the security level are the three things people try first with a 520, and none of them addresses any of the causes above. The connection succeeded. Cloudflare did its job and reported that your server's answer was unusable. Time spent in the Cloudflare dashboard on a 520 is nearly always time spent in the wrong place.</p>
+  <p>One genuine exception: if you are testing while Cloudflare is caching the error, development mode stops it serving a stale broken response and confusing your results. Use it as a testing aid, not a fix.</p>
+
+  <h2>The pattern behind these causes</h2>
+  <p>Four of the five are resource and configuration problems on the server: memory limits, worker recycling, timeout mismatches, and session data in the wrong place. That is the recurring theme with 520. It is rarely a bug in your business logic and usually a server that is not sized or configured for what the application does.</p>
+  <p>On Kloudbean the parts that cause this are managed rather than left to you: PHP and its limits, the FPM pool, nginx and its timeouts, and the memory headroom on the server. Managed Redis is available in the same dashboard for the session storage that should be holding data currently stuffed into cookies, and you can resize a server when the honest answer is that it needs more memory. Servers, applications, and databases in one place matters here, because a 520 caused by memory pressure is diagnosed across all three.</p>
+  <p>The honest limit: a managed platform cannot stop your code from loading fifty thousand rows into memory, and it will not remove a fatal error in your application. What it removes is the configuration mismatches and the guesswork about which limit you hit.</p>
+
+  <figure>
+    <img src="../assets/console/server-health.png" alt="Server health metrics including memory usage in the Kloudbean console">
+    <figcaption>Memory and load in the same dashboard as the application, which is where most 520 investigations end up.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>For the full family and how to tell the codes apart, see <a href="https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/">Cloudflare error codes 520 to 527</a>. Its closest neighbours: <a href="https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/">error 521</a> and <a href="https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/">error 525</a>. For the upstream layer where these often surface, <a href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/">502 Bad Gateway</a> and <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">the nginx reverse proxy setup</a>. To move session data out of cookies, <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis hosting</a>. And when a request is simply doing too much, <a href="https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/">background jobs</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Stop guessing which limit you hit.</p>
+    <p style="margin:0 0 .6em">Managed servers with PHP, FPM, and nginx configured and tuned, visible memory and load metrics, managed Redis for real session storage, and a resize when the answer is more memory. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed servers · Tuned PHP and nginx · Managed Redis · Server metrics · One dashboard</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does Cloudflare error 520 mean?</h3>
+    <p>It means Cloudflare connected to your origin server successfully but received a response it could not turn into valid HTTP. That covers an empty reply, oversized headers, malformed output, or a connection dropped part-way through. Because the connection itself worked, the cause is in your server's response rather than in the network path or Cloudflare's configuration.</p>
+
+    <h3>How do I find what caused a 520?</h3>
+    <p>Log the <code>CF-Ray</code> header in your access log, then match the Ray ID from the Cloudflare error page to the exact request. That gives you the URL, the status your server believed it returned, and the response time. From there, check your application error log at the same timestamp for a fatal error or memory exhaustion.</p>
+
+    <h3>Why does error 520 only affect some visitors?</h3>
+    <p>Usually oversized response headers caused by accumulated cookies. New visitors carry very few cookies and never hit the limit, while long-term or logged-in users carry session tokens, consent records, and analytics identifiers that together exceed what Cloudflare accepts. Measure your response header size for an affected user before looking anywhere else.</p>
+
+    <h3>Can large cookies cause a Cloudflare 520?</h3>
+    <p>Yes, and it is one of the least suspected causes. Cloudflare limits total response header size, and cookies count toward it. Move data into server-side session storage such as Redis, consolidate your <code>Set-Cookie</code> headers, and trim any JWT claims you no longer use. Third-party scripts sometimes set large cookies on your behalf, so check those too.</p>
+
+    <h3>Does clearing the Cloudflare cache fix a 520?</h3>
+    <p>No. A 520 is generated when Cloudflare cannot use the response it just received, so cache state is irrelevant to the cause. Development mode is useful while testing, because it stops Cloudflare serving a cached error page and confusing your results, but it is a testing aid rather than a fix.</p>
+
+    <h3>Is error 520 the same as 502?</h3>
+    <p>They are related but not the same. A 502 can be generated by either Cloudflare or your own web server, typically when an upstream process fails. A 520 is always generated by Cloudflare and specifically means the response it received was unparseable. If you are seeing 502 rather than 520, the upstream connection between your web server and application is the better place to start.</p>
+
+    <h3>Why did 520 start right after a deploy?</h3>
+    <p>Most likely a fatal error on a code path, or stray output breaking the response. Request the failing URL directly against your origin with <code>curl -i</code> and read the raw response, since a PHP warning printed above the status line is immediately visible that way. Also confirm <code>display_errors</code> is off in production, because printed warnings can corrupt an otherwise valid response.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · The connection worked. Read your own logs.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Error 520: Web Server Returned an Unknown Error (How to Find the Real Cause)","description":"Cloudflare error 520 means your origin sent something Cloudflare could not interpret. How to use the Ray ID to find the exact request, plus the five real causes including oversized cookies and empty responses.","image":"https://www.kloudbean.com/blog/cloudflare-error-520/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/cloudflare-error-520/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does Cloudflare error 520 mean?","acceptedAnswer":{"@type":"Answer","text":"It means Cloudflare connected to your origin server successfully but received a response it could not turn into valid HTTP. That covers an empty reply, oversized headers, malformed output, or a connection dropped part-way through. Because the connection itself worked, the cause is in your server's response rather than in the network path or Cloudflare's configuration."}},
+{"@type":"Question","name":"How do I find what caused a 520?","acceptedAnswer":{"@type":"Answer","text":"Log the CF-Ray header in your access log, then match the Ray ID from the Cloudflare error page to the exact request. That gives you the URL, the status your server believed it returned, and the response time. From there, check your application error log at the same timestamp for a fatal error or memory exhaustion."}},
+{"@type":"Question","name":"Why does error 520 only affect some visitors?","acceptedAnswer":{"@type":"Answer","text":"Usually oversized response headers caused by accumulated cookies. New visitors carry very few cookies and never hit the limit, while long-term or logged-in users carry session tokens, consent records, and analytics identifiers that together exceed what Cloudflare accepts. Measure your response header size for an affected user before looking anywhere else."}},
+{"@type":"Question","name":"Can large cookies cause a Cloudflare 520?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it is one of the least suspected causes. Cloudflare limits total response header size, and cookies count toward it. Move data into server-side session storage such as Redis, consolidate your Set-Cookie headers, and trim any JWT claims you no longer use. Third-party scripts sometimes set large cookies on your behalf, so check those too."}},
+{"@type":"Question","name":"Does clearing the Cloudflare cache fix a 520?","acceptedAnswer":{"@type":"Answer","text":"No. A 520 is generated when Cloudflare cannot use the response it just received, so cache state is irrelevant to the cause. Development mode is useful while testing, because it stops Cloudflare serving a cached error page and confusing your results, but it is a testing aid rather than a fix."}},
+{"@type":"Question","name":"Is error 520 the same as 502?","acceptedAnswer":{"@type":"Answer","text":"They are related but not the same. A 502 can be generated by either Cloudflare or your own web server, typically when an upstream process fails. A 520 is always generated by Cloudflare and specifically means the response it received was unparseable. If you are seeing 502 rather than 520, the upstream connection between your web server and application is the better place to start."}},
+{"@type":"Question","name":"Why did 520 start right after a deploy?","acceptedAnswer":{"@type":"Answer","text":"Most likely a fatal error on a code path, or stray output breaking the response. Request the failing URL directly against your origin with curl and read the raw response, since a PHP warning printed above the status line is immediately visible that way. Also confirm display_errors is off in production, because printed warnings can corrupt an otherwise valid response."}}
+]}
+]}
+</script>
+</body>
+</html>

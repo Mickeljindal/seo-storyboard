@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Error Code 521: Web Server Is Down (Even When It Isn't)</title>
+<meta name="description" content="How to fix Cloudflare error code 521, web server is down. Five causes ordered by likelihood, why your server is often running fine, and the Fail2ban trap that bans Cloudflare and takes your site offline.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Error Code 521: Web Server Is Down (Even When It Isn't)">
+<meta property="og:description" content="Cloudflare error 521 means your server refused the connection. Often the server is fine and a firewall or Fail2ban is refusing Cloudflare. Here is how to tell.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Cloudflare · Error 521 · Field guide</span>
+  <h1>Error Code 521: Web Server Is Down (Even When It Isn't)</h1>
+  <p class="byline">By Kloudbean Engineering · The message is often wrong. The diagnosis underneath it is not.</p>
+
+  <figure><img src="images/hero.png" alt="A Cloudflare error 521 page next to a terminal showing the web server running normally"></figure>
+
+  <p class="lead">Cloudflare error code 521 says "web server is down", and a good share of the time the server is up, healthy, and serving requests happily to anyone who asks it directly. That contradiction is the useful part. What 521 actually reports is narrower and more specific than the wording suggests: Cloudflare tried to open a TCP connection to your origin and the connection was <em>refused</em>. Something on your side answered and said no. Working out what said no is the entire job.</p>
+
+  <div class="tldr">
+    <strong>How do you fix Cloudflare error 521?</strong>
+    <p>First check whether your web server is actually running with <code>systemctl status nginx</code>, then request your origin IP directly with <code>curl --resolve</code> from outside your network. If the origin answers, your server is fine and something is refusing Cloudflare specifically, which means either your firewall does not allow Cloudflare's IP ranges on ports 80 and 443, or Fail2ban has banned Cloudflare addresses. Both are common, and the second one is the reason 521 often appears for some visitors and not others.</p>
+  </div>
+
+  <h2>What "connection refused" narrows it down to</h2>
+  <p>A refused connection is a specific event, and it rules a lot out. Something received the packet and sent back a rejection, rather than ignoring it. That distinction matters because it separates 521 from its neighbour 522, which is a timeout, meaning nothing answered at all.</p>
+  <p>So a 521 means one of a short list of things: no process is listening on that port, or a firewall is configured to reject rather than drop, or a ban rule is actively rejecting the source address. It is never a slow server, never a DNS problem, and never an application bug. That is genuinely helpful, because it means you can ignore your application code entirely while diagnosing this.</p>
+
+  <h2>Step 1: is the web server running?</h2>
+  <pre><code>sudo systemctl status nginx      # or apache2, httpd
+sudo systemctl status php8.2-fpm
+
+# What is listening, and on which ports?
+sudo ss -tlnp | grep -E ':80|:443'</code></pre>
+  <p>If nothing is listening on 443, you have your answer and the Cloudflare message was accurate after all. Start the service, then find out why it stopped, because a web server that died on its own will do it again. Check the journal and the error log:</p>
+  <pre><code>sudo journalctl -u nginx --since "1 hour ago" --no-pager | tail -40
+sudo tail -50 /var/log/nginx/error.log</code></pre>
+  <p>The two usual reasons a web server stops and stays stopped: it ran out of memory and was killed, or a configuration change was made and the reload failed. For the first, <code>grep -i "killed process" /var/log/syslog</code> will show the out-of-memory killer at work. For the second, <code>nginx -t</code> tells you in one line whether the current config is even valid.</p>
+
+  <h2>Step 2: ask the origin directly</h2>
+  <p>If the service is up, prove it can be reached from outside. Run this from anywhere that is not your server and not your office network:</p>
+  <pre><code># Replace 203.0.113.10 with your origin IP
+curl -svo /dev/null --resolve example.com:443:203.0.113.10 https://example.com
+
+# Is the port open at all from out here?
+nc -vz 203.0.113.10 443</code></pre>
+  <p>The reason to test from elsewhere is that your own address is very often already allowed through the firewall. Testing from a permitted address and concluding the server is reachable is the single most common wrong turn in diagnosing a 521.</p>
+  <p>If this succeeds, your server is healthy and reachable, and something is refusing Cloudflare in particular. Everything from here is about finding that rule.</p>
+
+  <h2>Step 3: is Cloudflare allowed through your firewall?</h2>
+  <p>Once a site is proxied, your server never hears from visitors again. Every request arrives from a Cloudflare address. So a firewall that allows a curated list of addresses, written before Cloudflare was introduced, will refuse the proxy and produce a 521 for everybody.</p>
+  <p>Check what your firewall currently permits on the web ports:</p>
+  <pre><code># Shorewall
+sudo shorewall show rules | grep -E '80|443'
+
+# iptables directly
+sudo iptables -L INPUT -n --line-numbers | grep -E '80|443'
+
+# ufw
+sudo ufw status numbered</code></pre>
+  <p>Cloudflare publishes its address ranges at <code>cloudflare.com/ips-v4</code> and <code>cloudflare.com/ips-v6</code>, and those ranges need to be allowed inbound on 80 and 443. They are updated occasionally, which is why a rule that worked for two years can start failing without anyone touching it. If you maintain that list by hand, it is worth having something that refreshes it rather than trusting a copy made once.</p>
+
+  <h2>Step 4: the Fail2ban trap</h2>
+  <p>This is the cause worth reading even if you think it does not apply to you, because it produces the most baffling version of 521 and almost nobody suspects it.</p>
+  <p>Fail2ban watches your logs and bans addresses that look abusive. Behind Cloudflare, your logs no longer contain visitor addresses. Every line shows a Cloudflare address. So when one genuinely abusive visitor trips a rule, the address Fail2ban bans is Cloudflare's.</p>
+  <p>The symptom is distinctive: the site works for some people and shows 521 for others, and which group you are in seems to change over time. That is because a subset of Cloudflare's addresses are banned at any moment, and visitors are distributed across all of them. Your server looks perfectly healthy throughout, because it is. Nothing in the Cloudflare dashboard hints at it.</p>
+  <pre><code># Are any Cloudflare ranges currently banned?
+sudo fail2ban-client status
+sudo fail2ban-client status nginx-http-auth
+
+# Look for Cloudflare addresses in the ban list
+sudo iptables -L -n | grep -E '104\.|172\.6[4-9]\.|173\.245\.|198\.41\.'
+
+# Unban a specific address
+sudo fail2ban-client set nginx-http-auth unbanip 104.16.0.1</code></pre>
+  <p>Unbanning gets you back online. It does not fix anything, and the same thing will happen again within days. The actual fix is Step 5.</p>
+
+  <h2>Step 5: restore the real visitor IP</h2>
+  <p>This is the permanent repair, and it fixes several problems at once. Configure your web server to read the real client address from the <code>CF-Connecting-IP</code> header that Cloudflare sends, and to trust Cloudflare's ranges as proxies. For nginx, using the real IP module:</p>
+  <pre><code># /etc/nginx/conf.d/cloudflare-realip.conf
+# Include Cloudflare's published ranges (abbreviated here)
+set_real_ip_from 173.245.48.0/20;
+set_real_ip_from 103.21.244.0/22;
+set_real_ip_from 104.16.0.0/13;
+set_real_ip_from 172.64.0.0/13;
+# ... plus the remaining published v4 and v6 ranges
+
+real_ip_header CF-Connecting-IP;</code></pre>
+  <p>Then reload and confirm your logs show real addresses again:</p>
+  <pre><code>sudo nginx -t &amp;&amp; sudo systemctl reload nginx
+sudo tail -5 /var/log/nginx/access.log</code></pre>
+  <p>Three things start working properly once this is in place. Fail2ban bans actual offenders instead of your own proxy. Your analytics and logs become meaningful again. And any rate limiting you have stops treating all of your traffic as a handful of very busy clients.</p>
+  <p>My honest view: running Fail2ban behind Cloudflare without this configuration is worse than running no intrusion prevention at all. Without it, the tool cannot see attackers, and the only thing it can effectively block is the proxy your entire site depends on.</p>
+
+  <h2>Step 6: the less common causes</h2>
+  <p><strong>Wrong port.</strong> Cloudflare's proxy only works on a specific set of ports. If your application listens on 8080 and nothing forwards 443 to it, connections to 443 are refused. Check that a reverse proxy is actually terminating on 443 and passing traffic to your app, which is the standard arrangement described in our <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">nginx reverse proxy guide</a>.</p>
+  <p><strong>Cloud provider security group.</strong> A rule at the provider level usually drops rather than refuses, so this more often shows as a 522. It is still worth a look, particularly if the host firewall is clean.</p>
+  <p><strong>Server out of resources.</strong> A machine that has exhausted its connection backlog or hit a process limit will refuse new connections while looking superficially alive. Check load and memory, and look for accept queue overflows:</p>
+  <pre><code>uptime; free -h
+ss -s
+netstat -s | grep -i "listen queue"</code></pre>
+  <p><strong>The site was recently moved.</strong> If the A record still points at a decommissioned server, you are more likely to see 523, but a machine that exists and has no web server on it gives a clean 521. After any migration, confirm the record points where you think it does.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Symptom</th><th>Most likely cause</th><th>Check</th></tr></thead>
+    <tbody>
+      <tr><td>521 for everyone, constantly</td><td>Web server stopped, or firewall blocks Cloudflare</td><td><code>ss -tlnp</code>, then firewall rules</td></tr>
+      <tr><td>521 for some visitors, comes and goes</td><td>Fail2ban has banned Cloudflare ranges</td><td><code>fail2ban-client status</code></td></tr>
+      <tr><td>Started right after enabling Cloudflare</td><td>Firewall never allowed Cloudflare</td><td>Cloudflare IP ranges on 80 and 443</td></tr>
+      <tr><td>Started right after a migration</td><td>Stale A record or no web server on the new box</td><td>DNS record against real IP</td></tr>
+      <tr><td>Origin works from your office, fails from Cloudflare</td><td>Your address is allowed, Cloudflare's is not</td><td>Retest from an outside network</td></tr>
+      <tr><td>Appears under traffic spikes only</td><td>Connection backlog or process limits</td><td><code>ss -s</code>, load, memory</td></tr>
+    </tbody>
+  </table>
+
+  <h2>What not to do</h2>
+  <p>Two shortcuts circulate widely and both make things worse. The first is pausing Cloudflare or turning the proxy off to make the error go away. It does work, in the sense that the error disappears, and it also removes the protection you put Cloudflare there for while telling you nothing about the cause.</p>
+  <p>The second is opening ports 80 and 443 to the entire internet to be sure Cloudflare gets through. That fixes the 521 and quietly undoes the main benefit of proxying, since anyone who learns your origin address can now bypass Cloudflare completely and hit your server directly. Allow Cloudflare's published ranges, not everything.</p>
+
+  <h2>Why this class of error is an operations problem</h2>
+  <p>Read back through the causes: a service that stopped and was not restarted, a firewall rule written before the proxy existed, an intrusion prevention tool acting on the wrong addresses, a stale DNS record after a move, connection limits under load. Not one of them is application code. All of them are server operations.</p>
+  <p>That is the argument for not doing this yourself. On Kloudbean, Shorewall and Fail2ban come configured rather than left as an exercise, free SSL is issued and renewed automatically, and Cloudflare is available as a paid add-on and included for enterprise accounts, so the proxy and the origin are set up as one system instead of two things you wire together and hope agree. Servers, applications, and databases sit in one dashboard, which matters for exactly this failure, because a firewall change and a proxy change are not in two separate products.</p>
+  <p>The honest boundary: a managed platform will not stop you from misconfiguring Cloudflare itself, and it cannot prevent a genuinely overloaded server from refusing connections. What it removes is the long tail of stopped services, forgotten firewall rules, and ban lists nobody is watching.</p>
+
+  <figure>
+    <img src="../assets/console/firewall.png" alt="Firewall rules managed from the Kloudbean console alongside the server">
+    <figcaption>Firewall rules in the same place as the server they protect, rather than in a separate product.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>For the whole family of these codes and how to tell them apart, see <a href="https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/">Cloudflare error codes 520 to 527</a>. The two closest neighbours have their own guides: <a href="https://www.kloudbean.com/blog/cloudflare-error-520/">error 520</a> and <a href="https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/">error 525</a>. On the upstream side, <a href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/">502 Bad Gateway</a> and <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">the nginx reverse proxy setup</a>. When a connection is refused rather than proxied, <a href="https://www.kloudbean.com/blog/fix-econnrefused-node/">ECONNREFUSED</a> covers the same idea inside your own app. And for the records these errors rely on, <a href="https://www.kloudbean.com/blog/dns-explained/">DNS explained</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">A firewall that already expects your proxy.</p>
+    <p style="margin:0 0 .6em">Managed servers with Shorewall and Fail2ban configured, free SSL issued and renewed, Cloudflare available as an add-on, and everything in one dashboard so a firewall change and a proxy change are not in two different products. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed servers · Firewall and Fail2ban configured · Free SSL · Cloudflare add-on · One dashboard</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does Cloudflare error 521 mean?</h3>
+    <p>It means Cloudflare tried to open a connection to your origin server and the connection was actively refused. Despite the wording "web server is down", the server is frequently running fine and something is refusing Cloudflare specifically, usually a firewall rule or a ban list. A refused connection is different from a timeout, which is reported as 522.</p>
+
+    <h3>How do I fix error code 521?</h3>
+    <p>Check that your web server is listening on 443 with <code>ss -tlnp</code>, then request your origin IP directly with <code>curl --resolve</code> from outside your network. If the origin answers, allow Cloudflare's published IP ranges on ports 80 and 443 and check whether Fail2ban has banned any Cloudflare addresses. Then restore the real visitor IP so the ban list stops targeting the proxy.</p>
+
+    <h3>Why does error 521 appear when my server is clearly running?</h3>
+    <p>Because "is it running" and "will it accept a connection from Cloudflare" are different questions. A firewall that allows only certain addresses, a Fail2ban ban on Cloudflare ranges, or a service listening on the wrong port all produce a refused connection from a perfectly healthy server. Testing from your own network hides this, because your address is often already allowed.</p>
+
+    <h3>Can Fail2ban cause a Cloudflare 521 error?</h3>
+    <p>Yes, and it is a common cause of the intermittent version. Behind Cloudflare your logs show Cloudflare addresses rather than visitor addresses, so Fail2ban ends up banning the proxy when a visitor misbehaves. The result is that some visitors see the site and others get 521. Fix it by configuring the real IP module with the <code>CF-Connecting-IP</code> header, then clearing existing bans.</p>
+
+    <h3>Should I whitelist Cloudflare IPs or just open ports 80 and 443?</h3>
+    <p>Whitelist Cloudflare's ranges. Opening the ports to everyone removes a key benefit of proxying, because anyone who discovers your origin address can then bypass Cloudflare and hit your server directly, skipping whatever protection you set up. Cloudflare publishes the current ranges, and they change occasionally, so review the rule rather than setting it once.</p>
+
+    <h3>Does pausing Cloudflare fix a 521?</h3>
+    <p>It makes the error disappear because requests stop going through the proxy, but it fixes nothing and removes your protection while you are exposed. Use it as a diagnostic signal at most: if pausing resolves it, you have confirmed the problem is in the path between Cloudflare and your origin rather than in your application.</p>
+
+    <h3>Why did 521 start right after I moved hosts?</h3>
+    <p>Two likely reasons. Your DNS A record may still point at the old server, in which case Cloudflare is connecting to a machine with no web server on it. Or the new server's firewall has never been told to allow Cloudflare. Confirm the record matches the new address, then check the new firewall rules, since a fresh server does not inherit the old one's configuration.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · "Web server is down" usually means "web server said no".</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Error Code 521: Web Server Is Down (Even When It Isn't)","description":"How to fix Cloudflare error code 521, web server is down. Five causes ordered by likelihood, why the server is often running fine, and the Fail2ban trap that bans Cloudflare and takes your site offline.","image":"https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does Cloudflare error 521 mean?","acceptedAnswer":{"@type":"Answer","text":"It means Cloudflare tried to open a connection to your origin server and the connection was actively refused. Despite the wording web server is down, the server is frequently running fine and something is refusing Cloudflare specifically, usually a firewall rule or a ban list. A refused connection is different from a timeout, which is reported as 522."}},
+{"@type":"Question","name":"How do I fix error code 521?","acceptedAnswer":{"@type":"Answer","text":"Check that your web server is listening on 443, then request your origin IP directly with curl and the resolve flag from outside your network. If the origin answers, allow Cloudflare's published IP ranges on ports 80 and 443 and check whether Fail2ban has banned any Cloudflare addresses. Then restore the real visitor IP so the ban list stops targeting the proxy."}},
+{"@type":"Question","name":"Why does error 521 appear when my server is clearly running?","acceptedAnswer":{"@type":"Answer","text":"Because is it running and will it accept a connection from Cloudflare are different questions. A firewall that allows only certain addresses, a Fail2ban ban on Cloudflare ranges, or a service listening on the wrong port all produce a refused connection from a perfectly healthy server. Testing from your own network hides this, because your address is often already allowed."}},
+{"@type":"Question","name":"Can Fail2ban cause a Cloudflare 521 error?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it is a common cause of the intermittent version. Behind Cloudflare your logs show Cloudflare addresses rather than visitor addresses, so Fail2ban ends up banning the proxy when a visitor misbehaves. The result is that some visitors see the site and others get 521. Fix it by configuring the real IP module with the CF-Connecting-IP header, then clearing existing bans."}},
+{"@type":"Question","name":"Should I whitelist Cloudflare IPs or just open ports 80 and 443?","acceptedAnswer":{"@type":"Answer","text":"Whitelist Cloudflare's ranges. Opening the ports to everyone removes a key benefit of proxying, because anyone who discovers your origin address can then bypass Cloudflare and hit your server directly, skipping whatever protection you set up. Cloudflare publishes the current ranges, and they change occasionally, so review the rule rather than setting it once."}},
+{"@type":"Question","name":"Does pausing Cloudflare fix a 521?","acceptedAnswer":{"@type":"Answer","text":"It makes the error disappear because requests stop going through the proxy, but it fixes nothing and removes your protection while you are exposed. Use it as a diagnostic signal at most: if pausing resolves it, you have confirmed the problem is in the path between Cloudflare and your origin rather than in your application."}},
+{"@type":"Question","name":"Why did 521 start right after I moved hosts?","acceptedAnswer":{"@type":"Answer","text":"Two likely reasons. Your DNS A record may still point at the old server, in which case Cloudflare is connecting to a machine with no web server on it. Or the new server's firewall has never been told to allow Cloudflare. Confirm the record matches the new address, then check the new firewall rules, since a fresh server does not inherit the old one's configuration."}}
+]}
+]}
+</script>
+</body>
+</html>
