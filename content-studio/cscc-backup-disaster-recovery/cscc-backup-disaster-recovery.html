@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CSCC Backup and Disaster Recovery: What Saudi Critical Systems Must Prove</title>
+<meta name="description" content="NCA CSCC asks for daily backups, a recovery test every three months, a disaster recovery centre, and an annual DR test. What each control requires, why untested backups fail an audit, and how to build the infrastructure half.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/cscc-backup-disaster-recovery/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CSCC Backup and Disaster Recovery: What Saudi Critical Systems Must Prove">
+<meta property="og:description" content="CSCC 2-8 and 3-1 explained: online and offline backup coverage, daily backups, quarterly recovery testing, a DR centre, and annual DR plan tests.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Compliance · Saudi Arabia · CSCC 2-8 and 3-1</span>
+  <h1>CSCC Backup and Disaster Recovery: What Saudi Critical Systems Must Prove</h1>
+  <p class="byline">By Kloudbean Engineering · An untested backup is a hypothesis, not a control.</p>
+
+  <figure><img src="images/hero.png" alt="Daily backups to separate secured storage, with a quarterly restore test and multi-zone failover"></figure>
+
+  <p class="lead">Backups are the control everyone believes they already have. The CSCC requirements are stricter than "we take backups", and the gap usually shows up in one specific place: whether you can demonstrate a successful restore, recently, with a record of it. NCA asks for that every three months. This walks through subdomain 2-8 and domain 3, what each control requires, and where the infrastructure work ends and your organisation's work begins.</p>
+
+  <div class="tldr">
+    <strong>What does NCA CSCC require for backups?</strong>
+    <p>Online and offline backup coverage across all critical systems (2-8-1-1), backups taken at intervals set by your risk assessment with NCA recommending daily for critical systems (2-8-1-2), and secured access, storage, and transfer of backups protected from destruction, unauthorised access, or modification (2-8-1-3). Critically, control 2-8-2 requires a test at least every three months to confirm backups can actually be recovered. On the resilience side, domain 3 requires a disaster recovery centre and DR plans tested at least annually.</p>
+  </div>
+
+  <h2>The controls, precisely</h2>
+  <table class="cmp">
+    <thead><tr><th>Control</th><th>Requirement</th></tr></thead>
+    <tbody>
+      <tr><td>2-8-1-1</td><td>Scope and coverage of online and offline backups shall cover all critical systems</td></tr>
+      <tr><td>2-8-1-2</td><td>Backup within planned intervals per risk assessment; NCA recommends daily for critical systems</td></tr>
+      <tr><td>2-8-1-3</td><td>Secure access, storage, and transfer of backups and media; protect from destruction, unauthorised access, or modification</td></tr>
+      <tr><td>2-8-2</td><td>Periodical test at least every three months to determine the efficiency of recovering backups</td></tr>
+      <tr><td>3-1-1-1</td><td>Establish a disaster recovery centre for critical systems</td></tr>
+      <tr><td>3-1-1-2</td><td>Incorporate critical systems within disaster recovery plans</td></tr>
+      <tr><td>3-1-1-3</td><td>Test the efficiency of DR plans for critical systems at least annually</td></tr>
+      <tr><td>3-1-1-4</td><td>NCA recommends periodical live disaster recovery testing</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Online and offline, not just one</h2>
+  <p>Control 2-8-1-1 says online <em>and</em> offline. That wording matters and it is easy to skim past. A snapshot sitting in the same cloud project as the system it protects is an online backup. It covers hardware failure, a bad deployment, and accidental deletion of a row. It does not necessarily protect you against an incident that reaches the account itself, whether that is ransomware, a compromised privileged credential, or a mistaken bulk delete.</p>
+  <p>Offline, or at minimum strongly separated, copies exist for that scenario. In cloud terms this usually means a separate secured storage location with its own access controls, ideally with object versioning and a retention lock so copies cannot be quietly removed. The principle is that whoever can break production should not be able to break the backups with the same credential.</p>
+
+  <h2>Daily is a recommendation, and a sensible default</h2>
+  <p>Control 2-8-1-2 sets the interval by your own risk assessment, then adds that NCA recommends daily backups for critical systems. Read that as the expected baseline. If you choose a longer interval, you should be able to explain the risk assessment that justified it, because the deviation is what an auditor will ask about.</p>
+  <p>The question the interval really answers is how much data you can afford to lose, which is your recovery point objective. Daily backups mean up to a day of writes at risk. For a system with continuous transactions, daily snapshots plus more frequent database-level protection is a more honest answer than a single nightly job.</p>
+
+  <h2>The control most organisations fail: 2-8-2</h2>
+  <p>This is the one worth reading twice. Every three months, you must test that backups can actually be recovered. Not verify the job succeeded, not check the file exists, but determine the efficiency of recovering.</p>
+  <p>The reason this exists is that backup failure is usually silent. A job reports success while excluding a volume that was added later. A database dump completes but omits a schema. An encrypted archive is written with a key nobody kept. Snapshots accumulate for months and the first genuine restore attempt happens during an incident, which is the worst possible moment to discover the gap.</p>
+  <p>A test that satisfies the control looks like: restore to an isolated environment, confirm the data is complete and the system starts, record how long it took, and document the result with a date. That last part is what turns an operational habit into evidence. And note the timing to complete the restore is worth recording for its own sake, because it is your real recovery time objective rather than the one in the plan document.</p>
+  <p>One caution when you build the test. Control 2-6-1-1 prohibits using critical systems data in any environment other than production without strict protection such as masking or scrambling, and 2-6-1-5 prohibits transferring production data to another environment. So a restore test cannot casually become a copy of production data sitting in a staging project. Design the test as an isolated recovery that is verified and then destroyed, and coordinate the approach with your compliance team.</p>
+
+  <h2>Protecting the backups themselves</h2>
+  <p>Control 2-8-1-3 covers access, storage, and transfer, and names destruction, unauthorised access, and modification. Practically:</p>
+  <ul>
+    <li>Backups in a separate secured location with their own access policy, not the general-purpose bucket.</li>
+    <li>Encrypted at rest and in transit, consistent with 2-7-1-1 and 2-7-1-2.</li>
+    <li>Object versioning so an overwrite does not destroy the previous good copy.</li>
+    <li>Retention locks where the retention window is known, so deletion is refused rather than merely discouraged.</li>
+    <li>Least-privilege access, with backup deletion rights held by as few identities as possible.</li>
+    <li>Keys managed deliberately. An encrypted backup you cannot decrypt is not a backup.</li>
+  </ul>
+
+  <h2>Disaster recovery is a separate requirement</h2>
+  <p>People conflate backups with disaster recovery, and CSCC treats them as different things in different domains. Backups (2-8) are about recovering data. Disaster recovery (3-1) is about continuing to deliver the service.</p>
+  <p>Control 3-1-1-1 requires establishing a disaster recovery centre for critical systems, 3-1-1-2 requires critical systems to be incorporated into DR plans, 3-1-1-3 requires testing DR plan efficiency at least annually, and 3-1-1-4 adds that NCA recommends periodical live DR testing. The word "live" is doing work there. A tabletop walkthrough is useful and it is not the same as failing over and serving real traffic from the recovery path.</p>
+  <p>Note the different cadences, because they are easy to mix up: recovery of backups is tested every three months (2-8-2), while DR plans are tested at least annually (3-1-1-3).</p>
+
+  <h2>Where multi-zone architecture fits, and where it doesn't</h2>
+  <p>Running across two zones with automated failover and load balancing gives you genuine resilience against the failure of a single zone, and it is the practical foundation for continuity of service. Be precise about what it is not, though. Multi-zone high availability is not a backup, because it replicates your mistakes: a bad migration or a deleted table propagates to the standby immediately. And a DR plan is a document with roles, decision points, and communications, not an architecture diagram.</p>
+  <p>So the three pieces do different jobs. High availability handles infrastructure failure. Backups handle data loss and corruption. The DR plan handles the human coordination when something larger goes wrong. CSCC asks for all three, and an audit will notice if you have brought only one.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="Launching a managed database with automatic backups in the Kloudbean console">
+    <figcaption>Managed databases with automatic backups, which is the starting point rather than the whole control.</figcaption>
+  </figure>
+
+  <h2>What Kloudbean covers, and what stays with you</h2>
+  <p>On managed enterprise engagements, Kloudbean builds and maintains the infrastructure half: multi-zone high availability across two zones for application servers and managed databases with automated failover and load balancing, daily automated backups written to a separate secured location, encryption in transit and at rest, retention and versioning policies applied to the periods you define, quarterly recovery tests carried out and documented, and the technical DR configuration covering multi-zone setup, failover, and restore procedures.</p>
+  <p>What stays with your organisation: defining the recovery time and recovery point objectives, since those are business decisions rather than technical ones; producing and owning the formal DR plan document with its roles and escalation paths; deciding retention periods against your legal obligations; and the classification and masking decisions that shape how a restore test may handle production data. We supply the technical foundation and the evidence, and the plan and the objectives remain yours.</p>
+
+  <h2>Related reading</h2>
+  <p>For the framework overview see <a href="https://www.kloudbean.com/blog/nca-cscc-compliance-guide/">NCA CSCC explained</a>, and for the logging counterpart <a href="https://www.kloudbean.com/blog/cscc-log-retention-immutable-logs/">CSCC 18-month log retention</a>. The general mechanics are in <a href="https://www.kloudbean.com/blog/server-backups-guide/">the server backups guide</a>, with the baseline framework in <a href="https://www.kloudbean.com/blog/nca-ecc-compliant-hosting/">NCA ECC compliant hosting</a> and residency in <a href="https://www.kloudbean.com/blog/data-residency-saudi-arabia/">data residency in Saudi Arabia</a>. For the architecture side, <a href="https://www.kloudbean.com/blog/vertical-vs-horizontal-scaling/">vertical vs horizontal scaling</a> and <a href="https://www.kloudbean.com/blog/cloud-load-balancer-explained/">cloud load balancers explained</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Backups you have actually restored.</p>
+    <p style="margin:0 0 .6em">Kloudbean runs managed enterprise engagements with multi-zone high availability, daily automated backups to separate secured storage, retention and versioning policies, and quarterly recovery tests that are carried out and documented, on in-Kingdom infrastructure where required. Start a conversation at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Multi-zone HA · Daily backups · Separate secured storage · Quarterly tested restores · In-Kingdom hosting available</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How often does NCA CSCC require backups?</h3>
+    <p>Control 2-8-1-2 sets the interval according to your organisation's risk assessment, and NCA recommends daily backups for critical systems. Treat daily as the expected baseline, and be ready to justify any longer interval with the risk assessment that supports it, because that deviation is what an auditor will question.</p>
+
+    <h3>How often must backup recovery be tested under CSCC?</h3>
+    <p>At least every three months, under control 2-8-2, to determine the efficiency of recovering critical systems backups. This is separate from testing disaster recovery plans, which control 3-1-1-3 requires at least annually. Mixing up the two cadences is a common mistake.</p>
+
+    <h3>What is the difference between backups and disaster recovery in CSCC?</h3>
+    <p>CSCC treats them as different domains. Backups (subdomain 2-8) are about recovering data. Disaster recovery (domain 3) is about continuing to deliver the service, requiring a DR centre, critical systems included in DR plans, and annual plan testing. You need both, plus the high availability that handles ordinary infrastructure failure.</p>
+
+    <h3>Does CSCC require offline backups?</h3>
+    <p>Control 2-8-1-1 states that the scope and coverage of online and offline backups shall cover all critical systems, so both are named. The reasoning is that a copy in the same account as the system it protects may not survive an incident that reaches the account, such as ransomware or a compromised privileged credential. Separated storage with its own access controls addresses that.</p>
+
+    <h3>Is multi-zone high availability enough to satisfy CSCC?</h3>
+    <p>No. High availability protects against infrastructure failure, but it replicates data problems rather than protecting against them, so a bad migration or deleted table reaches the standby immediately. CSCC asks separately for backups with tested recovery and for disaster recovery planning. High availability is one of three pieces, not a substitute for the others.</p>
+
+    <h3>Can I use production data in a restore test?</h3>
+    <p>Be careful here. Control 2-6-1-1 prohibits using critical systems data in environments other than production without strict protection such as masking or scrambling, and 2-6-1-5 prohibits transferring production data to another environment. Design the test as an isolated recovery that is verified then destroyed, and agree the approach with your compliance team rather than assuming.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Test the restore on a calm Tuesday, not during the incident.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"CSCC Backup and Disaster Recovery: What Saudi Critical Systems Must Prove","description":"CSCC 2-8 and 3-1 explained: online and offline backup coverage, daily backups, quarterly recovery testing, a DR centre, and annual DR plan tests.","image":"https://www.kloudbean.com/blog/cscc-backup-disaster-recovery/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/cscc-backup-disaster-recovery/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How often does NCA CSCC require backups?","acceptedAnswer":{"@type":"Answer","text":"Control 2-8-1-2 sets the interval according to your organisation's risk assessment, and NCA recommends daily backups for critical systems. Treat daily as the expected baseline, and be ready to justify any longer interval with the risk assessment that supports it, because that deviation is what an auditor will question."}},
+{"@type":"Question","name":"How often must backup recovery be tested under CSCC?","acceptedAnswer":{"@type":"Answer","text":"At least every three months, under control 2-8-2, to determine the efficiency of recovering critical systems backups. This is separate from testing disaster recovery plans, which control 3-1-1-3 requires at least annually. Mixing up the two cadences is a common mistake."}},
+{"@type":"Question","name":"What is the difference between backups and disaster recovery in CSCC?","acceptedAnswer":{"@type":"Answer","text":"CSCC treats them as different domains. Backups (subdomain 2-8) are about recovering data. Disaster recovery (domain 3) is about continuing to deliver the service, requiring a DR centre, critical systems included in DR plans, and annual plan testing. You need both, plus the high availability that handles ordinary infrastructure failure."}},
+{"@type":"Question","name":"Does CSCC require offline backups?","acceptedAnswer":{"@type":"Answer","text":"Control 2-8-1-1 states that the scope and coverage of online and offline backups shall cover all critical systems, so both are named. The reasoning is that a copy in the same account as the system it protects may not survive an incident that reaches the account, such as ransomware or a compromised privileged credential. Separated storage with its own access controls addresses that."}},
+{"@type":"Question","name":"Is multi-zone high availability enough to satisfy CSCC?","acceptedAnswer":{"@type":"Answer","text":"No. High availability protects against infrastructure failure, but it replicates data problems rather than protecting against them, so a bad migration or deleted table reaches the standby immediately. CSCC asks separately for backups with tested recovery and for disaster recovery planning. High availability is one of three pieces, not a substitute for the others."}},
+{"@type":"Question","name":"Can I use production data in a restore test?","acceptedAnswer":{"@type":"Answer","text":"Be careful here. Control 2-6-1-1 prohibits using critical systems data in environments other than production without strict protection such as masking or scrambling, and 2-6-1-5 prohibits transferring production data to another environment. Design the test as an isolated recovery that is verified then destroyed, and agree the approach with your compliance team rather than assuming."}}
+]}
+]}
+</script>
+</body>
+</html>

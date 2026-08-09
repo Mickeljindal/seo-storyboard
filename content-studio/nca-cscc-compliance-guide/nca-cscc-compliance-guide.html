@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NCA CSCC Explained: Critical Systems Cybersecurity Controls in Saudi Arabia</title>
+<meta name="description" content="A plain guide to Saudi Arabia's Critical Systems Cybersecurity Controls (CSCC-1:2019): how to tell if a system is critical, the four control domains, what hosting infrastructure covers, and what stays with your organisation.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/nca-cscc-compliance-guide/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="NCA CSCC Explained: Critical Systems Cybersecurity Controls in Saudi Arabia">
+<meta property="og:description" content="How CSCC-1:2019 extends NCA ECC, the seven criteria that make a system critical, the four control domains, and the honest split between host and organisation.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Compliance · Saudi Arabia · NCA CSCC</span>
+  <h1>NCA CSCC Explained: Critical Systems Cybersecurity Controls in Saudi Arabia</h1>
+  <p class="byline">By Kloudbean Engineering · Read the controls before you buy the hosting.</p>
+
+  <figure><img src="images/hero.png" alt="The four CSCC domains: governance, defence, resilience, and third-party and cloud cybersecurity"></figure>
+
+  <p class="lead">If someone has told you a system you run is a "critical system" under Saudi rules, they mean CSCC-1:2019, the National Cybersecurity Authority's Critical Systems Cybersecurity Controls. It sits on top of the Essential Cybersecurity Controls, adds stricter requirements, and it changes real technical decisions: where the system is hosted, who can reach it from where, how long logs are kept, and how often you test a restore. This guide explains what the framework actually asks for, and which parts hosting can and cannot answer.</p>
+
+  <div class="tldr">
+    <strong>What is NCA CSCC?</strong>
+    <p>CSCC-1:2019 is the National Cybersecurity Authority's set of minimum cybersecurity requirements for critical systems in Saudi Arabia. It extends the Essential Cybersecurity Controls (ECC-1:2018), and ECC compliance is a prerequisite, so CSCC is additional to ECC rather than a replacement. It contains 4 main domains, 21 subdomains, 32 main controls, and 73 subcontrols. It applies to organisations that own or operate systems they have identified as critical.</p>
+  </div>
+
+  <h2>CSCC and ECC: an extension, not a replacement</h2>
+  <p>Start with the relationship, because it decides your workload. NCA published ECC-1:2018 to set a baseline for all organisations. CSCC-1:2019 was then developed for national critical systems, and the framework is explicit that continuous ECC compliance is required in order to be fully compliant with CSCC. So the reading order is ECC first, then CSCC on top. Most CSCC controls are phrased as additions: "in addition to the controls in ECC subdomain X, the following must also be met."</p>
+  <p>Practically, that means a CSCC conversation is never only about the critical system. Your wider ECC posture has to hold too. If you're new to both, our <a href="https://www.kloudbean.com/blog/nca-ecc-compliant-hosting/">NCA ECC hosting guide</a> covers the baseline layer first.</p>
+
+  <h2>Is your system actually "critical"?</h2>
+  <p>This is the question worth answering carefully, because it determines whether any of this applies. NCA defines a critical system as any system or network whose failure, unauthorised change, or unauthorised access, including to the data it stores or processes, may negatively affect the organisation's business and service availability, or cause negative economic, financial, security, or social impact at the national level.</p>
+  <p>The framework then gives criteria organisations may use to identify their own critical systems:</p>
+  <ul>
+    <li>Negative impact on national security.</li>
+    <li>Negative impact on the Kingdom's reputation and public image.</li>
+    <li>Significant financial losses, given as more than 0.01% of GDP.</li>
+    <li>Negative impact on services provided to a large number of users, given as more than 5% of the population.</li>
+    <li>Loss of lives.</li>
+    <li>Unauthorised disclosure of data classified Top Secret or Secret.</li>
+    <li>Negative impact on the operations of one or more vital sectors.</li>
+  </ul>
+  <p>Note that identification is the organisation's own responsibility, and it is the first implementation step NCA sets out. A hosting provider cannot decide this for you. Note also how broad the component list is once a system is in scope: network devices, firewalls, IDS and IPS, APT protection, databases, storage, middleware, servers and operating systems, applications, encryption devices, and even peripherals like printers, plus the people in supporting roles and the related documentation.</p>
+
+  <h2>Who it applies to</h2>
+  <p>The scope covers systems deemed critical by the organisations that own or operate them, whether those are government organisations inside the Kingdom or abroad, including ministries, authorities, establishments, and embassies, along with subsidiaries of government or private organisations. Applicability is assessed per control. The cloud and hosting subdomain (4-2), for instance, applies to organisations currently using or planning to use cloud computing and hosting services.</p>
+
+  <h2>The four domains</h2>
+  <table class="cmp">
+    <thead><tr><th>Domain</th><th>What it covers</th></tr></thead>
+    <tbody>
+      <tr><td>1. Cybersecurity Governance</td><td>Strategy, risk management, cybersecurity in IT project management, periodical review and audit, human resources</td></tr>
+      <tr><td>2. Cybersecurity Defence</td><td>Asset and identity management, system and network protection, mobile devices, data protection, cryptography, backup, vulnerabilities, penetration testing, event logs and monitoring, web and application security</td></tr>
+      <tr><td>3. Cybersecurity Resilience</td><td>Cybersecurity aspects of business continuity management</td></tr>
+      <tr><td>4. Third-Party and Cloud Computing</td><td>Third-party cybersecurity, and cloud computing and hosting cybersecurity</td></tr>
+    </tbody>
+  </table>
+
+  <h2>The controls that shape your infrastructure</h2>
+  <p>Most of domain 2 translates directly into architecture. A selection of the requirements that change how a system is built and run:</p>
+  <ul>
+    <li><strong>Access.</strong> Remote access from outside the Kingdom is prohibited (2-2-1-1), and remote access from inside is restricted and monitored (2-2-1-2). Multi-factor authentication is required for all users (2-2-1-3). Privileged accounts use workstations on an isolated management network (2-3-1-4).</li>
+    <li><strong>Databases.</strong> Direct access and interaction with databases is prohibited for all users except database administrators; everyone else reaches data through applications only (2-2-1-8).</li>
+    <li><strong>Networks.</strong> Critical system networks must be logically or physically segregated and isolated (2-4-1-1). No wireless connection (2-4-1-4). Firewall access lists are whitelist-only (2-4-1-9). DDoS protection is required (2-4-1-8). Firewall rules are reviewed at least every six months (2-4-1-2).</li>
+    <li><strong>Patching and hardening.</strong> Security patches at least monthly for external and internet-connected critical systems, at least quarterly for internal ones (2-3-1-3). Configuration and hardening reviewed at least every six months (2-3-1-6). Hard-coded, backdoor, and default passwords removed (2-3-1-7).</li>
+    <li><strong>Encryption.</strong> All data in transit encrypted (2-7-1-1), and data at rest encrypted at file, database, or column level (2-7-1-2).</li>
+    <li><strong>Data handling.</strong> Production data may not be used in non-production environments without strict protection such as masking or scrambling (2-6-1-1), and transferring production data to another environment is prohibited (2-6-1-5).</li>
+    <li><strong>Logging.</strong> Event logs on all technical components (2-11-1-1), file integrity monitoring (2-11-1-2), user behaviour monitoring (2-11-1-3), around-the-clock monitoring of security events (2-11-1-4), and a minimum 18-month log retention (2-11-2).</li>
+    <li><strong>Testing.</strong> Vulnerability assessments at least monthly (2-9-2), penetration tests at least every six months (2-10-2), and backup recovery tested at least every three months (2-8-2).</li>
+    <li><strong>Architecture.</strong> Multi-tier architecture with a minimum of three tiers (2-12-2 and 2-13-3-1), and OWASP Top Ten as a minimum standard for internet-facing web applications (2-12-1-2).</li>
+    <li><strong>Resilience.</strong> A disaster recovery centre for critical systems (3-1-1-1), with DR plans tested at least annually (3-1-1-3).</li>
+  </ul>
+
+  <h2>The hosting and third-party controls</h2>
+  <p>Domain 4 is where your choice of provider becomes a compliance question rather than a preference. Two requirements matter most. Control 4-2-1-1 states that hosting of critical systems and any part of their technical components must be inside the organisation, or within cloud computing services provided by government organisations or Saudi companies that comply with NCA's Cloud Cybersecurity Controls (CCC), taking the classification of the hosted data into account. Control 4-1-1-2 states that outsourcing and managed services for critical systems must rely on Saudi companies and organisations, in line with relevant legislative and regulatory requirements.</p>
+  <p>So for a genuinely critical system, in-Kingdom hosting is not a latency optimisation, it is a control. Read those two alongside the residency detail in <a href="https://www.kloudbean.com/blog/data-residency-saudi-arabia/">data residency in Saudi Arabia</a>.</p>
+
+  <h2>What hosting covers, and what it doesn't</h2>
+  <p>Being precise here saves everyone time. No hosting provider can make an organisation CSCC compliant, because compliance is assessed against the organisation, and NCA evaluates it through self-assessment and on-site audits. What a managed provider can do is implement and maintain the infrastructure-layer controls correctly, and produce the evidence that they are in place.</p>
+  <p>Infrastructure territory: network segregation and isolation, whitelist-only firewalls, VPN and bastion access with no direct SSH from the internet, MFA at the infrastructure layer, private-only database networking, encryption in transit and at rest, patch cadence, CIS-style hardening with default credentials removed, centralised logging with file integrity monitoring, immutable log storage and 18-month retention, daily backups with tested restores, multi-zone high availability, and DDoS protection.</p>
+  <p>Organisation territory, and no provider should claim it: identifying which systems are critical, cybersecurity governance and the risk register, HR security including screening and awareness training, record-level data classification, application-layer masking logic, application security code work such as session management and input validation, commissioning penetration tests, and engaging NCA for formal assessment. Security operations centre work sits in between, since detection can be built into the infrastructure while investigation and response need people; Kloudbean handles SOC and SIEM engagements collaboratively, scoped with the client rather than sold as a fixed package.</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="Selecting a cloud provider and region when launching a server in the Kloudbean console">
+    <figcaption>Provider and region are chosen at launch, which is where an in-Kingdom requirement gets satisfied.</figcaption>
+  </figure>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>For regulated workloads, Kloudbean runs managed enterprise engagements on a dedicated cloud account, including Google Cloud's Dammam region (me-central2) for in-Kingdom residency. On those engagements we build and maintain the infrastructure-layer controls listed above and deliver evidence as managed reports. Two honest notes: this is an enterprise engagement model rather than something you switch on from a self-serve plan, and certification remains an assessment of your organisation, with us supplying the technical foundation and the evidence rather than a certificate.</p>
+
+  <h2>Related reading</h2>
+  <p>Start with <a href="https://www.kloudbean.com/blog/nca-ecc-compliant-hosting/">NCA ECC compliant hosting</a> for the baseline, then <a href="https://www.kloudbean.com/blog/pdpl-compliance-hosting/">PDPL compliance hosting</a> for the privacy side, which is a separate law with a different purpose. For the residency mechanics see <a href="https://www.kloudbean.com/blog/data-residency-saudi-arabia/">data residency in Saudi Arabia</a> and <a href="https://www.kloudbean.com/blog/cloud-hosting-saudi-arabia/">cloud hosting in Saudi Arabia</a>. For the operating model, <a href="https://www.kloudbean.com/blog/managed-hosting-ksa/">managed hosting in KSA</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Talk through the infrastructure controls.</p>
+    <p style="margin:0 0 .6em">If you're scoping a critical system, Kloudbean runs managed enterprise engagements with in-Kingdom hosting on Google Cloud Dammam, network isolation, VPN and bastion access, encryption in transit and at rest, immutable logging with 18-month retention, tested backups, and multi-zone high availability. Start a conversation at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">In-Kingdom hosting · Network isolation · Immutable logs, 18-month retention · Tested restores · Multi-zone HA</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is NCA CSCC?</h3>
+    <p>CSCC-1:2019 is the National Cybersecurity Authority's set of minimum cybersecurity requirements for critical systems in Saudi Arabia. It contains 4 main domains, 21 subdomains, 32 main controls, and 73 subcontrols, and it extends the Essential Cybersecurity Controls rather than replacing them.</p>
+
+    <h3>What is the difference between NCA ECC and CSCC?</h3>
+    <p>ECC-1:2018 sets a baseline for all organisations. CSCC-1:2019 adds stricter requirements specifically for systems identified as critical, and continuous ECC compliance is a prerequisite for CSCC compliance. Most CSCC controls are written as additions to a matching ECC control, so you implement ECC first and CSCC on top.</p>
+
+    <h3>How do I know if my system is a critical system?</h3>
+    <p>Your organisation identifies it, using NCA's criteria: impact on national security, impact on the Kingdom's reputation, losses above 0.01% of GDP, disruption to services for more than 5% of the population, loss of lives, disclosure of Top Secret or Secret data, or impact on a vital sector's operations. Identification is the organisation's responsibility and is the first implementation step, not something a vendor decides.</p>
+
+    <h3>Does CSCC require hosting inside Saudi Arabia?</h3>
+    <p>For critical systems, effectively yes. Control 4-2-1-1 requires hosting inside the organisation or with cloud services from government organisations or Saudi companies that comply with NCA's Cloud Cybersecurity Controls, accounting for data classification. Control 4-1-1-2 also requires outsourcing and managed services for critical systems to rely on Saudi companies.</p>
+
+    <h3>Can a hosting provider make me CSCC compliant?</h3>
+    <p>No. Compliance is assessed against your organisation, and NCA evaluates it through self-assessment and on-site audits. A managed provider can implement and maintain the infrastructure-layer controls and supply evidence that they are correctly in place, which is a substantial part of the technical work but not a certificate.</p>
+
+    <h3>How long must CSCC logs be retained?</h3>
+    <p>At least 18 months, under control 2-11-2, in line with relevant legislative and regulatory requirements. The surrounding controls also require event logs on all technical components, file integrity monitoring, user behaviour monitoring, around-the-clock monitoring of security events, and protection of logs against tampering or deletion.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · The controls are public. Read them, then scope the work.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"NCA CSCC Explained: Critical Systems Cybersecurity Controls in Saudi Arabia","description":"How CSCC-1:2019 extends NCA ECC, the seven criteria that make a system critical, the four control domains, and the honest split between host and organisation.","image":"https://www.kloudbean.com/blog/nca-cscc-compliance-guide/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/nca-cscc-compliance-guide/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is NCA CSCC?","acceptedAnswer":{"@type":"Answer","text":"CSCC-1:2019 is the National Cybersecurity Authority's set of minimum cybersecurity requirements for critical systems in Saudi Arabia. It contains 4 main domains, 21 subdomains, 32 main controls, and 73 subcontrols, and it extends the Essential Cybersecurity Controls rather than replacing them."}},
+{"@type":"Question","name":"What is the difference between NCA ECC and CSCC?","acceptedAnswer":{"@type":"Answer","text":"ECC-1:2018 sets a baseline for all organisations. CSCC-1:2019 adds stricter requirements specifically for systems identified as critical, and continuous ECC compliance is a prerequisite for CSCC compliance. Most CSCC controls are written as additions to a matching ECC control, so you implement ECC first and CSCC on top."}},
+{"@type":"Question","name":"How do I know if my system is a critical system?","acceptedAnswer":{"@type":"Answer","text":"Your organisation identifies it, using NCA's criteria: impact on national security, impact on the Kingdom's reputation, losses above 0.01 percent of GDP, disruption to services for more than 5 percent of the population, loss of lives, disclosure of Top Secret or Secret data, or impact on a vital sector's operations. Identification is the organisation's responsibility and is the first implementation step, not something a vendor decides."}},
+{"@type":"Question","name":"Does CSCC require hosting inside Saudi Arabia?","acceptedAnswer":{"@type":"Answer","text":"For critical systems, effectively yes. Control 4-2-1-1 requires hosting inside the organisation or with cloud services from government organisations or Saudi companies that comply with NCA's Cloud Cybersecurity Controls, accounting for data classification. Control 4-1-1-2 also requires outsourcing and managed services for critical systems to rely on Saudi companies."}},
+{"@type":"Question","name":"Can a hosting provider make me CSCC compliant?","acceptedAnswer":{"@type":"Answer","text":"No. Compliance is assessed against your organisation, and NCA evaluates it through self-assessment and on-site audits. A managed provider can implement and maintain the infrastructure-layer controls and supply evidence that they are correctly in place, which is a substantial part of the technical work but not a certificate."}},
+{"@type":"Question","name":"How long must CSCC logs be retained?","acceptedAnswer":{"@type":"Answer","text":"At least 18 months, under control 2-11-2, in line with relevant legislative and regulatory requirements. The surrounding controls also require event logs on all technical components, file integrity monitoring, user behaviour monitoring, around-the-clock monitoring of security events, and protection of logs against tampering or deletion."}}
+]}
+]}
+</script>
+</body>
+</html>

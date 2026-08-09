@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CSCC 18-Month Log Retention: Immutable Logging for Saudi Critical Systems</title>
+<meta name="description" content="NCA CSCC requires 18 months of log retention, protection from tampering, file integrity monitoring, and around-the-clock event monitoring. What each control asks for, and how to build logging that satisfies the infrastructure half.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/cscc-log-retention-immutable-logs/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CSCC 18-Month Log Retention: Immutable Logging for Saudi Critical Systems">
+<meta property="og:description" content="CSCC 2-11 explained: 18-month retention, tamper-proof log storage, file integrity monitoring, user behaviour monitoring, and around-the-clock monitoring.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Compliance · Saudi Arabia · CSCC 2-11</span>
+  <h1>CSCC 18-Month Log Retention: Immutable Logging for Saudi Critical Systems</h1>
+  <p class="byline">By Kloudbean Engineering · A log an administrator can quietly delete is not evidence.</p>
+
+  <figure><img src="images/hero.png" alt="Logs flowing from servers and databases into immutable, retention-locked storage held for 18 months"></figure>
+
+  <p class="lead">Of all the CSCC controls, the logging subdomain is the one teams underestimate most. It looks like a checkbox, "turn on logs", and then an auditor asks whether the logs can be altered, whether file changes raise an alert, and whether you can still produce records from fourteen months ago. Those are three different requirements with three different technical answers. This is a walk through CSCC subdomain 2-11, what each control actually asks for, and how to build a logging setup that holds up.</p>
+
+  <div class="tldr">
+    <strong>How long must logs be kept under NCA CSCC?</strong>
+    <p>At least 18 months. Control 2-11-2 sets the retention floor for critical systems event logs, in line with relevant legislative and regulatory requirements. Retention alone isn't enough: 2-11-1-5 requires logs to be maintained and protected against unauthorised access, tampering, illegitimate modification, and deletion, so you need write-once storage with a retention lock rather than an ordinary bucket an administrator could clear.</p>
+  </div>
+
+  <h2>What subdomain 2-11 actually requires</h2>
+  <p>The controls build on the matching ECC control rather than replacing it. In order:</p>
+  <table class="cmp">
+    <thead><tr><th>Control</th><th>Requirement</th></tr></thead>
+    <tbody>
+      <tr><td>2-11-1-1</td><td>Activate cybersecurity event logs on all technical components of critical systems</td></tr>
+      <tr><td>2-11-1-2</td><td>Activate and monitor alerts and event logs for file integrity management</td></tr>
+      <tr><td>2-11-1-3</td><td>Monitor and analyse user behaviour</td></tr>
+      <tr><td>2-11-1-4</td><td>Monitor critical systems security events around the clock</td></tr>
+      <tr><td>2-11-1-5</td><td>Maintain and protect logs, including time, date, ID, and affected system</td></tr>
+      <tr><td>2-11-2</td><td>Retain logs for a minimum of 18 months</td></tr>
+    </tbody>
+  </table>
+  <p>Read 2-11-1-1 carefully. It says <em>all</em> technical components, and the CSCC component list is broad: network devices, firewalls, IDS and IPS, databases, storage, middleware, servers and operating systems, applications, and encryption devices. A common gap is logging the application and the servers but not the database's data-access events or the network layer.</p>
+
+  <h2>18 months is longer than most defaults</h2>
+  <p>This is where plans quietly fail. Cloud logging services typically retain logs for a default window measured in weeks or a single month, and then discard them. If nobody changes that, you are compliant on day one and non-compliant by month two, with no alert to tell you.</p>
+  <p>The fix is a dedicated log bucket with an explicit retention period rather than the default sink. Eighteen months means 548 days as a minimum, and it is worth configuring slightly above the floor so month-boundary arithmetic never puts you under it. Archive-class storage keeps the cost of that window reasonable, since old logs are written once and read rarely.</p>
+
+  <h2>Retention is not the same as immutability</h2>
+  <p>Two different controls, often conflated. Retention (2-11-2) is about how long records exist. Protection (2-11-1-5) is about whether anyone can change or remove them, and it names tampering, illegitimate modification, and deletion explicitly.</p>
+  <p>A bucket with a 548-day lifecycle rule satisfies the first and fails the second, because someone with the right permission can still delete the objects. What satisfies both is write-once-read-many storage with a retention lock applied, so the platform itself refuses deletion or modification before the period expires. That property is the difference between logs you keep and logs that count as evidence. If a privileged account could erase the trail of its own actions, an auditor is right to discount the whole log set.</p>
+  <p>Worth stating plainly: once a retention lock is applied, you cannot shorten it or delete the data early either. That is the point, and it is also a decision to make deliberately rather than discover later.</p>
+
+  <h2>What a log line needs to contain</h2>
+  <p>Control 2-11-1-5 specifies the log should include the details, giving time, date, ID, and affected system as examples. In practice, an event that can support an investigation carries at minimum:</p>
+  <ul>
+    <li>Timestamp, ideally from a synchronised source so records from different components line up.</li>
+    <li>The identity that acted, whether a user or a service account.</li>
+    <li>Source IP or origin of the request.</li>
+    <li>The resource touched, and the action taken.</li>
+    <li>The outcome, since a failed attempt is often more interesting than a successful one.</li>
+  </ul>
+  <p>Structured, machine-readable output makes this far easier to query later. If your application still writes free-form text lines, our <a href="https://www.kloudbean.com/blog/structured-logging-nodejs/">structured logging guide</a> covers the shift, and the same principle applies well beyond Node.</p>
+
+  <h2>File integrity monitoring</h2>
+  <p>Control 2-11-1-2 asks for alerts and logs specifically for file integrity management. This is a distinct capability, not a byproduct of ordinary logging. An agent watches critical directories and binaries, and raises an alert when something changes unexpectedly. It is how you notice an unauthorised modification to a configuration file or a planted binary that no application log would mention.</p>
+  <p>Note the wording includes monitoring, not just activation. A file integrity alert that nobody reads satisfies the letter and misses the purpose.</p>
+
+  <h2>Around-the-clock monitoring, and the honest boundary</h2>
+  <p>Control 2-11-1-4 requires security events to be monitored around the clock. This is the control where responsibility genuinely splits, so it deserves a straight answer rather than a marketing one.</p>
+  <p>The infrastructure half can be built: log collection from every component, alert policies covering the events that matter (firewall changes, IAM changes, failed logins, virtual machine events, database anomalies), threat detection on access patterns to flag anomalies, and immutable storage underneath it all. That part is engineering and it can be delivered and maintained by a provider.</p>
+  <p>The other half is people. Investigating an alert, classifying its severity, escalating it, and reporting to the regulator needs a security operations centre, whether that is your own team or an MSSP. Detection infrastructure without human response does not satisfy 2-11-1-4 on its own. Kloudbean does take on SOC and SIEM work, but as a collaborative engagement scoped with the client rather than a fixed package, because the right shape depends on your team, your hours, and your escalation paths.</p>
+
+  <h2>User behaviour monitoring</h2>
+  <p>Control 2-11-1-3 asks for monitoring and analysis of user behaviour, which NCA's own glossary describes as tracking, collecting, and analysing user data to identify activity patterns and detect harmful or unusual behaviour. At the infrastructure layer you can get meaningful coverage of identity and access patterns, flagging anomalous administrative access. Full behavioural analytics across application activity generally needs a SIEM or a dedicated platform, so treat the infrastructure signal as a foundation rather than the finished control.</p>
+
+  <h2>A practical checklist</h2>
+  <ol>
+    <li>Enable event logging on every component, including the database's data-access logs and the network layer, not only application servers.</li>
+    <li>Route everything to a central destination rather than leaving logs on the machines that produced them.</li>
+    <li>Create a dedicated log bucket with retention set at 548 days minimum, and confirm the default shorter retention no longer applies.</li>
+    <li>Apply a write-once retention lock so records cannot be modified or deleted inside the window.</li>
+    <li>Export to archive-class storage to keep the long tail affordable.</li>
+    <li>Deploy a file integrity monitoring agent on critical machines and route its alerts somewhere a human sees them.</li>
+    <li>Define alert policies for firewall changes, IAM changes, failed logins, machine events, and database anomalies.</li>
+    <li>Confirm who is watching, and when. If the answer is nobody at 3am, 2-11-1-4 is not met yet.</li>
+    <li>Test the retrieval path. Being able to produce a specific event from twelve months ago is the thing an audit actually asks for.</li>
+  </ol>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="Choosing provider and region when launching a server, including in-Kingdom options">
+    <figcaption>Logging design starts at provisioning, alongside the region decision that in-Kingdom requirements depend on.</figcaption>
+  </figure>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>On managed enterprise engagements, Kloudbean builds this layer: logging agents on all machines, audit logs across cloud services, database data-access logging, file integrity monitoring on critical machines, a library of alert policies for the event types above, immutable log storage with a write-once retention lock, and 18-month retention with archive export. Evidence is delivered as managed reports. This is an enterprise engagement rather than a self-serve toggle, and as noted above, around-the-clock human response is scoped collaboratively rather than assumed.</p>
+
+  <h2>Related reading</h2>
+  <p>For the full framework, see <a href="https://www.kloudbean.com/blog/nca-cscc-compliance-guide/">NCA CSCC explained</a>, and for the baseline beneath it <a href="https://www.kloudbean.com/blog/nca-ecc-compliant-hosting/">NCA ECC compliant hosting</a>. Retention interacts with privacy obligations, covered in <a href="https://www.kloudbean.com/blog/pdpl-compliance-hosting/">PDPL compliance hosting</a>. On the technical side, <a href="https://www.kloudbean.com/blog/structured-logging-nodejs/">structured logging</a> and <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups</a> are the closest neighbours, and residency is covered in <a href="https://www.kloudbean.com/blog/data-residency-saudi-arabia/">data residency in Saudi Arabia</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Build the logging layer once, properly.</p>
+    <p style="margin:0 0 .6em">Kloudbean runs managed enterprise engagements with centralised logging across every component, file integrity monitoring, immutable write-once log storage, and 18-month retention with archive export, on in-Kingdom infrastructure where required. Start a conversation at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Immutable log storage · 18-month retention · File integrity monitoring · Alert policies · In-Kingdom hosting available</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How long does NCA CSCC require logs to be retained?</h3>
+    <p>A minimum of 18 months for critical systems event logs, under control 2-11-2, in line with relevant legislative and regulatory requirements. That is 548 days, and it is worth configuring slightly above the floor. Most cloud logging defaults are far shorter, so the default sink usually needs replacing with a dedicated retention-configured bucket.</p>
+
+    <h3>What is the difference between log retention and immutable logs?</h3>
+    <p>Retention (2-11-2) is how long records exist. Protection (2-11-1-5) is whether anyone can tamper with, modify, or delete them. A lifecycle rule satisfies retention but not protection, because a privileged account can still delete objects. Write-once storage with a retention lock satisfies both, which is what makes logs usable as evidence.</p>
+
+    <h3>Which systems need logging under CSCC?</h3>
+    <p>Control 2-11-1-1 requires event logs on all technical components of critical systems. Given CSCC's component list, that includes network devices, firewalls, IDS and IPS, databases, storage, middleware, servers and operating systems, applications, and encryption devices. A frequent gap is covering application servers but not database data-access events or the network layer.</p>
+
+    <h3>Does CSCC require a 24/7 SOC?</h3>
+    <p>Control 2-11-1-4 requires security events to be monitored around the clock, which in practice means human response as well as detection. Infrastructure can supply collection, alert policies, and anomaly detection, but investigation, severity classification, escalation, and regulator reporting need a SOC team or an MSSP. Detection tooling alone does not satisfy the control.</p>
+
+    <h3>What should a CSCC-compliant log entry contain?</h3>
+    <p>Control 2-11-1-5 gives time, date, ID, and affected system as examples of the details required. A practical event also records the acting identity including service accounts, the source IP, the resource and action, and the outcome. Structured machine-readable output makes retrieval during an audit far easier than free-form text.</p>
+
+    <h3>Can I store CSCC logs outside Saudi Arabia?</h3>
+    <p>Treat logs as part of the critical system. Control 4-2-1-1 requires hosting of critical systems and any part of their technical components inside the organisation or with qualifying in-Kingdom cloud services, accounting for data classification. Since logs can contain sensitive operational detail, the safe reading is to keep them in the same in-Kingdom footprint and confirm the position with your compliance team.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Keep them long enough, and make them impossible to quietly change.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"CSCC 18-Month Log Retention: Immutable Logging for Saudi Critical Systems","description":"CSCC 2-11 explained: 18-month retention, tamper-proof log storage, file integrity monitoring, user behaviour monitoring, and around-the-clock monitoring.","image":"https://www.kloudbean.com/blog/cscc-log-retention-immutable-logs/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/cscc-log-retention-immutable-logs/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How long does NCA CSCC require logs to be retained?","acceptedAnswer":{"@type":"Answer","text":"A minimum of 18 months for critical systems event logs, under control 2-11-2, in line with relevant legislative and regulatory requirements. That is 548 days, and it is worth configuring slightly above the floor. Most cloud logging defaults are far shorter, so the default sink usually needs replacing with a dedicated retention-configured bucket."}},
+{"@type":"Question","name":"What is the difference between log retention and immutable logs?","acceptedAnswer":{"@type":"Answer","text":"Retention (2-11-2) is how long records exist. Protection (2-11-1-5) is whether anyone can tamper with, modify, or delete them. A lifecycle rule satisfies retention but not protection, because a privileged account can still delete objects. Write-once storage with a retention lock satisfies both, which is what makes logs usable as evidence."}},
+{"@type":"Question","name":"Which systems need logging under CSCC?","acceptedAnswer":{"@type":"Answer","text":"Control 2-11-1-1 requires event logs on all technical components of critical systems. Given CSCC's component list, that includes network devices, firewalls, IDS and IPS, databases, storage, middleware, servers and operating systems, applications, and encryption devices. A frequent gap is covering application servers but not database data-access events or the network layer."}},
+{"@type":"Question","name":"Does CSCC require a 24/7 SOC?","acceptedAnswer":{"@type":"Answer","text":"Control 2-11-1-4 requires security events to be monitored around the clock, which in practice means human response as well as detection. Infrastructure can supply collection, alert policies, and anomaly detection, but investigation, severity classification, escalation, and regulator reporting need a SOC team or an MSSP. Detection tooling alone does not satisfy the control."}},
+{"@type":"Question","name":"What should a CSCC-compliant log entry contain?","acceptedAnswer":{"@type":"Answer","text":"Control 2-11-1-5 gives time, date, ID, and affected system as examples of the details required. A practical event also records the acting identity including service accounts, the source IP, the resource and action, and the outcome. Structured machine-readable output makes retrieval during an audit far easier than free-form text."}},
+{"@type":"Question","name":"Can I store CSCC logs outside Saudi Arabia?","acceptedAnswer":{"@type":"Answer","text":"Treat logs as part of the critical system. Control 4-2-1-1 requires hosting of critical systems and any part of their technical components inside the organisation or with qualifying in-Kingdom cloud services, accounting for data classification. Since logs can contain sensitive operational detail, the safe reading is to keep them in the same in-Kingdom footprint and confirm the position with your compliance team."}}
+]}
+]}
+</script>
+</body>
+</html>
