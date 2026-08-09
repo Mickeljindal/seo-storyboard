@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ERR_CACHE_MISS Is Not a Cache Problem: It Is Your Form</title>
+<meta name="description" content="ERR_CACHE_MISS and Confirm Form Resubmission are caused by navigating back to a POST result, not by a broken cache. The real fix is POST-redirect-GET, plus the no-store versus no-cache mistake.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/err-cache-miss/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ERR_CACHE_MISS Is Not a Cache Problem: It Is Your Form">
+<meta property="og:description" content="Clearing the cache does not fix ERR_CACHE_MISS, because the cause is a POST the browser cannot replay. Fix it with a 303 redirect.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Browser errors · Caching · Field guide</span>
+  <h1>ERR_CACHE_MISS Is Not a Cache Problem: It Is Your Form</h1>
+  <p class="byline">By Kloudbean Engineering · Every guide says clear your cache. That is the one thing that cannot help.</p>
+
+  <figure><img src="images/hero.png" alt="A Chrome Confirm Form Resubmission dialog beside an Express route responding with a 303 redirect"></figure>
+
+  <p class="lead">ERR_CACHE_MISS almost always appears with "Confirm Form Resubmission", and the two together tell a much more specific story than the wording suggests. You submitted a form, the browser sent a POST, the server returned a page in response, and then you pressed back or refreshed. That page was the result of a POST, so the only way for the browser to show it again is to send the POST again, which could place a second order or send a second message. Chrome refuses to guess and asks. The cache is not broken. The browser is being careful with a request it cannot safely replay.</p>
+
+  <div class="tldr">
+    <strong>How do you fix ERR_CACHE_MISS?</strong>
+    <p>As a visitor, do not press back or refresh on a page you reached by submitting a form. Navigate to it through a link instead. As a developer, this is your fix to make: respond to a successful POST with a 303 redirect to a normal GET URL, which is the POST-redirect-GET pattern. Then the back button lands on a cacheable GET page and the prompt disappears permanently. Also check that you are not sending <code>Cache-Control: no-store</code> where <code>no-cache</code> is what you meant.</p>
+  </div>
+
+  <h2>Why the usual advice does nothing</h2>
+  <p>Search this error and you will be told to clear your cache, disable extensions, reset your network, and update Chrome. Consider what the error actually is: the browser needs a page it does not have stored, and the only way to regenerate it is to repeat a POST. Clearing the cache removes more stored pages, so if anything it makes the situation marginally more likely, not less.</p>
+  <p>There is one exception worth naming because it is embarrassingly common among developers. If DevTools is open with "Disable cache" checked, Chrome stores nothing at all, so every back navigation to a POST result produces this. If you only see it while working with DevTools open, that checkbox is your answer.</p>
+
+  <h2>The real fix: POST-redirect-GET</h2>
+  <p>This is one of those patterns that solves a whole category of problems at once, and it is genuinely worth applying everywhere you handle a form.</p>
+  <p>The problem shape: a POST arrives, you process it, and you render the result page directly in the POST response. Now that URL is permanently tied to a POST. Back button, refresh, bookmark, and share all break in different ways.</p>
+  <p>The fix: process the POST, then redirect to a URL that serves the result over GET.</p>
+  <pre><code>// Express: process, then redirect with 303
+app.post('/orders', async (req, res) =&gt; {
+  const order = await createOrder(req.body);
+  res.redirect(303, `/orders/${order.id}`);
+});
+
+// The result page is an ordinary GET
+app.get('/orders/:id', async (req, res) =&gt; {
+  const order = await getOrder(req.params.id);
+  res.render('order', { order });
+});</code></pre>
+  <pre><code>// PHP
+$id = create_order($_POST);
+header('Location: /orders/' . $id, true, 303);
+exit;</code></pre>
+  <p>Use 303 specifically rather than 302. A 303 tells the client to make the follow-up request with GET regardless of the original method, which is exactly the intent. A 302 leaves that to client discretion and historically has been handled inconsistently. One digit, and it is the digit that makes the pattern reliable.</p>
+  <p>What you get for that small change. The back button works, because it returns to a GET page. Refresh works, and re-fetches rather than re-submitting. The URL is shareable and bookmarkable. Double submissions from an impatient refresh stop happening. And "Confirm Form Resubmission" disappears from your application permanently.</p>
+  <p>My honest view: if you handle forms and render results in the same response, this is the highest-value hour of refactoring available to you. It is not really a fix for a browser error, it is the correct shape for a form, and the browser error is just what you get for not using it.</p>
+
+  <h2>The second cause: no-store where you meant no-cache</h2>
+  <p>These two directives get used interchangeably and they are meaningfully different. Getting it wrong is a common source of this error on pages that have nothing to do with forms.</p>
+  <table class="cmp">
+    <thead><tr><th>Directive</th><th>What it does</th><th>Back button</th></tr></thead>
+    <tbody>
+      <tr><td><code>no-store</code></td><td>Do not store this response anywhere at all</td><td>Breaks, nothing to return to</td></tr>
+      <tr><td><code>no-cache</code></td><td>Store it, but revalidate before reuse</td><td>Works, revalidated on return</td></tr>
+      <tr><td><code>private, max-age=0, must-revalidate</code></td><td>Store in the browser only, always revalidate</td><td>Works, and stays private</td></tr>
+    </tbody>
+  </table>
+  <p>People reach for <code>no-store</code> on authenticated pages, reasoning that private data should not be cached. The intent is right and the directive is usually stronger than needed. <code>no-store</code> means the browser keeps nothing, so back navigation has nothing to show. What most authenticated pages actually want is caching in the browser only, with revalidation on every use:</p>
+  <pre><code># Reasonable for a logged-in page
+Cache-Control: private, no-cache, must-revalidate</code></pre>
+  <p>Reserve <code>no-store</code> for genuinely sensitive responses where a copy on disk is unacceptable, such as a page displaying full payment details. For an ordinary account dashboard it is heavier than the situation requires, and it costs you working navigation. Check what you are actually sending:</p>
+  <pre><code>curl -sI https://example.com/account | grep -i cache-control</code></pre>
+  <p>On WordPress, a caching plugin or a security plugin may be adding <code>no-store</code> to logged-in pages on your behalf, so check the response rather than only your own code.</p>
+
+  <h2>What to tell a visitor who reports it</h2>
+  <p>Short and specific. Do not press back or refresh after submitting a form; navigate using the site's own links instead. If they are stuck on the prompt, the page they want almost always exists at its own address, so a fresh navigation reaches it cleanly.</p>
+  <p>The longer answer is that they should not have to know this. If your users are hitting Confirm Form Resubmission regularly, it is a design signal rather than a support issue, and the redirect pattern above removes it for everyone at once.</p>
+
+  <table class="cmp">
+    <thead><tr><th>When it happens</th><th>Cause</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td>Back or refresh after submitting a form</td><td>Page is a POST result</td><td>POST-redirect-GET with 303</td></tr>
+      <tr><td>Only with DevTools open</td><td>"Disable cache" is checked</td><td>Uncheck it</td></tr>
+      <tr><td>On logged-in pages, no forms involved</td><td><code>no-store</code> in Cache-Control</td><td>Use <code>private, no-cache, must-revalidate</code></td></tr>
+      <tr><td>After installing a caching or security plugin</td><td>Plugin adding <code>no-store</code></td><td>Check the response headers</td></tr>
+      <tr><td>On one browser only</td><td>Extension interfering with storage</td><td>Test in a private window</td></tr>
+      <tr><td>On a payment or checkout step</td><td>Intentional <code>no-store</code></td><td>Leave it, and use the redirect pattern</td></tr>
+    </tbody>
+  </table>
+
+  <h2>The wider point about POST</h2>
+  <p>Worth stepping back, because this error is a symptom of a design decision rather than a browser quirk. POST is defined as non-idempotent: sending it twice may have a different effect from sending it once. Everything the browser does here follows from taking that seriously. It will not silently replay a POST, it will not restore a POST result from history, and it will ask before doing either.</p>
+  <p>So the useful mental rule is that a URL a user might return to should be reachable with GET. If returning to a page requires repeating a side effect, the design is asking the browser to do something it correctly refuses to do. Once you see the error that way, the fix is obvious and the browser stops looking awkward.</p>
+
+  <h2>Where hosting fits, honestly</h2>
+  <p>This one is mostly yours, and it should be. It is an application design question and a response header question, and no hosting change makes a POST replayable.</p>
+  <p>Two smaller things do touch it. Response headers are set by your application or by a plugin, and having <a href="https://www.kloudbean.com/blog/wordpress-staging-environment/">staging</a> means you can change caching directives and click through real navigation before your users do, which is where header changes usually go wrong. And when a caching plugin turns out to be adding <code>no-store</code>, automatic backups make rolling back a decision rather than a repair.</p>
+  <p>Beyond that, the fix is a 303 in your route handler. That is a good outcome: a browser error that turns out to be a small, permanent improvement to your own code.</p>
+
+  <figure>
+    <img src="../assets/console/staging.png" alt="Creating a staging copy of a site in the Kloudbean console">
+    <figcaption>Header and caching changes are worth clicking through on a copy before your visitors meet them.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>For the connection-level browser errors that genuinely are transport problems, <a href="https://www.kloudbean.com/blog/err-connection-reset/">ERR_CONNECTION_RESET</a>. On caching more broadly, <a href="https://www.kloudbean.com/blog/how-to-clear-wordpress-cache/">clearing WordPress cache</a>, <a href="https://www.kloudbean.com/blog/cdn-explained/">CDN explained</a>, and <a href="https://www.kloudbean.com/blog/redis-caching-patterns/">Redis caching patterns</a>. On response headers, <a href="https://www.kloudbean.com/blog/security-headers-guide/">the security headers guide</a>. For request-level failures, <a href="https://www.kloudbean.com/blog/400-bad-request/">400 Bad Request</a> and <a href="https://www.kloudbean.com/blog/fix-cors-error-node-production/">fixing CORS errors</a>. And for safe change management, <a href="https://www.kloudbean.com/blog/wordpress-staging-environment/">staging environments</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Test header changes somewhere that is not production.</p>
+    <p style="margin:0 0 .6em">Managed hosting with one-click staging, automatic backups, and servers, apps, and databases in one dashboard, on a flat plan from $8/mo. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Staging sites · Automatic backups · Managed servers · One dashboard · Flat from $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does ERR_CACHE_MISS mean?</h3>
+    <p>It means the browser needs a page that is not in its cache, and the only way to produce it again would be to repeat a POST request. Since repeating a POST could duplicate an order or a message, Chrome asks for confirmation instead of guessing. It is a safety behaviour rather than a fault, and it usually appears alongside "Confirm Form Resubmission".</p>
+
+    <h3>Why does clearing the cache not fix ERR_CACHE_MISS?</h3>
+    <p>Because the error is caused by a page being absent from the cache in the first place. Clearing the cache removes more stored pages, so it cannot help and may make the situation slightly more likely. The real fix is on the application side: respond to a POST with a redirect so the result page is served over GET.</p>
+
+    <h3>What is the POST-redirect-GET pattern?</h3>
+    <p>After processing a form submission, instead of rendering the result directly in the POST response, you return a 303 redirect to a URL that serves the result over GET. The browser then follows that redirect and lands on an ordinary page. Back, refresh, bookmark, and share all work, and the resubmission prompt disappears.</p>
+
+    <h3>Why use a 303 redirect rather than 302?</h3>
+    <p>A 303 explicitly tells the client to make the follow-up request with GET, regardless of the original method, which is exactly what you want after a POST. A 302 leaves that to client discretion and has historically been handled inconsistently. Using 303 makes the pattern reliable.</p>
+
+    <h3>What is the difference between no-store and no-cache?</h3>
+    <p><code>no-store</code> tells the browser not to keep the response at all, so back navigation has nothing to return to. <code>no-cache</code> allows storage but requires revalidation before reuse, so navigation still works. For most authenticated pages, <code>private, no-cache, must-revalidate</code> is the right choice, with <code>no-store</code> reserved for genuinely sensitive responses.</p>
+
+    <h3>Why do I only see this error when DevTools is open?</h3>
+    <p>Because the "Disable cache" option in the Network panel is checked, so Chrome stores nothing while DevTools is open. Every back navigation to a POST result then produces this error. Uncheck it, or expect the behaviour while it is on. This catches out a lot of developers debugging their own forms.</p>
+
+    <h3>Can a WordPress plugin cause ERR_CACHE_MISS?</h3>
+    <p>Yes. Caching and security plugins sometimes add <code>Cache-Control: no-store</code> to logged-in pages, which breaks back navigation even where no form is involved. Check the actual response headers with <code>curl -sI</code> rather than assuming your own code is the only thing setting them.</p>
+
+    <h3>How should I tell users to work around it?</h3>
+    <p>Ask them not to press back or refresh after submitting a form, and to navigate using the site's links instead. That works, though it is worth treating repeated reports as a design signal: implementing the redirect pattern removes the problem for everyone rather than teaching each user to avoid it.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · A 303 redirect fixes this permanently. Clearing the cache never will.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"ERR_CACHE_MISS Is Not a Cache Problem: It Is Your Form","description":"ERR_CACHE_MISS and Confirm Form Resubmission are caused by navigating back to a POST result, not by a broken cache. The real fix is POST-redirect-GET, plus the no-store versus no-cache mistake.","image":"https://www.kloudbean.com/blog/err-cache-miss/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/err-cache-miss/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does ERR_CACHE_MISS mean?","acceptedAnswer":{"@type":"Answer","text":"It means the browser needs a page that is not in its cache, and the only way to produce it again would be to repeat a POST request. Since repeating a POST could duplicate an order or a message, Chrome asks for confirmation instead of guessing. It is a safety behaviour rather than a fault, and it usually appears alongside Confirm Form Resubmission."}},
+{"@type":"Question","name":"Why does clearing the cache not fix ERR_CACHE_MISS?","acceptedAnswer":{"@type":"Answer","text":"Because the error is caused by a page being absent from the cache in the first place. Clearing the cache removes more stored pages, so it cannot help and may make the situation slightly more likely. The real fix is on the application side: respond to a POST with a redirect so the result page is served over GET."}},
+{"@type":"Question","name":"What is the POST-redirect-GET pattern?","acceptedAnswer":{"@type":"Answer","text":"After processing a form submission, instead of rendering the result directly in the POST response, you return a 303 redirect to a URL that serves the result over GET. The browser then follows that redirect and lands on an ordinary page. Back, refresh, bookmark, and share all work, and the resubmission prompt disappears."}},
+{"@type":"Question","name":"Why use a 303 redirect rather than 302?","acceptedAnswer":{"@type":"Answer","text":"A 303 explicitly tells the client to make the follow-up request with GET, regardless of the original method, which is exactly what you want after a POST. A 302 leaves that to client discretion and has historically been handled inconsistently. Using 303 makes the pattern reliable."}},
+{"@type":"Question","name":"What is the difference between no-store and no-cache?","acceptedAnswer":{"@type":"Answer","text":"The no-store directive tells the browser not to keep the response at all, so back navigation has nothing to return to. The no-cache directive allows storage but requires revalidation before reuse, so navigation still works. For most authenticated pages, private with no-cache and must-revalidate is the right choice, with no-store reserved for genuinely sensitive responses."}},
+{"@type":"Question","name":"Why do I only see this error when DevTools is open?","acceptedAnswer":{"@type":"Answer","text":"Because the Disable cache option in the Network panel is checked, so Chrome stores nothing while DevTools is open. Every back navigation to a POST result then produces this error. Uncheck it, or expect the behaviour while it is on. This catches out a lot of developers debugging their own forms."}},
+{"@type":"Question","name":"Can a WordPress plugin cause ERR_CACHE_MISS?","acceptedAnswer":{"@type":"Answer","text":"Yes. Caching and security plugins sometimes add a no-store Cache-Control directive to logged-in pages, which breaks back navigation even where no form is involved. Check the actual response headers rather than assuming your own code is the only thing setting them."}},
+{"@type":"Question","name":"How should I tell users to work around it?","acceptedAnswer":{"@type":"Answer","text":"Ask them not to press back or refresh after submitting a form, and to navigate using the site's links instead. That works, though it is worth treating repeated reports as a design signal: implementing the redirect pattern removes the problem for everyone rather than teaching each user to avoid it."}}
+]}
+]}
+</script>
+</body>
+</html>
