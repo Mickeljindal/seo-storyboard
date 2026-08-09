@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Error 400 Bad Request: The Server Rejected It Before Your App Saw It</title>
+<meta name="description" content="Fix error 400 Bad Request. Separate the web server rejecting a malformed request from your application rejecting the body, and find the real cause: oversized cookies, invalid URL characters, or bad JSON.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/400-bad-request/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Error 400 Bad Request: The Server Rejected It Before Your App Saw It">
+<meta property="og:description" content="A 400 is two different errors. One never reaches your code. The nginx log line tells you which one you have, and oversized cookies are the cause people miss.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">HTTP errors · Requests · Field guide</span>
+  <h1>Error 400 Bad Request: The Server Rejected It Before Your App Saw It</h1>
+  <p class="byline">By Kloudbean Engineering · If it works in incognito, it is your cookies.</p>
+
+  <figure><img src="images/hero.png" alt="A 400 Bad Request response beside a verbose curl trace showing an oversized cookie header"></figure>
+
+  <p class="lead">Error 400 Bad Request means the server decided your request was malformed and would not process it. The reason this one is confusing is that two entirely separate things produce it. Either the web server rejected the raw HTTP request before your application ever ran, or your application ran and its validation refused the payload. Those are different problems in different places with different fixes, and no amount of checking your API payload will help when nginx threw the request away over a header it did not like.</p>
+
+  <div class="tldr">
+    <strong>How do you fix a 400 Bad Request?</strong>
+    <p>Work out which layer rejected it. Check your web server error log: nginx logs <code>client sent too long header line</code> for oversized cookies and headers, and <code>client sent invalid request</code> for a malformed request line or bad URL characters. If the log is clean, your application produced the 400 and the cause is in its validation, usually malformed JSON or a missing required field. The single most common real-world cause on websites is a cookie that has grown too large, which is why the page often works in a private window.</p>
+  </div>
+
+  <h2>Two kinds of 400</h2>
+  <table class="cmp">
+    <thead><tr><th></th><th>Web server 400</th><th>Application 400</th></tr></thead>
+    <tbody>
+      <tr><td>Who rejected it</td><td>nginx or Apache</td><td>Your code or framework</td></tr>
+      <tr><td>Did your app run?</td><td>No</td><td>Yes</td></tr>
+      <tr><td>Where the evidence is</td><td>Web server error log</td><td>Application log</td></tr>
+      <tr><td>Typical cause</td><td>Oversized headers, invalid URL characters, bad Host</td><td>Malformed JSON, missing field, wrong type</td></tr>
+      <tr><td>Response body</td><td>Generic server error page</td><td>Usually JSON with a message</td></tr>
+      <tr><td>Fix lives in</td><td>Server config or the client's headers</td><td>The request payload or validation rules</td></tr>
+    </tbody>
+  </table>
+  <p>The response body is the quickest tell. A plain HTML error page you did not write means the web server answered. A JSON object naming a field means your application answered, and its message is usually the whole diagnosis.</p>
+
+  <h2>The one that catches everyone: cookies too large</h2>
+  <p>This deserves top billing because it is the most common 400 on real websites and the symptom actively misleads people.</p>
+  <p>Web servers cap how large request headers can be. nginx allocates a fixed set of buffers for them, and a request whose headers exceed that allocation is rejected with a 400 before any application code runs. Cookies are sent with every request and they accumulate: a session cookie, an auth token, a consent record, several analytics identifiers, and a marketing tool that stores a small object.</p>
+  <p>Which produces this signature. The site works perfectly for new visitors and in a private window. It fails for people who have been using it for months, and especially for logged-in users. Everyone concludes the login system is broken. It is not. Those users are simply carrying more cookies.</p>
+  <pre><code># Reproduce it deliberately with an oversized cookie
+curl -sI -H "Cookie: bloat=$(head -c 9000 /dev/zero | tr '\0' 'a')" https://example.com
+
+# And confirm the log line
+sudo grep -i "too long header\|too large" /var/log/nginx/error.log | tail</code></pre>
+  <p>nginx says <code>client sent too long header line</code> or complains that the request header is too large. That log line is definitive.</p>
+  <p>There are two fixes and you probably want both. Raise the buffers so legitimate users are not locked out today:</p>
+  <pre><code># /etc/nginx/nginx.conf, inside http { }
+client_header_buffer_size   4k;
+large_client_header_buffers 4 16k;</code></pre>
+  <pre><code>sudo nginx -t &amp;&amp; sudo systemctl reload nginx</code></pre>
+  <p>Then reduce what you are sending, because raising a limit to accommodate growth you have not controlled means meeting the same wall later. Move data out of cookies into server-side session storage, which is what Redis is for, trim unused claims from any JWT you keep in a cookie, and audit which third-party scripts are setting large values on your behalf. Our <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis</a> guide covers the session storage side, and the same oversized-header problem shows up differently as a <a href="https://www.kloudbean.com/blog/cloudflare-error-520/">Cloudflare 520</a> when a proxy is in front.</p>
+  <p>Worth telling affected users the immediate workaround: clearing cookies for your domain fixes it instantly for them. That buys you time to deploy a real fix rather than talking people through a private window.</p>
+
+  <h2>Invalid characters in the URL</h2>
+  <p>Certain characters are not legal in a request line and web servers reject them outright. Unencoded spaces, braces, pipes, carets, and backslashes all qualify. The usual source is a URL built by string concatenation with a value that was never encoded, which works fine until someone's search term contains a space or a customer name contains an ampersand.</p>
+  <pre><code>sudo grep -i "invalid request" /var/log/nginx/error.log | tail</code></pre>
+  <p>nginx logs <code>client sent invalid request while reading client request line</code>. Fix it at the point the URL is built rather than by loosening the server:</p>
+  <pre><code>// Node: encode the value, not the whole URL
+const url = `https://api.example.com/search?q=${encodeURIComponent(term)}`;
+
+// Better still, let the URL API handle it
+const u = new URL('https://api.example.com/search');
+u.searchParams.set('q', term);</code></pre>
+  <pre><code>// PHP
+$url = 'https://api.example.com/search?' . http_build_query(['q' =&gt; $term]);</code></pre>
+  <p>Using the URL or query-building API rather than string concatenation removes this entire category. It is one of those fixes that also prevents bugs you have not hit yet.</p>
+
+  <h2>The plain HTTP request sent to an HTTPS port</h2>
+  <p>A specific and genuinely useful one. If a client speaks unencrypted HTTP to a port that expects TLS, nginx answers with a 400 and a distinctive message:</p>
+  <pre><code>400 Bad Request
+The plain HTTP request was sent to HTTPS port</code></pre>
+  <p>If you see that exact wording, stop looking at headers and payloads. Something is requesting <code>http://</code> against port 443, or a proxy or load balancer in front is forwarding unencrypted traffic to an encrypted upstream. Check the scheme in whatever is making the request, and check how your proxy is configured to talk to the origin. This is common right after putting a load balancer or CDN in front of a working server.</p>
+
+  <h2>Host header problems</h2>
+  <p>HTTP requires a <code>Host</code> header, and servers reject requests that omit it, send it twice, or send something that matches no configured site. You will meet this with hand-built requests, older scripted clients, and health checks that connect by IP address without setting a host.</p>
+  <pre><code># Deliberately omit Host to see the behaviour
+curl -sI --http1.1 -H "Host;" https://example.com
+
+# What server names are configured?
+sudo grep -r "server_name" /etc/nginx/sites-enabled/</code></pre>
+  <p>If a monitoring check is producing 400s in your logs while real traffic is fine, an absent or wrong Host header is the usual explanation. Configure the check to send the hostname rather than adding a catch-all server block, since a catch-all quietly changes which site answers unmatched requests.</p>
+
+  <h2>Application-level 400s</h2>
+  <p>If your web server log is clean, your application answered, and its own message is the fastest route to the cause. The four you will actually see:</p>
+  <p><strong>Malformed JSON.</strong> A trailing comma, an unquoted key, a truncated body. Frameworks reject it before your handler runs, which is why your logging may not show it. Validate what you are sending:</p>
+  <pre><code>echo "$BODY" | python3 -m json.tool</code></pre>
+  <p><strong>Wrong or missing Content-Type.</strong> Sending JSON without <code>Content-Type: application/json</code> means the framework parses it as form data, finds nothing, and rejects the request for missing fields. The payload was fine; the label was wrong.</p>
+  <p><strong>Missing or wrong-typed fields.</strong> Validation doing its job. A string where a number is expected, a null where a value is required. Read the response body, which normally names the field.</p>
+  <p><strong>Query parameter type mismatch.</strong> Passing <code>page=abc</code> where an integer is expected. Common when a front end lets a user type into something that becomes a parameter.</p>
+  <pre><code># See the whole exchange, request and response
+curl -v -X POST https://api.example.com/v1/orders \
+  -H "Content-Type: application/json" \
+  -d '{"sku":"ABC-1","qty":2}'</code></pre>
+  <p>The <code>-v</code> flag is the point. It prints the request headers you actually sent, which is regularly different from what you believe you sent, particularly when a client library is adding or transforming things.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Symptom</th><th>Cause</th><th>First check</th></tr></thead>
+    <tbody>
+      <tr><td>Works in incognito, fails normally</td><td>Cookies too large</td><td>nginx header buffers, cookie size</td></tr>
+      <tr><td>Only logged-in users affected</td><td>Session or auth cookie growth</td><td>Same</td></tr>
+      <tr><td>Only URLs with spaces or symbols</td><td>Unencoded URL values</td><td>Where the URL is built</td></tr>
+      <tr><td>Message names an HTTPS port</td><td>Plain HTTP to a TLS port</td><td>Request scheme, proxy config</td></tr>
+      <tr><td>Only monitoring or health checks</td><td>Missing Host header</td><td>The check's configuration</td></tr>
+      <tr><td>Response is JSON naming a field</td><td>Application validation</td><td>The payload and Content-Type</td></tr>
+      <tr><td>Started after adding a load balancer</td><td>Proxy forwarding plain HTTP</td><td>Upstream scheme</td></tr>
+      <tr><td>Only very long URLs</td><td>Request line length limits</td><td>Move parameters into a POST body</td></tr>
+    </tbody>
+  </table>
+
+  <h2>What not to do</h2>
+  <p>Raising header buffers to something enormous is the wrong instinct even though it works. Those buffers are allocated per connection, so a very large value multiplied across concurrent connections is real memory, and it also means you never discover that something is quietly filling your cookies. Raise them to a sane ceiling, then fix the growth.</p>
+  <p>Adding a catch-all server block to silence Host header 400s has a similar shape: it stops the error and changes which site answers requests that match nothing, which is a subtle security and routing decision made for the wrong reason.</p>
+
+  <h2>Where hosting fits</h2>
+  <p>The server-side half of this list is configuration: header buffer sizes, TLS termination that agrees with the upstream scheme, and sensible defaults that do not lock out your longest-standing users. On Kloudbean, nginx comes configured with limits that work for real applications rather than whatever the default was, and free SSL with correct termination means the plain-HTTP-to-HTTPS-port mismatch does not arrive as a surprise when you add a certificate. Managed Redis in the same dashboard is the real answer to cookie growth, since it gives you somewhere to put session data that does not travel on every request.</p>
+  <p>The honest limit: nothing here validates your JSON or encodes your URLs. Application-level 400s are yours, and they should be, because that is your validation working. What managed configuration removes is the class of 400 that has nothing to do with your code.</p>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="Adding an application in the Kloudbean console with the web server configured">
+    <figcaption>Server-side request limits configured with the application rather than left at defaults.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>For neighbouring status codes, <a href="https://www.kloudbean.com/blog/403-forbidden-error/">403 Forbidden</a>, <a href="https://www.kloudbean.com/blog/fix-504-gateway-timeout/">504 Gateway Timeout</a>, and <a href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/">502 Bad Gateway</a>. The same oversized-header problem behind a proxy appears as <a href="https://www.kloudbean.com/blog/cloudflare-error-520/">Cloudflare error 520</a>. To move session data out of cookies, <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis hosting</a>. For the proxy layer, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">the nginx reverse proxy guide</a>. On cross-origin requests that fail for related reasons, <a href="https://www.kloudbean.com/blog/fix-cors-error-node-production/">fixing CORS errors</a>. And for TLS termination, <a href="https://www.kloudbean.com/blog/ssl-tls-explained/">SSL and TLS explained</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Defaults that do not lock out your best customers.</p>
+    <p style="margin:0 0 .6em">Managed servers with nginx request limits configured for real applications, free SSL with correct termination, and managed Redis for session data that should not be riding in a cookie. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed nginx config · Free SSL · Managed Redis · One dashboard · Free migration</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does error 400 Bad Request mean?</h3>
+    <p>It means the server considered your request malformed and refused to process it. Two separate layers can decide that: the web server rejecting the raw HTTP request before your application runs, or your application's own validation rejecting the payload. Identifying which one answered is the first step, because the fixes have nothing in common.</p>
+
+    <h3>Why does a 400 error disappear in incognito mode?</h3>
+    <p>Because a private window sends no accumulated cookies. That behaviour is close to proof that your request headers have grown beyond what the web server accepts. Raise nginx's <code>large_client_header_buffers</code> to restore access, then reduce cookie size by moving data into server-side session storage.</p>
+
+    <h3>How do I fix a 400 Bad Request caused by cookies?</h3>
+    <p>Immediately, clearing cookies for that domain fixes it for the affected user. On the server, raise <code>client_header_buffer_size</code> and <code>large_client_header_buffers</code> in nginx and reload. Then address the cause by moving session data into Redis, trimming unused JWT claims, and checking which third-party scripts are setting large cookies.</p>
+
+    <h3>What does "the plain HTTP request was sent to HTTPS port" mean?</h3>
+    <p>Something requested <code>http://</code> against a port configured for TLS, so nginx answered with a 400 and that specific message. Check the scheme the client is using, and if a load balancer or CDN sits in front, check whether it is forwarding unencrypted traffic to an encrypted upstream. It commonly appears right after putting a proxy in front of a working server.</p>
+
+    <h3>Can invalid characters in a URL cause a 400?</h3>
+    <p>Yes. Unencoded spaces, braces, pipes, carets, and backslashes are not legal in a request line and web servers reject them. The usual source is a URL assembled by string concatenation with an unencoded value. Build URLs with the URL and query-string APIs of your language rather than concatenating, which removes the whole category.</p>
+
+    <h3>Is a 400 error my fault or the server's?</h3>
+    <p>Formally the client's, since 4xx codes indicate a problem with the request. Practically it is often a server configuration too tight for legitimate traffic, as with header buffers that lock out long-standing users. Treat it as a mismatch between what clients send and what the server accepts, then decide which side should change.</p>
+
+    <h3>What is the difference between 400 and 422?</h3>
+    <p>A 400 means the request itself was malformed and could not be understood. A 422 means it was well-formed and understood but semantically invalid, such as valid JSON describing an impossible state. Many APIs use 400 for both, which is common enough to be unremarkable, though 422 is more precise for validation failures.</p>
+
+    <h3>Why do only my monitoring checks get 400 errors?</h3>
+    <p>Almost always a missing or incorrect <code>Host</code> header, since checks that connect by IP address often do not set one and HTTP requires it. Configure the check to send your hostname. Avoid adding a catch-all server block to silence it, because that changes which site serves unmatched requests.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Read the log line. It tells you which half of the problem you have.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Error 400 Bad Request: The Server Rejected It Before Your App Saw It","description":"Fix error 400 Bad Request by separating the web server rejecting a malformed request from your application rejecting the body, then finding the real cause: oversized cookies, invalid URL characters, or bad JSON.","image":"https://www.kloudbean.com/blog/400-bad-request/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/400-bad-request/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does error 400 Bad Request mean?","acceptedAnswer":{"@type":"Answer","text":"It means the server considered your request malformed and refused to process it. Two separate layers can decide that: the web server rejecting the raw HTTP request before your application runs, or your application's own validation rejecting the payload. Identifying which one answered is the first step, because the fixes have nothing in common."}},
+{"@type":"Question","name":"Why does a 400 error disappear in incognito mode?","acceptedAnswer":{"@type":"Answer","text":"Because a private window sends no accumulated cookies. That behaviour is close to proof that your request headers have grown beyond what the web server accepts. Raise nginx's large_client_header_buffers to restore access, then reduce cookie size by moving data into server-side session storage."}},
+{"@type":"Question","name":"How do I fix a 400 Bad Request caused by cookies?","acceptedAnswer":{"@type":"Answer","text":"Immediately, clearing cookies for that domain fixes it for the affected user. On the server, raise client_header_buffer_size and large_client_header_buffers in nginx and reload. Then address the cause by moving session data into Redis, trimming unused JWT claims, and checking which third-party scripts are setting large cookies."}},
+{"@type":"Question","name":"What does the plain HTTP request was sent to HTTPS port mean?","acceptedAnswer":{"@type":"Answer","text":"Something requested a URL over plain HTTP against a port configured for TLS, so nginx answered with a 400 and that specific message. Check the scheme the client is using, and if a load balancer or CDN sits in front, check whether it is forwarding unencrypted traffic to an encrypted upstream. It commonly appears right after putting a proxy in front of a working server."}},
+{"@type":"Question","name":"Can invalid characters in a URL cause a 400?","acceptedAnswer":{"@type":"Answer","text":"Yes. Unencoded spaces, braces, pipes, carets, and backslashes are not legal in a request line and web servers reject them. The usual source is a URL assembled by string concatenation with an unencoded value. Build URLs with the URL and query-string APIs of your language rather than concatenating, which removes the whole category."}},
+{"@type":"Question","name":"Is a 400 error my fault or the server's?","acceptedAnswer":{"@type":"Answer","text":"Formally the client's, since 4xx codes indicate a problem with the request. Practically it is often a server configuration too tight for legitimate traffic, as with header buffers that lock out long-standing users. Treat it as a mismatch between what clients send and what the server accepts, then decide which side should change."}},
+{"@type":"Question","name":"What is the difference between 400 and 422?","acceptedAnswer":{"@type":"Answer","text":"A 400 means the request itself was malformed and could not be understood. A 422 means it was well-formed and understood but semantically invalid, such as valid JSON describing an impossible state. Many APIs use 400 for both, which is common enough to be unremarkable, though 422 is more precise for validation failures."}},
+{"@type":"Question","name":"Why do only my monitoring checks get 400 errors?","acceptedAnswer":{"@type":"Answer","text":"Almost always a missing or incorrect Host header, since checks that connect by IP address often do not set one and HTTP requires it. Configure the check to send your hostname. Avoid adding a catch-all server block to silence it, because that changes which site serves unmatched requests."}}
+]}
+]}
+</script>
+</body>
+</html>
