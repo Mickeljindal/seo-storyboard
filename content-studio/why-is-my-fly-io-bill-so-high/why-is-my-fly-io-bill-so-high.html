@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why Is My Fly.io Bill So High? The Resources That Keep Charging</title>
+<meta name="description" content="Stopped Machines, unattached volumes, snapshots, bandwidth, IPv4 addresses, and Managed Postgres all bill separately on Fly.io. Per Fly's own docs, here is what keeps charging and how to make the cost predictable.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/why-is-my-fly-io-bill-so-high/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Why Is My Fly.io Bill So High? The Resources That Keep Charging">
+<meta property="og:description" content="Why a Fly.io bill grows: volumes that bill while detached, stopped Machines still charged for filesystem, snapshots, egress, IPv4, and separately priced Managed Postgres.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Node.js hosting · Fly.io · Cost</span>
+  <h1>Why Is My Fly.io Bill So High? The Resources That Keep Charging</h1>
+  <p class="byline">By Kloudbean Engineering · Stopping the Machine is not the same as stopping the bill.</p>
+
+  <figure><img src="images/hero.png" alt="A Fly.io invoice broken into Machines, volumes, snapshots, bandwidth, IPv4, and Managed Postgres line items"></figure>
+
+  <p class="lead">If your Fly.io bill is bigger than you expected, the cause is usually not the app you are actively running. It is the resources you assumed had stopped. Fly meters compute, storage, snapshots, bandwidth, addresses, and databases as separate things, and several of them keep charging after you think you have turned them off. The good news is that Fly documents this clearly, so every item below comes from their own published pricing and cost-management pages rather than from guesswork. Here is what to check, in the order most likely to explain the number.</p>
+
+  <div class="tldr">
+    <strong>Why is my Fly.io bill higher than expected?</strong>
+    <p>Because several resources bill independently of whether your app is running. Per Fly's own documentation: volumes are billed whether or not they are attached to a Machine, and they keep billing when Machines are stopped; stopped or suspended Machines are still charged for root filesystem usage; snapshots are billed on the storage they occupy; outbound bandwidth is billed at rates that vary by region; a dedicated IPv4 address costs around $2 a month; and Managed Postgres is priced separately from your application Machines.</p>
+  </div>
+
+  <h2>Start with volumes, because they are usually the answer</h2>
+  <p>This is the single most common surprise, and Fly says it plainly in their docs. Three separate statements worth reading together: if you create a volume, you will be charged for it; you are billed for volumes that are not attached to Machines; and volumes do not stop billing when your Machines do.</p>
+  <p>Put together, that means a volume you created for an experiment months ago, in a region you have since forgotten, detached from anything, is still on your invoice. Fly's own cost-management documentation even calls out the forgotten volume in a distant region as an example. Scaling down a Machine, suspending it, or destroying it does not clean up the storage.</p>
+  <pre><code># List volumes across your app, including detached ones
+fly volumes list -a your-app-name
+
+# Destroy one you have confirmed you do not need
+fly volumes destroy &lt;volume-id&gt;</code></pre>
+  <p>Do this per app, and remember to check every region you have ever deployed to, not just your current one. A volume in a region you no longer use is exactly the thing that hides.</p>
+
+  <h2>Stopped Machines are cheaper, not free</h2>
+  <p>The second assumption worth correcting. Running Machines are billed by their CPU and RAM preset for the time they run, which is expected. What catches people is that per Fly's billing documentation, stopped or suspended Machines are still charged for root filesystem usage. The compute charge goes away; the storage underneath it does not.</p>
+  <p>So a scale-to-zero pattern reduces your compute cost without reducing it to nothing. If you have a collection of old test apps sitting stopped, they are contributing a small amount each, and the sum is easy to overlook.</p>
+
+  <h2>Snapshots accumulate quietly</h2>
+  <p>Volume snapshots are billed based on the snapshot storage they occupy. That is reasonable in isolation, and it compounds when retention is generous and nobody reviews it. If you have been snapshotting a large volume daily for a year, the storage total can exceed the volume itself. Check your snapshot retention against what you would actually restore from.</p>
+
+  <h2>Bandwidth, and where it hides</h2>
+  <p>Outbound bandwidth is billed, and Fly notes that rates vary by region. Their cost-management guidance flags the workloads where this becomes significant: serving media, syncing large datasets, and replicating across regions.</p>
+  <p>That last one deserves attention if you chose Fly specifically for multi-region deployment. Running instances in several regions means data moving between them, and inter-region traffic is a real line item rather than an internal free-for-all. The architecture that makes Fly attractive is also the architecture that generates the most transfer.</p>
+
+  <h2>The smaller items that add up</h2>
+  <ul>
+    <li><strong>Dedicated public IPv4 addresses</strong> are billed at approximately $2 a month each. One is trivial. One per app across a dozen apps is not.</li>
+    <li><strong>Managed Postgres is priced separately</strong> from your application Machines, so a database does not come out of your compute budget.</li>
+    <li><strong>Old test apps</strong> that still hold a volume, a snapshot series, or an IPv4 address.</li>
+  </ul>
+
+  <h2>Managed Postgres is the step-change</h2>
+  <p>Fly's Managed Postgres is a genuinely more managed product than the older self-managed approach, and it includes high availability, backups, and connection pooling. Credit where it is due, because the earlier unmanaged Postgres experience asked a lot of operators.</p>
+  <p>The thing to plan for is the price step. Per Fly's published Managed Postgres pricing, the entry tier at 1 GB of memory is around $38 a month, 2 GB is around $72, 8 GB is around $282, and it scales up from there, with database storage billed at roughly $0.28 per provisioned GB per 30-day month. Those are Fly's own figures and they may change, so check current pricing. The point is structural rather than a criticism: a managed database on Fly is priced well above a small self-managed Machine, which is exactly the objection small teams raise when they move from unmanaged to managed.</p>
+
+  <h2>Support is a separate purchase</h2>
+  <p>Worth knowing before an incident rather than during one. Community support is included for all customers. Fly's documented email support comes through paid support packages, with Standard at $29 a month, Premium at $199, and Enterprise starting at $2,500. Again, these are Fly's published figures.</p>
+  <p>This matters for budgeting because the realistic cost of running production on Fly includes whichever support tier you would want available at 3am, and that is a line most people leave out of their initial comparison.</p>
+
+  <h2>How to make it predictable</h2>
+  <ol>
+    <li>Audit volumes in every app and every region. Destroy the detached ones you have confirmed are unused.</li>
+    <li>Review snapshot retention against what you would genuinely restore from.</li>
+    <li>Delete old test apps completely rather than stopping them, since stopped Machines still carry filesystem charges.</li>
+    <li>Count your dedicated IPv4 addresses and release the ones no app needs.</li>
+    <li>Look at your egress by workload. If you serve media or replicate across regions, model that separately from compute.</li>
+    <li>Price your database and your support tier as first-class line items, not afterthoughts.</li>
+    <li>Set a calendar reminder to repeat the audit, because forgotten resources are a recurring problem rather than a one-time cleanup.</li>
+  </ol>
+
+  <h2>The alternative shape: one flat number</h2>
+  <p>The reason a Fly bill is hard to forecast is that it is assembled from many independent meters. A flat plan is the other model. On Kloudbean your Node app, its worker, a managed database, and Redis sit in one dashboard on one predictable plan from $8/mo, and egress is not metered, so serving media or moving data does not change the invoice. There are no volumes billing in a region you forgot, because storage is part of the server rather than a separate metered object. Support is included in the plan rather than bought as a tier, and migration help is included if you are moving in.</p>
+  <p>To be fair about the trade, though: Fly's regional placement is genuinely excellent, Machines start fast, and the networking flexibility is real. If your product depends on running close to users in many specific regions and you have the operational appetite for Machines, volumes, and private networking, that capability is worth paying a metered bill for. Flat pricing wins when you want a predictable number and a conventional production setup, which describes most teams rather than all of them.</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="Launching a server on a flat plan in the Kloudbean console with provider and region choice">
+    <figcaption>One server on a flat plan, with storage included rather than metered as separate objects that outlive the app.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>For the platform comparison see <a href="https://www.kloudbean.com/blog/fly-io-alternative/">a Fly.io alternative</a>, and for the move itself <a href="https://www.kloudbean.com/blog/migrate-fly-to-kloudbean/">migrating from Fly.io to Kloudbean</a>. Other cost-shape reads: <a href="https://www.kloudbean.com/blog/why-is-my-railway-bill-so-high/">why is my Railway bill so high</a>, <a href="https://www.kloudbean.com/blog/heroku-cost-after-free-tier/">Heroku costs after the free tier</a>, and <a href="https://www.kloudbean.com/blog/cheapest-way-to-host-nodejs-app/">the cheapest way to host a Node.js app</a>. For choosing overall, <a href="https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/">best managed Node.js hosting</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">No forgotten volumes on your invoice.</p>
+    <p style="margin:0 0 .6em">Run your Node app, worker, managed database, and Redis in one dashboard on a flat plan from $8/mo, with no egress metering and storage included rather than billed as separate objects. Support is in the plan, and migration help is included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Flat from $8/mo · No egress metering · Storage included · Support in the plan · Free migration</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Why am I being charged when my Fly.io app is stopped?</h3>
+    <p>Because stopping compute does not stop storage. Per Fly's billing documentation, stopped or suspended Machines are still charged for root filesystem usage, and volumes keep billing when Machines are stopped. To stop the charges entirely you need to remove the resources, not just stop the Machine.</p>
+
+    <h3>Do Fly.io volumes cost money if they are not attached?</h3>
+    <p>Yes. Fly's documentation states that you are billed for volumes that are not attached to Machines, and that if you create a volume you will be charged for it. This is the most common reason a bill is higher than expected, especially for volumes left in regions you no longer deploy to. Run <code>fly volumes list</code> per app to find them.</p>
+
+    <h3>How much does Fly.io Managed Postgres cost?</h3>
+    <p>Per Fly's published pricing, the entry tier at 1 GB memory is around $38 a month, 2 GB around $72, and 8 GB around $282, with storage at roughly $0.28 per provisioned GB per 30-day month. It includes high availability, backups, and connection pooling. Check Fly's current pricing before budgeting, since these figures change.</p>
+
+    <h3>Is Fly.io support included?</h3>
+    <p>Community support is included for all customers. Fly's documented email support is available through paid support packages: Standard at $29 a month, Premium at $199, and Enterprise starting at $2,500. Worth including whichever tier you would want during an incident in your real cost comparison.</p>
+
+    <h3>Does Fly.io charge for bandwidth?</h3>
+    <p>Yes, outbound bandwidth is billed, and Fly notes rates vary by region. Their guidance flags serving media, syncing large datasets, and replicating across regions as the cases where it becomes significant. If you chose Fly for multi-region deployment, model inter-region transfer separately from compute.</p>
+
+    <h3>How do I reduce my Fly.io bill?</h3>
+    <p>Audit volumes across every app and region and destroy detached ones, review snapshot retention, delete old test apps rather than stopping them, release unused dedicated IPv4 addresses, and model egress by workload. Then repeat it on a schedule, because forgotten resources accumulate again. If predictability matters more than regional control, a flat-priced plan removes the problem instead of managing it.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Audit the storage you forgot, not the app you remember.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Why Is My Fly.io Bill So High? The Resources That Keep Charging","description":"Why a Fly.io bill grows: volumes that bill while detached, stopped Machines still charged for filesystem, snapshots, egress, IPv4, and separately priced Managed Postgres.","image":"https://www.kloudbean.com/blog/why-is-my-fly-io-bill-so-high/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/why-is-my-fly-io-bill-so-high/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Why am I being charged when my Fly.io app is stopped?","acceptedAnswer":{"@type":"Answer","text":"Because stopping compute does not stop storage. Per Fly's billing documentation, stopped or suspended Machines are still charged for root filesystem usage, and volumes keep billing when Machines are stopped. To stop the charges entirely you need to remove the resources, not just stop the Machine."}},
+{"@type":"Question","name":"Do Fly.io volumes cost money if they are not attached?","acceptedAnswer":{"@type":"Answer","text":"Yes. Fly's documentation states that you are billed for volumes that are not attached to Machines, and that if you create a volume you will be charged for it. This is the most common reason a bill is higher than expected, especially for volumes left in regions you no longer deploy to. Run the fly volumes list command per app to find them."}},
+{"@type":"Question","name":"How much does Fly.io Managed Postgres cost?","acceptedAnswer":{"@type":"Answer","text":"Per Fly's published pricing, the entry tier at 1 GB memory is around 38 dollars a month, 2 GB around 72 dollars, and 8 GB around 282 dollars, with storage at roughly 0.28 dollars per provisioned GB per 30-day month. It includes high availability, backups, and connection pooling. Check Fly's current pricing before budgeting, since these figures change."}},
+{"@type":"Question","name":"Is Fly.io support included?","acceptedAnswer":{"@type":"Answer","text":"Community support is included for all customers. Fly's documented email support is available through paid support packages: Standard at 29 dollars a month, Premium at 199 dollars, and Enterprise starting at 2,500 dollars. Worth including whichever tier you would want during an incident in your real cost comparison."}},
+{"@type":"Question","name":"Does Fly.io charge for bandwidth?","acceptedAnswer":{"@type":"Answer","text":"Yes, outbound bandwidth is billed, and Fly notes rates vary by region. Their guidance flags serving media, syncing large datasets, and replicating across regions as the cases where it becomes significant. If you chose Fly for multi-region deployment, model inter-region transfer separately from compute."}},
+{"@type":"Question","name":"How do I reduce my Fly.io bill?","acceptedAnswer":{"@type":"Answer","text":"Audit volumes across every app and region and destroy detached ones, review snapshot retention, delete old test apps rather than stopping them, release unused dedicated IPv4 addresses, and model egress by workload. Then repeat it on a schedule, because forgotten resources accumulate again. If predictability matters more than regional control, a flat-priced plan removes the problem instead of managing it."}}
+]}
+]}
+</script>
+</body>
+</html>

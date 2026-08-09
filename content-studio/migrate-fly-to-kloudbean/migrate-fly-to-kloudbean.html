@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Migrate a Node.js App from Fly.io to Kloudbean</title>
+<meta name="description" content="A runbook for moving off Fly.io: inventory Machines, volumes and regions, understand why volumes never replicated, export secrets and Postgres, cut over DNS, and destroy the resources that keep billing.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/migrate-fly-to-kloudbean/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Migrate a Node.js App from Fly.io to Kloudbean">
+<meta property="og:description" content="Moving a Node app off Fly.io: inventory Machines and volumes across regions, export secrets, migrate Postgres, cut over DNS, and clean up billing resources.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Migration · Fly.io · Node.js</span>
+  <h1>How to Migrate a Node.js App from Fly.io to Kloudbean</h1>
+  <p class="byline">By Kloudbean Engineering · The app moves in an hour. The volumes are what you have to think about.</p>
+
+  <figure><img src="images/hero.png" alt="Fly Machines and volumes across several regions being consolidated onto a single managed server with a managed database"></figure>
+
+  <p class="lead">Moving off Fly.io is a different exercise from moving off Render or Railway, because Fly gives you more infrastructure to account for. You are not just relocating an app: you have Machines across regions, volumes pinned to specific hosts, snapshots, private networking, and possibly a Postgres cluster you have been operating yourself. This runbook works through it in order, including the one thing that surprises people mid-migration, which is discovering that their multi-region setup was never replicating data in the first place.</p>
+
+  <div class="tldr">
+    <strong>How do I migrate from Fly.io to Kloudbean?</strong>
+    <p>Inventory every Machine, volume, snapshot, and region in your Fly apps, then export your secrets with <code>fly secrets list</code> and your data with <code>pg_dump</code>. Create the equivalent on Kloudbean: one always-on server running your app and workers under PM2, plus a managed database. Copy volume contents deliberately, since volumes are local to a host and never replicated for you. Verify on the temporary URL, cut DNS over in a quiet window, then destroy the Fly volumes and apps, because they keep billing until you do.</p>
+  </div>
+
+  <h2>Stage 1: inventory, and check every region</h2>
+  <p>Fly spreads state further than most platforms, so the inventory step matters more here. Work through:</p>
+  <ul>
+    <li><strong>Machines</strong>, their process groups, sizes, and which regions they run in.</li>
+    <li><strong>Volumes</strong>, in every region, including any not currently attached to a Machine.</li>
+    <li><strong>Snapshots</strong> and their retention.</li>
+    <li><strong>Secrets</strong> set on each app.</li>
+    <li><strong>Databases</strong>, whether Fly Postgres you manage yourself or Managed Postgres.</li>
+    <li><strong>Certificates and custom domains</strong>, plus current DNS records and TTLs.</li>
+    <li><strong>Dedicated IPv4 addresses</strong>, which bill per address.</li>
+    <li>Your <code>fly.toml</code>, which documents most of the configuration in one place.</li>
+  </ul>
+  <pre><code>fly apps list
+fly machines list -a your-app-name
+fly volumes list -a your-app-name
+fly secrets list -a your-app-name
+fly ips list -a your-app-name</code></pre>
+  <p>Check regions you have stopped using. A volume left in a region you abandoned still holds data and still bills, and it is the item most often missed during a migration.</p>
+
+  <h2>Stage 2: the volume conversation</h2>
+  <p>This deserves its own stage because it changes migration plans. Fly's own documentation is explicit that volumes are local persistent storage and do not automatically replicate your data, and that creating more Machines with volumes requires you to set replication up yourself first.</p>
+  <p>Two consequences. First, whatever is on a volume exists in one place, on one host, in one region, so it needs copying deliberately rather than assumed to be everywhere. Second, and this is the uncomfortable one: if you deployed Machines across several regions and believed that gave you data redundancy, it did not unless you built the replication. Plenty of teams discover this during a migration rather than during an incident, which is the better of the two.</p>
+  <p>So before you move anything, decide what is actually on each volume. Uploaded files and generated assets need copying. A database you run yourself on a volume needs a proper dump rather than a file copy. Caches and rebuildable artefacts can be discarded. And if a volume holds something you cannot identify, find out before you destroy it.</p>
+  <p>For files, object storage is the better destination than a server disk, because it survives server changes and works across instances. Kloudbean includes S3-compatible buckets with AWS SDK and CLI compatibility, so if your code already uses the AWS SDK the change is an endpoint and a bucket name. See <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage</a>.</p>
+
+  <h2>Stage 3: how Fly concepts map</h2>
+  <table class="cmp">
+    <thead><tr><th>On Fly.io</th><th>On Kloudbean</th></tr></thead>
+    <tbody>
+      <tr><td>Machines in a process group (metered)</td><td>Node app always-on under PM2, flat plan</td></tr>
+      <tr><td>A second process group for a worker</td><td>A second PM2 process on the same server</td></tr>
+      <tr><td>Volumes pinned to a host, no auto-replication</td><td>Server disk, or S3-compatible object storage</td></tr>
+      <tr><td>Fly Postgres or Managed Postgres</td><td>Managed PostgreSQL with automatic backups</td></tr>
+      <tr><td>Redis or other stateful services</td><td>Managed Redis in the same dashboard</td></tr>
+      <tr><td>Secrets per app</td><td>Environment variables per app</td></tr>
+      <tr><td><code>fly deploy</code> and flyctl</td><td>GitHub deploys with live build logs</td></tr>
+      <tr><td>WireGuard and 6PN private networking</td><td>Private networking between app and database</td></tr>
+      <tr><td>Metered Machines, volumes, snapshots, egress, IPv4</td><td>Flat from $8/mo, no egress metering</td></tr>
+    </tbody>
+  </table>
+  <p>Your process groups become entries in a PM2 ecosystem file:</p>
+  <pre><code>// ecosystem.config.js
+module.exports = {
+  apps: [
+    { name: "web",    script: "dist/server.js" },
+    { name: "worker", script: "dist/worker.js" },
+  ],
+};</code></pre>
+
+  <h2>Stage 4: secrets and data</h2>
+  <p>Fly's <code>secrets list</code> shows you the names of what is set, though not the values, since they are write-only once stored. That means you need your own source of truth for the values, whether that is a password manager or your original provisioning notes. Build the list from the names, fill in the values, and set them as environment variables on the new app, changing the database and Redis URLs to the new managed instances.</p>
+  <p>For the database, dump and restore as normal. Fly provides a way to reach Postgres over its private network, and the simplest reliable approach is to open a local proxy and dump through it:</p>
+  <pre><code># Open a local proxy to the Fly Postgres instance
+fly proxy 5433:5432 -a your-postgres-app
+
+# In another terminal, dump through the proxy
+pg_dump "postgres://user:pass@127.0.0.1:5433/dbname" -Fc -f fly.dump
+
+# Restore into the new managed database
+pg_restore --no-owner -d "postgres://user:pass@new-host:5432/appdb" fly.dump
+
+# Verify before trusting it
+psql "postgres://user:pass@new-host:5432/appdb" -c "SELECT count(*) FROM users;"</code></pre>
+  <p>If you have been running unmanaged Postgres yourself, this is also the moment that workload stops being your responsibility, which for most teams is the actual reason they are migrating.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="Launching a managed PostgreSQL database with automatic backups in the Kloudbean console">
+    <figcaption>A managed database with automatic backups on a private network, replacing a Postgres cluster you were operating yourself.</figcaption>
+  </figure>
+
+  <h2>Stage 5: verify, then cut over</h2>
+  <ol>
+    <li>Lower your DNS TTL to 300 seconds a day ahead of the switch.</li>
+    <li>Deploy from GitHub, set your environment variables, and test on the temporary URL while Fly still serves production.</li>
+    <li>Exercise it properly: authentication, the endpoints that matter, a background job end to end, file uploads if you moved storage, and a scheduled task by hand.</li>
+    <li>In a quiet window, take the final <code>pg_dump</code> and restore so no writes are lost.</li>
+    <li>Point DNS at Kloudbean and issue SSL for your domain.</li>
+    <li>Watch logs and error rates for the first hour.</li>
+    <li>Leave the Fly app running for a few days as a rollback path.</li>
+  </ol>
+
+  <h2>Stage 6: the cleanup that actually saves money</h2>
+  <p>This step is specific to Fly and skipping it is expensive. Stopping or destroying Machines does not remove the storage. Per Fly's own billing documentation, volumes are billed whether or not they are attached to a Machine, they keep billing when Machines are stopped, and stopped or suspended Machines are still charged for root filesystem usage. Snapshots bill on the storage they occupy, and dedicated IPv4 addresses bill per address.</p>
+  <p>So once you are confident and no longer need the rollback:</p>
+  <pre><code># Destroy volumes you have confirmed are migrated
+fly volumes list -a your-app-name
+fly volumes destroy &lt;volume-id&gt;
+
+# Release addresses you no longer need
+fly ips list -a your-app-name
+
+# Then destroy the app itself
+fly apps destroy your-app-name</code></pre>
+  <p>Do this per app and per region. We wrote up the whole billing picture in <a href="https://www.kloudbean.com/blog/why-is-my-fly-io-bill-so-high/">why is my Fly.io bill so high</a>, and the short version is that a migration you do not finish cleaning up keeps charging you for both platforms.</p>
+
+  <h2>What changes, and what you give up</h2>
+  <p>What you gain: the app runs always-on under PM2 with a managed database, managed Redis, and object storage in one dashboard, on a flat plan from $8/mo with no egress metering. Backups are automatic. Storage is part of the server rather than a separately metered object that can outlive the app. Support is in the plan rather than a separate tier. And you stop reasoning about Machines, volumes pinned to hosts, WireGuard, and health-check placement in order to ship a feature.</p>
+  <p>What you give up, stated honestly: Fly's regional placement is genuinely strong, and if your product needs instances running close to users in many specific regions, that is a real capability you are trading away. Fly Machines also start very fast, and the networking is more flexible than a conventional managed platform. Migrating makes sense when the operational surface costs you more than the regional control earns you. If low latency in many geographies is the product, think carefully.</p>
+  <p>Kloudbean does offer provider and region choice across seven clouds, and a built-in load balancer for spreading traffic across servers, so it is not a single-location story. It is a smaller regional footprint than Fly's model, and being straight about that is more useful than pretending otherwise.</p>
+
+  <h2>Related reading</h2>
+  <p>Context: <a href="https://www.kloudbean.com/blog/fly-io-alternative/">a Fly.io alternative</a> and <a href="https://www.kloudbean.com/blog/why-is-my-fly-io-bill-so-high/">why is my Fly.io bill so high</a>. On the mechanics: <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a>, <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage</a>, <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>, and <a href="https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/">migrating with zero downtime</a>. For workers, <a href="https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/">background jobs with BullMQ</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Fewer moving parts, one predictable bill.</p>
+    <p style="margin:0 0 .6em">Run your Node app and worker always-on under PM2, with managed PostgreSQL, managed Redis, and S3-compatible storage in one dashboard on a flat plan from $8/mo with no egress metering. Free migration assistance included, volumes and all. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Always-on under PM2 · Managed Postgres and Redis · S3-compatible storage · No egress metering · Free migration</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I export my data from Fly.io Postgres?</h3>
+    <p>Open a local proxy to the Postgres app with <code>fly proxy 5433:5432 -a your-postgres-app</code>, then run <code>pg_dump</code> against <code>127.0.0.1:5433</code> to produce a compressed dump. Restore it into the new managed database with <code>pg_restore --no-owner</code> and compare row counts on key tables before trusting it.</p>
+
+    <h3>Can I get my Fly.io secret values back?</h3>
+    <p>Not from Fly. <code>fly secrets list</code> shows the names of your secrets but not their values, because they are write-only once set. Use the list to build a complete inventory of what needs setting, then source the values from your password manager or provisioning notes.</p>
+
+    <h3>Do Fly.io volumes replicate across regions?</h3>
+    <p>No. Fly's documentation states that volumes are local persistent storage and do not automatically replicate your data, and that you need to set replication up yourself before creating more Machines with volumes. If you deployed across regions assuming that gave you data redundancy, it did not unless you built it. Copy volume contents deliberately during a migration.</p>
+
+    <h3>Will my Fly.io bill stop when I migrate?</h3>
+    <p>Only if you clean up. Per Fly's billing documentation, volumes bill whether attached or not and keep billing when Machines are stopped, stopped Machines are still charged for root filesystem usage, snapshots bill on occupied storage, and dedicated IPv4 addresses bill per address. Destroy volumes and apps deliberately, in every region, once you no longer need the rollback.</p>
+
+    <h3>What do I lose by moving off Fly.io?</h3>
+    <p>Mainly regional reach. Fly's placement across many regions, fast Machine starts, and flexible networking are real strengths, and if running close to users in many specific geographies is core to your product, weigh that seriously. Kloudbean offers provider and region choice across seven clouds plus a built-in load balancer, which is a smaller footprint than Fly's model.</p>
+
+    <h3>How long does a Fly.io migration take?</h3>
+    <p>The app itself usually deploys in under an hour, since it is a GitHub connection plus environment variables. The time goes into inventorying Machines and volumes across regions, deciding what each volume holds, and moving that data. Budget more for the storage audit than for the deploy, and keep the Fly app for a few days as a rollback path.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Inventory the volumes, move the data deliberately, then destroy what keeps billing.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Migrate a Node.js App from Fly.io to Kloudbean","description":"Moving a Node app off Fly.io: inventory Machines and volumes across regions, export secrets, migrate Postgres, cut over DNS, and clean up billing resources.","image":"https://www.kloudbean.com/blog/migrate-fly-to-kloudbean/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/migrate-fly-to-kloudbean/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I export my data from Fly.io Postgres?","acceptedAnswer":{"@type":"Answer","text":"Open a local proxy to the Postgres app with the fly proxy command mapping port 5433 to 5432, then run pg_dump against 127.0.0.1 on port 5433 to produce a compressed dump. Restore it into the new managed database with pg_restore and the no-owner flag, and compare row counts on key tables before trusting it."}},
+{"@type":"Question","name":"Can I get my Fly.io secret values back?","acceptedAnswer":{"@type":"Answer","text":"Not from Fly. The fly secrets list command shows the names of your secrets but not their values, because they are write-only once set. Use the list to build a complete inventory of what needs setting, then source the values from your password manager or provisioning notes."}},
+{"@type":"Question","name":"Do Fly.io volumes replicate across regions?","acceptedAnswer":{"@type":"Answer","text":"No. Fly's documentation states that volumes are local persistent storage and do not automatically replicate your data, and that you need to set replication up yourself before creating more Machines with volumes. If you deployed across regions assuming that gave you data redundancy, it did not unless you built it. Copy volume contents deliberately during a migration."}},
+{"@type":"Question","name":"Will my Fly.io bill stop when I migrate?","acceptedAnswer":{"@type":"Answer","text":"Only if you clean up. Per Fly's billing documentation, volumes bill whether attached or not and keep billing when Machines are stopped, stopped Machines are still charged for root filesystem usage, snapshots bill on occupied storage, and dedicated IPv4 addresses bill per address. Destroy volumes and apps deliberately, in every region, once you no longer need the rollback."}},
+{"@type":"Question","name":"What do I lose by moving off Fly.io?","acceptedAnswer":{"@type":"Answer","text":"Mainly regional reach. Fly's placement across many regions, fast Machine starts, and flexible networking are real strengths, and if running close to users in many specific geographies is core to your product, weigh that seriously. Kloudbean offers provider and region choice across seven clouds plus a built-in load balancer, which is a smaller footprint than Fly's model."}},
+{"@type":"Question","name":"How long does a Fly.io migration take?","acceptedAnswer":{"@type":"Answer","text":"The app itself usually deploys in under an hour, since it is a GitHub connection plus environment variables. The time goes into inventorying Machines and volumes across regions, deciding what each volume holds, and moving that data. Budget more for the storage audit than for the deploy, and keep the Fly app for a few days as a rollback path."}}
+]}
+]}
+</script>
+</body>
+</html>
