@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>302 Found vs 301 Redirect: Why Permanent Is the Riskier Choice</title>
+<meta name="description" content="302 Found and 301 Moved Permanently explained, plus 307 and 308. Why browsers cache a 301 so aggressively that a mistake is hard to undo, and when each code is actually correct.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/302-found-vs-301-redirect/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="302 Found vs 301 Redirect: Why Permanent Is the Riskier Choice">
+<meta property="og:description" content="A 302 is not a broken 301. It is the safer default while you are unsure, because a wrong 301 sticks in browser caches after you fix it.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">HTTP · Redirects · Decision guide</span>
+  <h1>302 Found vs 301 Redirect: Why Permanent Is the Riskier Choice</h1>
+  <p class="byline">By Kloudbean Engineering · A wrong 302 is a mistake. A wrong 301 is a mistake you cannot recall.</p>
+
+  <figure><img src="images/hero.png" alt="A curl response showing a 302 Found status and Location header alongside a 301 comparison"></figure>
+
+  <p class="lead">"302 Found" is not an error, despite arriving in search results next to genuine failures. It is a successful response that says the thing you asked for currently lives somewhere else, temporarily. Its sibling, 301 Moved Permanently, says the same thing without the temporarily. The usual advice is to prefer 301 because it is better for SEO, and that advice skips the part that actually bites people: browsers treat a permanent redirect as permission to stop asking, sometimes for a very long time. Choosing wrongly in that direction is much harder to undo.</p>
+
+  <div class="tldr">
+    <strong>Should I use a 301 or a 302 redirect?</strong>
+    <p>Use 301 when the move is genuinely permanent and you are certain of the destination: a retired URL, a domain change, a canonical host. Use 302 for anything temporary or anything you might reverse: maintenance pages, A/B tests, geographic or device routing, a promotion. The reason to be careful with 301 is caching. Browsers may remember a permanent redirect indefinitely, so a wrong one keeps sending returning visitors to the wrong place even after you fix the server. If you are not sure, 302 is the safer default.</p>
+  </div>
+
+  <h2>What the four codes actually mean</h2>
+  <table class="cmp">
+    <thead><tr><th>Code</th><th>Meaning</th><th>Method preserved?</th><th>Browser caching</th></tr></thead>
+    <tbody>
+      <tr><td><strong>301</strong> Moved Permanently</td><td>Use the new URL from now on</td><td>Not guaranteed</td><td>Aggressive, potentially indefinite</td></tr>
+      <tr><td><strong>302</strong> Found</td><td>Temporarily elsewhere, keep asking here</td><td>Not guaranteed</td><td>Not cached by default</td></tr>
+      <tr><td><strong>307</strong> Temporary Redirect</td><td>Same as 302, method guaranteed</td><td><strong>Yes</strong></td><td>Not cached by default</td></tr>
+      <tr><td><strong>308</strong> Permanent Redirect</td><td>Same as 301, method guaranteed</td><td><strong>Yes</strong></td><td>Aggressive</td></tr>
+    </tbody>
+  </table>
+  <p>The method column matters more than it looks and is the reason 307 and 308 exist at all. Historically, clients receiving a 301 or 302 in response to a POST would often re-issue the request as a GET, dropping the body. That behaviour became so widespread it was effectively standard, so 307 and 308 were defined to say explicitly that the method and body must be preserved.</p>
+  <p>The practical rule: for ordinary page redirects, 301 and 302 are fine and universally understood. For anything that receives POST, PUT, or DELETE, use 307 or 308, because silently converting a POST to a GET turns a redirect into a data loss bug that is genuinely difficult to trace.</p>
+
+  <h2>The caching trap that makes 301 risky</h2>
+  <p>This is the part worth internalising, because it turns a small mistake into a long-running one.</p>
+  <p>A 301 tells the browser the old address is finished. Browsers act on that: they store the redirect and stop requesting the original URL. Depending on the browser and the headers involved, that can persist for a very long time, and in practice users have carried stale 301s around for months.</p>
+  <p>Now imagine you 301 a URL to the wrong destination and notice an hour later. You fix the server immediately. New visitors are fine. Everyone who hit it during that hour still goes to the wrong place, because their browser is no longer asking your server for an opinion. You cannot recall the instruction. Your options are to make the wrong destination work, or to ask people to clear their cache, which at any scale is not a plan.</p>
+  <p>A wrong 302 has none of that. Fix the server and the next request is correct, because a 302 asks the browser to keep coming back.</p>
+  <p>My position, and it runs against the common advice: default to 302 while a redirect is new or uncertain, then promote it to 301 once you have watched it behave correctly for a while. The SEO cost of a few days on 302 is small and recoverable. The cost of a wrongly cached 301 is neither.</p>
+  <p>If you do want a 301 with a shorter leash, send an explicit cache lifetime with it, which at least gives browsers a defined period rather than their own default:</p>
+  <pre><code>location = /old-path {
+    add_header Cache-Control "max-age=3600" always;
+    return 301 https://example.com/new-path;
+}</code></pre>
+
+  <h2>The SEO question, without the folklore</h2>
+  <p>The old rule was that only 301 passes ranking signals and 302 wastes them. That has not been accurate for some years. Google has stated that 3xx redirects generally pass signals, so the difference is smaller than the advice you will find suggests.</p>
+  <p>What still genuinely differs is what you are telling search engines to index. A 301 says replace the old URL with the new one, so the new URL is what should appear in results. A 302 says keep the old URL, because this arrangement is temporary. That is the real distinction, and it is about canonicalisation rather than about leaking value.</p>
+  <p>Which leads to a simple test that is more useful than any rule about ranking transfer: <strong>which URL do you want in search results in six months?</strong> If it is the new one, 301. If it is the old one, 302. Answering that question decides it correctly nearly every time.</p>
+  <p>One genuine SEO cost that does not depend on the code you choose: chains. Every hop adds latency and dilutes clarity, and long chains occasionally get truncated by crawlers. Keep it to one hop regardless of which status you use.</p>
+
+  <h2>Which to use, by situation</h2>
+  <table class="cmp">
+    <thead><tr><th>Situation</th><th>Use</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Retired page, content moved for good</td><td>301</td><td>You want the new URL indexed</td></tr>
+      <tr><td>Domain change</td><td>301</td><td>Permanent by definition</td></tr>
+      <tr><td>Canonical host, <code>www</code> or not</td><td>301</td><td>Settled and unlikely to change</td></tr>
+      <tr><td>HTTP to HTTPS</td><td>301</td><td>Permanent, and pair it with HSTS</td></tr>
+      <tr><td>Maintenance page</td><td>302 or 307</td><td>Reversing it must be instant</td></tr>
+      <tr><td>A/B test or experiment</td><td>302</td><td>Temporary by design</td></tr>
+      <tr><td>Seasonal or promotional landing page</td><td>302</td><td>The old URL should return</td></tr>
+      <tr><td>Geographic or language routing</td><td>302</td><td>Destination varies per visitor</td></tr>
+      <tr><td>Post-login destination</td><td>302 or 303</td><td>Per-session, never cacheable</td></tr>
+      <tr><td>API endpoint that receives POST</td><td>307 or 308</td><td>Method and body must survive</td></tr>
+      <tr><td>After a form submission</td><td>303</td><td>Forces the follow-up to GET</td></tr>
+    </tbody>
+  </table>
+  <p>That last row is a different job worth knowing about. A 303 See Other is the correct response after processing a POST, because it guarantees the follow-up request is a GET. It is the basis of the POST-redirect-GET pattern, which is covered in <a href="https://www.kloudbean.com/blog/err-cache-miss/">ERR_CACHE_MISS</a>, and it removes the browser's form resubmission prompt entirely.</p>
+
+  <h2>Writing them properly</h2>
+  <p>Prefer <code>return</code> over <code>rewrite</code> in nginx. It is faster, it is unambiguous, and it will not accidentally match its own destination:</p>
+  <pre><code># Whole-host canonical redirect
+server {
+    listen 443 ssl;
+    server_name www.example.com;
+    return 301 https://example.com$request_uri;
+}
+
+# A single moved page
+location = /old-pricing {
+    return 301 /pricing;
+}
+
+# Temporary maintenance for everyone but your own address
+location / {
+    if ($remote_addr != 203.0.113.9) {
+        return 302 /maintenance.html;
+    }
+    try_files $uri $uri/ /index.php?$args;
+}</code></pre>
+  <p><code>$request_uri</code> in the host redirect is what preserves the path and query string, so <code>/blog/post?x=1</code> arrives intact rather than dumping every visitor on the homepage. Losing the path in a domain migration is a common and expensive mistake, and it is one character of configuration.</p>
+  <p>For Apache, the equivalent with explicit status codes:</p>
+  <pre><code>Redirect 301 /old-pricing /pricing
+Redirect 302 /promo /summer-sale</code></pre>
+
+  <h2>Verify every redirect you write</h2>
+  <p>Check the status code, not just that you arrive somewhere. It is easy to write a 302 believing it is a 301, since both work from the visitor's point of view:</p>
+  <pre><code># The full chain with status codes
+curl -sIL --max-redirs 10 https://example.com/old-path | grep -iE '^HTTP|^location'
+
+# Just the count and the final destination
+curl -sIL -o /dev/null -w '%{num_redirects} hops, final: %{url_effective}\n' https://example.com/old-path
+
+# Confirm the path and query survived
+curl -sI 'https://www.example.com/blog/post?x=1' | grep -i location</code></pre>
+  <p>That third command is the one people skip, and it catches the mistake that costs the most during a migration. If the response location is the bare homepage rather than the same path on the new host, your rule is dropping <code>$request_uri</code>.</p>
+  <p>Browsers cache redirects, which makes them poor test instruments. <code>curl</code> does not, so trust it while you are working. If you must test in a browser, use a private window each time.</p>
+
+  <h2>Common ways this goes wrong</h2>
+  <p><strong>Redirecting everything to the homepage.</strong> Tempting during a migration and bad for both visitors and rankings. A visitor who wanted one article gets a homepage and leaves. Map paths to paths, and use a genuine 404 or 410 where content really is gone rather than pretending it moved.</p>
+  <p><strong>Chains built by accretion.</strong> HTTP to HTTPS, then non-<code>www</code> to <code>www</code>, then old path to new. Three hops that could be one, each added by a different person. Order your rules so any combination of entry points resolves in a single redirect.</p>
+  <p><strong>Loops from two rules disagreeing.</strong> The failure mode of redirect configuration, covered in <a href="https://www.kloudbean.com/blog/err-too-many-redirects/">ERR_TOO_MANY_REDIRECTS</a>.</p>
+  <p><strong>Redirecting a POST endpoint with 301 or 302.</strong> The method may be converted to GET and the body dropped, so the request silently does nothing. Use 307 or 308.</p>
+
+  <h2>Where hosting fits</h2>
+  <p>Redirects are configuration you write, so this is mostly yours. Two practical things do come from the platform.</p>
+  <p>Free SSL issued and renewed means the HTTP to HTTPS redirect, which is the one nearly every site needs, is straightforward rather than a certificate project. And staging matters more here than people expect, because a redirect rule that is subtly wrong is difficult to spot on the site you already know and trivial to catch on a copy where you deliberately test old URLs. Getting a canonical rule wrong on production is how loops and lost paths reach real visitors.</p>
+  <p>Beyond that, this is a decision rather than a feature: pick the code that matches what you actually mean, keep chains to one hop, and verify with <code>curl</code> rather than assuming.</p>
+
+  <figure>
+    <img src="../assets/console/staging.png" alt="Creating a staging copy of a site in the Kloudbean console">
+    <figcaption>Redirect rules are worth testing against real old URLs on a copy first.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>When two rules disagree, <a href="https://www.kloudbean.com/blog/err-too-many-redirects/">ERR_TOO_MANY_REDIRECTS</a>. For the 303 pattern after a form submission, <a href="https://www.kloudbean.com/blog/err-cache-miss/">ERR_CACHE_MISS</a>. On conditional responses and caching, <a href="https://www.kloudbean.com/blog/304-not-modified/">304 Not Modified</a>. For HTTPS and certificates, <a href="https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/">custom domain and SSL</a> and <a href="https://www.kloudbean.com/blog/fix-ssl-certificate-errors/">fixing SSL certificate errors</a>. On headers including HSTS, <a href="https://www.kloudbean.com/blog/security-headers-guide/">the security headers guide</a>. And for the proxy layer, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">the nginx reverse proxy guide</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Test the rule before your visitors do.</p>
+    <p style="margin:0 0 .6em">Managed servers with free SSL issued and renewed, one-click staging for testing redirect rules against real old URLs, and everything in one dashboard from $8/mo. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Free SSL · Staging sites · Managed nginx · One dashboard · Flat from $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does 302 Found mean?</h3>
+    <p>It is a successful HTTP response telling the client that the resource is temporarily at a different address, given in the <code>Location</code> header, and that the original URL should still be used for future requests. It is not an error, even though it appears alongside genuine failures in search results. The temporary part is what distinguishes it from a 301.</p>
+
+    <h3>What is the difference between a 301 and a 302 redirect?</h3>
+    <p>A 301 says the move is permanent, so search engines should index the new URL and browsers may stop requesting the old one. A 302 says it is temporary, so the original URL keeps its place and browsers keep asking. The practical difference is caching: a wrong 301 persists in browser caches after you fix the server, while a wrong 302 corrects itself on the next request.</p>
+
+    <h3>Is a 302 redirect bad for SEO?</h3>
+    <p>Less than folklore suggests. Google has stated that 3xx redirects generally pass signals, so the old claim that a 302 wastes ranking value is outdated. What still differs is which URL you are asking to have indexed: a 301 asks for the new one, a 302 asks to keep the old one. Choose by answering which URL you want in search results in six months.</p>
+
+    <h3>Why can a 301 redirect be risky?</h3>
+    <p>Because browsers may cache it for a very long time. If you send a 301 to the wrong destination, everyone who received it keeps going there even after you correct the server, since their browser no longer asks. You cannot withdraw the instruction. A 302 has no such problem, which is why it is the safer default while a redirect is new or uncertain.</p>
+
+    <h3>When should I use 307 or 308 instead?</h3>
+    <p>When the request method must survive. Clients receiving a 301 or 302 for a POST have historically re-issued it as a GET, dropping the body, which turns a redirect into silent data loss. A 307 is a temporary redirect that guarantees the method and body are preserved, and a 308 is the permanent equivalent. Use them for any endpoint that receives POST, PUT, or DELETE.</p>
+
+    <h3>How do I check what redirect a URL is actually sending?</h3>
+    <p>Use <code>curl -sIL --max-redirs 10</code> and grep for the status and location lines, which prints every hop with its code. Add the <code>num_redirects</code> and <code>url_effective</code> write-out variables for a quick count and final destination. Avoid testing in a normal browser window, since browsers cache redirects and will show you stale behaviour.</p>
+
+    <h3>Should I redirect old pages to my homepage?</h3>
+    <p>No. A visitor who wanted a specific article gets an unrelated page and usually leaves, and it tells search engines little about the relationship between the URLs. Map each old path to its closest equivalent, and where content is genuinely gone return a 404, or a 410 if you want to state that the removal is deliberate.</p>
+
+    <h3>How many redirects is too many?</h3>
+    <p>Aim for one. Each hop is a full round trip before anything renders, which is noticeable on mobile connections, and long chains are occasionally truncated by crawlers. Chains usually accumulate rather than being designed, with an HTTPS rule, a canonical host rule, and a path change each adding a hop. Order your rules so any entry point resolves in a single redirect.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Which URL do you want in search results in six months? That answers it.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"302 Found vs 301 Redirect: Why Permanent Is the Riskier Choice","description":"302 Found and 301 Moved Permanently explained, plus 307 and 308. Why browsers cache a 301 so aggressively that a mistake is hard to undo, and when each code is actually correct.","image":"https://www.kloudbean.com/blog/302-found-vs-301-redirect/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/302-found-vs-301-redirect/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does 302 Found mean?","acceptedAnswer":{"@type":"Answer","text":"It is a successful HTTP response telling the client that the resource is temporarily at a different address, given in the Location header, and that the original URL should still be used for future requests. It is not an error, even though it appears alongside genuine failures in search results. The temporary part is what distinguishes it from a 301."}},
+{"@type":"Question","name":"What is the difference between a 301 and a 302 redirect?","acceptedAnswer":{"@type":"Answer","text":"A 301 says the move is permanent, so search engines should index the new URL and browsers may stop requesting the old one. A 302 says it is temporary, so the original URL keeps its place and browsers keep asking. The practical difference is caching: a wrong 301 persists in browser caches after you fix the server, while a wrong 302 corrects itself on the next request."}},
+{"@type":"Question","name":"Is a 302 redirect bad for SEO?","acceptedAnswer":{"@type":"Answer","text":"Less than folklore suggests. Google has stated that 3xx redirects generally pass signals, so the old claim that a 302 wastes ranking value is outdated. What still differs is which URL you are asking to have indexed: a 301 asks for the new one, a 302 asks to keep the old one. Choose by answering which URL you want in search results in six months."}},
+{"@type":"Question","name":"Why can a 301 redirect be risky?","acceptedAnswer":{"@type":"Answer","text":"Because browsers may cache it for a very long time. If you send a 301 to the wrong destination, everyone who received it keeps going there even after you correct the server, since their browser no longer asks. You cannot withdraw the instruction. A 302 has no such problem, which is why it is the safer default while a redirect is new or uncertain."}},
+{"@type":"Question","name":"When should I use 307 or 308 instead?","acceptedAnswer":{"@type":"Answer","text":"When the request method must survive. Clients receiving a 301 or 302 for a POST have historically re-issued it as a GET, dropping the body, which turns a redirect into silent data loss. A 307 is a temporary redirect that guarantees the method and body are preserved, and a 308 is the permanent equivalent. Use them for any endpoint that receives POST, PUT, or DELETE."}},
+{"@type":"Question","name":"How do I check what redirect a URL is actually sending?","acceptedAnswer":{"@type":"Answer","text":"Use curl with the head, location-following and max-redirs options and grep for the status and location lines, which prints every hop with its code. Add the num_redirects and url_effective write-out variables for a quick count and final destination. Avoid testing in a normal browser window, since browsers cache redirects and will show you stale behaviour."}},
+{"@type":"Question","name":"Should I redirect old pages to my homepage?","acceptedAnswer":{"@type":"Answer","text":"No. A visitor who wanted a specific article gets an unrelated page and usually leaves, and it tells search engines little about the relationship between the URLs. Map each old path to its closest equivalent, and where content is genuinely gone return a 404, or a 410 if you want to state that the removal is deliberate."}},
+{"@type":"Question","name":"How many redirects is too many?","acceptedAnswer":{"@type":"Answer","text":"Aim for one. Each hop is a full round trip before anything renders, which is noticeable on mobile connections, and long chains are occasionally truncated by crawlers. Chains usually accumulate rather than being designed, with an HTTPS rule, a canonical host rule, and a path change each adding a hop. Order your rules so any entry point resolves in a single redirect."}}
+]}
+]}
+</script>
+</body>
+</html>
