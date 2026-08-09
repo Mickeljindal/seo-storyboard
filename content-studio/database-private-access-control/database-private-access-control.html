@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>No Direct Database Access: Architecting for CSCC 2-2-1-8</title>
+<meta name="description" content="NCA CSCC prohibits direct database access for everyone except database administrators. What that means architecturally, how private-IP databases and app-layer access work, and why it breaks common developer habits.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/database-private-access-control/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="No Direct Database Access: Architecting for CSCC 2-2-1-8">
+<meta property="og:description" content="How to satisfy CSCC 2-2-1-8: private-only database networking, application-layer access, DBA exceptions, and limiting administrator visibility of classified data.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Compliance · Saudi Arabia · CSCC 2-2-1-8</span>
+  <h1>No Direct Database Access: Architecting for CSCC 2-2-1-8</h1>
+  <p class="byline">By Kloudbean Engineering · The control that quietly changes how your team works.</p>
+
+  <figure><img src="images/hero.png" alt="A database on a private network reachable only through the application layer, with a separate administrator path"></figure>
+
+  <p class="lead">One short CSCC control has more effect on daily engineering habits than almost any other. Control 2-2-1-8 prohibits direct access and interaction with databases for all users except database administrators, and says users must reach data through applications only. Read plainly, that means the developer who opens a GUI client against production, the analyst running ad-hoc queries, and the support engineer checking a record all lose that path. This explains what the control asks for, how to build it, and what to give people instead.</p>
+
+  <div class="tldr">
+    <strong>What does CSCC 2-2-1-8 require?</strong>
+    <p>Direct access and interaction with databases is prohibited for all users except database administrators. Everyone else must access and interact with data through applications only. The control also asks you to give consideration to security solutions that limit or prohibit visibility of classified data to database administrators. In practice that means databases on private networking with no public endpoint, application-layer access paths, a narrow and audited DBA exception, and controls on what administrators can see.</p>
+  </div>
+
+  <h2>What the control actually says</h2>
+  <p>Three distinct requirements sit inside one control, and it helps to separate them:</p>
+  <ol>
+    <li><strong>No direct database access or interaction for all users</strong>, with database administrators as the only exception.</li>
+    <li><strong>Users reach data through applications only.</strong> The application becomes the mandatory access path, not a convenience.</li>
+    <li><strong>Consideration of solutions that limit or prohibit visibility of classified data to database administrators.</strong> This one is phrased as consideration rather than an absolute, but it is pointing at the obvious residual risk: if DBAs are the exception, what stops a DBA reading everything?</li>
+  </ol>
+  <p>Note the word "interaction" alongside "access". A read-only connection is still direct interaction. The control is not only about write protection.</p>
+
+  <h2>Why the control exists</h2>
+  <p>Two reasons worth understanding, because they shape how you implement it rather than work around it.</p>
+  <p>First, accountability. When a user queries the database directly, the record of what happened lives in database logs as a connection and a statement, with no business context. When the same user acts through an application, you get an authenticated identity, an authorisation decision, an action with meaning, and an audit trail that ties to a person and a purpose. That is what makes an investigation possible later.</p>
+  <p>Second, the blast radius of a credential. A database credential that works from anywhere is one leaked environment file away from full data access. Removing the direct path means a leaked connection string is far less useful on its own, because there is no route from the internet to the port it names.</p>
+
+  <h2>The architecture</h2>
+  <p>The shape that satisfies this is well established, and it maps onto CSCC's other network requirements neatly.</p>
+  <p><strong>Private networking only.</strong> The database has no public endpoint. It sits on a private address inside your virtual network, reachable from the application tier and nothing else. This also serves 2-4-1-1, which requires critical system networks to be segregated and isolated.</p>
+  <p><strong>Application tier as the access path.</strong> The application connects over the private network. Users authenticate to the application, the application authorises the action, and the application queries the database. Combined with the minimum three-tier requirement in 2-12-2 and 2-13-3-1, this is the same architecture read from a different angle.</p>
+  <p><strong>A narrow administrative path.</strong> DBAs are the permitted exception, but that access should still be constrained: through VPN and a bastion host rather than from the open internet, with multi-factor authentication under 2-2-1-3, from workstations on the isolated management network described in 2-3-1-4, and with the session logged.</p>
+  <p><strong>Service accounts handled properly.</strong> The application's own database credential is a service account. Control 2-2-1-7 asks for service accounts to be managed securely with interactive login disabled, so that credential should not double as something a human can log in with.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 200" role="img" aria-label="Users reach the database only through the application over a private network, while database administrators use a separate VPN and bastion path" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
+      <rect x="0" y="0" width="720" height="200" fill="#ffffff"></rect>
+      <rect x="16" y="30" width="130" height="44" rx="8" fill="#eef0f6" stroke="#000f27"></rect>
+      <text x="81" y="57" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" fill="#000f27">Users</text>
+      <line x1="146" y1="52" x2="216" y2="52" stroke="#000f27" stroke-width="2" marker-end="url(#ar)"></line>
+      <rect x="216" y="30" width="150" height="44" rx="8" fill="#efe9fe" stroke="#4F1AF3"></rect>
+      <text x="291" y="49" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="600" fill="#4F1AF3">Application</text>
+      <text x="291" y="65" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#4F1AF3">authn + authz + audit</text>
+      <line x1="366" y1="52" x2="446" y2="52" stroke="#40b75f" stroke-width="2" marker-end="url(#ar)"></line>
+      <text x="406" y="44" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#1e7a43">private</text>
+      <rect x="446" y="30" width="150" height="44" rx="8" fill="#eafaf0" stroke="#40b75f"></rect>
+      <text x="521" y="49" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="600" fill="#1e7a43">Database</text>
+      <text x="521" y="65" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#1e7a43">private IP, no public endpoint</text>
+      <rect x="16" y="130" width="130" height="44" rx="8" fill="#fff4f4" stroke="#c0392b"></rect>
+      <text x="81" y="151" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" fill="#c0392b">DBAs only</text>
+      <text x="81" y="166" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#c0392b">the exception</text>
+      <line x1="146" y1="152" x2="216" y2="152" stroke="#c0392b" stroke-width="2" marker-end="url(#ar)"></line>
+      <rect x="216" y="130" width="150" height="44" rx="8" fill="#eef0f6" stroke="#000f27"></rect>
+      <text x="291" y="151" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" fill="#000f27">VPN + bastion</text>
+      <text x="291" y="166" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#000f27">MFA, session logged</text>
+      <path d="M366,152 L446,152 L446,80" fill="none" stroke="#c0392b" stroke-width="2" marker-end="url(#ar)"></path>
+      <text x="176" y="105" font-family="Poppins,sans-serif" font-size="11" fill="#c0392b">No path from the public internet to the database port</text>
+      <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#333"></path></marker></defs>
+    </svg>
+    <figcaption>Users go through the application. Administrators take a separate, narrow, audited path. Neither route starts on the public internet.</figcaption>
+  </figure>
+
+  <h2>What this breaks, and what to offer instead</h2>
+  <p>Be honest with your team about the friction, because unacknowledged friction turns into shadow workarounds that undo the control.</p>
+  <table class="cmp">
+    <thead><tr><th>Habit that stops working</th><th>What to provide instead</th></tr></thead>
+    <tbody>
+      <tr><td>Developer connects a GUI client to production</td><td>Read access through an internal admin view in the application, scoped by role</td></tr>
+      <tr><td>Analyst runs ad-hoc SQL against production</td><td>A reporting path fed from a separate, masked dataset</td></tr>
+      <tr><td>Support engineer looks up a customer record</td><td>A support screen in the application, with the lookup logged against their identity</td></tr>
+      <tr><td>Engineer takes a production dump to debug locally</td><td>Masked or scrambled data, since 2-6-1-1 and 2-6-1-5 prohibit the casual copy</td></tr>
+      <tr><td>Batch job connects from a developer machine</td><td>A scheduled job running inside the application tier</td></tr>
+    </tbody>
+  </table>
+  <p>The pattern is the same each time: the need is legitimate, and the answer is to build the path into the application where it can be authenticated, authorised, and logged, rather than leaving a direct connection open because it is convenient.</p>
+
+  <h2>The uncomfortable part: limiting DBA visibility</h2>
+  <p>The final clause is the one most implementations skip, and it deserves a straight treatment. If DBAs are the permitted exception, they can technically read everything, including data classified under 2-6-1-2. The control asks you to give consideration to solutions that limit or prohibit that visibility.</p>
+  <p>Options that genuinely help, roughly in order of strength: encrypting sensitive fields at the application layer so the database holds ciphertext a DBA cannot interpret, which 2-7-1-2 supports by allowing encryption at column level; tokenising the most sensitive values so the database stores references rather than content; masking at the query layer for administrative sessions; and separating duties so the person who administers the database is not the person who holds the application's encryption keys.</p>
+  <p>Being clear about the limit: no infrastructure configuration achieves this on its own. Application-layer field encryption and tokenisation are code decisions made by your development team. Infrastructure can enforce least privilege, log every administrative session, and keep the keys somewhere the DBA cannot reach, and the rest is application work. Anyone claiming a hosting product removes DBA visibility by itself is overstating what infrastructure can do.</p>
+
+  <h2>How to evidence it</h2>
+  <p>For a review, have these ready: the network configuration showing the database has no public endpoint, the connectivity path proving only the application tier can reach it, the user and role list with the DBA exception explicitly identified, the VPN and bastion configuration for the administrative path, MFA coverage for those accounts, and administrative session logs. If someone asks whether a developer can reach production data directly, you want to answer with configuration rather than policy.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="Launching a managed database with private networking in the Kloudbean console">
+    <figcaption>A managed database on private networking, with the connection string issued for the application tier rather than for people.</figcaption>
+  </figure>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>On managed enterprise engagements, Kloudbean runs managed databases on private addressing with no public endpoint, reachable from the application tier over private networking, with administrative access routed through VPN and a dedicated bastion host under multi-factor authentication, least-privilege roles, and session logging. That covers the infrastructure half of 2-2-1-8. The application-layer pieces, an internal admin view, a masked reporting path, and any field-level encryption or tokenisation, are built by your development team, and we will happily design the split with you.</p>
+
+  <h2>Related reading</h2>
+  <p>For the framework see <a href="https://www.kloudbean.com/blog/nca-cscc-compliance-guide/">NCA CSCC explained</a>, and for the full gap list <a href="https://www.kloudbean.com/blog/critical-systems-hosting-checklist/">the critical systems hosting checklist</a>. On the technical neighbours: <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">what is a VPC</a>, <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>, and <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a>. Logging and retention are in <a href="https://www.kloudbean.com/blog/cscc-log-retention-immutable-logs/">CSCC 18-month log retention</a>, and residency in <a href="https://www.kloudbean.com/blog/data-residency-saudi-arabia/">data residency in Saudi Arabia</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Databases people cannot reach directly.</p>
+    <p style="margin:0 0 .6em">Kloudbean runs managed enterprise engagements with databases on private addressing and no public endpoint, application-tier-only access, and administrative paths behind VPN, bastion, and MFA with session logging, on in-Kingdom infrastructure where required. Start a conversation at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Private-only databases · No public endpoint · VPN and bastion admin path · MFA · Session logging</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does CSCC 2-2-1-8 require?</h3>
+    <p>It prohibits direct access and interaction with databases for all users except database administrators, and requires other users to access and interact with data through applications only. It also asks for consideration of solutions that limit or prohibit visibility of classified data to database administrators.</p>
+
+    <h3>Can developers connect to a production database under CSCC?</h3>
+    <p>Not directly, unless they are the designated database administrators. The control names DBAs as the only exception. Legitimate developer needs should be served through the application, for example a role-scoped internal admin view, or through a separate masked dataset for investigation and reporting.</p>
+
+    <h3>How do I stop direct database access technically?</h3>
+    <p>Give the database private addressing with no public endpoint, so it is reachable only from the application tier inside your private network. Route the administrative exception through VPN and a bastion host with multi-factor authentication and session logging. Then the absence of a public route is the control, rather than a policy asking people not to connect.</p>
+
+    <h3>Does this control mean database administrators can see everything?</h3>
+    <p>That is the residual risk the control's final clause points at, which is why it asks for consideration of solutions limiting administrator visibility of classified data. The strongest answers are application-layer field encryption or tokenisation, so the database holds ciphertext or references, plus separating duties so the DBA does not hold the application's keys. Those are code and key-management decisions, not infrastructure settings.</p>
+
+    <h3>How do analysts run reports if they cannot query the database?</h3>
+    <p>Through a reporting path fed from a separate dataset rather than production. Keep in mind that 2-6-1-1 prohibits using critical systems data in other environments without masking or scrambling, and 2-6-1-5 prohibits transferring production data out, so the reporting dataset needs to be masked rather than a straight copy.</p>
+
+    <h3>Does a private database endpoint satisfy 2-2-1-8 on its own?</h3>
+    <p>It satisfies the infrastructure half, which is the part that removes the direct path. The rest is application work: building the access paths users legitimately need so they do not go looking for workarounds, and deciding how to limit administrator visibility of classified data. Infrastructure and application both have to move for the control to hold.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Remove the route, then build the path people actually need.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"No Direct Database Access: Architecting for CSCC 2-2-1-8","description":"How to satisfy CSCC 2-2-1-8: private-only database networking, application-layer access, DBA exceptions, and limiting administrator visibility of classified data.","image":"https://www.kloudbean.com/blog/database-private-access-control/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/database-private-access-control/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does CSCC 2-2-1-8 require?","acceptedAnswer":{"@type":"Answer","text":"It prohibits direct access and interaction with databases for all users except database administrators, and requires other users to access and interact with data through applications only. It also asks for consideration of solutions that limit or prohibit visibility of classified data to database administrators."}},
+{"@type":"Question","name":"Can developers connect to a production database under CSCC?","acceptedAnswer":{"@type":"Answer","text":"Not directly, unless they are the designated database administrators. The control names DBAs as the only exception. Legitimate developer needs should be served through the application, for example a role-scoped internal admin view, or through a separate masked dataset for investigation and reporting."}},
+{"@type":"Question","name":"How do I stop direct database access technically?","acceptedAnswer":{"@type":"Answer","text":"Give the database private addressing with no public endpoint, so it is reachable only from the application tier inside your private network. Route the administrative exception through VPN and a bastion host with multi-factor authentication and session logging. Then the absence of a public route is the control, rather than a policy asking people not to connect."}},
+{"@type":"Question","name":"Does this control mean database administrators can see everything?","acceptedAnswer":{"@type":"Answer","text":"That is the residual risk the control's final clause points at, which is why it asks for consideration of solutions limiting administrator visibility of classified data. The strongest answers are application-layer field encryption or tokenisation, so the database holds ciphertext or references, plus separating duties so the DBA does not hold the application's keys. Those are code and key-management decisions, not infrastructure settings."}},
+{"@type":"Question","name":"How do analysts run reports if they cannot query the database?","acceptedAnswer":{"@type":"Answer","text":"Through a reporting path fed from a separate dataset rather than production. Keep in mind that 2-6-1-1 prohibits using critical systems data in other environments without masking or scrambling, and 2-6-1-5 prohibits transferring production data out, so the reporting dataset needs to be masked rather than a straight copy."}},
+{"@type":"Question","name":"Does a private database endpoint satisfy 2-2-1-8 on its own?","acceptedAnswer":{"@type":"Answer","text":"It satisfies the infrastructure half, which is the part that removes the direct path. The rest is application work: building the access paths users legitimately need so they do not go looking for workarounds, and deciding how to limit administrator visibility of classified data. Infrastructure and application both have to move for the control to hold."}}
+]}
+]}
+</script>
+</body>
+</html>

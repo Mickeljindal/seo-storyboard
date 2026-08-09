@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CSCC Remote Access: No Access From Outside the Kingdom, and What That Means</title>
+<meta name="description" content="NCA CSCC prohibits remote access to critical systems from outside Saudi Arabia and restricts it from inside. How to build VPN, bastion, and isolated management access that satisfies 2-2-1-1 through 2-2-1-4.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/cscc-remote-access-controls/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CSCC Remote Access: No Access From Outside the Kingdom, and What That Means">
+<meta property="og:description" content="Building remote access for Saudi critical systems: geographic restriction, VPN and bastion paths, MFA, isolated management networks, and mobile device rules.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Compliance · Saudi Arabia · CSCC 2-2 and 2-5</span>
+  <h1>CSCC Remote Access: No Access From Outside the Kingdom, and What That Means</h1>
+  <p class="byline">By Kloudbean Engineering · A control that decides where your engineers can sit.</p>
+
+  <figure><img src="images/hero.png" alt="Remote access to a critical system routed through VPN and a bastion host, with access from outside the Kingdom blocked"></figure>
+
+  <p class="lead">Among the CSCC controls, this is the one with the most direct effect on how a team is organised. Control 2-2-1-1 prohibits remote access to critical systems from outside the Kingdom of Saudi Arabia. Not discouraged, not risk-assessed, prohibited. Access from inside the Kingdom is permitted but restricted, verified, and continuously monitored. If you have an offshore development partner, a contractor abroad, or an engineer who travels, this control reaches into your operating model as much as your network. Here is what it requires and how the access path is normally built.</p>
+
+  <div class="tldr">
+    <strong>Can you access a Saudi critical system from abroad?</strong>
+    <p>No. Control 2-2-1-1 prohibits remote access to critical systems from outside the Kingdom. Control 2-2-1-2 allows access from inside the Kingdom but requires it to be restricted, with each access attempt verified by the organisation's security operations centre and remote access activity continuously monitored. Multi-factor authentication is required for all users (2-2-1-3) and for privileged users on the systems used to manage critical systems (2-2-1-4). Mobile device access is prohibited except temporarily, after a risk assessment and approval (2-5-1-1).</p>
+  </div>
+
+  <h2>The controls in this group</h2>
+  <table class="cmp">
+    <thead><tr><th>Control</th><th>Requirement</th></tr></thead>
+    <tbody>
+      <tr><td>2-2-1-1</td><td>Prohibit remote access from outside the Kingdom of Saudi Arabia</td></tr>
+      <tr><td>2-2-1-2</td><td>Restrict remote access from inside the Kingdom, verify each attempt via the SOC, continuously monitor activity</td></tr>
+      <tr><td>2-2-1-3</td><td>Multi-factor authentication for all users</td></tr>
+      <tr><td>2-2-1-4</td><td>MFA for privileged users and on systems used to manage critical systems</td></tr>
+      <tr><td>2-3-1-4</td><td>Isolated management network workstations for highly privileged accounts</td></tr>
+      <tr><td>2-3-1-5</td><td>Encrypt non-console administrative access traffic</td></tr>
+      <tr><td>2-4-1-4</td><td>Prohibit critical systems from connecting to a wireless network</td></tr>
+      <tr><td>2-5-1-1</td><td>Prohibit mobile device access, except temporarily with risk assessment and approval</td></tr>
+      <tr><td>2-5-1-2</td><td>Full disk encryption on mobile devices with access to critical systems</td></tr>
+      <tr><td>2-2-2</td><td>Review user identities and access rights at least every three months</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Geographic prohibition is an architecture problem, not a policy one</h2>
+  <p>The distinction matters. A policy saying "do not connect from abroad" satisfies nobody, because the question at review time is whether it is possible. Enforcement usually combines several layers rather than relying on one:</p>
+  <ul>
+    <li><strong>No public administrative surface.</strong> Direct SSH, RDP, and database ports are not reachable from the internet at all. This is the strongest layer, because it removes the route rather than filtering it.</li>
+    <li><strong>A single controlled entry point.</strong> All remote access arrives through VPN, so there is exactly one door to reason about and log.</li>
+    <li><strong>Restriction at the entry point.</strong> The VPN itself restricts where connections may originate, which is where the geographic requirement is actually enforced.</li>
+    <li><strong>Identity-layer conditions.</strong> Access policies on the identity provider as a second gate, so a stolen VPN credential alone is not sufficient.</li>
+  </ul>
+  <p>Two honest notes on the mechanics. Location enforcement based on network origin is not flawless, since a determined person can route traffic through an in-Kingdom relay. That is why the identity layer and monitoring matter, and why 2-2-1-2 asks for verification of each access attempt rather than a one-time configuration. Second, be careful with any always-on split tunnelling or third-party remote support tool that could create a second path in. Those are the routes people forget when documenting the control.</p>
+
+  <h2>The bastion pattern</h2>
+  <p>Once VPN is the only door, the standard next layer is a bastion, sometimes called a jump server. Rather than letting an authenticated engineer reach every machine, they land on one hardened host and move on from there. It concentrates the audit trail, reduces the number of machines exposed to any credential, and gives you a single place to record sessions.</p>
+  <p>Layer 2-3-1-4 on top of that and the picture is complete. Highly privileged accounts should work from specific workstations on an isolated management network, separated from other networks and services including email and the internet. The reasoning is straightforward: the most common route to a privileged credential is a phishing link opened on the same machine that holds it, so the control removes the ability to do both from one device.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 210" role="img" aria-label="Access from outside the Kingdom is blocked; in-Kingdom access passes through VPN then a bastion host to reach application and database tiers" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
+      <rect x="0" y="0" width="720" height="210" fill="#ffffff"></rect>
+      <rect x="14" y="18" width="150" height="44" rx="8" fill="#fff4f4" stroke="#c0392b"></rect>
+      <text x="89" y="39" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" fill="#c0392b">Outside the Kingdom</text>
+      <text x="89" y="54" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#c0392b">prohibited (2-2-1-1)</text>
+      <line x1="164" y1="40" x2="232" y2="40" stroke="#c0392b" stroke-width="2" stroke-dasharray="5,4"></line>
+      <line x1="192" y1="26" x2="208" y2="54" stroke="#c0392b" stroke-width="3"></line>
+      <line x1="208" y1="26" x2="192" y2="54" stroke="#c0392b" stroke-width="3"></line>
+      <rect x="14" y="104" width="150" height="44" rx="8" fill="#eef0f6" stroke="#000f27"></rect>
+      <text x="89" y="125" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" fill="#000f27">In-Kingdom user</text>
+      <text x="89" y="140" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#000f27">restricted (2-2-1-2)</text>
+      <line x1="164" y1="126" x2="232" y2="126" stroke="#000f27" stroke-width="2" marker-end="url(#a2)"></line>
+      <rect x="232" y="104" width="130" height="44" rx="8" fill="#efe9fe" stroke="#4F1AF3"></rect>
+      <text x="297" y="125" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="600" fill="#4F1AF3">VPN + MFA</text>
+      <text x="297" y="140" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#4F1AF3">the only door</text>
+      <line x1="362" y1="126" x2="428" y2="126" stroke="#4F1AF3" stroke-width="2" marker-end="url(#a2)"></line>
+      <rect x="428" y="104" width="130" height="44" rx="8" fill="#eef0f6" stroke="#000f27"></rect>
+      <text x="493" y="125" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="600" fill="#000f27">Bastion</text>
+      <text x="493" y="140" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#000f27">sessions logged</text>
+      <line x1="558" y1="126" x2="616" y2="126" stroke="#40b75f" stroke-width="2" marker-end="url(#a2)"></line>
+      <rect x="616" y="104" width="92" height="44" rx="8" fill="#eafaf0" stroke="#40b75f"></rect>
+      <text x="662" y="125" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" font-weight="600" fill="#1e7a43">Critical</text>
+      <text x="662" y="139" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" font-weight="600" fill="#1e7a43">system</text>
+      <text x="232" y="182" font-family="Poppins,sans-serif" font-size="11" fill="#000f27">No public SSH, RDP, or database ports. Privileged work from the isolated management network (2-3-1-4).</text>
+      <defs><marker id="a2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#333"></path></marker></defs>
+    </svg>
+    <figcaption>One controlled door, then a bastion, then the system. Access from outside the Kingdom has no path at all.</figcaption>
+  </figure>
+
+  <h2>The SOC verification requirement</h2>
+  <p>Control 2-2-1-2 contains a phrase that is easy to skim: each access attempt verified by the organisation's security operations centre, with continuous monitoring of remote access activity. That is not a firewall rule. It presumes an operational function watching access in real time.</p>
+  <p>The infrastructure side can be prepared: every VPN and bastion session logged with identity, source, timestamp, and duration; alerts on unusual patterns such as access outside normal hours, a new source, or repeated failures; and session records held in immutable storage under the retention rules in 2-11-2. Verification itself is a human activity though, and it needs a team and a rota. This is the same boundary that appears in 2-11-1-4, and it is worth planning for early rather than discovering during a review. Kloudbean takes on SOC and SIEM work as a collaborative engagement scoped with the client rather than a fixed package, precisely because the right shape depends on your hours, team, and escalation paths.</p>
+
+  <h2>Mobile devices and wireless</h2>
+  <p>Two restrictions people rarely expect. Control 2-5-1-1 prohibits access to critical systems from mobile devices, allowing it only for a temporary period, after assessing the risks and obtaining approval from the organisation's cybersecurity function. If a device does get that approval, 2-5-1-2 requires full disk encryption on it. Read together: mobile access is an exception with paperwork, not a convenience.</p>
+  <p>Separately, control 2-4-1-4 prohibits critical systems from connecting to a wireless network at all. That is about the systems themselves rather than the user's laptop, and it constrains how the environment is built.</p>
+
+  <h2>The offshore team problem</h2>
+  <p>This is the part worth raising with stakeholders before it becomes a surprise. If a system is identified as critical, engineers outside the Kingdom cannot remotely access it. Combined with control 4-1-1-2, which requires outsourcing and managed services for critical systems to rely on Saudi companies, and 1-5-1-2 on staffing for technical support and development roles, the framework has clear expectations about where the people are, not only where the servers are.</p>
+  <p>Practical consequences to plan for: an offshore team can usually still develop, since development happens against non-production environments, but they cannot reach production. Anything requiring production access, deployment approval, incident response, or database administration needs to sit with people who can lawfully connect. Emergency access paths need designing up front, because an incident at 2am is the worst time to discover the only person who can reach the system is in another country. And your development workflow needs to work without production data, which is where 2-6-1-1 on masking becomes a practical requirement rather than a compliance line.</p>
+
+  <h2>How to evidence it</h2>
+  <p>Have ready: the network configuration showing no public administrative ports, the VPN configuration including its origin restrictions, MFA coverage reports for both ordinary and privileged accounts, bastion session logs, the management network separation, the mobile access approvals with their risk assessments, and dated access reviews from the last three months under 2-2-2. As with the rest of CSCC, the goal is to answer with configuration and records rather than with a policy document.</p>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="Choosing provider, region, and network placement when launching a server in the Kloudbean console">
+    <figcaption>Network placement is decided at provisioning, which is where administrative exposure is either created or avoided.</figcaption>
+  </figure>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>On managed enterprise engagements, Kloudbean builds the access layer: all remote access enforced through VPN with direct SSH from the internet blocked, a dedicated bastion host for privileged administrative access, MFA on console and VPN, least-privilege roles with access reviewed quarterly, encrypted administrative traffic, and databases on private addressing with no public endpoint. Session logging feeds the immutable log store. The organisational half stays with you: who is authorised, the SOC rota that performs verification, mobile access approvals, and the staffing decisions the framework implies.</p>
+
+  <h2>Related reading</h2>
+  <p>For the framework overview see <a href="https://www.kloudbean.com/blog/nca-cscc-compliance-guide/">NCA CSCC explained</a>, and for the gap list <a href="https://www.kloudbean.com/blog/critical-systems-hosting-checklist/">the critical systems hosting checklist</a>. The database side of access control is in <a href="https://www.kloudbean.com/blog/database-private-access-control/">CSCC 2-2-1-8</a>, and session logging in <a href="https://www.kloudbean.com/blog/cscc-log-retention-immutable-logs/">CSCC 18-month log retention</a>. On the networking concepts, <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">what is a VPC</a>, and for residency <a href="https://www.kloudbean.com/blog/data-residency-saudi-arabia/">data residency in Saudi Arabia</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">One door, logged, with no route from outside.</p>
+    <p style="margin:0 0 .6em">Kloudbean runs managed enterprise engagements with VPN-enforced remote access, direct SSH from the internet blocked, a dedicated bastion for privileged access, MFA, quarterly access reviews, and private-only databases, on in-Kingdom infrastructure where required. Start a conversation at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">VPN-only access · Bastion host · No public SSH · MFA · Quarterly access reviews · In-Kingdom available</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Can I access a Saudi critical system from outside the Kingdom?</h3>
+    <p>No. Control 2-2-1-1 prohibits remote access to critical systems from outside the Kingdom of Saudi Arabia. Access from inside the Kingdom is permitted under 2-2-1-2 but must be restricted, with each attempt verified by the security operations centre and activity continuously monitored.</p>
+
+    <h3>How do I technically enforce the geographic restriction?</h3>
+    <p>Layer it. Remove public administrative surface so SSH, RDP, and database ports are unreachable from the internet, make VPN the single entry point, restrict permitted origins at the VPN, and add identity-provider access conditions as a second gate. Network-origin checks are not flawless on their own, which is why the identity layer and continuous monitoring matter.</p>
+
+    <h3>What is a bastion host and does CSCC require one?</h3>
+    <p>A bastion, or jump server, is a single hardened host that administrators land on before reaching other machines. CSCC does not use the word, but it is the standard way to satisfy the surrounding requirements: restricted and monitored access under 2-2-1-2, encrypted non-console administrative traffic under 2-3-1-5, and a concentrated audit trail. Control 2-3-1-4 separately requires privileged accounts to work from an isolated management network.</p>
+
+    <h3>Can our offshore development team work on a critical system?</h3>
+    <p>They can generally develop against non-production environments, but they cannot remotely access the critical system itself, because 2-2-1-1 prohibits access from outside the Kingdom. Production access, deployment approval, incident response, and database administration need people who can lawfully connect. Control 4-1-1-2 also requires outsourcing and managed services for critical systems to rely on Saudi companies.</p>
+
+    <h3>Does CSCC allow access from mobile devices?</h3>
+    <p>Only as an exception. Control 2-5-1-1 prohibits access to critical systems from mobile devices except for a temporary period, after assessing the risks and obtaining approval from the organisation's cybersecurity function. Where access is granted, 2-5-1-2 requires full disk encryption on the device. Separately, 2-4-1-4 prohibits critical systems from connecting to a wireless network.</p>
+
+    <h3>How often must remote access rights be reviewed?</h3>
+    <p>At least every three months. Control 2-2-2 requires user identities and access rights to critical systems to be reviewed on that cadence. Keep dated records of each review, because this is one of the recurring obligations that most often lapses between audits.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Decide where the people are before you design the network.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"CSCC Remote Access: No Access From Outside the Kingdom, and What That Means","description":"Building remote access for Saudi critical systems: geographic restriction, VPN and bastion paths, MFA, isolated management networks, and mobile device rules.","image":"https://www.kloudbean.com/blog/cscc-remote-access-controls/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/cscc-remote-access-controls/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Can I access a Saudi critical system from outside the Kingdom?","acceptedAnswer":{"@type":"Answer","text":"No. Control 2-2-1-1 prohibits remote access to critical systems from outside the Kingdom of Saudi Arabia. Access from inside the Kingdom is permitted under 2-2-1-2 but must be restricted, with each attempt verified by the security operations centre and activity continuously monitored."}},
+{"@type":"Question","name":"How do I technically enforce the geographic restriction?","acceptedAnswer":{"@type":"Answer","text":"Layer it. Remove public administrative surface so SSH, RDP, and database ports are unreachable from the internet, make VPN the single entry point, restrict permitted origins at the VPN, and add identity-provider access conditions as a second gate. Network-origin checks are not flawless on their own, which is why the identity layer and continuous monitoring matter."}},
+{"@type":"Question","name":"What is a bastion host and does CSCC require one?","acceptedAnswer":{"@type":"Answer","text":"A bastion, or jump server, is a single hardened host that administrators land on before reaching other machines. CSCC does not use the word, but it is the standard way to satisfy the surrounding requirements: restricted and monitored access under 2-2-1-2, encrypted non-console administrative traffic under 2-3-1-5, and a concentrated audit trail. Control 2-3-1-4 separately requires privileged accounts to work from an isolated management network."}},
+{"@type":"Question","name":"Can our offshore development team work on a critical system?","acceptedAnswer":{"@type":"Answer","text":"They can generally develop against non-production environments, but they cannot remotely access the critical system itself, because 2-2-1-1 prohibits access from outside the Kingdom. Production access, deployment approval, incident response, and database administration need people who can lawfully connect. Control 4-1-1-2 also requires outsourcing and managed services for critical systems to rely on Saudi companies."}},
+{"@type":"Question","name":"Does CSCC allow access from mobile devices?","acceptedAnswer":{"@type":"Answer","text":"Only as an exception. Control 2-5-1-1 prohibits access to critical systems from mobile devices except for a temporary period, after assessing the risks and obtaining approval from the organisation's cybersecurity function. Where access is granted, 2-5-1-2 requires full disk encryption on the device. Separately, 2-4-1-4 prohibits critical systems from connecting to a wireless network."}},
+{"@type":"Question","name":"How often must remote access rights be reviewed?","acceptedAnswer":{"@type":"Answer","text":"At least every three months. Control 2-2-2 requires user identities and access rights to critical systems to be reviewed on that cadence. Keep dated records of each review, because this is one of the recurring obligations that most often lapses between audits."}}
+]}
+]}
+</script>
+</body>
+</html>

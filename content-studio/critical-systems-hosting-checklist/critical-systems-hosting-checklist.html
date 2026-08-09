@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Critical Systems Hosting Checklist: Preparing Infrastructure for an NCA Review</title>
+<meta name="description" content="A control-by-control checklist for the infrastructure side of NCA CSCC: what to configure, what evidence to have ready, and which items no hosting provider can close for you.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/critical-systems-hosting-checklist/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Critical Systems Hosting Checklist: Preparing Infrastructure for an NCA Review">
+<meta property="og:description" content="What to configure and what evidence to keep for the infrastructure half of NCA CSCC, organised by control, with the organisational items called out separately.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Compliance · Saudi Arabia · Checklist</span>
+  <h1>Critical Systems Hosting Checklist: Preparing Infrastructure for an NCA Review</h1>
+  <p class="byline">By Kloudbean Engineering · Configured is half the job. Evidenced is the other half.</p>
+
+  <figure><img src="images/hero.png" alt="A control-by-control checklist covering access, network, encryption, logging, backups, and resilience"></figure>
+
+  <p class="lead">Most teams preparing for a CSCC review discover the same thing: the configuration work is largely done, and the evidence work has barely started. NCA evaluates compliance through self-assessment and on-site audits, which means someone will ask you to show that a control is in place, not just assert it. This checklist runs through the infrastructure-layer controls in order, with the artefact worth keeping for each one, and it separates out the items that no hosting provider can close on your behalf.</p>
+
+  <div class="tldr">
+    <strong>What do I need in place for the infrastructure side of NCA CSCC?</strong>
+    <p>Nine areas: identity and access with MFA and no remote access from outside the Kingdom, segregated networks with whitelist-only firewalls, encryption in transit and at rest, patching on a documented cadence with hardening reviews, private-only database access, centralised logging with immutable storage and 18-month retention, daily backups with a recovery test every three months, monthly vulnerability assessments plus six-monthly penetration tests, and multi-zone resilience with a tested DR plan. For each one, keep a dated artefact showing it works.</p>
+  </div>
+
+  <h2>How to use this</h2>
+  <p>Work through it as a gap list rather than a score. Two columns matter for every row: is the control configured, and can you produce something dated that proves it. A screenshot with no date, or a policy document with no corresponding technical state, tends not to survive scrutiny. Control references are to CSCC-1:2019, and remember that CSCC sits on top of ECC, so the baseline controls need to hold as well.</p>
+
+  <h2>1. Identity and access</h2>
+  <ul>
+    <li>Remote access from outside the Kingdom is blocked, not merely discouraged (2-2-1-1). <em>Evidence:</em> the network or identity policy that enforces it, plus a denied-attempt log entry.</li>
+    <li>Remote access from inside the Kingdom is restricted, verified, and monitored (2-2-1-2). <em>Evidence:</em> VPN configuration and access logs.</li>
+    <li>Multi-factor authentication for all users (2-2-1-3) and for privileged users on the systems used to manage critical systems (2-2-1-4). <em>Evidence:</em> an enrolment report showing coverage, not just that the feature is available.</li>
+    <li>A secure password policy (2-2-1-5), with passwords stored and processed using secure methods such as hashing (2-2-1-6).</li>
+    <li>Service accounts managed securely with interactive login disabled (2-2-1-7). <em>Evidence:</em> the account inventory and its login settings.</li>
+    <li>Access rights to critical systems reviewed at least every three months (2-2-2). <em>Evidence:</em> dated review records. This is the one people forget between audits.</li>
+  </ul>
+
+  <h2>2. Network</h2>
+  <ul>
+    <li>Critical system networks logically or physically segregated and isolated (2-4-1-1). <em>Evidence:</em> network diagram plus the actual subnet and routing configuration.</li>
+    <li>Firewall access lists are whitelist-only, deny by default (2-4-1-9).</li>
+    <li>Firewall rules and access lists reviewed at least every six months (2-4-1-2). <em>Evidence:</em> dated review output.</li>
+    <li>No wireless connectivity to critical systems (2-4-1-4).</li>
+    <li>DDoS protection in place (2-4-1-8).</li>
+    <li>Privileged accounts operate from workstations on an isolated management network, separated from email and internet (2-3-1-4).</li>
+    <li>Internet connectivity removed for internal critical systems with no genuine need for outside access (2-4-1-6).</li>
+  </ul>
+
+  <h2>3. Encryption</h2>
+  <ul>
+    <li>All data in transit encrypted (2-7-1-1). <em>Evidence:</em> TLS configuration and a scan result showing the minimum version enforced.</li>
+    <li>All data at rest encrypted at file, database, or column level (2-7-1-2).</li>
+    <li>Non-console administrative access encrypted (2-3-1-5).</li>
+    <li>Methods, algorithms, keys, and devices current and in line with NCA guidance (2-7-1-3). <em>Evidence:</em> your key management approach, including who can access keys.</li>
+  </ul>
+
+  <h2>4. Hardening and patching</h2>
+  <ul>
+    <li>Security patches at least monthly for external and internet-connected critical systems, at least quarterly for internal ones (2-3-1-3). <em>Evidence:</em> patch history per host, which is the artefact auditors ask for most often.</li>
+    <li>Configuration and hardening reviewed at least every six months (2-3-1-6). <em>Evidence:</em> dated benchmark or review output.</li>
+    <li>Default configurations reviewed, and hard-coded, backdoor, and default passwords removed (2-3-1-7).</li>
+    <li>Application and software execution whitelisting on servers hosting critical systems (2-3-1-1).</li>
+    <li>Endpoint protection on servers hosting critical systems (2-3-1-2).</li>
+    <li>System logs and critical files protected from unauthorised access, tampering, modification, and deletion (2-3-1-8).</li>
+  </ul>
+
+  <h2>5. Database access</h2>
+  <ul>
+    <li>Direct database access prohibited for everyone except database administrators; all other users reach data through applications only (2-2-1-8). <em>Evidence:</em> network configuration showing the database is not reachable directly, plus the user and role list.</li>
+    <li>Consider controls that limit or prevent administrators seeing classified data, which the same control asks you to give consideration to.</li>
+  </ul>
+  <p>This control has more architectural consequence than its length suggests, and we covered it separately in <a href="https://www.kloudbean.com/blog/database-private-access-control/">database access control under CSCC 2-2-1-8</a>.</p>
+
+  <h2>6. Logging and monitoring</h2>
+  <ul>
+    <li>Event logs active on all technical components, not only application servers (2-11-1-1).</li>
+    <li>File integrity monitoring active and monitored (2-11-1-2).</li>
+    <li>User behaviour monitored and analysed (2-11-1-3).</li>
+    <li>Security events monitored around the clock (2-11-1-4). <em>Evidence:</em> who watches, on what rota, with what escalation path.</li>
+    <li>Logs protected and complete, including time, date, ID, and affected system (2-11-1-5).</li>
+    <li>Retention of at least 18 months (2-11-2). <em>Evidence:</em> the bucket retention setting, and a successful retrieval of an event older than a year.</li>
+  </ul>
+  <p>The retention and immutability distinction trips people up, so it has its own walkthrough in <a href="https://www.kloudbean.com/blog/cscc-log-retention-immutable-logs/">CSCC 18-month log retention</a>.</p>
+
+  <h2>7. Backup and resilience</h2>
+  <ul>
+    <li>Online and offline backups covering all critical systems (2-8-1-1).</li>
+    <li>Backups at planned intervals, with daily recommended for critical systems (2-8-1-2).</li>
+    <li>Backup access, storage, and transfer secured against destruction, unauthorised access, and modification (2-8-1-3).</li>
+    <li>Recovery tested at least every three months (2-8-2). <em>Evidence:</em> dated restore test records including how long the restore took.</li>
+    <li>A disaster recovery centre for critical systems (3-1-1-1), critical systems inside DR plans (3-1-1-2), and DR plans tested at least annually (3-1-1-3).</li>
+  </ul>
+  <p>Full detail in <a href="https://www.kloudbean.com/blog/cscc-backup-disaster-recovery/">CSCC backup and disaster recovery</a>.</p>
+
+  <h2>8. Testing</h2>
+  <ul>
+    <li>Vulnerability assessments on critical systems components at least monthly (2-9-2), using trusted methods and tools (2-9-1-1).</li>
+    <li>Vulnerabilities remediated on the required cadence, with critical ones remediated immediately under change management (2-9-1-2, 2-9-1-3).</li>
+    <li>Penetration tests at least every six months (2-10-2), covering all technical components and internal and external services (2-10-1-1), by a qualified team (2-10-1-2).</li>
+  </ul>
+
+  <h2>9. Application and data handling</h2>
+  <ul>
+    <li>Multi-tier architecture with at least three tiers (2-12-2 and 2-13-3-1).</li>
+    <li>OWASP Top Ten as a minimum for internet-facing web applications (2-12-1-2), with secure session management including authenticity, lockout, and timeout (2-12-1-1).</li>
+    <li>Production data not used in other environments without masking or scrambling (2-6-1-1), and not transferred out of production (2-6-1-5).</li>
+    <li>All data within critical systems classified (2-6-1-2), with leakage prevention applied to classified data (2-6-1-3).</li>
+    <li>Retention periods defined, keeping only required data in production (2-6-1-4).</li>
+  </ul>
+
+  <figure>
+    <img src="../assets/console/add-server.png" alt="Choosing cloud provider and region when launching a server, including in-Kingdom options">
+    <figcaption>Several checklist items are decided at provisioning time, including region and network placement.</figcaption>
+  </figure>
+
+  <h2>The items hosting cannot close for you</h2>
+  <p>Worth separating clearly, because assuming a provider covers these is the most common planning error:</p>
+  <ul>
+    <li><strong>Identifying which systems are critical.</strong> Your organisation does this using NCA's criteria, and it is the first implementation step.</li>
+    <li><strong>Governance.</strong> Strategy, policies, procedures, and a risk register reviewed monthly for critical systems (1-2-1-2), with an annual risk assessment (1-2-1-1).</li>
+    <li><strong>Review and audit.</strong> Reviewing CSCC implementation annually (1-4-1), and an independent review outside the cybersecurity function at least every three years (1-4-2).</li>
+    <li><strong>Human resources.</strong> Screening and vetting people who work on critical systems (1-5-1-1), and the staffing requirements in 1-5-1-2.</li>
+    <li><strong>Application code.</strong> Session management logic, input validation, API security, and the masking logic that 2-6-1-1 requires.</li>
+    <li><strong>Record-level data classification.</strong> Marking data Confidential, Secret, Internal, or Public needs knowledge of the content and business rules.</li>
+    <li><strong>Around-the-clock response.</strong> Detection can be built into infrastructure; investigation, severity classification, escalation, and regulator reporting need people.</li>
+    <li><strong>Commissioning penetration tests</strong> and engaging NCA for formal assessment.</li>
+  </ul>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>On managed enterprise engagements, Kloudbean configures and maintains the infrastructure-layer rows above and supplies evidence as managed reports, on a dedicated cloud account including Google Cloud's Dammam region (me-central2) where in-Kingdom placement is required. To be clear about the boundary: this is an enterprise engagement rather than a self-serve plan, no provider can make an organisation compliant, and SOC or SIEM operations are scoped collaboratively with you rather than sold as a fixed package.</p>
+
+  <h2>Related reading</h2>
+  <p>Start with <a href="https://www.kloudbean.com/blog/nca-cscc-compliance-guide/">NCA CSCC explained</a> for the framework, then the deep dives on <a href="https://www.kloudbean.com/blog/cscc-log-retention-immutable-logs/">log retention</a>, <a href="https://www.kloudbean.com/blog/cscc-backup-disaster-recovery/">backup and DR</a>, and <a href="https://www.kloudbean.com/blog/database-private-access-control/">database access control</a>. For the baseline and adjacent frameworks see <a href="https://www.kloudbean.com/blog/nca-ecc-compliant-hosting/">NCA ECC compliant hosting</a> and <a href="https://www.kloudbean.com/blog/pdpl-compliance-hosting/">PDPL compliance hosting</a>, plus <a href="https://www.kloudbean.com/blog/data-residency-saudi-arabia/">data residency in Saudi Arabia</a> and <a href="https://www.kloudbean.com/blog/security-headers-guide/">the security headers guide</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Work the gap list with someone who has built it.</p>
+    <p style="margin:0 0 .6em">Kloudbean runs managed enterprise engagements covering the infrastructure rows above: segregated networks, VPN and bastion access, encryption in transit and at rest, documented patch cadence, immutable logging with 18-month retention, tested backups, and multi-zone resilience, on in-Kingdom infrastructure where required. Start a conversation at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Network isolation · MFA and bastion access · Immutable logs · Tested restores · Multi-zone HA · In-Kingdom available</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What evidence does an NCA review ask for?</h3>
+    <p>Dated artefacts showing a control works, rather than statements that it exists. In practice that means patch histories per host, access review records every three months, firewall review output every six months, restore test records with timing, retention settings plus a successful retrieval of an old event, and MFA enrolment coverage. Configuration alone is usually the easier half.</p>
+
+    <h3>How often do CSCC reviews and tests need to happen?</h3>
+    <p>Several different cadences, which is why a calendar helps: access rights reviewed every three months, backup recovery tested every three months, vulnerability assessments monthly, patching monthly for internet-facing and quarterly for internal systems, firewall rules and hardening reviewed every six months, penetration tests every six months, DR plans tested annually, and CSCC implementation reviewed annually with an independent review at least every three years.</p>
+
+    <h3>Can a hosting provider complete this checklist for me?</h3>
+    <p>Only the infrastructure rows. Identifying critical systems, governance and the risk register, HR screening, application code security, record-level data classification, commissioning penetration tests, and engaging NCA remain with your organisation. A managed provider can configure and maintain the technical controls and supply the evidence, which is substantial but not the whole framework.</p>
+
+    <h3>Where do most organisations have gaps?</h3>
+    <p>Usually not in configuration. The recurring gaps are the recurring obligations: the three-monthly access review, the three-monthly restore test with a record of it, the six-monthly firewall and hardening reviews, and log retention that silently reverted to a shorter cloud default. All four are calendar problems rather than engineering problems.</p>
+
+    <h3>Does this checklist cover ECC as well?</h3>
+    <p>No. CSCC extends ECC, and continuous ECC compliance is a prerequisite for CSCC compliance, so the ECC baseline needs to hold separately. This checklist covers the additional CSCC requirements at the infrastructure layer. Treat ECC as the first pass and CSCC as the second.</p>
+
+    <h3>Do logs and backups need to stay inside Saudi Arabia?</h3>
+    <p>Treat them as part of the critical system. Control 4-2-1-1 covers hosting of critical systems and any part of their technical components, and logs and backups can contain sensitive operational data. The safe reading is to keep them in the same in-Kingdom footprint, and to confirm the position with your compliance team rather than inferring it.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Put the recurring reviews in a calendar. That is where most gaps live.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Critical Systems Hosting Checklist: Preparing Infrastructure for an NCA Review","description":"What to configure and what evidence to keep for the infrastructure half of NCA CSCC, organised by control, with the organisational items called out separately.","image":"https://www.kloudbean.com/blog/critical-systems-hosting-checklist/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/critical-systems-hosting-checklist/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What evidence does an NCA review ask for?","acceptedAnswer":{"@type":"Answer","text":"Dated artefacts showing a control works, rather than statements that it exists. In practice that means patch histories per host, access review records every three months, firewall review output every six months, restore test records with timing, retention settings plus a successful retrieval of an old event, and MFA enrolment coverage. Configuration alone is usually the easier half."}},
+{"@type":"Question","name":"How often do CSCC reviews and tests need to happen?","acceptedAnswer":{"@type":"Answer","text":"Several different cadences, which is why a calendar helps: access rights reviewed every three months, backup recovery tested every three months, vulnerability assessments monthly, patching monthly for internet-facing and quarterly for internal systems, firewall rules and hardening reviewed every six months, penetration tests every six months, DR plans tested annually, and CSCC implementation reviewed annually with an independent review at least every three years."}},
+{"@type":"Question","name":"Can a hosting provider complete this checklist for me?","acceptedAnswer":{"@type":"Answer","text":"Only the infrastructure rows. Identifying critical systems, governance and the risk register, HR screening, application code security, record-level data classification, commissioning penetration tests, and engaging NCA remain with your organisation. A managed provider can configure and maintain the technical controls and supply the evidence, which is substantial but not the whole framework."}},
+{"@type":"Question","name":"Where do most organisations have gaps?","acceptedAnswer":{"@type":"Answer","text":"Usually not in configuration. The recurring gaps are the recurring obligations: the three-monthly access review, the three-monthly restore test with a record of it, the six-monthly firewall and hardening reviews, and log retention that silently reverted to a shorter cloud default. All four are calendar problems rather than engineering problems."}},
+{"@type":"Question","name":"Does this checklist cover ECC as well?","acceptedAnswer":{"@type":"Answer","text":"No. CSCC extends ECC, and continuous ECC compliance is a prerequisite for CSCC compliance, so the ECC baseline needs to hold separately. This checklist covers the additional CSCC requirements at the infrastructure layer. Treat ECC as the first pass and CSCC as the second."}},
+{"@type":"Question","name":"Do logs and backups need to stay inside Saudi Arabia?","acceptedAnswer":{"@type":"Answer","text":"Treat them as part of the critical system. Control 4-2-1-1 covers hosting of critical systems and any part of their technical components, and logs and backups can contain sensitive operational data. The safe reading is to keep them in the same in-Kingdom footprint, and to confirm the position with your compliance team rather than inferring it."}}
+]}
+]}
+</script>
+</body>
+</html>
