@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>403 Forbidden Error: Which of the Five 403s You Actually Have</title>
+<meta name="description" content="Fix a 403 Forbidden error by identifying which layer refused you. File permissions, a missing index, a deny rule, a security plugin, or a storage bucket policy all return 403 with completely different fixes.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/403-forbidden-error/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="403 Forbidden Error: Which of the Five 403s You Actually Have">
+<meta property="og:description" content="403 Forbidden is five different errors wearing one status code. The error log line tells you which one. And no, 777 is not the fix.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">HTTP errors · Access control · Field guide</span>
+  <h1>403 Forbidden Error: Which of the Five 403s You Actually Have</h1>
+  <p class="byline">By Kloudbean Engineering · One status code, five unrelated causes. The log line sorts them.</p>
+
+  <figure><img src="images/hero.png" alt="A 403 Forbidden page beside an nginx error log showing a directory index forbidden message"></figure>
+
+  <p class="lead">403 Forbidden means the server understood exactly what you asked for and is refusing to serve it. Not confused, not broken, refusing. The difficulty is that at least five completely different mechanisms all return 403: filesystem permissions, a missing directory index, an explicit deny rule, an application or security layer blocking you, and a storage bucket policy. They share a status code and nothing else. Fixing the wrong one is why people spend an hour on file permissions when a security plugin was blocking their address the whole time.</p>
+
+  <div class="tldr">
+    <strong>How do you fix a 403 Forbidden error?</strong>
+    <p>Read your web server error log first, because it names the mechanism. nginx says <code>directory index ... is forbidden</code> for a missing index file, <code>access forbidden by rule</code> for an explicit deny, and <code>Permission denied</code> for filesystem permissions. Those three lines point at three unrelated fixes. If the log shows nothing, the refusal came from your application, a security plugin, a firewall rule, or a storage bucket policy rather than from the web server. And do not use <code>chmod 777</code>, which is both a security problem and often not even a working fix.</p>
+  </div>
+
+  <h2>First, 403 is not 401</h2>
+  <p>These get mixed up constantly and the distinction saves time. A <strong>401</strong> means the server does not know who you are and wants credentials. A <strong>403</strong> means the question of identity is settled and the answer is still no. So if you are getting 403 on a page you expect to access, adding credentials will not help. Something has decided that this request, from this source, to this resource, is not allowed.</p>
+
+  <h2>Find out which layer refused you</h2>
+  <p>Two commands. The first shows you who answered:</p>
+  <pre><code>curl -I https://example.com/the-forbidden-path</code></pre>
+  <p>Read the <code>Server</code> header and any provider-specific headers. A 403 from nginx, from a CDN, and from object storage look different, and object storage in particular usually returns a recognisable XML body rather than an HTML page. Fetch the body if the headers are ambiguous:</p>
+  <pre><code>curl -s https://example.com/the-forbidden-path | head -20</code></pre>
+  <p>The second command is the one that actually solves it:</p>
+  <pre><code>sudo tail -50 /var/log/nginx/error.log
+# or, on Apache
+sudo tail -50 /var/log/apache2/error.log</code></pre>
+  <p>nginx is admirably specific here, and its three messages map to three separate causes:</p>
+  <table class="cmp">
+    <thead><tr><th>Log line</th><th>Cause</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td><code>directory index of "/var/www/html/" is forbidden</code></td><td>No index file, and directory listing is off</td><td>Add the index file or fix the root path</td></tr>
+      <tr><td><code>access forbidden by rule</code></td><td>An explicit <code>deny</code> in your configuration</td><td>Find and correct the deny block</td></tr>
+      <tr><td><code>open() ... failed (13: Permission denied)</code></td><td>Filesystem permissions or ownership</td><td>Correct modes and ownership, check parent directories</td></tr>
+      <tr><td>Nothing at all in the log</td><td>The refusal came from above or inside the app</td><td>Check the app, security plugin, WAF, or bucket policy</td></tr>
+    </tbody>
+  </table>
+  <p>That last row matters more than it looks. An empty error log is information: it means nginx was happy to serve the request and something else said no. Stop looking at file permissions at that point.</p>
+
+  <h2>403 number one: filesystem permissions</h2>
+  <p>The web server process cannot read the file. Correct values are boring and specific: directories <code>755</code>, files <code>644</code>, and configuration files holding credentials tighter than that.</p>
+  <pre><code># Correct permissions across a web root
+sudo find /var/www/html -type d -exec chmod 755 {} \;
+sudo find /var/www/html -type f -exec chmod 644 {} \;
+sudo chown -R www-data:www-data /var/www/html
+
+# Tighter on anything holding credentials
+sudo chmod 640 /var/www/html/wp-config.php</code></pre>
+  <p>Two things people miss. Ownership matters as much as the mode, because a perfectly permissioned file owned by the wrong user still fails when the web server writes rather than reads. And <strong>every parent directory needs execute permission</strong>, since traversing a path requires it at each level. A correct file inside a directory the web server cannot enter produces exactly this error, which is why the fix sometimes seems not to work: you fixed the file and not the path to it.</p>
+  <pre><code># Check the whole path, not just the file
+namei -l /var/www/html/wp-content/uploads/2026/07/image.jpg</code></pre>
+  <p><code>namei -l</code> is genuinely the fastest way to see this. It prints permissions for every component of the path, and the broken level is immediately visible.</p>
+
+  <h3>Why 777 is not the answer</h3>
+  <p>It is the most repeated advice on this error and it is bad on two counts. It makes files writable by every user on the server, which on any shared or multi-tenant system is a real exposure rather than a theoretical one. And it frequently does not even work, because some server configurations deliberately refuse to execute scripts with group or world write permission. So you take a security hit and keep the error.</p>
+  <p>If <code>755</code> and <code>644</code> with correct ownership do not fix it, the cause is not the mode. Look at ownership, at parent directories, and on RHEL-family systems at SELinux contexts.</p>
+
+  <h2>403 number two: no index file</h2>
+  <p>You requested a directory, the server has no index file to serve, and directory listing is off, which is the correct default. The log line names it plainly. Either the index file is genuinely missing, or your document root points somewhere unexpected, which is common after a deploy that changed the build output directory.</p>
+  <pre><code># Where does the server think the root is?
+grep -r "root " /etc/nginx/sites-enabled/
+
+# Is there actually an index file there?
+ls -la /var/www/html/ | head</code></pre>
+  <p>Resist the urge to switch directory listing on to make the error go away. That replaces a 403 with a public file browser, which is worse.</p>
+
+  <h2>403 number three: a deny rule you forgot about</h2>
+  <p>Somebody wrote an allow list. It might have been you, months ago, protecting a staging site or an admin path. Then the office IP changed, or the site moved behind a proxy so every request now arrives from the proxy's address instead of visitors' addresses.</p>
+  <pre><code># Find deny and allow directives
+sudo grep -rE "^\s*(deny|allow)" /etc/nginx/
+# On Apache, also check .htaccess files
+sudo find /var/www -name ".htaccess" -exec grep -lE "Deny|Require" {} \;</code></pre>
+  <p>The proxy case deserves emphasis because it is a reliable trap. Once traffic is proxied, an allow list written against real visitor addresses no longer matches anything, since the web server only sees the proxy. Restore the real client address before you write access rules, or you are filtering on the wrong thing entirely. Our <a href="https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/">error 521 guide</a> covers that configuration in detail, because the same misunderstanding causes a different outage there.</p>
+  <p>Also worth checking whether the 403 is deliberate. If you have an IP allow list or a basic authentication gate on a staging or internal application, a 403 is the control working. That is a five second check that occasionally saves an afternoon.</p>
+
+  <h2>403 number four: WordPress and security layers</h2>
+  <p>Very common, and the tell is that the web server log is clean. Candidates, roughly in order:</p>
+  <p><strong>A corrupted <code>.htaccess</code>.</strong> On Apache, rename it and let WordPress rebuild it:</p>
+  <pre><code>mv .htaccess .htaccess.bak</code></pre>
+  <p>Then visit Settings, then Permalinks in the admin and save, which regenerates a clean file. If the 403 disappears the moment you rename it, you have your answer.</p>
+  <p><strong>A security plugin blocking your address.</strong> Firewall and login-protection plugins block addresses after failed logins, and they are not always obvious about it. If you can reach the site from a phone on mobile data but not from your office, this is almost certainly what is happening. Deactivate the plugin over SSH to confirm:</p>
+  <pre><code>wp plugin list --status=active
+wp plugin deactivate the-security-plugin</code></pre>
+  <p><strong>A web application firewall rule.</strong> If a request contains something that pattern-matches an attack, a WAF may refuse it. The classic false positive is a legitimate post containing SQL keywords or code samples, which gets blocked on save while every other page works fine. The signature is that one specific action fails and everything else is normal.</p>
+  <p><strong>Hotlink or referrer protection.</strong> Images returning 403 when embedded elsewhere but loading fine directly is hotlink protection doing its job, whether or not you remember enabling it.</p>
+
+  <h2>403 number five: storage buckets and signed URLs</h2>
+  <p>Object storage refuses by default, which is the correct design and a frequent surprise. If files return 403 from a bucket, work through four things: whether the object is private while the request is anonymous, whether a bucket-level policy blocks public access, whether the access key has permission for this specific object path, and whether a signed URL has simply expired.</p>
+  <p>That last one produces a distinctive pattern worth recognising. A link works, then stops working later with a 403, and nothing changed. Presigned URLs are time-limited on purpose. If your application generates them for downloads, the expiry needs to be longer than the time a user might reasonably take, and links should not be cached or emailed as though permanent.</p>
+  <p>On Kloudbean, S3-compatible buckets have explicit public and private access controls in the dashboard, so the common case of "I meant this to be public" is a setting rather than a policy document. More on that in <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage</a>.</p>
+
+  <h2>The specific case of "your client does not have permission to get URL"</h2>
+  <p>This wording comes from Google's own frontend rather than from your server, so if you are seeing it, the refusal happened at a Google-hosted endpoint. In practice it shows up when a request reaches a Google service without the authorisation that service expects: an API called with credentials that do not cover it, referrer or key restrictions that do not match where the request came from, or an application whose access is limited to particular accounts.</p>
+  <p>The useful takeaway is that nothing on your own web server will change it. Check the credentials, the key restrictions, and the access settings on the Google side. Debugging your own file permissions for this message is time spent in the wrong place, which is exactly why recognising whose 403 you are looking at is the whole point of this article.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Pattern</th><th>Which 403</th><th>First check</th></tr></thead>
+    <tbody>
+      <tr><td>Whole site, right after a deploy or migration</td><td>Permissions or document root</td><td>Error log, then <code>namei -l</code></td></tr>
+      <tr><td>One directory only</td><td>Missing index file</td><td><code>ls</code> that directory</td></tr>
+      <tr><td>Works on mobile data, fails from the office</td><td>Address-based block</td><td>Security plugin, deny rules</td></tr>
+      <tr><td>Only when saving a specific post or form</td><td>WAF false positive</td><td>Firewall or WAF logs</td></tr>
+      <tr><td>Only <code>/wp-admin</code></td><td>Security plugin or <code>.htaccess</code></td><td>Rename <code>.htaccess</code>, then plugins</td></tr>
+      <tr><td>Images fail when embedded elsewhere</td><td>Hotlink protection</td><td>Referrer rules</td></tr>
+      <tr><td>Link worked yesterday, 403 today</td><td>Expired signed URL</td><td>Presigned URL expiry</td></tr>
+      <tr><td>Everything fine, log completely clean</td><td>Above or inside the app</td><td>CDN, WAF, bucket, app logic</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Where hosting removes the whole first category</h2>
+  <p>Two of the five 403s exist purely because someone had to set permissions and a document root by hand. Those are the ones that show up right after a migration, when files arrive owned by the wrong user, and they are entirely avoidable.</p>
+  <p>On Kloudbean, applications are provisioned with correct ownership and permissions rather than left for you to work out, and free migration assistance exists specifically because a hand-copied site is where wrong ownership comes from. Where a 403 is something you actually want, the platform gives you the deliberate versions: IP access control with allow and deny rules including CIDR ranges, and a basic authentication gate for staging or internal applications. S3-compatible buckets have public and private controls in the same dashboard.</p>
+  <p>Honest boundary: nothing here prevents a security plugin from blocking your own address, and no platform can tell a WAF that your blog post about SQL injection is not SQL injection. What it removes is the permissions-and-ownership class, which is the largest and the most tedious.</p>
+
+  <figure>
+    <img src="../assets/console/firewall.png" alt="Firewall and access rules managed from the Kloudbean console">
+    <figcaption>When a 403 is intentional, it should be a setting you can see rather than a config file you have to find.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>For the neighbouring status codes, <a href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/">502 Bad Gateway</a>, <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">503 after a deploy</a>, and <a href="https://www.kloudbean.com/blog/fix-504-gateway-timeout/">504 Gateway Timeout</a>. When a proxy sits in front, <a href="https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/">Cloudflare error codes</a> and <a href="https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/">error 521</a>, which covers restoring real visitor addresses. On WordPress specifics, <a href="https://www.kloudbean.com/blog/there-has-been-a-critical-error-on-this-website/">the critical error message</a>, <a href="https://www.kloudbean.com/blog/wordpress-cli-guide/">the WP-CLI guide</a>, and <a href="https://www.kloudbean.com/blog/secure-wordpress-hosting/">secure WordPress hosting</a>. For bucket permissions, <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage</a>. And for headers that interact with access control, <a href="https://www.kloudbean.com/blog/security-headers-guide/">the security headers guide</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Correct permissions from the first deploy.</p>
+    <p style="margin:0 0 .6em">Applications provisioned with the right ownership and permissions, IP access control and a basic auth gate when you want a 403 on purpose, S3-compatible buckets with public and private controls, and free migration assistance so a hand-copied site does not arrive broken. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed permissions · IP access control · Basic auth gate · S3 buckets · Free migration</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does 403 Forbidden mean?</h3>
+    <p>It means the server understood your request and is refusing to fulfil it. Unlike a 404, the resource exists; unlike a 401, the server is not asking for credentials. Something has decided this request is not permitted, and at least five separate mechanisms can make that decision, which is why the fix depends entirely on identifying which one refused you.</p>
+
+    <h3>What is the difference between 401 and 403?</h3>
+    <p>A 401 means you are not authenticated and the server wants credentials. A 403 means authentication is not the issue: you may be perfectly well identified and still not allowed. Practically, if you are seeing 403, logging in or adding an API key usually will not help, because permission rather than identity is what is being refused.</p>
+
+    <h3>How do I fix a 403 error on my website?</h3>
+    <p>Start with the web server error log. nginx distinguishes a missing directory index, an explicit deny rule, and a filesystem permission failure with three different messages, and each has a different fix. If the log is empty, the refusal came from your application, a security plugin, a firewall, or a storage bucket policy rather than the web server.</p>
+
+    <h3>What file permissions should I use to fix a 403?</h3>
+    <p>Directories <code>755</code>, files <code>644</code>, and anything holding credentials tighter at <code>640</code> or <code>600</code>. Also check ownership, and check that every parent directory has execute permission, since traversing a path requires it at each level. <code>namei -l</code> on the full file path shows you exactly which level is wrong.</p>
+
+    <h3>Should I use chmod 777 to fix a 403 error?</h3>
+    <p>No. It makes files writable by every user on the server, which is a genuine exposure on any shared system, and it often does not even resolve the error because some configurations refuse to execute scripts that are group or world writable. If correct modes and ownership do not fix it, the cause is elsewhere: parent directories, ownership, or SELinux contexts.</p>
+
+    <h3>Why do I get a 403 error only on wp-admin?</h3>
+    <p>Usually a security plugin blocking your address after failed logins, or a corrupted <code>.htaccess</code> file. Test from mobile data rather than your usual network, since a different result confirms an address-based block. Otherwise rename <code>.htaccess</code> and re-save your permalinks so WordPress regenerates a clean one.</p>
+
+    <h3>Why did a working link start returning 403?</h3>
+    <p>If it points at object storage, the most likely answer is an expired signed URL, since presigned links are time-limited by design. Otherwise consider whether an address-based block was triggered, a bucket policy changed, or a firewall rule was added. A link that worked and then stopped without any deployment usually points at an expiry or a block rather than a permissions change.</p>
+
+    <h3>Can a firewall or WAF cause a 403?</h3>
+    <p>Yes, and it produces a distinctive pattern: one specific action fails while the rest of the site works normally. A common false positive is saving content that contains code samples or SQL keywords, which a rule reads as an attack. Check the firewall or WAF logs for a blocked request matching the timestamp before changing anything on the server.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Work out whose 403 it is before you chmod anything.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"403 Forbidden Error: Which of the Five 403s You Actually Have","description":"Fix a 403 Forbidden error by identifying which layer refused you. File permissions, a missing index, a deny rule, a security plugin, or a storage bucket policy all return 403 with completely different fixes.","image":"https://www.kloudbean.com/blog/403-forbidden-error/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/403-forbidden-error/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does 403 Forbidden mean?","acceptedAnswer":{"@type":"Answer","text":"It means the server understood your request and is refusing to fulfil it. Unlike a 404, the resource exists; unlike a 401, the server is not asking for credentials. Something has decided this request is not permitted, and at least five separate mechanisms can make that decision, which is why the fix depends entirely on identifying which one refused you."}},
+{"@type":"Question","name":"What is the difference between 401 and 403?","acceptedAnswer":{"@type":"Answer","text":"A 401 means you are not authenticated and the server wants credentials. A 403 means authentication is not the issue: you may be perfectly well identified and still not allowed. Practically, if you are seeing 403, logging in or adding an API key usually will not help, because permission rather than identity is what is being refused."}},
+{"@type":"Question","name":"How do I fix a 403 error on my website?","acceptedAnswer":{"@type":"Answer","text":"Start with the web server error log. nginx distinguishes a missing directory index, an explicit deny rule, and a filesystem permission failure with three different messages, and each has a different fix. If the log is empty, the refusal came from your application, a security plugin, a firewall, or a storage bucket policy rather than the web server."}},
+{"@type":"Question","name":"What file permissions should I use to fix a 403?","acceptedAnswer":{"@type":"Answer","text":"Directories 755, files 644, and anything holding credentials tighter at 640 or 600. Also check ownership, and check that every parent directory has execute permission, since traversing a path requires it at each level. Running namei with the long flag on the full file path shows you exactly which level is wrong."}},
+{"@type":"Question","name":"Should I use chmod 777 to fix a 403 error?","acceptedAnswer":{"@type":"Answer","text":"No. It makes files writable by every user on the server, which is a genuine exposure on any shared system, and it often does not even resolve the error because some configurations refuse to execute scripts that are group or world writable. If correct modes and ownership do not fix it, the cause is elsewhere: parent directories, ownership, or SELinux contexts."}},
+{"@type":"Question","name":"Why do I get a 403 error only on wp-admin?","acceptedAnswer":{"@type":"Answer","text":"Usually a security plugin blocking your address after failed logins, or a corrupted .htaccess file. Test from mobile data rather than your usual network, since a different result confirms an address-based block. Otherwise rename .htaccess and re-save your permalinks so WordPress regenerates a clean one."}},
+{"@type":"Question","name":"Why did a working link start returning 403?","acceptedAnswer":{"@type":"Answer","text":"If it points at object storage, the most likely answer is an expired signed URL, since presigned links are time-limited by design. Otherwise consider whether an address-based block was triggered, a bucket policy changed, or a firewall rule was added. A link that worked and then stopped without any deployment usually points at an expiry or a block rather than a permissions change."}},
+{"@type":"Question","name":"Can a firewall or WAF cause a 403?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it produces a distinctive pattern: one specific action fails while the rest of the site works normally. A common false positive is saving content that contains code samples or SQL keywords, which a rule reads as an attack. Check the firewall or WAF logs for a blocked request matching the timestamp before changing anything on the server."}}
+]}
+]}
+</script>
+</body>
+</html>

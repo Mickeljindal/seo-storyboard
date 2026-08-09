@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>There Has Been a Critical Error on This Website: Find the Exact Cause</title>
+<meta name="description" content="Fix There has been a critical error on this website in WordPress. Check the admin email first, because WordPress already sent you the file and line number, then use recovery mode or WP-CLI to isolate the plugin.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/there-has-been-a-critical-error-on-this-website/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="There Has Been a Critical Error on This Website: Find the Exact Cause">
+<meta property="og:description" content="This WordPress message means a PHP fatal error. WordPress already emailed you the file and line number. Here is how to read it and fix the cause.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">WordPress · Fatal errors · Field guide</span>
+  <h1>There Has Been a Critical Error on This Website: Find the Exact Cause</h1>
+  <p class="byline">By Kloudbean Engineering · WordPress already told you the answer. It sent it by email.</p>
+
+  <figure><img src="images/hero.png" alt="The WordPress critical error message beside a debug log showing the exact file and line of a PHP fatal error"></figure>
+
+  <p class="lead">"There has been a critical error on this website" is WordPress telling you a PHP fatal error stopped the page from rendering. It replaced the old white screen of death, and the replacement is a genuine improvement for one reason people almost always miss: alongside that message, WordPress sends an email to your admin address containing the exact file and line number that failed, plus a link to log in with the broken plugin paused. Most of the guides on this error walk you through disabling plugins one by one. Check your email first. The answer is often sitting in it.</p>
+
+  <div class="tldr">
+    <strong>How do I fix "There has been a critical error on this website"?</strong>
+    <p>Check the email WordPress sent to your site admin address, since it names the exact file and line that caused the fatal error and includes a recovery mode login link. If there is no email, enable <code>WP_DEBUG_LOG</code> in <code>wp-config.php</code> and reload the page, then read <code>wp-content/debug.log</code> for the failing file. That file tells you which plugin or theme is responsible. The three most common causes are a plugin update, a PHP version change, and an exhausted memory limit.</p>
+  </div>
+
+  <h2>Step 1: read the email WordPress already sent</h2>
+  <p>Since WordPress 5.2, fatal error protection sends a message to the administration email address whenever this happens. The subject line names your site and the body contains something close to the following:</p>
+  <pre><code>An error of type E_ERROR was caused in line 142
+of the file /wp-content/plugins/some-plugin/includes/class-handler.php.
+Error message: Uncaught Error: Call to undefined function wp_get_object_terms()</code></pre>
+  <p>That is the whole diagnosis in three lines: the file, the line, and the reason. The plugin directory in that path is your culprit.</p>
+  <p>The email also contains a recovery mode link. Following it logs you into the admin area with the offending plugin paused, so you can work normally rather than through SFTP. This is the fastest route back to a working dashboard and it is the feature almost nobody uses.</p>
+  <p>Two reasons the email does not arrive, both worth knowing. The admin address is often an old one nobody reads, and you can check what it is set to directly in the database or with WP-CLI. And plenty of servers cannot send mail reliably at all, which is a separate problem worth fixing but not today's.</p>
+  <pre><code>wp option get admin_email
+wp option update admin_email you@example.com</code></pre>
+
+  <h2>Step 2: if there is no email, make WordPress write a log</h2>
+  <p>Add these lines to <code>wp-config.php</code>, above the line that requires <code>wp-settings.php</code>:</p>
+  <pre><code>define( 'WP_DEBUG', true );
+define( 'WP_DEBUG_LOG', true );
+define( 'WP_DEBUG_DISPLAY', false );
+@ini_set( 'display_errors', 0 );</code></pre>
+  <p><code>WP_DEBUG_DISPLAY</code> set to false matters on a live site. It keeps the errors out of your visitors' browsers while still recording them. Reload the broken page, then read the log:</p>
+  <pre><code>tail -50 wp-content/debug.log</code></pre>
+  <p>You are looking for a line beginning <code>PHP Fatal error</code>. Everything above it is usually noise from deprecation notices. The four you will actually see:</p>
+  <table class="cmp">
+    <thead><tr><th>Log line</th><th>What it means</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td><code>Uncaught Error: Call to undefined function</code></td><td>Code calling something that no longer exists</td><td>Usually a plugin behind on a PHP or WordPress change</td></tr>
+      <tr><td><code>Allowed memory size of N bytes exhausted</code></td><td>PHP ran out of memory</td><td>Raise the limit, then find what is loading so much</td></tr>
+      <tr><td><code>Uncaught TypeError: ... null given</code></td><td>PHP 8 strictness rejecting what PHP 7 tolerated</td><td>Update the plugin, or move back a PHP version</td></tr>
+      <tr><td><code>Parse error: syntax error, unexpected</code></td><td>Broken PHP was saved into a file</td><td>Revert the last edit to that exact file</td></tr>
+    </tbody>
+  </table>
+  <p>Turn debugging back off when you are finished. A <code>debug.log</code> left growing in a web-accessible directory is both a disk problem and an information leak.</p>
+
+  <h2>Step 3: use the timing to shortcut the diagnosis</h2>
+  <p>When did it start? This narrows things faster than any elimination process.</p>
+  <table class="cmp">
+    <thead><tr><th>It broke</th><th>Almost certainly</th><th>Do this first</th></tr></thead>
+    <tbody>
+      <tr><td>Right after updating a plugin</td><td>That plugin</td><td>Roll it back or deactivate it</td></tr>
+      <tr><td>Right after changing PHP version</td><td>A plugin or theme incompatible with the new PHP</td><td>Switch PHP back, then update the plugin</td></tr>
+      <tr><td>Right after editing a theme file</td><td>A syntax error in your edit</td><td>Revert the file</td></tr>
+      <tr><td>Right after adding a code snippet</td><td>The snippet</td><td>Remove it from <code>functions.php</code> or the snippets plugin</td></tr>
+      <tr><td>Only on one page or in the admin</td><td>A plugin active only on that path</td><td>Read the log for that request specifically</td></tr>
+      <tr><td>Intermittently, under traffic</td><td>Memory exhaustion</td><td>Check the memory limit and what is consuming it</td></tr>
+      <tr><td>With no change at all</td><td>An auto-update ran</td><td>Check update history and core version</td></tr>
+    </tbody>
+  </table>
+  <p>That last row catches more people than it should. WordPress applies minor core updates and, depending on configuration, plugin updates automatically. "Nobody touched it" is frequently true of the humans and not of the site.</p>
+
+  <h2>Step 4: isolate it properly with WP-CLI</h2>
+  <p>If you are locked out and have no clear file to blame, bisect the plugins. WP-CLI over SSH is dramatically faster than renaming folders over SFTP, and it works even when the admin area will not load:</p>
+  <pre><code># What is actually running?
+wp plugin list --status=active
+
+# Turn everything off. If the site comes back, it is a plugin.
+wp plugin deactivate --all
+
+# Reactivate in batches, checking the site between each
+wp plugin activate woocommerce
+wp plugin activate some-other-plugin</code></pre>
+  <p>If the site is still broken with every plugin off, move to the theme:</p>
+  <pre><code>wp theme activate twentytwentyfour</code></pre>
+  <p>And if it is broken with default theme and no plugins, suspect core files:</p>
+  <pre><code>wp core verify-checksums</code></pre>
+  <p>That last command compares your core files against the official checksums and reports anything modified or missing. It is the fastest way to rule core in or out, and a genuinely modified core file is worth taking seriously as a possible compromise rather than just repairing quietly.</p>
+  <p>Without SSH, the equivalent is renaming directories so WordPress cannot load them:</p>
+  <pre><code># Force-deactivate a single suspect plugin
+mv wp-content/plugins/suspect-plugin wp-content/plugins/suspect-plugin.off
+
+# Or all of them at once
+mv wp-content/plugins wp-content/plugins.off &amp;&amp; mkdir wp-content/plugins</code></pre>
+
+  <h2>The PHP version cause, which deserves its own section</h2>
+  <p>A large share of these critical errors appear the moment someone changes PHP version, and the connection is not always obvious because the change may have been made days earlier by a host or an automated update.</p>
+  <p>PHP 8 is much stricter than PHP 7. Things that were warnings became fatal errors. Passing null where a string is expected, relying on removed functions, or using old constructor syntax all now stop execution outright. A plugin that has not been updated in three years will often fail immediately on PHP 8.</p>
+  <pre><code>wp cli info | grep "PHP"
+php -v</code></pre>
+  <p>The correct sequence, and the order matters: switch PHP back to the version that worked, confirm the site returns, then update the plugins and theme, then move PHP forward again and test. Trying to do it in the other order means debugging on a site that is down.</p>
+  <p>My honest opinion on this: staying on an old PHP version indefinitely is not a solution, because you end up unsupported and slower. But rushing a version bump on production without testing is how sites break at inconvenient times. Change PHP on a staging copy, click through the site, then apply it live.</p>
+
+  <h2>Memory exhaustion, and the honest fix</h2>
+  <p>If your log says <code>Allowed memory size of 134217728 bytes exhausted</code>, PHP hit its ceiling. The quick change is a larger limit:</p>
+  <pre><code>define( 'WP_MEMORY_LIMIT', '256M' );
+define( 'WP_MAX_MEMORY_LIMIT', '512M' );</code></pre>
+  <p>That will very likely bring the site back, and it is worth being clear that it treats the symptom. Something requested more memory than a page render should need. Common culprits are an import or export running inside a web request, a query pulling every post into memory at once, a page builder rendering a very large layout, and an image operation on a huge upload. If you raise the limit and it fills again, the limit was never the problem.</p>
+
+  <h2>Reframing what this message actually is</h2>
+  <p>Worth saying, because it changes how alarming this feels. The critical error screen is protection working rather than a deeper failure. Before WordPress 5.2 the same fatal error gave you a blank white page with no information and no way in. Now you get a message, an email with the file and line, and a login link that pauses the broken plugin. The error is not worse than it used to be. You are simply being told about it.</p>
+
+  <h2>How to stop meeting this error</h2>
+  <p>Nearly every cause traces back to a change applied straight to a live site: a plugin update, a PHP version bump, a theme edit, a snippet pasted into <code>functions.php</code>. The fix is procedural rather than technical.</p>
+  <p>This is what staging is for, and it is a confirmed part of the Kloudbean platform for WordPress and Laravel. Copy the site, apply the update there, click through the pages that matter, then push it live. Automatic backups mean that when something does slip through, rolling back is a decision rather than a project. PHP version is a setting you control per application, so testing a version change is straightforward rather than a support ticket. And because servers are managed, memory limits and PHP configuration are maintained rather than being whatever was set when the server was built.</p>
+  <p>The boundary, stated plainly: no host can stop a badly written plugin from throwing a fatal error, and none of this removes the need to keep plugins updated. What good hosting gives you is somewhere safe to find out, and a way back when you did not.</p>
+
+  <figure>
+    <img src="../assets/console/staging.png" alt="Creating a staging copy of a WordPress site in the Kloudbean console">
+    <figcaption>Apply the plugin update on a staging copy first. Most critical errors are a change applied straight to production.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>For the neighbouring WordPress failure with a very different cause, see <a href="https://www.kloudbean.com/blog/fix-error-establishing-database-connection-wordpress/">error establishing a database connection</a>. On safe change management, <a href="https://www.kloudbean.com/blog/wordpress-staging-environment/">WordPress staging environments</a> and <a href="https://www.kloudbean.com/blog/server-backups-guide/">the backups guide</a>. For the command line used above, <a href="https://www.kloudbean.com/blog/wordpress-cli-guide/">the WP-CLI guide</a>. When memory is the theme, <a href="https://www.kloudbean.com/blog/fix-javascript-heap-out-of-memory-node/">heap out of memory</a> covers the same class of problem in Node. And for caching that reduces the load causing memory pressure, <a href="https://www.kloudbean.com/blog/how-to-clear-wordpress-cache/">clearing WordPress cache</a> and <a href="https://www.kloudbean.com/blog/managed-wordpress-hosting/">managed WordPress hosting</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Break it on staging instead.</p>
+    <p style="margin:0 0 .6em">Managed WordPress with one-click staging, automatic backups, PHP version control per application, and WP-CLI over SSH, on a flat plan from $8/mo. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Staging sites · Automatic backups · PHP version control · WP-CLI access · Flat from $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does "There has been a critical error on this website" mean?</h3>
+    <p>It means a PHP fatal error stopped WordPress from finishing the page. Since WordPress 5.2 this message replaces the old blank white screen, and WordPress also emails your admin address with the exact file and line that failed plus a recovery mode login link. The cause is almost always a plugin, a theme, a PHP version change, or an exhausted memory limit.</p>
+
+    <h3>How do I find out which plugin caused the critical error?</h3>
+    <p>Read the fatal error email or the debug log, because the file path in it names the plugin directly. If neither is available, run <code>wp plugin deactivate --all</code> over SSH and reactivate plugins in batches, checking the site between each. Without SSH, rename the plugin folder over SFTP to force it off.</p>
+
+    <h3>Where is the WordPress debug log?</h3>
+    <p>At <code>wp-content/debug.log</code>, once you set <code>WP_DEBUG</code> and <code>WP_DEBUG_LOG</code> to true in <code>wp-config.php</code>. Also set <code>WP_DEBUG_DISPLAY</code> to false on a live site so errors are recorded rather than shown to visitors. Turn all of it off afterwards, since a log left in a web-accessible directory leaks information about your setup.</p>
+
+    <h3>Why did a critical error appear after changing PHP version?</h3>
+    <p>PHP 8 turned many former warnings into fatal errors, so a plugin or theme that ran on PHP 7 can stop working immediately. Switch PHP back to the version that worked to bring the site up, then update the plugins and theme, then move PHP forward again and test. Doing it in that order means you are not debugging while the site is down.</p>
+
+    <h3>What is WordPress recovery mode?</h3>
+    <p>A special login link included in the fatal error email. Following it logs you into the admin area with the plugin that caused the error paused, so you can update or remove it through the normal interface rather than over SFTP. It is the quickest route back to a working dashboard and it is widely overlooked.</p>
+
+    <h3>Can a critical error be caused by running out of memory?</h3>
+    <p>Yes, and the log will say <code>Allowed memory size of N bytes exhausted</code>. Raising <code>WP_MEMORY_LIMIT</code> usually restores the site, but it treats the symptom. Something asked for far more memory than a page render should need, commonly an import running inside a web request or a query loading every row at once. If the larger limit fills up too, the limit was never the real problem.</p>
+
+    <h3>How do I fix this if I cannot log in at all?</h3>
+    <p>Use SFTP or SSH. Rename <code>wp-content/plugins</code> to something else and create an empty <code>plugins</code> directory, which force-deactivates everything and usually restores access. Then put the folder back and reactivate plugins one at a time to find the offender. If you have SSH, WP-CLI does the same thing far more quickly.</p>
+
+    <h3>Is this the same as the white screen of death?</h3>
+    <p>It is the same underlying event, a PHP fatal error, presented much better. The old white screen gave no information at all. The modern message comes with an email naming the file and line, and a recovery mode link. If you are getting a genuinely blank page instead of this message, error display is likely suppressed and enabling the debug log is your next step.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Check the admin email before you touch a single plugin.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"There Has Been a Critical Error on This Website: Find the Exact Cause","description":"Fix the WordPress critical error message. Check the admin email first because WordPress already sent the file and line number, then use recovery mode or WP-CLI to isolate the plugin.","image":"https://www.kloudbean.com/blog/there-has-been-a-critical-error-on-this-website/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/there-has-been-a-critical-error-on-this-website/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does There has been a critical error on this website mean?","acceptedAnswer":{"@type":"Answer","text":"It means a PHP fatal error stopped WordPress from finishing the page. Since WordPress 5.2 this message replaces the old blank white screen, and WordPress also emails your admin address with the exact file and line that failed plus a recovery mode login link. The cause is almost always a plugin, a theme, a PHP version change, or an exhausted memory limit."}},
+{"@type":"Question","name":"How do I find out which plugin caused the critical error?","acceptedAnswer":{"@type":"Answer","text":"Read the fatal error email or the debug log, because the file path in it names the plugin directly. If neither is available, deactivate all plugins over SSH with WP-CLI and reactivate them in batches, checking the site between each. Without SSH, rename the plugin folder over SFTP to force it off."}},
+{"@type":"Question","name":"Where is the WordPress debug log?","acceptedAnswer":{"@type":"Answer","text":"At wp-content/debug.log, once you set WP_DEBUG and WP_DEBUG_LOG to true in wp-config.php. Also set WP_DEBUG_DISPLAY to false on a live site so errors are recorded rather than shown to visitors. Turn all of it off afterwards, since a log left in a web-accessible directory leaks information about your setup."}},
+{"@type":"Question","name":"Why did a critical error appear after changing PHP version?","acceptedAnswer":{"@type":"Answer","text":"PHP 8 turned many former warnings into fatal errors, so a plugin or theme that ran on PHP 7 can stop working immediately. Switch PHP back to the version that worked to bring the site up, then update the plugins and theme, then move PHP forward again and test. Doing it in that order means you are not debugging while the site is down."}},
+{"@type":"Question","name":"What is WordPress recovery mode?","acceptedAnswer":{"@type":"Answer","text":"A special login link included in the fatal error email. Following it logs you into the admin area with the plugin that caused the error paused, so you can update or remove it through the normal interface rather than over SFTP. It is the quickest route back to a working dashboard and it is widely overlooked."}},
+{"@type":"Question","name":"Can a critical error be caused by running out of memory?","acceptedAnswer":{"@type":"Answer","text":"Yes, and the log will say that the allowed memory size was exhausted. Raising WP_MEMORY_LIMIT usually restores the site, but it treats the symptom. Something asked for far more memory than a page render should need, commonly an import running inside a web request or a query loading every row at once. If the larger limit fills up too, the limit was never the real problem."}},
+{"@type":"Question","name":"How do I fix this if I cannot log in at all?","acceptedAnswer":{"@type":"Answer","text":"Use SFTP or SSH. Rename wp-content/plugins to something else and create an empty plugins directory, which force-deactivates everything and usually restores access. Then put the folder back and reactivate plugins one at a time to find the offender. If you have SSH, WP-CLI does the same thing far more quickly."}},
+{"@type":"Question","name":"Is this the same as the white screen of death?","acceptedAnswer":{"@type":"Answer","text":"It is the same underlying event, a PHP fatal error, presented much better. The old white screen gave no information at all. The modern message comes with an email naming the file and line, and a recovery mode link. If you are getting a genuinely blank page instead of this message, error display is likely suppressed and enabling the debug log is your next step."}}
+]}
+]}
+</script>
+</body>
+</html>
