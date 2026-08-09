@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ERR_SSL_PROTOCOL_ERROR: The Handshake Failed, Not the Certificate</title>
+<meta name="description" content="Fix ERR_SSL_PROTOCOL_ERROR, ERR_SSL_VERSION_OR_CIPHER_MISMATCH and SSL_ERROR_RX_RECORD_TOO_LONG. These are handshake failures, not certificate problems, so the fixes are completely different.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/err-ssl-protocol-error/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ERR_SSL_PROTOCOL_ERROR: The Handshake Failed, Not the Certificate">
+<meta property="og:description" content="A certificate error means the handshake finished and the identity was rejected. A protocol error means the two sides never agreed how to talk. Different class, different fix.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">TLS · Browser errors · Field guide</span>
+  <h1>ERR_SSL_PROTOCOL_ERROR: The Handshake Failed, Not the Certificate</h1>
+  <p class="byline">By Kloudbean Engineering · Checking your certificate here is the wrong drawer entirely.</p>
+
+  <figure><img src="images/hero.png" alt="A terminal testing each TLS version against a server with openssl s_client"></figure>
+
+  <p class="lead">There are two completely different families of HTTPS failure and they get treated as one. A certificate error means the handshake succeeded, the server presented its identity, and your browser looked at that identity and refused it. A protocol error means the handshake never got that far: the two sides could not agree on a version or a cipher, or one of them was not speaking TLS at all. ERR_SSL_PROTOCOL_ERROR is the second kind. So if you are here after checking that your certificate is valid and unexpired, that was a reasonable thing to check and it was never going to be the answer.</p>
+
+  <div class="tldr">
+    <strong>How do you fix ERR_SSL_PROTOCOL_ERROR?</strong>
+    <p>Test which TLS versions your server actually accepts with <code>openssl s_client</code>, one version at a time. If nothing above TLS 1.1 is supported, that is your answer, because current browsers refuse the older versions: set <code>ssl_protocols TLSv1.2 TLSv1.3;</code> and reload. If TLS 1.2 works from the command line but the browser still fails, suspect local interference such as antivirus HTTPS scanning, or Chrome attempting QUIC. And if you are seeing SSL_ERROR_RX_RECORD_TOO_LONG, you are almost certainly requesting <code>https://</code> against a port that serves plain HTTP.</p>
+  </div>
+
+  <h2>Which family are you in?</h2>
+  <p>Sorting this first saves the most time, because the two classes share no fixes at all.</p>
+  <table class="cmp">
+    <thead><tr><th></th><th>Handshake failure</th><th>Certificate rejection</th></tr></thead>
+    <tbody>
+      <tr><td>What happened</td><td>The two sides never agreed how to talk</td><td>They agreed, then the identity was refused</td></tr>
+      <tr><td>Typical messages</td><td>ERR_SSL_PROTOCOL_ERROR, ERR_SSL_VERSION_OR_CIPHER_MISMATCH, SSL_ERROR_RX_RECORD_TOO_LONG</td><td>ERR_CERT_DATE_INVALID, ERR_CERT_AUTHORITY_INVALID, ERR_CERT_COMMON_NAME_INVALID</td></tr>
+      <tr><td>Look at</td><td>TLS versions, cipher suites, which port, local interception</td><td>Expiry, issuer, hostname, chain</td></tr>
+      <tr><td>Renewing the certificate helps?</td><td>No</td><td>Often yes</td></tr>
+    </tbody>
+  </table>
+  <p>If your message contains <code>CERT</code>, you are in the right-hand column and our <a href="https://www.kloudbean.com/blog/fix-ssl-certificate-errors/">SSL certificate errors guide</a> is the article you want. Everything below is the left-hand column.</p>
+  <p>One wrinkle worth knowing: Chrome's user-facing wrapper text, "This site can't provide a secure connection", is shown for both families. So the friendly message tells you nothing, and the code underneath it tells you everything. Chrome shows that code in smaller text on the same page.</p>
+
+  <h2>Step one: ask the server what it actually supports</h2>
+  <p>This single loop resolves a large share of cases. It tries each TLS version in turn and reports whether the server will negotiate it:</p>
+  <pre><code>for v in tls1 tls1_1 tls1_2 tls1_3; do
+  printf "%-8s " "$v"
+  echo | openssl s_client -connect example.com:443 -servername example.com -$v 2>/dev/null \
+    | grep -q "Cipher is" &amp;&amp; echo supported || echo "not supported"
+done</code></pre>
+  <p>Read the result against this:</p>
+  <table class="cmp">
+    <thead><tr><th>Result</th><th>Diagnosis</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td>Only tls1 and tls1_1 supported</td><td>Server too old for current browsers</td><td>Enable TLS 1.2 and 1.3</td></tr>
+      <tr><td>Nothing supported at all</td><td>Not speaking TLS on that port</td><td>Check the port and the listener</td></tr>
+      <tr><td>tls1_2 supported, browser still fails</td><td>Local interference or QUIC</td><td>Antivirus, proxy, Chrome flags</td></tr>
+      <tr><td>tls1_3 only</td><td>Unusually strict, older clients excluded</td><td>Also enable 1.2</td></tr>
+      <tr><td>All supported, one browser fails</td><td>Cipher overlap or interception</td><td>Compare cipher lists</td></tr>
+    </tbody>
+  </table>
+  <p>The <code>-servername</code> flag matters and is easy to leave off. It sends SNI, which tells a server hosting several sites which one you want. Without it you may be testing a different virtual host entirely, and getting a confidently wrong answer.</p>
+
+  <h2>Cause one: the server is too old for current browsers</h2>
+  <p>The most common genuine cause. TLS 1.0 and 1.1 have been removed from current browsers, so a server still offering only those has effectively stopped serving HTTPS to anyone modern, while continuing to work perfectly in whatever old tool you are testing with.</p>
+  <p>The tell is that it affects everybody at once and started without any change on your side, because the change happened in browsers. Check and fix:</p>
+  <pre><code># What is configured now?
+sudo grep -rn "ssl_protocols\|ssl_ciphers" /etc/nginx/</code></pre>
+  <pre><code>ssl_protocols       TLSv1.2 TLSv1.3;
+ssl_prefer_server_ciphers off;</code></pre>
+  <pre><code>sudo nginx -t &amp;&amp; sudo systemctl reload nginx</code></pre>
+  <p><code>ssl_prefer_server_ciphers off</code> is the modern recommendation rather than an oversight: with TLS 1.3 the client's preference ordering is generally the better one to honour, since clients know their own hardware acceleration.</p>
+
+  <h2>Cause two: no shared cipher</h2>
+  <p>Both sides support TLS 1.2, and they cannot find a cipher suite they both accept. This produces ERR_SSL_VERSION_OR_CIPHER_MISMATCH, which is helpfully specific for once.</p>
+  <p>It happens from either direction. An ancient server offering only ciphers browsers have dropped, or a freshly hardened server restricted to such a narrow list that some legitimate clients have nothing in common with it.</p>
+  <pre><code># Which ciphers does the server actually offer?
+nmap --script ssl-enum-ciphers -p 443 example.com
+
+# Or with openssl, showing what gets negotiated
+echo | openssl s_client -connect example.com:443 -servername example.com 2>/dev/null | grep -E "Protocol|Cipher"</code></pre>
+  <p>The timing question settles the direction. If it broke immediately after someone tightened the TLS configuration, the list is too narrow and should be widened to a sensible modern set. If it has been failing for a long time on an old server, the list is too old.</p>
+
+  <h3>The A+ trap</h3>
+  <p>Worth a short detour, because this is where well-intentioned work causes outages. Public TLS scanners give letter grades, and chasing the top grade means disabling older protocol versions and trimming ciphers aggressively. That is genuinely correct for many sites and it is not free.</p>
+  <p>Every restriction excludes some client. Older Android devices, some corporate proxies and inspection appliances, payment terminals, embedded devices, and older API consumers all sit at various points on that curve. A configuration that scores perfectly and cannot be reached by eight percent of your customers has optimised the wrong number.</p>
+  <p>So decide deliberately rather than by grade. If you serve modern browsers only, harden freely. If you have an API with industrial clients, or customers on older devices, check your own logs for negotiated versions before you cut anything off. The scan grade is a proxy for security, not a measure of whether your audience can reach you.</p>
+
+  <h2>Cause three: HTTPS against a plain HTTP port</h2>
+  <p>This one has a specific error message and a specific, slightly embarrassing cause, and recognising it saves real time.</p>
+  <p>SSL_ERROR_RX_RECORD_TOO_LONG, which Firefox shows, means the client began a TLS handshake and the server replied with something that was not a TLS record. Usually plain HTTP. The client tries to interpret an HTTP response as a TLS record, concludes the record is absurdly long, and gives up.</p>
+  <p>Almost always you are requesting <code>https://</code> against a port that serves unencrypted HTTP. Classic when an application runs directly on 8080 or 3000 and someone tries to reach it over HTTPS:</p>
+  <pre><code># Fails: nothing is speaking TLS there
+curl -sI https://example.com:8080
+
+# Works: the port is plain HTTP
+curl -sI http://example.com:8080</code></pre>
+  <p>If the second succeeds, you have your answer. The fix is not a certificate. Put a reverse proxy in front that terminates TLS on 443 and forwards to the application port, which is the standard arrangement described in our <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">nginx reverse proxy guide</a>.</p>
+  <p>The mirror image of this exists too. If a client speaks plain HTTP to a TLS port, nginx answers with a 400 and the message "The plain HTTP request was sent to HTTPS port", covered in <a href="https://www.kloudbean.com/blog/400-bad-request/">400 Bad Request</a>. Same mismatch, opposite direction, completely different error text.</p>
+
+  <h2>Cause four: something on the visitor's machine</h2>
+  <p>If the command line succeeds and the browser fails, the problem is between the browser and the network, not on your server. Same triage as any browser-specific failure.</p>
+  <p><strong>Antivirus HTTPS scanning.</strong> Security products that inspect encrypted traffic terminate your TLS connection and open their own, and when that interception mishandles a handshake you get a protocol error. Disable HTTPS or SSL scanning specifically, rather than the whole product, and retest. This is also the most common cause of <a href="https://www.kloudbean.com/blog/err-connection-reset/">ERR_CONNECTION_RESET</a>, and for the same reason.</p>
+  <p><strong>Chrome trying QUIC.</strong> Chrome may attempt HTTP/3 over QUIC, and some networks and middleboxes handle it badly. Visit <code>chrome://flags</code>, find Experimental QUIC protocol, set it to Disabled, and restart. If that resolves it, the fault is in the network path rather than in your server, though it is worth knowing since it affects real visitors.</p>
+  <p><strong>A corporate proxy or inspection appliance.</strong> Managed networks frequently intercept TLS by policy. Testing from mobile data separates this in seconds.</p>
+  <p><strong>A badly wrong clock.</strong> A system clock off by a long way can break a handshake as well as certificate validation. Rare, and worth thirty seconds of checking when nothing else fits.</p>
+  <p><strong>A stale TLS state.</strong> Clearing the browser's cached HTTPS state occasionally helps after a server-side fix, since browsers remember more than the page. Try a private window first, which is faster and less destructive than clearing everything.</p>
+
+  <h2>Cause five: SNI, when one address hosts several sites</h2>
+  <p>Several sites on one IP address rely on SNI so the server knows which certificate and configuration to use. If SNI is absent or the requested name matches nothing, you may get a default virtual host with a different TLS configuration, and a failure that makes no sense against the site you thought you were testing.</p>
+  <pre><code># With SNI, which is what browsers send
+echo | openssl s_client -connect example.com:443 -servername example.com 2>/dev/null | grep -E "Protocol|Cipher|subject="
+
+# Without SNI, revealing the default virtual host
+echo | openssl s_client -connect example.com:443 2>/dev/null | grep -E "Protocol|Cipher|subject="</code></pre>
+  <p>Two different answers means your test tooling and your browser are talking to different configurations, and any conclusion drawn without SNI is unreliable. Very old clients that do not send SNI at all will always reach the default host, which is worth knowing if you support them.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Symptom</th><th>Likely cause</th><th>First check</th></tr></thead>
+    <tbody>
+      <tr><td>Everyone affected, nothing changed on your side</td><td>Browsers dropped old TLS versions</td><td>Which versions the server offers</td></tr>
+      <tr><td>Broke right after security hardening</td><td>Cipher or version list too narrow</td><td>Widen to a modern set</td></tr>
+      <tr><td>SSL_ERROR_RX_RECORD_TOO_LONG</td><td>HTTPS requested on a plain HTTP port</td><td>Try the same URL over http</td></tr>
+      <tr><td>Works in curl, fails in the browser</td><td>Antivirus interception or QUIC</td><td>Disable HTTPS scanning, then QUIC</td></tr>
+      <tr><td>Fails only from the office</td><td>Corporate TLS inspection</td><td>Retest on mobile data</td></tr>
+      <tr><td>Only one site on a shared IP fails</td><td>SNI or virtual host mismatch</td><td>Compare with and without SNI</td></tr>
+      <tr><td>Only older devices affected</td><td>Hardening excluded them</td><td>Check negotiated versions in logs</td></tr>
+      <tr><td>Message mentions CERT</td><td>Certificate rejection, different class</td><td>Read the certificate guide instead</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Know what your visitors actually negotiate</h2>
+  <p>Worth doing before you change any TLS configuration, and almost nobody does it. Log the negotiated protocol and cipher, then you are making decisions from data rather than from a scanner's opinion:</p>
+  <pre><code>log_format tls '$remote_addr "$request" $status proto=$ssl_protocol cipher=$ssl_cipher';
+access_log /var/log/nginx/access.log tls;</code></pre>
+  <pre><code># What are real visitors using?
+awk '{for(i=1;i&lt;=NF;i++) if($i ~ /^proto=/) print $i}' /var/log/nginx/access.log | sort | uniq -c | sort -rn</code></pre>
+  <p>If that shows almost everything on TLS 1.3 with a little 1.2, you can harden confidently. If a meaningful share is on 1.2 with older ciphers, you now know what disabling them would cost. This is the difference between a deliberate decision and a hopeful one.</p>
+
+  <h2>Where hosting fits</h2>
+  <p>Nearly every server-side cause here is TLS configuration that has drifted: protocol versions that were current when the server was built and are now obsolete, cipher lists nobody has revisited, and a port serving plain HTTP where TLS was expected.</p>
+  <p>On Kloudbean, TLS configuration is maintained rather than frozen at build time, which is precisely the failure mode where a working server quietly stops serving current browsers. Free SSL is issued and renewed, and because nginx is set up to terminate TLS properly and forward to your application, the plain-HTTP-on-the-wrong-port mismatch is not something you assemble by hand. Cloudflare is available as a paid add-on and included for enterprise accounts, which adds a modern TLS front end for visitors while the origin connection is configured alongside it rather than bolted on.</p>
+  <p>The boundary, stated plainly: nobody else can decide how far to harden your ciphers, because only you know which clients you need to keep. And antivirus software on a visitor's laptop is beyond anyone's reach. What managed configuration removes is the slow drift into obsolescence.</p>
+
+  <figure>
+    <img src="../assets/console/ssl-certificate.png" alt="SSL and TLS configuration in the Kloudbean console">
+    <figcaption>TLS configuration maintained rather than left at whatever was current when the server was built.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>For the certificate-rejection family, <a href="https://www.kloudbean.com/blog/fix-ssl-certificate-errors/">fixing SSL certificate errors</a>, and for the fundamentals, <a href="https://www.kloudbean.com/blog/ssl-tls-explained/">SSL and TLS explained</a>. The handshake failure between a proxy and your origin is <a href="https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/">Cloudflare error 525</a>. For the opposite scheme mismatch, <a href="https://www.kloudbean.com/blog/400-bad-request/">400 Bad Request</a>. On antivirus interception in a different guise, <a href="https://www.kloudbean.com/blog/err-connection-reset/">ERR_CONNECTION_RESET</a>. For terminating TLS in front of an app, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">the nginx reverse proxy guide</a> and <a href="https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/">custom domain and SSL</a>. And on HSTS and related headers, <a href="https://www.kloudbean.com/blog/security-headers-guide/">the security headers guide</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">TLS that does not quietly go out of date.</p>
+    <p style="margin:0 0 .6em">Managed servers with maintained TLS configuration, free SSL issued and renewed, nginx terminating properly in front of your application, and Cloudflare available as an add-on. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Maintained TLS · Free SSL · Managed nginx · Cloudflare add-on · One dashboard</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does ERR_SSL_PROTOCOL_ERROR mean?</h3>
+    <p>It means the TLS handshake failed before any certificate could be evaluated, so the two sides never agreed on a protocol version or cipher suite, or one of them was not speaking TLS at all. That makes it a different class of problem from a certificate error, where the handshake completed and the browser then rejected the identity presented. Renewing a certificate will not fix it.</p>
+
+    <h3>How is this different from a certificate error?</h3>
+    <p>A certificate error, such as ERR_CERT_DATE_INVALID or ERR_CERT_AUTHORITY_INVALID, means the connection was established and the identity was refused, so you look at expiry, issuer, hostname, and chain. A protocol error means the connection was never established, so you look at TLS versions, cipher suites, which port is serving what, and local interception. If the code contains CERT, you are in the other family.</p>
+
+    <h3>How do I check which TLS versions my server supports?</h3>
+    <p>Loop <code>openssl s_client</code> over each version with the <code>-servername</code> flag so SNI is sent, and see which ones negotiate a cipher. If only TLS 1.0 and 1.1 succeed, current browsers will refuse your server, and setting <code>ssl_protocols TLSv1.2 TLSv1.3;</code> then reloading resolves it. Omitting <code>-servername</code> may test a different virtual host and give you a wrong answer.</p>
+
+    <h3>What causes SSL_ERROR_RX_RECORD_TOO_LONG?</h3>
+    <p>You are speaking TLS to something that answered in plain text, so the client tried to read an HTTP response as a TLS record. In practice you are requesting <code>https://</code> against a port that serves unencrypted HTTP, which is common when an app runs directly on 8080 or 3000. Try the same URL over <code>http://</code>: if it works, put a reverse proxy in front to terminate TLS on 443.</p>
+
+    <h3>Why does the site work in curl but fail in Chrome?</h3>
+    <p>Something between the browser and the network is interfering. The two usual causes are antivirus software inspecting HTTPS, which terminates your connection and opens its own, and Chrome attempting QUIC on a network that handles it badly. Disable HTTPS scanning specifically rather than the whole security product, then try disabling Experimental QUIC protocol in <code>chrome://flags</code>.</p>
+
+    <h3>Can hardening my TLS configuration break my site?</h3>
+    <p>Yes, and it is a common cause of this error appearing right after security work. Every version and cipher you remove excludes some client, which can include older Android devices, corporate inspection appliances, payment terminals, and older API consumers. Log the negotiated protocol and cipher first so you know what disabling something would actually cost before you do it.</p>
+
+    <h3>Why did HTTPS stop working when I changed nothing?</h3>
+    <p>Because the change happened in browsers rather than on your server. TLS 1.0 and 1.1 have been removed from current browsers, so a server still offering only those stops working for everyone at roughly the same time while continuing to succeed in older tools. Enable TLS 1.2 and 1.3.</p>
+
+    <h3>Does ERR_SSL_PROTOCOL_ERROR mean my site is insecure?</h3>
+    <p>Visitors are not getting an insecure connection, they are getting no connection, since the browser refuses to proceed when it cannot negotiate one it trusts. The risk arrives if you resolve it by weakening your configuration, for example re-enabling obsolete protocol versions. Enabling TLS 1.2 and 1.3 is the correct direction; reaching backwards is not.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · If the code says CERT, you are reading the wrong article. That is useful to know.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"ERR_SSL_PROTOCOL_ERROR: The Handshake Failed, Not the Certificate","description":"Fix ERR_SSL_PROTOCOL_ERROR, ERR_SSL_VERSION_OR_CIPHER_MISMATCH and SSL_ERROR_RX_RECORD_TOO_LONG. These are handshake failures, not certificate problems, so the fixes are completely different.","image":"https://www.kloudbean.com/blog/err-ssl-protocol-error/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/err-ssl-protocol-error/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does ERR_SSL_PROTOCOL_ERROR mean?","acceptedAnswer":{"@type":"Answer","text":"It means the TLS handshake failed before any certificate could be evaluated, so the two sides never agreed on a protocol version or cipher suite, or one of them was not speaking TLS at all. That makes it a different class of problem from a certificate error, where the handshake completed and the browser then rejected the identity presented. Renewing a certificate will not fix it."}},
+{"@type":"Question","name":"How is this different from a certificate error?","acceptedAnswer":{"@type":"Answer","text":"A certificate error, such as ERR_CERT_DATE_INVALID or ERR_CERT_AUTHORITY_INVALID, means the connection was established and the identity was refused, so you look at expiry, issuer, hostname, and chain. A protocol error means the connection was never established, so you look at TLS versions, cipher suites, which port is serving what, and local interception. If the code contains CERT, you are in the other family."}},
+{"@type":"Question","name":"How do I check which TLS versions my server supports?","acceptedAnswer":{"@type":"Answer","text":"Loop openssl s_client over each version with the servername flag so SNI is sent, and see which ones negotiate a cipher. If only TLS 1.0 and 1.1 succeed, current browsers will refuse your server, and setting ssl_protocols to TLSv1.2 and TLSv1.3 then reloading resolves it. Omitting the servername flag may test a different virtual host and give you a wrong answer."}},
+{"@type":"Question","name":"What causes SSL_ERROR_RX_RECORD_TOO_LONG?","acceptedAnswer":{"@type":"Answer","text":"You are speaking TLS to something that answered in plain text, so the client tried to read an HTTP response as a TLS record. In practice you are requesting https against a port that serves unencrypted HTTP, which is common when an app runs directly on 8080 or 3000. Try the same URL over http: if it works, put a reverse proxy in front to terminate TLS on 443."}},
+{"@type":"Question","name":"Why does the site work in curl but fail in Chrome?","acceptedAnswer":{"@type":"Answer","text":"Something between the browser and the network is interfering. The two usual causes are antivirus software inspecting HTTPS, which terminates your connection and opens its own, and Chrome attempting QUIC on a network that handles it badly. Disable HTTPS scanning specifically rather than the whole security product, then try disabling Experimental QUIC protocol in Chrome flags."}},
+{"@type":"Question","name":"Can hardening my TLS configuration break my site?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it is a common cause of this error appearing right after security work. Every version and cipher you remove excludes some client, which can include older Android devices, corporate inspection appliances, payment terminals, and older API consumers. Log the negotiated protocol and cipher first so you know what disabling something would actually cost before you do it."}},
+{"@type":"Question","name":"Why did HTTPS stop working when I changed nothing?","acceptedAnswer":{"@type":"Answer","text":"Because the change happened in browsers rather than on your server. TLS 1.0 and 1.1 have been removed from current browsers, so a server still offering only those stops working for everyone at roughly the same time while continuing to succeed in older tools. Enable TLS 1.2 and 1.3."}},
+{"@type":"Question","name":"Does ERR_SSL_PROTOCOL_ERROR mean my site is insecure?","acceptedAnswer":{"@type":"Answer","text":"Visitors are not getting an insecure connection, they are getting no connection, since the browser refuses to proceed when it cannot negotiate one it trusts. The risk arrives if you resolve it by weakening your configuration, for example re-enabling obsolete protocol versions. Enabling TLS 1.2 and 1.3 is the correct direction; reaching backwards is not."}}
+]}
+]}
+</script>
+</body>
+</html>

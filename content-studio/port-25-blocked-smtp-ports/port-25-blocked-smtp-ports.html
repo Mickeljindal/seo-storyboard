@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Port 25 Is Blocked on Your Cloud Server, and That Is Not a Bug</title>
+<meta name="description" content="Why port 25 is blocked on cloud servers, which SMTP port to use instead, and why sending application email from your own server is usually the wrong choice even when it works.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/port-25-blocked-smtp-ports/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Port 25 Is Blocked on Your Cloud Server, and That Is Not a Bug">
+<meta property="og:description" content="Port 25 is blocked by design at every major cloud provider. Use 587 with a relay, and stop trying to be your own mail server.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Email · SMTP · Hosting reality</span>
+  <h1>Port 25 Is Blocked on Your Cloud Server, and That Is Not a Bug</h1>
+  <p class="byline">By Kloudbean Engineering · Everyone hits this once. Then they learn to use a relay.</p>
+
+  <figure><img src="images/hero.png" alt="A terminal showing a timed out connection attempt to port 25 and a successful one to port 587"></figure>
+
+  <p class="lead">You deployed an application, it needs to send a password reset, and nothing arrives. No error you can see, or a timeout buried in a log. You test the connection and outbound port 25 simply hangs. This is not a misconfiguration and it is not something support forgot to enable. Every major cloud provider blocks outbound port 25 by default, deliberately, and getting it unblocked ranges from difficult to impossible depending on who you are with. The good news is that once you understand why, the correct architecture is obvious and takes about ten minutes to set up.</p>
+
+  <div class="tldr">
+    <strong>Why is port 25 blocked, and what should I use instead?</strong>
+    <p>Cloud providers block outbound port 25 because a compromised server sending spam directly to the world damages the reputation of their entire IP range. Do not try to get it unblocked. Send through an authenticated relay on <strong>port 587</strong> instead, using a transactional email service or your own mail provider. Port 25 is for server-to-server delivery between mail servers, 587 is for authenticated submission by applications, and 465 is an older implicit-TLS submission port that some providers still offer. Your application wants 587.</p>
+  </div>
+
+  <h2>Confirm it in ten seconds</h2>
+  <pre><code># Port 25 outbound: expect this to hang, then time out
+nc -vz -w 5 smtp.gmail.com 25
+
+# Port 587: this should connect
+nc -vz -w 5 smtp.gmail.com 587
+
+# Or with openssl, which also shows the greeting
+openssl s_client -starttls smtp -connect smtp.gmail.com:587 -crlf 2>/dev/null | head -5</code></pre>
+  <p>A timeout on 25 and a successful connect on 587 is the whole diagnosis. Note the shape of the failure: a timeout rather than a refusal, because the block is a silent drop upstream rather than something on your server saying no. That distinction matters, since a refusal would point at your own firewall and a timeout points somewhere further out. It is the same reasoning that separates a <a href="https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/">refused connection from a dropped one</a> elsewhere in the stack.</p>
+  <p>Also confirm nothing local is contributing:</p>
+  <pre><code>sudo shorewall show rules 2>/dev/null | grep -E '\b25\b|smtp'
+sudo iptables -L OUTPUT -n | grep -E '\b25\b'</code></pre>
+
+  <h2>Why the block exists</h2>
+  <p>Worth understanding because it explains why asking for an exception rarely works.</p>
+  <p>Port 25 is how mail servers talk to each other, and it requires no authentication by design, since a server accepting mail for its own users cannot demand credentials from every sender on the internet. That openness is exactly what spammers want. A compromised cloud instance with outbound 25 available can send directly to millions of recipients with nothing in the way.</p>
+  <p>The consequence lands on the provider rather than on the attacker. Mail receivers blocklist by IP address and often by range, so spam from one instance degrades deliverability for every other customer sharing that neighbourhood. Blocking outbound 25 by default is how providers protect the reputation of their address space, and it is genuinely in your interest even when it is inconvenient today.</p>
+  <p>Which is why the framing "how do I unblock port 25" is usually the wrong question. Even if you succeed, you have taken on running a mail server whose deliverability depends on the past behaviour of everyone who previously held your IP address.</p>
+
+  <h2>Which port does what</h2>
+  <table class="cmp">
+    <thead><tr><th>Port</th><th>Purpose</th><th>Encryption</th><th>Use it for</th></tr></thead>
+    <tbody>
+      <tr><td><strong>25</strong></td><td>Server to server delivery</td><td>Opportunistic STARTTLS</td><td>Mail servers only. Blocked outbound on cloud.</td></tr>
+      <tr><td><strong>587</strong></td><td>Authenticated submission</td><td>STARTTLS</td><td><strong>Your application.</strong> This is the one.</td></tr>
+      <tr><td><strong>465</strong></td><td>Submission, implicit TLS</td><td>TLS from connect</td><td>Fine if your provider prefers it</td></tr>
+      <tr><td><strong>2525</strong></td><td>Unofficial alternative</td><td>STARTTLS</td><td>Fallback some services offer</td></tr>
+      <tr><td>110 / 143 / 993 / 995</td><td>Reading mail (POP3, IMAP)</td><td>Varies</td><td>Not sending at all</td></tr>
+    </tbody>
+  </table>
+  <p>The 587 versus 465 question comes up constantly and matters less than people think. 587 uses STARTTLS, where the connection opens in plain text and is upgraded. 465 wraps the connection in TLS from the first byte. Both end up encrypted; 465 was deprecated then effectively reinstated, and plenty of providers support both. Use whichever your provider documents, and if both are offered, 587 is the more universally expected choice.</p>
+
+  <h2>The right architecture: send through a relay</h2>
+  <p>Your application should not be a mail server. It should hand messages to something whose entire job is delivering them, over an authenticated connection on 587.</p>
+  <p>What that buys you beyond working around the block: the relay maintains IP reputation as a full-time concern, handles bounces and complaint feedback loops, manages the authentication records receivers check, and gives you delivery logs so "did the reset email arrive" is a question with an answer.</p>
+  <p>Configuration is unremarkable, which is the point:</p>
+  <pre><code># Environment variables, never in code
+SMTP_HOST=smtp.your-provider.com
+SMTP_PORT=587
+SMTP_USER=apikey-or-username
+SMTP_PASS=the-secret
+MAIL_FROM=noreply@example.com</code></pre>
+  <pre><code>// Node with nodemailer
+const transport = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: 587,
+  secure: false,          // false for 587, STARTTLS is negotiated
+  requireTLS: true,       // insist on the upgrade
+  auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+});</code></pre>
+  <p><code>secure: false</code> with <code>requireTLS: true</code> confuses people and is correct. On 587 the connection genuinely does start unencrypted, so <code>secure</code> is false, and <code>requireTLS</code> makes the STARTTLS upgrade mandatory rather than optional. Without it, a failed upgrade can silently fall back to sending your credentials in plain text.</p>
+  <p>For WordPress, an SMTP plugin pointed at 587 with credentials in <code>wp-config.php</code> rather than the database is the equivalent. The default <code>wp_mail</code> behaviour tries to send directly from the server, which is exactly what the block prevents, and it is why "WordPress is not sending email" is so often this same problem wearing a different hat.</p>
+  <p>Keep credentials out of your repository. <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">Environment variables done right</a> covers separating them per environment, which matters here because a staging system sending real email to real customers is a memorable way to learn the lesson.</p>
+
+  <h2>The three records that decide whether mail arrives</h2>
+  <p>Getting a connection on 587 means your message left. Whether it lands in an inbox is a separate question, decided by DNS records you publish. Skipping these is the most common reason mail sends successfully and is never seen.</p>
+  <p><strong>SPF</strong> lists who may send for your domain. One record only, so if you use several senders they go in the same one:</p>
+  <pre><code>example.com. TXT "v=spf1 include:_spf.your-provider.com ~all"</code></pre>
+  <p><strong>DKIM</strong> signs messages so receivers can verify they were not altered and genuinely came from an authorised sender. Your provider gives you the record to publish.</p>
+  <p><strong>DMARC</strong> tells receivers what to do when SPF and DKIM fail, and asks for reports. Start permissive and tighten once the reports are clean:</p>
+  <pre><code>_dmarc.example.com. TXT "v=DMARC1; p=none; rua=mailto:dmarc@example.com"</code></pre>
+  <p>Then verify what is actually published rather than what you intended:</p>
+  <pre><code>dig +short TXT example.com | grep spf
+dig +short TXT _dmarc.example.com
+dig +short TXT selector._domainkey.example.com</code></pre>
+  <p>Two mistakes worth naming. Publishing two SPF records invalidates both, which is easy to do when a second sending service is added by a different person. And moving <code>p=none</code> straight to <code>p=reject</code> before checking reports will start bouncing legitimate mail from senders you forgot about, such as your CRM or invoicing tool. Read the reports first.</p>
+
+  <h2>Should you ever run your own mail server?</h2>
+  <p>A clear opinion, because a lot of time gets lost here.</p>
+  <p>For sending application email, no. Not because it is technically difficult, since installing Postfix is an afternoon, but because deliverability is a reputation problem rather than a configuration problem. A new cloud IP address has no sending history, may carry the residue of whoever held it before, and major receivers are cautious with unknown senders. You can do everything correctly and still land in spam for weeks. A relay exists precisely because someone else has already solved that and keeps solving it.</p>
+  <p>Receiving mail for a domain is a different question with a more reasonable answer, though the operational surface is real: spam filtering, storage, backups, and security patching for a service that is permanently exposed. Most teams are better served by a hosted mailbox provider and should spend the attention on their product.</p>
+  <p>The case for running your own is narrower than people assume: a specific compliance requirement about where mail is stored, genuinely enormous volume, or mail handling that is itself the product. If none of those describe you, use a relay and move on.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td>Connection to 25 times out</td><td>Provider blocks outbound 25</td><td>Use 587 with a relay</td></tr>
+      <tr><td>Connection to 25 is refused</td><td>Local firewall, not the provider</td><td>Check your own rules</td></tr>
+      <tr><td>587 connects, mail still not delivered</td><td>Missing SPF, DKIM, or DMARC</td><td>Publish and verify the records</td></tr>
+      <tr><td>Mail arrives in spam</td><td>Reputation or authentication</td><td>Check DMARC reports</td></tr>
+      <tr><td>Legitimate mail started bouncing</td><td><code>p=reject</code> set too early</td><td>Return to <code>p=none</code>, read reports</td></tr>
+      <tr><td>Works locally, fails deployed</td><td>Credentials not set in that environment</td><td>Check deployed variables</td></tr>
+      <tr><td>Authentication fails on 587</td><td>Wrong port and TLS mode pairing</td><td>587 with STARTTLS, or 465 with implicit TLS</td></tr>
+      <tr><td>WordPress sends nothing at all</td><td>Default direct sending, blocked</td><td>Configure SMTP on 587</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Where hosting fits</h2>
+  <p>Being straightforward about this one: the port 25 block is a cloud provider policy, and since Kloudbean runs your servers on AWS, Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, or UpCloud, that policy is the underlying provider's rather than something a management layer overrides. Any host telling you otherwise is either running its own data centre or being imprecise.</p>
+  <p>What is genuinely useful here is the surrounding setup. Servers come with Shorewall configured, so outbound submission on 587 works without you building firewall rules. Environment variables are managed per application in the dashboard, which keeps SMTP credentials out of your repository and stops staging from mailing production customers. And because you have SSH access, the diagnostic commands above are available rather than being something you file a ticket about.</p>
+  <p>The honest boundary: nobody can unblock port 25 on your behalf, and no host can repair sender reputation. Use a relay on 587, publish your three DNS records, and this stops being a problem you think about.</p>
+
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="Managing environment variables per application in the Kloudbean console">
+    <figcaption>SMTP credentials as per-application environment variables, so staging cannot email your customers.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>For keeping credentials separated, <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>. On the DNS records above, <a href="https://www.kloudbean.com/blog/dns-explained/">DNS explained</a>. For the refused-versus-dropped distinction used in the diagnosis, <a href="https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/">error 521</a>. On sending mail from queued background work rather than inside a web request, <a href="https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/">background jobs with BullMQ</a>. When an outbound call has no timeout and stalls a request, <a href="https://www.kloudbean.com/blog/fix-504-gateway-timeout/">504 Gateway Timeout</a>. And for the WordPress side, <a href="https://www.kloudbean.com/blog/managed-wordpress-hosting/">managed WordPress hosting</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Credentials that stay out of your repository.</p>
+    <p style="margin:0 0 .6em">Managed servers across seven clouds with Shorewall configured, per-application environment variables, SSH access for real diagnostics, and free SSL, from $8/mo. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">7 clouds · Firewall configured · Per-app env vars · SSH access · Flat from $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Why is port 25 blocked on my cloud server?</h3>
+    <p>Because port 25 requires no authentication by design, so a compromised instance can send spam directly to millions of recipients. Mail receivers blocklist by IP address and often by range, meaning one abusive server damages deliverability for every other customer nearby. Providers block outbound 25 by default to protect the reputation of their address space.</p>
+
+    <h3>Which SMTP port should my application use?</h3>
+    <p>587, with an authenticated relay. Port 25 is for server-to-server delivery between mail servers and is blocked outbound on cloud platforms. 587 is the submission port intended for applications sending through a provider, and 465 is an older implicit-TLS submission port that many providers still accept. Your application wants 587.</p>
+
+    <h3>What is the difference between port 587 and 465?</h3>
+    <p>587 opens in plain text and upgrades to encryption with STARTTLS, while 465 wraps the connection in TLS from the first byte. Both end up encrypted and the practical difference is small. Use whichever your provider documents; if both are available, 587 is the more widely expected choice.</p>
+
+    <h3>Can I get port 25 unblocked?</h3>
+    <p>Sometimes, depending on the provider and your account history, and it is usually the wrong goal. Even unblocked, you have taken on running a mail server whose deliverability depends on the reputation of an IP address you did not choose and may share a history with. A relay on 587 solves the actual problem in minutes.</p>
+
+    <h3>How do I test whether port 25 is blocked?</h3>
+    <p>Run <code>nc -vz -w 5 smtp.gmail.com 25</code> and then the same against 587. A timeout on 25 with a successful connect on 587 confirms the provider block. The timeout rather than a refusal is itself informative, since a refusal would suggest your own firewall while a silent drop points upstream.</p>
+
+    <h3>My mail sends successfully but never arrives. Why?</h3>
+    <p>Connecting on 587 only means the message left your server. Delivery is decided by SPF, DKIM, and DMARC records published in your DNS, and missing or incorrect records are the most common reason mail is accepted then discarded. Verify what is actually published with <code>dig</code> rather than trusting what you meant to publish.</p>
+
+    <h3>Should I run my own mail server?</h3>
+    <p>For sending application email, no. The difficulty is not installation but reputation: a new cloud IP has no sending history and may inherit a poor one, so you can configure everything correctly and still land in spam for weeks. Relays exist because somebody else already solved that and keeps solving it. Receiving mail is a more reasonable case, though a hosted mailbox provider is still the better use of your attention for most teams.</p>
+
+    <h3>Why does WordPress send no email at all?</h3>
+    <p>Because the default behaviour tries to send directly from the server, which the port 25 block prevents. Configure an SMTP plugin to use an authenticated relay on 587 and keep the credentials in <code>wp-config.php</code> or environment variables rather than the database. This is the same problem as the one above, wearing a WordPress hat.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Deliverability is a reputation problem. Rent someone else's good reputation.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Port 25 Is Blocked on Your Cloud Server, and That Is Not a Bug","description":"Why port 25 is blocked on cloud servers, which SMTP port to use instead, and why sending application email from your own server is usually the wrong choice even when it works.","image":"https://www.kloudbean.com/blog/port-25-blocked-smtp-ports/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/port-25-blocked-smtp-ports/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Why is port 25 blocked on my cloud server?","acceptedAnswer":{"@type":"Answer","text":"Because port 25 requires no authentication by design, so a compromised instance can send spam directly to millions of recipients. Mail receivers blocklist by IP address and often by range, meaning one abusive server damages deliverability for every other customer nearby. Providers block outbound 25 by default to protect the reputation of their address space."}},
+{"@type":"Question","name":"Which SMTP port should my application use?","acceptedAnswer":{"@type":"Answer","text":"587, with an authenticated relay. Port 25 is for server-to-server delivery between mail servers and is blocked outbound on cloud platforms. 587 is the submission port intended for applications sending through a provider, and 465 is an older implicit-TLS submission port that many providers still accept. Your application wants 587."}},
+{"@type":"Question","name":"What is the difference between port 587 and 465?","acceptedAnswer":{"@type":"Answer","text":"587 opens in plain text and upgrades to encryption with STARTTLS, while 465 wraps the connection in TLS from the first byte. Both end up encrypted and the practical difference is small. Use whichever your provider documents; if both are available, 587 is the more widely expected choice."}},
+{"@type":"Question","name":"Can I get port 25 unblocked?","acceptedAnswer":{"@type":"Answer","text":"Sometimes, depending on the provider and your account history, and it is usually the wrong goal. Even unblocked, you have taken on running a mail server whose deliverability depends on the reputation of an IP address you did not choose and may share a history with. A relay on 587 solves the actual problem in minutes."}},
+{"@type":"Question","name":"How do I test whether port 25 is blocked?","acceptedAnswer":{"@type":"Answer","text":"Run netcat against port 25 with a short timeout, then the same against 587. A timeout on 25 with a successful connect on 587 confirms the provider block. The timeout rather than a refusal is itself informative, since a refusal would suggest your own firewall while a silent drop points upstream."}},
+{"@type":"Question","name":"My mail sends successfully but never arrives. Why?","acceptedAnswer":{"@type":"Answer","text":"Connecting on 587 only means the message left your server. Delivery is decided by SPF, DKIM, and DMARC records published in your DNS, and missing or incorrect records are the most common reason mail is accepted then discarded. Verify what is actually published with dig rather than trusting what you meant to publish."}},
+{"@type":"Question","name":"Should I run my own mail server?","acceptedAnswer":{"@type":"Answer","text":"For sending application email, no. The difficulty is not installation but reputation: a new cloud IP has no sending history and may inherit a poor one, so you can configure everything correctly and still land in spam for weeks. Relays exist because somebody else already solved that and keeps solving it. Receiving mail is a more reasonable case, though a hosted mailbox provider is still the better use of your attention for most teams."}},
+{"@type":"Question","name":"Why does WordPress send no email at all?","acceptedAnswer":{"@type":"Answer","text":"Because the default behaviour tries to send directly from the server, which the port 25 block prevents. Configure an SMTP plugin to use an authenticated relay on 587 and keep the credentials in wp-config.php or environment variables rather than the database. This is the same problem as the one above, wearing a WordPress hat."}}
+]}
+]}
+</script>
+</body>
+</html>
