@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GitLab vs GitHub: Self-Hosting Is the Question That Actually Decides It</title>
+<meta name="description" content="GitLab vs GitHub compared on what genuinely differs: whether you can run it yourself, single application versus marketplace, and where open source contributors already are.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/gitlab-vs-github/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="GitLab vs GitHub: Self-Hosting Is the Question That Actually Decides It">
+<meta property="og:description" content="Both host Git and both run pipelines. The decisive differences are self-hosting, one integrated application versus a marketplace, and where contributors already are.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">DevOps · Platforms · Decision guide</span>
+  <h1>GitLab vs GitHub: Self-Hosting Is the Question That Actually Decides It</h1>
+  <p class="byline">By Kloudbean Engineering · Three questions settle this. Feature tables settle nothing.</p>
+
+  <figure><img src="images/hero.png" alt="Side by side comparison of GitLab and GitHub as platforms for hosting repositories and pipelines"></figure>
+
+  <p class="lead">Every comparison of these two ends up as a feature grid, and the grid is useless because the features converged years ago. Both host Git repositories, both run CI pipelines, both do code review, issues, container registries, and security scanning. If you pick by counting checkboxes you will conclude they are nearly identical, which is true and unhelpful. What genuinely separates them is narrower and much easier to answer: whether you need to run the thing yourself, whether you want one integrated product or a strong core plus a marketplace, and whether strangers need to find your code.</p>
+
+  <div class="tldr">
+    <strong>Should I use GitLab or GitHub?</strong>
+    <p>Choose GitLab if you need to self-host your Git server and pipelines, because its self-managed edition is a genuinely mature free product rather than an enterprise upsell. Choose GitHub for open source, for the largest integration ecosystem, and for the easiest hiring, since it is where developers and tooling already are. If neither of those is decisive, either will serve you well and the tie-breaker is whichever your team already knows. Do not spend a week on this decision; spend it on your deployment pipeline instead.</p>
+  </div>
+
+  <h2>The three questions</h2>
+  <table class="cmp">
+    <thead><tr><th>Question</th><th>If yes</th><th>Why it decides</th></tr></thead>
+    <tbody>
+      <tr><td>Must the server live on infrastructure you control?</td><td><strong>GitLab</strong></td><td>Mature free self-managed edition</td></tr>
+      <tr><td>Is this open source, wanting outside contributors?</td><td><strong>GitHub</strong></td><td>That is where contributors are</td></tr>
+      <tr><td>Do you depend on a long tail of third-party integrations?</td><td><strong>GitHub</strong></td><td>Everything integrates with it first</td></tr>
+      <tr><td>None of the above</td><td>Either</td><td>Use what your team knows</td></tr>
+    </tbody>
+  </table>
+  <p>That last row is not a cop-out. For a private team repository with a normal pipeline, the difference between these platforms will not show up in your delivery speed, and the cost of retraining everyone will. Familiarity is a real technical advantage.</p>
+
+  <h2>Self-hosting: the one genuinely large gap</h2>
+  <p>This is where the platforms diverge most, and it is the reason GitLab still wins deals outright.</p>
+  <p>GitLab's self-managed edition is a first-class product. You can run the whole thing on your own servers, the community edition is free, and self-hosting is a supported path rather than a special case. Organisations choose it because code has to stay on infrastructure they control, whether for regulatory reasons, data residency requirements, or a policy that source code does not leave the network.</p>
+  <p>GitHub does offer an enterprise server product, and it is priced and sold as an enterprise product. If your reason for self-hosting is a compliance requirement with a real budget attached, that is fine. If your reason is that you want to run it yourself without a procurement process, GitLab is effectively the only option of the two.</p>
+  <p>Worth being honest about what self-hosting costs, because the licence being free is the least of it. GitLab is a heavy application: you are running a web application, a database, background workers, a container registry, and separate CI runners, and you own the upgrades, the backups, and the restore test. We cover the real resource floor and sizing in <a href="https://www.kloudbean.com/blog/self-host-gitlab/">self-hosting GitLab</a>, including why the RAM requirement surprises people.</p>
+  <p>My honest position: self-host when you have a requirement, not a preference. "We want control" is a preference until somebody names the specific thing that goes wrong without it. If you cannot name it, the hosted option is cheaper in engineering time by a wide margin.</p>
+
+  <h2>Where the code lives matters for open source</h2>
+  <p>If you want strangers to find, star, fork, and contribute to your project, GitHub is where they already are. That is a network effect rather than a feature, so no amount of GitLab capability changes it.</p>
+  <p>The practical consequences are concrete. Contributors already have an account and know the pull request flow. Package registries, documentation tools, and CI services assume a GitHub URL. Discovery through search and through GitHub's own surfaces is much stronger. And for anything you want adopted, friction in the contribution path costs you contributions.</p>
+  <p>For private work none of this applies, which is why the same organisation can reasonably use GitLab internally and publish its open source on GitHub. That is a common and sensible arrangement rather than a contradiction.</p>
+
+  <h2>One application versus a strong core plus a marketplace</h2>
+  <p>This is the philosophical difference, and it is the one that shows up in day-to-day work once you are past the first two questions.</p>
+  <p>GitLab's pitch is a single application covering the software lifecycle: repository, CI, registry, security scanning, issue tracking, and deployment in one product with one permission model. The appeal is genuine. Fewer integrations to wire, one place to look, consistent access control.</p>
+  <p>GitHub's model is an excellent core with an enormous marketplace around it. Actions has a very large library of reusable workflow steps, and essentially every developer tool ships a GitHub integration first. The appeal is also genuine: whatever you need, somebody has already built the connector.</p>
+  <table class="cmp">
+    <thead><tr><th></th><th>GitLab</th><th>GitHub</th></tr></thead>
+    <tbody>
+      <tr><td>Self-managed edition</td><td><strong>Mature and free</strong></td><td>Enterprise product</td></tr>
+      <tr><td>Open source community</td><td>Smaller</td><td><strong>Where contributors are</strong></td></tr>
+      <tr><td>Third-party integrations</td><td>Good</td><td><strong>Broadest by a wide margin</strong></td></tr>
+      <tr><td>CI/CD</td><td><strong>Integrated from the start</strong></td><td>Actions, huge reusable library</td></tr>
+      <tr><td>Lifecycle coverage in one product</td><td><strong>Deliberate design goal</strong></td><td>Core plus marketplace</td></tr>
+      <tr><td>Hiring and familiarity</td><td>Narrower pool</td><td><strong>Larger pool</strong></td></tr>
+      <tr><td>Migration in or out</td><td>Straightforward, both use Git</td><td>Straightforward, both use Git</td></tr>
+    </tbody>
+  </table>
+  <p>The trade underneath the table: an integrated product means fewer moving parts and less choice, while a marketplace means more choice and more parts to maintain. Neither is wrong, and which one suits you depends on whether your team enjoys assembling tooling or resents it.</p>
+
+  <h2>The CI comparison, deflated</h2>
+  <p>People expect this to be the deciding factor and it rarely is any more. GitLab CI arrived earlier and is deeply integrated with a single configuration file. GitHub Actions arrived later with a marketplace of reusable actions that removes a lot of boilerplate.</p>
+  <p>Both will build, test, and deploy your application without drama. Both run on hosted runners or your own. Both express pipelines in YAML that is pleasant until it is not. If you are choosing between them on CI capability alone, you are optimising a difference your team will stop noticing after a fortnight.</p>
+  <p>Two practical notes that matter more than the feature comparison. Self-hosted runners are worth understanding on either platform, because hosted minutes are metered and long builds get expensive, and because runners with access to your infrastructure need the same care as any deployment credential. And whichever you pick, the pipeline should end by deploying somewhere, which is the part that actually affects your delivery speed.</p>
+
+  <h2>Migrating between them is not the hard part</h2>
+  <p>A useful thing to know before agonising over the choice: your Git history is portable by definition. Both platforms speak Git, so moving repositories is a push away.</p>
+  <pre><code># Mirror a repository to a new remote, refs and all
+git clone --mirror https://old-host.example.com/team/app.git
+cd app.git
+git remote set-url --push origin https://new-host.example.com/team/app.git
+git push --mirror</code></pre>
+  <p>What does not move cleanly is everything around the code: issues, merge or pull requests with their review history, CI configuration, secrets, webhooks, and permissions. Both platforms provide importers that handle a good deal of this, and the review history is the part most likely to arrive incomplete.</p>
+  <p>So the honest risk assessment is that picking wrongly costs you a migration project measured in days rather than a rewrite. That should lower the stakes considerably, and it is a reason not to spend three weeks on a decision matrix.</p>
+
+  <h2>A decision path</h2>
+  <p>Stop at the first line that describes you.</p>
+  <ul>
+    <li><strong>Code must stay on infrastructure you control, and you have a real requirement.</strong> GitLab self-managed.</li>
+    <li><strong>You are publishing open source and want contributors.</strong> GitHub.</li>
+    <li><strong>You depend on a specific integration.</strong> Check which platform has a maintained one, then pick that. This overrides everything else.</li>
+    <li><strong>You want one product for the whole lifecycle with minimal wiring.</strong> GitLab.</li>
+    <li><strong>You want the largest ecosystem and easiest hiring.</strong> GitHub.</li>
+    <li><strong>Your team already uses one of them productively.</strong> Stay. The switching cost exceeds the benefit.</li>
+    <li><strong>Genuinely undecided, new team, private code.</strong> GitHub, because the ecosystem and hiring advantage compounds and you can move later if you need to.</li>
+  </ul>
+
+  <h2>Deploying from either one</h2>
+  <p>Whichever you choose, the pipeline has to end somewhere, and that is the part worth more of your attention than the platform choice.</p>
+  <p>Being precise about what Kloudbean documents here rather than vague: the managed CI/CD integration connects a Git repository so that a push builds and deploys, with deployment history and live build logs in the console, and the documented provider for that integration and for OAuth sign-in is GitHub. Our <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">auto-deploy from GitHub guide</a> walks through that setup.</p>
+  <p>If you are on GitLab, that is worth knowing before you plan your pipeline. You are not stuck: there is the <code>adm</code> deployment utility for scripted deploys, and a GitLab pipeline can deploy to a Kloudbean server the same way it would deploy to any server you control, with your pipeline doing the build and the push. It is a slightly different shape of work than the one-click repository connection, and I would rather say so than let you discover it after choosing.</p>
+  <p>What is the same either way: managed servers across seven clouds with your choice of region, managed MySQL, MariaDB, PostgreSQL, Redis, Elasticsearch, and MongoDB, free SSL issued and renewed, automatic backups, and servers, applications, and databases in one dashboard.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="Git deployment configuration in the Kloudbean console">
+    <figcaption>The documented repository integration and OAuth provider is GitHub. GitLab users deploy via a pipeline or the adm utility.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>If self-hosting is your answer, <a href="https://www.kloudbean.com/blog/self-host-gitlab/">self-hosting GitLab</a> covers the resource floor, sizing by team size, and what the licence being free does not include. For the deploy half, <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD auto-deploy from GitHub</a> and <a href="https://www.kloudbean.com/blog/zero-downtime-deployments/">zero downtime deployments</a>. On pipeline hygiene, <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>. When a deploy breaks, <a href="https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/">a Node app crashing on deploy</a> and <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">503 after deploying</a>. And for a broad view of the target, <a href="https://www.kloudbean.com/blog/how-to-deploy-any-app/">how to deploy any app</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">The pipeline has to end somewhere.</p>
+    <p style="margin:0 0 .6em">Managed servers across seven clouds, managed databases and Redis, free SSL, automatic backups, and a Git integration that builds and deploys on every push with live build logs, from $8/mo. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">7 clouds · Managed CI/CD from Git · Live build logs · Managed databases · Flat from $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Is GitLab better than GitHub?</h3>
+    <p>For one requirement, clearly: if you need to run the platform on your own infrastructure, GitLab's self-managed edition is a mature free product while GitHub's equivalent is an enterprise purchase. For open source reach, integration breadth, and hiring, GitHub wins. On core features they have largely converged, so decide on those specific requirements rather than comparing capability lists.</p>
+
+    <h3>What is the main difference between GitLab and GitHub?</h3>
+    <p>Philosophy. GitLab aims to be a single application covering the whole software lifecycle with one permission model, so there is less to wire together and less to choose from. GitHub offers a strong core plus an enormous marketplace, so there is more choice and more to maintain. Both host Git and run pipelines competently.</p>
+
+    <h3>Can I self-host GitHub like GitLab?</h3>
+    <p>There is an enterprise server product, and it is sold and priced as an enterprise product rather than as a free self-managed edition. If your self-hosting need comes with a compliance requirement and a budget, that works. If you simply want to run it yourself without procurement, GitLab is effectively your option of the two.</p>
+
+    <h3>Is GitLab CI better than GitHub Actions?</h3>
+    <p>Not in a way that should decide your platform. GitLab CI is older and deeply integrated through a single configuration file; Actions has a very large library of reusable steps that removes boilerplate. Both build, test, and deploy without drama, and after a couple of weeks your team will stop noticing the difference.</p>
+
+    <h3>How hard is it to migrate from GitLab to GitHub?</h3>
+    <p>The code is trivial, since both speak Git and a mirror push moves every ref. What migrates imperfectly is everything around it: issues, merge or pull request review history, CI configuration, secrets, webhooks, and permissions. Both platforms provide importers, and review history is the part most likely to arrive incomplete. Budget days, not weeks.</p>
+
+    <h3>Which should I use for an open source project?</h3>
+    <p>GitHub, unless you have a specific reason not to. That is where contributors already have accounts, know the workflow, and will find you, and where most tooling assumes your repository lives. It is a network effect rather than a feature, so no amount of GitLab capability offsets it.</p>
+
+    <h3>Can I use both?</h3>
+    <p>Yes, and plenty of organisations sensibly do: GitLab self-managed for internal code that must stay on their own infrastructure, and GitHub for anything published as open source. Since both speak Git, mirroring a repository between them is straightforward if you want a project in both places.</p>
+
+    <h3>Does Kloudbean deploy from GitLab?</h3>
+    <p>The documented repository integration and OAuth provider is GitHub, so the one-click connect-and-deploy flow is described for GitHub. From GitLab you would deploy the way you would to any server you control, using your own pipeline or the <code>adm</code> deployment utility. Worth knowing before you plan the pipeline rather than after.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Self-host for a requirement, never for a preference.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"GitLab vs GitHub: Self-Hosting Is the Question That Actually Decides It","description":"GitLab vs GitHub compared on what genuinely differs: whether you can run it yourself, single application versus marketplace, and where open source contributors already are.","image":"https://www.kloudbean.com/blog/gitlab-vs-github/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/gitlab-vs-github/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Is GitLab better than GitHub?","acceptedAnswer":{"@type":"Answer","text":"For one requirement, clearly: if you need to run the platform on your own infrastructure, GitLab's self-managed edition is a mature free product while GitHub's equivalent is an enterprise purchase. For open source reach, integration breadth, and hiring, GitHub wins. On core features they have largely converged, so decide on those specific requirements rather than comparing capability lists."}},
+{"@type":"Question","name":"What is the main difference between GitLab and GitHub?","acceptedAnswer":{"@type":"Answer","text":"Philosophy. GitLab aims to be a single application covering the whole software lifecycle with one permission model, so there is less to wire together and less to choose from. GitHub offers a strong core plus an enormous marketplace, so there is more choice and more to maintain. Both host Git and run pipelines competently."}},
+{"@type":"Question","name":"Can I self-host GitHub like GitLab?","acceptedAnswer":{"@type":"Answer","text":"There is an enterprise server product, and it is sold and priced as an enterprise product rather than as a free self-managed edition. If your self-hosting need comes with a compliance requirement and a budget, that works. If you simply want to run it yourself without procurement, GitLab is effectively your option of the two."}},
+{"@type":"Question","name":"Is GitLab CI better than GitHub Actions?","acceptedAnswer":{"@type":"Answer","text":"Not in a way that should decide your platform. GitLab CI is older and deeply integrated through a single configuration file; Actions has a very large library of reusable steps that removes boilerplate. Both build, test, and deploy without drama, and after a couple of weeks your team will stop noticing the difference."}},
+{"@type":"Question","name":"How hard is it to migrate from GitLab to GitHub?","acceptedAnswer":{"@type":"Answer","text":"The code is trivial, since both speak Git and a mirror push moves every ref. What migrates imperfectly is everything around it: issues, merge or pull request review history, CI configuration, secrets, webhooks, and permissions. Both platforms provide importers, and review history is the part most likely to arrive incomplete. Budget days, not weeks."}},
+{"@type":"Question","name":"Which should I use for an open source project?","acceptedAnswer":{"@type":"Answer","text":"GitHub, unless you have a specific reason not to. That is where contributors already have accounts, know the workflow, and will find you, and where most tooling assumes your repository lives. It is a network effect rather than a feature, so no amount of GitLab capability offsets it."}},
+{"@type":"Question","name":"Can I use both?","acceptedAnswer":{"@type":"Answer","text":"Yes, and plenty of organisations sensibly do: GitLab self-managed for internal code that must stay on their own infrastructure, and GitHub for anything published as open source. Since both speak Git, mirroring a repository between them is straightforward if you want a project in both places."}},
+{"@type":"Question","name":"Does Kloudbean deploy from GitLab?","acceptedAnswer":{"@type":"Answer","text":"The documented repository integration and OAuth provider is GitHub, so the one-click connect-and-deploy flow is described for GitHub. From GitLab you would deploy the way you would to any server you control, using your own pipeline or the adm deployment utility. Worth knowing before you plan the pipeline rather than after."}}
+]}
+]}
+</script>
+</body>
+</html>
