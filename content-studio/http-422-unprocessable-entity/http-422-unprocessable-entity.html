@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>422 Unprocessable Entity: A 422 Without Field Errors Is a Wasted Status Code</title>
+<meta name="description" content="422 Unprocessable Entity explained. The difference from 400, what Rails, Laravel and FastAPI return by default, how to read the field paths, and why you should never retry one.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/http-422-unprocessable-entity/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="422 Unprocessable Entity: A 422 Without Field Errors Is a Wasted Status Code">
+<meta property="og:description" content="Your JSON parsed fine and the values are wrong. The whole point of 422 over 400 is precision, so the body has to name the field.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">HTTP · APIs · Validation</span>
+  <h1>422 Unprocessable Entity: A 422 Without Field Errors Is a Wasted Status Code</h1>
+  <p class="byline">By Kloudbean Engineering · The status tells you the shape of the problem. The body has to tell you the rest.</p>
+
+  <figure><img src="images/hero.png" alt="A 422 JSON response showing field-level validation errors with location paths"></figure>
+
+  <p class="lead">422 Unprocessable Entity means your request arrived intact, the server parsed it without difficulty, and the content of it is wrong. Valid JSON describing an impossible thing. That distinction from a 400 is the entire reason the code exists: a 400 says I could not read this, a 422 says I read it perfectly and the values do not work. Which means a 422 is only useful if the response body says which values. Getting a bare 422 with an empty body is worse than getting a 400, because you have been told the request was understood without being told what was understood to be wrong.</p>
+
+  <div class="tldr">
+    <strong>What does 422 Unprocessable Entity mean?</strong>
+    <p>The request was well-formed and syntactically valid, so parsing succeeded, but the data failed validation or violated a business rule. A missing required field, a string where a number belongs, an email that is not an email, a date in the past where a future one is needed. Read the response body, because a well-built API names the failing field and often the exact path to it. Do not retry the same payload, since a 422 is deterministic and will fail identically.</p>
+  </div>
+
+  <h2>422 or 400? The line is real</h2>
+  <table class="cmp">
+    <thead><tr><th></th><th>400 Bad Request</th><th>422 Unprocessable Entity</th></tr></thead>
+    <tbody>
+      <tr><td>Did parsing succeed?</td><td>No</td><td>Yes</td></tr>
+      <tr><td>Typical cause</td><td>Malformed JSON, bad headers, oversized cookies</td><td>Failed validation, broken business rule</td></tr>
+      <tr><td>Your code ran?</td><td>Often not</td><td>Yes, and it decided</td></tr>
+      <tr><td>Fix</td><td>The request syntax</td><td>The values in the payload</td></tr>
+      <tr><td>Body should contain</td><td>What could not be read</td><td>Which fields are wrong and why</td></tr>
+    </tbody>
+  </table>
+  <p>A trailing comma in your JSON is a 400. A perfectly formed payload with <code>"age": -5</code> is a 422. If you are getting a 400 rather than a 422, our <a href="https://www.kloudbean.com/blog/400-bad-request/">400 Bad Request guide</a> covers the parsing and header side, including the cookie growth that causes most of them on real websites.</p>
+  <p>Worth knowing that plenty of APIs use 400 for both, and that is not wrong exactly. The specification permits 400 for anything the server declines to process, and 422 originated in WebDAV before REST frameworks adopted it. What is genuinely bad practice is using both inconsistently inside one API, so a client cannot tell from the status code whether to inspect its serialiser or its values. Pick one convention and hold it.</p>
+
+  <h2>Your framework probably already decided this for you</h2>
+  <p>A useful thing to know before debugging: several major frameworks return 422 automatically for validation failures, so the code may not be a deliberate choice anyone made.</p>
+  <table class="cmp">
+    <thead><tr><th>Framework</th><th>Default for failed validation</th><th>Body shape</th></tr></thead>
+    <tbody>
+      <tr><td>Rails</td><td>422 via <code>:unprocessable_entity</code></td><td>Whatever you render, commonly an <code>errors</code> object</td></tr>
+      <tr><td>Laravel</td><td>422 from <code>ValidationException</code></td><td><code>message</code> plus an <code>errors</code> map keyed by field</td></tr>
+      <tr><td>FastAPI</td><td>422 from Pydantic</td><td><code>detail</code> array with <code>loc</code>, <code>msg</code>, <code>type</code></td></tr>
+      <tr><td>Express</td><td>Nothing by default</td><td>Whatever you build with Zod, Joi, or similar</td></tr>
+    </tbody>
+  </table>
+  <p>FastAPI's shape is the most immediately useful of these, because <code>loc</code> is a path rather than a name:</p>
+  <pre><code>{
+  "detail": [
+    {
+      "loc": ["body", "user", "email"],
+      "msg": "value is not a valid email address",
+      "type": "value_error.email"
+    }
+  ]
+}</code></pre>
+  <p>That <code>loc</code> array walks you straight to the problem: the body, then the <code>user</code> object, then its <code>email</code> field. For nested payloads that is the difference between reading an error and finding the bug. If you are consuming a FastAPI service and ignoring <code>loc</code>, you are throwing away the most valuable part of the response.</p>
+
+  <h2>If you are receiving 422s</h2>
+  <p>Three steps, and the first one is usually enough.</p>
+  <p><strong>Read the body.</strong> Not the status, the body. Any API worth using names the field:</p>
+  <pre><code>curl -sS -X POST https://api.example.com/v1/users \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"not-an-email","age":-5}' \
+  -w '\nHTTP %{http_code}\n' | python3 -m json.tool</code></pre>
+  <p><strong>Compare what you sent against what you meant to send.</strong> Serialisation is where this usually goes wrong rather than in your own logic. A number arriving as a string because it came from a form field. A date formatted for humans instead of as ISO 8601. An empty string where the API expects the key to be absent entirely, which is a genuinely common and confusing one, since <code>""</code> and <code>null</code> and missing are three different states and validators treat them differently.</p>
+  <pre><code>curl -v -X POST https://api.example.com/v1/users -d "$BODY" 2>&amp;1 | sed -n '/^&gt; POST/,/^&lt; HTTP/p'</code></pre>
+  <p><strong>Do not retry.</strong> A 422 is deterministic. The same payload will fail the same way, forever. This matters most in background jobs, where a validation failure treated as transient will retry until it exhausts its attempts and then look like an infrastructure problem in your dashboards. The same reasoning applies to <a href="https://www.kloudbean.com/blog/409-conflict-error/">409 Conflict</a>: some 4xx codes are worth retrying and these are not.</p>
+
+  <h2>If you are building the API</h2>
+  <p>The opinion that gives this article its title: a 422 whose body does not identify the failing field has thrown away the only advantage it has over a 400. You have spent a more precise status code and delivered no more precision.</p>
+  <p>What a useful 422 looks like:</p>
+  <pre><code>{
+  "error": "validation_failed",
+  "message": "The request could not be processed.",
+  "errors": [
+    { "field": "email",    "code": "invalid_format", "message": "Must be a valid email address." },
+    { "field": "age",      "code": "out_of_range",   "message": "Must be between 0 and 130." },
+    { "field": "plan_id",  "code": "not_found",      "message": "No plan with that identifier." }
+  ]
+}</code></pre>
+  <p>Three properties make that worth building. It reports every failure at once rather than the first, so a form can highlight all of them in one pass instead of making the user submit five times. It carries a machine-readable <code>code</code> alongside the human message, so clients can branch on the reason without string-matching your prose. And the field names match the request, which sounds obvious and is routinely violated by APIs that report internal column names.</p>
+  <p>One thing to be careful about: do not leak internals through validation messages. "No plan with that identifier" is helpful. A database error naming your table and constraint is a small information disclosure and an unhelpful message at the same time, which is a bad combination.</p>
+
+  <h2>The webhook case, which behaves differently</h2>
+  <p>Worth its own note because the usual advice is actively wrong here.</p>
+  <p>If you are receiving webhooks and you return a 422 for a payload you consider invalid, what happens next depends on the sender, and many will treat any non-2xx as a signal to retry. So a permanently invalid payload gets redelivered on a schedule, failing identically each time, until the sender gives up days later. You have created recurring noise that can never resolve.</p>
+  <p>The better pattern for a payload that can never succeed is to accept it, return 2xx, and record it somewhere you can inspect: a dead-letter table, a log with enough context to reconstruct it, an alert if the volume is unusual. Reserve a 4xx response for cases where you genuinely want the sender to stop and where a human at the other end will look at the failure. Rejecting a webhook is a message to another team, and it only works if somebody reads it.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Symptom</th><th>Likely cause</th><th>First step</th></tr></thead>
+    <tbody>
+      <tr><td>422 with a field named in the body</td><td>Exactly what it says</td><td>Fix that value</td></tr>
+      <tr><td>422 with an empty body</td><td>API is not reporting details</td><td>Check its docs, or ask for better errors</td></tr>
+      <tr><td>Works in a client tool, fails from code</td><td>Serialisation differs</td><td>Print the raw body you sent</td></tr>
+      <tr><td>Numbers rejected as invalid</td><td>Sent as strings from form input</td><td>Coerce types before sending</td></tr>
+      <tr><td>Optional field rejected when blank</td><td>Empty string is not the same as absent</td><td>Omit the key rather than sending <code>""</code></td></tr>
+      <tr><td>Started after an API version change</td><td>New or stricter validation rule</td><td>Read the changelog</td></tr>
+      <tr><td>Background job retrying forever</td><td>Deterministic failure treated as transient</td><td>Stop retrying 422</td></tr>
+      <tr><td>Webhooks redelivered repeatedly</td><td>Sender retries any non-2xx</td><td>Accept and dead-letter instead</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Where hosting fits</h2>
+  <p>Straightforwardly: a 422 is your validation working, so this is application logic and it belongs to you. There is no hosting setting that changes it, and any article claiming otherwise is stretching.</p>
+  <p>Two adjacent things are genuinely relevant. Validation rules usually exist to protect data integrity, and the constraints in your database are the layer underneath them, so managed PostgreSQL, MySQL, and MariaDB sitting in the same dashboard as the application matters when a validation rule and a database constraint disagree. And the background-job point above is a real operational cost, since a queue retrying deterministic failures burns worker capacity that has nothing left to do, which is worth watching in your server metrics.</p>
+  <p>Beyond that, this article is a design argument rather than a product one: name the field, report every failure at once, and do not retry something that cannot succeed.</p>
+
+  <figure>
+    <img src="../assets/console/launch-database.png" alt="Launching a managed database in the Kloudbean console">
+    <figcaption>Validation sits above your constraints. Useful to have both in one place when they disagree.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>Its closest neighbour, <a href="https://www.kloudbean.com/blog/400-bad-request/">400 Bad Request</a>, which covers the parsing side. For the other deterministic 4xx you should not retry, <a href="https://www.kloudbean.com/blog/409-conflict-error/">409 Conflict</a>. On authentication and permissions, <a href="https://www.kloudbean.com/blog/http-error-401-unauthorized/">401 Unauthorized</a> and <a href="https://www.kloudbean.com/blog/403-forbidden-error/">403 Forbidden</a>. For the codes where retrying is correct, <a href="https://www.kloudbean.com/blog/429-too-many-requests/">429 Too Many Requests</a>. On queues that should not retry forever, <a href="https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/">background jobs with BullMQ</a>. And for the constraints underneath your validation, <a href="https://www.kloudbean.com/blog/postgresql-performance-tuning/">PostgreSQL performance tuning</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Your database and your app in one place.</p>
+    <p style="margin:0 0 .6em">Managed PostgreSQL, MySQL, MariaDB, and Redis alongside your application on a private network, with automatic backups and visible server metrics, from $8/mo. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed databases · Private networking · Automatic backups · Server metrics · Flat from $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does 422 Unprocessable Entity mean?</h3>
+    <p>It means the request was syntactically valid and successfully parsed, and its content failed validation or violated a business rule. Typical causes are a missing required field, a value of the wrong type, a badly formatted email or date, or a number outside an allowed range. The response body should name the failing field.</p>
+
+    <h3>What is the difference between 400 and 422?</h3>
+    <p>A 400 means the request could not be parsed or understood, for example malformed JSON or oversized headers. A 422 means it parsed perfectly and the values are wrong. Practically: fix your syntax for a 400, fix your data for a 422. Many APIs use 400 for both, which is acceptable, though using them inconsistently within one API is not.</p>
+
+    <h3>Should I retry a 422?</h3>
+    <p>No. A 422 is deterministic, so the same payload will fail identically every time. This matters most in background jobs, where treating a validation failure as transient means retrying until the attempt limit is exhausted, which then looks like an infrastructure problem in your dashboards. Fix the payload or discard the job.</p>
+
+    <h3>Why do I get a 422 when my JSON looks correct?</h3>
+    <p>Because correct JSON and valid data are different things. Common culprits are numbers sent as strings from form input, dates in a human format rather than ISO 8601, and empty strings where the API expects the key to be absent. An empty string, a null, and a missing key are three distinct states and validators treat them differently.</p>
+
+    <h3>What does the loc field mean in a FastAPI 422?</h3>
+    <p>It is a path to the failing value rather than just a name, so <code>["body", "user", "email"]</code> means the <code>email</code> field inside the <code>user</code> object in the request body. For nested payloads that path is the fastest route to the bug, and it is the most valuable part of the response to read.</p>
+
+    <h3>What should a good 422 response body contain?</h3>
+    <p>Every failing field rather than just the first, a machine-readable code alongside the human message so clients can branch without string-matching, and field names that match the request rather than internal column names. A 422 with an empty body has discarded its only advantage over a 400, since the point of the more precise status is more precise information.</p>
+
+    <h3>Should I return 422 for an invalid webhook payload?</h3>
+    <p>Usually not, if the payload can never succeed. Many senders retry any non-2xx response, so a permanent validation failure gets redelivered repeatedly and fails identically each time. Accept it, return 2xx, and record it in a dead-letter store you can inspect. Reserve a rejection for cases where you want the sender to stop and somebody there will read it.</p>
+
+    <h3>Is 422 part of standard HTTP?</h3>
+    <p>Yes. It originated in the WebDAV extensions rather than the core specification, and it has since been widely adopted by REST frameworks, with Rails, Laravel, and FastAPI all returning it by default for validation failures. It is a normal, well-supported status code rather than anything exotic.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Name the field. That is the whole job.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"422 Unprocessable Entity: A 422 Without Field Errors Is a Wasted Status Code","description":"422 Unprocessable Entity explained. The difference from 400, what Rails, Laravel and FastAPI return by default, how to read the field paths, and why you should never retry one.","image":"https://www.kloudbean.com/blog/http-422-unprocessable-entity/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/http-422-unprocessable-entity/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does 422 Unprocessable Entity mean?","acceptedAnswer":{"@type":"Answer","text":"It means the request was syntactically valid and successfully parsed, and its content failed validation or violated a business rule. Typical causes are a missing required field, a value of the wrong type, a badly formatted email or date, or a number outside an allowed range. The response body should name the failing field."}},
+{"@type":"Question","name":"What is the difference between 400 and 422?","acceptedAnswer":{"@type":"Answer","text":"A 400 means the request could not be parsed or understood, for example malformed JSON or oversized headers. A 422 means it parsed perfectly and the values are wrong. Practically: fix your syntax for a 400, fix your data for a 422. Many APIs use 400 for both, which is acceptable, though using them inconsistently within one API is not."}},
+{"@type":"Question","name":"Should I retry a 422?","acceptedAnswer":{"@type":"Answer","text":"No. A 422 is deterministic, so the same payload will fail identically every time. This matters most in background jobs, where treating a validation failure as transient means retrying until the attempt limit is exhausted, which then looks like an infrastructure problem in your dashboards. Fix the payload or discard the job."}},
+{"@type":"Question","name":"Why do I get a 422 when my JSON looks correct?","acceptedAnswer":{"@type":"Answer","text":"Because correct JSON and valid data are different things. Common culprits are numbers sent as strings from form input, dates in a human format rather than ISO 8601, and empty strings where the API expects the key to be absent. An empty string, a null, and a missing key are three distinct states and validators treat them differently."}},
+{"@type":"Question","name":"What does the loc field mean in a FastAPI 422?","acceptedAnswer":{"@type":"Answer","text":"It is a path to the failing value rather than just a name, so body, user, email means the email field inside the user object in the request body. For nested payloads that path is the fastest route to the bug, and it is the most valuable part of the response to read."}},
+{"@type":"Question","name":"What should a good 422 response body contain?","acceptedAnswer":{"@type":"Answer","text":"Every failing field rather than just the first, a machine-readable code alongside the human message so clients can branch without string-matching, and field names that match the request rather than internal column names. A 422 with an empty body has discarded its only advantage over a 400, since the point of the more precise status is more precise information."}},
+{"@type":"Question","name":"Should I return 422 for an invalid webhook payload?","acceptedAnswer":{"@type":"Answer","text":"Usually not, if the payload can never succeed. Many senders retry any non-2xx response, so a permanent validation failure gets redelivered repeatedly and fails identically each time. Accept it, return 2xx, and record it in a dead-letter store you can inspect. Reserve a rejection for cases where you want the sender to stop and somebody there will read it."}},
+{"@type":"Question","name":"Is 422 part of standard HTTP?","acceptedAnswer":{"@type":"Answer","text":"Yes. It originated in the WebDAV extensions rather than the core specification, and it has since been widely adopted by REST frameworks, with Rails, Laravel, and FastAPI all returning it by default for validation failures. It is a normal, well-supported status code rather than anything exotic."}}
+]}
+]}
+</script>
+</body>
+</html>
