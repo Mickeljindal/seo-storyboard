@@ -634,6 +634,22 @@ const HERO_OVERRIDES = {
       "Third-Party & Cloud",
     ],
   },
+  // Agency access-control spoke: a checklist of the four roles reads far better
+  // than the auto-derived generic centered card.
+  "subuser-and-uac-guide": {
+    archetype: "checklist",
+    palette: "indigo",
+    motif: "shield",
+    eyebrow: "Access control",
+    headline: "Give access,\nnot the keys.",
+    sub: "One login per person, scoped per resource and per action.",
+    checklist: [
+      "Developer: deploy, not delete",
+      "Client: view their own, only",
+      "Billing: invoices, no server",
+      "Contractor: one app, time-boxed",
+    ],
+  },
   // The "-vs-" slug would auto-build a Kloudbean-vs-X versus card, which is wrong
   // for a platform comparison. Pin it to the actual two platforms, WooCommerce
   // highlighted since this is Kloudbean's blog and we host it.

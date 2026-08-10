@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Subusers and UAC: Give Access Without Giving Away the Keys</title>
+<meta name="description" content="Stop sharing one login across your whole team and every client. How subusers and user access control work, why permission is a grid not a switch, and four role recipes for an agency.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/subuser-and-uac-guide/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Subusers and UAC: Give Access Without Giving Away the Keys">
+<meta property="og:description" content="Permission is two-dimensional: per-resource and per-action. Here is the grid, four role recipes for an agency, and the revocation drill that actually tests your access model.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Agency ops · Access control · How-to</span>
+  <h1>Subusers and UAC: Give Access Without Giving Away the Keys</h1>
+  <p class="byline">By Kloudbean Engineering · The real test of an access model is how fast you can cut someone off.</p>
+
+  <figure><img src="images/hero.png" alt="A permission grid showing team members against resources and actions, with some cells granted and others denied"></figure>
+
+  <p class="lead">Most agencies run for longer than they should on a single login that everyone shares. The founder, two developers, a contractor from last spring, and in the worst cases the client, all using the same email and password. It works right up until it doesn't: someone leaves, a password ends up in a Slack message, or a client clicks the wrong button and takes down a site that is not theirs. Subusers and user access control fix this, and the fix is less about locking things down than about being able to answer two questions at any moment: who can touch what, and how fast can I revoke it.</p>
+
+  <div class="tldr">
+    <strong>What are subusers and UAC?</strong>
+    <p>A subuser is a separate login under your account with its own credentials, so nobody shares a password. User Access Control (UAC) is what decides what that subuser can actually do, and the key idea is that permission is two-dimensional: it is granted per-resource (which app, which database, which bucket) and per-action (view, deploy, restart, delete, manage billing) at the same time. So instead of one master password that can do everything, each person gets exactly the cells in that grid they need. For an agency, that means a client can watch their own site without being able to break it, a contractor can deploy one app and nothing else, and offboarding someone is one switch rather than a company-wide password reset.</p>
+  </div>
+
+  <h2>The shared login is a silent liability</h2>
+  <p>Start with why this matters, because the cost of the shared password is invisible until the day it isn't.</p>
+
+  <p>When everyone uses one login, three things are quietly true. You cannot tell who did what, because every action was taken by the same account, so when a site goes down at 3pm there is no way to know whose change caused it. You cannot revoke one person, because the only credential is the shared one, so removing a contractor means changing the password and re-distributing it to everyone who is still meant to have it. And your blast radius is the whole account: a phished password, or a client who was given access "just to see the analytics", can reach every other client you host.</p>
+
+  <p>None of that shows up on a normal day. It shows up on the worst day, which is exactly when you cannot afford to be working out who has the keys. Subusers and UAC exist to make the worst day boring.</p>
+
+  <h2>A subuser is a real, separate identity</h2>
+  <p>The first move is simply that everyone gets their own login. A subuser is an account under your account: its own email, its own credentials, its own session. Nobody shares.</p>
+
+  <p>That alone buys you two things before you have configured a single permission. Actions are now attributable, because each subuser acts as themselves. And removing someone is a matter of disabling one identity, not resetting a secret that half the company knows. Everything after this is about narrowing what each of those identities is allowed to do.</p>
+
+  <h2>Permission is a grid, not a switch</h2>
+  <p>Here is the idea that most access guides skip, and it is the whole reason UAC is more than an on-off toggle.</p>
+
+  <p>Access is not one dimension. It is two. On one axis are the <strong>resources</strong> you own: individual applications, managed databases, object-storage buckets, servers. On the other axis are the <strong>actions</strong> you can take on each: view it, deploy to it, restart it, edit its configuration, delete it, manage its billing. A permission is a single cell where a resource meets an action. "Give the contractor access" is not a meaningful instruction until you say access to <em>which</em> resource and to do <em>what</em>.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Action &#8595; / Resource &#8594;</th><th>Client A's app</th><th>Client A's database</th><th>Client B's app</th><th>Billing</th></tr></thead>
+    <tbody>
+      <tr><td>View / read logs</td><td>&#10003;</td><td>&#10003;</td><td>&#8212;</td><td>&#8212;</td></tr>
+      <tr><td>Deploy</td><td>&#10003;</td><td>&#8212;</td><td>&#8212;</td><td>&#8212;</td></tr>
+      <tr><td>Restart</td><td>&#10003;</td><td>&#8212;</td><td>&#8212;</td><td>&#8212;</td></tr>
+      <tr><td>Delete</td><td>&#8212;</td><td>&#8212;</td><td>&#8212;</td><td>&#8212;</td></tr>
+      <tr><td>Manage billing</td><td>&#8212;</td><td>&#8212;</td><td>&#8212;</td><td>&#8212;</td></tr>
+    </tbody>
+  </table>
+
+  <p>That column-and-row example is a single contractor who works on one client. They can see and deploy Client A's app, read its database and logs to debug, and touch nothing else. They cannot delete anything, cannot see Client B at all, and cannot reach billing. Granular UAC is exactly the ability to describe that person precisely instead of handing them a master key and hoping.</p>
+
+  <figure>
+    <svg viewBox="0 0 880 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="uac-title uac-desc">
+      <title id="uac-title">One shared login versus scoped subusers</title>
+      <desc id="uac-desc">On the left, one shared account reaches every client resource, so a leak or a mistake affects everything. On the right, each person has their own subuser scoped to only the resources and actions they need, so the blast radius of any one identity is contained.</desc>
+      <rect x="0" y="0" width="880" height="300" fill="#ffffff"/>
+      <g font-family="Poppins, sans-serif" font-size="13" fill="#000f27">
+        <text x="20" y="30" font-size="14" font-weight="600" fill="#c0392b">One shared login</text>
+        <rect x="40" y="46" width="150" height="46" rx="9" fill="#c0392b"/>
+        <text x="115" y="74" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="600">everyone</text>
+        <g stroke="#c0392b" stroke-width="2" fill="none">
+          <path d="M115 92 V120 M115 120 H40 V150 M115 120 H115 V150 M115 120 H190 V150 M115 120 H265 V150"/>
+        </g>
+        <g fill="#0b1531" stroke="#24345f"><rect x="10" y="150" width="60" height="40" rx="6"/><rect x="85" y="150" width="60" height="40" rx="6"/><rect x="160" y="150" width="60" height="40" rx="6"/><rect x="235" y="150" width="60" height="40" rx="6"/></g>
+        <g fill="#8f9bc4" font-size="11" text-anchor="middle"><text x="40" y="175">App A</text><text x="115" y="175">DB A</text><text x="190" y="175">App B</text><text x="265" y="175">Billing</text></g>
+        <text x="20" y="228" font-size="12" fill="#c0392b">One leak reaches all of it. No idea who did what.</text>
+
+        <line x1="440" y1="20" x2="440" y2="250" stroke="#e2e6ef" stroke-width="2"/>
+
+        <text x="480" y="30" font-size="14" font-weight="600" fill="#2f8f49">Scoped subusers</text>
+        <g font-size="12">
+          <rect x="490" y="46" width="120" height="38" rx="8" fill="#40b75f"/><text x="550" y="70" text-anchor="middle" fill="#fff" font-weight="600">Contractor</text>
+          <rect x="640" y="46" width="120" height="38" rx="8" fill="#4F1AF3"/><text x="700" y="70" text-anchor="middle" fill="#fff" font-weight="600">Client A</text>
+        </g>
+        <g stroke="#40b75f" stroke-width="2" fill="none"><path d="M550 84 V120 H520 V150 M550 120 H590 V150"/></g>
+        <g stroke="#4F1AF3" stroke-width="2" fill="none" stroke-dasharray="5 4"><path d="M700 84 V135 H700 V150"/></g>
+        <g fill="#0b1531" stroke="#24345f"><rect x="490" y="150" width="60" height="40" rx="6"/><rect x="560" y="150" width="60" height="40" rx="6"/><rect x="670" y="150" width="60" height="40" rx="6"/></g>
+        <g fill="#8f9bc4" font-size="11" text-anchor="middle"><text x="520" y="175">App A</text><text x="590" y="175">DB A</text><text x="700" y="175">App A</text></g>
+        <text x="700" y="205" text-anchor="middle" font-size="10.5" fill="#4F1AF3">view only</text>
+        <text x="480" y="240" font-size="12" fill="#2f8f49">Each identity reaches only its own cells. Revoke one, the rest are untouched.</text>
+      </g>
+    </svg>
+    <figcaption>The point of the grid is containment: the blast radius of any one login is only the cells it holds.</figcaption>
+  </figure>
+
+  <h2>Four role recipes an agency actually needs</h2>
+  <p>You do not design permissions per person from scratch every time. You design a handful of roles that match the real people you add, then assign one. These four cover most agencies.</p>
+
+  <p><strong>The developer (your team).</strong> Full working access to the client apps they build: view, deploy, restart, read logs and databases, edit runtime configuration. Not billing, and usually not the ability to delete a production resource, which stays with an owner so a mistake needs a second person.</p>
+
+  <p><strong>The client.</strong> View-only on their own resources and nothing else. They can watch their site, see it is up, maybe read analytics, and cannot see any other client. This is the role that lets you give a nervous client a login without giving them a way to break the thing they are nervous about. Most client-access disasters are a client with more power than they wanted.</p>
+
+  <p><strong>The billing contact.</strong> Access to invoices and payment, no technical access at all. The finance person at a client, or your own bookkeeper, has no business reaching a production server, and a good access model makes that separation trivial instead of awkward.</p>
+
+  <p><strong>The short-term contractor.</strong> Scoped to exactly the one or two resources of the one engagement, time-boxed in your own calendar so you remember to remove them. This is the role most often left in place for months after the work ended, which is the single most common stale-access problem in agencies.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Role</th><th>Sees</th><th>Can do</th><th>Never</th></tr></thead>
+    <tbody>
+      <tr><td>Developer</td><td>Assigned client apps and databases</td><td>Deploy, restart, config, read logs</td><td>Billing; delete production</td></tr>
+      <tr><td>Client</td><td>Only their own resources</td><td>View, read analytics</td><td>See other clients; change anything</td></tr>
+      <tr><td>Billing contact</td><td>Invoices and payment</td><td>Pay, download invoices</td><td>Any technical access</td></tr>
+      <tr><td>Contractor</td><td>One engagement's resources</td><td>Deploy that one app</td><td>Everything else; and remove on end date</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Sign-in, and keeping the session honest</h2>
+  <p>Two smaller things that sit alongside UAC and matter more than they look.</p>
+
+  <p><strong>Let people sign in with an identity they already secure.</strong> Social login with Google, GitHub, or LinkedIn means a subuser signs in through an account they already protect, rather than inventing yet another password to leak. It also means that if your developer already has two-factor authentication on their Google or GitHub account, that protection carries into their access here, without you having to administer it. Fewer passwords in existence is fewer passwords to lose.</p>
+
+  <p><strong>Sessions are hardened by default.</strong> Session cookies are HttpOnly, which means a script running in the browser cannot read them, closing the most common route by which a session token gets stolen through a cross-site scripting flaw. You do not configure this; it is simply how sessions work. It matters most in exactly the multi-tenant agency setting this article is about, where one compromised session should never become a way into everyone else's resources.</p>
+
+  <h2>The revocation drill</h2>
+  <p>Here is the test that tells you whether your access model is real. Not "can I grant access", everyone can grant access. The test is: a contractor's engagement ended this morning, or a laptop was stolen at lunch. How long until they can touch nothing?</p>
+
+  <p>With a shared login, the honest answer is "after I change the password and tell everyone else the new one", which in practice means hours and a lot of interruption, and often it simply does not happen. With subusers it is one action: disable that identity, and every cell they held goes dark at once, while nobody else is disturbed. That difference, measured in seconds against hours, is the entire return on setting this up.</p>
+
+  <p>So run the drill occasionally. Pick a subuser and time how long it takes you to fully revoke them. If the answer is not "seconds", your access is still more shared than you think, and the <a href="https://www.kloudbean.com/blog/reseller-hosting-vs-managed-cloud/">difference between reseller hosting and managed cloud</a> is largely this: whether scoped, revocable access exists at all.</p>
+
+  <div class="note">
+    <strong>Who did what, for real.</strong> Separate logins make actions attributable in principle. On enterprise engagements, the Audit Trail turns that into an immutable, searchable, account-wide log of every action with CSV export, which is what a compliance reviewer actually asks for. On a standard plan you get the separation of identities; the tamper-proof record is the enterprise addition.
+  </div>
+
+  <h2>Where this fits, honestly</h2>
+  <p>Access control is not a feature you bolt on at the end, it is the thing that makes everything else in an agency operation safe: onboarding a client, handing one off, letting a contractor in for a fortnight. So it belongs early, not after an incident.</p>
+
+  <p>On Kloudbean, subusers and UAC give you the per-resource, per-action grid this article describes, from one account that holds every client rather than a pile of separate logins. Social login and HttpOnly sessions come as part of that. It sits inside the wider agency model in the <a href="https://www.kloudbean.com/blog/hosting-for-agencies-playbook/">agency playbook</a>, alongside walling clients off from each other on <a href="https://www.kloudbean.com/blog/host-multiple-apps-one-server/">one server hosting many apps</a>.</p>
+
+  <p>The honest boundary: the platform gives you the access model and the tools. Designing sensible roles, remembering to revoke the contractor, and deciding who on a client's side gets a login are yours, because only you know your engagements. A good model makes the right thing easy; it cannot make the decision for you.</p>
+
+  <h2>Related reading</h2>
+  <p>This is one part of running a client fleet. The whole operation is in the <a href="https://www.kloudbean.com/blog/hosting-for-agencies-playbook/">hosting for agencies playbook</a>, and the scale version is <a href="https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/">how agencies host 20 client apps on one server</a>. For why scoped access is a managed-cloud property rather than a reseller one, <a href="https://www.kloudbean.com/blog/reseller-hosting-vs-managed-cloud/">reseller hosting versus managed cloud</a>. On keeping clients isolated at the server level, <a href="https://www.kloudbean.com/blog/host-multiple-apps-one-server/">hosting multiple apps on one server</a>, and for branding the experience for clients, <a href="https://www.kloudbean.com/blog/white-label-hosting-for-agencies/">white-label hosting</a>. Secrets deserve the same care as access: <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Give everyone their own key, cut to size.</p>
+    <p style="margin:0 0 .6em">Manage every client from one account with subusers and per-resource, per-action access control, social login, and hardened sessions, across seven clouds with free SSL and automatic backups. Free migration assistance if you're consolidating a fleet. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Subusers · Per-resource UAC · Social login · Hardened sessions · One account · Free SSL</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is the difference between a subuser and user access control?</h3>
+    <p>A subuser is a separate login under your account, with its own credentials, so people stop sharing one password. User access control, or UAC, is the set of rules that decides what that subuser can actually do. You need both: the subuser gives someone their own identity, and UAC scopes that identity to only the resources and actions they should have.</p>
+
+    <h3>How do I give a client access without letting them break their site?</h3>
+    <p>Give them a subuser with a view-only role scoped to their own resources. They can watch their site, confirm it is up, and read whatever analytics you allow, while being unable to deploy, restart, delete, or change configuration, and unable to see any other client. That is exactly what per-resource, per-action permissions are for.</p>
+
+    <h3>What does per-resource, per-action permission actually mean?</h3>
+    <p>It means access is a grid rather than a single switch. One axis is your resources (each app, database, or bucket) and the other is the actions on them (view, deploy, restart, edit, delete, manage billing). A permission is one cell where a resource meets an action, so you can grant "deploy this one app" without granting "delete this database" or "see that other client".</p>
+
+    <h3>Can I add a developer or contractor without giving them the root account?</h3>
+    <p>Yes, and you should. Create a subuser for them scoped to only the resources of the work they are doing, with only the actions they need, such as deploy and restart on one app. They never touch the owner account, they cannot reach other clients, and when the engagement ends you disable that one identity rather than resetting a shared password.</p>
+
+    <h3>How quickly can I revoke someone's access?</h3>
+    <p>With separate subusers it is a single action: disable that identity and every permission it held is gone at once, without disturbing anyone else. That is the whole advantage over a shared login, where revoking one person means changing the password and redistributing it to everyone who should still have access. Run a revocation drill occasionally to confirm it really is seconds, not hours.</p>
+
+    <h3>Do subusers have to create another password?</h3>
+    <p>Not necessarily. Social login lets a subuser sign in with an existing Google, GitHub, or LinkedIn account, so there is no new password to leak, and any two-factor protection they already have on that account carries through. Fewer passwords in existence is simply fewer to lose.</p>
+
+    <h3>Can I see who did what across my team?</h3>
+    <p>Separate identities make actions attributable, so you can at least tell which person acted rather than "the shared account". For a formal, tamper-proof record, the Audit Trail on enterprise engagements provides an immutable, searchable, account-wide log of every action with CSV export, which is what a compliance review expects to see.</p>
+
+    <h3>Is this only useful for agencies?</h3>
+    <p>Agencies feel it most because they juggle clients and contractors, but any team benefits. The moment more than one person can touch your hosting, a shared login becomes a liability, and giving each person a scoped subuser is the fix whether you are an agency, a small company, or a solo founder who occasionally brings in help.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Who can touch what, and how fast can you revoke it. Everything else is detail.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Subusers and UAC: Give Access Without Giving Away the Keys","description":"Stop sharing one login across your whole team and every client. How subusers and user access control work, why permission is a grid not a switch, and four role recipes for an agency.","image":"https://www.kloudbean.com/blog/subuser-and-uac-guide/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/subuser-and-uac-guide/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is the difference between a subuser and user access control?","acceptedAnswer":{"@type":"Answer","text":"A subuser is a separate login under your account, with its own credentials, so people stop sharing one password. User access control, or UAC, is the set of rules that decides what that subuser can actually do. You need both: the subuser gives someone their own identity, and UAC scopes that identity to only the resources and actions they should have."}},
+{"@type":"Question","name":"How do I give a client access without letting them break their site?","acceptedAnswer":{"@type":"Answer","text":"Give them a subuser with a view-only role scoped to their own resources. They can watch their site, confirm it is up, and read whatever analytics you allow, while being unable to deploy, restart, delete, or change configuration, and unable to see any other client. That is exactly what per-resource, per-action permissions are for."}},
+{"@type":"Question","name":"What does per-resource, per-action permission actually mean?","acceptedAnswer":{"@type":"Answer","text":"It means access is a grid rather than a single switch. One axis is your resources (each app, database, or bucket) and the other is the actions on them (view, deploy, restart, edit, delete, manage billing). A permission is one cell where a resource meets an action, so you can grant deploy this one app without granting delete this database or see that other client."}},
+{"@type":"Question","name":"Can I add a developer or contractor without giving them the root account?","acceptedAnswer":{"@type":"Answer","text":"Yes, and you should. Create a subuser for them scoped to only the resources of the work they are doing, with only the actions they need, such as deploy and restart on one app. They never touch the owner account, they cannot reach other clients, and when the engagement ends you disable that one identity rather than resetting a shared password."}},
+{"@type":"Question","name":"How quickly can I revoke someone's access?","acceptedAnswer":{"@type":"Answer","text":"With separate subusers it is a single action: disable that identity and every permission it held is gone at once, without disturbing anyone else. That is the whole advantage over a shared login, where revoking one person means changing the password and redistributing it to everyone who should still have access. Run a revocation drill occasionally to confirm it really is seconds, not hours."}},
+{"@type":"Question","name":"Do subusers have to create another password?","acceptedAnswer":{"@type":"Answer","text":"Not necessarily. Social login lets a subuser sign in with an existing Google, GitHub, or LinkedIn account, so there is no new password to leak, and any two-factor protection they already have on that account carries through. Fewer passwords in existence is simply fewer to lose."}},
+{"@type":"Question","name":"Can I see who did what across my team?","acceptedAnswer":{"@type":"Answer","text":"Separate identities make actions attributable, so you can at least tell which person acted rather than the shared account. For a formal, tamper-proof record, the Audit Trail on enterprise engagements provides an immutable, searchable, account-wide log of every action with CSV export, which is what a compliance review expects to see."}},
+{"@type":"Question","name":"Is this only useful for agencies?","acceptedAnswer":{"@type":"Answer","text":"Agencies feel it most because they juggle clients and contractors, but any team benefits. The moment more than one person can touch your hosting, a shared login becomes a liability, and giving each person a scoped subuser is the fix whether you are an agency, a small company, or a solo founder who occasionally brings in help."}}
+]}
+]}
+</script>
+</body>
+</html>

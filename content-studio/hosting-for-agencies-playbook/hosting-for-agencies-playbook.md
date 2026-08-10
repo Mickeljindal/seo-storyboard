@@ -10,7 +10,7 @@ secondary_keywords:
   - wordpress support agency
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 5 — Agency & Multi-App Hosting
+cluster: 5. Agency & Multi-App Hosting
 ---
 
 ![The agency hosting playbook: a repeatable process for running client sites](images/hero.png)
@@ -31,7 +31,7 @@ None of that is a hosting problem. It's a process problem. So let's build the pr
 
 ## One account, many walled-off clients
 
-Before the phases, picture the shape you're aiming for. One control plane, your agency account, fanning out to client environments that can't touch each other. Same login for you. Full isolation between them.
+Before the phases, picture the shape you're aiming for. One control plane, your agency account, fanning out to client environments that can't touch each other. Same login for you. Full isolation between them. Scoped logins for everyone else, which the [subusers and UAC guide](https://www.kloudbean.com/blog/subuser-and-uac-guide/) covers as its own runbook.
 
 <!-- ADD IMAGE: agency control plane diagram. One agency account (subusers + UAC) fanning out to isolated per-client environments, each with its own app, database, SSL and backups. -->
 *Diagram: one agency account (subusers + UAC) fanning out to isolated per-client environments. Same login for you, walls between them.*

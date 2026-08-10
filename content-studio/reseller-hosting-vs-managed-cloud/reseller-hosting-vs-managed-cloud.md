@@ -11,7 +11,7 @@ secondary_keywords:
   - noisy neighbor hosting
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 5 — Agency & Multi-App Hosting
+cluster: 5. Agency & Multi-App Hosting
 ---
 
 ![Reseller hosting vs managed cloud: an oversold shared box next to isolated per-client servers under one dashboard](images/hero.png)
@@ -62,7 +62,7 @@ Three things change the day you make that switch. First, real isolation. A busy 
 
 This is the part reseller hosting never really solved, and it's the reason growing agencies move. When you're juggling ten clients and a couple of teammates, "who can touch what" becomes a genuine risk. On a shared cPanel setup, access tends to be all-or-nothing, so handing a client or a contractor a login often means handing over far more than they should see.
 
-Managed cloud on Kloudbean handles this with subusers and User Access Control (UAC): granular, per-resource, per-action permissions. You give a client access to just their own site and nothing else. You let a freelance developer deploy to one app without seeing billing or the other twenty clients. A junior on your team gets exactly the buttons they need. That's not a nice-to-have at agency scale. It's how you avoid the 2am mistake where someone edits the wrong client's site. For the wider agency setup, there's a [hosting for agencies playbook](https://www.kloudbean.com/blog/hosting-for-agencies-playbook/) and a walkthrough of [how agencies host 20 client apps](https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/) without losing their minds.
+Managed cloud on Kloudbean handles this with subusers and User Access Control (UAC): granular, per-resource, per-action permissions. You give a client access to just their own site and nothing else. You let a freelance developer deploy to one app without seeing billing or the other twenty clients. A junior on your team gets exactly the buttons they need. That's not a nice-to-have at agency scale. It's how you avoid the 2am mistake where someone edits the wrong client's site. The mechanics of setting that up, the permission grid and a few role recipes, are in the [subusers and UAC guide](https://www.kloudbean.com/blog/subuser-and-uac-guide/). For the wider agency setup, there's a [hosting for agencies playbook](https://www.kloudbean.com/blog/hosting-for-agencies-playbook/) and a walkthrough of [how agencies host 20 client apps](https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/) without losing their minds.
 
 <!-- ADD IMAGE: The subuser and access-control screen, granting a client access to only their own site while the rest of the roster stays hidden. -->
 
