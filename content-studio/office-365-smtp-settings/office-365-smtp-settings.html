@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Office 365 SMTP Settings, and Why Your Password No Longer Works</title>
+<meta name="description" content="The Office 365 SMTP settings are smtp.office365.com on port 587, but Microsoft is retiring basic auth for SMTP AUTH. Why correct settings still fail, and the four ways to send instead.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/office-365-smtp-settings/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Office 365 SMTP Settings, and Why Your Password No Longer Works">
+<meta property="og:description" content="Most guides for this still hand you a username and a password. Microsoft is switching that off. Here is the settings table plus what to actually do.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Email · Microsoft 365 · Configuration reference</span>
+  <h1>Office 365 SMTP Settings, and Why Your Password No Longer Works</h1>
+  <p class="byline">By Kloudbean Engineering · The host and port are the easy part. The authentication is the whole story now.</p>
+
+  <figure><img src="images/hero.png" alt="An SMTP configuration form filled in with smtp.office365.com on port 587 beside an authentication failure in a mail log"></figure>
+
+  <p class="lead">You need your app, your WordPress contact form, or a script to send mail through Microsoft 365, so you look up the SMTP settings. Every result gives you the same four lines: host, port, your email address, your password. Those settings are still correct, and the password part is being switched off. Microsoft has been retiring basic authentication for SMTP submission, which means the configuration in nearly every tutorial on this subject is on its way to failing, or has already failed for you. So here are the settings, and then the part that decides whether they work.</p>
+
+  <div class="tldr">
+    <strong>What are the Office 365 SMTP settings?</strong>
+    <p>Server <code>smtp.office365.com</code>, port <strong>587</strong>, STARTTLS encryption, and your full email address as the username. That much has not changed. What has changed is authentication: Microsoft's Exchange team has announced that Exchange Online permanently removes support for basic authentication with Client Submission, the SMTP AUTH path, with rejections beginning 1 March 2026 and reaching 100% on 30 April 2026. So a plain password, and an app password too, stops working. Anything that still needs to send has to move to OAuth, to the Microsoft 365 SMTP relay, or to a dedicated sending service. And separately, SMTP AUTH is switched off by default in a lot of tenants, which is the most common reason perfectly correct settings fail.</p>
+  </div>
+
+  <h2>The settings themselves</h2>
+  <p>Take these, then read the next two sections before concluding anything is broken.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Field</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>SMTP server</td><td><code>smtp.office365.com</code></td></tr>
+      <tr><td>Port</td><td><strong>587</strong></td></tr>
+      <tr><td>Encryption</td><td>STARTTLS, sometimes labelled TLS. Not SSL on 465.</td></tr>
+      <tr><td>Authentication</td><td>Required. See below, this is the part that matters.</td></tr>
+      <tr><td>Username</td><td>Your full email address, not just the part before the @</td></tr>
+      <tr><td>From address</td><td>Must match the mailbox you authenticate as, or be a permitted send-as</td></tr>
+    </tbody>
+  </table>
+
+  <p>Those values are for authenticated client submission, which is the method people mean when they search for SMTP settings. Microsoft supports two other sending methods with entirely different settings, covered further down, and one of them is probably where you are heading.</p>
+
+  <h2>Why your password stopped working</h2>
+  <p>This is the section the rest of the internet has not caught up with, so it is worth being precise about what Microsoft has actually said.</p>
+
+  <p>Basic authentication means sending a username and password with each request. Microsoft spent years removing it from Exchange Online, and by the end of 2022 it was disabled for the other protocols with no way for anyone, including Microsoft support, to turn it back on. SMTP AUTH was deliberately left until last, because so many devices, line-of-business apps, and scripts depend on it. That is why your SMTP settings kept working long after your old mail client stopped.</p>
+
+  <p>That exception is now closing. Microsoft's Exchange team has published that Exchange Online will permanently remove support for basic authentication with Client Submission, gradually rejecting a small percentage of submissions for all tenants from <strong>1 March 2026</strong> and reaching <strong>100% rejection on 30 April 2026</strong>. That timeline was itself a revision of an earlier September 2025 date, so treat the specific dates as Microsoft's plan rather than gospel and check the current position for your tenant.</p>
+
+  <p>Two consequences people miss:</p>
+
+  <p><strong>App passwords do not save you.</strong> An app password is still basic authentication. It was a workaround for multi-factor auth, not a replacement for basic auth, so it retires with everything else. Any guide telling you to generate one for SMTP is out of date.</p>
+
+  <p><strong>The failure looks like a wrong password.</strong> You get an authentication failure, so the natural response is to reset the password, retype it, and check for a typo. Nothing about the error says the method itself has been withdrawn. Recognise the signature instead: correct credentials that work when you sign in to the web mail, failing only for SMTP, with an authentication-unsuccessful response from <code>smtp.office365.com</code>.</p>
+
+  <pre><code># Prove what the server actually says, rather than guessing from your app's error.
+openssl s_client -starttls smtp -crlf -connect smtp.office365.com:587
+# then, at the prompt:
+EHLO test
+# Look at the AUTH line it advertises, and whether LOGIN is still offered.</code></pre>
+
+  <h2>Correct settings that still fail: check these three first</h2>
+  <p>Separate from the retirement above, there are three switches that block SMTP AUTH regardless of your credentials. Any one of them produces the same authentication failure.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Cause</th><th>Where to look</th></tr></thead>
+    <tbody>
+      <tr><td><strong>SMTP AUTH disabled for the tenant.</strong> Microsoft recommends disabling it organisation-wide and enabling it only per mailbox, so on a tidy tenant it is off by design.</td><td>Exchange admin centre, mail flow settings. There is a switch to turn off SMTP AUTH for the organisation.</td></tr>
+      <tr><td><strong>Security defaults are enabled.</strong> If they are, SMTP AUTH is already disabled, and no per-mailbox setting overrides that.</td><td>Microsoft Entra ID, security defaults. This is the one people never think to check.</td></tr>
+      <tr><td><strong>An authentication policy blocks basic auth for SMTP.</strong> If a policy disables it, clients cannot use SMTP AUTH even where the settings above are enabled.</td><td>Your organisation's authentication policies.</td></tr>
+    </tbody>
+  </table>
+
+  <p>The order matters. Check security defaults first, because it silently overrides the thing you were about to spend an hour on. Then the tenant switch, then the per-mailbox setting, which exists specifically so you can enable one service account without opening up everybody.</p>
+
+  <div class="note">
+    <strong>Worth saying plainly:</strong> these switches exist because SMTP AUTH is a genuine attack surface. It is a password-based endpoint that accepts sign-ins from anywhere, and virtually no modern mail client needs it. If you are turning it on, turn it on for one mailbox that exists to do this job, not for your organisation.
+  </div>
+
+  <h2>The four ways to send, and how to pick</h2>
+  <p>Once basic auth is gone, "what are the SMTP settings" turns into a real architectural choice. There are three Microsoft methods and one that is not Microsoft's, and one constraint decides it: <strong>can the thing that needs to send speak OAuth?</strong> For most WordPress plugins, small scripts, and older devices the honest answer is no.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Method</th><th>How it authenticates</th><th>Right when</th></tr></thead>
+    <tbody>
+      <tr><td><strong>SMTP AUTH with OAuth</strong><br>port 587</td><td>OAuth 2.0 token from a registered app</td><td>Your code can implement OAuth, or your framework's mailer supports XOAUTH2. Real work, and the only surviving Microsoft client-submission path.</td></tr>
+      <tr><td><strong>Microsoft 365 SMTP relay</strong><br>port 25</td><td>Your server's public IP, via a connector. No mailbox password.</td><td>An app or device that cannot do OAuth, and you can give it a static public IP and a TLS certificate. Sends to external recipients.</td></tr>
+      <tr><td><strong>Direct send</strong><br>port 25</td><td>Nothing. No authentication.</td><td>You only need to reach recipients inside your own organisation. It does not deliver reliably to outside addresses.</td></tr>
+      <tr><td><strong>A dedicated sending service</strong></td><td>An API key, or SMTP credentials of its own</td><td>Almost every application case. See the recommendation below.</td></tr>
+    </tbody>
+  </table>
+
+  <figure>
+    <svg viewBox="0 0 880 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="sm-title sm-desc">
+      <title id="sm-title">Choosing a sending method for Microsoft 365</title>
+      <desc id="sm-desc">A decision path. If the application can implement OAuth, use SMTP AUTH with OAuth on port 587. If it cannot and recipients are internal only, direct send works. If it cannot and recipients are external, either configure a Microsoft 365 SMTP relay connector against a static IP, or send through a dedicated email service with an API key.</desc>
+      <rect x="0" y="0" width="880" height="250" fill="#ffffff"/>
+      <g font-family="Poppins, sans-serif" font-size="12" fill="#000f27">
+        <rect x="18" y="20" width="210" height="46" rx="9" fill="#000f27"/>
+        <text x="123" y="41" text-anchor="middle" fill="#ffffff" font-size="12.5" font-weight="600">Can it speak OAuth?</text>
+        <text x="123" y="58" text-anchor="middle" fill="#ffffff" font-size="10.5">your app, plugin or device</text>
+
+        <path d="M232 34 H300" stroke="#40b75f" stroke-width="2.5" fill="none"/>
+        <text x="254" y="28" font-size="11" fill="#2f8f49" font-weight="600">yes</text>
+        <rect x="304" y="14" width="240" height="40" rx="8" fill="#40b75f"/>
+        <text x="424" y="32" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="600">SMTP AUTH with OAuth</text>
+        <text x="424" y="47" text-anchor="middle" fill="#ffffff" font-size="10.5">smtp.office365.com : 587</text>
+
+        <path d="M232 52 H266 V104 H300" stroke="#c0392b" stroke-width="2.5" fill="none"/>
+        <text x="248" y="72" font-size="11" fill="#c0392b" font-weight="600">no</text>
+
+        <rect x="304" y="82" width="210" height="44" rx="8" fill="#4F1AF3"/>
+        <text x="409" y="102" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="600">Who receives the mail?</text>
+        <text x="409" y="118" text-anchor="middle" fill="#ffffff" font-size="10.5">inside or outside your org</text>
+
+        <path d="M518 96 H590" stroke="#98a2b3" stroke-width="2.5" fill="none"/>
+        <text x="536" y="90" font-size="10.5">internal</text>
+        <rect x="594" y="78" width="266" height="36" rx="8" fill="#98a2b3"/>
+        <text x="727" y="101" text-anchor="middle" fill="#ffffff" font-size="11.5">Direct send, port 25, no auth</text>
+
+        <path d="M518 112 H556 V158 H590" stroke="#98a2b3" stroke-width="2.5" fill="none"/>
+        <text x="524" y="132" font-size="10.5">external</text>
+        <rect x="594" y="126" width="266" height="36" rx="8" fill="#000f27"/>
+        <text x="727" y="149" text-anchor="middle" fill="#ffffff" font-size="11.5">SMTP relay connector, static IP</text>
+        <rect x="594" y="170" width="266" height="36" rx="8" fill="#e8f7ed" stroke="#40b75f" stroke-width="1.5"/>
+        <text x="727" y="193" text-anchor="middle" font-size="11.5" font-weight="600">or a dedicated sending service</text>
+        <path d="M727 162 V168" stroke="#40b75f" stroke-width="2" fill="none"/>
+
+        <rect x="18" y="212" width="842" height="28" rx="7" fill="#f4f2ff"/>
+        <text x="32" y="231" font-size="12">For application mail, the last box is usually the right answer, and it is the one Microsoft's own guidance points away from itself for.</text>
+      </g>
+    </svg>
+    <figcaption>One question does most of the work: whether the sender can hold an OAuth token.</figcaption>
+  </figure>
+
+  <h2>WordPress, where this bites hardest</h2>
+  <p>WordPress is the most common place this fails, because a plugin form is exactly the kind of sender that cannot do OAuth on its own.</p>
+
+  <p>Two separate problems get conflated here. First, WordPress's built-in mail function hands off to the server's local mail transport, which on most hosting will not deliver reliably to inboxes, so form submissions vanish. An SMTP plugin exists to fix that by sending through a real mail service instead. Second, if you point that plugin at Microsoft 365 using a username and password, you are configuring the method being retired.</p>
+
+  <p>So the practical position for a WordPress site today: use an SMTP plugin, and point it at something that authenticates with an API key rather than a mailbox password. Several mainstream SMTP plugins ship direct integrations for the common sending services precisely because this is where everyone ends up. If you must go through Microsoft 365, check whether your plugin supports OAuth for Microsoft specifically, and treat a plugin that only offers username and password as a dead end rather than a configuration puzzle.</p>
+
+  <p>One thing worth checking before you change anything, because it is free: confirm the mail is genuinely not being sent rather than not being delivered. Those need different fixes, and <a href="https://www.kloudbean.com/blog/port-25-blocked-smtp-ports/">the SMTP ports guide</a> covers the delivery side, including the three DNS records that decide whether mail arrives at all.</p>
+
+  <h2>What I would actually do</h2>
+  <p>An opinion, since the four-way table does not commit to anything.</p>
+
+  <p><strong>If a person sends it, use Microsoft 365. If a machine sends it, do not.</strong> Microsoft 365 is a mailbox service designed around humans signing in. Application mail has different requirements: it needs to authenticate without a human, survive credential rotation, retry sensibly, and tell you what happened to each message. That is what a dedicated sending service does, and it is why the pattern of transactional mail going through one is so common. It also means your password policy and your signup emails stop being the same problem.</p>
+
+  <p>The exception is genuine. If you are a one-person company and the only mail your site sends is a contact form to yourself, wiring up a relay connector and a static IP is more machinery than the problem deserves, and internal-only direct send may be all you need. Match the effort to the stakes.</p>
+
+  <p>Where the OAuth path is worth the work: an application you control the code of, sending as a real mailbox in your own tenant, where sending from your own domain identity matters. It is a proper implementation job rather than a settings change, and going in expecting that saves a frustrating afternoon.</p>
+
+  <h2>Where hosting fits, honestly</h2>
+  <p>Straight answer: none of this is a hosting feature, and nothing on this page is solved by changing host. These are Microsoft 365 tenant settings and an architecture decision about your application.</p>
+
+  <p>The one place hosting genuinely intersects is outbound port 25, which most providers block by default to stop their address space being used for spam. That is why the relay and direct-send options above are described on port 25 with a caveat, and it is the subject of <a href="https://www.kloudbean.com/blog/port-25-blocked-smtp-ports/">the ports article</a>. Submission on 587 to a service is the shape that works nearly everywhere, which is another reason the last row of the table wins so often.</p>
+
+  <p>What helps around the edges on Kloudbean: application and server logs sit in the same dashboard, which is where a mailer's authentication failure actually shows up rather than in a plugin's cheerful test screen; cron jobs are managed from the UI, which matters if your sending is queued or batched; and environment variables live in runtime configuration, which is where an API key belongs instead of in your code. Seven cloud providers, free SSL, free migration assistance.</p>
+
+  <p>The boundary is unchanged. Managed covers the server, the stack, TLS, backups, and patching. Your tenant, your sending identity, and your application's mail logic stay yours.</p>
+
+  <h2>Related reading</h2>
+  <p>On ports, relays, and the DNS records that decide deliverability, <a href="https://www.kloudbean.com/blog/port-25-blocked-smtp-ports/">port 25 and the SMTP ports</a> is the companion to this page and covers what this one deliberately does not. For keeping an API key out of your code, <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>. If sending is batched or retried, <a href="https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/">background jobs with BullMQ</a> and <a href="https://www.kloudbean.com/blog/celery-with-redis/">Celery with Redis</a>. When a mailer failure surfaces as a generic server error instead, <a href="https://www.kloudbean.com/blog/http-error-500-internal-server-error/">500 Internal Server Error</a> covers getting the real message out of the log. And on the WordPress side, <a href="https://www.kloudbean.com/blog/managed-wordpress-hosting/">managed WordPress hosting</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Find the real error instead of retyping the password.</p>
+    <p style="margin:0 0 .6em">Managed servers across seven clouds with application and server logs in one dashboard, runtime configuration for your API keys, and cron jobs from the UI. Free SSL issued and renewed. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">App and server logs · Runtime config · Cron in the UI · Free SSL · One dashboard</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What are the Office 365 SMTP settings?</h3>
+    <p>Server smtp.office365.com, port 587, STARTTLS encryption, authentication required, and your full email address as the username. Those values are for authenticated client submission. The from address must match the mailbox you authenticate as, or be an address you have permission to send as.</p>
+
+    <h3>What port does Office 365 SMTP use?</h3>
+    <p>Port 587 with STARTTLS for authenticated client submission. Not 465, which is the older implicit-SSL convention and is not what Microsoft documents for this. Microsoft's other two sending methods, the SMTP relay and direct send, use port 25 instead, and that port is blocked outbound by most hosting providers.</p>
+
+    <h3>Why is my Office 365 SMTP authentication failing with the correct password?</h3>
+    <p>Three likely causes beyond the credentials. SMTP AUTH may be disabled for your whole tenant, which Microsoft actually recommends. Security defaults may be enabled, in which case SMTP AUTH is already off and no per-mailbox setting overrides it. Or an authentication policy is blocking basic auth for SMTP. Check security defaults first, because it silently overrides the other settings.</p>
+
+    <h3>Is Microsoft disabling SMTP basic authentication?</h3>
+    <p>Yes. Microsoft's Exchange team has published that Exchange Online permanently removes support for basic authentication with Client Submission, which is SMTP AUTH, with a small percentage of submissions rejected from 1 March 2026 and 100% rejection from 30 April 2026. That timeline replaced an earlier September 2025 date, so confirm the current position for your own tenant rather than relying on a date in any article.</p>
+
+    <h3>Do app passwords still work for Office 365 SMTP?</h3>
+    <p>No, and this catches a lot of people. An app password is still basic authentication, so it retires along with it. App passwords were a workaround for multi-factor authentication, not an alternative to basic auth, and any guide recommending one for SMTP is out of date.</p>
+
+    <h3>What should I use instead of SMTP AUTH with a password?</h3>
+    <p>One of four things. SMTP AUTH with OAuth 2.0 if your application can hold a token, which is real implementation work. The Microsoft 365 SMTP relay if your sender cannot do OAuth and you can give it a static public IP. Direct send if your recipients are all inside your own organisation. Or a dedicated sending service authenticated with an API key, which is the usual answer for application mail.</p>
+
+    <h3>Can WordPress send email through Office 365?</h3>
+    <p>It can, but the common setup is the one being retired, because most SMTP plugins offer only a username and password for Microsoft. Check whether your plugin supports OAuth for Microsoft specifically. If it does not, treat that as a dead end rather than a configuration problem, and point the plugin at a sending service that authenticates with an API key instead.</p>
+
+    <h3>Why do my WordPress contact form emails disappear?</h3>
+    <p>Usually because WordPress hands mail to the server's local transport, which is not a real sending service, so messages are either never accepted or are discarded as unauthenticated by the receiving side. An SMTP plugin pointed at a proper sending service fixes it. Confirm first whether the mail is failing to send or failing to deliver, because those have different fixes.</p>
+
+    <h3>Should application email go through Microsoft 365 at all?</h3>
+    <p>Generally no. Microsoft 365 is a mailbox service built around people signing in, while application mail needs to authenticate without a human, survive credential rotation, retry sensibly, and report per-message outcomes. A dedicated sending service is designed for that. The exception is small: if the only mail your site sends is a contact form to yourself, the simplest thing that works is fine.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · If a person sends it, use a mailbox. If a machine sends it, use a sending service.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Office 365 SMTP Settings, and Why Your Password No Longer Works","description":"The Office 365 SMTP settings are smtp.office365.com on port 587, but Microsoft is retiring basic auth for SMTP AUTH. Why correct settings still fail, and the four ways to send instead.","image":"https://www.kloudbean.com/blog/office-365-smtp-settings/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/office-365-smtp-settings/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What are the Office 365 SMTP settings?","acceptedAnswer":{"@type":"Answer","text":"Server smtp.office365.com, port 587, STARTTLS encryption, authentication required, and your full email address as the username. Those values are for authenticated client submission. The from address must match the mailbox you authenticate as, or be an address you have permission to send as."}},
+{"@type":"Question","name":"What port does Office 365 SMTP use?","acceptedAnswer":{"@type":"Answer","text":"Port 587 with STARTTLS for authenticated client submission. Not 465, which is the older implicit-SSL convention and is not what Microsoft documents for this. Microsoft's other two sending methods, the SMTP relay and direct send, use port 25 instead, and that port is blocked outbound by most hosting providers."}},
+{"@type":"Question","name":"Why is my Office 365 SMTP authentication failing with the correct password?","acceptedAnswer":{"@type":"Answer","text":"Three likely causes beyond the credentials. SMTP AUTH may be disabled for your whole tenant, which Microsoft actually recommends. Security defaults may be enabled, in which case SMTP AUTH is already off and no per-mailbox setting overrides it. Or an authentication policy is blocking basic auth for SMTP. Check security defaults first, because it silently overrides the other settings."}},
+{"@type":"Question","name":"Is Microsoft disabling SMTP basic authentication?","acceptedAnswer":{"@type":"Answer","text":"Yes. Microsoft's Exchange team has published that Exchange Online permanently removes support for basic authentication with Client Submission, which is SMTP AUTH, with a small percentage of submissions rejected from 1 March 2026 and 100% rejection from 30 April 2026. That timeline replaced an earlier September 2025 date, so confirm the current position for your own tenant rather than relying on a date in any article."}},
+{"@type":"Question","name":"Do app passwords still work for Office 365 SMTP?","acceptedAnswer":{"@type":"Answer","text":"No, and this catches a lot of people. An app password is still basic authentication, so it retires along with it. App passwords were a workaround for multi-factor authentication, not an alternative to basic auth, and any guide recommending one for SMTP is out of date."}},
+{"@type":"Question","name":"What should I use instead of SMTP AUTH with a password?","acceptedAnswer":{"@type":"Answer","text":"One of four things. SMTP AUTH with OAuth 2.0 if your application can hold a token, which is real implementation work. The Microsoft 365 SMTP relay if your sender cannot do OAuth and you can give it a static public IP. Direct send if your recipients are all inside your own organisation. Or a dedicated sending service authenticated with an API key, which is the usual answer for application mail."}},
+{"@type":"Question","name":"Can WordPress send email through Office 365?","acceptedAnswer":{"@type":"Answer","text":"It can, but the common setup is the one being retired, because most SMTP plugins offer only a username and password for Microsoft. Check whether your plugin supports OAuth for Microsoft specifically. If it does not, treat that as a dead end rather than a configuration problem, and point the plugin at a sending service that authenticates with an API key instead."}},
+{"@type":"Question","name":"Why do my WordPress contact form emails disappear?","acceptedAnswer":{"@type":"Answer","text":"Usually because WordPress hands mail to the server's local transport, which is not a real sending service, so messages are either never accepted or are discarded as unauthenticated by the receiving side. An SMTP plugin pointed at a proper sending service fixes it. Confirm first whether the mail is failing to send or failing to deliver, because those have different fixes."}},
+{"@type":"Question","name":"Should application email go through Microsoft 365 at all?","acceptedAnswer":{"@type":"Answer","text":"Generally no. Microsoft 365 is a mailbox service built around people signing in, while application mail needs to authenticate without a human, survive credential rotation, retry sensibly, and report per-message outcomes. A dedicated sending service is designed for that. The exception is small: if the only mail your site sends is a contact form to yourself, the simplest thing that works is fine."}}
+]}
+]}
+</script>
+</body>
+</html>
