@@ -112,7 +112,7 @@ Hosting should make you money, not quietly cost you time you never bill. Pick a 
 - **Or bill it through with a margin.** You pay the platform cost and charge a clear fee above it. Simple and transparent.
 - **Keep costs predictable.** Flat, understandable platform pricing is what lets you set a client price with confidence. Surprise overages eat margin and trust at the same time.
 
-You're selling management, updates, monitoring, and a person who answers when something breaks. That's worth more than a raw server, so charge for it.
+You're selling management, updates, monitoring, and a person who answers when something breaks. That's worth more than a raw server, so charge for it. The models, the margin math, and what is actually billable are in the [client billing and markup guide](https://www.kloudbean.com/blog/client-billing-and-markup-for-hosting/).
 
 ## Phase 6: Offboard cleanly, because their data is theirs
 

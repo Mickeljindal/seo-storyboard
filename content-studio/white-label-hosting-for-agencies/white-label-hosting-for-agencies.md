@@ -10,7 +10,7 @@ secondary_keywords:
   - agency reseller hosting
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 5 — Agency & Multi-App Hosting
+cluster: 5. Agency & Multi-App Hosting
 ---
 
 ![White-label hosting for agencies: your brand out front, managed operations behind](images/hero.png)
@@ -76,7 +76,7 @@ This is where white-label turns from branding into a business. You're the face o
 - **Bill it through with a margin.** You pay the platform cost and charge a clear hosting fee above it. Transparent and easy to explain.
 - **Tier it.** Offer good, better, and best hosting levels mapped to what each client's site actually needs.
 
-All three lean on the same thing: predictable platform cost. Flat, understandable pricing is what keeps your margin stable and stops a surprise overage from eating a month of profit you already promised away. Predictability is the difference between hosting as reliable agency revenue and hosting as a risk you're quietly carrying.
+All three lean on the same thing: predictable platform cost. Flat, understandable pricing is what keeps your margin stable and stops a surprise overage from eating a month of profit you already promised away. Predictability is the difference between hosting as reliable agency revenue and hosting as a risk you're quietly carrying. For the three pricing models and the margin math in depth, see [client billing and markup for hosting](https://www.kloudbean.com/blog/client-billing-and-markup-for-hosting/).
 
 <!-- ADD IMAGE: a simple good/better/best hosting tier table you present to clients under your brand (author-supplied) -->
 

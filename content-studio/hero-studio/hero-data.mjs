@@ -650,6 +650,21 @@ const HERO_OVERRIDES = {
       "Contractor: one app, time-boxed",
     ],
   },
+  // Agency pricing spoke: a checklist of the models beats a generic centered card.
+  "client-billing-and-markup-for-hosting": {
+    archetype: "checklist",
+    palette: "amber",
+    motif: "cost",
+    eyebrow: "Agency billing",
+    headline: "Bill the management,\nnot the metal.",
+    sub: "Three ways to price hosting, and the margin math behind each.",
+    checklist: [
+      "Cost-plus: simple, capped upside",
+      "Tiered plans: predictable revenue",
+      "Care plan: best margin, stickiest",
+      "Never pass through at cost",
+    ],
+  },
   // The "-vs-" slug would auto-build a Kloudbean-vs-X versus card, which is wrong
   // for a platform comparison. Pin it to the actual two platforms, WooCommerce
   // highlighted since this is Kloudbean's blog and we host it.
