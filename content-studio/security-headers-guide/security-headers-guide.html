@@ -143,6 +143,8 @@ Header always set Referrer-Policy "strict-origin-when-cross-origin"</code></pre>
   <h2>Check your grade</h2>
   <p>The feedback loop here is genuinely satisfying. Paste your URL into a free scanner like <strong>securityheaders.com</strong> or <strong>Mozilla Observatory</strong>, and it grades you and lists exactly what's missing. Add the flagged headers, reload your config, re-scan, and watch the letter climb. Few security tasks give you a visible score in under a minute, which is why this one's easy to knock out in a single sitting.</p>
 
+  <p>One family sits outside that easy win, because tightening it can break your own page rather than just improve a grade. The cross-origin isolation headers, <code>Cross-Origin-Embedder-Policy</code> and <code>Cross-Origin-Resource-Policy</code>, change the default rule for every third-party image, font, and script you load, and the failure shows up in the console as <a href="https://www.kloudbean.com/blog/err-blocked-by-response/">ERR_BLOCKED_BY_RESPONSE</a>. Worth reading before you add them, especially if a security middleware is setting them for you.</p>
+
   <h2>Where you actually set them</h2>
   <p>Headers live at the <strong>web server</strong> level (Nginx, Apache) or in your <strong>application's</strong> response config, and they apply to every response your site sends. On a managed stack you edit that config alongside your other app settings, reload, and the headers take effect immediately.</p>
 

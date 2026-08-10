@@ -125,6 +125,8 @@ The anti-pattern to avoid: slapping `'unsafe-inline'` on `script-src` to make th
 
 The feedback loop here is genuinely satisfying. Paste your URL into a free scanner like **securityheaders.com** or **Mozilla Observatory**, and it grades you and lists exactly what's missing. Add the flagged headers, reload your config, re-scan, and watch the letter climb. Few security tasks give you a visible score in under a minute, which is why this one's easy to knock out in a single sitting.
 
+One family sits outside that easy win, because tightening it can break your own page rather than just improve a grade. The cross-origin isolation headers, `Cross-Origin-Embedder-Policy` and `Cross-Origin-Resource-Policy`, change the default rule for every third-party image, font, and script you load, and the failure shows up in the console as [ERR_BLOCKED_BY_RESPONSE](https://www.kloudbean.com/blog/err-blocked-by-response/). Worth reading before you add them, especially if a security middleware is setting them for you.
+
 ## Where you actually set them
 
 Headers live at the **web server** level (Nginx, Apache) or in your **application's** response config, and they apply to every response your site sends. On a managed stack you edit that config alongside your other app settings, reload, and the headers take effect immediately.

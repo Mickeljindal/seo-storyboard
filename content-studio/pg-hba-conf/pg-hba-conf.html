@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pg_hba.conf Explained: Why Your Rule Never Runs</title>
+<meta name="description" content="pg_hba.conf has no fall-through: the first matching rule decides and nothing after it is read. That one fact explains most failed connections, plus how to test a change before reloading.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/pg-hba-conf/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="pg_hba.conf Explained: Why Your Rule Never Runs">
+<meta property="og:description" content="Append a permissive rule at the bottom, reload, nothing changes. A stricter rule above it matched first, and PostgreSQL never looked further.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">PostgreSQL · Authentication · Reference</span>
+  <h1>pg_hba.conf Explained: Why Your Rule Never Runs</h1>
+  <p class="byline">By Kloudbean Engineering · The first matching rule wins, and nothing after it is read.</p>
+
+  <figure><img src="images/hero.png" alt="A terminal showing a pg_hba.conf file beside a PostgreSQL connection error about no matching entry for host"></figure>
+
+  <p class="lead">Almost every confusing hour spent on pg_hba.conf comes from one assumption that isn't true. People treat it like a firewall rule set, where you add a permissive line and it takes effect. It doesn't work that way. PostgreSQL reads the file top to bottom, stops at the first rule that matches your connection, and commits to it. If authentication fails there, your other rules are never consulted. Understand that and the file stops being mysterious.</p>
+
+  <div class="tldr">
+    <strong>What is pg_hba.conf and why is my rule being ignored?</strong>
+    <p>It's PostgreSQL's host-based authentication file, controlling who may connect from where and how they prove it. Per the documentation there is no fall-through: the first record matching the connection type, client address, database and user is used, and if authentication fails there, later records are not considered. So a permissive rule appended at the bottom does nothing if a stricter rule above it matched first. Order is the algorithm, not a style choice. If you're on managed PostgreSQL you can't edit this file at all, which is covered further down.</p>
+  </div>
+
+  <h2>There is no fall-through, and that is the whole thing</h2>
+  <p>PostgreSQL's own <a href="https://www.postgresql.org/docs/current/auth-pg-hba-conf.html">client authentication documentation</a> is unusually blunt about this. The first record with a matching connection type, client address, requested database and user name is used to perform authentication. There is no fall-through or backup. If one record is chosen and authentication fails, subsequent records are not considered. If no record matches, access is denied.</p>
+
+  <p>Read that as three separate rules, because each one causes a different bug:</p>
+
+  <ul>
+    <li><strong>First match decides.</strong> Not best match, not most specific match. First, reading downward.</li>
+    <li><strong>A failed match is final.</strong> PostgreSQL will not try your next rule as a second chance.</li>
+    <li><strong>No match at all means denied.</strong> Silence is a rejection, not a default allow.</li>
+  </ul>
+
+  <p>The classic failure follows directly. Someone can't connect, so they append a generous line at the end of the file, reload, and nothing changes. A narrower rule further up already matched their connection and refused it. The new line is real, valid, and unreachable.</p>
+
+  <figure>
+    <svg viewBox="0 0 860 290" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="hba-title hba-desc">
+      <title id="hba-title">How PostgreSQL matches a pg_hba.conf rule</title>
+      <desc id="hba-desc">PostgreSQL reads records top to bottom and stops at the first one whose connection type, address, database and user all match. Authentication is then attempted only with that record. Later records are never read.</desc>
+      <rect x="0" y="0" width="860" height="290" fill="#ffffff"/>
+      <g font-family="Poppins, sans-serif" font-size="13" fill="#000f27">
+        <text x="20" y="24" font-size="12.5">Incoming connection: <tspan font-family="JetBrains Mono, monospace">host appdb appuser 203.0.113.9</tspan></text>
+
+        <rect x="20" y="38" width="600" height="34" rx="7" fill="#f6f7f9"/>
+        <text x="34" y="60" font-size="11.5" font-family="JetBrains Mono, monospace">local   all   all                    peer</text>
+        <text x="640" y="60" font-size="11.5" fill="#7a8290">no match: wrong type</text>
+
+        <rect x="20" y="78" width="600" height="34" rx="7" fill="#f6f7f9"/>
+        <text x="34" y="100" font-size="11.5" font-family="JetBrains Mono, monospace">host    all   all   127.0.0.1/32     scram-sha-256</text>
+        <text x="640" y="100" font-size="11.5" fill="#7a8290">no match: wrong address</text>
+
+        <rect x="20" y="118" width="600" height="34" rx="7" fill="#fdeceb" stroke="#c0392b" stroke-width="2"/>
+        <text x="34" y="140" font-size="11.5" font-family="JetBrains Mono, monospace">host    all   all   0.0.0.0/0        reject</text>
+        <text x="640" y="134" font-size="11.5" font-weight="600" fill="#c0392b">MATCH. Decision made here.</text>
+        <text x="640" y="149" font-size="11.5" fill="#c0392b">Reading stops.</text>
+
+        <rect x="20" y="158" width="600" height="34" rx="7" fill="#f6f7f9" opacity="0.5"/>
+        <text x="34" y="180" font-size="11.5" font-family="JetBrains Mono, monospace" opacity="0.55">host    appdb appuser 203.0.113.0/24  scram-sha-256</text>
+        <text x="640" y="180" font-size="11.5" fill="#7a8290">never read</text>
+
+        <rect x="20" y="198" width="600" height="34" rx="7" fill="#f6f7f9" opacity="0.5"/>
+        <text x="34" y="220" font-size="11.5" font-family="JetBrains Mono, monospace" opacity="0.55">host    all   all   0.0.0.0/0        scram-sha-256</text>
+        <text x="640" y="220" font-size="11.5" fill="#7a8290">never read</text>
+
+        <g stroke="#000f27" stroke-width="2" fill="none" marker-end="url(#h1)">
+          <path d="M12 44 V128"/>
+        </g>
+
+        <rect x="20" y="242" width="820" height="38" rx="8" fill="#f4f2ff"/>
+        <text x="36" y="266" font-size="12.5">Adding the correct rule at the bottom cannot help. The reject on line three already decided.</text>
+      </g>
+      <defs>
+        <marker id="h1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#000f27"/></marker>
+      </defs>
+    </svg>
+    <figcaption>Top to bottom, stop at the first match. Everything below it is decoration.</figcaption>
+  </figure>
+
+  <h2>Two error messages, two completely different problems</h2>
+  <p>This distinction falls straight out of the no-fall-through rule, and getting it wrong is how people end up editing a file that was already correct.</p>
+
+  <table class="cmp">
+    <thead><tr><th>What Postgres says</th><th>What actually happened</th><th>What to change</th></tr></thead>
+    <tbody>
+      <tr><td><code>no pg_hba.conf entry for host ...</code></td><td><strong>No rule matched.</strong> Nothing in the file covers this combination.</td><td>Add or widen a rule, then reload</td></tr>
+      <tr><td><code>password authentication failed for user ...</code></td><td><strong>A rule matched.</strong> Authentication ran inside it and failed.</td><td>The credential or the method. The file is fine</td></tr>
+    </tbody>
+  </table>
+
+  <p>The first message is also more informative than it looks, because it echoes back exactly what it tried to match: the host, the user, the database, and whether encryption was in play. Compare each of those four against your rules and the gap is usually obvious in seconds.</p>
+
+  <p>One specific tail is worth naming: if the message ends with <code>no encryption</code>, the connection arrived unencrypted and your matching rule required SSL. That's a client-side fix rather than a file edit, and <a href="https://www.kloudbean.com/blog/connect-sequelize-to-a-database/">connecting Sequelize to a managed database</a> covers that exact case with the driver options that resolve it.</p>
+
+  <h2>The anatomy of a record</h2>
+  <p>One record per line, fields separated by spaces or tabs, <code>#</code> starts a comment, and a trailing backslash continues a line. The shapes worth knowing:</p>
+  <pre><code>local      database  user  auth-method  [options]
+host       database  user  address      auth-method  [options]
+hostssl    database  user  address      auth-method  [options]
+hostnossl  database  user  address      auth-method  [options]</code></pre>
+
+  <p>The connection type in the first column matters more than people expect:</p>
+
+  <table class="cmp">
+    <thead><tr><th>Type</th><th>Matches</th></tr></thead>
+    <tbody>
+      <tr><td><code>local</code></td><td>Unix-domain socket connections. Without a record of this type, socket connections are disallowed entirely</td></tr>
+      <tr><td><code>host</code></td><td>TCP/IP, both SSL and non-SSL attempts</td></tr>
+      <tr><td><code>hostssl</code></td><td>TCP/IP only when SSL is used</td></tr>
+      <tr><td><code>hostnossl</code></td><td>The opposite: only connections not using SSL</td></tr>
+    </tbody>
+  </table>
+
+  <p><strong>A trap on <code>hostssl</code>:</strong> the server must be built with SSL support and have the <code>ssl</code> parameter enabled. If not, the record is ignored except for logging a warning that it cannot match anything. So a <code>hostssl</code> line can sit in your file looking authoritative while doing nothing at all. If encryption is genuinely required, check that the parameter is on rather than trusting the line.</p>
+
+  <p>Newer PostgreSQL also supports <code>include</code>, <code>include_if_exists</code> and <code>include_dir</code> directives, which is worth knowing before you conclude a rule doesn't exist. With <code>include_dir</code>, files not starting with a dot and ending in <code>.conf</code> are pulled in, processed in file name order under C locale rules, so numbers sort before letters and uppercase before lowercase. If a rule is appearing from nowhere, look for an include.</p>
+
+  <h2>Auth methods, and the two you should think twice about</h2>
+  <p><code>scram-sha-256</code> is the modern password method and the right default for anything new. <code>md5</code> is the legacy one, still widely present in older files, and worth migrating away from rather than copying forward into new work.</p>
+
+  <p>Two deserve deliberate thought:</p>
+
+  <p><strong><code>trust</code> means no authentication whatsoever.</strong> Any client matching that record connects as any requested user with no password. It exists for bootstrapping and local development, and it turns up in production files far more often than anyone would like, usually because someone used it to get unblocked and never came back. If you inherit a file, grep for it first.</p>
+
+  <p><strong><code>reject</code> is useful precisely because of the no-fall-through rule.</strong> An explicit <code>reject</code> placed above your permissive rules is how you carve out an exception, and it's also the line most likely to be silently eating the connection you're trying to fix.</p>
+
+  <h2>Editing the file is only half the job for remote access</h2>
+  <p>Here's the pairing that wastes whole afternoons. You add a correct <code>host</code> rule for a remote address, reload, and the connection still fails, so you assume the rule is wrong.</p>
+
+  <p>It probably isn't. The documentation notes that remote TCP/IP connections are not possible unless the server is started with an appropriate <code>listen_addresses</code>, because the default is to listen for TCP/IP connections only on the local loopback address. A perfect pg_hba rule cannot help if nothing is listening on an interface the client can reach.</p>
+  <pre><code>SHOW listen_addresses;   -- 'localhost' means remote clients cannot arrive at all
+SHOW hba_file;           -- the file actually in use, wherever it lives</code></pre>
+  <p>That second query is worth running before any edit. The file traditionally sits in the data directory, but it can be relocated, and editing the wrong copy is a genuinely common way to lose an hour. Note that <code>listen_addresses</code> requires a restart, unlike pg_hba.conf itself.</p>
+
+  <h2>Test the change before you reload it</h2>
+  <p>PostgreSQL ships a view for exactly this and hardly anyone uses it. <code>pg_hba_file_rules</code> is documented as helpful for pre-testing changes and for diagnosing why loading the file didn't have the desired effect, and rows with a non-null <code>error</code> field point straight at the broken lines.</p>
+  <pre><code>-- Any parse errors before you commit to a reload?
+SELECT line_number, type, database, user_name, address, auth_method, error
+FROM pg_hba_file_rules
+WHERE error IS NOT NULL;</code></pre>
+  <p>Then reload. A restart is not required, because the file is re-read on SIGHUP:</p>
+  <pre><code>SELECT pg_reload_conf();     -- from a session
+pg_ctl reload -D /path/to/data   -- or from the shell</code></pre>
+
+  <p>One genuinely obscure detail: that reload requirement doesn't apply on Windows, where changes to pg_hba.conf are applied immediately to subsequent new connections. Worth knowing if you're troubleshooting across platforms and the behaviour seems inconsistent.</p>
+
+  <h2>On managed PostgreSQL you cannot edit this file</h2>
+  <p>Worth stating plainly, because a good share of people searching for pg_hba.conf are looking for a file they'll never be given. On a managed database the provider owns client authentication, and that's the arrangement rather than a limitation being worked around. What you get instead is the outcome the file was being used to reach.</p>
+
+  <p>On Kloudbean, managed PostgreSQL sits on a private network rather than the public internet, so the address-range question that pg_hba.conf answers is handled by network topology instead of a text file. Access is controlled through IP access rules with allow and deny entries, encryption is enforced rather than negotiated per-rule, and subusers with granular permissions cover the per-user part. Backups are automatic. Seven cloud providers, one dashboard, and free migration assistance if you're bringing an existing database across.</p>
+
+  <p>The honest boundary: managed means the platform owns the server, the engine configuration, patching, and backups. Your schema, your queries, and your application's connection handling stay yours. If you're weighing self-managed against managed specifically because of control over files like this one, <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a> lays out what each side actually owns.</p>
+
+  <h2>Related reading</h2>
+  <p>For the ORM-side version of the SSL error, <a href="https://www.kloudbean.com/blog/connect-sequelize-to-a-database/">connecting Sequelize to a managed database</a> and <a href="https://www.kloudbean.com/blog/connect-sqlalchemy-to-a-database/">SQLAlchemy</a>, plus <a href="https://www.kloudbean.com/blog/connect-drizzle-to-postgres/">Drizzle with Postgres</a>. Once connections work, the next thing that bites is how many of them you open, covered in <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>. On making the database quick rather than merely reachable, <a href="https://www.kloudbean.com/blog/postgresql-performance-tuning/">PostgreSQL performance tuning</a>. For the private networking that replaces address rules on managed setups, <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">what a VPC is</a>. And if you're still choosing an engine, <a href="https://www.kloudbean.com/blog/mysql-vs-postgresql/">MySQL versus PostgreSQL</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Skip the file. Keep the database off the public internet.</p>
+    <p style="margin:0 0 .6em">Managed PostgreSQL on a private network with IP access rules, enforced encryption, subusers with granular permissions, and automatic backups, across seven cloud providers in one dashboard. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Private networking · IP access control · Automatic backups · Subuser permissions · One dashboard</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is pg_hba.conf?</h3>
+    <p>It is PostgreSQL's client authentication configuration file, where HBA stands for host-based authentication. Each record specifies a connection type, a client address range where relevant, a database, a user, and the authentication method to use for connections matching those parameters. It traditionally lives in the cluster's data directory, though it can be relocated.</p>
+
+    <h3>Why is my new pg_hba.conf rule being ignored?</h3>
+    <p>Almost certainly because an earlier rule matched first. The documentation states there is no fall-through or backup: the first record matching the connection type, address, database and user is used, and if authentication fails there, subsequent records are not considered. A permissive rule appended at the bottom is unreachable if anything above it already matched, so move it above the rule that is catching the connection.</p>
+
+    <h3>Where is pg_hba.conf located?</h3>
+    <p>Traditionally in the database cluster's data directory, but it can be placed elsewhere via the hba_file configuration parameter. Rather than guessing, run SHOW hba_file; against the running server to get the path of the file actually in use. Editing a different copy is a common way to lose an hour.</p>
+
+    <h3>What is the difference between no pg_hba.conf entry and password authentication failed?</h3>
+    <p>They are different problems. No entry for host means nothing in the file matched that connection, so you need to add or widen a rule. Password authentication failed means a rule did match and authentication then failed inside it, so the rules are fine and the credential or the method is what needs attention.</p>
+
+    <h3>Do I need to restart PostgreSQL after editing pg_hba.conf?</h3>
+    <p>No. The file is read at start-up and again whenever the main server process receives a SIGHUP, so a reload is enough: call pg_reload_conf() from a session, or use pg_ctl reload. Note that on Microsoft Windows changes are applied immediately to subsequent new connections without any signal.</p>
+
+    <h3>How do I check pg_hba.conf for errors before reloading?</h3>
+    <p>Query the pg_hba_file_rules view, which the documentation describes as useful for pre-testing changes and for diagnosing why loading the file did not have the desired effect. Rows with a non-null error field indicate problems on the corresponding lines, so selecting only those gives you a short list of what to fix.</p>
+
+    <h3>Why does my remote connection still fail after adding a host rule?</h3>
+    <p>Because pg_hba.conf is only half of it. Remote TCP/IP connections are not possible unless listen_addresses is set appropriately, since the default is to listen only on the local loopback address. Check SHOW listen_addresses; and remember that changing it requires a restart, unlike pg_hba.conf which only needs a reload.</p>
+
+    <h3>Can I edit pg_hba.conf on a managed database?</h3>
+    <p>Generally no, because the provider owns client authentication on a managed engine. That is the arrangement rather than a gap to work around: instead of address rules in a text file, you get private networking so the database is not on the public internet, allow and deny rules for addresses, enforced encryption, and per-user permissions through subusers.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Check the order before you write another rule.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"pg_hba.conf Explained: Why Your Rule Never Runs","description":"pg_hba.conf has no fall-through: the first matching rule decides and nothing after it is read. That one fact explains most failed connections, plus how to test a change before reloading.","image":"https://www.kloudbean.com/blog/pg-hba-conf/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/pg-hba-conf/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is pg_hba.conf?","acceptedAnswer":{"@type":"Answer","text":"It is PostgreSQL's client authentication configuration file, where HBA stands for host-based authentication. Each record specifies a connection type, a client address range where relevant, a database, a user, and the authentication method to use for connections matching those parameters. It traditionally lives in the cluster's data directory, though it can be relocated."}},
+{"@type":"Question","name":"Why is my new pg_hba.conf rule being ignored?","acceptedAnswer":{"@type":"Answer","text":"Almost certainly because an earlier rule matched first. The documentation states there is no fall-through or backup: the first record matching the connection type, address, database and user is used, and if authentication fails there, subsequent records are not considered. A permissive rule appended at the bottom is unreachable if anything above it already matched, so move it above the rule that is catching the connection."}},
+{"@type":"Question","name":"Where is pg_hba.conf located?","acceptedAnswer":{"@type":"Answer","text":"Traditionally in the database cluster's data directory, but it can be placed elsewhere via the hba_file configuration parameter. Rather than guessing, run SHOW hba_file; against the running server to get the path of the file actually in use. Editing a different copy is a common way to lose an hour."}},
+{"@type":"Question","name":"What is the difference between no pg_hba.conf entry and password authentication failed?","acceptedAnswer":{"@type":"Answer","text":"They are different problems. No entry for host means nothing in the file matched that connection, so you need to add or widen a rule. Password authentication failed means a rule did match and authentication then failed inside it, so the rules are fine and the credential or the method is what needs attention."}},
+{"@type":"Question","name":"Do I need to restart PostgreSQL after editing pg_hba.conf?","acceptedAnswer":{"@type":"Answer","text":"No. The file is read at start-up and again whenever the main server process receives a SIGHUP, so a reload is enough: call pg_reload_conf() from a session, or use pg_ctl reload. Note that on Microsoft Windows changes are applied immediately to subsequent new connections without any signal."}},
+{"@type":"Question","name":"How do I check pg_hba.conf for errors before reloading?","acceptedAnswer":{"@type":"Answer","text":"Query the pg_hba_file_rules view, which the documentation describes as useful for pre-testing changes and for diagnosing why loading the file did not have the desired effect. Rows with a non-null error field indicate problems on the corresponding lines, so selecting only those gives you a short list of what to fix."}},
+{"@type":"Question","name":"Why does my remote connection still fail after adding a host rule?","acceptedAnswer":{"@type":"Answer","text":"Because pg_hba.conf is only half of it. Remote TCP/IP connections are not possible unless listen_addresses is set appropriately, since the default is to listen only on the local loopback address. Check SHOW listen_addresses; and remember that changing it requires a restart, unlike pg_hba.conf which only needs a reload."}},
+{"@type":"Question","name":"Can I edit pg_hba.conf on a managed database?","acceptedAnswer":{"@type":"Answer","text":"Generally no, because the provider owns client authentication on a managed engine. That is the arrangement rather than a gap to work around: instead of address rules in a text file, you get private networking so the database is not on the public internet, allow and deny rules for addresses, enforced encryption, and per-user permissions through subusers."}}
+]}
+]}
+</script>
+</body>
+</html>

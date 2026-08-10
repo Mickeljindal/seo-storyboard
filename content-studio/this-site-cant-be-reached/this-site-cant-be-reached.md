@@ -27,6 +27,7 @@ Look under the headline. The code is small, grey, and easy to miss, and it's the
 | `ERR_ADDRESS_UNREACHABLE` | DNS worked, but there's no route to that address from where you are. | Routing, below |
 | `ERR_NETWORK_CHANGED` | Your network switched underneath the request. Usually harmless. | Routing, below |
 | `ERR_SSL_PROTOCOL_ERROR` | You reached the server. Encryption is where it fell apart. | [ERR_SSL_PROTOCOL_ERROR](https://www.kloudbean.com/blog/err-ssl-protocol-error/) |
+| `ERR_BLOCKED_BY_RESPONSE` | The response arrived and a cross-origin policy refused it. | [ERR_BLOCKED_BY_RESPONSE](https://www.kloudbean.com/blog/err-blocked-by-response/) |
 | `ERR_FAILED` or no code | Nothing useful. Chrome couldn't classify it. | Observations, below |
 
 If you want the authoritative list rather than a summary, Chromium publishes every code it can emit in [net/base/net_error_list.h](https://source.chromium.org/chromium/chromium/src/+/main:net/base/net_error_list.h). Each entry carries a short comment explaining what triggers it. It's the fastest way to check whether a code you've never seen means what a forum post claims.

@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ERR_BLOCKED_BY_RESPONSE: The Header You Did Not Set</title>
+<meta name="description" content="err_blocked_by_response means a cross-origin policy refused a response that was otherwise fine. Read the suffix after the dot, and learn why setting COEP silently flips the CORP default.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/err-blocked-by-response/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ERR_BLOCKED_BY_RESPONSE: The Header You Did Not Set">
+<meta property="og:description" content="The response returned 200. A cross-origin policy refused to let the document use it, and the error name tells you which default Chrome applied on your behalf.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Browser errors · Cross-origin policy · Field guide</span>
+  <h1>ERR_BLOCKED_BY_RESPONSE: The Header You Did Not Set</h1>
+  <p class="byline">By Kloudbean Engineering · The response was fine. A policy refused it.</p>
+
+  <figure><img src="images/hero.png" alt="A Chrome console showing an ERR_BLOCKED_BY_RESPONSE entry with a 200 status beside a Cross-Origin-Embedder-Policy response header"></figure>
+
+  <p class="lead">Look closely at an err_blocked_by_response entry in the Chrome console and you'll often see something strange next to it: a 200 status. The request succeeded. The server sent the bytes. Then the browser decided the document wasn't allowed to use them and threw the whole thing away. That's why searching your server logs for an error returns nothing useful, and why this one is so often reported as a mystery.</p>
+
+  <div class="tldr">
+    <strong>What causes ERR_BLOCKED_BY_RESPONSE?</strong>
+    <p>A cross-origin policy refused a response the browser had already received. The suffix after the dot names which one. <code>NotSameOrigin</code> means a <code>Cross-Origin-Resource-Policy</code> header refused the embed. <code>NotSameOriginAfterDefaultedToSameOriginByCoep</code> means you set <code>Cross-Origin-Embedder-Policy: require-corp</code>, which flipped the effective CORP default to same-origin, so cross-origin resources now have to opt in. <code>CoepFrameResourceNeedsCoepHeader</code> means an iframe needs its own COEP header. Adding a security middleware such as Helmet is the most common way to trigger the second one by accident.</p>
+  </div>
+
+  <h2>The suffix after the dot is the actual diagnosis</h2>
+  <p>Chrome appends a sub-reason, and it's the whole answer. Most people copy the part before the dot into a search box and lose the only useful information in the message.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Suffix</th><th>What refused it</th><th>Where to look</th></tr></thead>
+    <tbody>
+      <tr><td><code>.NotSameOrigin</code></td><td>A <code>Cross-Origin-Resource-Policy</code> header on the resource</td><td>The resource's response headers</td></tr>
+      <tr><td><code>.NotSameOriginAfterDefaultedToSameOriginByCoep</code></td><td>Your own COEP header, which changed the default</td><td>Your document's response headers</td></tr>
+      <tr><td><code>.CoepFrameResourceNeedsCoepHeader</code></td><td>An embedded frame that has no COEP of its own</td><td>The iframe's response headers</td></tr>
+    </tbody>
+  </table>
+
+  <p>If your suffix isn't one of these three, treat the sub-reason as the thing to research rather than the generic prefix. And note the direction: only the first blames the resource. The second blames a header on your own page, which is why it catches people who just tightened their security and expected nothing to change.</p>
+
+  <h2>Setting COEP silently flips the CORP default</h2>
+  <p>This is the mechanism worth internalising, and the error name states it outright if you read to the end.</p>
+
+  <p>By default, with neither CORP nor CORS involved, a resource loads as though it carried a permissive cross-origin policy. Browsers are lenient here for compatibility. Nothing has to opt in, and everything works.</p>
+
+  <p>Now set <code>Cross-Origin-Embedder-Policy: require-corp</code> on your document. Per <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cross-Origin-Embedder-Policy">MDN's COEP reference</a>, that means the document can only load cross-origin resources requested in no-cors mode if those resources explicitly permit it with a CORP header. The lenient default is gone. Every third-party image, font, and script now needs permission it was never asked for before.</p>
+
+  <p>Chrome names this in the error: <em>after defaulted to same origin by COEP</em>. It's telling you the block came from a default it applied because of a header you set, not from anything the other server did. Almost nobody reads that far.</p>
+
+  <p><strong>The usual trigger is adding a security middleware.</strong> Helmet on an Express app sets COEP among its defaults. You add one line intending to harden the app, deploy, and every cross-origin image breaks. Nothing about the images changed. The rule governing them did.</p>
+
+  <figure>
+    <svg viewBox="0 0 860 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="coep-title coep-desc">
+      <title id="coep-title">Which resources load under COEP require-corp</title>
+      <desc id="coep-desc">Under require-corp, same-origin resources load, cross-origin resources with a permitting CORP header load, and cross-origin resources requested in cors mode load. A cross-origin no-cors resource with no CORP header is blocked.</desc>
+      <rect x="0" y="0" width="860" height="300" fill="#ffffff"/>
+      <g font-family="Poppins, sans-serif" font-size="13" fill="#000f27">
+        <rect x="20" y="26" width="200" height="70" rx="10" fill="#000f27"/>
+        <text x="120" y="52" text-anchor="middle" fill="#ffffff" font-weight="600" font-size="13.5">Your document</text>
+        <text x="120" y="72" text-anchor="middle" fill="#ffffff" font-size="11" font-family="JetBrains Mono, monospace">COEP: require-corp</text>
+        <text x="120" y="88" text-anchor="middle" fill="#ffffff" font-size="11">the rule changed here</text>
+
+        <rect x="330" y="16" width="510" height="42" rx="8" fill="#eaf7ee"/>
+        <text x="346" y="34" font-size="12.5" font-weight="600" fill="#1e7d3a">Loads: same origin</text>
+        <text x="346" y="50" font-size="11.5">No permission needed. COEP only governs cross-origin loads.</text>
+
+        <rect x="330" y="66" width="510" height="42" rx="8" fill="#eaf7ee"/>
+        <text x="346" y="84" font-size="12.5" font-weight="600" fill="#1e7d3a">Loads: cross origin with a permitting CORP header</text>
+        <text x="346" y="100" font-size="11.5" font-family="JetBrains Mono, monospace">Cross-Origin-Resource-Policy: cross-origin</text>
+
+        <rect x="330" y="116" width="510" height="42" rx="8" fill="#eaf7ee"/>
+        <text x="346" y="134" font-size="12.5" font-weight="600" fill="#1e7d3a">Loads: cross origin requested in cors mode</text>
+        <text x="346" y="150" font-size="11.5">COEP does not block these. CORS still has to allow it.</text>
+
+        <rect x="330" y="166" width="510" height="46" rx="8" fill="#fdeceb"/>
+        <text x="346" y="185" font-size="12.5" font-weight="600" fill="#c0392b">Blocked: cross origin, no-cors, no CORP header</text>
+        <text x="346" y="202" font-size="11.5" font-family="JetBrains Mono, monospace">ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep</text>
+
+        <g stroke="#000f27" stroke-width="2" fill="none" marker-end="url(#c1)">
+          <path d="M220 61 H326"/>
+        </g>
+
+        <rect x="20" y="228" width="820" height="56" rx="8" fill="#f4f2ff"/>
+        <text x="36" y="250" font-size="12.5" font-weight="600">Three escape routes, all with a cost.</text>
+        <text x="36" y="269" font-size="12.5">Get the third party to send CORP, request it in cors mode, or use credentialless and lose cookies on those requests.</text>
+      </g>
+      <defs>
+        <marker id="c1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#000f27"/></marker>
+      </defs>
+    </svg>
+    <figcaption>Under require-corp, only the bottom row fails, and it fails because nothing opted in.</figcaption>
+  </figure>
+
+  <h2>Four ways to unblock a resource</h2>
+
+  <p><strong>1. Have the resource send CORP.</strong> The direct fix, when you control the origin serving it. One header on the resource's response and the block goes away:</p>
+  <pre><code>Cross-Origin-Resource-Policy: cross-origin</code></pre>
+  <p>Understand what you're saying: any site can now embed that resource. For public assets on a CDN or an object store that's usually fine and often what you want. For anything semi-private it deserves a moment's thought.</p>
+
+  <p><strong>2. Request it in cors mode.</strong> The cleanest fix when the third party supports CORS, because MDN is explicit that requests made in cors mode aren't blocked by COEP and don't trigger COEP violations. In HTML that's one attribute:</p>
+  <pre><code>&lt;img src="https://cdn.example.com/logo.png" crossorigin&gt;
+&lt;script src="https://cdn.example.com/app.js" crossorigin&gt;&lt;/script&gt;</code></pre>
+  <pre><code>// The JavaScript equivalent
+await fetch("https://cdn.example.com/data.json", { mode: "cors" });</code></pre>
+  <p>The catch: CORS still has to permit it. Switching to cors mode moves the requirement from CORP to CORS rather than removing it, so a third party with no CORS support will now fail differently.</p>
+
+  <p><strong>3. Switch COEP to credentialless.</strong> The documented escape hatch when a third party supports neither CORP nor CORS. It loads cross-origin no-cors resources without any opt-in, at a real price: requests go out without credentials, so cookies are omitted from the request and ignored in the response. Fine for public images. Not fine for anything that depends on a session.</p>
+  <pre><code>Cross-Origin-Embedder-Policy: credentialless</code></pre>
+
+  <p><strong>4. Proxy it through your own origin.</strong> The blunt instrument, and sometimes the right one. Serve the third-party asset from your domain and it stops being cross-origin. You inherit the bandwidth, the caching decisions, and the responsibility for keeping it current, so weigh that against how much you need the isolation.</p>
+
+  <p>One thing that will not work: setting CORP on your own document to fix a resource loaded from elsewhere. CORP is a property of the resource being loaded, not of the page loading it. And COEP never overrides CORP. If a resource's CORP restricts it to same-origin, no COEP value on your side will pull it in.</p>
+
+  <h2>The iframe case</h2>
+  <p><code>CoepFrameResourceNeedsCoepHeader</code> is its own situation. When your document is cross-origin isolated, framed documents inside it need to carry a COEP header too. The policy applies to loaded resources and to resources inside iframes and nested frames, so an embedded page that says nothing about COEP can't participate.</p>
+
+  <p>Practically, that means embedding a third-party widget, a payment frame, or a video player inside a cross-origin-isolated page often fails until that third party sets COEP on their side. Which they may never do. If the embed matters more than the isolation, the honest answer is to drop the isolation for that page rather than fight it.</p>
+
+  <p>Worth knowing why isolation exists at all before you give it up. Cross-origin isolation requires COEP <code>require-corp</code> or <code>credentialless</code> together with <code>Cross-Origin-Opener-Policy: same-origin</code>, and it gates real capabilities: <code>SharedArrayBuffer</code> and unthrottled high-resolution timers. If you aren't using those, you may be paying for isolation you don't need. Check at runtime rather than guessing:</p>
+  <pre><code>console.log(crossOriginIsolated); // true only if COOP and COEP both agree</code></pre>
+
+  <h2>Roll it out with Report-Only, and watch for the duplicate header</h2>
+  <p>There's a report-only variant, <code>Cross-Origin-Embedder-Policy-Report-Only</code>, and it exists precisely so you can find out what would break before anything does. Same discipline the CSP rollout in <a href="https://www.kloudbean.com/blog/security-headers-guide/">the security headers guide</a> recommends, applied to a header with a wider blast radius than people expect.</p>
+  <pre><code>Reporting-Endpoints: coep-endpoint="https://example.com/reports/coep"
+Cross-Origin-Embedder-Policy-Report-Only: require-corp; report-to="coep-endpoint"</code></pre>
+  <p>Reports arrive with type <code>coep</code> and a body naming the <code>blockedURL</code>, the <code>destination</code> such as image or script, and the violation <code>type</code>. That gives you the exact list of resources needing attention rather than a bug report from a customer.</p>
+
+  <p><strong>The gotcha that silently disables everything:</strong> setting the header more than once, or with multiple tokens, is equivalent to <code>unsafe-none</code>. So a COEP header set both in your application and again in your reverse proxy doesn't double the protection. It removes it. If you're confident the header is set and the browser disagrees, count how many times it appears in the actual response:</p>
+  <pre><code>curl -sSI https://example.com/ | grep -ic 'cross-origin-embedder-policy'
+# Anything other than 1 is a problem.</code></pre>
+
+  <h2>If you are just trying to browse</h2>
+  <p>Short section, because there isn't much on your side. Test in a private window with extensions disabled, or a clean browser profile. Extensions that rewrite or inspect responses can produce this, and a clean profile settles that in seconds. If the resource loads there, the page is fine and something in your browser is intervening.</p>
+
+  <p>Beyond that, this is a policy decision made by the site and whoever serves its assets, and no cache clear or retry changes it. If you're not certain the code you have is this one, <a href="https://www.kloudbean.com/blog/this-site-cant-be-reached/">this site can't be reached</a> maps every Chrome error to the layer that produced it.</p>
+
+  <h2>Where hosting fits, honestly</h2>
+  <p>The limit first, because it's the useful part. If the blocked resource sits on a third-party origin you don't control, you cannot make them send CORP. No hosting configuration reaches another company's server. That leaves the three routes above, each with a genuine cost: cors mode needs their CORS support, <code>credentialless</code> costs you cookies on those requests, and proxying costs you bandwidth and cache management.</p>
+
+  <p>What infrastructure does own is where your own headers are set and whether they're set once. On Kloudbean the reverse proxy is managed, so response headers live in a maintained configuration rather than a file someone edited eighteen months ago, which matters directly for the duplicate-header trap above. Free SSL is issued and renewed, which is a precondition rather than a nicety here, since this whole header family assumes HTTPS. Seven cloud providers, one dashboard, and free migration assistance if you're moving something already running. If you're serving your own assets and want them to be genuinely same-origin, <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage</a> behind your own domain avoids the problem rather than configuring around it.</p>
+
+  <p>The boundary is the usual one. Managed covers the server, the stack, TLS, backups, and patching. Which headers you choose to send, and which third parties you depend on, stay yours.</p>
+
+  <h2>Related reading</h2>
+  <p>For the standard header set and a safe CSP rollout, <a href="https://www.kloudbean.com/blog/security-headers-guide/">the security headers guide</a>, which is the natural companion to this one. Elsewhere in the browser-error family: <a href="https://www.kloudbean.com/blog/err-connection-reset/">ERR_CONNECTION_RESET</a> for a connection killed mid-flight, <a href="https://www.kloudbean.com/blog/err-ssl-protocol-error/">ERR_SSL_PROTOCOL_ERROR</a> when the handshake fails, and <a href="https://www.kloudbean.com/blog/err-cache-miss/">ERR_CACHE_MISS</a> for the POST resubmission case. If you haven't pinned down which code you have, <a href="https://www.kloudbean.com/blog/this-site-cant-be-reached/">this site can't be reached</a> is the router. On HTTPS as the precondition for all of this, <a href="https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/">custom domain and SSL</a>, and for setting headers at the proxy layer, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">nginx as a reverse proxy for Node</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Set the header once, in a place you can find.</p>
+    <p style="margin:0 0 .6em">Managed servers across seven clouds with a managed reverse proxy, so response headers live in maintained configuration rather than a file someone edited long ago. Free SSL issued and renewed, S3-compatible object storage for serving your own assets, and free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed reverse proxy · Free SSL, renewed · S3 storage · Free migration · One dashboard</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What causes ERR_BLOCKED_BY_RESPONSE?</h3>
+    <p>A cross-origin policy refused a response the browser had already received, which is why the request often shows a 200 status alongside the error. The suffix after the dot names the specific policy. It is not a server fault in the usual sense, because the server did respond successfully and the browser then declined to let the document use the result.</p>
+
+    <h3>Why does the console show a 200 status with the error?</h3>
+    <p>Because the network request succeeded. The server accepted it, responded, and sent the bytes. The block happens afterwards, when the browser checks whether the document is permitted to use that response under the cross-origin policies in play. Searching your server logs for an error will find nothing, since nothing went wrong there.</p>
+
+    <h3>What does NotSameOriginAfterDefaultedToSameOriginByCoep mean?</h3>
+    <p>It means you set Cross-Origin-Embedder-Policy to require-corp, which changed the effective default for cross-origin resources from permissive to same-origin. Resources that previously loaded without any opt-in now need a Cross-Origin-Resource-Policy header permitting the embed. The error name is telling you the block came from a default the browser applied because of your header.</p>
+
+    <h3>Why did adding Helmet break my images?</h3>
+    <p>Helmet sets Cross-Origin-Embedder-Policy among its defaults, and that single header flips the rule for every cross-origin resource your page loads. Nothing about the images changed. Either add the crossorigin attribute so they are requested in cors mode, switch COEP to credentialless, or disable the COEP option in your middleware configuration if you are not relying on cross-origin isolation.</p>
+
+    <h3>What is the difference between CORP and CORS?</h3>
+    <p>CORP is a header the resource sends to say who may embed it, and it governs no-cors requests such as a plain image or script tag. CORS is a negotiation for requests made in cors mode. MDN notes that requests made in cors mode are not blocked by COEP and do not trigger COEP violations, though CORS itself must still permit them, so switching to cors mode moves the requirement rather than removing it.</p>
+
+    <h3>What does credentialless actually cost me?</h3>
+    <p>Credentials. Under Cross-Origin-Embedder-Policy set to credentialless, cross-origin no-cors resources load without needing a CORP header, but the requests are sent without credentials: cookies are omitted from the request and ignored in the response. That is harmless for public images and fonts, and breaks anything that depends on a session cookie on the third-party origin.</p>
+
+    <h3>Can setting COEP twice cause a problem?</h3>
+    <p>Yes, and it fails in the least obvious direction. Setting the header more than once, or with multiple tokens, is equivalent to unsafe-none, so the protection is removed rather than doubled. This happens when an application and a reverse proxy both add it. Count the occurrences in the real response headers rather than trusting either configuration file.</p>
+
+    <h3>Do I need cross-origin isolation at all?</h3>
+    <p>Only if you use features that require it, principally SharedArrayBuffer and unthrottled high-resolution timers. Isolation needs COEP set to require-corp or credentialless together with Cross-Origin-Opener-Policy set to same-origin. Check the crossOriginIsolated property at runtime, and if you are not using those capabilities, consider whether the compatibility cost is buying you anything.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Read to the end of the error name. It names the default it applied.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"ERR_BLOCKED_BY_RESPONSE: The Header You Did Not Set","description":"err_blocked_by_response means a cross-origin policy refused a response that was otherwise fine. Read the suffix after the dot, and learn why setting COEP silently flips the CORP default.","image":"https://www.kloudbean.com/blog/err-blocked-by-response/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/err-blocked-by-response/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What causes ERR_BLOCKED_BY_RESPONSE?","acceptedAnswer":{"@type":"Answer","text":"A cross-origin policy refused a response the browser had already received, which is why the request often shows a 200 status alongside the error. The suffix after the dot names the specific policy. It is not a server fault in the usual sense, because the server did respond successfully and the browser then declined to let the document use the result."}},
+{"@type":"Question","name":"Why does the console show a 200 status with the error?","acceptedAnswer":{"@type":"Answer","text":"Because the network request succeeded. The server accepted it, responded, and sent the bytes. The block happens afterwards, when the browser checks whether the document is permitted to use that response under the cross-origin policies in play. Searching your server logs for an error will find nothing, since nothing went wrong there."}},
+{"@type":"Question","name":"What does NotSameOriginAfterDefaultedToSameOriginByCoep mean?","acceptedAnswer":{"@type":"Answer","text":"It means you set Cross-Origin-Embedder-Policy to require-corp, which changed the effective default for cross-origin resources from permissive to same-origin. Resources that previously loaded without any opt-in now need a Cross-Origin-Resource-Policy header permitting the embed. The error name is telling you the block came from a default the browser applied because of your header."}},
+{"@type":"Question","name":"Why did adding Helmet break my images?","acceptedAnswer":{"@type":"Answer","text":"Helmet sets Cross-Origin-Embedder-Policy among its defaults, and that single header flips the rule for every cross-origin resource your page loads. Nothing about the images changed. Either add the crossorigin attribute so they are requested in cors mode, switch COEP to credentialless, or disable the COEP option in your middleware configuration if you are not relying on cross-origin isolation."}},
+{"@type":"Question","name":"What is the difference between CORP and CORS?","acceptedAnswer":{"@type":"Answer","text":"CORP is a header the resource sends to say who may embed it, and it governs no-cors requests such as a plain image or script tag. CORS is a negotiation for requests made in cors mode. MDN notes that requests made in cors mode are not blocked by COEP and do not trigger COEP violations, though CORS itself must still permit them, so switching to cors mode moves the requirement rather than removing it."}},
+{"@type":"Question","name":"What does credentialless actually cost me?","acceptedAnswer":{"@type":"Answer","text":"Credentials. Under Cross-Origin-Embedder-Policy set to credentialless, cross-origin no-cors resources load without needing a CORP header, but the requests are sent without credentials: cookies are omitted from the request and ignored in the response. That is harmless for public images and fonts, and breaks anything that depends on a session cookie on the third-party origin."}},
+{"@type":"Question","name":"Can setting COEP twice cause a problem?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it fails in the least obvious direction. Setting the header more than once, or with multiple tokens, is equivalent to unsafe-none, so the protection is removed rather than doubled. This happens when an application and a reverse proxy both add it. Count the occurrences in the real response headers rather than trusting either configuration file."}},
+{"@type":"Question","name":"Do I need cross-origin isolation at all?","acceptedAnswer":{"@type":"Answer","text":"Only if you use features that require it, principally SharedArrayBuffer and unthrottled high-resolution timers. Isolation needs COEP set to require-corp or credentialless together with Cross-Origin-Opener-Policy set to same-origin. Check the crossOriginIsolated property at runtime, and if you are not using those capabilities, consider whether the compatibility cost is buying you anything."}}
+]}
+]}
+</script>
+</body>
+</html>

@@ -96,7 +96,7 @@ DATABASE_URL=postgresql://appuser:s3cret@10.0.0.5:5432/appdb
 
 ![The Kloudbean console setting the PostgreSQL connection string as an environment variable](../assets/console/env-vars.png)
 
-On Kloudbean the database lives on a [private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/), reachable by your app internally rather than open to the internet. Give the app a least-privilege user, keep `.env` out of Git, and you've covered the security basics that actually get people breached.
+On Kloudbean the database lives on a [private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/), reachable by your app internally rather than open to the internet. Give the app a least-privilege user, keep `.env` out of Git, and you've covered the security basics that actually get people breached. Worth knowing what this replaces: on a self-managed server the same question is answered by hand in [pg_hba.conf](https://www.kloudbean.com/blog/pg-hba-conf/), a file whose first matching rule wins and whose later rules are never read, which is why so many people spend an afternoon on a rule that was unreachable.
 
 ![The Kloudbean console launching a managed PostgreSQL database from a choice of managed engines](../assets/console/launch-database.png)
 

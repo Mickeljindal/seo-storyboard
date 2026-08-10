@@ -111,7 +111,7 @@ Run PM2 in cluster mode with four workers and a `max` of 10, and that's not 10 c
 
 ## SSL, dialectOptions, and the pg_hba.conf error
 
-If your database sits on a public endpoint, the connection should be encrypted, and many managed Postgres providers refuse plaintext outright. The tell is a connection that dies immediately with a message like `no pg_hba.conf entry for host "1.2.3.4", user "appuser", database "appdb", no encryption`. That "no encryption" tail is the giveaway: the server wanted SSL and your client tried to connect without it.
+If your database sits on a public endpoint, the connection should be encrypted, and many managed Postgres providers refuse plaintext outright. The tell is a connection that dies immediately with a message like `no pg_hba.conf entry for host "1.2.3.4", user "appuser", database "appdb", no encryption`. That "no encryption" tail is the giveaway: the server wanted SSL and your client tried to connect without it. If the message ends any other way, the problem is the rules rather than your driver, and [pg_hba.conf explained](https://www.kloudbean.com/blog/pg-hba-conf/) covers why a rule you added may never be reached.
 
 Sequelize passes SSL settings through `dialectOptions`, straight to the underlying driver. The quick fix people paste from Stack Overflow:
 
