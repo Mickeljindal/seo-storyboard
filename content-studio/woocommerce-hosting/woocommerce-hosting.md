@@ -166,6 +166,10 @@ From there you get the pieces a store leans on. One-click staging for WordPress 
 
 It's all one dashboard: the store, its database, the object cache, backups, SSL, and scaling, with one login and one bill. If you're moving an existing store, Kloudbean offers free migration assistance, and there's a free trial so you can load your catalog and test a real checkout before committing. If you're wiring the database up by hand, [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) walks the connection details, and [managed MySQL hosting](https://www.kloudbean.com/blog/managed-mysql-hosting/) covers the database side in depth. For the backup discipline itself, see the [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/).
 
+## If you are weighing Magento instead
+
+Worth knowing before you commit either way. Magento is built for larger catalogues and brings heavier server requirements with it, including Elasticsearch as a hard requirement for catalogue search rather than an optional extra. The performance reasoning on this page transfers, but the components differ, and [Magento SEO](https://www.kloudbean.com/blog/magento-seo/) covers the infrastructure half of that platform along with the search and caching layers it depends on.
+
 ## The honest limits
 
 Two things, said plainly. WooCommerce runs on a **Linux and PHP** stack, which is exactly what it was built for, so this is a strong fit rather than a workaround. And "managed" is a split, not a takeover. The platform runs the server, the stack, the object cache wiring, SSL, and backups. You still own your products, your orders, your plugin and theme choices, and your checkout flow. On compliance, treat it as shared: the platform provides and keeps maturing the infrastructure controls, while the application-level compliance of your specific store, especially around payments, stays with you. That clarity is the point. You always know who owns what.
