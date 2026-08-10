@@ -214,21 +214,20 @@ export async function ingestContentStudio(
       continue;
     }
 
-    const values = {
+    // Everything derived from the files on disk. Safe to refresh on every
+    // ingest, because the files are the source of truth for all of it.
+    const contentValues = {
       title: a.title,
       targetKeyword: a.targetKeyword,
       secondaryKeywords: a.secondaryKeywords,
       pillar: a.pillar,
-      status: "review",
       metaTitle: a.metaTitle,
       metaDescription: a.metaDescription,
       urlSlug: a.slug,
       brief: a.briefText ? { text: a.briefText, source: ENGINE_SOURCE } : null,
       geoTarget: a.geo,
-      priority: "medium",
       clusterId: a.clusterId || null,
       clusterName: a.clusterId ? (CLUSTER_NAME[a.clusterId] ?? null) : null,
-      entities: [],
       internalLinkTargets: a.internalLinkTargets,
       contentDraft: a.contentDraft,
       contentHtml: a.contentHtml,
@@ -236,14 +235,24 @@ export async function ingestContentStudio(
       wordCountTarget: a.wordCount || 2500,
     };
 
+    // Workflow state belongs to the user, NOT to the files, so it is only ever
+    // written when a row is first created. Including these in the update was
+    // resetting status to "review" on every upsert, which silently un-published
+    // everything the publish tracker had ticked off.
+    const initialState = {
+      status: "review",
+      priority: "medium",
+      entities: [],
+    };
+
     if (existingId) {
       await db
         .update(articles)
-        .set({ ...values, updatedAt: new Date() })
+        .set({ ...contentValues, updatedAt: new Date() })
         .where(eq(articles.id, existingId));
       result.updated++;
     } else {
-      await db.insert(articles).values(values);
+      await db.insert(articles).values({ ...contentValues, ...initialState });
       result.inserted++;
     }
   }

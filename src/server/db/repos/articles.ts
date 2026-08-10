@@ -112,6 +112,23 @@ export async function insertArticle(row: Record<string, unknown>) {
   return a;
 }
 
+/**
+ * Server functions serialise their payload as JSON, so a Date sent from the
+ * browser always arrives as an ISO string. Drizzle's timestamp columns expect a
+ * real Date and throw "value.toISOString is not a function" on a string, which
+ * failed the whole UPDATE silently from the caller's point of view. Coercing
+ * here fixes every caller at once instead of relying on each one to remember.
+ * The column type is read off the schema so this cannot drift.
+ */
+function coerceForColumn(col: keyof typeof articles.$inferInsert, v: unknown) {
+  const column = (articles as unknown as Record<string, { columnType?: string }>)[col as string];
+  if (typeof v === "string" && column?.columnType === "PgTimestamp") {
+    const d = new Date(v);
+    if (!Number.isNaN(d.getTime())) return d;
+  }
+  return v;
+}
+
 export async function updateArticle(id: string, patch: Record<string, unknown>) {
   const db = await getDb();
   const set: Record<string, unknown> = {};
@@ -157,7 +174,7 @@ export async function updateArticle(id: string, patch: Record<string, unknown>) 
   };
   for (const [k, v] of Object.entries(patch)) {
     const col = map[k];
-    if (col) set[col] = v;
+    if (col) set[col] = coerceForColumn(col, v);
   }
   if (Object.keys(set).length === 0) return null;
   const [row] = await db.update(articles).set(set).where(eq(articles.id, id)).returning();
