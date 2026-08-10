@@ -140,7 +140,7 @@ And because servers are managed, the server-side resolver path described above i
 
 ## Related reading
 
-For the fundamentals of records, resolution, and propagation, start with [DNS explained](https://www.kloudbean.com/blog/dns-explained/). For the caching layer in front of your origin, [CDN explained](https://www.kloudbean.com/blog/cdn-explained/). On the response-time side that usually matters more, [speed up WordPress](https://www.kloudbean.com/blog/speed-up-wordpress/) and [speed up WooCommerce](https://www.kloudbean.com/blog/speed-up-woocommerce/). For caching that cuts real server work, [the Redis caching guide](https://www.kloudbean.com/blog/redis-caching-guide/). And when resolution succeeds but the connection is refused, [fixing ECONNREFUSED](https://www.kloudbean.com/blog/fix-econnrefused-node/).
+For the fundamentals of records, resolution, and propagation, start with [DNS explained](https://www.kloudbean.com/blog/dns-explained/). If you came here intending to clear a cache, [flushing your DNS cache](https://www.kloudbean.com/blog/flush-dns-cache/) covers what that does and does not fix, and it is not a speed fix. For the caching layer in front of your origin, [CDN explained](https://www.kloudbean.com/blog/cdn-explained/). On the response-time side that usually matters more, [speed up WordPress](https://www.kloudbean.com/blog/speed-up-wordpress/) and [speed up WooCommerce](https://www.kloudbean.com/blog/speed-up-woocommerce/). For caching that cuts real server work, [the Redis caching guide](https://www.kloudbean.com/blog/redis-caching-guide/). And when resolution succeeds but the connection is refused, [fixing ECONNREFUSED](https://www.kloudbean.com/blog/fix-econnrefused-node/).
 
 ## Put the application where your users are
 

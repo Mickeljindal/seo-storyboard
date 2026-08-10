@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flush DNS Cache: What It Does, and the Two Caches You Cannot Clear</title>
+<meta name="description" content="Flushing your DNS cache fixes one narrow problem and none of the others people use it for. The commands for macOS, Windows and Linux, plus how to check it worked.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/flush-dns-cache/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flush DNS Cache: What It Does, and the Two Caches You Cannot Clear">
+<meta property="og:description" content="There are four DNS caches between you and a website. You can clear two. That is why flushing so often changes nothing.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">DNS · Reference · Reality check</span>
+  <h1>Flush DNS Cache: What It Does, and the Two Caches You Cannot Clear</h1>
+  <p class="byline">By Kloudbean Engineering · A useful command for one specific problem, and a placebo for most others.</p>
+
+  <figure><img src="images/hero.png" alt="A terminal running the macOS dscacheutil flush command beside a dig query comparing a local answer with an authoritative one"></figure>
+
+  <p class="lead">Flushing your DNS cache is the tech-support equivalent of turning it off and on again: sometimes exactly right, frequently irrelevant, and almost always suggested before anyone has worked out what is wrong. It does one thing well. It makes your computer forget the addresses it looked up recently, so the next lookup starts fresh. If your problem is a stale address, that is the whole fix. If your problem is anything else, you are about to spend a command and learn nothing. Worth knowing which you have before you start.</p>
+
+  <div class="tldr">
+    <strong>What does flushing DNS do?</strong>
+    <p>Your computer remembers the answers to recent DNS lookups so it does not have to ask again for every request. Flushing empties that store, so the next time you visit a site your machine asks a resolver for a fresh answer. That fixes exactly one class of problem: a name whose address has changed while your machine still holds the old one. It does not fix a website being down, a slow connection, or most browser errors, because none of those involve a cached address. And there are typically four caches between you and a site. You can clear two of them.</p>
+  </div>
+
+  <h2>Will flushing help? Read this before running anything</h2>
+  <p>Blunt table, because the honest answer is usually no.</p>
+
+  <table class="cmp">
+    <thead><tr><th>What is happening</th><th>Will flushing fix it?</th></tr></thead>
+    <tbody>
+      <tr><td>You changed a DNS record and still get the old server</td><td><strong>Yes.</strong> This is the case it exists for.</td></tr>
+      <tr><td>You moved hosts and see the previous site</td><td><strong>Yes,</strong> for your own machine at least.</td></tr>
+      <tr><td>A site works everywhere except on your computer</td><td><strong>Probably.</strong> Check your hosts file too.</td></tr>
+      <tr><td>You added a new subdomain and it does not resolve</td><td><strong>Maybe.</strong> If a resolver cached the non-existence, the wait is not yours to skip.</td></tr>
+      <tr><td>A site is slow to load</td><td>No. Resolution is milliseconds of it.</td></tr>
+      <tr><td>A site is down or showing a 5xx error</td><td>No. You reached the server fine, it failed after that.</td></tr>
+      <tr><td>Your internet is generally flaky</td><td>No. Nothing to do with cached names.</td></tr>
+      <tr><td>A certificate warning</td><td>No. That is TLS, after the connection is made.</td></tr>
+      <tr><td>Some pages load and others do not</td><td>No. If DNS resolved once, it resolved.</td></tr>
+    </tbody>
+  </table>
+
+  <p>If you landed on the bottom half of that table, the useful pages are elsewhere. For a browser that cannot resolve a name at all, <a href="https://www.kloudbean.com/blog/err-name-not-resolved/">ERR_NAME_NOT_RESOLVED</a> walks the actual diagnosis, including why a brand-new record can keep failing after you fixed it. For slowness, <a href="https://www.kloudbean.com/blog/fix-slow-dns-lookup/">fixing slow DNS lookups</a> measures it properly first. For a site that responds and then errors, <a href="https://www.kloudbean.com/blog/http-error-500-internal-server-error/">500 Internal Server Error</a>.</p>
+
+  <h2>Four caches, and you control two of them</h2>
+  <p>This is the part that explains the most common complaint about flushing, which is that it did not work.</p>
+
+  <p>A DNS answer can be held in several places on its way to you. Each one has its own lifetime, and each one is independently capable of handing you a stale answer:</p>
+
+  <table class="cmp">
+    <thead><tr><th>Cache</th><th>Yours to clear?</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Your browser</td><td><strong>Yes</strong></td><td>Separate from the operating system. Chrome keeps its own.</td></tr>
+      <tr><td>Your operating system</td><td><strong>Yes</strong></td><td>This is what the flush commands below target.</td></tr>
+      <tr><td>Your router</td><td>Rarely</td><td>Many home routers cache. Rebooting it is the usual blunt instrument.</td></tr>
+      <tr><td>Your ISP or public resolver</td><td><strong>No</strong></td><td>Holds the answer until the record's TTL expires. You wait.</td></tr>
+    </tbody>
+  </table>
+
+  <p>So when someone flushes, reloads, and still sees the old site, nothing failed. They cleared the two caches they own and are now being served a stale answer by one they do not. That is not a bug and there is no command for it. The record's TTL governs how long it lasts, which is why the last section of this page is about setting TTL before you make a change rather than flushing after.</p>
+
+  <figure>
+    <svg viewBox="0 0 880 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="fd-title fd-desc">
+      <title id="fd-title">The four DNS caches between you and a website</title>
+      <desc id="fd-desc">A DNS answer can be cached in the browser, the operating system, the router, and the ISP or public resolver. Flushing clears only the browser and operating system caches. The router and the resolver hold their answers until the record's time to live expires.</desc>
+      <rect x="0" y="0" width="880" height="250" fill="#ffffff"/>
+      <g font-family="Poppins, sans-serif" font-size="12" fill="#000f27">
+        <rect x="18" y="52" width="180" height="72" rx="10" fill="#40b75f"/>
+        <text x="108" y="78" text-anchor="middle" fill="#ffffff" font-size="12.5" font-weight="600">Browser cache</text>
+        <text x="108" y="98" text-anchor="middle" fill="#ffffff" font-size="11">you can clear this</text>
+
+        <rect x="226" y="52" width="180" height="72" rx="10" fill="#40b75f"/>
+        <text x="316" y="78" text-anchor="middle" fill="#ffffff" font-size="12.5" font-weight="600">OS resolver cache</text>
+        <text x="316" y="98" text-anchor="middle" fill="#ffffff" font-size="11">you can clear this</text>
+
+        <rect x="434" y="52" width="180" height="72" rx="10" fill="#98a2b3"/>
+        <text x="524" y="78" text-anchor="middle" fill="#ffffff" font-size="12.5" font-weight="600">Router cache</text>
+        <text x="524" y="98" text-anchor="middle" fill="#ffffff" font-size="11">reboot, maybe</text>
+
+        <rect x="642" y="52" width="220" height="72" rx="10" fill="#c0392b"/>
+        <text x="752" y="78" text-anchor="middle" fill="#ffffff" font-size="12.5" font-weight="600">ISP or public resolver</text>
+        <text x="752" y="98" text-anchor="middle" fill="#ffffff" font-size="11">you wait for the TTL</text>
+
+        <g stroke="#98a2b3" stroke-width="2" fill="none" marker-end="url(#d4)">
+          <path d="M200 88 H222"/><path d="M408 88 H430"/><path d="M616 88 H638"/>
+        </g>
+
+        <rect x="18" y="20" width="388" height="24" rx="6" fill="#e8f7ed"/>
+        <text x="32" y="37" font-size="11.5" fill="#2f8f49">What a flush command reaches</text>
+
+        <rect x="434" y="20" width="428" height="24" rx="6" fill="#fdeeee"/>
+        <text x="448" y="37" font-size="11.5" fill="#c0392b">What it does not, no matter how many times you run it</text>
+
+        <rect x="18" y="146" width="844" height="30" rx="7" fill="#f1f3f7"/>
+        <text x="32" y="166" font-size="12">Any one of these four can hand you a stale address. Only the first two answer to a command.</text>
+
+        <rect x="18" y="186" width="844" height="30" rx="7" fill="#000f27"/>
+        <text x="32" y="206" font-size="12" fill="#ffffff">Which is why lowering the TTL before you change a record beats flushing after you changed it.</text>
+      </g>
+      <defs>
+        <marker id="d4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#98a2b3"/></marker>
+      </defs>
+    </svg>
+    <figcaption>Two green boxes respond to commands. The red one responds to patience.</figcaption>
+  </figure>
+
+  <h2>The commands, by platform</h2>
+
+  <p><strong>macOS.</strong> Two parts, and both matter. The first clears the directory service cache, the second tells the multicast DNS responder to reload, and on current macOS the first alone does not do the job:</p>
+
+  <pre><code>sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder</code></pre>
+
+  <p>No output on success, which is normal and not a sign it failed. If you are on a much older release you may find only one of the two commands exists, in which case run the one that does.</p>
+
+  <p><strong>Windows.</strong> One command, and it needs an administrator prompt. Right-click Command Prompt or PowerShell and choose to run as administrator, otherwise you get a permissions error:</p>
+
+  <pre><code>ipconfig /flushdns
+
+REM Useful neighbours while you are in there
+ipconfig /displaydns
+ipconfig /registerdns</code></pre>
+
+  <p><strong>Linux, where it depends on what you are running.</strong> This is the part most guides get wrong, because they assume a cache exists.</p>
+
+  <table class="cmp">
+    <thead><tr><th>What you run</th><th>Command</th></tr></thead>
+    <tbody>
+      <tr><td><code>systemd-resolved</code>, common on modern distributions</td><td><code>sudo resolvectl flush-caches</code>, or <code>sudo systemd-resolve --flush-caches</code> on older versions</td></tr>
+      <tr><td><code>nscd</code></td><td><code>sudo systemctl restart nscd</code>. It is restarted rather than flushed.</td></tr>
+      <tr><td><code>dnsmasq</code></td><td><code>sudo systemctl restart dnsmasq</code></td></tr>
+      <tr><td><strong>None of the above</strong></td><td><strong>Nothing to flush.</strong> There is no cache.</td></tr>
+    </tbody>
+  </table>
+
+  <p>That last row is the one worth internalising. glibc, the C library most Linux systems resolve names through, does not cache DNS answers on its own. Caching only happens if something like the three above is installed and running. So on a plain server, every flush command you paste will either fail with a command-not-found or succeed while doing nothing, and either way the stale answer you are chasing is upstream rather than local. Check what you actually have first:</p>
+
+  <pre><code># Is a local resolver even in play?
+systemctl is-active systemd-resolved nscd dnsmasq 2>/dev/null
+# What is your system actually asking?
+cat /etc/resolv.conf</code></pre>
+
+  <p>If <code>/etc/resolv.conf</code> points at a public resolver directly and none of those services is active, your machine holds no cache, and there is nothing local to clear.</p>
+
+  <h2>Your browser keeps its own, separately</h2>
+  <p>A frequent source of the flush that appeared to do nothing.</p>
+
+  <p>Chrome maintains a DNS cache independent of the operating system, so an OS-level flush leaves it untouched. Clear it at <code>chrome://net-internals/#dns</code>. While you are there, Chrome also pools open sockets, and a connection already established will keep being used regardless of what any DNS cache says, so a full browser restart is a reasonable follow-up when a flush seems ineffective.</p>
+
+  <p>Firefox and Edge behave similarly enough that the same rule applies: restart the browser rather than assuming the operating system command covered it. And if you are testing whether a change has taken effect, a private window avoids a second layer of confusion from the ordinary page cache.</p>
+
+  <div class="note">
+    <strong>One more local override worth checking.</strong> Your hosts file beats DNS entirely, cache or no cache. A line added months ago to test a migration will keep pointing you at an old server forever, and it creates the specific comedy where a site works for everyone except the person who built it. Look in <code>/etc/hosts</code> on macOS and Linux, or <code>C:\Windows\System32\drivers\etc\hosts</code> on Windows.
+  </div>
+
+  <h2>How to check whether it actually worked</h2>
+  <p>Almost no guide includes this step, and it is what turns guesswork into a diagnosis. Ask three different sources the same question and compare.</p>
+
+  <pre><code># 1. What does my machine resolve right now?
+dig +short example.com
+nslookup example.com          # if dig is unavailable
+
+# 2. What does the authoritative nameserver say? This is the truth.
+dig +short example.com @ns1.yourprovider.com
+
+# 3. What does a public resolver say? This is what most visitors get.
+dig +short example.com @1.1.1.1
+
+# How long until caches are allowed to forget the old answer?
+dig +noall +answer example.com</code></pre>
+
+  <p>Read the results like this. If 1 differs from 2 but 3 matches 2, your local cache was the problem and flushing fixed it. If both 1 and 3 differ from 2, the stale answer is in resolvers you do not control, and the remaining time is the TTL from that last command. If all three agree and the site still misbehaves, DNS is not your problem and you should stop here.</p>
+
+  <p>That last case is worth saying twice, because DNS gets blamed for a lot of things it did not do. Once resolution returns the right address, everything after that is the server, the application, or TLS.</p>
+
+  <h2>The fix that stops you needing this: lower the TTL first</h2>
+  <p>An opinion. Flushing is damage control. TTL is the control.</p>
+
+  <p>Every DNS record carries a time to live, which tells resolvers how long they may keep the answer. That value is what decides how long a change takes to reach everyone, and it is entirely in your hands ahead of time.</p>
+
+  <p>So if you know a change is coming, whether a host migration or a new server, drop the TTL on the records you are about to change well before you change them. Long enough before that the old, longer TTL has expired everywhere. Then make the change, let it settle, and put the TTL back up. Do that and there is no propagation drama, because no resolver was holding your record for hours in the first place.</p>
+
+  <p>Doing it the other way round, changing the record and then trying to hurry the world along, is where the flushing folklore comes from. There is no command that reaches other people's resolvers. <a href="https://www.kloudbean.com/blog/dns-explained/">DNS explained</a> covers TTL and records properly, and <a href="https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/">migrating hosting without downtime</a> puts the TTL step in its correct place in a real move.</p>
+
+  <h2>Where hosting fits, honestly</h2>
+  <p>Straightforwardly: nothing on this page needs a hosting provider. These are operating system commands, and DNS is a public system that belongs to nobody.</p>
+
+  <p>Where it becomes a hosting question is the migration case, which is what sends most people looking for a flush command in the first place. On Kloudbean, free migration assistance means the cutover sequence, including lowering TTL before the switch rather than discovering it afterwards, is handled with you rather than left as a step you find out about from a support thread. SSL is issued and renewed free once the domain points at the server, so the certificate does not become a second problem the moment DNS resolves. Staging for WordPress and Laravel means you can confirm the new server serves the site correctly before any record changes at all, which is the real way to avoid a bad cutover. Seven cloud providers to move onto.</p>
+
+  <p>The boundary as usual. Managed covers the server, the stack, TLS, backups, and patching. Your domain, your DNS records, and how long other people's resolvers hold them stay outside anyone's control.</p>
+
+  <h2>Related reading</h2>
+  <p>If you are actually debugging rather than looking up a command: <a href="https://www.kloudbean.com/blog/err-name-not-resolved/">ERR_NAME_NOT_RESOLVED</a> for a name that will not resolve, including why a record you just fixed can keep failing, and <a href="https://www.kloudbean.com/blog/fix-slow-dns-lookup/">fixing slow DNS lookups</a> when resolution works but drags. For the concepts behind all of it, <a href="https://www.kloudbean.com/blog/dns-explained/">DNS explained</a>. For the cutover where TTL actually matters, <a href="https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/">migrating hosting with zero downtime</a> and <a href="https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/">pointing a custom domain at your app</a>. And when the name resolves fine but the server then fails, <a href="https://www.kloudbean.com/blog/http-error-500-internal-server-error/">500 Internal Server Error</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Move a site without the propagation drama.</p>
+    <p style="margin:0 0 .6em">Managed hosting across seven clouds with free migration assistance, so the cutover sequence and the TTL step are handled with you. Staging for WordPress and Laravel to verify the new server before you touch a single DNS record. Free SSL issued and renewed. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Free migration assistance · Staging · Free SSL · Seven clouds · One dashboard</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does flushing DNS do?</h3>
+    <p>It empties the store of recent name-to-address answers your computer keeps, so the next lookup asks a resolver for a fresh answer instead of reusing the remembered one. That is all it does. It fixes a stale address and nothing else.</p>
+
+    <h3>How do I flush the DNS cache on a Mac?</h3>
+    <p>Run sudo dscacheutil -flushcache followed by sudo killall -HUP mDNSResponder, which can be combined on one line separated by a semicolon. Both parts matter, because on current macOS the first command alone is not sufficient. Success produces no output, which is normal.</p>
+
+    <h3>How do I flush DNS on Windows?</h3>
+    <p>Open Command Prompt or PowerShell as an administrator and run ipconfig /flushdns. Without elevation you will get a permissions error. You can inspect the cache first with ipconfig /displaydns if you want to see what is being held.</p>
+
+    <h3>How do I flush the DNS cache on Linux?</h3>
+    <p>It depends what you run, and you may have no cache at all. With systemd-resolved use sudo resolvectl flush-caches. With nscd or dnsmasq you restart the service rather than flushing it. glibc does not cache DNS answers by default, so if none of those services is active there is nothing local to clear and the stale answer is upstream.</p>
+
+    <h3>Why did flushing DNS not fix anything?</h3>
+    <p>Most likely because the stale answer is not in a cache you can reach. There are usually four: your browser, your operating system, your router, and your ISP or public resolver. You can clear the first two. The resolver holds its answer until the record's TTL expires, and no command changes that.</p>
+
+    <h3>Does flushing DNS speed up my internet?</h3>
+    <p>No. Resolution is a small fraction of page load time, and a cache normally makes things faster rather than slower by avoiding repeat lookups. If pages are slow, the cause is almost always elsewhere. Measuring resolution time properly is the first step before assuming DNS is involved.</p>
+
+    <h3>Does flushing DNS clear my browser cache too?</h3>
+    <p>No, they are separate things, and Chrome additionally keeps its own DNS cache apart from the operating system. Clear that at chrome://net-internals/#dns. Chrome also reuses already-open sockets, so a full browser restart is a sensible follow-up when a flush appears to have done nothing.</p>
+
+    <h3>How long does DNS propagation actually take?</h3>
+    <p>It is governed by the TTL on the record, not by a fixed duration, so the honest answer is that it depends on what you set. Lowering the TTL well before a planned change is what makes a cutover quick, and doing that ahead of time is far more effective than flushing anything afterwards.</p>
+
+    <h3>Is there any risk in flushing my DNS cache?</h3>
+    <p>Practically none. The worst outcome is that the next few lookups are marginally slower because the answers have to be fetched again. It is a safe thing to try. It is just rarely the thing that was wrong.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Set the TTL before the change. Flushing after is just tidying up.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Flush DNS Cache: What It Does, and the Two Caches You Cannot Clear","description":"Flushing your DNS cache fixes one narrow problem and none of the others people use it for. The commands for macOS, Windows and Linux, plus how to check it worked.","image":"https://www.kloudbean.com/blog/flush-dns-cache/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/flush-dns-cache/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does flushing DNS do?","acceptedAnswer":{"@type":"Answer","text":"It empties the store of recent name-to-address answers your computer keeps, so the next lookup asks a resolver for a fresh answer instead of reusing the remembered one. That is all it does. It fixes a stale address and nothing else."}},
+{"@type":"Question","name":"How do I flush the DNS cache on a Mac?","acceptedAnswer":{"@type":"Answer","text":"Run sudo dscacheutil -flushcache followed by sudo killall -HUP mDNSResponder, which can be combined on one line separated by a semicolon. Both parts matter, because on current macOS the first command alone is not sufficient. Success produces no output, which is normal."}},
+{"@type":"Question","name":"How do I flush DNS on Windows?","acceptedAnswer":{"@type":"Answer","text":"Open Command Prompt or PowerShell as an administrator and run ipconfig /flushdns. Without elevation you will get a permissions error. You can inspect the cache first with ipconfig /displaydns if you want to see what is being held."}},
+{"@type":"Question","name":"How do I flush the DNS cache on Linux?","acceptedAnswer":{"@type":"Answer","text":"It depends what you run, and you may have no cache at all. With systemd-resolved use sudo resolvectl flush-caches. With nscd or dnsmasq you restart the service rather than flushing it. glibc does not cache DNS answers by default, so if none of those services is active there is nothing local to clear and the stale answer is upstream."}},
+{"@type":"Question","name":"Why did flushing DNS not fix anything?","acceptedAnswer":{"@type":"Answer","text":"Most likely because the stale answer is not in a cache you can reach. There are usually four: your browser, your operating system, your router, and your ISP or public resolver. You can clear the first two. The resolver holds its answer until the record's TTL expires, and no command changes that."}},
+{"@type":"Question","name":"Does flushing DNS speed up my internet?","acceptedAnswer":{"@type":"Answer","text":"No. Resolution is a small fraction of page load time, and a cache normally makes things faster rather than slower by avoiding repeat lookups. If pages are slow, the cause is almost always elsewhere. Measuring resolution time properly is the first step before assuming DNS is involved."}},
+{"@type":"Question","name":"Does flushing DNS clear my browser cache too?","acceptedAnswer":{"@type":"Answer","text":"No, they are separate things, and Chrome additionally keeps its own DNS cache apart from the operating system. Clear that at chrome://net-internals/#dns. Chrome also reuses already-open sockets, so a full browser restart is a sensible follow-up when a flush appears to have done nothing."}},
+{"@type":"Question","name":"How long does DNS propagation actually take?","acceptedAnswer":{"@type":"Answer","text":"It is governed by the TTL on the record, not by a fixed duration, so the honest answer is that it depends on what you set. Lowering the TTL well before a planned change is what makes a cutover quick, and doing that ahead of time is far more effective than flushing anything afterwards."}},
+{"@type":"Question","name":"Is there any risk in flushing my DNS cache?","acceptedAnswer":{"@type":"Answer","text":"Practically none. The worst outcome is that the next few lookups are marginally slower because the answers have to be fetched again. It is a safe thing to try. It is just rarely the thing that was wrong."}}
+]}
+]}
+</script>
+</body>
+</html>

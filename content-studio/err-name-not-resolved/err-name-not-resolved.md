@@ -149,7 +149,7 @@ ipconfig /flushdns
 resolvectl flush-caches
 ```
 
-Chrome keeps its own cache separately from the operating system, which is why an OS flush sometimes appears to do nothing. Clear it at `chrome://net-internals/#dns`, and note that a socket pool can hold connections too, so a full browser restart is a reasonable next step.
+For the platform-by-platform reference, including the Linux case where there may be no cache to flush at all, see [flushing your DNS cache](https://www.kloudbean.com/blog/flush-dns-cache/). Chrome keeps its own cache separately from the operating system, which is why an OS flush sometimes appears to do nothing. Clear it at `chrome://net-internals/#dns`, and note that a socket pool can hold connections too, so a full browser restart is a reasonable next step.
 
 Check the hosts file as well, particularly on a developer machine. An entry added months ago to test a migration will happily override public DNS forever, and it produces the confusing case where a site works for everyone except the person who built it.
 
