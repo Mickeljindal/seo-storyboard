@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTTP Error 408 Request Timeout: The Client Was Too Slow</title>
+<meta name="description" content="408 request timeout blames the sender, not the server, which is the opposite of 504 and 524. Why nginx logs 408s nobody sees, and why a load balancer turns them into 502s.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/http-error-408-request-timeout/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HTTP Error 408 Request Timeout: The Client Was Too Slow">
+<meta property="og:description" content="Every other timeout code blames the server for a slow response. 408 blames the client for a slow request. That inversion is where the debugging goes wrong.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">HTTP status codes · Timeouts · Field guide</span>
+  <h1>HTTP Error 408 Request Timeout: The Client Was Too Slow</h1>
+  <p class="byline">By Kloudbean Engineering · Every other timeout blames the server. This one blames the sender.</p>
+
+  <figure><img src="images/hero.png" alt="A terminal showing 408 entries in an nginx access log beside the client body timeout directive in a configuration file"></figure>
+
+  <p class="lead">A 408 request timeout is the odd one out in the timeout family. Every other code you'll meet with the word timeout in it means the server took too long to answer. This one means the opposite: the server was waiting, ready, and your request never finished arriving. That inversion trips up almost everyone, and it sends people tuning response timeouts that have nothing to do with the problem. There's also a good chance the 408s in your log were never seen by a single visitor.</p>
+
+  <div class="tldr">
+    <strong>What does a 408 request timeout mean?</strong>
+    <p>Per RFC 9110, the server did not receive a complete request message within the time it was prepared to wait. So the request stalled partway: headers or body never finished arriving. That's the reverse of 504 and 524, where the request arrived fine and the response was too slow. Two practical surprises. In nginx, 408 is largely a status written to logs rather than sent to clients, so your access log can show 408s that nobody experienced. And if nginx sits behind a cloud load balancer, that silent connection close is often reported to the client as a 502 instead.</p>
+  </div>
+
+  <h2>408 blames the sender. 504 and 524 blame the server</h2>
+  <p>Get this straight before touching any configuration, because the two halves of the timeout family need opposite fixes.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Code</th><th>What was too slow</th><th>Which timeout to look at</th></tr></thead>
+    <tbody>
+      <tr><td><strong>408</strong> Request Timeout</td><td>The request arriving from the client</td><td>Read timeouts: header and body</td></tr>
+      <tr><td><strong>504</strong> Gateway Timeout</td><td>The upstream response coming back</td><td>Proxy read timeouts, slow queries</td></tr>
+      <tr><td><strong>524</strong> (Cloudflare)</td><td>The origin response coming back</td><td>Application work, background jobs</td></tr>
+      <tr><td><strong>522</strong> (Cloudflare)</td><td>Nothing. The connection never opened</td><td>Filtering, capacity, routing</td></tr>
+    </tbody>
+  </table>
+
+  <p>If you're actually looking at a slow response rather than a slow request, <a href="https://www.kloudbean.com/blog/fix-504-gateway-timeout/">504 Gateway Timeout</a> is the right guide and it covers the five real causes plus when raising a timeout is legitimate. For the edge version of the same split, <a href="https://www.kloudbean.com/blog/cloudflare-error-522-connection-timed-out/">522 versus 524</a>.</p>
+
+  <figure>
+    <svg viewBox="0 0 860 270" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="t408-title t408-desc">
+      <title id="t408-title">A slow request versus a slow response</title>
+      <desc id="t408-desc">In a 408 the request from the client stalls partway and the server gives up waiting. In a 504 or 524 the request arrives complete and the response from the server is what takes too long.</desc>
+      <rect x="0" y="0" width="860" height="270" fill="#ffffff"/>
+      <g font-family="Poppins, sans-serif" font-size="13" fill="#000f27">
+        <text x="20" y="26" font-size="13.5" font-weight="600" fill="#c0392b">408: the request never finished arriving</text>
+        <rect x="20" y="38" width="120" height="52" rx="9" fill="#000f27"/>
+        <text x="80" y="60" text-anchor="middle" fill="#ffffff" font-size="12.5" font-weight="600">Client</text>
+        <text x="80" y="78" text-anchor="middle" fill="#ffffff" font-size="11">sending slowly</text>
+        <rect x="700" y="38" width="140" height="52" rx="9" fill="#40b75f"/>
+        <text x="770" y="60" text-anchor="middle" fill="#ffffff" font-size="12.5" font-weight="600">Server</text>
+        <text x="770" y="78" text-anchor="middle" fill="#ffffff" font-size="11">waiting, then gives up</text>
+        <g stroke="#c0392b" stroke-width="2.5" fill="none" stroke-dasharray="8 6">
+          <path d="M142 64 H430"/>
+        </g>
+        <text x="470" y="60" font-size="24" fill="#c0392b" font-weight="700">x</text>
+        <text x="300" y="106" text-anchor="middle" font-size="11.5">stalls partway: headers or body incomplete</text>
+
+        <text x="20" y="146" font-size="13.5" font-weight="600" fill="#4F1AF3">504 and 524: the response never came back</text>
+        <rect x="20" y="158" width="120" height="52" rx="9" fill="#000f27"/>
+        <text x="80" y="180" text-anchor="middle" fill="#ffffff" font-size="12.5" font-weight="600">Client</text>
+        <text x="80" y="198" text-anchor="middle" fill="#ffffff" font-size="11">waiting</text>
+        <rect x="700" y="158" width="140" height="52" rx="9" fill="#40b75f"/>
+        <text x="770" y="180" text-anchor="middle" fill="#ffffff" font-size="12.5" font-weight="600">Server</text>
+        <text x="770" y="198" text-anchor="middle" fill="#ffffff" font-size="11">still working</text>
+        <g stroke="#40b75f" stroke-width="2.5" fill="none" marker-end="url(#t1)">
+          <path d="M142 176 H696"/>
+        </g>
+        <text x="419" y="168" text-anchor="middle" font-size="11.5">request arrives complete</text>
+        <g stroke="#4F1AF3" stroke-width="2.5" fill="none" stroke-dasharray="8 6">
+          <path d="M696 200 H430"/>
+        </g>
+        <text x="390" y="204" font-size="24" fill="#4F1AF3" font-weight="700">x</text>
+        <text x="560" y="222" text-anchor="middle" font-size="11.5">response too slow to finish</text>
+
+        <rect x="20" y="234" width="820" height="28" rx="7" fill="#f4f2ff"/>
+        <text x="34" y="253" font-size="12.5">Same word, opposite direction. Tuning a proxy read timeout will never fix a 408.</text>
+      </g>
+      <defs>
+        <marker id="t1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#40b75f"/></marker>
+      </defs>
+    </svg>
+    <figcaption>The direction of the stall decides which timeout matters.</figcaption>
+  </figure>
+
+  <h2>Why your nginx log shows 408s nobody reported</h2>
+  <p>This is the part that saves the most wasted time, and it comes from nginx's own issue tracker rather than from folklore.</p>
+
+  <p>When <code>client_header_timeout</code> or <code>client_body_timeout</code> expires, nginx closes the connection <strong>without sending anything back</strong>. The position recorded in nginx's tracker is that the 408 status is only used when writing logs, and that sending a response to a connection that has already timed out is considered a waste of resources. There's a long-standing nginx ticket noting that <code>client_body_timeout</code> does not send a 408 the way people expect it to.</p>
+
+  <p>Three consequences follow, and each one explains a common confusion:</p>
+
+  <table class="cmp">
+    <thead><tr><th>What you observe</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>408s in the access log, zero support tickets</td><td>Nothing was sent to the client. The status exists only in your log line.</td></tr>
+      <tr><td><code>error_page 408</code> appears to do nothing</td><td>There is no response to replace, so there is nothing for the directive to act on.</td></tr>
+      <tr><td>408s that correlate with nothing in particular</td><td>Idle connections closing get logged the same way. Often entirely harmless.</td></tr>
+    </tbody>
+  </table>
+
+  <p>So before you treat a log full of 408s as an incident, work out whether any human was affected. Correlate against real user-facing failures rather than assuming the log line implies one:</p>
+  <pre><code># How many 408s, and did they carry any request at all?
+awk '$9 == 408 {print $7}' /var/log/nginx/access.log | sort | uniq -c | sort -rn | head
+# A large count of "-" request paths points at idle connections, not broken users.</code></pre>
+
+  <h2>The 502 that is really a 408</h2>
+  <p>Here's where the log-only behaviour stops being a curiosity and starts costing real debugging hours.</p>
+
+  <p>Put nginx behind a cloud load balancer, which is the normal shape of a production deployment now. A client stalls mid-request. nginx hits its read timeout and closes the connection silently, exactly as designed. The load balancer, sitting in front, sees its backend connection terminated with no response and reports that to the client as a <strong>502</strong>.</p>
+
+  <p>The nginx feature request asking for an optional real 408 response was filed for precisely this reason: a 502 normally means a server-side failure, so getting one from a client-side problem is genuinely misleading. Your monitoring lights up with backend errors. Your team starts looking at the application. The application was fine, and so was nginx. The client's upload stalled.</p>
+
+  <p>How to recognise it: 502s at the load balancer that have no matching 5xx in the nginx log, paired with 408 lines at roughly the same timestamps. That combination is close to diagnostic. If you're chasing 502s more generally, <a href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/">502 Bad Gateway</a> covers the ordinary causes, and <a href="https://www.kloudbean.com/blog/cloud-load-balancer-explained/">how load balancers work</a> covers why the front and back halves report differently.</p>
+
+  <h2>If you are hitting 408s as a user</h2>
+  <p>Short list, because there genuinely isn't much on your side.</p>
+
+  <p><strong>Retry.</strong> The spec explicitly allows it: if the client has an outstanding request in transit it may repeat it, on a new connection if the old one is no longer usable. A stalled request is frequently a transient network event, and most 408s a browser encounters are retried without you ever noticing.</p>
+
+  <p><strong>Suspect your connection before the site.</strong> A large form or file upload over a weak mobile or hotel connection is the classic cause. The bytes trickle, the server's patience runs out. Try the same action on a different network before concluding the site is broken.</p>
+
+  <p><strong>Check the size of what you're sending.</strong> If it only fails on large uploads, you may be near a limit rather than a timeout, and those produce different codes. A body that exceeds the configured maximum returns 413, not 408, so which code you get tells you which wall you hit.</p>
+
+  <h2>If you operate the server</h2>
+
+  <p><strong>Know which directive governs the read.</strong> The names differ per server and mixing them up with response timeouts is the usual mistake.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Server</th><th>Governs how long it waits for the request</th></tr></thead>
+    <tbody>
+      <tr><td>nginx</td><td><code>client_header_timeout</code> and <code>client_body_timeout</code>, both 60 seconds by default</td></tr>
+      <tr><td>Apache</td><td><code>Timeout</code>, and more precisely <code>RequestReadTimeout</code> from <code>mod_reqtimeout</code></td></tr>
+      <tr><td>IIS</td><td><code>connectionTimeout</code></td></tr>
+    </tbody>
+  </table>
+
+  <p>Note that Apache's <code>mod_reqtimeout</code> is the more useful control, because it can express a minimum data rate rather than a flat deadline. That distinction matters for the next section.</p>
+
+  <p><strong>Separate the harmless 408s from the real ones.</strong> Idle keep-alive connections closing look identical in a log to a genuinely stalled upload. Logging the request path and the bytes received alongside the status is what makes them distinguishable, which is a good argument for <a href="https://www.kloudbean.com/blog/structured-logging-nodejs/">structured logging</a> rather than parsing a combined-format line with awk forever.</p>
+
+  <p><strong>Raise read timeouts deliberately, not reflexively.</strong> If real users on slow connections are failing legitimate uploads, a longer body timeout is the correct fix. Just understand what you're trading, which is the next section.</p>
+
+  <h2>Slowloris, and why the timeout exists at all</h2>
+  <p>The read timeout isn't arbitrary tidiness. It's a security control.</p>
+
+  <p>The Slowloris technique works by opening many connections and sending each request deliberately slowly, never completing any of them. Every open connection holds a worker slot. Send them slowly enough and the server stays technically healthy while having no capacity left for anyone real. The read timeout is what reclaims those slots.</p>
+
+  <p>Which means raising it has a cost. A longer <code>client_body_timeout</code> is more forgiving of genuine slow uploads and also cheaper to exhaust. There's no universally right number, and anyone who gives you one without asking about your traffic is guessing. The better answer, where your server supports it, is a minimum data rate rather than a flat deadline: that tolerates a slow-but-progressing upload while still cutting off a connection that is deliberately dribbling. Apache's <code>mod_reqtimeout</code> expresses exactly that.</p>
+
+  <p>One practical read on the logs: a sudden spike in 408-class lines from a narrow set of addresses, with almost no bytes received on each, looks much more like this technique than like a network fault. Worth checking before tuning anything upward.</p>
+
+  <h2>Where hosting fits, honestly</h2>
+  <p>Start with the limit. If a visitor is on a poor mobile connection, nothing you configure on the server fixes their upload. That's their network, and the honest extent of your influence is choosing not to set a timeout so tight that ordinary mobile traffic fails.</p>
+
+  <p>The genuinely useful thing a managed platform contributes here is visibility, and the log-only behaviour above is exactly why. On Kloudbean the reverse proxy is managed with maintained timeout configuration rather than a file someone edited once, and server health metrics sit in the same dashboard as both the server and application logs. That matters for this specific error because the diagnosis depends entirely on correlating a log line against whether any real request was affected, and against whether connection counts were climbing at the time. Seven cloud providers, free SSL issued and renewed, and free migration assistance if you're moving something already running.</p>
+
+  <p>The boundary stays where it always is. Managed covers the server, the stack, TLS, backups, and patching. Your application code, your upload flows, and your visitors' networks remain yours.</p>
+
+  <h2>Related reading</h2>
+  <p>The opposite direction, and the one people usually actually have: <a href="https://www.kloudbean.com/blog/fix-504-gateway-timeout/">504 Gateway Timeout</a>. At the edge, <a href="https://www.kloudbean.com/blog/cloudflare-error-522-connection-timed-out/">522 connection timed out</a> covers the two separate clocks Cloudflare runs. When the silent close surfaces as something else, <a href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/">502 Bad Gateway</a> and <a href="https://www.kloudbean.com/blog/cloud-load-balancer-explained/">cloud load balancers explained</a>. For a connection killed mid-flight rather than stalled, <a href="https://www.kloudbean.com/blog/err-connection-reset/">ERR_CONNECTION_RESET</a>. On the proxy layer itself, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">nginx as a reverse proxy for Node</a>. And if the failure is really about what you sent rather than how slowly, <a href="https://www.kloudbean.com/blog/http-error-415-unsupported-media-type/">415 Unsupported Media Type</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Correlate the log line against what actually happened.</p>
+    <p style="margin:0 0 .6em">Managed servers across seven clouds with a managed reverse proxy and maintained timeout configuration, plus server health metrics beside both server and application logs in one dashboard. Free SSL issued and renewed. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed reverse proxy · Server metrics · App and server logs · Free SSL · One dashboard</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does a 408 request timeout mean?</h3>
+    <p>Per RFC 9110 it means the server did not receive a complete request message within the time it was prepared to wait. The request stalled partway, so headers or body never finished arriving. It is a statement about the request coming in, not about the response going back, which makes it the opposite of 504 and 524.</p>
+
+    <h3>What is the difference between 408 and 504?</h3>
+    <p>Direction. A 408 means the request from the client was too slow to arrive, so you look at read timeouts for headers and body. A 504 means the request arrived fine and the upstream response was too slow, so you look at proxy read timeouts, slow queries, and long-running work. Tuning a proxy read timeout will never fix a 408.</p>
+
+    <h3>Why do I see 408s in my nginx log that no user reported?</h3>
+    <p>Because nginx largely uses 408 as a status written to logs rather than one sent to clients. When a header or body read timeout expires it closes the connection without responding, on the basis that replying to a timed-out connection wastes resources. So the log line can exist with no human ever having seen an error, and idle connections closing get recorded the same way.</p>
+
+    <h3>Why does error_page 408 not work in nginx?</h3>
+    <p>Because there is no response being sent for the directive to replace. The connection is closed silently when the read timeout expires, so there is nothing to substitute a custom page into. There is a long-standing request in nginx's tracker asking for an option to return a real 408 precisely because of this behaviour.</p>
+
+    <h3>Can a 408 show up as a 502?</h3>
+    <p>Yes, and it is a common source of misdirected debugging. If nginx sits behind a cloud load balancer, the silent connection close on a read timeout looks to the load balancer like a backend that terminated without responding, and it reports 502 to the client. The tell is 502s at the load balancer with no matching 5xx in the nginx log, alongside 408 lines at similar timestamps.</p>
+
+    <h3>Which timeout setting controls a 408?</h3>
+    <p>In nginx, client_header_timeout and client_body_timeout, both 60 seconds by default. In Apache, the Timeout directive and more precisely RequestReadTimeout from mod_reqtimeout. In IIS, connectionTimeout. All of these govern how long the server waits for the request to arrive, which is different from the directives that govern waiting for an upstream response.</p>
+
+    <h3>Should I just raise the request timeout?</h3>
+    <p>Only deliberately, because the timeout is a security control. The Slowloris technique holds many connections open with deliberately incomplete requests to exhaust worker slots, and the read timeout is what reclaims them. A longer timeout is more forgiving of genuine slow uploads and also cheaper to attack. Where your server supports a minimum data rate instead of a flat deadline, that is the better tool.</p>
+
+    <h3>Is a 408 my fault or the server's?</h3>
+    <p>Neither party is necessarily misbehaving. The server is reporting that it stopped waiting, which is usually correct behaviour, and the client may simply be on a slow or unstable connection. As a visitor, retry and try a different network. As an operator, check whether real requests were affected before treating the log entries as an incident.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Check whether a human was affected before you tune anything.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"HTTP Error 408 Request Timeout: The Client Was Too Slow","description":"408 request timeout blames the sender, not the server, which is the opposite of 504 and 524. Why nginx logs 408s nobody sees, and why a load balancer turns them into 502s.","image":"https://www.kloudbean.com/blog/http-error-408-request-timeout/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/http-error-408-request-timeout/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does a 408 request timeout mean?","acceptedAnswer":{"@type":"Answer","text":"Per RFC 9110 it means the server did not receive a complete request message within the time it was prepared to wait. The request stalled partway, so headers or body never finished arriving. It is a statement about the request coming in, not about the response going back, which makes it the opposite of 504 and 524."}},
+{"@type":"Question","name":"What is the difference between 408 and 504?","acceptedAnswer":{"@type":"Answer","text":"Direction. A 408 means the request from the client was too slow to arrive, so you look at read timeouts for headers and body. A 504 means the request arrived fine and the upstream response was too slow, so you look at proxy read timeouts, slow queries, and long-running work. Tuning a proxy read timeout will never fix a 408."}},
+{"@type":"Question","name":"Why do I see 408s in my nginx log that no user reported?","acceptedAnswer":{"@type":"Answer","text":"Because nginx largely uses 408 as a status written to logs rather than one sent to clients. When a header or body read timeout expires it closes the connection without responding, on the basis that replying to a timed-out connection wastes resources. So the log line can exist with no human ever having seen an error, and idle connections closing get recorded the same way."}},
+{"@type":"Question","name":"Why does error_page 408 not work in nginx?","acceptedAnswer":{"@type":"Answer","text":"Because there is no response being sent for the directive to replace. The connection is closed silently when the read timeout expires, so there is nothing to substitute a custom page into. There is a long-standing request in nginx's tracker asking for an option to return a real 408 precisely because of this behaviour."}},
+{"@type":"Question","name":"Can a 408 show up as a 502?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it is a common source of misdirected debugging. If nginx sits behind a cloud load balancer, the silent connection close on a read timeout looks to the load balancer like a backend that terminated without responding, and it reports 502 to the client. The tell is 502s at the load balancer with no matching 5xx in the nginx log, alongside 408 lines at similar timestamps."}},
+{"@type":"Question","name":"Which timeout setting controls a 408?","acceptedAnswer":{"@type":"Answer","text":"In nginx, client_header_timeout and client_body_timeout, both 60 seconds by default. In Apache, the Timeout directive and more precisely RequestReadTimeout from mod_reqtimeout. In IIS, connectionTimeout. All of these govern how long the server waits for the request to arrive, which is different from the directives that govern waiting for an upstream response."}},
+{"@type":"Question","name":"Should I just raise the request timeout?","acceptedAnswer":{"@type":"Answer","text":"Only deliberately, because the timeout is a security control. The Slowloris technique holds many connections open with deliberately incomplete requests to exhaust worker slots, and the read timeout is what reclaims them. A longer timeout is more forgiving of genuine slow uploads and also cheaper to attack. Where your server supports a minimum data rate instead of a flat deadline, that is the better tool."}},
+{"@type":"Question","name":"Is a 408 my fault or the server's?","acceptedAnswer":{"@type":"Answer","text":"Neither party is necessarily misbehaving. The server is reporting that it stopped waiting, which is usually correct behaviour, and the client may simply be on a slow or unstable connection. As a visitor, retry and try a different network. As an operator, check whether real requests were affected before treating the log entries as an incident."}}
+]}
+]}
+</script>
+</body>
+</html>
