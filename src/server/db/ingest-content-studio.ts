@@ -13,7 +13,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/pglite";
 import type { PGlite } from "@electric-sql/pglite";
 import { CLUSTERS } from "../../lib/pillars";
@@ -260,5 +260,67 @@ export async function ingestContentStudio(
   log(
     `content-studio ingest (${mode}): +${result.inserted} inserted, ${result.updated} updated, ${result.skipped} skipped of ${result.total}`,
   );
+
+  // Restore publish state from the committed manifest. Runs on every ingest,
+  // including the boot sync, which is what makes published status survive the
+  // ephemeral database being rebuilt on each restart. See applyPublishedManifest.
+  try {
+    const restored = await applyPublishedManifest(client, { root: rootDir, log });
+    if (restored > 0) log(`content-studio: restored ${restored} published article(s) from manifest`);
+  } catch (e) {
+    log(`content-studio: publish manifest skipped: ${(e as Error).message}`);
+  }
+
   return result;
+}
+
+type PublishedManifest = {
+  published?: { slug: string; published_url?: string; published_at?: string }[];
+};
+
+/**
+ * Mark articles published based on content-studio/_published.json, the committed
+ * record of what is actually live on WordPress.
+ *
+ * The engine's PGlite database is gitignored and, in the container, sits on an
+ * ephemeral filesystem, so a restart rebuilds it and every article reverts to
+ * "review". Ticking the publish tracker cannot survive that alone. This file
+ * ships with the deploy, so re-applying it on every boot keeps published status
+ * stable across restarts. Regenerate the file from WordPress with
+ * scripts/sync-published-from-wordpress.mjs.
+ *
+ * Idempotent and additive: it only ever promotes the listed slugs to published.
+ * It never un-publishes anything, so state set by other means is left alone.
+ */
+export async function applyPublishedManifest(
+  client: PGlite,
+  opts: { root?: string; log?: (m: string) => void } = {},
+): Promise<number> {
+  const rootDir = opts.root ?? path.join(process.cwd(), "content-studio");
+  const manifestPath = path.join(rootDir, "_published.json");
+  if (!fs.existsSync(manifestPath)) return 0;
+
+  const parsed = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as PublishedManifest;
+  const entries = parsed.published ?? [];
+  if (!entries.length) return 0;
+
+  const db = drizzle(client, { schema });
+  let restored = 0;
+  for (const entry of entries) {
+    if (!entry.slug) continue;
+    const publishedAt = entry.published_at ? new Date(entry.published_at) : new Date();
+    const res = await db
+      .update(articles)
+      .set({
+        status: "published",
+        approvalStatus: "published",
+        publishedAt: Number.isNaN(publishedAt.getTime()) ? new Date() : publishedAt,
+        publishedUrl: entry.published_url ?? null,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(articles.urlSlug, entry.slug), eq(articles.engineSource, ENGINE_SOURCE)))
+      .returning({ id: articles.id });
+    if (res.length) restored++;
+  }
+  return restored;
 }

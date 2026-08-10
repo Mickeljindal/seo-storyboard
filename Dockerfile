@@ -15,6 +15,9 @@ COPY --from=build /app/dist ./dist
 COPY database ./database
 COPY scripts ./scripts
 COPY src ./src
+# content-studio ships too: the boot sync reads the articles from here, and
+# _published.json in it is how published status survives the DB being rebuilt.
+COPY content-studio ./content-studio
 
 # Create local data directory for PGlite
 RUN mkdir -p .local
