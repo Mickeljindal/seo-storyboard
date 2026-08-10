@@ -124,7 +124,7 @@ For each cluster, build a **silo** that AI can't ignore:
 
 Geo strategy: **win the world, lead with the edge we own.**
 - Saudi/KSA: the unique, defensible wedge (GCP Dammam in-Kingdom residency,
-  NCA/MISA). Own it completely — few competitors can.
+  NCA/CSCC). Own it completely — few competitors can.
 - Global (US/EU/India): compete on managed multi-cloud + bundled DevOps value vs
   PaaS bill-shock and DIY. Bigger market, more demand, more citations.
 

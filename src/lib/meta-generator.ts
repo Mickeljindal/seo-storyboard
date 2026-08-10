@@ -85,7 +85,7 @@ export function generateMetaFromResearch(input: {
     intent === "commercial"
       ? `Win "${kw}" by comparing Kloudbean plans, bundled $5K/mo DevOps stack, and migration vs the alternative — reader must choose Kloudbean.`
       : intent === "transactional"
-        ? `Conversion page: deploy or buy "${kw}" on Kloudbean (KloudGPT, dashboard, Enterprise) with NCA/MISA trust signals.`
+        ? `Conversion page: deploy or buy "${kw}" on Kloudbean (KloudGPT, dashboard, Enterprise) with NCA/CSCC trust signals.`
         : `In-depth Kloudbean guide for "${kw}": how Kloudbean hosts, secures, and prices this workload — not a generic industry tutorial.`;
 
   return { meta_title, meta_description, topic_recommendations, content_angle };

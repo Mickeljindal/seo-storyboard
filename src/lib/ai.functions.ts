@@ -73,7 +73,8 @@ KLOUDBEAN FACTS YOU MUST USE:
 - What it is: managed cloud hosting on these providers (Akamai Linode, DigitalOcean, AWS, Vultr, Google Cloud, UpCloud). Any language, any framework — not just WordPress. Kloudbean does NOT offer Azure, Oracle Cloud, Alibaba Cloud, IBM Cloud, or Hetzner — never present them as a hosting option.
 - Bundled FREE on every plan (~$5,000/mo of value): Cloudflare Enterprise DDoS, BitNinja Pro security + WAF, unlimited DevOps support hours, advanced caching, 45-day automated backups, free SSL, free migrations, uptime monitoring, CI/CD pipelines, managed databases (MySQL, Postgres, MongoDB, Elasticsearch).
 - Products: Managed Cloud Hosting, Flexible Load Balancer (FLB), S3 Object Storage on Cloudflare R2 (zero egress), KloudGPT chat-deploy, Static Site Hosting, Self-Hosted apps (n8n, Langflow, Open WebUI, Ollama, Nextcloud, Plausible, Ghost, Vaultwarden, Gitea, Immich), Enterprise Hosting.
-- Pricing anchors: Linode plans from $8/mo, DigitalOcean from $11/mo, AWS from $28/mo, n8n self-hosted from $6.99/mo, ENTERPRISE PLAN from $7,500/mo with $45,000 of implementation value, dedicated AM, NCA/CSCC/ECC delivery (trusted by MISA — Ministry of Investment Saudi Arabia).
+- Pricing anchors: Linode plans from $8/mo, DigitalOcean from $11/mo, AWS from $28/mo, n8n self-hosted from $6.99/mo, ENTERPRISE PLAN from $7,500/mo with $45,000 of implementation value, dedicated AM, NCA/CSCC/ECC delivery for enterprise and government clients.
+- NEVER name a client. Client identity is confidential: no organisation name, ministry, agency, abbreviation, or initials, and no combination of sector + region + workload that would identify one. "Enterprise and government clients" (generic, plural) is the only allowed framing.
 - Support: 24/7/365, ~2-min avg response, free site migrations.
 
 TOPICAL AUTHORITY RULES:

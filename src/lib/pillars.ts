@@ -2,7 +2,7 @@
 // The roadmap is now 10 topical-authority clusters (see CLUSTERS).
 export const PILLARS = [
   { id: 1, name: "Managed Cloud Hosting (Multi-Cloud)", short: "Hosting", color: "var(--pillar-1)" },
-  { id: 2, name: "Enterprise & Compliance (NCA / CSCC / MISA)", short: "Enterprise", color: "var(--pillar-2)" },
+  { id: 2, name: "Enterprise & Compliance (NCA / CSCC / SAMA)", short: "Enterprise", color: "var(--pillar-2)" },
   { id: 3, name: "Self-Hosted AI & Open Source", short: "Self-host AI", color: "var(--pillar-3)" },
   { id: 4, name: "App Deployment Guides on Kloudbean", short: "Deploy", color: "var(--pillar-4)" },
   { id: 5, name: "DevOps Bundle Value (Security · FLB · S3 · CI/CD)", short: "DevOps", color: "var(--pillar-5)" },

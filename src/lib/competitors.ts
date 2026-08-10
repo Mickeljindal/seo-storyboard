@@ -53,14 +53,14 @@ export const COMPETITORS: Record<CompetitorId, Competitor> = {
     ],
     weaknesses: [
       "Security and CDN often cost extra (e.g. Cloudflare Enterprise add-on billed per domain) rather than bundled",
-      "Support hours are not unlimited managed DevOps the way Kloudbean positions",
-      "No in-Kingdom Saudi (Dammam) GCP residency positioning for NCA/MISA buyers",
+      "Support is ticket-based rather than the managed DevOps model Kloudbean positions",
+      "No in-Kingdom Saudi (Dammam) GCP residency positioning for NCA/CSCC buyers",
       "Now part of DigitalOcean — narrowing multi-cloud independence",
     ],
     kloudbeanWins: [
-      "Cloudflare Enterprise DDoS + BitNinja Pro WAF bundled FREE on every plan (no per-domain add-on)",
-      "Unlimited managed DevOps support hours, not capped tickets",
-      "7 providers incl. GCP me-central2 Dammam for KSA data residency + NCA/MISA delivery",
+      "Cloudflare + BitNinja security options vs per-domain CDN add-ons",
+      "Managed DevOps support, not capped tickets",
+      "7 providers incl. GCP me-central2 Dammam for KSA data residency + NCA/CSCC delivery",
       "45-day automated backups, free migrations, CI/CD, managed databases included",
     ],
     bestAngles: [
@@ -82,13 +82,13 @@ export const COMPETITORS: Record<CompetitorId, Competitor> = {
       "Limited region choice; no in-Kingdom Saudi (Dammam) residency",
       "Costs scale steeply for always-on services, bandwidth, and managed Postgres",
       "Not multi-cloud — you cannot choose GCP/AWS/Linode underneath",
-      "No bundled enterprise WAF/DDoS or unlimited managed DevOps support",
+      "No bundled enterprise WAF/DDoS or managed DevOps support",
     ],
     kloudbeanWins: [
       "Multi-cloud choice (7 providers) incl. GCP Dammam — Render is single-platform",
       "Bundled BitNinja + Cloudflare Enterprise security vs DIY on Render",
-      "Predictable managed pricing with unlimited DevOps support, not per-resource PaaS metering",
-      "Enterprise + NCA/MISA delivery path Render does not offer",
+      "Predictable managed pricing with managed DevOps support, not per-resource PaaS metering",
+      "Enterprise + NCA/CSCC delivery path Render does not offer",
     ],
     bestAngles: [
       "Render alternative with multi-cloud + Saudi data residency",
@@ -107,8 +107,8 @@ export const COMPETITORS: Record<CompetitorId, Competitor> = {
     ],
     weaknesses: [
       "Usage-based pricing can spike unpredictably for production workloads",
-      "Limited regions; no in-Kingdom Saudi (Dammam) residency or NCA/MISA path",
-      "No bundled enterprise security suite or unlimited managed DevOps",
+      "Limited regions; no in-Kingdom Saudi (Dammam) residency or NCA/CSCC path",
+      "No bundled enterprise security suite or managed DevOps support",
       "Not multi-cloud — no choice of GCP/AWS/Linode underneath",
     ],
     kloudbeanWins: [
@@ -135,14 +135,14 @@ export const COMPETITORS: Record<CompetitorId, Competitor> = {
     weaknesses: [
       "Bandwidth and function overages get expensive fast at scale",
       "Backend/stateful + heavy compute workloads are a poor fit",
-      "No in-Kingdom Saudi (Dammam) residency, NCA/MISA, or full managed-server control",
+      "No in-Kingdom Saudi (Dammam) residency, NCA/CSCC, or full managed-server control",
       "Not multi-cloud managed hosting — you don't own the underlying VM/DB stack",
     ],
     kloudbeanWins: [
       "Full managed servers + databases across 7 clouds vs front-end-only edge",
-      "GCP Dammam residency + NCA/MISA enterprise delivery for KSA",
+      "GCP Dammam residency + NCA/CSCC enterprise delivery for KSA",
       "Predictable managed pricing vs Vercel bandwidth/function overage",
-      "Bundled security + unlimited DevOps for full-stack production apps",
+      "Bundled security + managed DevOps for full-stack production apps",
     ],
     bestAngles: [
       "Vercel alternative for full-stack / backend-heavy apps",
@@ -159,11 +159,11 @@ export const COMPETITORS: Record<CompetitorId, Competitor> = {
     weaknesses: [
       "Premium pricing with visit/bandwidth caps per plan",
       "Single-cloud (GCP) — no Linode/AWS/Vultr/UpCloud choice",
-      "No KSA Dammam residency positioning for NCA/MISA buyers",
+      "No KSA Dammam residency positioning for NCA/CSCC buyers",
     ],
     kloudbeanWins: [
       "Multi-cloud incl. GCP Dammam for KSA residency",
-      "No visit caps; bundled security + unlimited DevOps",
+      "No visit caps; bundled security + managed DevOps",
       "Any stack, not WordPress-centric pricing",
     ],
     bestAngles: ["Kinsta alternative multi-cloud", "Kinsta vs Kloudbean pricing & visit caps"],
@@ -195,11 +195,11 @@ export const COMPETITORS: Record<CompetitorId, Competitor> = {
     weaknesses: [
       "Mostly unmanaged — you run ops, security, backups yourself",
       "No bundled enterprise WAF/DDoS or managed DevOps hours",
-      "No in-Kingdom Saudi residency for NCA/MISA",
+      "No in-Kingdom Saudi residency for NCA/CSCC",
     ],
     kloudbeanWins: [
       "Fully managed DigitalOcean (and 6 other clouds) with ops handled",
-      "Bundled BitNinja + Cloudflare Enterprise + backups",
+      "Cloudflare + BitNinja security with managed backups",
       "GCP Dammam residency path for KSA",
     ],
     bestAngles: ["Managed DigitalOcean via Kloudbean", "DigitalOcean DIY vs Kloudbean managed TCO"],
@@ -218,7 +218,7 @@ export const COMPETITORS: Record<CompetitorId, Competitor> = {
     kloudbeanWins: [
       "Predictable managed plans vs dyno/add-on costs",
       "Multi-cloud + GCP Dammam residency",
-      "Bundled security + unlimited DevOps",
+      "Bundled security + managed DevOps",
     ],
     bestAngles: ["Heroku alternative with predictable pricing", "Migrate off Heroku to Kloudbean"],
   },

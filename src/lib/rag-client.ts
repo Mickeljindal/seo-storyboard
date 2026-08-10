@@ -144,7 +144,7 @@ export async function ragGroundingForTopic(
   ];
   if (geo === "sa") {
     questions.push(
-      `For Saudi Arabia / KSA data residency, which Kloudbean cloud provider and region should be used, and what compliance (NCA/CSCC/SAMA/MISA) applies?`,
+      `For Saudi Arabia / KSA data residency, which Kloudbean cloud provider and region should be used, and what compliance (NCA/CSCC/SAMA) applies?`,
     );
   }
 

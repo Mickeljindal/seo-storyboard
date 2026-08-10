@@ -102,7 +102,7 @@ function Strategy() {
             />
             <IntentCard
               intent="transactional"
-              desc="Trial, deploy, enterprise — short path to CTA with trust (MISA, migration)."
+              desc="Trial, deploy, enterprise — short path to CTA with trust (compliance, migration)."
               examples={["deploy n8n cloud", "enterprise hosting KSA"]}
             />
             <IntentCard

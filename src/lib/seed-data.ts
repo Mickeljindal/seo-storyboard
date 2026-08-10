@@ -39,10 +39,14 @@ export const SEED_ARTICLES: SeedArticle[] = [
   { pillar: 1, priority: "medium", title: "KloudGPT: The Chat-First Way to Deploy a Cloud Server in Under 3 Minutes", target_keyword: "KloudGPT cloud deployment" },
   { pillar: 1, priority: "medium", title: "Free Site Migration to Kloudbean: How the Team Moves Your Stack in 24 Hours", target_keyword: "free cloud migration" },
 
-  // Pillar 2 — Enterprise & Compliance (NCA / CSCC / MISA) — 11
+  // Pillar 2 — Enterprise & Compliance (NCA / CSCC / SAMA) — 11
+  // Named-client topics are not allowed here. Client identity is confidential:
+  // no name, ministry, agency, abbreviation, or initials, and no combination of
+  // sector + region + workload that would identify one. Write the public
+  // framework requirement and our capability, never the engagement.
   { pillar: 2, priority: "high",   title: "Kloudbean Enterprise Plan: $7,500/mo for $45,000 of Cloud Implementation — Full Breakdown", target_keyword: "Kloudbean enterprise plan" },
   { pillar: 2, priority: "high",   title: "NCA CSCC Compliance for Saudi Cloud Hosting: How Kloudbean Delivers It Out of the Box", target_keyword: "NCA CSCC compliant cloud hosting" },
-  { pillar: 2, priority: "high",   title: "How Kloudbean Helped MISA Achieve Full NCA Compliance — A Saudi Government Case Study", target_keyword: "MISA cloud hosting case study" },
+  { pillar: 2, priority: "high",   title: "NCA CSCC Controls, Mapped: Which Ones Hosting Covers and Which Stay Yours", target_keyword: "NCA CSCC controls checklist" },
   { pillar: 2, priority: "high",   title: "Cloud Hosting in Saudi Arabia: A Buyer's Guide to Truly NCA-Ready Providers", target_keyword: "cloud hosting Saudi Arabia compliant" },
   { pillar: 2, priority: "high",   title: "SAMA-Compliant Cloud Hosting for Saudi Fintechs — What Kloudbean Enterprise Includes", target_keyword: "SAMA compliant hosting" },
   { pillar: 2, priority: "high",   title: "Enterprise Disaster Recovery on Kloudbean: Sub-1-Hour RTO Across Regions", target_keyword: "enterprise disaster recovery cloud" },

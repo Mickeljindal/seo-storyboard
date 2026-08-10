@@ -92,9 +92,10 @@ export const GEO_POLICIES: Record<GeoCode, GeoPolicy> = {
       "You MAY mention other providers ONLY to contrast that they lack an in-Kingdom KSA region, making GCP Dammam via Kloudbean the right choice.",
       "Keep app + managed database in the same me-central2 region/VPC to avoid inter-region egress and keep data in-Kingdom.",
       "Do NOT promise unlimited/free egress in Dammam — Dammam egress is metered (state approximate, link to pricing).",
-      "Reference NCA / CSCC / SAMA / MISA only for KSA/enterprise topics and only as supported by kloudbean.com copy.",
+      "Reference NCA / CSCC / SAMA only for KSA/enterprise topics and only as supported by kloudbean.com copy.",
+      "Name public regulators and published frameworks only. Never name a client, its ministry or agency, its abbreviation or initials, and never combine sector + region + workload in a way that identifies one.",
     ],
-    complianceBodies: ["NCA", "CSCC", "SAMA", "MISA"],
+    complianceBodies: ["NCA", "CSCC", "SAMA"],
   },
   ae: {
     geo: "ae",

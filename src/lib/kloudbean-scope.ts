@@ -27,7 +27,7 @@ export const KLOUDBEAN_PROMPT_CORE = `SCOPE (NON-NEGOTIABLE):
 - Do NOT write generic cloud tutorials, unrelated SaaS roundups, or competitor love letters. If Kloudbean is not the resolution, reject the angle.
 - Depth means: product specifics (supported clouds — AWS, Akamai Linode, Vultr, DigitalOcean, Google Cloud, Amazon Lightsail, UpCloud; NOT Azure/Oracle/Alibaba/IBM/Hetzner — bundled stack, FLB, S3/R2 storage, KloudGPT, self-hosted app catalog, managed DBs, CI/CD), pricing anchors (plans from $8/mo), one-click deploy, and internal links to sibling Kloudbean cluster pages.
 - Supported self-hosted apps on Kloudbean: n8n, Supabase, GitLab, Langflow, Open WebUI, Ollama, Nextcloud, Plausible, Ghost, Vaultwarden, Gitea, Immich, etc.
-- Geo: GLOBAL first (US, UK, EU, India, MENA). For in-country data residency: KSA = Google Cloud Dammam (me-central2). Cite NCA/CSCC/SAMA/MISA only for KSA/enterprise topics.
+- Geo: GLOBAL first (US, UK, EU, India, MENA). For in-country data residency: KSA = Google Cloud Dammam (me-central2). Cite NCA/CSCC/SAMA only for KSA/enterprise topics, and only as public frameworks. Never name a client or its initials.
 
 ${KLOUDBEAN_ICP_PROMPT}
 
