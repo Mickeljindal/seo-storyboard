@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Check Your Ubuntu Version, and What the Answer Should Change</title>
+<meta name="description" content="Check your Ubuntu version with one command that always works, learn why lsb_release is often missing, why uname is the wrong answer, and how to tell if your release still gets security updates.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/check-ubuntu-version/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Check Your Ubuntu Version, and What the Answer Should Change">
+<meta property="og:description" content="One command works everywhere, the popular one is often missing, and uname answers a different question entirely. Then the part that matters: is your release still supported?">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Linux · Server administration · Maintenance</span>
+  <h1>How to Check Your Ubuntu Version, and What the Answer Should Change</h1>
+  <p class="byline">By Kloudbean Engineering · The number is easy. Knowing what to do with it is the point.</p>
+
+  <figure><img src="images/hero.png" alt="Terminal output showing Ubuntu release information from /etc/os-release"></figure>
+
+  <p class="lead">You can get this in one command, and every guide will hand you <code>lsb_release -a</code>. Two problems with stopping there. That command is not installed on a lot of servers, particularly minimal and container images, so the most-recommended answer is also the one most likely to fail. And the version number on its own is rarely what anyone actually needs. People check their Ubuntu version because they are trying to install something that needs a codename, or because they want to know whether the machine is still receiving security patches. Those are different questions with different answers, and the second one is the one worth your attention.</p>
+
+  <div class="tldr">
+    <strong>How do I check my Ubuntu version?</strong>
+    <p>Run <code>cat /etc/os-release</code>. It works on every modern Linux distribution, needs nothing installed, and shows the version number and the codename together. <code>lsb_release -a</code> gives friendlier output but depends on a package that minimal images often omit. Do not use <code>uname -r</code> for this, because that reports the kernel version, which is a different number entirely. If you only want the codename for an apt repository line, use <code>lsb_release -cs</code> or read the <code>VERSION_CODENAME</code> field.</p>
+  </div>
+
+  <h2>Which question are you actually asking?</h2>
+  <p>Worth sorting first, because it changes which command is useful.</p>
+  <table class="cmp">
+    <thead><tr><th>What you need</th><th>What to run</th><th>What you get</th></tr></thead>
+    <tbody>
+      <tr><td>The release number, reliably</td><td><code>cat /etc/os-release</code></td><td>24.04, plus the codename</td></tr>
+      <tr><td>Just the codename for apt</td><td><code>lsb_release -cs</code></td><td><code>noble</code></td></tr>
+      <tr><td>Human-readable summary</td><td><code>hostnamectl</code></td><td>OS, kernel, architecture</td></tr>
+      <tr><td>The kernel version</td><td><code>uname -r</code></td><td>Kernel, not the release</td></tr>
+      <tr><td>Whether you still get patches</td><td>Compare against the LTS rules below</td><td>The answer that matters</td></tr>
+    </tbody>
+  </table>
+
+  <h2>The command that always works</h2>
+  <p><code>/etc/os-release</code> is a plain file that systemd-based distributions are expected to provide, so it is present on Ubuntu, Debian, and essentially anything current, with no package to install and nothing to go wrong.</p>
+  <pre><code>cat /etc/os-release</code></pre>
+  <pre><code>NAME="Ubuntu"
+VERSION="24.04.1 LTS (Noble Numbat)"
+ID=ubuntu
+ID_LIKE=debian
+PRETTY_NAME="Ubuntu 24.04.1 LTS"
+VERSION_ID="24.04"
+VERSION_CODENAME=noble
+UBUNTU_CODENAME=noble</code></pre>
+  <p>Everything you need is in there: the release number in <code>VERSION_ID</code>, the codename in <code>VERSION_CODENAME</code>, and whether it is an LTS in <code>VERSION</code>.</p>
+  <p>Because it is a shell-friendly key-value file, you can also source it in a script, which is the correct way to branch on distribution rather than parsing command output.</p>
+  <pre><code># In a provisioning script, read the values properly
+. /etc/os-release
+echo "$ID $VERSION_ID ($VERSION_CODENAME)"
+
+# Or pull one field without sourcing
+grep -oP '(?&lt;=^VERSION_CODENAME=).*' /etc/os-release</code></pre>
+
+  <h2>Why lsb_release is the popular answer and the fragile one</h2>
+  <p><code>lsb_release -a</code> gives the nicest output of any of these, and it is what almost every tutorial recommends.</p>
+  <pre><code>lsb_release -a</code></pre>
+  <pre><code>Distributor ID: Ubuntu
+Description:    Ubuntu 24.04.1 LTS
+Release:        24.04
+Codename:       noble</code></pre>
+  <p>It is a Python script from the <code>lsb-release</code> package, and that package is frequently absent from minimal server installs, cloud images, and container base images, because it is not needed for anything to run. So you get this instead:</p>
+  <pre><code>-bash: lsb_release: command not found</code></pre>
+  <p>Which is a mildly ridiculous situation: the command most often recommended for identifying your distribution is one you may have to install using a package manager whose repository configuration needs the codename that command was going to tell you. You can install it, and on a server where you are only trying to read one value, reading the file is the better move.</p>
+  <p><code>hostnamectl</code> is a good middle ground on any systemd system, and it gives you the kernel and architecture at the same time, which is often what you wanted next anyway.</p>
+  <pre><code>hostnamectl</code></pre>
+
+  <h2>uname answers a different question</h2>
+  <p>This one causes real confusion, so it is worth being explicit. <code>uname -r</code> reports the Linux kernel version. It has nothing to do with your Ubuntu release number.</p>
+  <pre><code>uname -r
+# 6.8.0-45-generic     &lt;- kernel, not Ubuntu 6.8</code></pre>
+  <p>Two consequences. If someone asks which Ubuntu you are running, <code>uname</code> does not answer them. And your kernel changes independently of your release: routine updates move it, and a live-patched or vendor kernel can differ from what the release shipped. So a kernel number tells you nothing reliable about the distribution version, and vice versa.</p>
+  <p><code>uname -a</code> does print the distribution name on Ubuntu, so it looks like it answers the question, and it will not give you the release number or the codename. Use it when you genuinely want kernel and architecture details.</p>
+
+  <h2>The codename is what apt actually wants</h2>
+  <p>This is the practical reason most people are here, even when they think they want the number.</p>
+  <p>Third-party repositories are keyed on the codename, not the version. A repository line references <code>noble</code> or <code>jammy</code> or <code>bookworm</code>, never <code>24.04</code>. So when a vendor's install instructions tell you to substitute your release, the codename is the value they mean.</p>
+  <pre><code># Exactly the value a repository line needs
+lsb_release -cs
+# noble
+
+# Same thing without depending on lsb_release
+. /etc/os-release &amp;&amp; echo "$VERSION_CODENAME"</code></pre>
+  <p>Getting this wrong produces a confusing failure. Point apt at a codename that repository does not publish for and <code>apt update</code> returns 404s for that source, which reads as a broken repository rather than as a wrong codename. Worse, guessing a nearby release can install packages built against different library versions, which works until something segfaults for reasons that have nothing to do with your application.</p>
+  <p>The Ubuntu numbering scheme is worth knowing here because it makes the codename mapping easy to sanity check: the version is the year and month of release. 24.04 came out in April 2024, 22.04 in April 2022. LTS releases are always April of an even-numbered year, and each one gets a codename whose adjective and animal share an initial letter, advancing through the alphabet.</p>
+
+  <h2>Is your release still supported? The part that matters</h2>
+  <p>Here is why any of this is worth a moment of your time. An operating system past end of life stops receiving security updates, which means a published vulnerability affecting your server stays unpatched permanently. Not slowly patched. Never patched.</p>
+  <p>The rules are simple enough to apply from the number you just read:</p>
+  <table class="cmp">
+    <thead><tr><th>Release type</th><th>When</th><th>Standard support</th></tr></thead>
+    <tbody>
+      <tr><td><strong>LTS</strong></td><td>April of even years (20.04, 22.04, 24.04)</td><td>Five years</td></tr>
+      <tr><td>Interim</td><td>Every six months otherwise</td><td>Nine months</td></tr>
+    </tbody>
+  </table>
+  <p>So an interim release goes unsupported in well under a year, which is why interim releases have no business on a server you are not actively babysitting. Run LTS on anything that matters.</p>
+  <p>The signature of an end-of-life release is worth recognising, because it is usually how people find out. Once a release is retired, its packages move to an archive host, so the ordinary repository URLs stop serving it and <code>apt update</code> begins failing with 404s across the board.</p>
+  <pre><code>sudo apt update
+# Err:1 http://archive.ubuntu.com/ubuntu focal-security Release
+#   404  Not Found</code></pre>
+  <p>If that is what you are seeing, your problem is not a broken mirror or a network issue. Your release is retired. Pointing sources at the archive host will get apt working again, and it does not bring back security updates, because none are being produced. It buys you the ability to install old packages, nothing more.</p>
+
+  <h2>Upgrading: in place, or build a new server</h2>
+  <p>Ubuntu supports an in-place major upgrade, and it works more often than its reputation suggests.</p>
+  <pre><code># Bring the current release fully up to date first
+sudo apt update &amp;&amp; sudo apt upgrade
+
+# Then move to the next release
+sudo do-release-upgrade</code></pre>
+  <p>My position, and it is the one I would give any client: on a production server, do not upgrade in place. Build a new server on the new release, deploy your application to it, test it, then move traffic. It takes longer to describe and it is dramatically less stressful, for reasons that are structural rather than superstitious.</p>
+  <p>An in-place upgrade mutates the machine your site is running on, so if something goes wrong you are debugging a half-upgraded production server under time pressure. It also rewrites configuration files, prompting you to keep or replace each one, which is a poor time to be making decisions about nginx and PHP config. And an in-place upgrade carries forward every bit of accumulated drift, the manual edits and forgotten packages that nobody documented. A fresh server has none of that, and building one proves your deployment is reproducible, which is worth knowing independently.</p>
+  <p>Two upgrades in one hop is another trap: Ubuntu expects you to move LTS to LTS in sequence, so going from 20.04 to 24.04 means passing through 22.04. That is two chances to break the same server, and it is the point at which building fresh clearly wins.</p>
+
+  <h2>If your server is Debian rather than Ubuntu</h2>
+  <p>Worth checking rather than assuming, because plenty of managed hosting runs Debian, and Ubuntu is built on Debian, which makes the two easy to confuse.</p>
+  <p>The giveaway is that <code>/etc/debian_version</code> exists on Ubuntu too, and it reports a Debian version, so reading that file on an Ubuntu machine gives you a number that looks like an answer and is not the one you wanted. <code>ID=ubuntu</code> with <code>ID_LIKE=debian</code> in <code>/etc/os-release</code> is the unambiguous distinction, which is another reason that file is the right place to look.</p>
+  <pre><code># Works correctly on both, and tells you which you are on
+. /etc/os-release &amp;&amp; echo "$ID $VERSION_ID $VERSION_CODENAME"
+# debian 12 bookworm      or      ubuntu 24.04 noble</code></pre>
+  <p>Debian releases carry a single major number with a codename, 12 being bookworm, and the support window is structured differently from Ubuntu's, with a full-support period followed by a longer-term maintenance phase. The practical advice is identical: know which release you are on, and know whether it is still receiving security updates.</p>
+
+  <h2>Where hosting fits</h2>
+  <p>The reason this matters commercially is that somebody has to own OS patching, and it is a job that produces nothing visible when it is done properly.</p>
+  <p>On Kloudbean, servers are managed, so the operating system and stack are patched and maintained as part of the service rather than left to you to remember. Debian 12 is available as a server platform, and the practical benefit of managed servers here is precisely the boring one: you do not end up on an end-of-life release because a patching task quietly stopped happening two years ago.</p>
+  <p>The surrounding pieces that matter for the same reason: a Shorewall firewall and Fail2ban configured by default, free SSL issued and renewed, automatic backups so an upgrade or a change is reversible, and managed MySQL, MariaDB, PostgreSQL, Redis, Elasticsearch, or MongoDB kept up to date alongside the application. Seven clouds to choose a provider and region from, and servers, applications, and databases in one dashboard.</p>
+  <p>The honest boundary: managed means the server, stack, SSL, backups, and patching are handled, and your application code and its dependencies remain yours. Checking your own Ubuntu version is still a reasonable thing to want to do, which is why this article exists.</p>
+
+  <figure>
+    <img src="../assets/console/server-health.png" alt="Server health and resource monitoring in the Kloudbean console">
+    <figcaption>The version number is a one-line question. Whether anyone is patching that version is the one that decides how the year goes.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>On keeping a server defensible, the <a href="https://www.kloudbean.com/blog/server-hardening-checklist/">server hardening checklist</a> and <a href="https://www.kloudbean.com/blog/fail2ban-shorewall-hardening/">Fail2ban and Shorewall</a>. On who owns patching, <a href="https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/">managed versus unmanaged hosting</a>. Before any upgrade, <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups</a>. On moving to a new server rather than upgrading in place, <a href="https://www.kloudbean.com/blog/zero-downtime-deployments/">zero downtime deployments</a>. And for connecting to the machine in the first place, <a href="https://www.kloudbean.com/blog/ftp-vs-sftp/">FTP versus SFTP</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Somebody should be patching that OS.</p>
+    <p style="margin:0 0 .6em">Managed servers across seven clouds with the operating system and stack patched for you, free SSL, automatic backups, a firewall with intrusion prevention by default, and managed databases alongside your app. From $8/mo, with free migration assistance. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed OS and stack patching · 7 clouds · Free SSL · Automatic backups · Flat from $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I check my Ubuntu version?</h3>
+    <p>Run <code>cat /etc/os-release</code>, which works on every modern distribution with nothing installed and shows both the release number and the codename. <code>lsb_release -a</code> produces tidier output but relies on a package that minimal server and container images often leave out, so it may not be available.</p>
+
+    <h3>What is the difference between uname -r and the Ubuntu version?</h3>
+    <p><code>uname -r</code> reports the Linux kernel version, which is a separate number that changes with routine updates and can differ from what your release originally shipped. It does not tell you which Ubuntu release you are on. Read <code>/etc/os-release</code> for that.</p>
+
+    <h3>Why does lsb_release say command not found?</h3>
+    <p>Because the <code>lsb-release</code> package is not installed, which is common on minimal server installs, cloud images, and containers where nothing requires it. You can install it, though on a server where you just want to read one value, <code>cat /etc/os-release</code> avoids the problem entirely.</p>
+
+    <h3>How do I find my Ubuntu codename?</h3>
+    <p>Run <code>lsb_release -cs</code> for just the codename, or <code>. /etc/os-release &amp;&amp; echo "$VERSION_CODENAME"</code> if that package is missing. The codename is what apt repository lines use, so it is the value third-party install instructions mean when they say to substitute your release.</p>
+
+    <h3>How do I know if my Ubuntu version is still supported?</h3>
+    <p>LTS releases arrive in April of even-numbered years and get five years of standard support, while interim releases get nine months. Compare your release against that. The unmistakable sign that a release has retired is <code>apt update</code> failing with 404 errors, because retired packages move to an archive host and the normal repository URLs stop serving them.</p>
+
+    <h3>Is it safe to run an unsupported Ubuntu version?</h3>
+    <p>No, and the reason is specific: no security updates are produced for it, so any newly published vulnerability affecting that release stays unpatched permanently. Repointing apt at the archive host restores your ability to install old packages, and it does not restore security updates because none exist.</p>
+
+    <h3>Should I upgrade Ubuntu in place or build a new server?</h3>
+    <p>On production, build a new server on the new release, deploy to it, test, then move traffic. An in-place <code>do-release-upgrade</code> mutates the machine currently serving your site, rewrites configuration files while asking you to arbitrate each one, and carries forward years of undocumented drift. It also has to be done LTS to LTS in sequence, so 20.04 to 24.04 means two upgrades on the same server.</p>
+
+    <h3>How can I tell whether I am on Ubuntu or Debian?</h3>
+    <p>Check the <code>ID</code> field in <code>/etc/os-release</code>: it reads <code>ubuntu</code> or <code>debian</code>. Do not rely on <code>/etc/debian_version</code>, because that file exists on Ubuntu as well and reports a Debian version number, which looks like an answer while telling you something else.</p>
+
+    <h3>Does my hosting provider handle OS updates?</h3>
+    <p>It depends on whether the hosting is managed. On managed hosting the operating system and stack patching is part of the service, which is the main protection against quietly ending up on an end-of-life release. On unmanaged infrastructure it is yours, including tracking support windows and planning upgrades before they expire.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Read the file, not the folklore.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Check Your Ubuntu Version, and What the Answer Should Change","description":"Check your Ubuntu version with one command that always works, learn why lsb_release is often missing, why uname is the wrong answer, and how to tell if your release still gets security updates.","image":"https://www.kloudbean.com/blog/check-ubuntu-version/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/check-ubuntu-version/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I check my Ubuntu version?","acceptedAnswer":{"@type":"Answer","text":"Run cat /etc/os-release, which works on every modern distribution with nothing installed and shows both the release number and the codename. lsb_release -a produces tidier output but relies on a package that minimal server and container images often leave out, so it may not be available."}},
+{"@type":"Question","name":"What is the difference between uname -r and the Ubuntu version?","acceptedAnswer":{"@type":"Answer","text":"uname -r reports the Linux kernel version, which is a separate number that changes with routine updates and can differ from what your release originally shipped. It does not tell you which Ubuntu release you are on. Read /etc/os-release for that."}},
+{"@type":"Question","name":"Why does lsb_release say command not found?","acceptedAnswer":{"@type":"Answer","text":"Because the lsb-release package is not installed, which is common on minimal server installs, cloud images, and containers where nothing requires it. You can install it, though on a server where you just want to read one value, cat /etc/os-release avoids the problem entirely."}},
+{"@type":"Question","name":"How do I find my Ubuntu codename?","acceptedAnswer":{"@type":"Answer","text":"Run lsb_release -cs for just the codename, or source /etc/os-release and echo VERSION_CODENAME if that package is missing. The codename is what apt repository lines use, so it is the value third-party install instructions mean when they say to substitute your release."}},
+{"@type":"Question","name":"How do I know if my Ubuntu version is still supported?","acceptedAnswer":{"@type":"Answer","text":"LTS releases arrive in April of even-numbered years and get five years of standard support, while interim releases get nine months. Compare your release against that. The unmistakable sign that a release has retired is apt update failing with 404 errors, because retired packages move to an archive host and the normal repository URLs stop serving them."}},
+{"@type":"Question","name":"Is it safe to run an unsupported Ubuntu version?","acceptedAnswer":{"@type":"Answer","text":"No, and the reason is specific: no security updates are produced for it, so any newly published vulnerability affecting that release stays unpatched permanently. Repointing apt at the archive host restores your ability to install old packages, and it does not restore security updates because none exist."}},
+{"@type":"Question","name":"Should I upgrade Ubuntu in place or build a new server?","acceptedAnswer":{"@type":"Answer","text":"On production, build a new server on the new release, deploy to it, test, then move traffic. An in-place do-release-upgrade mutates the machine currently serving your site, rewrites configuration files while asking you to arbitrate each one, and carries forward years of undocumented drift. It also has to be done LTS to LTS in sequence, so 20.04 to 24.04 means two upgrades on the same server."}},
+{"@type":"Question","name":"How can I tell whether I am on Ubuntu or Debian?","acceptedAnswer":{"@type":"Answer","text":"Check the ID field in /etc/os-release: it reads ubuntu or debian. Do not rely on /etc/debian_version, because that file exists on Ubuntu as well and reports a Debian version number, which looks like an answer while telling you something else."}},
+{"@type":"Question","name":"Does my hosting provider handle OS updates?","acceptedAnswer":{"@type":"Answer","text":"It depends on whether the hosting is managed. On managed hosting the operating system and stack patching is part of the service, which is the main protection against quietly ending up on an end-of-life release. On unmanaged infrastructure it is yours, including tracking support windows and planning upgrades before they expire."}}
+]}
+]}
+</script>
+</body>
+</html>
