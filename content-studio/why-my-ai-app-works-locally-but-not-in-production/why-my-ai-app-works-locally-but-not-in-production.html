@@ -149,6 +149,8 @@ DATABASE_URL="postgresql://appuser:secret@10.0.0.5:5432/appdb"</code></pre>
   <h2>3. Your app binds to localhost, so nothing can reach it</h2>
   <p><strong>Symptom:</strong> a green build, then a <strong>502 Bad Gateway</strong> or <strong>503 Service Unavailable</strong> when you open the URL. The logs even say the app is listening. Dead page anyway.</p>
   <p><strong>Cause:</strong> either the app hard-codes a port like <code>3000</code> instead of reading the one the platform assigned, or it binds to <code>127.0.0.1</code> (localhost) instead of <code>0.0.0.0</code>. Bound to localhost, the app is only reachable from inside itself. The web server out front knocks, gets no answer, and returns a 502 or 503. This is the most common production-only failure that isn't about data.</p>
+  <p>If the distinction between a loopback address and a bind address is new, <a href="https://www.kloudbean.com/blog/what-is-127-0-0-1-5000/">what 127.0.0.1 actually means</a> covers it properly, including why <code>0.0.0.0</code> is an instruction rather than a destination.</p>
+
   <p><strong>Fix:</strong> read the assigned port from the environment and bind to every interface.</p>
   <pre><code>// Breaks in production: only the box itself can reach this
 app.listen(3000, '127.0.0.1')

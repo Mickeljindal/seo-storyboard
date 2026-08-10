@@ -17,7 +17,7 @@ cluster: 3 — App Deployment Tutorials
 
 # Deploy Flask in 10 Minutes: Then the Reference You'll Keep
 
-Flask is a micro-framework. It hands you just enough to build a web app and then gets out of your way. That minimalism is a joy while you build, and it leaves one honest question when it's time to deploy a Flask app for real: *what actually runs it?* The command you've been using won't do. Flask itself tells you so, right there in the terminal.
+Flask is a micro-framework. It hands you just enough to build a web app and then gets out of your way. If you are still at the stage of staring at [the localhost URL in your terminal](https://www.kloudbean.com/blog/what-is-127-0-0-1-5000/) and wondering why nobody else can open it, start there. That minimalism is a joy while you build, and it leaves one honest question when it's time to deploy a Flask app for real: *what actually runs it?* The command you've been using won't do. Flask itself tells you so, right there in the terminal.
 
 Run `flask run` and it prints a warning in plain English: this is a development server, don't use it in a production deployment, use a production WSGI server instead. That's the whole article in one line. The production WSGI server is **Gunicorn**. Below is the fast path to live, then a reference you'll come back to.
 

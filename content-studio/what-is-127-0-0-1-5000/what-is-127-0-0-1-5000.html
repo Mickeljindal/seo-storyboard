@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Running on http://127.0.0.1:5000: Why Only You Can Open It</title>
+<meta name="description" content="127.0.0.1 is the loopback address, so that link works for nobody but you. What the port number tells you, why 0.0.0.0 is different, and why port 5000 is taken on a Mac.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/what-is-127-0-0-1-5000/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Running on http://127.0.0.1:5000: Why Only You Can Open It">
+<meta property="og:description" content="Send that URL to a colleague and it points at their computer, not yours. Here is what the address means, what each port is, and what deploying actually changes.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Fundamentals · Local development · Explainer</span>
+  <h1>Running on http://127.0.0.1:5000: Why Only You Can Open It</h1>
+  <p class="byline">By Kloudbean Engineering · The URL is real. It just does not go anywhere but your own machine.</p>
+
+  <figure><img src="images/hero.png" alt="A terminal showing the Flask development server startup message with the 127.0.0.1 address and its production warning"></figure>
+
+  <p class="lead">Your terminal says <code>Running on http://127.0.0.1:5000</code>, you click it, and your app appears. So you paste the link into Slack and someone replies that it does not work. They are not doing anything wrong, and neither are you. That address is special: it means <em>this computer</em>, whichever computer is asking. When your colleague opens it, their browser dutifully looks on their own laptop, finds nothing on port 5000, and gives up. Understanding why takes about two minutes and saves a lot of confusion about what deploying actually involves.</p>
+
+  <div class="tldr">
+    <strong>What does http://127.0.0.1:5000 mean?</strong>
+    <p>127.0.0.1 is the loopback address, a reserved address that always means the machine you are on. Traffic sent there never reaches a network cable or a wifi radio. <code>localhost</code> is just a friendly name for the same thing. The <code>:5000</code> is the port, which identifies which program on that machine should answer, and 5000 is the traditional default for Flask. So the URL is completely valid and completely private. Nobody else can open it, no matter what you do to your firewall, because their computer will resolve that address to itself.</p>
+  </div>
+
+  <h2>Loopback means this machine, always</h2>
+  <p>The whole 127.0.0.0/8 range is reserved for loopback, and 127.0.0.1 is the one everyone uses. Your operating system handles those packets internally and never puts them on a network interface. That is not a restriction someone configured. It is what the address is for.</p>
+
+  <p>Which produces the moment that brings most people to this page. You send the link. Your colleague sees one of three things:</p>
+
+  <ul>
+    <li><strong>An error</strong>, because nothing on their machine is listening on that port. Usually a connection refused.</li>
+    <li><strong>Somebody else's app</strong>, if they happen to be running their own project on the same port. Genuinely confusing when it happens.</li>
+    <li><strong>Their own copy</strong> of the same project, if you are both working on it, which looks like it worked and then quietly diverges from what you meant to show them.</li>
+  </ul>
+
+  <p>So the link is not broken. It is doing exactly what it says. It just says something different on every machine that reads it.</p>
+
+  <h2>The port tells you what is running</h2>
+  <p>Most people arrive here having copied one specific URL out of a terminal. The port is the informative part, because frameworks have conventional defaults, and knowing them tells you what you are looking at.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Address you saw</th><th>What is almost certainly running</th></tr></thead>
+    <tbody>
+      <tr><td><code>127.0.0.1:5000</code></td><td>Flask, its long-standing default</td></tr>
+      <tr><td><code>127.0.0.1:8000</code></td><td>Django's <code>runserver</code>, or Uvicorn serving FastAPI</td></tr>
+      <tr><td><code>127.0.0.1:8000/docs</code></td><td>FastAPI's generated interactive API documentation, which it creates for you</td></tr>
+      <tr><td><code>localhost:3000</code></td><td>Node: Express, Next.js, or Create React App</td></tr>
+      <tr><td><code>localhost:5173</code></td><td>Vite, so a modern React, Vue, or Svelte front end</td></tr>
+      <tr><td><code>localhost:8080</code></td><td>A common alternative HTTP port. Tomcat, Spring Boot, and many others</td></tr>
+      <tr><td><code>localhost/wordpress</code> or <code>localhost/index.php</code></td><td>A local PHP stack on port 80, typically XAMPP, MAMP, or Local</td></tr>
+      <tr><td><code>redis://localhost:6379</code></td><td>Redis. Not a web page, a connection string for your code</td></tr>
+      <tr><td><code>mongodb://localhost:27017</code></td><td>MongoDB, same idea</td></tr>
+      <tr><td><code>localhost:5432</code> / <code>localhost:3306</code></td><td>PostgreSQL / MySQL</td></tr>
+      <tr><td>An unfamiliar high port such as <code>127.0.0.1:18789</code></td><td>A tool that picked a random free port, common for desktop apps and language servers</td></tr>
+    </tbody>
+  </table>
+
+  <p>Worth separating two things in that table. The top rows are URLs you open in a browser. The database rows are connection strings your application uses, and pasting one into a browser will not show you anything useful. They share the same <code>localhost</code> because the same rule applies: that database is on your machine and nowhere else, which is exactly why an app that works locally fails the moment you deploy it with the same connection string still pointing at localhost.</p>
+
+  <h2>127.0.0.1, localhost, and 0.0.0.0 are three different things</h2>
+  <p>These get used interchangeably and only two of them are the same. The third is the one that fixes your sharing problem, partly.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Value</th><th>What it is</th><th>Use</th></tr></thead>
+    <tbody>
+      <tr><td><code>127.0.0.1</code></td><td>The loopback IP address</td><td>A destination. This machine.</td></tr>
+      <tr><td><code>localhost</code></td><td>A hostname that resolves to 127.0.0.1</td><td>The same destination, easier to type.</td></tr>
+      <tr><td><code>0.0.0.0</code></td><td>Not a destination at all. A <strong>bind</strong> instruction meaning listen on every network interface</td><td>Server configuration. Never type it in a browser.</td></tr>
+    </tbody>
+  </table>
+
+  <p>That last row is the important one. By default most development servers bind only to loopback, which is a sensible security decision: your half-finished app is not exposed to the coffee shop wifi. Binding to <code>0.0.0.0</code> tells the server to accept connections arriving on any interface, which makes it reachable from other devices on your network.</p>
+
+  <pre><code># Flask
+flask run --host=0.0.0.0
+
+# Django
+python manage.py runserver 0.0.0.0:8000
+
+# Uvicorn, for FastAPI
+uvicorn main:app --host 0.0.0.0 --port 8000
+
+# Then reach it from another device using this machine's LAN address,
+# which is not 127.0.0.1 and not 0.0.0.0:
+ipconfig getifaddr en0     # macOS
+hostname -I                # most Linux</code></pre>
+
+  <p>Now your phone on the same wifi can open <code>http://192.168.1.42:5000</code> and see your app. This is genuinely useful for testing on a real device. It is still not hosting: the moment your laptop sleeps, or you leave the building, it is gone.</p>
+
+  <figure>
+    <svg viewBox="0 0 880 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="lb-title lb-desc">
+      <title id="lb-title">Loopback, local network, and public hosting</title>
+      <desc id="lb-desc">Bound to 127.0.0.1 the app is reachable only from the same machine. Bound to 0.0.0.0 it is reachable from other devices on the same network using the machine's LAN address. Deployed to a server it is reachable from the internet by domain name over HTTPS.</desc>
+      <rect x="0" y="0" width="880" height="280" fill="#ffffff"/>
+      <g font-family="Poppins, sans-serif" font-size="12" fill="#000f27">
+        <text x="20" y="24" font-size="13.5" font-weight="600">Same app, three reaches</text>
+
+        <rect x="20" y="38" width="266" height="106" rx="10" fill="#f4f2ff" stroke="#4F1AF3" stroke-width="1.5"/>
+        <text x="34" y="60" font-size="12.5" font-weight="600" fill="#4F1AF3">Bound to 127.0.0.1</text>
+        <rect x="34" y="70" width="106" height="40" rx="7" fill="#000f27"/>
+        <text x="87" y="94" text-anchor="middle" fill="#ffffff" font-size="11.5">your laptop</text>
+        <path d="M148 90 h44" stroke="#40b75f" stroke-width="2.5" fill="none"/>
+        <text x="200" y="86" font-size="11" fill="#2f8f49">you</text>
+        <text x="200" y="101" font-size="11" fill="#2f8f49">only</text>
+        <text x="34" y="130" font-size="11">Nothing leaves the machine.</text>
+
+        <rect x="306" y="38" width="266" height="106" rx="10" fill="#eef6ff" stroke="#3f7fd0" stroke-width="1.5"/>
+        <text x="320" y="60" font-size="12.5" font-weight="600" fill="#2f6bb0">Bound to 0.0.0.0</text>
+        <rect x="320" y="70" width="106" height="40" rx="7" fill="#000f27"/>
+        <text x="373" y="94" text-anchor="middle" fill="#ffffff" font-size="11.5">your laptop</text>
+        <path d="M434 90 h44" stroke="#3f7fd0" stroke-width="2.5" fill="none"/>
+        <text x="490" y="86" font-size="11" fill="#2f6bb0">phone on</text>
+        <text x="490" y="101" font-size="11" fill="#2f6bb0">same wifi</text>
+        <text x="320" y="130" font-size="11">Gone when the laptop sleeps.</text>
+
+        <rect x="592" y="38" width="268" height="106" rx="10" fill="#e8f7ed" stroke="#40b75f" stroke-width="1.5"/>
+        <text x="606" y="60" font-size="12.5" font-weight="600" fill="#2f8f49">Deployed to a server</text>
+        <rect x="606" y="70" width="106" height="40" rx="7" fill="#40b75f"/>
+        <text x="659" y="94" text-anchor="middle" fill="#ffffff" font-size="11.5">server</text>
+        <path d="M720 90 h44" stroke="#40b75f" stroke-width="2.5" fill="none"/>
+        <text x="776" y="86" font-size="11" fill="#2f8f49">anyone,</text>
+        <text x="776" y="101" font-size="11" fill="#2f8f49">by domain</text>
+        <text x="606" y="130" font-size="11">Runs whether you are awake or not.</text>
+
+        <rect x="20" y="160" width="840" height="46" rx="8" fill="#f1f3f7"/>
+        <text x="34" y="180" font-size="12">0.0.0.0 is not an address you visit. It is an instruction to the server about which interfaces to accept</text>
+        <text x="34" y="198" font-size="12">connections on. You still reach the app by the machine's real address.</text>
+
+        <rect x="20" y="216" width="840" height="30" rx="7" fill="#000f27"/>
+        <text x="34" y="236" font-size="12" fill="#ffffff">Only the third column survives you closing the lid, which is the whole difference between local and hosted.</text>
+      </g>
+    </svg>
+    <figcaption>Changing the bind address widens the reach. It does not make your laptop a server.</figcaption>
+  </figure>
+
+  <h2>Ways people try to share a localhost link, ranked honestly</h2>
+
+  <p><strong>Send the URL.</strong> Cannot work, for the reason above. Not a configuration problem.</p>
+
+  <p><strong>Send your LAN address.</strong> Works on the same network only, and needs the <code>0.0.0.0</code> bind above. Good for testing on your own phone, useless for a client in another city.</p>
+
+  <p><strong>Use a tunnel like ngrok.</strong> This genuinely works, and it deserves credit for what it is good at: you get a public HTTPS URL in seconds, which is ideal for a quick demo or for receiving webhooks from a payment provider while you develop. Be clear on what it is not. Your laptop is still the server, so the URL dies when you close it, the free tiers hand you a different address each time, and every visitor's traffic travels through a third party to your development machine. For a demo, excellent. For anything anyone depends on, no.</p>
+
+  <p><strong>Forward a port on your router.</strong> Technically possible and a bad idea. You would be exposing a development server, with no TLS and no process supervision, directly to the internet from your home network. The dev server is not built for that, which is the next section.</p>
+
+  <p><strong>Deploy it.</strong> The actual answer, and less work than it sounds.</p>
+
+  <h2>That warning in your terminal is not boilerplate</h2>
+  <p>Alongside the address, Flask prints a warning that this is a development server and should not be used in a production deployment. People scroll past it. It is one of the more load-bearing warnings in web development.</p>
+
+  <p>A development server optimises for your convenience: it reloads when you save a file, shows you tracebacks in the browser, and takes no setup. Those are the right priorities while you are writing code and the wrong ones on a public URL. What it does not give you is the list that matters once real users arrive: no process supervision, so a crash stays down; no TLS, so no HTTPS; a single process by default, so one slow request can block others; and debug tracebacks that leak your file paths and code to anyone who triggers an error.</p>
+
+  <p>Production means a real application server in front. For Python that is Gunicorn or Uvicorn depending on whether your framework is synchronous or asynchronous, and <a href="https://www.kloudbean.com/blog/gunicorn-vs-uvicorn/">the Gunicorn versus Uvicorn comparison</a> covers which you want. Then a reverse proxy in front of that handling TLS and static files.</p>
+
+  <h2>Port 5000 is already taken on a Mac</h2>
+  <p>A specific and very common snag, worth naming because the error message points nowhere useful.</p>
+
+  <p>On macOS, the AirPlay Receiver feature listens on port 5000. Apple's own developer forums confirm that AirPlay has used port 5000 for many years, along with port 7000, and once your Mac can itself act as a receiver, that port is occupied before Flask starts. So Flask's traditional default collides with it out of the box, and you get an address-already-in-use error, or stranger symptoms like a blank page in Safari while other browsers work.</p>
+
+  <p>Two fixes. Either turn off AirPlay Receiver in System Settings, where it sits with the sharing and handoff options, or leave it alone and move your app. The Flask documentation covers the second approach:</p>
+
+  <pre><code># See what is holding the port
+lsof -i tcp:5000
+
+# Just use a different one
+flask run --port 5001</code></pre>
+
+  <p>Generally the second is the better habit. Fighting the operating system for a port number is not a good use of an afternoon, and nothing about your app requires 5000.</p>
+
+  <div class="note">
+    <strong>Same error on Linux or Windows?</strong> Then it really is another copy of your own app. A development server left running in a closed terminal tab is the usual suspect. Find it with <code>lsof -i tcp:5000</code> on Linux or <code>netstat -ano | findstr :5000</code> on Windows.
+  </div>
+
+  <h2>What deploying actually changes</h2>
+  <p>Since the localhost URL is what most people are looking at when they first think about hosting, here is the honest shape of the gap. It is smaller than it looks.</p>
+
+  <table class="cmp">
+    <thead><tr><th>On your machine</th><th>On a server</th></tr></thead>
+    <tbody>
+      <tr><td>127.0.0.1, reachable by you</td><td>A domain name, reachable by anyone</td></tr>
+      <tr><td>The framework's dev server</td><td>Gunicorn, Uvicorn, or PM2 for Node, under supervision</td></tr>
+      <tr><td>HTTP</td><td>HTTPS with a certificate that renews itself</td></tr>
+      <tr><td>Dies when you close the laptop</td><td>Restarts itself if it crashes</td></tr>
+      <tr><td>A database on localhost</td><td>A managed database with backups, reached over a private network</td></tr>
+      <tr><td>Secrets in a local <code>.env</code></td><td><a href="https://www.kloudbean.com/blog/environment-variables-done-right/">Environment variables set on the server</a></td></tr>
+    </tbody>
+  </table>
+
+  <p>That fifth row catches the most people, and it follows directly from everything above. If your code contains <code>postgresql://localhost:5432/mydb</code> or <code>redis://localhost:6379</code> and you deploy it unchanged, the app will look for a database on the <em>server</em>, find nothing, and fail. Same address, different machine, so it now means something else. <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">Adding a managed database</a> covers the connection-string side, and <a href="https://www.kloudbean.com/blog/why-my-ai-app-works-locally-but-not-in-production/">why an app works locally but not in production</a> covers the rest of that category.</p>
+
+  <p>When you are ready for the mechanics, <a href="https://www.kloudbean.com/blog/deploy-flask-app/">deploying a Flask app</a> is the step-by-step for this exact stack, and <a href="https://www.kloudbean.com/blog/how-to-deploy-any-app/">how to deploy any app</a> is the general version.</p>
+
+  <h2>Where hosting fits, honestly</h2>
+  <p>Nothing in this article needs a hosting provider. The loopback explanation is just how networking works, the <code>0.0.0.0</code> flag is free, and a tunnel will get you through a demo this afternoon.</p>
+
+  <p>It matters when you want the URL to keep working without you. On Kloudbean, Python is a first-class runtime with Flask, Django, and FastAPI supported, alongside Node, PHP, Ruby, and Java, so the app in your terminal has somewhere to go without being rewritten. Connect a Git repository and it builds and deploys on every push, with live build logs streaming in the console so a failed deploy is readable rather than mysterious. Runtime configuration for Python and Node is editable in the dashboard, which is where the environment variables replacing your local <code>.env</code> live. Managed databases across six engines give you a real connection string to replace the localhost one, and SSL is issued and renewed free, so the HTTPS row of that table takes care of itself. Seven cloud providers to pick from, and free migration assistance if something is already running elsewhere.</p>
+
+  <p>The boundary as always. Managed covers the server, the stack, TLS, backups, and patching. Your application code stays yours, including remembering to change that connection string.</p>
+
+  <h2>Related reading</h2>
+  <p>The natural next step for this stack is <a href="https://www.kloudbean.com/blog/deploy-flask-app/">deploying a Flask app</a>, or <a href="https://www.kloudbean.com/blog/how-to-deploy-any-app/">how to deploy any app</a> if you are on something else. On the production server question, <a href="https://www.kloudbean.com/blog/gunicorn-vs-uvicorn/">Gunicorn versus Uvicorn</a>. For the localhost connection string problem, <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database</a> and <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>. For the wider category of things that change on deployment, <a href="https://www.kloudbean.com/blog/why-my-ai-app-works-locally-but-not-in-production/">why my app works locally but not in production</a>. On the layer that sits in front of your app once it is live, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">nginx as a reverse proxy</a>. And when a Python import breaks on the server but not locally, <a href="https://www.kloudbean.com/blog/fix-modulenotfounderror-python/">ModuleNotFoundError</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Give that app an address other people can open.</p>
+    <p style="margin:0 0 .6em">Managed Python hosting for Flask, Django and FastAPI across seven clouds, with Git-based deploys and live build logs, runtime configuration in the dashboard, managed databases across six engines, and free SSL issued and renewed. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Flask, Django, FastAPI · Git deploys · Live build logs · Six database engines · Free SSL</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does http://127.0.0.1:5000 mean?</h3>
+    <p>127.0.0.1 is the loopback address, which always refers to the machine making the request, and 5000 is the port identifying which program should answer. Traffic to that address never leaves your computer. Port 5000 is the traditional default for Flask, so seeing it usually means a Flask development server is running.</p>
+
+    <h3>Why can nobody else open my 127.0.0.1 link?</h3>
+    <p>Because on their computer that address means their computer. Their browser looks for something listening on port 5000 locally, finds nothing, and reports a connection error. It is not a firewall or permissions problem, and no setting on your machine can change it, because the address is resolved on theirs.</p>
+
+    <h3>What is the difference between 127.0.0.1 and localhost?</h3>
+    <p>Practically nothing. localhost is a hostname that resolves to 127.0.0.1, so both refer to the same loopback destination. The only differences you might notice are that localhost can resolve to the IPv6 loopback address on some systems, and that a hostname involves a resolution step that an IP address does not.</p>
+
+    <h3>What is the difference between 127.0.0.1 and 0.0.0.0?</h3>
+    <p>They are different kinds of thing. 127.0.0.1 is a destination meaning this machine. 0.0.0.0 is a bind instruction telling a server to accept connections on every network interface, which is what makes a development server reachable from other devices. You never type 0.0.0.0 into a browser as a destination.</p>
+
+    <h3>How do I share my localhost app with someone else?</h3>
+    <p>For someone on the same network, bind the server to 0.0.0.0 and give them your machine's LAN address. For someone elsewhere, a tunnelling tool like ngrok gives you a temporary public URL in seconds, which is fine for a demo but keeps your laptop as the server. For anything people will rely on, deploy it to a server.</p>
+
+    <h3>Why is port 5000 already in use on my Mac?</h3>
+    <p>Because macOS AirPlay Receiver listens on port 5000, so Flask's default port is occupied before your app starts. Apple's developer forums confirm AirPlay's long-standing use of ports 5000 and 7000. Either turn off AirPlay Receiver in System Settings alongside the sharing and handoff options, or run your app on another port with a flag such as flask run --port 5001.</p>
+
+    <h3>Can I use the Flask development server in production?</h3>
+    <p>No, and the warning it prints on startup is meant literally. It offers no process supervision, no TLS, is single-process by default, and its debug output can expose your file paths and code. Production needs a real application server such as Gunicorn or Uvicorn under supervision, with a reverse proxy in front handling HTTPS.</p>
+
+    <h3>What is at 127.0.0.1:8000/docs?</h3>
+    <p>That is FastAPI's automatically generated interactive API documentation, served alongside your application on the same port. Port 8000 is the usual default for both Uvicorn serving FastAPI and Django's development server, so if you see /docs there you are almost certainly running FastAPI.</p>
+
+    <h3>Why does my app break when I deploy it if localhost worked fine?</h3>
+    <p>Most often because a connection string still points at localhost. A value like redis://localhost:6379 or postgresql://localhost:5432 means whichever machine is running the code, so on the server it looks for a database on the server and finds nothing. Move those values into environment variables set per environment rather than hard-coding them.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Loopback means this machine. That is the whole trick.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Running on http://127.0.0.1:5000: Why Only You Can Open It","description":"127.0.0.1 is the loopback address, so that link works for nobody but you. What the port number tells you, why 0.0.0.0 is different, and why port 5000 is taken on a Mac.","image":"https://www.kloudbean.com/blog/what-is-127-0-0-1-5000/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/what-is-127-0-0-1-5000/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does http://127.0.0.1:5000 mean?","acceptedAnswer":{"@type":"Answer","text":"127.0.0.1 is the loopback address, which always refers to the machine making the request, and 5000 is the port identifying which program should answer. Traffic to that address never leaves your computer. Port 5000 is the traditional default for Flask, so seeing it usually means a Flask development server is running."}},
+{"@type":"Question","name":"Why can nobody else open my 127.0.0.1 link?","acceptedAnswer":{"@type":"Answer","text":"Because on their computer that address means their computer. Their browser looks for something listening on port 5000 locally, finds nothing, and reports a connection error. It is not a firewall or permissions problem, and no setting on your machine can change it, because the address is resolved on theirs."}},
+{"@type":"Question","name":"What is the difference between 127.0.0.1 and localhost?","acceptedAnswer":{"@type":"Answer","text":"Practically nothing. localhost is a hostname that resolves to 127.0.0.1, so both refer to the same loopback destination. The only differences you might notice are that localhost can resolve to the IPv6 loopback address on some systems, and that a hostname involves a resolution step that an IP address does not."}},
+{"@type":"Question","name":"What is the difference between 127.0.0.1 and 0.0.0.0?","acceptedAnswer":{"@type":"Answer","text":"They are different kinds of thing. 127.0.0.1 is a destination meaning this machine. 0.0.0.0 is a bind instruction telling a server to accept connections on every network interface, which is what makes a development server reachable from other devices. You never type 0.0.0.0 into a browser as a destination."}},
+{"@type":"Question","name":"How do I share my localhost app with someone else?","acceptedAnswer":{"@type":"Answer","text":"For someone on the same network, bind the server to 0.0.0.0 and give them your machine's LAN address. For someone elsewhere, a tunnelling tool like ngrok gives you a temporary public URL in seconds, which is fine for a demo but keeps your laptop as the server. For anything people will rely on, deploy it to a server."}},
+{"@type":"Question","name":"Why is port 5000 already in use on my Mac?","acceptedAnswer":{"@type":"Answer","text":"Because macOS AirPlay Receiver listens on port 5000, so Flask's default port is occupied before your app starts. Apple's developer forums confirm AirPlay's long-standing use of ports 5000 and 7000. Either turn off AirPlay Receiver in System Settings alongside the sharing and handoff options, or run your app on another port with a flag such as flask run --port 5001."}},
+{"@type":"Question","name":"Can I use the Flask development server in production?","acceptedAnswer":{"@type":"Answer","text":"No, and the warning it prints on startup is meant literally. It offers no process supervision, no TLS, is single-process by default, and its debug output can expose your file paths and code. Production needs a real application server such as Gunicorn or Uvicorn under supervision, with a reverse proxy in front handling HTTPS."}},
+{"@type":"Question","name":"What is at 127.0.0.1:8000/docs?","acceptedAnswer":{"@type":"Answer","text":"That is FastAPI's automatically generated interactive API documentation, served alongside your application on the same port. Port 8000 is the usual default for both Uvicorn serving FastAPI and Django's development server, so if you see /docs there you are almost certainly running FastAPI."}},
+{"@type":"Question","name":"Why does my app break when I deploy it if localhost worked fine?","acceptedAnswer":{"@type":"Answer","text":"Most often because a connection string still points at localhost. A value like redis://localhost:6379 or postgresql://localhost:5432 means whichever machine is running the code, so on the server it looks for a database on the server and finds nothing. Move those values into environment variables set per environment rather than hard-coding them."}}
+]}
+]}
+</script>
+</body>
+</html>

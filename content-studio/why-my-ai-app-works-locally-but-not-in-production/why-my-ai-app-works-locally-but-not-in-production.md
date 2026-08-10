@@ -62,6 +62,8 @@ On Kloudbean you open **DBS**, click **Launch Database**, and wire the connectio
 
 **Cause:** either the app hard-codes a port like `3000` instead of reading the one the platform assigned, or it binds to `127.0.0.1` (localhost) instead of `0.0.0.0`. Bound to localhost, the app is only reachable from inside itself. The web server out front knocks, gets no answer, and returns a 502 or 503. This is the most common production-only failure that isn't about data.
 
+If the distinction between a loopback address and a bind address is new, [what 127.0.0.1 actually means](https://www.kloudbean.com/blog/what-is-127-0-0-1-5000/) covers it properly, including why `0.0.0.0` is an instruction rather than a destination.
+
 **Fix:** read the assigned port from the environment and bind to every interface.
 
 ```js
