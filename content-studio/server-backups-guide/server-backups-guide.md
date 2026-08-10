@@ -11,7 +11,7 @@ secondary_keywords:
   - 3-2-1 backup rule
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 9 — Security, Scaling & Load Balancing
+cluster: 9. Security, Scaling & Load Balancing
 ---
 
 ![Server backups that actually restore: what to back up, where it belongs, and how to test a restore](images/hero.png)
@@ -60,7 +60,7 @@ What you can usually skip: your application code (it lives in Git already), and 
 
 ## Where backups belong: anywhere but the server they protect
 
-This is the rule that turns a copy into a backup. **The backup has to live somewhere other than the machine it's protecting.** A backup on the same disk dies with the disk. A backup on the same server dies with the server. So send them off-box, to object storage: a bucket that's separate, durable, and cheap enough that keeping several versions doesn't hurt.
+This is the rule that turns a copy into a backup. **The backup has to live somewhere other than the machine it's protecting.** A backup on the same disk dies with the disk. A backup on the same server dies with the server. If you are rolling your own with tar, [the archive reference](https://www.kloudbean.com/blog/extract-zip-and-tar-gz-on-linux/) covers the silent mistake where a file named .tar.gz was never actually compressed. So send them off-box, to object storage: a bucket that's separate, durable, and cheap enough that keeping several versions doesn't hurt.
 
 ![The Kloudbean console: creating an S3-compatible bucket to hold server backups off the server](../assets/console/s3-buckets.png)
 

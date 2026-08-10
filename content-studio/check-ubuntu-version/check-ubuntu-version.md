@@ -2,7 +2,7 @@
 
 *By Kloudbean Engineering · The number is easy. Knowing what to do with it is the point.*
 
-You can get this in one command, and every guide will hand you `lsb_release -a`. Two problems with stopping there. That command is not installed on a lot of servers, particularly minimal and container images, so the most-recommended answer is also the one most likely to fail. And the version number on its own is rarely what anyone actually needs. People check their Ubuntu version because they are trying to install something that needs a codename, or because they want to know whether the machine is still receiving security patches. Those are different questions with different answers, and the second one is the one worth your attention.
+Whether you need your Ubuntu version specifically or just want to know which Linux you are on, you can get it in one command, and every guide will hand you `lsb_release -a`. Two problems with stopping there. That command is not installed on a lot of servers, particularly minimal and container images, so the most-recommended answer is also the one most likely to fail. And the version number on its own is rarely what anyone actually needs. People check their Ubuntu version because they are trying to install something that needs a codename, or because they want to know whether the machine is still receiving security patches. Those are different questions with different answers, and the second one is the one worth your attention.
 
 > **How do I check my Ubuntu version?**
 > Run `cat /etc/os-release`. It works on every modern Linux distribution, needs nothing installed, and shows the version number and the codename together. `lsb_release -a` gives friendlier output but depends on a package that minimal images often omit. Do not use `uname -r` for this, because that reports the kernel version, which is a different number entirely. If you only want the codename for an apt repository line, use `lsb_release -cs` or read the `VERSION_CODENAME` field.
@@ -19,7 +19,7 @@ Worth sorting first, because it changes which command is useful.
 | The kernel version | `uname -r` | Kernel, not the release |
 | Whether you still get patches | Compare against the LTS rules below | The answer that matters |
 
-## The command that always works
+## The command that always works, on any Linux distribution
 
 `/etc/os-release` is a plain file that systemd-based distributions are expected to provide, so it is present on Ubuntu, Debian, and essentially anything current, with no package to install and nothing to go wrong.
 
@@ -183,7 +183,7 @@ The honest boundary: managed means the server, stack, SSL, backups, and patching
 
 ## Related reading
 
-On keeping a server defensible, the [server hardening checklist](https://www.kloudbean.com/blog/server-hardening-checklist/) and [Fail2ban and Shorewall](https://www.kloudbean.com/blog/fail2ban-shorewall-hardening/). On who owns patching, [managed versus unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/). Before any upgrade, [server backups](https://www.kloudbean.com/blog/server-backups-guide/). On moving to a new server rather than upgrading in place, [zero downtime deployments](https://www.kloudbean.com/blog/zero-downtime-deployments/). And for connecting to the machine in the first place, [FTP versus SFTP](https://www.kloudbean.com/blog/ftp-vs-sftp/).
+Once you know which distribution you are on, [extracting archives and the case against installing from a tarball](https://www.kloudbean.com/blog/extract-zip-and-tar-gz-on-linux/) depends on that answer, since the package manager differs. On keeping a server defensible, the [server hardening checklist](https://www.kloudbean.com/blog/server-hardening-checklist/) and [Fail2ban and Shorewall](https://www.kloudbean.com/blog/fail2ban-shorewall-hardening/). On who owns patching, [managed versus unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/). Before any upgrade, [server backups](https://www.kloudbean.com/blog/server-backups-guide/). On moving to a new server rather than upgrading in place, [zero downtime deployments](https://www.kloudbean.com/blog/zero-downtime-deployments/). And for connecting to the machine in the first place, [FTP versus SFTP](https://www.kloudbean.com/blog/ftp-vs-sftp/).
 
 ## Somebody should be patching that OS.
 
