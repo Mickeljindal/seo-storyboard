@@ -129,8 +129,11 @@ function kbseo_flesch($text) {
 
 // Common English transition words/phrases — their presence is a strong
 // readability signal (guides the reader through the argument).
+// NOTE: 'moreover' and 'furthermore' were removed on purpose — they read as
+// AI-cliché transitions and are penalized by the human-voice check below, so we
+// must not also reward them here.
 const KBSEO_TRANSITIONS = [
-    'however', 'therefore', 'moreover', 'furthermore', 'in addition', 'for example',
+    'however', 'therefore', 'in addition', 'for example',
     'for instance', 'as a result', 'consequently', 'on the other hand', 'in contrast',
     'meanwhile', 'similarly', 'likewise', 'in fact', 'above all', 'in short', 'to summarize',
     'first', 'second', 'third', 'finally', 'next', 'then', 'because', 'although', 'instead',
@@ -147,6 +150,94 @@ function kbseo_passive_ratio($sentences) {
         }
     }
     return $passive / count($sentences);
+}
+
+// AI-writing "tells": clichés and filler that make copy read as machine-generated.
+// Kept in sync with the engine's content scorecard so the WP score and the
+// generator pull in the SAME direction (human voice, not AI slop).
+const KBSEO_AI_TELL_PHRASES = [
+    "in today's digital", "in the world of", "in the realm of", "when it comes to",
+    "it's worth noting", "it is worth noting", "needless to say", "moreover", "furthermore",
+    "in conclusion", "to sum up", "delve", "dive into", "diving into", "embark",
+    "seamless", "seamlessly", "robust", "tailored to your", "unlock", "unleash", "elevate your",
+    "game-changer", "game changer", "cutting-edge", "state-of-the-art", "harness the", "empower",
+    "streamline your", "at the end of the day", "the bottom line", "plethora", "myriad",
+    "a testament to", "in essence", "rest assured", "look no further", "let's dive", "let's explore",
+    "navigating the", "ever-evolving", "fast-paced world",
+];
+
+/** AI-tell phrases present in the text (deduped). */
+function kbseo_ai_tell_hits($text) {
+    $lc = strtolower($text);
+    $hits = [];
+    foreach (KBSEO_AI_TELL_PHRASES as $p) {
+        if (strpos($lc, $p) !== false) $hits[] = $p;
+    }
+    return array_values(array_unique($hits));
+}
+
+/** Em-dashes (U+2014) per 1000 words — the #1 AI-writing tell, want near zero. */
+function kbseo_em_dash_per_1000($text, $words) {
+    $count = preg_match_all('/\x{2014}/u', $text);
+    if (!$count) $count = 0;
+    return $words > 0 ? ($count / $words) * 1000 : 0;
+}
+
+// Claim shapes that are essentially never honest: self-directed superlatives,
+// empty marketing absolutes, borrowed authority, and fabricated first-party
+// evidence. A published page carrying one of these is a credibility problem the
+// moment a reader checks it, so this is scored as a hard fail rather than a nudge.
+//
+// Kept in sync with CLAIM_INTEGRITY_PATTERNS in src/lib/content-scorecard.ts,
+// STRATEGY_CONTRACT in src/lib/content-engine.ts, and section 6 of
+// .kiro/steering/seo-operating-system.md. Change one, change all four.
+//
+// VALIDATED: this exact set was run against all 288 articles in content-studio
+// and matched none of them, so it does not fire on ordinary technical prose.
+// Two candidates were deliberately REMOVED after testing because they only ever
+// produced false positives:
+//   "unmatched"  -> nginx/router terminology ("unmatched requests", "unmatched routes")
+//   "unbeatable" -> legitimate rhetoric ("looks unbeatable until you count the evenings")
+// If you add a pattern, test it against the library first. A check that mostly
+// cries wolf teaches everyone to ignore the score.
+const KBSEO_CLAIM_INTEGRITY_PATTERNS = [
+    'self-superlative' => '/\b(?:kloudbean|we|our\s+platform|our\s+hosting)\s+(?:is|are|remains?|offers?)\s+(?:the\s+)?(?:best|fastest|most\s+(?:secure|reliable|affordable|powerful|advanced))\b/i',
+    'marketing absolute' => '/\b(?:industry[-\s]leading|world[-\s]class|best[-\s]in[-\s]class|award[-\s]winning|second\s+to\s+none)\b/i',
+    'market-wide claim' => '/\bno\s+other\s+(?:host|provider|platform)\b/i',
+    'borrowed authority' => '/\b(?:official(?:ly)?\s+(?:partner|certified|endorsed)|in\s+partnership\s+with|certified\s+by|endorsed\s+by)\b/i',
+    'fabricated evidence' => '/\b(?:our|internal)\s+(?:benchmarks?|tests?|research|data|study|studies)\s+(?:show|shows|showed|found|prove|proves|indicate)\b/i',
+    'unsourced metric' => '/\b(?:kloudbean|our\s+customers?|our\s+users?)\b[^.]{0,70}\b\d{1,3}(?:\.\d+)?%\s*(?:faster|cheaper|less|more|improvement|reduction|savings?)\b/i',
+    'unresolved marker' => '/\[VERIFY[^\]]*\]/i',
+];
+
+// Sentence context that makes a flagged phrase a denial or a caveat rather than
+// a claim. Auditing the 288-article library showed why this is mandatory: every
+// single real hit was of this kind, e.g. "no host can make you PCI compliant" or
+// the FAQ question "Is Kloudbean SOC 2 certified?" answered with a plain no.
+// Scoring those as failures would push an editor to delete the honest sentence.
+const KBSEO_NEGATION_CUES = '/\b(?:no|not|never|nobody|none|neither|nor|without|cannot|can\'t|won\'t|wouldn\'t|isn\'t|aren\'t|doesn\'t|don\'t|didn\'t|hasn\'t|haven\'t|myth|misconception|instead\s+of|rather\s+than)\b/i';
+
+/**
+ * Claim-integrity violations present in the text (returns the labels that matched).
+ *
+ * Evaluated per sentence. A match is excused when the sentence is a question or
+ * when a negation cue sits OUTSIDE the matched span. The "outside" part matters:
+ * a pattern containing its own cue would otherwise always excuse itself.
+ */
+function kbseo_claim_integrity_hits($text) {
+    $sentences = preg_split('/(?<=[.!?])\s+/', $text) ?: [];
+    $hits = [];
+    foreach (KBSEO_CLAIM_INTEGRITY_PATTERNS as $label => $re) {
+        foreach ($sentences as $s) {
+            if (!preg_match($re, $s, $m)) continue;
+            if (preg_match('/\?\s*$/', trim($s))) continue;
+            $outside = str_replace($m[0], ' ', $s);
+            if (preg_match(KBSEO_NEGATION_CUES, $outside)) continue;
+            $hits[] = $label;
+            break;
+        }
+    }
+    return $hits;
 }
 
 /* =========================================================================
@@ -309,6 +400,16 @@ function kbseo_compute_seo_score($post, $focus_keyword = null) {
         trim(($hasAuthor ? 'author ' : '') . ($hasPublisher ? 'publisher' : '')) ?: 'none',
         'Name an author and a publisher (Organization) in the page schema — re-optimize the page to inject these E-E-A-T signals.');
 
+    // Claim integrity. Weighted high and scored 'bad' on any hit, with no partial
+    // 'ok' tier, because these are truthfulness failures rather than optimisation
+    // opportunities. A page that says "industry-leading" or cites a benchmark we
+    // never ran is not 80% correct.
+    $claimHits = kbseo_claim_integrity_hits($text);
+    $add('claim_integrity', 'No unverifiable or fabricated claims', 12,
+        empty($claimHits) ? 'good' : 'bad',
+        empty($claimHits) ? 'clean' : implode(', ', $claimHits),
+        'Remove the flagged claim(s). Replace a superlative with the specific checkable reason a reader would choose this, drop empty absolutes, and never cite research, a partnership, or a percentage that is not in the approved product-truth source. Resolve any [VERIFY...] marker before publishing.');
+
     // ---- Readability checks -------------------------------------------------
     $sentences = kbseo_sentences($text);
     $numSentences = max(1, count($sentences));
@@ -346,6 +447,21 @@ function kbseo_compute_seo_score($post, $focus_keyword = null) {
     $radd('passive_voice', 'Limited passive voice', 15,
         ($passiveRatio <= 0.10 ? 'good' : ($passiveRatio <= 0.20 ? 'ok' : 'bad')),
         round($passiveRatio * 100) . '%', 'Rewrite passive sentences in the active voice where you can.');
+
+    // Human voice: AI-tell phrases + em-dash density (kept in sync with the engine
+    // scorecard). This is what stops published copy reading like AI slop.
+    $aiHits = kbseo_ai_tell_hits($text);
+    $numAiHits = count($aiHits);
+    $radd('human_voice', 'No AI-cliche phrases', 20,
+        ($numAiHits === 0 ? 'good' : ($numAiHits <= 2 ? 'ok' : 'bad')),
+        $numAiHits ? implode(', ', array_slice($aiHits, 0, 4)) : 'clean',
+        'Remove AI-cliche phrases (for example "moreover", "seamless", "when it comes to") and write the point plainly.');
+
+    $emPer1000 = kbseo_em_dash_per_1000($text, $words);
+    $radd('em_dashes', 'Near-zero em-dashes', 15,
+        ($emPer1000 <= 1.5 ? 'good' : ($emPer1000 <= 4.0 ? 'ok' : 'bad')),
+        round($emPer1000, 1) . ' per 1000 words',
+        'Swap em-dashes for commas, periods, or parentheses. They are the biggest tell that copy was AI-written.');
 
     $statusVal = function ($s) { return $s === 'good' ? 1.0 : ($s === 'ok' ? 0.5 : 0.0); };
     $weighted = function ($list) use ($statusVal) {

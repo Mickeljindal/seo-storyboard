@@ -171,6 +171,35 @@ async function publishOne(
   const article = await repo.getArticleById(articleId);
   if (!article) return { ok: false, error: "Article not found" };
 
+  // Content-studio articles store a FULL standalone HTML page in content_html:
+  // hand-built inline SVG diagrams, .tldr and .note callouts, comparison tables,
+  // and real console screenshots. Their .md mirror carries none of that markup,
+  // so the default path below (renderArticleHtml from content_draft) would
+  // silently publish a stripped-down version of a page someone hand-built.
+  //
+  // wp-publish-content-studio.ts exists for exactly these articles: it lifts the
+  // <article> body, keeps the SVG and callouts as editable blocks, uploads the
+  // local images, and does its own status/published_url bookkeeping. The manual
+  // content-tracker route already uses it; the review queue has to as well, or
+  // the same article publishes differently depending on which button you press.
+  //
+  // The doctype test is a reliable discriminator: all 288 content-studio pages
+  // are standalone documents, while renderArticleHtml returns a fragment.
+  const storedHtml = article.content_html ?? "";
+  if (/^\s*(?:<!doctype html|<html)/i.test(storedHtml)) {
+    const { publishContentStudioArticle } = await import("./wp-publish-content-studio");
+    const r = await publishContentStudioArticle(articleId, "publish");
+    if (r.ok && r.link) {
+      try {
+        const { pingUrlsForIndexing } = await import("./indexing-client");
+        await pingUrlsForIndexing([r.link]);
+      } catch {
+        /* indexing best-effort */
+      }
+    }
+    return { ok: r.ok, link: r.link, error: r.error };
+  }
+
   try {
     const { hasPluginConfigured, publishViaPlugin } = await import("./wp-plugin-client");
     if (hasPluginConfigured()) {

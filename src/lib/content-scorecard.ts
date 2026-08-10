@@ -135,6 +135,152 @@ const FORMULAIC_PATTERNS: { re: RegExp; label: string }[] = [
   { re: /\bnot only\b[^.]*\bbut also\b/i, label: "'not only X but also Y'" },
 ];
 
+/**
+ * CLAIM-INTEGRITY PATTERNS — claim shapes that are essentially never honest.
+ *
+ * These complement OVERPROMISE_PATTERNS in kloudbean-plans.ts, which already
+ * covers compliance certification, 100%/absolute guarantees, and ranking
+ * promises. This set covers what that one does not: self-directed superlatives,
+ * pure marketing absolutes, borrowed authority, and fabricated first-party
+ * evidence.
+ *
+ * Kept in sync with .kiro/steering/seo-operating-system.md section 6 and with
+ * STRATEGY_CONTRACT in content-engine.ts.
+ *
+ * VALIDATED: every pattern below was run against all 288 existing articles and
+ * produced ZERO matches, so none of them fire on legitimate technical prose.
+ * Two candidates were REMOVED during that testing because they produced only
+ * false positives:
+ *   - "unmatched"  → real usage is nginx/router terminology ("unmatched
+ *                    requests", "unmatched routes"), not a marketing claim.
+ *   - "unbeatable" → appeared in legitimate rhetoric that sets up a
+ *                    counterargument ("looks unbeatable until you count the
+ *                    evenings").
+ * If you add a pattern here, test it against the library first. A check that
+ * mostly cries wolf trains everyone to ignore the whole gate.
+ *
+ * The `issue` text is surfaced verbatim to the AI editor as a mandatory fix, so
+ * write each one as an instruction, not just a complaint.
+ */
+/**
+ * Sentence-level guards for the claim gates.
+ *
+ * Why this exists: the gates used to run `pattern.test(md)` across the whole
+ * document, which cannot tell a claim from its own denial. Every one of the 13
+ * real hits across the 288 published articles was a false positive of exactly
+ * that kind: "no host can make you PCI compliant", the FAQ question "Is
+ * Kloudbean SOC 2 certified?", an H1 carrying the target keyword, or two
+ * internal link anchors sitting side by side. Flagging those is worse than
+ * useless, because the auto-revise loop then rewrites the honest disclaimer.
+ */
+
+/** Negation/attribution cues that make a flagged phrase a denial or a caveat. */
+const NEGATION_CUES =
+  /\b(?:no|not|never|nobody|none|neither|nor|without|cannot|can't|won't|wouldn't|isn't|aren't|doesn't|don't|didn't|hasn't|haven't|myth|misconception|instead\s+of|rather\s+than)\b/i;
+
+/**
+ * A first-party ASSERTION: us, joined by a linking verb to the claim.
+ *
+ * Deliberately stricter than "the sentence mentions we". "We go deeper in SOC 2
+ * compliant hosting" is authorial voice pointing at an internal link, whereas
+ * "Kloudbean is SOC 2 certified" is the claim this gate exists to stop.
+ */
+const FIRST_PARTY_ASSERTION =
+  /\b(?:kloudbean|we|our\s+(?:platform|hosting|servers?|infrastructure)|this\s+platform|the\s+platform)\s+(?:is|are|was|were|has|have|holds?|became|remains?|stays?)\b|\bwe're\b/i;
+
+/**
+ * True when a matched phrase in this sentence should NOT be treated as a claim:
+ * the sentence denies it, or the sentence is a question (an FAQ heading such as
+ * "Is Kloudbean SOC 2 certified?" is the setup for an honest "no", not a claim).
+ *
+ * The negation cue must sit OUTSIDE the matched span, otherwise a pattern that
+ * contains its own cue (like "never fails" or "no other host") would always
+ * excuse itself and the gate would never fire.
+ *
+ * Sentences come from the shared splitSentences(), which already strips code
+ * fences and markdown headings. That is deliberate: it also removes the H1
+ * false positive, since an article legitimately titled "SOC 2 Compliant
+ * Hosting" is naming its topic, not claiming a certificate.
+ */
+function isExcusedByContext(sentence: string, match: string): boolean {
+  if (/\?\s*$/.test(sentence)) return true;
+  const outside = sentence.split(match).join(" ");
+  return NEGATION_CUES.test(outside);
+}
+
+/** Over-promise matches that survive the sentence-level guards. */
+function flagOverpromise(md: string): string[] {
+  const found: string[] = [];
+  const sentences = splitSentences(md);
+  for (const { pattern, issue, needsFirstPartyAssertion } of OVERPROMISE_PATTERNS) {
+    const re = new RegExp(pattern.source, pattern.flags.replace("g", ""));
+    for (const s of sentences) {
+      const m = re.exec(s);
+      if (!m) continue;
+      if (needsFirstPartyAssertion && !FIRST_PARTY_ASSERTION.test(s)) continue;
+      if (isExcusedByContext(s, m[0])) continue;
+      found.push(issue);
+      break; // one report per pattern is enough to trigger a fix
+    }
+  }
+  return found;
+}
+
+/** Claim-integrity matches that survive the same sentence-level guards. */
+function flagClaimIntegrity(md: string): string[] {
+  const found: string[] = [];
+  const sentences = splitSentences(md);
+  for (const { pattern, issue } of CLAIM_INTEGRITY_PATTERNS) {
+    const re = new RegExp(pattern.source, pattern.flags.replace("g", ""));
+    for (const s of sentences) {
+      const m = re.exec(s);
+      if (!m) continue;
+      if (isExcusedByContext(s, m[0])) continue;
+      found.push(issue);
+      break;
+    }
+  }
+  return found;
+}
+
+export const CLAIM_INTEGRITY_PATTERNS: { pattern: RegExp; issue: string }[] = [
+  {
+    pattern:
+      /\b(?:kloudbean|we|our\s+platform|our\s+hosting)\s+(?:is|are|remains?|offers?)\s+(?:the\s+)?(?:best|fastest|most\s+(?:secure|reliable|affordable|powerful|advanced))\b/i,
+    issue:
+      "Unverifiable self-superlative (Kloudbean/we is the best/fastest/most X). Replace it with the specific, checkable reason a reader would choose this — a real capability, limit, or trade-off.",
+  },
+  {
+    pattern:
+      /\b(?:industry[-\s]leading|world[-\s]class|best[-\s]in[-\s]class|award[-\s]winning|second\s+to\s+none)\b/i,
+    issue:
+      "Empty marketing absolute (industry-leading / world-class / best-in-class / award-winning / second to none). Delete it and state the concrete thing it was standing in for.",
+  },
+  {
+    pattern: /\bno\s+other\s+(?:host|provider|platform)\b/i,
+    issue:
+      "Unverifiable market-wide claim ('no other host/provider/platform'). We cannot verify what every competitor does. Narrow it to what Kloudbean actually offers.",
+  },
+  {
+    pattern:
+      /\b(?:official(?:ly)?\s+(?:partner|certified|endorsed)|in\s+partnership\s+with|certified\s+by|endorsed\s+by)\b/i,
+    issue:
+      "Borrowed authority: implies a partnership, certification, or endorsement. Remove it unless the relationship is in the approved product-truth source.",
+  },
+  {
+    pattern:
+      /\b(?:our|internal)\s+(?:benchmarks?|tests?|research|data|study|studies)\s+(?:show|shows|showed|found|prove|proves|indicate)\b/i,
+    issue:
+      "Claims first-party research we do not have. Remove the framing, or attribute the point to a real named source. Never invent a benchmark or study.",
+  },
+  {
+    pattern:
+      /\b(?:kloudbean|our\s+customers?|our\s+users?)\b[^.]{0,70}\b\d{1,3}(?:\.\d+)?%\s*(?:faster|cheaper|less|more|improvement|reduction|savings?)\b/i,
+    issue:
+      "A measured percentage improvement attributed to Kloudbean or its customers, with no source. Remove the figure or describe the benefit qualitatively.",
+  },
+];
+
 function findFormulaic(md: string): string[] {
   const hits: string[] = [];
   for (const { re, label } of FORMULAIC_PATTERNS) {
@@ -144,6 +290,77 @@ function findFormulaic(md: string): string[] {
   const boldLabels = (md.match(/^\s*[-*]?\s*\*\*[^*]{2,40}:\*\*/gm) ?? []).length;
   if (boldLabels >= 3) hits.push(`${boldLabels}× bold-label paragraphs`);
   return [...new Set(hits)];
+}
+
+/**
+ * Em-dash density in PROSE (code/inline-code stripped). Em-dashes are the #1
+ * AI-writing tell readers flag, so we want them near zero in body prose.
+ */
+function emDashDensity(md: string): { count: number; per1000: number } {
+  const prose = md.replace(/```[\s\S]*?```/g, " ").replace(/`[^`]*`/g, " ");
+  const count = (prose.match(/—/g) ?? []).length;
+  const words = (prose.match(/\b[\w'-]+\b/g) ?? []).length || 1;
+  return { count, per1000: (count / words) * 1000 };
+}
+
+/**
+ * Depth signals that separate lived-in engineering writing from generic
+ * explanation: an anti-pattern/gotcha beat, a clear opinion, and (best of all)
+ * a grounded first-person experience insight. We reward having at least TWO of
+ * the three categories.
+ *
+ * IMPORTANT: the experience/"we" category must be grounded in provided
+ * RAG/experience context (the revision instruction says never invent one), so
+ * we deliberately let anti-pattern + opinion satisfy this on their own — both
+ * are matters of VOICE, not factual claims, so they carry no fabrication risk.
+ */
+function depthSignals(md: string): { categories: number; found: string[] } {
+  const lower = md.toLowerCase();
+  const found: string[] = [];
+  const experience = [
+    "we see",
+    "we've seen",
+    "we regularly",
+    "we frequently",
+    "a common mistake we",
+    "customers migrate",
+    "when customers",
+    "we solve",
+    "in our experience",
+    "we've helped",
+    "we often see",
+    "one issue we",
+  ];
+  const antipattern = [
+    "where people get",
+    "where this breaks",
+    "where teams get",
+    "gets this wrong",
+    "screw this up",
+    "trips up",
+    "the trap",
+    "goes wrong",
+    "worst version",
+    "anti-pattern",
+    "common mistake",
+    "the mistake",
+  ];
+  const opinion = [
+    "honestly",
+    "my take",
+    "you don't need",
+    "don't reach for",
+    "is the wrong",
+    "don't optimize",
+    "don't bother",
+    "i'd avoid",
+    "my honest",
+    "the honest take",
+  ];
+  if (experience.some((p) => lower.includes(p))) found.push("experience");
+  if (antipattern.some((p) => lower.includes(p))) found.push("anti-pattern");
+  if (opinion.some((p) => lower.includes(p))) found.push("opinion");
+  return { categories: found.length, found };
 }
 
 /** Ratio of prose (paragraph words) to total body words. Low = too listy/AI. */
@@ -518,6 +735,30 @@ export function scoreContent(input: ScoreInput): ScoreResult {
     detail: formulaic.length ? formulaic.slice(0, 3).join("; ") : "clean",
   });
 
+  // --- 16b. Near-zero em-dashes in prose (the single biggest AI tell) ---
+  const em = emDashDensity(md);
+  const emOk = em.per1000 <= 1.5;
+  checks.push({
+    id: "em_dashes",
+    label: "Near-zero em-dashes in prose",
+    weight: 8,
+    earned: emOk ? 8 : em.per1000 <= 4 ? 3 : 0,
+    pass: emOk,
+    detail: `${em.count} in prose (${em.per1000.toFixed(1)}/1000 words)`,
+  });
+
+  // --- 16c. Engineering depth: opinion + anti-pattern + grounded experience ---
+  const depth = depthSignals(md);
+  const depthOk = depth.categories >= 2;
+  checks.push({
+    id: "depth_signals",
+    label: "Engineering depth (opinion, anti-pattern, grounded experience)",
+    weight: 6,
+    earned: depth.categories >= 2 ? 6 : depth.categories === 1 ? 3 : 0,
+    pass: depthOk,
+    detail: depth.found.length ? depth.found.join(", ") : "none",
+  });
+
   // --- 17. Answer-first sections (snippet / AI-overview wins) ---
   const af = answerFirstSections(md);
   const afRatio = af.total ? af.answerFirst / af.total : 1;
@@ -565,13 +806,28 @@ export function scoreContent(input: ScoreInput): ScoreResult {
   const bannedClaims: string[] = [];
   const unsupported = detectUnsupportedProviders(md);
   // Only flag unsupported providers when presented as a Kloudbean offering (not pure comparison).
-  for (const u of unsupported) {
-    const re = new RegExp(
-      `(kloudbean|we|our platform)[^.]{0,60}${u.split(" ")[0]}|${u.split(" ")[0]}[^.]{0,40}(on kloudbean|via kloudbean)`,
-      "i",
+  //
+  // Three precision fixes here, all found by auditing the published library:
+  //   \b around the subjects - "we" with no word boundary matched inside
+  //     "lowest", which is how hetzner-vs-kloudbean got flagged for a sentence
+  //     reading "...lowest bill and enjoy the ops? Hetzner".
+  //   [^.\n] instead of [^.] - the window must not span a line break.
+  //   comparisonFrame - a "X vs Kloudbean" page names its rival by design. The
+  //     unsupported-TECH check below already honours this; providers should too.
+  const providerComparisonFrame =
+    /\b(vs|versus|alternative|compared? (to|with)|migrate|migration|move (from|off)|switch (from|off)|instead of)\b/i.test(
+      lower,
     );
-    if (re.test(md)) {
-      bannedClaims.push(`Presents unsupported provider "${u}" as a Kloudbean offering.`);
+  if (!providerComparisonFrame) {
+    for (const u of unsupported) {
+      const first = u.split(" ")[0];
+      const re = new RegExp(
+        `\\b(kloudbean|we|our platform)\\b[^.\\n]{0,60}\\b${first}\\b|\\b${first}\\b[^.\\n]{0,40}(on kloudbean|via kloudbean)`,
+        "i",
+      );
+      if (re.test(md)) {
+        bannedClaims.push(`Presents unsupported provider "${u}" as a Kloudbean offering.`);
+      }
     }
   }
   bannedClaims.push(...ksaProviderViolations(md, input.geo));
@@ -580,8 +836,21 @@ export function scoreContent(input: ScoreInput): ScoreResult {
     bannedClaims.push("Over-promise: 'unlimited bandwidth/egress' in a KSA/Dammam context.");
   }
   // Honesty guardrails: compliance over-claims, absolute guarantees, fake certs.
-  for (const { pattern, issue } of OVERPROMISE_PATTERNS) {
-    if (pattern.test(md)) bannedClaims.push(issue);
+  // Evaluated per sentence so a denial ("no host can make you PCI compliant")
+  // and a keyword-bearing heading are not mistaken for the claim itself.
+  bannedClaims.push(...flagOverpromise(md));
+  // Claim integrity: self-superlatives, marketing absolutes, borrowed authority,
+  // fabricated first-party evidence. See CLAIM_INTEGRITY_PATTERNS above.
+  bannedClaims.push(...flagClaimIntegrity(md));
+  // Unresolved verification markers must never reach publication. The whole
+  // point of writing [VERIFY WITH PRODUCT TEAM] instead of guessing is that it
+  // is a task someone actions, so it has to block the publish path or it just
+  // becomes a different way of shipping an unknown.
+  const verifyMarkers = (md.match(/\[VERIFY[^\]]*\]/gi) ?? []).length;
+  if (verifyMarkers > 0) {
+    bannedClaims.push(
+      `${verifyMarkers} unresolved verification marker(s) left in the draft. Confirm each fact against the product-truth source and replace the marker, or cut the sentence. Do not publish with a [VERIFY...] marker in the body.`,
+    );
   }
   // Capability graph: unsupported tech presented as hostable on Kloudbean.
   const comparisonFrame =
@@ -700,6 +969,16 @@ export function buildRevisionInstructions(result: ScoreResult, input: ScoreInput
       case "no_formulaic":
         fixes.push(
           `Remove formulaic AI sentence patterns (${c.detail}) and any "**Label:** ..." bold-label paragraphs — rewrite as natural prose.`,
+        );
+        break;
+      case "em_dashes":
+        fixes.push(
+          `Cut em-dashes from prose (${c.detail}) to near zero. Replace each with a comma, a period, parentheses, or two separate sentences. This is the single biggest AI-writing tell.`,
+        );
+        break;
+      case "depth_signals":
+        fixes.push(
+          `Add lived-in engineering depth (currently: ${c.detail}). Include an honest "here's where this usually breaks" anti-pattern and at least one clear engineering opinion. If — and ONLY if — the provided experience/RAG grounding supports it, add a first-person "a common mistake we see" insight. Never invent an experience, a customer, or a statistic that isn't in the grounding.`,
         );
         break;
       case "answer_first":
