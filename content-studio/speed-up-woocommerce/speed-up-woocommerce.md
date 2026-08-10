@@ -187,7 +187,7 @@ A good managed stack quietly handles a chunk of this so you're left with the sto
 - **Staging sites** so you can test a caching change or a plugin cull on a copy before it ever touches the live store.
 - **Automatic backups and free SSL**, and if a store outgrows one box, a built-in **Flexible Load Balancer** to put more servers behind it. (Autoscaling is an enterprise and custom option, not something a standard store toggles on.)
 
-One dashboard for the app, the database, and the object cache is the practical part. You're not stitching a store together from three providers and hoping the private networking lines up. If genuine traffic growth is your problem rather than tuning, that's a scaling question, and [scalable WordPress hosting](https://www.kloudbean.com/blog/scalable-wordpress-hosting/) picks up where this guide stops.
+One dashboard for the app, the database, and the object cache is the practical part. You're not stitching a store together from three providers and hoping the private networking lines up. If genuine traffic growth is your problem rather than tuning, that's a scaling question, and [scalable WordPress hosting](https://www.kloudbean.com/blog/scalable-wordpress-hosting/) picks up where this guide stops. And if you have not settled on the platform itself yet, [WooCommerce vs Shopify](https://www.kloudbean.com/blog/woocommerce-vs-shopify/) is the choice that comes first.
 
 <!-- ADD IMAGE: the dashboard with the store app, its MySQL database, and a Redis object cache side by side. -->
 

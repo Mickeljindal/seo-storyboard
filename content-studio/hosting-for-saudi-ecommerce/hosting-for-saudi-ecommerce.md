@@ -105,7 +105,7 @@ The hard decision (the region) is a single click, so the setup is short. Here's 
 
 ## Who needs this (and who can keep it simple)
 
-Not every store needs the full stack on day one, and I'd rather you spend where it counts. A quick, honest read.
+Not every store needs the full stack on day one, and I'd rather you spend where it counts. A quick, honest read. And if you have not chosen WooCommerce over a hosted platform yet, [WooCommerce vs Shopify](https://www.kloudbean.com/blog/woocommerce-vs-shopify/) is the decision to settle first.
 
 - **You sell mostly to Saudi buyers.** Then in-Kingdom is the whole game. Checkout speed and data location both point to Dammam, and the setup above is worth doing from the start.
 - **You run seasonal sales.** If White Friday or Ramadan is a meaningful chunk of revenue, plan the load balancer and resize path now, not at 11pm on sale night.

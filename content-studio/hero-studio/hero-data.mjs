@@ -634,6 +634,21 @@ const HERO_OVERRIDES = {
       "Third-Party & Cloud",
     ],
   },
+  // The "-vs-" slug would auto-build a Kloudbean-vs-X versus card, which is wrong
+  // for a platform comparison. Pin it to the actual two platforms, WooCommerce
+  // highlighted since this is Kloudbean's blog and we host it.
+  "woocommerce-vs-shopify": {
+    archetype: "versus",
+    palette: "violet",
+    motif: "compare",
+    eyebrow: "WooCommerce vs Shopify",
+    headline: "Own it,\nor rent it.",
+    sub: "One fork decides the rest: a store you host, or a store hosted for you.",
+    versus: [
+      { name: "WooCommerce", note: "you own it, you host it", hot: true },
+      { name: "Shopify", note: "hosted, hands-off, a cut per sale" },
+    ],
+  },
 };
 
 // ---------------------------------------------------------------------------

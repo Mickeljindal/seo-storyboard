@@ -168,7 +168,7 @@ It's all one dashboard: the store, its database, the object cache, backups, SSL,
 
 ## If you are weighing Magento instead
 
-Worth knowing before you commit either way. Magento is built for larger catalogues and brings heavier server requirements with it, including Elasticsearch as a hard requirement for catalogue search rather than an optional extra. The performance reasoning on this page transfers, but the components differ, and [Magento SEO](https://www.kloudbean.com/blog/magento-seo/) covers the infrastructure half of that platform along with the search and caching layers it depends on.
+Worth knowing before you commit either way. Magento is built for larger catalogues and brings heavier server requirements with it, including Elasticsearch as a hard requirement for catalogue search rather than an optional extra. The performance reasoning on this page transfers, but the components differ, and [Magento SEO](https://www.kloudbean.com/blog/magento-seo/) covers the infrastructure half of that platform along with the search and caching layers it depends on. And if you have not committed to WooCommerce at all yet, [WooCommerce vs Shopify](https://www.kloudbean.com/blog/woocommerce-vs-shopify/) is the decision that comes before this one.
 
 ## The honest limits
 
