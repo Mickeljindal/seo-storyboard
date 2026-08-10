@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>413 Content Too Large: Find the Ceiling That Actually Rejected You</title>
+<meta name="description" content="A 413 error means one of several independent size limits rejected your upload, and the smallest wins. Why raising upload_max_filesize changes nothing, and why a 413 looks like a CORS error.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/http-error-413-content-too-large/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="413 Content Too Large: Find the Ceiling That Actually Rejected You">
+<meta property="og:description" content="The upload limit is not one setting. It is a stack of ceilings in the edge, the proxy, the runtime and the framework, and the smallest one silently wins.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">HTTP status codes · Uploads · Field guide</span>
+  <h1>413 Content Too Large: Find the Ceiling That Actually Rejected You</h1>
+  <p class="byline">By Kloudbean Engineering · One error, four or five independent limits, and the smallest one wins.</p>
+
+  <figure><img src="images/hero.png" alt="A stack of configuration files showing different upload size limits in nginx, PHP and an application framework"></figure>
+
+  <p class="lead">There is a particular afternoon that this error is famous for. You raise <code>upload_max_filesize</code>, restart PHP, try again, and get exactly the same 413. So you raise it further. Same result. The reason is that the request never reached PHP: nginx rejected it at its own limit, which defaults to 1 MB, and PHP was never consulted. A 413 is not one setting. It is a stack of independent ceilings across the edge, the proxy, the runtime, and your framework, and the smallest one in that stack decides your real maximum. The work is identifying which one spoke.</p>
+
+  <div class="tldr">
+    <strong>What does a 413 error mean?</strong>
+    <p>The server is refusing the request because the body is larger than it is willing to accept. RFC 9110 calls it Content Too Large; older documentation and many servers still print Payload Too Large or Request Entity Too Large, and all three are the same code. The important part is that several layers can each enforce their own limit independently, so the effective maximum is the smallest configured value along the path. Raising a limit in the wrong layer produces no change whatsoever, which is why this error has a reputation for being stubborn.</p>
+  </div>
+
+  <h2>First, find out which layer said no</h2>
+  <p>Everything else follows from this, and it takes one request.</p>
+
+  <p>Send a body you know is too large and look at what comes back. The layer that rejected it usually signs its own work:</p>
+
+  <pre><code># Make a file of a known size and post it.
+dd if=/dev/zero of=/tmp/big.bin bs=1M count=25
+curl -i -X POST -F "file=@/tmp/big.bin" https://example.com/upload</code></pre>
+
+  <p>Then read the response, not just the status:</p>
+
+  <table class="cmp">
+    <thead><tr><th>What you see</th><th>Who rejected it</th></tr></thead>
+    <tbody>
+      <tr><td>An HTML error page with <code>nginx</code> in the body or the <code>Server</code> header</td><td>nginx, at <code>client_max_body_size</code></td></tr>
+      <tr><td>An Apache-styled error page</td><td>Apache, at <code>LimitRequestBody</code></td></tr>
+      <tr><td>A JSON error in your application's own shape</td><td>Your framework. The request got through the proxy.</td></tr>
+      <tr><td>A Cloudflare-branded page</td><td>The edge, before your origin saw anything</td></tr>
+      <tr><td>Nothing useful, and the browser console says CORS</td><td>Almost certainly the proxy. See the section below, this one is a trap.</td></tr>
+    </tbody>
+  </table>
+
+  <p>The nginx error log confirms it outright, and this is the line to look for:</p>
+  <pre><code>grep "client intended to send too large body" /var/log/nginx/error.log | tail</code></pre>
+
+  <p>If that line is present, stop looking at PHP. nginx ended the request and nothing downstream was involved.</p>
+
+  <h2>Every ceiling, by layer</h2>
+  <p>Work down this table and find the smallest number that applies to you. That is your real limit, regardless of what everything else says.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Layer</th><th>Setting</th><th>Default worth knowing</th></tr></thead>
+    <tbody>
+      <tr><td>CDN or edge</td><td>Plan-dependent upload cap</td><td>Exists on most edge providers and varies by plan. Check yours rather than assuming a number.</td></tr>
+      <tr><td>Load balancer</td><td>Request body limit</td><td>Provider-specific. Often generous, occasionally not.</td></tr>
+      <tr><td>nginx</td><td><code>client_max_body_size</code></td><td><strong>1 MB.</strong> The single most common culprit, and smaller than a modern phone photo.</td></tr>
+      <tr><td>Apache</td><td><code>LimitRequestBody</code></td><td>Unlimited unless set, but frequently set by a control panel or a vendor config.</td></tr>
+      <tr><td>PHP</td><td><code>upload_max_filesize</code></td><td>Per-file limit. Commonly 2 MB out of the box.</td></tr>
+      <tr><td>PHP</td><td><code>post_max_size</code></td><td>Whole-body limit. Must be at least as large as the above, see the next section.</td></tr>
+      <tr><td>PHP</td><td><code>max_file_uploads</code></td><td>Caps the number of files per request, which bites on multi-file forms.</td></tr>
+      <tr><td>Express</td><td><code>express.json({ limit })</code></td><td><strong>100 kb.</strong> Surprises JSON APIs receiving base64 or bulk arrays.</td></tr>
+      <tr><td>Django</td><td><code>DATA_UPLOAD_MAX_MEMORY_SIZE</code></td><td>2.5 MB.</td></tr>
+      <tr><td>Your app</td><td>Validation rules</td><td>A framework validator rejecting on size returns your own error, not a proxy page.</td></tr>
+    </tbody>
+  </table>
+
+  <figure>
+    <svg viewBox="0 0 880 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s413-title s413-desc">
+      <title id="s413-title">The stack of upload limits and which one wins</title>
+      <desc id="s413-desc">A request passes through the edge, the load balancer, nginx, the runtime and the framework. Each has its own size limit. The smallest limit along the path is the effective maximum, so a 25 megabyte upload is rejected at the nginx one megabyte default before the higher PHP limit is ever reached.</desc>
+      <rect x="0" y="0" width="880" height="260" fill="#ffffff"/>
+      <g font-family="Poppins, sans-serif" font-size="12" fill="#000f27">
+        <text x="20" y="24" font-size="13.5" font-weight="600">A 25 MB upload meeting four ceilings</text>
+
+        <rect x="20" y="40" width="150" height="58" rx="9" fill="#000f27"/>
+        <text x="95" y="64" text-anchor="middle" fill="#ffffff" font-size="12.5" font-weight="600">Edge</text>
+        <text x="95" y="82" text-anchor="middle" fill="#ffffff" font-size="10.5">plan cap</text>
+
+        <rect x="208" y="40" width="150" height="58" rx="9" fill="#4F1AF3"/>
+        <text x="283" y="64" text-anchor="middle" fill="#ffffff" font-size="12.5" font-weight="600">Load balancer</text>
+        <text x="283" y="82" text-anchor="middle" fill="#ffffff" font-size="10.5">usually generous</text>
+
+        <rect x="396" y="40" width="150" height="58" rx="9" fill="#c0392b"/>
+        <text x="471" y="64" text-anchor="middle" fill="#ffffff" font-size="12.5" font-weight="600">nginx</text>
+        <text x="471" y="82" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="600">1 MB default</text>
+
+        <rect x="584" y="40" width="140" height="58" rx="9" fill="#98a2b3"/>
+        <text x="654" y="64" text-anchor="middle" fill="#ffffff" font-size="12.5" font-weight="600">PHP</text>
+        <text x="654" y="82" text-anchor="middle" fill="#ffffff" font-size="10.5">raised to 64 MB</text>
+
+        <rect x="752" y="40" width="108" height="58" rx="9" fill="#98a2b3"/>
+        <text x="806" y="64" text-anchor="middle" fill="#ffffff" font-size="12.5" font-weight="600">Your app</text>
+        <text x="806" y="82" text-anchor="middle" fill="#ffffff" font-size="10.5">no limit</text>
+
+        <g stroke="#40b75f" stroke-width="2.5" fill="none" marker-end="url(#g4)">
+          <path d="M172 69 H204"/><path d="M360 69 H392"/>
+        </g>
+        <text x="490" y="122" text-anchor="middle" font-size="26" fill="#c0392b" font-weight="700">x</text>
+        <g stroke="#98a2b3" stroke-width="2" fill="none" stroke-dasharray="5 5">
+          <path d="M548 69 H580"/><path d="M726 69 H748"/>
+        </g>
+
+        <rect x="584" y="112" width="276" height="44" rx="8" fill="#f1f3f7"/>
+        <text x="722" y="130" text-anchor="middle" font-size="11">These two never see the request.</text>
+        <text x="722" y="147" text-anchor="middle" font-size="11">Raising them changes nothing.</text>
+
+        <rect x="20" y="176" width="840" height="30" rx="7" fill="#e8f7ed" stroke="#40b75f" stroke-width="1.5"/>
+        <text x="34" y="196" font-size="12">Effective limit = the smallest value on the path. Here that is nginx at 1 MB, not the 64 MB you configured in PHP.</text>
+
+        <rect x="20" y="214" width="840" height="30" rx="7" fill="#000f27"/>
+        <text x="34" y="234" font-size="12" fill="#ffffff">So fix the order: find the layer that rejected it first, then raise every ceiling from there inwards.</text>
+      </g>
+      <defs>
+        <marker id="g4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#40b75f"/></marker>
+      </defs>
+    </svg>
+    <figcaption>Raising a limit behind the one that rejected you has no effect at all.</figcaption>
+  </figure>
+
+  <h2>The nginx fix, and the two mistakes in it</h2>
+  <p>Since nginx is the usual answer, here is the setting with the parts people get wrong.</p>
+
+  <pre><code>http {
+    # 0 disables the check entirely. Prefer a real number.
+    client_max_body_size 64m;
+}</code></pre>
+
+  <p><strong>Mistake one: putting it in the wrong block.</strong> The directive is valid in <code>http</code>, <code>server</code>, and <code>location</code>. Scoping it to just the upload path is better practice than raising it globally, because it keeps the tighter default protecting every other endpoint:</p>
+
+  <pre><code>location /api/upload {
+    client_max_body_size 64m;
+    proxy_pass http://127.0.0.1:3000;
+}</code></pre>
+
+  <p><strong>Mistake two: reloading and expecting the app limit to have moved.</strong> nginx and your runtime are separate. After nginx accepts the larger body, the next ceiling in the table takes its turn, and you get a 413 again from a different layer. That is not the fix failing. That is the next ceiling, and it is why this error often takes two rounds.</p>
+
+  <p>Setting <code>client_max_body_size 0</code> disables the check. It is occasionally the right call on an internal service, and it is a poor default on anything public, because the limit is what stops an unauthenticated request from filling your disk.</p>
+
+  <h2>The PHP trap: two limits that must move together</h2>
+  <p>This one wastes more time than it should, because the failure is quiet.</p>
+
+  <p>An uploaded file arrives inside the POST body. So <code>post_max_size</code> governs the whole envelope and <code>upload_max_filesize</code> governs the file within it, which means <strong><code>post_max_size</code> must be at least as large as <code>upload_max_filesize</code></strong>. Raise the file limit to 64 MB while the post limit sits at 8 MB and your 20 MB upload still fails. Worse, exceeding <code>post_max_size</code> can leave PHP with an empty <code>$_POST</code> rather than a clear error, so your code sees a form that submitted nothing at all.</p>
+
+  <pre><code>; Both, and post_max_size should be the larger of the two.
+upload_max_filesize = 64M
+post_max_size = 72M
+max_file_uploads = 20</code></pre>
+
+  <p>Add a margin to <code>post_max_size</code>, as above, because the body also carries the other form fields and the multipart boundaries. Then confirm what PHP actually loaded, rather than what you think you edited:</p>
+
+  <pre><code>php -i | grep -E "upload_max_filesize|post_max_size|max_file_uploads"</code></pre>
+
+  <p>That command settles a surprising number of arguments, usually by revealing a second <code>php.ini</code> or a pool override that was winning.</p>
+
+  <div class="note">
+    <strong>WordPress showing a small maximum upload size?</strong> That figure in the media library is read from the PHP values above, so it is a display of your limits rather than a limit of its own. If it still reads 2 MB after you edited a config file, the file you edited is not the one PHP is loading.
+  </div>
+
+  <h2>The 413 that pretends to be a CORS error</h2>
+  <p>This is the trap worth reading even if your uploads currently work, because it sends people down entirely the wrong path.</p>
+
+  <p>Your API sits behind nginx and your front end is on another origin, so your application adds the usual cross-origin headers to its responses. A user posts a file over the limit. nginx rejects it and returns the 413 <em>itself</em>, without ever passing the request to your application. Which means the response carries none of the CORS headers your application would have added, because your application never ran.</p>
+
+  <p>The browser sees a cross-origin response with no permission headers and reports exactly what it is designed to report: a CORS failure. Your console says the request was blocked by cross-origin policy. It says nothing about size. So the developer spends an afternoon on CORS configuration that was correct the whole time.</p>
+
+  <p>How to recognise it in ten seconds: repeat the request with curl, which does not enforce cross-origin policy, and read the real status. If curl shows 413, your CORS setup is fine and your body is too big. Same trick applies to any error a proxy generates on your behalf, and <a href="https://www.kloudbean.com/blog/err-blocked-by-response/">ERR_BLOCKED_BY_RESPONSE</a> covers the neighbouring cases where a response header is what stops the browser.</p>
+
+  <pre><code># The browser hides the status behind a CORS message. curl does not.
+curl -i -X POST -F "file=@/tmp/big.bin" https://api.example.com/upload | head -1</code></pre>
+
+  <h2>413 against its neighbours</h2>
+  <p>Four codes describe four different objections to what you sent. Getting the right one saves you looking in the wrong file.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Code</th><th>The objection</th></tr></thead>
+    <tbody>
+      <tr><td><strong>413</strong> Content Too Large</td><td>The body is too big</td></tr>
+      <tr><td><a href="https://www.kloudbean.com/blog/http-error-431-request-header-fields-too-large/"><strong>431</strong></a></td><td>The <em>headers</em> are too big, often a bloated cookie rather than anything you uploaded</td></tr>
+      <tr><td><a href="https://www.kloudbean.com/blog/http-error-415-unsupported-media-type/"><strong>415</strong></a></td><td>The body is the wrong type. Size is irrelevant</td></tr>
+      <tr><td><a href="https://www.kloudbean.com/blog/http-error-408-request-timeout/"><strong>408</strong></a></td><td>The body was fine, it just arrived too slowly</td></tr>
+    </tbody>
+  </table>
+
+  <p>The 413 and 408 pair is worth a second look if you are debugging large uploads, because a big file over a weak connection can plausibly hit either. Which code you get tells you which wall you met: a size ceiling, or a patience ceiling.</p>
+
+  <h2>The better answer for genuinely large files</h2>
+  <p>An opinion, since raising limits forever is not a strategy.</p>
+
+  <p>Every megabyte you push through your web server occupies a worker for the duration of the transfer. Ten people uploading video at once can starve a server that handles thousands of ordinary page views without noticing. So for anything routinely large, the fix is not a bigger number in a config file. It is to stop routing the bytes through your application at all.</p>
+
+  <p>The pattern is a presigned upload. Your application receives a small request asking permission, returns a time-limited signed URL, and the browser sends the file straight to object storage. Your server handles two small JSON requests instead of a 500 MB stream, the 413 question disappears because nothing large ever crosses your proxy, and uploads stop competing with page traffic for workers.</p>
+
+  <p>Kloudbean's object storage is S3-compatible with full AWS SDK and CLI support, so this is the ordinary S3 presigned-URL flow rather than anything bespoke, and the same SDK code you would write against S3 works unchanged. <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">The object storage guide</a> covers buckets and access control.</p>
+
+  <p>Worth being clear about when <em>not</em> to bother: if your largest upload is a 5 MB profile image, presigned URLs are more machinery than the problem deserves. Raise <code>client_max_body_size</code> and move on. The architecture matters when files are large, frequent, or both.</p>
+
+  <h2>Where hosting fits, honestly</h2>
+  <p>The honest part first. A 413 is a configuration outcome, and on any platform where you control the proxy config, it is yours to set. No host can guess the right maximum for your application.</p>
+
+  <p>What removes the frustration is not having to find the ceilings by trial and error. On Kloudbean the reverse proxy and the runtime are managed together, so the proxy and PHP settings are not two unrelated files in two locations discovered one restart at a time, and application and server logs sit in the same dashboard, which is where the <code>client intended to send too large body</code> line lives. Runtime configuration for Node and Python is editable in the UI rather than over SSH. For the architectural answer above, S3-compatible object storage is built in on every account. Seven cloud providers, free SSL, and free migration assistance if you are moving something across.</p>
+
+  <p>The boundary stays put. Managed covers the server, the stack, TLS, backups, and patching. What size of upload your application should accept, and what it does with the file afterwards, is yours.</p>
+
+  <h2>Related reading</h2>
+  <p>The neighbouring objections: <a href="https://www.kloudbean.com/blog/http-error-415-unsupported-media-type/">415 Unsupported Media Type</a> for the wrong content type, <a href="https://www.kloudbean.com/blog/http-error-431-request-header-fields-too-large/">431 Request Header Fields Too Large</a> when it is the headers rather than the body, and <a href="https://www.kloudbean.com/blog/http-error-408-request-timeout/">408 Request Timeout</a> when the upload was slow rather than large. When a proxy error hides behind a browser message, <a href="https://www.kloudbean.com/blog/err-blocked-by-response/">ERR_BLOCKED_BY_RESPONSE</a>. For the upload architecture, <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage</a>. On the proxy layer, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">nginx as a reverse proxy for Node</a>. And if the request failed after reaching your code rather than before, <a href="https://www.kloudbean.com/blog/http-error-500-internal-server-error/">500 Internal Server Error</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Stop guessing which limit rejected the upload.</p>
+    <p style="margin:0 0 .6em">Managed servers across seven clouds with the reverse proxy and runtime managed together, runtime configuration editable in the UI, and application plus server logs in one dashboard. S3-compatible object storage built in for direct uploads. Free SSL issued and renewed. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed proxy · Runtime config in the UI · S3-compatible storage · App and server logs · Free SSL</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does a 413 error mean?</h3>
+    <p>The server is refusing the request because the body is larger than it will accept. RFC 9110 names it Content Too Large, while older documentation and many servers print Payload Too Large or Request Entity Too Large. All three refer to the same status code.</p>
+
+    <h3>Why does raising upload_max_filesize not fix my 413?</h3>
+    <p>Because the request is being rejected before PHP sees it. nginx enforces its own client_max_body_size, which defaults to 1 MB, and if that is what rejected the body then no PHP setting is involved at all. Check the nginx error log for the line about a client intending to send too large a body, and raise the proxy limit first.</p>
+
+    <h3>How do I find out which layer is returning the 413?</h3>
+    <p>Post an oversized body with curl and read the whole response rather than just the status. An nginx or Apache branded error page means the proxy rejected it. A Cloudflare page means the edge did. An error in your application's own JSON shape means the request got through and your framework objected. The nginx error log confirms the proxy case outright.</p>
+
+    <h3>What is the default client_max_body_size in nginx?</h3>
+    <p>1 MB. That is smaller than a photo from any current phone, which is why it accounts for so many 413s. It is valid in the http, server and location blocks, and scoping the larger value to just your upload path is better practice than raising it globally.</p>
+
+    <h3>Why do I need to change both post_max_size and upload_max_filesize?</h3>
+    <p>Because an uploaded file travels inside the POST body, so both limits apply. post_max_size governs the whole request body and must be at least as large as upload_max_filesize, with some margin for the other form fields and multipart boundaries. If post_max_size is exceeded, PHP can end up with an empty POST array rather than a clear error.</p>
+
+    <h3>Why does my 413 show up as a CORS error in the browser?</h3>
+    <p>Because nginx returned the 413 itself without passing the request to your application, so the response carries none of the cross-origin headers your app would have added. The browser sees a cross-origin response with no permission headers and reports a CORS failure, hiding the real status. Repeat the request with curl, which ignores cross-origin policy, and you will see the 413.</p>
+
+    <h3>What is the difference between 413 and 431?</h3>
+    <p>413 is about the request body being too large. 431 is about the request headers being too large, which is usually an oversized cookie or a very long authorisation token rather than anything you deliberately uploaded. Different part of the request, different setting, different fix.</p>
+
+    <h3>Is it safe to set client_max_body_size to 0?</h3>
+    <p>It disables the size check entirely, which is occasionally reasonable on an internal service and a poor idea on anything public. The limit is part of what stops an unauthenticated request from filling your disk or tying up workers. Prefer a real number that reflects your largest legitimate upload.</p>
+
+    <h3>What is the best way to handle very large file uploads?</h3>
+    <p>Keep them out of your web server. Have your application issue a time-limited presigned URL and let the browser upload straight to object storage, so your server handles two small requests instead of streaming the whole file. The 413 question disappears because nothing large crosses your proxy, and uploads stop competing with page traffic for worker slots. For a 5 MB profile image this is overkill, so just raise the limit.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Find the smallest ceiling first. Everything else is guessing.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"413 Content Too Large: Find the Ceiling That Actually Rejected You","description":"A 413 error means one of several independent size limits rejected your upload, and the smallest wins. Why raising upload_max_filesize changes nothing, and why a 413 looks like a CORS error.","image":"https://www.kloudbean.com/blog/http-error-413-content-too-large/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/http-error-413-content-too-large/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does a 413 error mean?","acceptedAnswer":{"@type":"Answer","text":"The server is refusing the request because the body is larger than it will accept. RFC 9110 names it Content Too Large, while older documentation and many servers print Payload Too Large or Request Entity Too Large. All three refer to the same status code."}},
+{"@type":"Question","name":"Why does raising upload_max_filesize not fix my 413?","acceptedAnswer":{"@type":"Answer","text":"Because the request is being rejected before PHP sees it. nginx enforces its own client_max_body_size, which defaults to 1 MB, and if that is what rejected the body then no PHP setting is involved at all. Check the nginx error log for the line about a client intending to send too large a body, and raise the proxy limit first."}},
+{"@type":"Question","name":"How do I find out which layer is returning the 413?","acceptedAnswer":{"@type":"Answer","text":"Post an oversized body with curl and read the whole response rather than just the status. An nginx or Apache branded error page means the proxy rejected it. A Cloudflare page means the edge did. An error in your application's own JSON shape means the request got through and your framework objected. The nginx error log confirms the proxy case outright."}},
+{"@type":"Question","name":"What is the default client_max_body_size in nginx?","acceptedAnswer":{"@type":"Answer","text":"1 MB. That is smaller than a photo from any current phone, which is why it accounts for so many 413s. It is valid in the http, server and location blocks, and scoping the larger value to just your upload path is better practice than raising it globally."}},
+{"@type":"Question","name":"Why do I need to change both post_max_size and upload_max_filesize?","acceptedAnswer":{"@type":"Answer","text":"Because an uploaded file travels inside the POST body, so both limits apply. post_max_size governs the whole request body and must be at least as large as upload_max_filesize, with some margin for the other form fields and multipart boundaries. If post_max_size is exceeded, PHP can end up with an empty POST array rather than a clear error."}},
+{"@type":"Question","name":"Why does my 413 show up as a CORS error in the browser?","acceptedAnswer":{"@type":"Answer","text":"Because nginx returned the 413 itself without passing the request to your application, so the response carries none of the cross-origin headers your app would have added. The browser sees a cross-origin response with no permission headers and reports a CORS failure, hiding the real status. Repeat the request with curl, which ignores cross-origin policy, and you will see the 413."}},
+{"@type":"Question","name":"What is the difference between 413 and 431?","acceptedAnswer":{"@type":"Answer","text":"413 is about the request body being too large. 431 is about the request headers being too large, which is usually an oversized cookie or a very long authorisation token rather than anything you deliberately uploaded. Different part of the request, different setting, different fix."}},
+{"@type":"Question","name":"Is it safe to set client_max_body_size to 0?","acceptedAnswer":{"@type":"Answer","text":"It disables the size check entirely, which is occasionally reasonable on an internal service and a poor idea on anything public. The limit is part of what stops an unauthenticated request from filling your disk or tying up workers. Prefer a real number that reflects your largest legitimate upload."}},
+{"@type":"Question","name":"What is the best way to handle very large file uploads?","acceptedAnswer":{"@type":"Answer","text":"Keep them out of your web server. Have your application issue a time-limited presigned URL and let the browser upload straight to object storage, so your server handles two small requests instead of streaming the whole file. The 413 question disappears because nothing large crosses your proxy, and uploads stop competing with page traffic for worker slots. For a 5 MB profile image this is overkill, so just raise the limit."}}
+]}
+]}
+</script>
+</body>
+</html>

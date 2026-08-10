@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>499 Status Code: The Client Hung Up, Not Your Server</title>
+<meta name="description" content="The 499 status code is nginx's own invention for a client that closed the connection before you answered. Often harmless, sometimes a latency alarm, and it cancels your upstream work.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/nginx-499-client-closed-request/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="499 Status Code: The Client Hung Up, Not Your Server">
+<meta property="og:description" content="499 is the only code in the timeout family where the client is the one who quit. Which means tuning your nginx timeouts will not touch it.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">HTTP status codes · nginx · Field guide</span>
+  <h1>499 Status Code: The Client Hung Up, Not Your Server</h1>
+  <p class="byline">By Kloudbean Engineering · The one status code where the visitor is the one who gave up.</p>
+
+  <figure><img src="images/hero.png" alt="An nginx access log filled with 499 entries beside a graph showing response times climbing on the same endpoint"></figure>
+
+  <p class="lead">You will not find 499 in any RFC, which is the first useful thing to know about it. nginx invented it to record a specific situation its logs otherwise could not describe: the client closed the connection before nginx had a chance to answer. Every other code in this neighbourhood describes a server that ran out of patience. This one describes a visitor who did. That difference decides everything about what you should do next, and for a lot of 499s the correct action is nothing at all.</p>
+
+  <div class="tldr">
+    <strong>What does a 499 status code mean?</strong>
+    <p>It means the client closed the request before the server responded. It is non-standard, specific to nginx, and it appears only in your logs, never in a browser, because by the time nginx records it there is nobody left to send a page to. Most 499s are ordinary human behaviour: someone hit stop, closed the tab, navigated away, or lost mobile signal. The version worth investigating is a cluster of them on one slow endpoint, which means the client's timeout is shorter than your response time. And one operational detail catches people out: by default nginx cancels the upstream request too, so your application is killed part-way through the work it was doing.</p>
+  </div>
+
+  <h2>Which party stopped waiting</h2>
+  <p>Four codes get muddled together constantly because they all involve something giving up. They differ only in who.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Code</th><th>Who gave up</th><th>On what</th><th>Where to fix it</th></tr></thead>
+    <tbody>
+      <tr><td><strong>499</strong></td><td><strong>The client</strong></td><td>Waiting for your response</td><td>Your response time, not your config</td></tr>
+      <tr><td><a href="https://www.kloudbean.com/blog/http-error-408-request-timeout/"><strong>408</strong></a></td><td>The server</td><td>Waiting for the request to finish arriving</td><td>Read timeouts</td></tr>
+      <tr><td><a href="https://www.kloudbean.com/blog/fix-504-gateway-timeout/"><strong>504</strong></a></td><td>The proxy</td><td>Waiting for the upstream to answer</td><td>Proxy timeouts, slow work</td></tr>
+      <tr><td><a href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/"><strong>502</strong></a></td><td>Nobody waited</td><td>The upstream was unreachable or died</td><td>The process itself</td></tr>
+    </tbody>
+  </table>
+
+  <p>Read down that first column and the practical consequence is obvious. Three of these four are yours to configure. The 499 is not, because the connection was closed from the other end. This is why the most common response to a log full of 499s, raising nginx timeouts, achieves precisely nothing. There is no nginx timeout involved. nginx was still willing to wait. The client was not.</p>
+
+  <h2>Most 499s are people, not faults</h2>
+  <p>Before you treat this as an incident, work out whether anything actually went wrong.</p>
+
+  <p>Every one of these produces a completely legitimate 499:</p>
+
+  <ul>
+    <li>Someone clicks a link, changes their mind, and hits back or closes the tab.</li>
+    <li>A visitor on a train goes through a tunnel.</li>
+    <li>A user double-clicks a submit button, and the browser abandons the first request.</li>
+    <li>Your own front end cancels an in-flight request, which is standard practice for a search-as-you-type box or anything using an abort signal on unmount.</li>
+    <li>A health checker or scanner opens a connection and drops it.</li>
+    <li>A mobile app is backgrounded mid-request by the operating system.</li>
+  </ul>
+
+  <p>That last category is worth dwelling on if you run an API for a mobile client, because it will produce a constant background hum of 499s that means nothing. A single-page app with a typeahead can generate them by design: every keystroke cancels the previous request, and every cancellation is a 499 in your log. Nothing is broken. Your front end is behaving correctly.</p>
+
+  <p>So the useful question is never how many 499s you have. It is whether they are spread thinly across many URLs, or piled onto one.</p>
+
+  <pre><code># Are the 499s scattered, or concentrated on one endpoint?
+awk '$9 == 499 {print $7}' /var/log/nginx/access.log | sort | uniq -c | sort -rn | head -20
+
+# What share of all requests are they? Context matters more than the raw count.
+awk '{t++} $9 == 499 {c++} END {printf "499s: %d of %d (%.2f%%)\n", c, t, c/t*100}' /var/log/nginx/access.log</code></pre>
+
+  <p>Thinly spread, low percentage, no pattern: that is human behaviour, and you can stop here. Concentrated on one or two paths: keep reading, because you have found something.</p>
+
+  <h2>A cluster of 499s is a latency alarm in disguise</h2>
+  <p>This is the reframing that makes the code worth understanding, and it is the reason 499s are worth logging at all.</p>
+
+  <p>Clients have their own timeouts. A browser's fetch may be wrapped in a deadline, a mobile app's HTTP library ships with a default, an internal service calling you has a client timeout set by whoever wrote it, and a payment provider calling your webhook has one you do not control. When your response takes longer than that number, the client closes the connection and you record a 499.</p>
+
+  <p>Which means a spike of 499s on a single endpoint is telling you something quite precise: <strong>that endpoint got slower than its callers are willing to tolerate.</strong> The 499 is not the problem. It is the symptom of a latency problem that would otherwise be invisible, because nothing in your stack errored. Your application was working away happily. Nobody was listening any more.</p>
+
+  <figure>
+    <svg viewBox="0 0 880 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="c499-title c499-desc">
+      <title id="c499-title">Why a slow endpoint produces 499s</title>
+      <desc id="c499-desc">The client has its own timeout, shorter than the server's. When the response takes longer than the client's deadline the client closes the connection first, and nginx records a 499 even though the server was still willing to wait and still working.</desc>
+      <rect x="0" y="0" width="880" height="250" fill="#ffffff"/>
+      <g font-family="Poppins, sans-serif" font-size="12.5" fill="#000f27">
+        <text x="20" y="26" font-size="13.5" font-weight="600">Two clocks, and the shorter one wins</text>
+
+        <text x="20" y="58" font-size="12">Client deadline</text>
+        <rect x="140" y="46" width="250" height="20" rx="5" fill="#4F1AF3"/>
+        <text x="398" y="61" font-size="11.5" fill="#4F1AF3" font-weight="600">closes the connection here</text>
+
+        <text x="20" y="96" font-size="12">nginx patience</text>
+        <rect x="140" y="84" width="620" height="20" rx="5" fill="#40b75f" opacity="0.35"/>
+        <text x="768" y="99" font-size="11.5" fill="#2f8f49">still willing to wait</text>
+
+        <text x="20" y="134" font-size="12">Your response</text>
+        <rect x="140" y="122" width="500" height="20" rx="5" fill="#c0392b" opacity="0.8"/>
+        <text x="648" y="137" font-size="11.5" fill="#c0392b" font-weight="600">would have arrived here</text>
+
+        <g stroke="#4F1AF3" stroke-width="2" stroke-dasharray="5 5"><path d="M390 40 V190"/></g>
+
+        <rect x="140" y="164" width="250" height="26" rx="6" fill="#f4f2ff"/>
+        <text x="152" y="182" font-size="11.5">work that reached the client: none</text>
+
+        <rect x="400" y="164" width="360" height="26" rx="6" fill="#fdeeee"/>
+        <text x="412" y="182" font-size="11.5">work you paid for and nobody received</text>
+
+        <rect x="20" y="206" width="840" height="30" rx="7" fill="#000f27"/>
+        <text x="34" y="226" font-size="12" fill="#ffffff">Nothing in the stack errored. The only record that this happened is the 499 in your access log.</text>
+      </g>
+    </svg>
+    <figcaption>The client's timeout is the one that decides, and you usually do not control it.</figcaption>
+  </figure>
+
+  <p>So treat the 499 count on a path as a proxy for how close that path runs to its callers' patience. The fix lives in the endpoint: the slow query, the external API call with no timeout of its own, the report generated inside a web request. <a href="https://www.kloudbean.com/blog/fix-504-gateway-timeout/">The 504 guide</a> covers the same causes from the other direction, and if the work is genuinely long, it does not belong in a request at all.</p>
+
+  <h2>The part that actually costs you: nginx cancels your upstream</h2>
+  <p>Here is the behaviour that turns a harmless log entry into a real bug, and it is the least known thing about 499.</p>
+
+  <p>When the client aborts, nginx does not politely let your application finish. By default it closes the upstream connection too. The directive is <code>proxy_ignore_client_abort</code>, and its default is <code>off</code>, which means client aborts are <em>not</em> ignored: they propagate. Your PHP process or Node handler is cut off mid-execution.</p>
+
+  <p>Consider what that means for a request that was doing something. A payment captured but the confirmation row never written. Two of three database writes committed with no transaction wrapping them. A file uploaded to storage with no record pointing at it. None of this raises an error anywhere, because from your application's perspective the process simply stopped. You get a 499 in the access log and a quietly inconsistent database.</p>
+
+  <p>Two ways to deal with it, and they are not equivalent:</p>
+
+  <table class="cmp">
+    <thead><tr><th>Approach</th><th>What it does</th><th>When it is right</th></tr></thead>
+    <tbody>
+      <tr><td>Wrap the work in a transaction, make handlers idempotent</td><td>An interrupted request leaves no partial state, and a retry is safe</td><td>Almost always. This is the real fix.</td></tr>
+      <tr><td><code>proxy_ignore_client_abort on;</code></td><td>nginx lets the upstream run to completion even though nobody is waiting</td><td>Narrowly. It stops the truncation, and it also lets abandoned requests keep consuming workers.</td></tr>
+    </tbody>
+  </table>
+
+  <p>Be careful with the second one. Turning it on globally means every cancelled request still costs you a full worker slot for its full duration, which under load is a way to exhaust your capacity with work nobody will ever see. If you use it, scope it to the specific location that needs it rather than the whole server.</p>
+
+  <p>The structural answer is the first row, and it retires the whole class of problem: if your write path is transactional and your handlers are idempotent, a client hanging up becomes genuinely uninteresting. That is worth more than any nginx directive.</p>
+
+  <h2>Why you never see a 499 page</h2>
+  <p>A small point that saves confusion when someone asks you to add a custom error page for it.</p>
+
+  <p>There is nothing to send it to. The connection is already closed when nginx writes the log line, so 499 exists purely as a record of something that happened. This is the same pattern as 408 in nginx, where the status is largely written to logs rather than delivered to clients, and it is why <code>error_page 499</code> is not a meaningful thing to configure. The <a href="https://www.kloudbean.com/blog/http-error-408-request-timeout/">408 guide</a> goes into that log-only behaviour in more detail.</p>
+
+  <p>It also explains why 499 is missing from status code references. It is nginx's private extension, not part of the HTTP specification, so other servers use different numbers or nothing at all for the same event. If you move a service behind a different proxy or a cloud load balancer, expect the same client behaviour to show up under a different code, which is worth remembering before you build a dashboard that filters on the literal number 499.</p>
+
+  <div class="note">
+    <strong>Seeing 499s only since you added a load balancer?</strong> Check its idle timeout against your response times. A load balancer that closes an idle connection is, from nginx's point of view, a client that hung up, and it records a 499 accordingly. <a href="https://www.kloudbean.com/blog/cloud-load-balancer-explained/">How cloud load balancers work</a> covers where those separate clocks live.
+  </div>
+
+  <h2>What to do, in order</h2>
+
+  <p><strong>Establish the share, not the count.</strong> A few hundred 499s a day out of millions of requests is background noise. The same number out of ten thousand requests is a signal. Use the second command above.</p>
+
+  <p><strong>Group by path.</strong> Concentration is the whole diagnosis. Scattered means people, clustered means latency.</p>
+
+  <p><strong>Compare the clustered path's response time against its callers' timeouts.</strong> If your slowest endpoint takes eight seconds and the calling client gives up at five, you have found the answer and it has nothing to do with nginx.</p>
+
+  <p><strong>Make that endpoint faster, or move the work out of the request.</strong> Cache what is expensive, index what is slow, and push genuinely long jobs to a queue so the request returns immediately with a job identifier. Managed Redis is the usual home for the caching half of that.</p>
+
+  <p><strong>Audit whatever that endpoint writes.</strong> Given the cancellation behaviour above, any path producing lots of 499s is a path that has been interrupted mid-write many times. Check for orphaned rows and half-finished records before you assume nothing happened.</p>
+
+  <p><strong>Do not raise nginx timeouts.</strong> Written twice deliberately, because it is the most common wasted afternoon on this error. nginx was not the one who quit.</p>
+
+  <h2>Where hosting fits, honestly</h2>
+  <p>The limit first, and it is a real one. A visitor closing their laptop is not something any platform can prevent, and a client library's timeout set by someone else's engineering team is not yours to change. A large share of your 499s will always be exactly that, and the honest goal is to recognise them rather than fix them.</p>
+
+  <p>What helps is the correlation, because this diagnosis is entirely about putting two numbers side by side. On Kloudbean the access and error logs sit in the same dashboard as server health metrics, so checking whether a 499 cluster lines up with a latency climb or a resource ceiling does not mean stitching together three tools. The reverse proxy is managed, so the configuration those 499s pass through is maintained rather than something edited once and forgotten. Managed Redis is available for the caching that usually fixes the underlying slowness, and managed databases across six engines for the query side. Seven cloud providers, free SSL, and free migration assistance if you are bringing something across.</p>
+
+  <p>The boundary is the usual one. Managed covers the server, the stack, TLS, backups, and patching. The slow endpoint that made the client give up is application work, and it stays yours.</p>
+
+  <h2>Related reading</h2>
+  <p>The rest of the family, sorted by who quit: <a href="https://www.kloudbean.com/blog/http-error-408-request-timeout/">408 Request Timeout</a> when the server stopped waiting for the request, <a href="https://www.kloudbean.com/blog/fix-504-gateway-timeout/">504 Gateway Timeout</a> when the proxy stopped waiting for the upstream, and <a href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/">502 Bad Gateway</a> when there was nothing to wait for. If your application threw instead, <a href="https://www.kloudbean.com/blog/http-error-500-internal-server-error/">500 Internal Server Error</a>. For a connection cut at the transport layer rather than closed deliberately, <a href="https://www.kloudbean.com/blog/err-connection-reset/">ERR_CONNECTION_RESET</a>. On the proxy layer itself, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">nginx as a reverse proxy for Node</a> and <a href="https://www.kloudbean.com/blog/cloud-load-balancer-explained/">cloud load balancers explained</a>. To make these logs answerable rather than a pile of awk, <a href="https://www.kloudbean.com/blog/structured-logging-nodejs/">structured logging</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Put the 499 count next to the latency graph.</p>
+    <p style="margin:0 0 .6em">Managed servers across seven clouds with access and error logs beside server health metrics in one dashboard, a managed reverse proxy, managed Redis for caching, and managed databases across six engines. Free SSL issued and renewed. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Logs and metrics together · Managed proxy · Managed Redis · Six database engines · Free SSL</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does a 499 status code mean?</h3>
+    <p>It means the client closed the connection before the server sent a response. It is nginx's own non-standard code, recorded in the access log so that this event is distinguishable from a server-side failure. Because the connection is already gone, no page is ever delivered with this status.</p>
+
+    <h3>Is 499 an error I need to fix?</h3>
+    <p>Usually not. Most 499s are ordinary behaviour: someone closed a tab, navigated away, lost mobile signal, or a front end cancelled an in-flight request on purpose. The version worth investigating is a cluster of 499s on one endpoint, because that points at a response slow enough that callers give up.</p>
+
+    <h3>Why is 499 not in the list of HTTP status codes?</h3>
+    <p>Because it is not part of the HTTP specification. nginx defined it for its own logging, so it does not appear in any RFC and other servers do not use it. A different proxy or a cloud load balancer will record the same client behaviour under a different code, which is worth knowing before building alerts that match on the number itself.</p>
+
+    <h3>What is the difference between 499 and 504?</h3>
+    <p>Who gave up. A 499 means the client stopped waiting for your response. A 504 means the proxy stopped waiting for the upstream to answer. They can even describe the same slow endpoint from opposite ends, so seeing both on one path is a strong indication that the endpoint is simply too slow.</p>
+
+    <h3>Does raising nginx timeouts fix 499 errors?</h3>
+    <p>No, and this is the most common wasted effort on this error. nginx was still willing to wait when the connection closed, so no nginx timeout was involved. The client's own deadline is what expired, and you often do not control it. The real fix is making the endpoint fast enough that callers stop cancelling.</p>
+
+    <h3>Does a 499 stop my application code from finishing?</h3>
+    <p>Yes, by default. The proxy_ignore_client_abort directive defaults to off, so a client abort propagates and nginx closes the upstream connection. Your handler is cut off part-way through, which can leave partial writes with no error recorded anywhere. Wrapping the work in a transaction and making handlers idempotent is the durable fix.</p>
+
+    <h3>Should I turn on proxy_ignore_client_abort?</h3>
+    <p>Only narrowly, and scoped to a specific location rather than the whole server. It does stop the truncation, but it also means every abandoned request keeps consuming a worker for its full duration, which under load lets cancelled work exhaust your capacity. Transactional, idempotent handlers are the better answer.</p>
+
+    <h3>Why did 499s appear after I added a load balancer?</h3>
+    <p>Because a load balancer closing an idle connection looks to nginx exactly like a client hanging up. Compare the load balancer's idle timeout against your real response times. If responses regularly outlast that timeout, the balancer is the client that keeps quitting.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Count the share, group by path, then look at latency.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"499 Status Code: The Client Hung Up, Not Your Server","description":"The 499 status code is nginx's own invention for a client that closed the connection before you answered. Often harmless, sometimes a latency alarm, and it cancels your upstream work.","image":"https://www.kloudbean.com/blog/nginx-499-client-closed-request/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/nginx-499-client-closed-request/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does a 499 status code mean?","acceptedAnswer":{"@type":"Answer","text":"It means the client closed the connection before the server sent a response. It is nginx's own non-standard code, recorded in the access log so that this event is distinguishable from a server-side failure. Because the connection is already gone, no page is ever delivered with this status."}},
+{"@type":"Question","name":"Is 499 an error I need to fix?","acceptedAnswer":{"@type":"Answer","text":"Usually not. Most 499s are ordinary behaviour: someone closed a tab, navigated away, lost mobile signal, or a front end cancelled an in-flight request on purpose. The version worth investigating is a cluster of 499s on one endpoint, because that points at a response slow enough that callers give up."}},
+{"@type":"Question","name":"Why is 499 not in the list of HTTP status codes?","acceptedAnswer":{"@type":"Answer","text":"Because it is not part of the HTTP specification. nginx defined it for its own logging, so it does not appear in any RFC and other servers do not use it. A different proxy or a cloud load balancer will record the same client behaviour under a different code, which is worth knowing before building alerts that match on the number itself."}},
+{"@type":"Question","name":"What is the difference between 499 and 504?","acceptedAnswer":{"@type":"Answer","text":"Who gave up. A 499 means the client stopped waiting for your response. A 504 means the proxy stopped waiting for the upstream to answer. They can even describe the same slow endpoint from opposite ends, so seeing both on one path is a strong indication that the endpoint is simply too slow."}},
+{"@type":"Question","name":"Does raising nginx timeouts fix 499 errors?","acceptedAnswer":{"@type":"Answer","text":"No, and this is the most common wasted effort on this error. nginx was still willing to wait when the connection closed, so no nginx timeout was involved. The client's own deadline is what expired, and you often do not control it. The real fix is making the endpoint fast enough that callers stop cancelling."}},
+{"@type":"Question","name":"Does a 499 stop my application code from finishing?","acceptedAnswer":{"@type":"Answer","text":"Yes, by default. The proxy_ignore_client_abort directive defaults to off, so a client abort propagates and nginx closes the upstream connection. Your handler is cut off part-way through, which can leave partial writes with no error recorded anywhere. Wrapping the work in a transaction and making handlers idempotent is the durable fix."}},
+{"@type":"Question","name":"Should I turn on proxy_ignore_client_abort?","acceptedAnswer":{"@type":"Answer","text":"Only narrowly, and scoped to a specific location rather than the whole server. It does stop the truncation, but it also means every abandoned request keeps consuming a worker for its full duration, which under load lets cancelled work exhaust your capacity. Transactional, idempotent handlers are the better answer."}},
+{"@type":"Question","name":"Why did 499s appear after I added a load balancer?","acceptedAnswer":{"@type":"Answer","text":"Because a load balancer closing an idle connection looks to nginx exactly like a client hanging up. Compare the load balancer's idle timeout against your real response times. If responses regularly outlast that timeout, the balancer is the client that keeps quitting."}}
+]}
+]}
+</script>
+</body>
+</html>

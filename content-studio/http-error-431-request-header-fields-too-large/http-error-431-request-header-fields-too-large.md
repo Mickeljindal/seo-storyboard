@@ -14,7 +14,7 @@
 | `400 Bad Request` | nginx | `large_client_header_buffers` | 4 buffers of 8k |
 | `431 Request Header Fields Too Large` | Node.js | `--max-http-header-size` | 16 KB |
 | `Bad message 431 reason: Request Header Fields Too Large` | Jetty | `requestHeaderSize` | 8 KB |
-| `413` or `414` | Usually the request line or body, not headers | Different limits | |
+| [`413`](https://www.kloudbean.com/blog/http-error-413-content-too-large/) or `414` | Usually the request line or body, not headers | Different limits | |
 
 That third row is worth calling out because the wording is unusual enough to be diagnostic on its own. If you are seeing `Bad message 431 reason: Request Header Fields Too Large`, that phrasing comes from Jetty, so you are looking at a Java application server and `requestHeaderSize` is the setting to change. Knowing that from the error text alone saves a lot of searching in the wrong stack.
 
