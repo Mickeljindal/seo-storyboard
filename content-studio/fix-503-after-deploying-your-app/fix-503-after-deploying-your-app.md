@@ -1,7 +1,7 @@
 ---
 title: "How to Fix a 503 Error After Deploying Your App"
 slug: fix-503-after-deploying-your-app
-meta_description: "Deployed your app and got a 503? It's the most common post-deploy problem and almost always quick to fix. Here's what a 503 means and how to diagnose the real cause, in order — a decision tree from symptom to fix."
+meta_description: "Deployed your app and got a 503? It's the most common post-deploy problem and almost always quick to fix. Here's what a 503 means and how to diagnose the real cause, in order: a decision tree from symptom to fix."
 target_keyword: fix 503 after deploy
 secondary_keywords:
   - 503 service unavailable app
@@ -10,10 +10,10 @@ secondary_keywords:
   - debug deploy 503
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 1 — Deploy AI / Vibe-Coded Apps
+cluster: 1. Deploy AI / Vibe-Coded Apps
 ---
 
-![Fix the 503 after deploying your app — what it means and how to diagnose the cause](images/hero.png)
+![Fix the 503 after deploying your app: what it means and how to diagnose the cause](images/hero.png)
 
 # How to Fix a 503 Error After Deploying Your App
 
@@ -135,9 +135,9 @@ None of that is heavy process. It turns "deploy and hope" into "deploy and know.
 
 ## The honest limits
 
-This tree covers the overwhelming majority of post-deploy 503s on a **Linux** app server, because those 503s nearly always reduce to "the app process isn't up and listening," and the logs say why. What it can't do is debug your application's own logic. If the app starts, listens, and still misbehaves, that's ordinary app debugging, not a deploy problem. And "managed" here means the platform keeps the server, the stack, and the web server healthy, while your code and its config (the port, the env vars, the Start command) are yours to get right. That's precisely where these 503s live, which is also why they're so fixable: the evidence is on a box you can read, every time. If you're still getting the app onto a server in the first place, the [deploy an AI-built app guide](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/) and the Node-specific [managed cloud walkthrough](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) cover the full flow, and [auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/) shows where in the pipeline this same failure tends to surface.
+This tree covers the overwhelming majority of post-deploy 503s on a **Linux** app server, because those 503s nearly always reduce to "the app process isn't up and listening," and the logs say why. What it can't do is debug your application's own logic. If the app starts, listens, and still misbehaves, that's ordinary app debugging, not a deploy problem, and the code you'll see for it is usually 500 rather than 503: [500 Internal Server Error](https://www.kloudbean.com/blog/http-error-500-internal-server-error/) picks up from there, since a 500 proves the process came up. And "managed" here means the platform keeps the server, the stack, and the web server healthy, while your code and its config (the port, the env vars, the Start command) are yours to get right. That's precisely where these 503s live, which is also why they're so fixable: the evidence is on a box you can read, every time. If you're still getting the app onto a server in the first place, the [deploy an AI-built app guide](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/) and the Node-specific [managed cloud walkthrough](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) cover the full flow, and [auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/) shows where in the pipeline this same failure tends to surface.
 
-<!-- ADD IMAGE: a simple before/after — the browser showing 503 Service Unavailable, then the same URL returning the working app after the fix -->
+<!-- ADD IMAGE: a simple before/after, the browser showing 503 Service Unavailable, then the same URL returning the working app after the fix -->
 
 **The log already knows. Go read it.** Deploy with logs you can actually open at [kloudbean.com](https://www.kloudbean.com/), with a free trial and your first migration done for you. The full deploy flow is in the [AI-built app guide](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/), and server sizes are on [pricing](https://www.kloudbean.com/pricing/).
 

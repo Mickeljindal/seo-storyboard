@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>500 Internal Server Error: Your Code Ran and Threw</title>
+<meta name="description" content="A 500 internal server error proves your application executed and failed, which rules out a dead process. Where the real message hides per stack, and why cache clearing cannot help.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/http-error-500-internal-server-error/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="500 Internal Server Error: Your Code Ran and Threw">
+<meta property="og:description" content="The status code is generic on purpose. The real error exists, in a log file, and this is how you get it out per stack: nginx, Apache, PHP, WordPress, Node, Django, Laravel.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">HTTP status codes · 5xx · Field guide</span>
+  <h1>500 Internal Server Error: Your Code Ran and Threw</h1>
+  <p class="byline">By Kloudbean Engineering · The message is not missing. It is in a file you have not opened yet.</p>
+
+  <figure><img src="images/hero.png" alt="A split view showing a blank 500 error page in a browser beside a terminal tailing a PHP fatal error out of an error log"></figure>
+
+  <p class="lead">Almost every guide to the 500 internal server error opens with a list of things to try. That is the wrong shape for this problem, because a 500 is not one fault with one fix. It is a server telling you that something in your application blew up and that it is refusing to say what. The useful work is retrieval: the real error message already exists, written to a file, usually seconds ago. Ten minutes of reading a log beats two hours of trying fixes in order, and this guide is mostly about getting that message out of whichever stack you are running.</p>
+
+  <div class="tldr">
+    <strong>What does a 500 internal server error mean?</strong>
+    <p>Per RFC 9110, the server hit an unexpected condition that stopped it fulfilling the request. It is a deliberately generic catch-all, so the code itself carries no diagnostic value. What it does tell you is valuable by elimination: your application process was alive, accepted the request, ran, and raised something it could not handle. A dead or unreachable process does not produce a 500, it produces a 502 or a 503. So skip the browser entirely and read the server's error log, where the actual exception, stack trace, or fatal error was recorded.</p>
+  </div>
+
+  <h2>What a 500 rules out, which is the useful part</h2>
+  <p>Start here, because it narrows the search more than any fix list will.</p>
+
+  <p>For your visitor to receive a 500, quite a lot had to work. DNS resolved. TCP connected. TLS negotiated. The reverse proxy accepted the request and successfully handed it to your application. Your application received it, started executing, and then failed. Every one of those layers is now cleared, and that is why the 500 is genuinely informative despite saying nothing.</p>
+
+  <p>Compare that against its neighbours, which is the fastest way to know whether you are even on the right page:</p>
+
+  <table class="cmp">
+    <thead><tr><th>Code</th><th>What it proves</th><th>Where to look</th></tr></thead>
+    <tbody>
+      <tr><td><strong>500</strong> Internal Server Error</td><td>Your app ran and raised</td><td>Application error log</td></tr>
+      <tr><td><strong>502</strong> Bad Gateway</td><td>The proxy could not get a usable answer. Often the process is dead or on the wrong port</td><td><a href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/">502 Bad Gateway</a></td></tr>
+      <tr><td><strong>503</strong> Service Unavailable</td><td>Nothing is there to serve, or it is deliberately refusing</td><td><a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">503 after a deploy</a></td></tr>
+      <tr><td><strong>504</strong> Gateway Timeout</td><td>It answered, too slowly</td><td><a href="https://www.kloudbean.com/blog/fix-504-gateway-timeout/">504 Gateway Timeout</a></td></tr>
+      <tr><td><strong>520 to 527</strong></td><td>Cloudflare's own codes, generated at the edge</td><td><a href="https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/">Cloudflare 5xx codes</a></td></tr>
+    </tbody>
+  </table>
+
+  <p>That distinction is worth holding on to. People often describe a crashed application as throwing 500s, and it usually is not. If your Node process exits, nginx has nothing to connect to and returns 502. If you are seeing genuine 500s, your process is up. Which means restarting it, the reflex fix, frequently changes nothing.</p>
+
+  <figure>
+    <svg viewBox="0 0 880 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="e500-title e500-desc">
+      <title id="e500-title">Where the real 500 message is written</title>
+      <desc id="e500-desc">The browser receives a generic 500 page with no detail. The proxy records the status in its access log. The application writes the actual exception and stack trace to its own error log, which is the only place the real cause appears.</desc>
+      <rect x="0" y="0" width="880" height="300" fill="#ffffff"/>
+      <g font-family="Poppins, sans-serif" font-size="12.5" fill="#000f27">
+        <rect x="18" y="60" width="132" height="66" rx="9" fill="#000f27"/>
+        <text x="84" y="88" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="600">Browser</text>
+        <text x="84" y="107" text-anchor="middle" fill="#ffffff" font-size="10.5">generic 500 page</text>
+
+        <rect x="230" y="60" width="150" height="66" rx="9" fill="#4F1AF3"/>
+        <text x="305" y="88" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="600">Reverse proxy</text>
+        <text x="305" y="107" text-anchor="middle" fill="#ffffff" font-size="10.5">nginx or Apache</text>
+
+        <rect x="460" y="60" width="160" height="66" rx="9" fill="#40b75f"/>
+        <text x="540" y="88" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="600">Application</text>
+        <text x="540" y="107" text-anchor="middle" fill="#ffffff" font-size="10.5">PHP, Node, Python</text>
+
+        <rect x="700" y="60" width="162" height="66" rx="9" fill="#c0392b"/>
+        <text x="781" y="88" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="600">The exception</text>
+        <text x="781" y="107" text-anchor="middle" fill="#ffffff" font-size="10.5">raised here</text>
+
+        <g stroke="#98a2b3" stroke-width="2" fill="none" marker-end="url(#a5)">
+          <path d="M152 93 H226"/><path d="M382 93 H456"/><path d="M622 93 H696"/>
+        </g>
+
+        <text x="20" y="168" font-size="13" font-weight="600">What each layer keeps</text>
+
+        <rect x="18" y="180" width="132" height="70" rx="8" fill="#f4f2ff"/>
+        <text x="84" y="204" text-anchor="middle" font-size="11">nothing useful</text>
+        <text x="84" y="222" text-anchor="middle" font-size="11">no detail is</text>
+        <text x="84" y="238" text-anchor="middle" font-size="11">sent to clients</text>
+
+        <rect x="230" y="180" width="150" height="70" rx="8" fill="#f4f2ff"/>
+        <text x="305" y="204" text-anchor="middle" font-size="11">access log: the</text>
+        <text x="305" y="221" text-anchor="middle" font-size="11">status 500 and the</text>
+        <text x="305" y="238" text-anchor="middle" font-size="11">URL. No cause.</text>
+
+        <rect x="460" y="180" width="402" height="70" rx="8" fill="#e8f7ed" stroke="#40b75f" stroke-width="1.5"/>
+        <text x="661" y="204" text-anchor="middle" font-size="11.5" font-weight="600">error log: the real message and stack trace</text>
+        <text x="661" y="222" text-anchor="middle" font-size="11">This is the only place the cause exists.</text>
+        <text x="661" y="239" text-anchor="middle" font-size="11">Everything before it has already discarded it.</text>
+
+        <rect x="18" y="264" width="844" height="26" rx="7" fill="#000f27"/>
+        <text x="32" y="282" font-size="12" fill="#ffffff">Debugging leftwards from the browser wastes time. Go straight to the rightmost box.</text>
+      </g>
+      <defs>
+        <marker id="a5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#98a2b3"/></marker>
+      </defs>
+    </svg>
+    <figcaption>The status code travels to the browser. The reason stays on the server.</figcaption>
+  </figure>
+
+  <h2>Why the page tells you nothing, and why that is correct</h2>
+  <p>The blankness is a security decision, not an oversight.</p>
+
+  <p>An exception message is a gift to an attacker. Stack traces leak absolute file paths, framework and dependency versions, database table and column names, and now and then a credential someone interpolated into a connection string. So every production stack defaults to swallowing the detail and returning a bare 500. Express, for instance, includes the stack trace in its default error response only when <code>NODE_ENV</code> is not production, and PHP ships with <code>display_errors</code> off for deployment for the same reason.</p>
+
+  <p>Which leads to the single most common piece of bad advice about this error: that you should turn error display on to see what is wrong. Do not, on a live site. Turn error <em>logging</em> on instead. Same information, delivered to you rather than to everyone who loads the page.</p>
+
+  <h2>Get the real message: where each stack writes it</h2>
+  <p>This table is the practical core of the page. Find your row, tail the file, and reproduce the error.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Stack</th><th>Where the real error lands</th></tr></thead>
+    <tbody>
+      <tr><td>nginx</td><td><code>/var/log/nginx/error.log</code>. For PHP sites the interesting lines are the ones tagged <code>FastCGI sent in stderr</code>.</td></tr>
+      <tr><td>Apache</td><td><code>/var/log/apache2/error.log</code> on Debian and Ubuntu, <code>/var/log/httpd/error_log</code> on RHEL family.</td></tr>
+      <tr><td>PHP-FPM</td><td>Its own pool log, plus whatever <code>error_log</code> in <code>php.ini</code> points at. Fatal errors appear here even when the browser shows nothing.</td></tr>
+      <tr><td>WordPress</td><td><code>wp-content/debug.log</code>, once <code>WP_DEBUG_LOG</code> is enabled.</td></tr>
+      <tr><td>Laravel</td><td><code>storage/logs/laravel.log</code>. Check it is writable, because a Laravel install that cannot write its own log is itself a cause of 500s.</td></tr>
+      <tr><td>Node and Express</td><td>Wherever your process manager sends stdout and stderr. Under PM2, <code>pm2 logs</code>.</td></tr>
+      <tr><td>Django and Flask</td><td>Your <code>LOGGING</code> configuration, or the WSGI server's log if you have not set one up.</td></tr>
+    </tbody>
+  </table>
+
+  <p>Then watch the log while you trigger the error, rather than scrolling back through history and guessing which entry matches:</p>
+  <pre><code># Watch, then reload the failing page in another window.
+tail -f /var/log/nginx/error.log
+
+# PHP fatals surfacing through nginx look like this:
+grep -i "FastCGI sent in stderr" /var/log/nginx/error.log | tail -20
+
+# Confirm the proxy is actually recording 500s, and on which URLs.
+awk '$9 ~ /^5/ {print $9, $7}' /var/log/nginx/access.log | sort | uniq -c | sort -rn | head</code></pre>
+
+  <p>That last command earns its place. If the access log shows 502 rather than 500, you are on the wrong page and should be reading about <a href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/">502 Bad Gateway</a> instead. Confirm the code before you commit to a diagnosis.</p>
+
+  <h2>Turning on logging without exposing your app</h2>
+  <p>If the log is empty, the detail is being discarded before it is written. Fix that first, and keep it invisible to visitors.</p>
+
+  <p><strong>WordPress.</strong> Three constants in <code>wp-config.php</code>, above the line that says to stop editing. The third one is the one people forget, and it is what keeps the errors out of the page:</p>
+  <pre><code>define( 'WP_DEBUG', true );
+define( 'WP_DEBUG_LOG', true );     // writes wp-content/debug.log
+define( 'WP_DEBUG_DISPLAY', false ); // and does not show visitors a thing</code></pre>
+
+  <p><strong>PHP generally.</strong> Log, do not display:</p>
+  <pre><code>log_errors = On
+error_log = /var/log/php/error.log
+display_errors = Off</code></pre>
+
+  <p><strong>Laravel.</strong> Leave <code>APP_DEBUG=false</code> in production and read <code>storage/logs/laravel.log</code>. Setting <code>APP_DEBUG=true</code> on a live site publishes a full interactive stack trace, including environment variables, to anyone who triggers the error. It is a genuine disclosure incident, not a debugging step. If you need that view, reproduce on <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">a staging copy with its own environment</a>.</p>
+
+  <p><strong>Django.</strong> Same rule, more bluntly: <code>DEBUG = False</code> stays, and you configure <code>LOGGING</code> to write exceptions somewhere you can read. One neighbouring trap worth knowing, because it wastes time: an <code>ALLOWED_HOSTS</code> mismatch does not give you a 500. It gives you a 400. If you are chasing a 500 and find <code>Invalid HTTP_HOST header</code> in the log, those are two separate problems.</p>
+
+  <p><strong>Node and Express.</strong> Do not rely on the framework default. Write an error handler that logs the whole error and returns something plain, and register it last:</p>
+  <pre><code>// Must be last, and must take four arguments to be treated as an error handler.
+app.use((err, req, res, next) =&gt; {
+  console.error({ msg: err.message, stack: err.stack, url: req.originalUrl });
+  res.status(500).json({ error: 'Internal Server Error' });
+});</code></pre>
+
+  <p>One version-specific detail that decides whether your handler ever runs. Per the Express documentation, <strong>starting with Express 5</strong>, handlers and middleware that return a promise call <code>next(value)</code> automatically when they reject or throw. On Express 4 they do not, so an async rejection escapes the handler entirely, becomes an unhandled rejection, and can take the process down with it. That is the mechanism behind a confusing pair of symptoms: tidy 500s on Express 5, and intermittent 502s on Express 4 from the very same bug, because there the process died instead of responding. Check which major version you are on before concluding your error handling is broken. While you are in there, <a href="https://www.kloudbean.com/blog/structured-logging-nodejs/">structured logging</a> makes these searchable rather than something you eyeball.</p>
+
+  <h2>The causes worth checking first</h2>
+  <p>Ordered by how often they turn out to be the answer, with the tell for each.</p>
+
+  <p><strong>An uncaught exception in your own code.</strong> The overwhelming majority. A null dereference, a failed external API call with no error branch, a type error on an edge case. The tell: it started right after a deploy, and it fails on specific URLs rather than all of them.</p>
+
+  <p><strong>A database the app cannot reach or query.</strong> Wrong credentials after a migration, a connection limit reached under load, a query referencing a column that a migration has not created yet. The tell: everything is broken at once, and the log names the database driver. Connection-limit cases are the sneaky ones, because they only appear under traffic and look intermittent.</p>
+
+  <p><strong>A missing or wrong environment variable.</strong> Config read at boot that comes back undefined, then gets used. The tell: it works locally and fails on the server, which is the classic signature of <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">configuration that lives on your laptop rather than in the environment</a>.</p>
+
+  <p><strong>Exhausted PHP memory.</strong> <code>Allowed memory size of N bytes exhausted</code> in the log, and a page that fails on heavy operations like an import or a large media upload while the rest of the site is fine.</p>
+
+  <p><strong>A broken <code>.htaccess</code>, on Apache only.</strong> One unsupported directive, often left behind by a plugin, and every request under that directory returns 500. The tell is unmistakable: the whole site dies at once, the error log says something like <code>Invalid command</code>, and renaming the file instantly restores service. This is the one 500 with a genuinely fast fix. It does not apply to nginx, which has no per-directory config file.</p>
+
+  <p><strong>File permissions and ownership.</strong> Files the web server user cannot read, or, less obviously, files it considers too permissive. Under suexec and similar guards, a group or world-writable script is refused as unsafe. Which is how <code>chmod 777</code> causes the error people apply it to fix.</p>
+
+  <p><strong>A syntax error in something loaded at startup.</strong> An edit saved directly on the server, a truncated upload over a flaky <a href="https://www.kloudbean.com/blog/ftp-vs-sftp/">FTP session</a>. The tell: it broke the instant a file was saved, and it affects every route.</p>
+
+  <h2>Fixes that cannot work, and the mechanism why</h2>
+  <p>These appear near the top of most search results for this error. Understanding why they are useless saves you from working through them.</p>
+
+  <p><strong>Clearing your browser cache.</strong> The exception was raised inside your application, on the server, before a single byte of any cached asset was consulted. Nothing in your browser participated in the failure. The reason this myth survives is that a 500 is sometimes transient, so a reload a minute later works and gets credited to the cache clear.</p>
+
+  <p><strong>Reloading, mostly.</strong> Worth exactly one attempt, since a connection-limit or memory spike can be momentary. If it fails twice, it is deterministic and reloading is just a slower way of not reading the log.</p>
+
+  <p><strong>Setting everything to 777.</strong> Actively harmful in two directions. It grants write access to every user on the machine, and, as above, security guards reject over-permissive scripts, so it can be the direct cause of your 500. Directories generally want 755 and files 644, with ownership set to the user your web server runs as.</p>
+
+  <p><strong>Restarting the application.</strong> Reasonable for a 502 or a 503, largely beside the point for a 500. A 500 already proved the process is alive. Restarting clears leaked memory or a stuck pool, so it is not worthless, but if your code raises on a code path, it will raise again.</p>
+
+  <p><strong>Raising every timeout.</strong> Wrong error. Timeouts produce <a href="https://www.kloudbean.com/blog/fix-504-gateway-timeout/">504</a> and <a href="https://www.kloudbean.com/blog/http-error-408-request-timeout/">408</a>, not 500.</p>
+
+  <h2>The nginx specific reading</h2>
+  <p>Since nginx does not run your application, a 500 with nginx in front is one of two quite different situations, and telling them apart takes one look at the log.</p>
+
+  <p><strong>The 500 came from your app, through nginx.</strong> Normal case. PHP-FPM or your Node process returned it, nginx passed it along. The nginx error log carries the upstream's stderr, tagged <code>FastCGI sent in stderr</code> for PHP.</p>
+
+  <p><strong>nginx generated the 500 itself.</strong> Less common and more distinctive. Something in nginx's own handling failed: a rewrite loop hitting the internal redirect limit, a permission problem reaching a file, a temp directory it cannot write to. The tell is that the error log line has no upstream in it and names an nginx internal instead, for example <code>rewrite or internal redirection cycle</code>.</p>
+
+  <p>The distinction matters because the fixes live in different files. One is your code, the other is your server config. If your proxy layer generally is unfamiliar territory, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">nginx as a reverse proxy for Node</a> covers the shape of a correct configuration.</p>
+
+  <div class="note">
+    <strong>Behind Cloudflare?</strong> A 500 from your origin passes through Cloudflare more or less untouched, so what you are seeing is still yours. Cloudflare's own failures use its dedicated range instead, 520 through 527, which is what <a href="https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/">the Cloudflare 5xx codes</a> covers. So the number on the page tells you which side of the edge to debug.
+  </div>
+
+  <h2>WordPress, specifically</h2>
+  <p>Most WordPress 500s are a plugin or theme raising a PHP fatal error, which is why the standard advice is to deactivate plugins. That advice works and it is also a blunt instrument, so do it in an order that gives you information.</p>
+
+  <p>Enable <code>WP_DEBUG_LOG</code> first, as above, then reproduce. The log usually names the offending file outright, and a path under <code>wp-content/plugins/some-plugin/</code> ends the investigation in one step. Deactivating everything and reactivating one at a time is the fallback for when the log is unavailable, not the first move.</p>
+
+  <p>Two WordPress specific notes. A fatal error during an update can leave the site in maintenance mode after the update finishes, which presents as a different message entirely and is covered in <a href="https://www.kloudbean.com/blog/briefly-unavailable-for-scheduled-maintenance/">briefly unavailable for scheduled maintenance</a>. And if the 500 arrived with a plugin or core update, the fastest safe path is not debugging at all: restore, verify the site works, then reproduce the upgrade somewhere that is not production. Which is what <a href="https://www.kloudbean.com/blog/server-backups-guide/">a backup you have actually tested</a> is for.</p>
+
+  <h2>Where hosting fits, honestly</h2>
+  <p>The honest boundary first. A 500 caused by your own uncaught exception is your bug, and no host can fix it for you. What a platform can do is remove the friction between you and the message, and cut the number of 500s that come from the server rather than the code.</p>
+
+  <p>On Kloudbean both application and server logs sit in the same dashboard as the server itself, so the first step of this guide does not require an SSH session and a hunt for the right path. The reverse proxy and the stack are managed and patched, which retires the class of 500s that come from a hand-edited config file or a permissions change nobody recorded. Staging for WordPress and Laravel means an update that triggers a fatal error does it somewhere harmless, and automatic backups mean the restore path exists before you need it. Seven cloud providers to run on, free SSL issued and renewed, and free migration assistance if you are moving something that already works.</p>
+
+  <p>The line stays where it always is. Managed covers the server, the stack, TLS, backups, and patching. Your application code and your data remain yours, and that is the half a 500 usually lives in.</p>
+
+  <h2>Related reading</h2>
+  <p>The rest of the 5xx family, each a different failure: <a href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/">502 Bad Gateway</a> when the proxy cannot get an answer, <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">503 after deploying</a> when nothing came up, and <a href="https://www.kloudbean.com/blog/fix-504-gateway-timeout/">504 Gateway Timeout</a> when it answered too slowly. At the edge, <a href="https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/">Cloudflare's 5xx codes</a>. For the inbound mirror image, <a href="https://www.kloudbean.com/blog/http-error-408-request-timeout/">408 Request Timeout</a>. On making the logs worth reading, <a href="https://www.kloudbean.com/blog/structured-logging-nodejs/">structured logging in Node</a>. For the config half of the problem, <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a> and <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">nginx as a reverse proxy</a>. And when a module import is what raised, <a href="https://www.kloudbean.com/blog/fix-cannot-find-module-node/">cannot find module</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Stop hunting for the log file.</p>
+    <p style="margin:0 0 .6em">Managed servers across seven clouds with application and server logs in the same dashboard as the server, a managed and patched reverse proxy, staging for WordPress and Laravel, and automatic backups. Free SSL issued and renewed. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">App and server logs · Managed proxy · Staging · Automatic backups · Free SSL · One dashboard</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does a 500 internal server error mean?</h3>
+    <p>Per RFC 9110 it means the server encountered an unexpected condition that prevented it from fulfilling the request. It is a deliberately generic catch-all, so the code itself names no cause. What it does establish is that your application was running, accepted the request, executed, and then raised something it could not handle.</p>
+
+    <h3>Is a 500 error my fault or the website's?</h3>
+    <p>It is server side, so if you are a visitor there is essentially nothing to fix on your end. Reload once in case it was transient, then come back later or tell the site owner. If you own the site, it is yours, and most often it is an uncaught exception in your own application code rather than anything about the hosting.</p>
+
+    <h3>How do I see the real error behind a 500?</h3>
+    <p>Read the server error log while you reproduce it. On nginx that is /var/log/nginx/error.log, on Apache it is /var/log/apache2/error.log or /var/log/httpd/error_log. For WordPress, enable WP_DEBUG_LOG and read wp-content/debug.log. For Laravel, storage/logs/laravel.log. For Node, whatever your process manager captured. Tail the file first, then trigger the error, so you know which line is yours.</p>
+
+    <h3>What is the difference between a 500 and a 502 error?</h3>
+    <p>A 500 means your application ran and threw an error. A 502 means the reverse proxy could not get a usable response at all, commonly because the process is dead, crashed, or listening on a different port. So a 500 actually proves your process is alive, which is why restarting often fixes a 502 and does nothing for a 500.</p>
+
+    <h3>Does clearing my browser cache fix a 500 error?</h3>
+    <p>No, and the mechanism is worth knowing. The exception happened inside the application on the server, before any cached asset in your browser was involved. Nothing local participated in the failure. The advice persists because some 500s are transient, so a later reload succeeds and the cache clear gets the credit.</p>
+
+    <h3>What causes a 500 internal server error most often?</h3>
+    <p>An uncaught exception in application code, by a wide margin. After that: a database that cannot be reached or queried, a missing environment variable, exhausted PHP memory, a broken .htaccess file on Apache, wrong file permissions or ownership, and a syntax error in something loaded at startup.</p>
+
+    <h3>Why is my 500 error page completely blank?</h3>
+    <p>Because production stacks deliberately suppress the detail. Stack traces leak file paths, dependency versions, database structure, and sometimes credentials, so frameworks return a bare page by default. Express only includes the stack when NODE_ENV is not production, and PHP ships with display_errors off. The fix is to enable error logging rather than error display.</p>
+
+    <h3>How do I fix a 500 error in WordPress?</h3>
+    <p>Enable WP_DEBUG, WP_DEBUG_LOG and WP_DEBUG_DISPLAY set to false in wp-config.php, reproduce the error, then read wp-content/debug.log. It usually names the plugin or theme file responsible outright. Deactivating all plugins and reactivating one by one is the fallback when you cannot get a log, not the first step. If the error arrived with an update, restoring a backup is faster and safer than debugging in production.</p>
+
+    <h3>Can nginx itself cause a 500 error?</h3>
+    <p>Yes, and it reads differently in the log. When the 500 came from your application, the nginx error log carries the upstream's output, tagged FastCGI sent in stderr for PHP. When nginx generated it, the line names an internal condition instead, such as a rewrite or internal redirection cycle, or a permission or temp directory problem. One points you at your code, the other at your server configuration.</p>
+
+    <h3>Should I set my files to 777 to fix a 500 error?</h3>
+    <p>No. It grants write access to every user on the server, and it can be the direct cause of the error, because suexec and similar guards refuse to execute scripts that are group or world writable. Directories generally want 755 and files 644, with ownership matching the user your web server runs as.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Ten minutes in the log beats two hours of trying fixes.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"500 Internal Server Error: Your Code Ran and Threw","description":"A 500 internal server error proves your application executed and failed, which rules out a dead process. Where the real message hides per stack, and why cache clearing cannot help.","image":"https://www.kloudbean.com/blog/http-error-500-internal-server-error/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/http-error-500-internal-server-error/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does a 500 internal server error mean?","acceptedAnswer":{"@type":"Answer","text":"Per RFC 9110 it means the server encountered an unexpected condition that prevented it from fulfilling the request. It is a deliberately generic catch-all, so the code itself names no cause. What it does establish is that your application was running, accepted the request, executed, and then raised something it could not handle."}},
+{"@type":"Question","name":"Is a 500 error my fault or the website's?","acceptedAnswer":{"@type":"Answer","text":"It is server side, so if you are a visitor there is essentially nothing to fix on your end. Reload once in case it was transient, then come back later or tell the site owner. If you own the site, it is yours, and most often it is an uncaught exception in your own application code rather than anything about the hosting."}},
+{"@type":"Question","name":"How do I see the real error behind a 500?","acceptedAnswer":{"@type":"Answer","text":"Read the server error log while you reproduce it. On nginx that is /var/log/nginx/error.log, on Apache it is /var/log/apache2/error.log or /var/log/httpd/error_log. For WordPress, enable WP_DEBUG_LOG and read wp-content/debug.log. For Laravel, storage/logs/laravel.log. For Node, whatever your process manager captured. Tail the file first, then trigger the error, so you know which line is yours."}},
+{"@type":"Question","name":"What is the difference between a 500 and a 502 error?","acceptedAnswer":{"@type":"Answer","text":"A 500 means your application ran and threw an error. A 502 means the reverse proxy could not get a usable response at all, commonly because the process is dead, crashed, or listening on a different port. So a 500 actually proves your process is alive, which is why restarting often fixes a 502 and does nothing for a 500."}},
+{"@type":"Question","name":"Does clearing my browser cache fix a 500 error?","acceptedAnswer":{"@type":"Answer","text":"No, and the mechanism is worth knowing. The exception happened inside the application on the server, before any cached asset in your browser was involved. Nothing local participated in the failure. The advice persists because some 500s are transient, so a later reload succeeds and the cache clear gets the credit."}},
+{"@type":"Question","name":"What causes a 500 internal server error most often?","acceptedAnswer":{"@type":"Answer","text":"An uncaught exception in application code, by a wide margin. After that: a database that cannot be reached or queried, a missing environment variable, exhausted PHP memory, a broken .htaccess file on Apache, wrong file permissions or ownership, and a syntax error in something loaded at startup."}},
+{"@type":"Question","name":"Why is my 500 error page completely blank?","acceptedAnswer":{"@type":"Answer","text":"Because production stacks deliberately suppress the detail. Stack traces leak file paths, dependency versions, database structure, and sometimes credentials, so frameworks return a bare page by default. Express only includes the stack when NODE_ENV is not production, and PHP ships with display_errors off. The fix is to enable error logging rather than error display."}},
+{"@type":"Question","name":"How do I fix a 500 error in WordPress?","acceptedAnswer":{"@type":"Answer","text":"Enable WP_DEBUG, WP_DEBUG_LOG and WP_DEBUG_DISPLAY set to false in wp-config.php, reproduce the error, then read wp-content/debug.log. It usually names the plugin or theme file responsible outright. Deactivating all plugins and reactivating one by one is the fallback when you cannot get a log, not the first step. If the error arrived with an update, restoring a backup is faster and safer than debugging in production."}},
+{"@type":"Question","name":"Can nginx itself cause a 500 error?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it reads differently in the log. When the 500 came from your application, the nginx error log carries the upstream's output, tagged FastCGI sent in stderr for PHP. When nginx generated it, the line names an internal condition instead, such as a rewrite or internal redirection cycle, or a permission or temp directory problem. One points you at your code, the other at your server configuration."}},
+{"@type":"Question","name":"Should I set my files to 777 to fix a 500 error?","acceptedAnswer":{"@type":"Answer","text":"No. It grants write access to every user on the server, and it can be the direct cause of the error, because suexec and similar guards refuse to execute scripts that are group or world writable. Directories generally want 755 and files 644, with ownership matching the user your web server runs as."}}
+]}
+]}
+</script>
+</body>
+</html>
