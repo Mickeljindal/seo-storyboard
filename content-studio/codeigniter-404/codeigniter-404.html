@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CodeIgniter 404 Page Not Found: Work Out Whose 404 It Is First</title>
+<meta name="description" content="A CodeIgniter 404 has two completely different causes. Learn whether the framework or the web server produced it, then fix rewrite rules, the public docroot, auto-routing, or controller naming.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/codeigniter-404/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CodeIgniter 404 Page Not Found: Work Out Whose 404 It Is First">
+<meta property="og:description" content="If the 404 looks like CodeIgniter, routing failed. If it looks like nginx or Apache, CodeIgniter never ran at all. Two different problems.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">CodeIgniter · PHP · Routing</span>
+  <h1>CodeIgniter 404 Page Not Found: Work Out Whose 404 It Is First</h1>
+  <p class="byline">By Kloudbean Engineering · Two errors share one message. They need opposite fixes.</p>
+
+  <figure><img src="images/hero.png" alt="Comparison of a CodeIgniter framework 404 page and a web server 404 page, which have different causes"></figure>
+
+  <p class="lead">A CodeIgniter 404 is two unrelated problems wearing the same number, and nearly all the wasted time on this comes from fixing the wrong one. Either CodeIgniter ran, looked for something to handle your URL, and found nothing, which is a routing problem inside your application. Or the web server never handed the request to CodeIgniter at all, which is a rewrite or document root problem and has nothing to do with your controllers. The page itself tells you which, and once you know, the fix is usually one line. Look at what the 404 page looks like before you change anything.</p>
+
+  <div class="tldr">
+    <strong>Why is CodeIgniter showing 404 Page Not Found?</strong>
+    <p>Check whether the 404 came from CodeIgniter or from your web server. If it is CodeIgniter's own styled "404 Page Not Found" page, the framework is running and no route matched, so look at <code>app/Config/Routes.php</code>, controller file naming, and whether auto-routing is enabled, since CodeIgniter 4 disables it by default. If it is a plain nginx or Apache 404, CodeIgniter never executed, so fix your rewrite rules and make sure the document root points at the <code>public</code> directory.</p>
+  </div>
+
+  <h2>First question: whose 404 is this?</h2>
+  <p>One look at the page splits the problem in half.</p>
+  <table class="cmp">
+    <thead><tr><th>What you see</th><th>Who produced it</th><th>What it means</th></tr></thead>
+    <tbody>
+      <tr><td>Styled CodeIgniter page, "404 Page Not Found"</td><td><strong>CodeIgniter</strong></td><td>PHP ran, no route matched</td></tr>
+      <tr><td>Plain "404 Not Found" with nginx or Apache in the footer</td><td><strong>Web server</strong></td><td>CodeIgniter never ran</td></tr>
+      <tr><td>Blank page or a 500</td><td>PHP</td><td>Different problem, read the error log</td></tr>
+    </tbody>
+  </table>
+  <p>You can confirm it from the command line rather than trusting the styling, which is worth doing because a custom error view can disguise either one.</p>
+  <pre><code># Does the request reach PHP at all?
+curl -sI https://example.com/some/route | head -3
+
+# The decisive test: does it work when you name index.php explicitly?
+curl -sI https://example.com/index.php/some/route | head -3</code></pre>
+  <p>That second command is the one that settles it. If <code>/index.php/some/route</code> works while <code>/some/route</code> does not, your routes and controllers are fine and your rewrite rules are not. That is the single most useful test on this page, and it also tells you the fix is entirely in server configuration.</p>
+  <p>The other confirmation is your logs. A request that reaches CodeIgniter appears in <code>writable/logs/</code>. One that does not appears only in the web server's access log. An empty framework log with traffic arriving means the request never got that far.</p>
+
+  <h2>The server's 404: index.php is not in the path</h2>
+  <p>CodeIgniter uses a front controller. Every request is supposed to be handed to <code>index.php</code>, which then works out what to do. Pretty URLs exist because the server quietly rewrites <code>/products/view/12</code> into that single entry point. Remove the rewrite and the server goes looking for a directory called <code>products</code>, does not find one, and returns its own 404.</p>
+  <p>On nginx, the rewrite is a <code>try_files</code> directive: serve the file if it exists, serve the directory if it exists, otherwise hand it to the front controller.</p>
+  <pre><code>server {
+    listen 443 ssl;
+    server_name example.com;
+
+    # CodeIgniter 4: docroot is the public directory
+    root /var/www/example.com/public;
+    index index.php;
+
+    location / {
+        try_files $uri $uri/ /index.php$is_args$args;
+    }
+
+    location ~ \.php$ {
+        include fastcgi_params;
+        fastcgi_pass unix:/run/php/php8.2-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    }
+}</code></pre>
+  <p>On Apache, CodeIgniter ships an <code>.htaccess</code> that does the same job with mod_rewrite. Two things have to be true for it to work, and people usually check only the first: mod_rewrite must be enabled, and Apache must be configured to read <code>.htaccess</code> at all. If <code>AllowOverride</code> is set to <code>None</code>, your rewrite file is present, correct, and completely ignored.</p>
+  <pre><code># The rule itself: anything that is not a real file or directory goes to the front controller
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php/$1 [L]</code></pre>
+  <pre><code># And in the vhost, or .htaccess is never read
+&lt;Directory /var/www/example.com/public&gt;
+    AllowOverride All
+&lt;/Directory&gt;</code></pre>
+  <p>The silent-failure shape here is worth naming, because it wastes a lot of time: with <code>AllowOverride None</code> nothing warns you. No error, no log line, no complaint. The file is simply not consulted, so every fix you make to it changes nothing, and it is very easy to conclude the rules are wrong when they were never read.</p>
+
+  <h2>The CodeIgniter 4 mistake that is also a security problem</h2>
+  <p>CodeIgniter 4 changed the layout: <code>index.php</code> lives in <code>public/</code>, and that directory is meant to be your document root. Everything else, your application code, configuration, and writable directory, is supposed to sit above the web root where no request can reach it.</p>
+  <p>Point the document root at the project root instead and two things happen. Routing misbehaves, because the entry point is now one level down. And considerably worse, your entire application becomes web-accessible, including <code>.env</code> with your database credentials, <code>app/</code> with your source, and <code>writable/</code> with your logs and sessions.</p>
+  <p>So if your CodeIgniter 4 project is serving from its root directory, treat it as urgent rather than as a routing bug. Test it directly:</p>
+  <pre><code># This must NOT return 200. If it does, your credentials are public.
+curl -sI https://example.com/.env | head -1
+
+# Nor should any of these be readable
+curl -sI https://example.com/app/Config/Database.php | head -1
+curl -sI https://example.com/writable/logs/ | head -1</code></pre>
+  <p>Fix the document root to end in <code>/public</code>. Working around the layout by adding rewrite rules at the project root is a common suggestion and it is the wrong move, because it leaves the application directory reachable and you are then relying on rules to hide files that should never have been exposed. If you have been running that way, rotate the database credentials in <code>.env</code>, since you cannot know whether anyone fetched them.</p>
+
+  <h2>Auto-routing is off by default in CodeIgniter 4</h2>
+  <p>This one catches people who came from CodeIgniter 3, and people upgrading an existing CodeIgniter 4 project. In CodeIgniter 3, a controller at <code>Products.php</code> with a <code>view()</code> method was reachable at <code>/products/view</code> automatically. No route needed.</p>
+  <p>CodeIgniter 4 turns auto-routing off by default, so a controller with no explicit route returns 404 even though the class exists and is perfectly correct. The reasoning is sound: automatically exposing every public method of every controller makes it easy to publish endpoints you never intended, and to bypass filters and CSRF protection.</p>
+  <p>The recommended fix is to declare your routes, which is a little more typing and considerably more predictable.</p>
+  <pre><code>// app/Config/Routes.php
+$routes-&gt;get('/', 'Home::index');
+$routes-&gt;get('products', 'Products::index');
+$routes-&gt;get('products/view/(:num)', 'Products::view/$1');
+$routes-&gt;post('products/save', 'Products::save');</code></pre>
+  <p>If you would rather enable auto-routing, note the HTTP verb detail that produces a very confusing bug: with the improved auto-router, the method name is expected to carry the verb, so a POST to <code>products/save</code> looks for <code>postSave()</code> rather than <code>save()</code>. That is why a form submission 404s while the same URL loads fine in a browser. A GET works, a POST does not, and nothing about the message hints at why.</p>
+  <p>My own preference is explicit routes. Your routes file becomes the list of everything your application exposes, which is useful when reviewing what is reachable, and you never have to reason about verb-to-method mapping.</p>
+
+  <h2>Controller naming: works on your laptop, 404s on the server</h2>
+  <p>A genuinely nasty one, because it is invisible in development.</p>
+  <p>CodeIgniter requires controller class names to be capitalised, and the file name must match the class name. So <code>Products.php</code> containing <code>class Products</code>. Name the file <code>products.php</code> and it will load happily on macOS or Windows, where the filesystem ignores case, and 404 on your Linux server, where it does not.</p>
+  <p>The signature is unmistakable once you know it: works locally, 404s in production, no error in any log, and the file is clearly there when you go and look.</p>
+  <pre><code># Check what the filenames actually are on the server
+ls -l app/Controllers/
+
+# Rename via git so the change is recorded properly
+git mv app/Controllers/products.php app/Controllers/Products.php</code></pre>
+  <p>Use <code>git mv</code> rather than renaming in your editor. On a case-insensitive filesystem, Git may not notice a rename that only changes case, so the fix appears to work for you and never reaches the server. Same class of problem as the one in our <a href="https://www.kloudbean.com/blog/fix-cannot-find-module-node/">Cannot find module</a> guide, which is the Node.js version of exactly this trap.</p>
+  <p>Two smaller naming rules in the same family. Methods must be <code>public</code>, since a private or protected method is not routable and yields a 404 rather than an error. And a method name colliding with something reserved will not route either.</p>
+
+  <h2>Route definitions that quietly do not match</h2>
+  <p>If CodeIgniter is running, auto-routing is settled, and naming is right, the remaining causes are in the routes file itself.</p>
+  <ul>
+    <li><strong>Verb mismatch.</strong> <code>$routes-&gt;get()</code> only answers GET. A form posting to that URL gets a 404, not a 405, which sends people looking in the wrong direction entirely.</li>
+    <li><strong>Placeholder mismatch.</strong> <code>(:num)</code> matches digits only, so <code>/products/view/blue-widget</code> misses a route expecting a number. Use <code>(:segment)</code> or <code>(:any)</code> where the value is not numeric.</li>
+    <li><strong>Order.</strong> Routes are evaluated in order, so a broad pattern placed above a specific one swallows it. Specific first.</li>
+    <li><strong>Missing argument passing.</strong> Writing <code>'Products::view'</code> where you meant <code>'Products::view/$1'</code> loses the captured segment, so the method runs with no argument and often 404s from inside.</li>
+    <li><strong>A wrong <code>baseURL</code>.</strong> Set in <code>app/Config/App.php</code> or your <code>.env</code>, this affects generated links, so the pages themselves are fine and every link on them points somewhere that does not exist.</li>
+  </ul>
+  <pre><code># See every route CodeIgniter has actually registered
+php spark routes</code></pre>
+  <p>Run that before editing anything. It prints the real routing table, which is faster than reading the config and inferring, and it immediately exposes the verb and placeholder mistakes above.</p>
+
+  <h2>If you are on CodeIgniter 3</h2>
+  <p>Still very widely deployed, and it has its own two settings that cause exactly this.</p>
+  <pre><code>// application/config/config.php
+
+// Must be empty when rewrite rules are working, otherwise
+// CodeIgniter generates URLs containing index.php
+$config['index_page'] = '';
+
+// If routing breaks after a server move, try this explicitly
+$config['uri_protocol'] = 'REQUEST_URI';</code></pre>
+  <p>The <code>index_page</code> one produces a confusing half-broken state: the site works, and every generated link has <code>index.php</code> in it, or the links are clean and the routes are not found. Whichever way round, it is this setting disagreeing with your rewrite rules.</p>
+  <p><code>uri_protocol</code> is the setting to reach for when a site that worked on one server 404s on another with no code change, because it controls how CodeIgniter reads the requested path from the server environment, and that differs between server configurations.</p>
+
+  <h2>A diagnosis order</h2>
+  <ol>
+    <li><strong>Look at the 404 page.</strong> Framework or server. This decides everything that follows.</li>
+    <li><strong>Try <code>/index.php/your/route</code>.</strong> Works? Your rewrite rules are the problem, not your code.</li>
+    <li><strong>Confirm the document root ends in <code>/public</code></strong> on CodeIgniter 4, and check <code>.env</code> is not fetchable.</li>
+    <li><strong>Run <code>php spark routes</code>.</strong> Is the route registered, with the verb you are using?</li>
+    <li><strong>Check auto-routing</strong> in <code>app/Config/Routes.php</code> if you are relying on it.</li>
+    <li><strong>Check filename case</strong> against class names in <code>app/Controllers/</code>.</li>
+    <li><strong>Read <code>writable/logs/</code>.</strong> Empty during traffic means requests are not reaching the framework.</li>
+  </ol>
+
+  <h2>Where hosting fits</h2>
+  <p>Most of this list is application configuration, and no host fixes your routes file. Two parts are genuinely infrastructure, and they are the two that produce the server-side 404: the rewrite configuration and the document root.</p>
+  <p>On Kloudbean you get managed PHP servers across seven clouds with the web server configured and maintained, free SSL issued and renewed, automatic backups, a Shorewall firewall and Fail2ban by default, and managed MySQL, MariaDB, PostgreSQL, Redis, Elasticsearch, or MongoDB alongside the application rather than bolted on. Cron jobs are configurable from the UI without SSH, which matters for the scheduled tasks most CodeIgniter applications end up needing.</p>
+  <p>One honest limitation while we are on the subject: one-click staging covers WordPress and Laravel, so on a CodeIgniter project you would set up your own staging copy. Worth knowing rather than discovering, and given how much of this article is about a rewrite change breaking a whole site, a place to test that change first is not a luxury.</p>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="Adding an application in the Kloudbean console">
+    <figcaption>The two causes of a server-side 404 are the rewrite rules and the document root. Both are server configuration, not application code.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>For the same case-sensitivity trap in Node, <a href="https://www.kloudbean.com/blog/fix-cannot-find-module-node/">Cannot find module</a>. When the status is not a 404, <a href="https://www.kloudbean.com/blog/403-forbidden-error/">403 Forbidden</a> and <a href="https://www.kloudbean.com/blog/405-method-not-allowed/">405 Method Not Allowed</a>, which is what a verb mismatch should ideally return. For the server layer, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">nginx configuration</a> and <a href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/">502 Bad Gateway</a>. On configuration and secrets, <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>. And on shipping changes safely, <a href="https://www.kloudbean.com/blog/zero-downtime-deployments/">zero downtime deployments</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">PHP hosting where the server config is handled.</p>
+    <p style="margin:0 0 .6em">Managed PHP servers across seven clouds, managed databases and Redis, free SSL, automatic backups, cron from the UI, and a firewall with intrusion prevention by default. From $8/mo, with free migration assistance. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">7 clouds · 6 managed databases · Free SSL · Automatic backups · Flat from $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Why is CodeIgniter showing 404 Page Not Found?</h3>
+    <p>Either the framework ran and no route matched, or the web server never passed the request to CodeIgniter. Tell them apart by the page: CodeIgniter's own styled 404 means routing, while a plain nginx or Apache 404 means the request never reached PHP. The quickest confirmation is to request <code>/index.php/your/route</code>, because if that works your rewrite rules are the problem.</p>
+
+    <h3>Why do my CodeIgniter URLs only work with index.php in them?</h3>
+    <p>Your rewrite rules are not active. CodeIgniter uses a single front controller and relies on the server rewriting pretty URLs to <code>index.php</code>. On nginx that is a <code>try_files $uri $uri/ /index.php$is_args$args;</code> directive. On Apache you need mod_rewrite enabled and <code>AllowOverride All</code>, because with <code>AllowOverride None</code> your <code>.htaccess</code> is ignored silently.</p>
+
+    <h3>What should the document root be for CodeIgniter 4?</h3>
+    <p>The <code>public</code> directory, not the project root. That is where <code>index.php</code> lives, and it keeps your application code, <code>.env</code>, and <code>writable</code> directory outside the web root. If your document root is the project root, check whether <code>https://yoursite.com/.env</code> returns 200, and if it does, fix the root and rotate your database credentials.</p>
+
+    <h3>Why does my controller 404 even though the file exists?</h3>
+    <p>Three usual reasons. Auto-routing is disabled by default in CodeIgniter 4, so a controller without an explicit route returns 404. The file name may not match the capitalised class name, which only breaks on case-sensitive Linux filesystems. Or the method is not <code>public</code>. Run <code>php spark routes</code> to see what is actually registered.</p>
+
+    <h3>Why does a form submission 404 when the page loads fine?</h3>
+    <p>A verb mismatch. A route declared with <code>$routes-&gt;get()</code> answers GET only, so a POST to the same URL finds no route. If you are using improved auto-routing, the method name is expected to include the verb, so a POST looks for <code>postSave()</code> rather than <code>save()</code>. Add an explicit <code>$routes-&gt;post()</code> entry.</p>
+
+    <h3>Why does it work on my computer but 404 on the server?</h3>
+    <p>Almost always filename case. macOS and Windows treat <code>products.php</code> and <code>Products.php</code> as the same file, Linux does not, so a mismatched controller filename works in development and 404s in production with nothing in the logs. Rename with <code>git mv</code>, since Git may not record a case-only rename made in your editor.</p>
+
+    <h3>How do I see all my CodeIgniter routes?</h3>
+    <p>Run <code>php spark routes</code> in the project root. It prints the routing table CodeIgniter actually built, including methods and handlers, which is far more reliable than reading the config file and inferring. It usually reveals verb mismatches and placeholder problems immediately.</p>
+
+    <h3>What is uri_protocol in CodeIgniter 3?</h3>
+    <p>It controls how CodeIgniter reads the requested path from the server environment. It is the setting to try when an application that worked on one server starts returning 404 on another with no code change, since server configurations differ in which variables they populate. Setting it explicitly to <code>REQUEST_URI</code> resolves most of these cases.</p>
+
+    <h3>Does a 404 mean my .htaccess is wrong?</h3>
+    <p>Not necessarily, and this is worth checking before you rewrite it. If Apache is configured with <code>AllowOverride None</code> for that directory, the file is never read at all, so a perfectly correct <code>.htaccess</code> produces exactly the same 404 as a broken one. There is no warning, so confirm <code>AllowOverride All</code> in the vhost first.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Read the 404 before you fix the 404.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"CodeIgniter 404 Page Not Found: Work Out Whose 404 It Is First","description":"A CodeIgniter 404 has two completely different causes. Learn whether the framework or the web server produced it, then fix rewrite rules, the public docroot, auto-routing, or controller naming.","image":"https://www.kloudbean.com/blog/codeigniter-404/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/codeigniter-404/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Why is CodeIgniter showing 404 Page Not Found?","acceptedAnswer":{"@type":"Answer","text":"Either the framework ran and no route matched, or the web server never passed the request to CodeIgniter. Tell them apart by the page: CodeIgniter's own styled 404 means routing, while a plain nginx or Apache 404 means the request never reached PHP. The quickest confirmation is to request /index.php/your/route, because if that works your rewrite rules are the problem."}},
+{"@type":"Question","name":"Why do my CodeIgniter URLs only work with index.php in them?","acceptedAnswer":{"@type":"Answer","text":"Your rewrite rules are not active. CodeIgniter uses a single front controller and relies on the server rewriting pretty URLs to index.php. On nginx that is a try_files directive pointing at the front controller. On Apache you need mod_rewrite enabled and AllowOverride All, because with AllowOverride None your .htaccess is ignored silently."}},
+{"@type":"Question","name":"What should the document root be for CodeIgniter 4?","acceptedAnswer":{"@type":"Answer","text":"The public directory, not the project root. That is where index.php lives, and it keeps your application code, .env, and writable directory outside the web root. If your document root is the project root, check whether your site serves the .env file, and if it does, fix the root and rotate your database credentials."}},
+{"@type":"Question","name":"Why does my controller 404 even though the file exists?","acceptedAnswer":{"@type":"Answer","text":"Three usual reasons. Auto-routing is disabled by default in CodeIgniter 4, so a controller without an explicit route returns 404. The file name may not match the capitalised class name, which only breaks on case-sensitive Linux filesystems. Or the method is not public. Run php spark routes to see what is actually registered."}},
+{"@type":"Question","name":"Why does a form submission 404 when the page loads fine?","acceptedAnswer":{"@type":"Answer","text":"A verb mismatch. A route declared with a GET helper answers GET only, so a POST to the same URL finds no route. If you are using improved auto-routing, the method name is expected to include the verb, so a POST looks for postSave rather than save. Add an explicit POST route entry."}},
+{"@type":"Question","name":"Why does it work on my computer but 404 on the server?","acceptedAnswer":{"@type":"Answer","text":"Almost always filename case. macOS and Windows treat products.php and Products.php as the same file, Linux does not, so a mismatched controller filename works in development and 404s in production with nothing in the logs. Rename with git mv, since Git may not record a case-only rename made in your editor."}},
+{"@type":"Question","name":"How do I see all my CodeIgniter routes?","acceptedAnswer":{"@type":"Answer","text":"Run php spark routes in the project root. It prints the routing table CodeIgniter actually built, including methods and handlers, which is far more reliable than reading the config file and inferring. It usually reveals verb mismatches and placeholder problems immediately."}},
+{"@type":"Question","name":"What is uri_protocol in CodeIgniter 3?","acceptedAnswer":{"@type":"Answer","text":"It controls how CodeIgniter reads the requested path from the server environment. It is the setting to try when an application that worked on one server starts returning 404 on another with no code change, since server configurations differ in which variables they populate. Setting it explicitly to REQUEST_URI resolves most of these cases."}},
+{"@type":"Question","name":"Does a 404 mean my .htaccess is wrong?","acceptedAnswer":{"@type":"Answer","text":"Not necessarily, and this is worth checking before you rewrite it. If Apache is configured with AllowOverride None for that directory, the file is never read at all, so a perfectly correct .htaccess produces exactly the same 404 as a broken one. There is no warning, so confirm AllowOverride All in the vhost first."}}
+]}
+]}
+</script>
+</body>
+</html>
