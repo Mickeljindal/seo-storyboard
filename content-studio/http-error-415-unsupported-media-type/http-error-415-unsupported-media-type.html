@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTTP Error 415 Unsupported Media Type: The Header You Sent</title>
+<meta name="description" content="415 unsupported media type means the server refuses the format you sent, not the format you asked for. The four-way split between 400, 406, 415 and 422, with the fix for each.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/http-error-415-unsupported-media-type/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HTTP Error 415 Unsupported Media Type: The Header You Sent">
+<meta property="og:description" content="415 is about Content-Type. 406 is about Accept. One is what you sent, the other is what you wanted back, and that direction is the whole distinction.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">HTTP status codes · APIs · Reference</span>
+  <h1>HTTP Error 415 Unsupported Media Type: The Header You Sent</h1>
+  <p class="byline">By Kloudbean Engineering · 415 is about what you sent. 406 is about what you asked for.</p>
+
+  <figure><img src="images/hero.png" alt="A terminal showing a 415 Unsupported Media Type response beside a curl request with an explicit Content-Type header"></figure>
+
+  <p class="lead">A 415 unsupported media type response is the server telling you it won't accept the format of what you just sent it. Not the URL, not your credentials, not whether the data is valid. The format. That makes it one of the more precise status codes you can get, and yet it's routinely confused with 400, 406 and 422, which fail for entirely different reasons. Sorting out which one you actually have takes about ten seconds once you know what to look at.</p>
+
+  <div class="tldr">
+    <strong>What does 415 unsupported media type mean?</strong>
+    <p>The server refuses to process your request because the request body is in a format it doesn't support for that method on that resource. In practice it's nearly always the <code>Content-Type</code> header on a POST, PUT or PATCH: missing, wrong, or carrying a parameter the server rejects. Set the correct type explicitly and retry. Per RFC 9110 the refusal can also come from an unsupported <code>Content-Encoding</code>, or from the server inspecting the data itself, so a correct header does not fully rule out a 415.</p>
+  </div>
+
+  <h2>The four-way split: 400, 406, 415 and 422</h2>
+  <p>Start here, because picking the wrong code to debug wastes the most time. All four are 4xx, all four can come back from the same endpoint, and each one blames something different.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Code</th><th>What failed</th><th>Which header decides it</th></tr></thead>
+    <tbody>
+      <tr><td><strong>400</strong> Bad Request</td><td>The request was malformed. Broken syntax, bad framing.</td><td>None. The message itself is wrong.</td></tr>
+      <tr><td><strong>415</strong> Unsupported Media Type</td><td>The format you <em>sent</em> is not supported here.</td><td><code>Content-Type</code> or <code>Content-Encoding</code> on your request</td></tr>
+      <tr><td><strong>406</strong> Not Acceptable</td><td>The server can't produce a format you'll <em>accept</em>.</td><td><code>Accept</code> on your request</td></tr>
+      <tr><td><strong>422</strong> Unprocessable</td><td>Format understood, syntax fine, the data was still wrong.</td><td>None. It's your values, not your headers.</td></tr>
+    </tbody>
+  </table>
+
+  <p>The direction is the whole distinction. <code>Content-Type</code> describes what you're sending. <code>Accept</code> describes what you want back. A 415 blames the first, a 406 blames the second. Say that out loud once and you'll never mix them up again.</p>
+
+  <p>You don't have to take my word for the 415 and 422 boundary either, because <a href="https://httpwg.org/specs/rfc9110.html#status.422">RFC 9110</a> draws it explicitly: 422 means the server understood the content type, which is precisely why a 415 would have been the wrong answer. The spec anticipated this argument and settled it.</p>
+
+  <figure>
+    <svg viewBox="0 0 860 290" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="hdr-title hdr-desc">
+      <title id="hdr-title">Content-Type and Accept travel in opposite directions</title>
+      <desc id="hdr-desc">Content-Type describes the request body and a mismatch produces 415. Accept describes the desired response and a mismatch produces 406. Valid type with invalid values produces 422.</desc>
+      <rect x="0" y="0" width="860" height="290" fill="#ffffff"/>
+      <g font-family="Poppins, sans-serif" font-size="13" fill="#000f27">
+        <rect x="20" y="34" width="170" height="66" rx="10" fill="#000f27"/>
+        <text x="105" y="62" text-anchor="middle" fill="#ffffff" font-weight="600" font-size="14">Client</text>
+        <text x="105" y="83" text-anchor="middle" fill="#ffffff" font-size="11.5">your app, curl, a webhook</text>
+
+        <rect x="670" y="34" width="170" height="66" rx="10" fill="#40b75f"/>
+        <text x="755" y="62" text-anchor="middle" fill="#ffffff" font-weight="600" font-size="14">Server</text>
+        <text x="755" y="83" text-anchor="middle" fill="#ffffff" font-size="11.5">the API endpoint</text>
+
+        <g stroke="#4F1AF3" stroke-width="2" fill="none" marker-end="url(#f1)">
+          <path d="M192 58 H666"/>
+        </g>
+        <text x="429" y="50" text-anchor="middle" font-size="12.5" font-weight="600" fill="#4F1AF3">Content-Type: what I am sending you</text>
+
+        <g stroke="#000f27" stroke-width="2" fill="none" marker-end="url(#f2)" stroke-dasharray="6 4">
+          <path d="M666 88 H194"/>
+        </g>
+        <text x="429" y="106" text-anchor="middle" font-size="12.5" font-weight="600">Accept: what I want back</text>
+
+        <rect x="20" y="134" width="266" height="70" rx="8" fill="#fdeceb"/>
+        <text x="36" y="157" font-size="12.5" font-weight="600">Content-Type not supported</text>
+        <text x="36" y="177" font-size="20" font-weight="700" fill="#4F1AF3">415</text>
+        <text x="80" y="177" font-size="12">Unsupported Media Type</text>
+        <text x="36" y="196" font-size="11.5">Fix the header you send.</text>
+
+        <rect x="298" y="134" width="266" height="70" rx="8" fill="#f4f2ff"/>
+        <text x="314" y="157" font-size="12.5" font-weight="600">Cannot produce your Accept</text>
+        <text x="314" y="177" font-size="20" font-weight="700" fill="#4F1AF3">406</text>
+        <text x="358" y="177" font-size="12">Not Acceptable</text>
+        <text x="314" y="196" font-size="11.5">Fix what you ask for, or the server.</text>
+
+        <rect x="576" y="134" width="264" height="70" rx="8" fill="#eaf7ee"/>
+        <text x="592" y="157" font-size="12.5" font-weight="600">Type fine, values wrong</text>
+        <text x="592" y="177" font-size="20" font-weight="700" fill="#40b75f">422</text>
+        <text x="636" y="177" font-size="12">Unprocessable</text>
+        <text x="592" y="196" font-size="11.5">Fix the data, not the headers.</text>
+
+        <rect x="20" y="220" width="820" height="52" rx="8" fill="#f6f7f9"/>
+        <text x="36" y="242" font-size="12.5" font-weight="600">A 415 response should tell you what would have worked.</text>
+        <text x="36" y="261" font-size="12.5">RFC 9110 says to send Accept, or Accept-Encoding for a coding problem, as response headers. Almost nobody does.</text>
+      </g>
+      <defs>
+        <marker id="f1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#4F1AF3"/></marker>
+        <marker id="f2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#000f27"/></marker>
+      </defs>
+    </svg>
+    <figcaption>Two headers, opposite directions. Which one the server objected to tells you which code you got.</figcaption>
+  </figure>
+
+  <h2>If you are receiving 415s</h2>
+  <p>Work through these in order. The first one accounts for a large share of 415s people hit while testing, and it catches everyone at least once.</p>
+
+  <p><strong>You didn't set Content-Type, so something else chose for you.</strong> curl with <code>-d</code> defaults to <code>application/x-www-form-urlencoded</code>. Send JSON that way to an endpoint expecting JSON and you get a 415, even though your body is perfectly valid JSON. The server never looked at the body. It read the header, saw form encoding, and stopped.</p>
+  <pre><code># 415: the body is JSON, the header says form-encoded
+curl -X POST https://api.example.com/items -d '{"name":"kb"}'
+
+# Correct: declare what you are actually sending
+curl -X POST https://api.example.com/items \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"kb"}'</code></pre>
+
+  <p><strong>See the header as the server received it, not as you believe you sent it.</strong> One flag settles arguments, because it prints the request headers alongside the response:</p>
+  <pre><code>curl -sS -o /dev/null -D - -X POST https://api.example.com/items \
+  -H 'Content-Type: application/json' -d '{"name":"kb"}' -v 2>&amp;1 | grep -i 'content-type\|HTTP/'</code></pre>
+
+  <p><strong>The endpoint wants a more specific type than you think.</strong> PATCH is the usual offender. Plenty of APIs reject plain <code>application/json</code> on a PATCH and require a structured suffix type such as <code>application/merge-patch+json</code> or <code>application/json-patch+json</code>. These are different media types, not stylistic variants, and a server configured for one will refuse the other. Check the endpoint's documentation for the exact string.</p>
+
+  <p><strong>You compressed the body.</strong> Sending <code>Content-Encoding: gzip</code> on a request assumes the server decompresses request bodies, and many don't. RFC 9110 lists an unsupported content coding as a 415 cause in its own right, separate from the media type. Drop the encoding and retry before you go looking at anything else.</p>
+
+  <p><strong>The multipart boundary is missing.</strong> For file uploads, <code>multipart/form-data</code> requires a <code>boundary</code> parameter. Set the type by hand without it and the server can't parse the body at all. The fix is usually to stop setting the header manually and let your HTTP client generate it, since the boundary has to match the body it wrote.</p>
+
+  <h2>The exact-match traps</h2>
+  <p>These are the ones that produce the "but I set the right Content-Type" bug reports, and they're worth knowing before you spend an hour on one.</p>
+
+  <p><strong>The charset parameter.</strong> Some servers match the media type strictly and reject <code>application/json; charset=utf-8</code> while accepting bare <code>application/json</code>. This is the server being stricter than it should be, since a parameter is part of a legitimate media type, but knowing the pattern is more useful than being right about it. Try the type without parameters as a diagnostic. If that fixes it, you've found a server-side matching rule, not a problem with your client.</p>
+
+  <p><strong>Framework-level allowlists.</strong> Most 415s are generated by your framework before your handler ever runs, which is why there's nothing in your application logs. Spring has <code>consumes</code> on the mapping. ASP.NET Core has the <code>Consumes</code> attribute. Django REST Framework decides via its configured parser classes. Express only parses bodies for the types its middleware is registered for. In every case the endpoint declares a whitelist, and anything outside it is refused at the door. Look at that declaration rather than your handler.</p>
+
+  <p><strong>Something rewrote your header in transit.</strong> A reverse proxy, an API gateway, or a security filter can strip or replace <code>Content-Type</code> before the application sees it. If the header looks right leaving your client and wrong arriving at your app, stop debugging the app.</p>
+
+  <h2>It might not be your header at all</h2>
+  <p>Here's the part that catches careful people. RFC 9110 permits the format problem to be identified by <em>inspecting the data directly</em>, not only by reading the declared type. So a server is within spec to accept your <code>Content-Type: image/png</code>, look at the actual bytes, notice they aren't a PNG, and return 415.</p>
+
+  <p>Upload endpoints do this deliberately, and they should, because trusting a client-declared type on a file upload is a well-known way to get something executable onto a server. If you're getting a 415 on an upload with a header you're certain about, check what the file actually is:</p>
+  <pre><code>file --mime-type upload.png
+# image/png means the bytes match. Anything else explains the 415.</code></pre>
+  <p>Renamed files are the common cause. Someone changes <code>.webp</code> to <code>.png</code> to get past a client-side filter, and the server's content check catches it a layer later.</p>
+
+  <h2>If you are building the API</h2>
+  <p><strong>Tell the client what would have worked.</strong> This is the single most useful thing in this article for an API author, and it's in the spec: on a 415, RFC 9110 says to use <code>Accept</code> as a <em>response</em> header to advertise the media types you would have taken, or <code>Accept-Encoding</code> if the problem was the content coding. Almost no API does this, probably because everyone thinks of <code>Accept</code> as a request header and it looks wrong in a response.</p>
+  <pre><code>HTTP/1.1 415 Unsupported Media Type
+Accept: application/json, application/merge-patch+json
+Content-Type: application/problem+json
+
+{"type":"about:blank","title":"Unsupported Media Type",
+ "status":415,"detail":"Send application/json for this endpoint."}</code></pre>
+  <p>That response turns a support ticket into a self-service fix. The client is told the answer in the same round trip that rejected it.</p>
+
+  <p><strong>Return the right code for the right failure.</strong> Reach for 415 only when you're refusing the format. If you parsed the body and the values were wrong, that's <a href="https://www.kloudbean.com/blog/http-422-unprocessable-entity/">422</a>. If the body was syntactically broken, that's <a href="https://www.kloudbean.com/blog/400-bad-request/">400</a>. If the method isn't allowed here at all, that's <a href="https://www.kloudbean.com/blog/405-method-not-allowed/">405</a>, with an <code>Allow</code> header. Being sloppy here pushes debugging work onto every consumer of your API, forever.</p>
+
+  <p><strong>Be as permissive as you safely can.</strong> Accepting <code>application/json</code> with or without a charset parameter costs nothing and removes a whole class of integration friction. Strict matching on parameters is a decision worth making deliberately rather than inheriting from a default.</p>
+
+  <p><strong>Say which type you wanted in the body too.</strong> An empty 415 with no explanation is a poor experience. A short message naming the expected type saves the reader a trip to your docs, assuming your docs even cover it.</p>
+
+  <h2>Where hosting fits, honestly</h2>
+  <p>Straight answer: it mostly doesn't. A 415 is a decision your application or framework made about a header, and no hosting configuration fixes that. Anyone selling you infrastructure as the solution to a status code your own code returned is not being straight with you.</p>
+
+  <p>What the infrastructure layer genuinely touches is narrower and worth naming. A reverse proxy sits between the client and your app and can alter or drop headers, so knowing exactly what arrived matters. That's a logging question, and it's the one place a managed platform saves you real time: on Kloudbean the reverse proxy is managed and both server and application logs are reachable from the same dashboard as the app, so comparing the header you sent against the header that arrived is a look rather than an SSH session and a hunt through paths. Worth ruling out one neighbour while you're there: a body that exceeds a size limit returns 413, not 415, so if the failure only happens on large payloads you're chasing the wrong code.</p>
+
+  <p>The boundary, as always: managed covers the server, the stack, TLS, backups, and patching. Your routes, your parsers, and your content negotiation stay yours.</p>
+
+  <h2>Related reading</h2>
+  <p>The nearest neighbours are worth reading together, because the distinction between them is the actual skill: <a href="https://www.kloudbean.com/blog/http-422-unprocessable-entity/">422 Unprocessable Entity</a> for content that was understood and still rejected, <a href="https://www.kloudbean.com/blog/http-error-406-not-acceptable/">406 Not Acceptable</a> for the mirror-image failure on the response side, and <a href="https://www.kloudbean.com/blog/400-bad-request/">400 Bad Request</a> for genuinely malformed requests. Also in the cluster: <a href="https://www.kloudbean.com/blog/405-method-not-allowed/">405 Method Not Allowed</a>, <a href="https://www.kloudbean.com/blog/http-error-401-unauthorized/">401 Unauthorized</a>, and <a href="https://www.kloudbean.com/blog/409-conflict-error/">409 Conflict</a>. If a proxy is in the path and you suspect it's touching your headers, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">nginx as a reverse proxy for Node</a>, and <a href="https://www.kloudbean.com/blog/structured-logging-nodejs/">structured logging</a> for seeing what actually arrived.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">See the header that actually arrived.</p>
+    <p style="margin:0 0 .6em">Managed servers across seven clouds with a managed reverse proxy, and server plus application logs in the same dashboard as the app, so comparing what you sent against what arrived takes a look rather than a session. Free SSL issued and renewed. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed reverse proxy · App and server logs · Free SSL · Free migration · One dashboard</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does 415 unsupported media type mean?</h3>
+    <p>It means the server is refusing your request because the body is in a format it does not support for that method on that resource. It is a judgement about format, not about whether your data is valid or your URL is correct. In practice it is nearly always the Content-Type header on a POST, PUT, or PATCH request.</p>
+
+    <h3>How do I fix a 415 error?</h3>
+    <p>Set the Content-Type header explicitly to the exact type the endpoint expects, then retry. If you are using curl with the data flag and have not set a type, curl sends form encoding by default, which is the most common cause. If the header is already correct, check for an unsupported Content-Encoding and for a more specific type requirement such as a JSON patch variant.</p>
+
+    <h3>What is the difference between 415 and 406?</h3>
+    <p>Direction. A 415 is about Content-Type, the format you sent in the request body. A 406 is about Accept, the format you asked the server to respond with. One blames what you sent, the other blames what you wanted back, so they need completely different fixes.</p>
+
+    <h3>What is the difference between 415 and 422?</h3>
+    <p>RFC 9110 settles this directly: a 422 means the server understood the content type and found the syntax correct, which is exactly why 415 would have been inappropriate. So 415 means the format was rejected, and 422 means the format was fine and the values inside were not.</p>
+
+    <h3>Why do I get a 415 when my Content-Type looks correct?</h3>
+    <p>Three common reasons. The server may match the media type strictly and reject a charset parameter it does not expect. A reverse proxy or gateway may have rewritten the header before your application saw it. Or the server is inspecting the actual bytes, which the spec permits, and they do not match the type you declared. That last one is common on file uploads.</p>
+
+    <h3>Can a 415 come from the file itself rather than the header?</h3>
+    <p>Yes. RFC 9110 allows the format problem to be identified by inspecting the data directly, so a server can accept your declared type, examine the bytes, find a mismatch, and refuse. Upload endpoints do this deliberately because trusting a client-declared type on a file upload is unsafe. Check the real type with a MIME detection tool before assuming the header is at fault.</p>
+
+    <h3>What should a 415 response include?</h3>
+    <p>Per RFC 9110, the types you would have accepted, sent as an Accept response header, or Accept-Encoding if the problem was the content coding. Using Accept in a response surprises people because it is usually a request header, which is likely why so few APIs do it. Adding it turns a rejection into a self-service fix.</p>
+
+    <h3>Is 415 a client error or a server error?</h3>
+    <p>A client error, in the 4xx class, meaning the server believes the request was at fault. That said, it can still be the server being unnecessarily strict, for example by rejecting a valid charset parameter. If you control both sides, widening what the endpoint accepts is often the better fix than making every caller match an exact string.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Content-Type going out, Accept coming back. That is the whole trick.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"HTTP Error 415 Unsupported Media Type: The Header You Sent","description":"415 unsupported media type means the server refuses the format you sent, not the format you asked for. The four-way split between 400, 406, 415 and 422, with the fix for each.","image":"https://www.kloudbean.com/blog/http-error-415-unsupported-media-type/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/http-error-415-unsupported-media-type/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does 415 unsupported media type mean?","acceptedAnswer":{"@type":"Answer","text":"It means the server is refusing your request because the body is in a format it does not support for that method on that resource. It is a judgement about format, not about whether your data is valid or your URL is correct. In practice it is nearly always the Content-Type header on a POST, PUT, or PATCH request."}},
+{"@type":"Question","name":"How do I fix a 415 error?","acceptedAnswer":{"@type":"Answer","text":"Set the Content-Type header explicitly to the exact type the endpoint expects, then retry. If you are using curl with the data flag and have not set a type, curl sends form encoding by default, which is the most common cause. If the header is already correct, check for an unsupported Content-Encoding and for a more specific type requirement such as a JSON patch variant."}},
+{"@type":"Question","name":"What is the difference between 415 and 406?","acceptedAnswer":{"@type":"Answer","text":"Direction. A 415 is about Content-Type, the format you sent in the request body. A 406 is about Accept, the format you asked the server to respond with. One blames what you sent, the other blames what you wanted back, so they need completely different fixes."}},
+{"@type":"Question","name":"What is the difference between 415 and 422?","acceptedAnswer":{"@type":"Answer","text":"RFC 9110 settles this directly: a 422 means the server understood the content type and found the syntax correct, which is exactly why 415 would have been inappropriate. So 415 means the format was rejected, and 422 means the format was fine and the values inside were not."}},
+{"@type":"Question","name":"Why do I get a 415 when my Content-Type looks correct?","acceptedAnswer":{"@type":"Answer","text":"Three common reasons. The server may match the media type strictly and reject a charset parameter it does not expect. A reverse proxy or gateway may have rewritten the header before your application saw it. Or the server is inspecting the actual bytes, which the spec permits, and they do not match the type you declared. That last one is common on file uploads."}},
+{"@type":"Question","name":"Can a 415 come from the file itself rather than the header?","acceptedAnswer":{"@type":"Answer","text":"Yes. RFC 9110 allows the format problem to be identified by inspecting the data directly, so a server can accept your declared type, examine the bytes, find a mismatch, and refuse. Upload endpoints do this deliberately because trusting a client-declared type on a file upload is unsafe. Check the real type with a MIME detection tool before assuming the header is at fault."}},
+{"@type":"Question","name":"What should a 415 response include?","acceptedAnswer":{"@type":"Answer","text":"Per RFC 9110, the types you would have accepted, sent as an Accept response header, or Accept-Encoding if the problem was the content coding. Using Accept in a response surprises people because it is usually a request header, which is likely why so few APIs do it. Adding it turns a rejection into a self-service fix."}},
+{"@type":"Question","name":"Is 415 a client error or a server error?","acceptedAnswer":{"@type":"Answer","text":"A client error, in the 4xx class, meaning the server believes the request was at fault. That said, it can still be the server being unnecessarily strict, for example by rejecting a valid charset parameter. If you control both sides, widening what the endpoint accepts is often the better fix than making every caller match an exact string."}}
+]}
+]}
+</script>
+</body>
+</html>

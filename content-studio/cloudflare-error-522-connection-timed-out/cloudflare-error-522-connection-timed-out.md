@@ -106,7 +106,7 @@ These are documented and genuinely obscure. If your origin is healthy and your f
 |---|---|---|
 | 521 | Origin refused the connection | Stopped service, REJECT rule |
 | 522 | Handshake never completed | DROP rule, security group, backlog |
-| 523 | Cloudflare could not route to the address | Wrong or dead origin IP |
+| [523](https://www.kloudbean.com/blog/cloudflare-error-523-origin-is-unreachable/) | Cloudflare could not route to the address | Wrong or dead origin IP, or a route table |
 | 524 | Connected, but the response was too slow | Slow queries, long-running work |
 
 ## Where hosting fits, honestly
