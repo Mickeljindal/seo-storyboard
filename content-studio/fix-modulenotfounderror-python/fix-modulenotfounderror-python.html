@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ModuleNotFoundError in Python: The Name in the Quotes Tells You Which Problem You Have</title>
+<meta name="description" content="ModuleNotFoundError has five distinct causes and the module name identifies which. Import names that differ from pip names, two Pythons, missing requirements, and underscore modules.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/fix-modulenotfounderror-python/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ModuleNotFoundError in Python: The Name in the Quotes Tells You Which Problem You Have">
+<meta property="og:description" content="One message, five unrelated causes. Read the module name and you know which one, before you install anything.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Python · Deployment · Debugging</span>
+  <h1>ModuleNotFoundError in Python: The Name in the Quotes Tells You Which Problem You Have</h1>
+  <p class="byline">By Kloudbean Engineering · Same message, five unrelated causes.</p>
+
+  <figure><img src="images/hero.png" alt="Python traceback showing ModuleNotFoundError and the five distinct root causes behind it"></figure>
+
+  <p class="lead">Everyone's first move on <code>ModuleNotFoundError</code> is to pip install the thing it named, and roughly half the time that is the wrong action. This one message covers at least five unrelated situations: the package is installed under a different name than you import, you have two Python interpreters and installed into the other one, it never made it into your requirements file, your Python itself was compiled without part of its standard library, or the missing module is your own code and the process is running from the wrong directory. The useful thing is that the name inside the quotes usually tells you which. Read it before you install anything.</p>
+
+  <div class="tldr">
+    <strong>How do I fix ModuleNotFoundError in Python?</strong>
+    <p>First check whether the import name matches the package name, because many do not: <code>import yaml</code> comes from <code>PyYAML</code>, <code>import cv2</code> from <code>opencv-python</code>. Then confirm you installed into the interpreter that is running by using <code>python -m pip install</code> rather than bare <code>pip</code>. If the module name starts with an underscore, such as <code>_sqlite3</code> or <code>_ctypes</code>, no pip package will help, because your Python was built without that standard library extension. And if the missing module is your own code, it is a working directory or <code>PYTHONPATH</code> problem, not a package problem.</p>
+  </div>
+
+  <h2>Read the name, pick the branch</h2>
+  <table class="cmp">
+    <thead><tr><th>What the name looks like</th><th>Likely cause</th><th>First move</th></tr></thead>
+    <tbody>
+      <tr><td>A known library, but you installed something differently named</td><td>Import name is not the pip name</td><td>Check the mapping table below</td></tr>
+      <tr><td><code>'flask'</code>, <code>'django'</code>, anything you know you installed</td><td>Two interpreters</td><td><code>python -m pip list</code></td></tr>
+      <tr><td>Works locally, fails on the server</td><td>Missing from requirements</td><td>Diff <code>pip freeze</code> against the file</td></tr>
+      <tr><td>Starts with an underscore: <code>_sqlite3</code>, <code>_ctypes</code></td><td>Python built incomplete</td><td>Install headers, rebuild Python</td></tr>
+      <tr><td><code>'app'</code>, <code>'config'</code>, your own module names</td><td>Working directory or path</td><td>Check where the process starts</td></tr>
+    </tbody>
+  </table>
+  <p>Those five want completely different actions, which is why a generic "just install it" answer fails so often.</p>
+
+  <h2>Cause one: the import name is not the package name</h2>
+  <p>This is the most common genuinely confusing case, and it explains a whole family of these errors at once. What you <code>import</code> and what you <code>pip install</code> are separate namespaces, and plenty of well-known libraries differ.</p>
+  <table class="cmp">
+    <thead><tr><th>You import</th><th>You install</th></tr></thead>
+    <tbody>
+      <tr><td><code>yaml</code></td><td><code>PyYAML</code></td></tr>
+      <tr><td><code>cv2</code></td><td><code>opencv-python</code></td></tr>
+      <tr><td><code>PIL</code></td><td><code>Pillow</code></td></tr>
+      <tr><td><code>bs4</code></td><td><code>beautifulsoup4</code></td></tr>
+      <tr><td><code>sklearn</code></td><td><code>scikit-learn</code></td></tr>
+      <tr><td><code>dotenv</code></td><td><code>python-dotenv</code></td></tr>
+      <tr><td><code>jwt</code></td><td><code>PyJWT</code></td></tr>
+      <tr><td><code>dateutil</code></td><td><code>python-dateutil</code></td></tr>
+      <tr><td><code>corsheaders</code></td><td><code>django-cors-headers</code></td></tr>
+      <tr><td><code>google</code>, <code>googleapiclient</code></td><td><code>google-api-python-client</code></td></tr>
+      <tr><td><code>psycopg2</code></td><td><code>psycopg2-binary</code> (see cause four)</td></tr>
+    </tbody>
+  </table>
+  <p>The failure mode that wastes the most time here is installing something that exists and is wrong. <code>pip install jwt</code> succeeds, because a package called <code>jwt</code> does exist, and it is not the one whose documentation you were reading. So you now have a package installed, the import still fails or behaves oddly, and nothing suggests you got the wrong library.</p>
+  <p>Worth knowing the general shape rather than memorising a list: <code>Py</code> prefixes, <code>python-</code> prefixes, and framework prefixes such as <code>django-</code> and <code>flask-</code> are added to distribution names to avoid collisions on the index, while the module inside keeps the short name. When an import fails for a library you are sure exists, search the documentation for its install line rather than guessing.</p>
+  <p>You can also ask your environment which distribution provided a module, which settles the question in one command:</p>
+  <pre><code># Which installed distribution owns this import?
+python -c "import importlib.metadata as m; print(m.packages_distributions()['yaml'])"
+# ['PyYAML']</code></pre>
+
+  <h2>Cause two: you have two Pythons</h2>
+  <p>The other big one, and it is almost always what is happening when the missing module is something you distinctly remember installing.</p>
+  <p>A machine typically has several interpreters: the system Python, one from a version manager, and one per virtual environment. <code>pip</code> belongs to exactly one of them. So <code>pip install flask</code> can succeed while the Python actually running your code has never heard of Flask.</p>
+  <pre><code># Which python and which pip are you using?
+which -a python python3 pip pip3
+
+# Which interpreter is running, definitively
+python -c "import sys; print(sys.executable)"
+
+# Which interpreter does this pip install into?
+pip -V
+
+# The fix that removes the ambiguity permanently
+python -m pip install flask</code></pre>
+  <p><code>python -m pip</code> is the habit worth adopting. It runs pip as a module of the interpreter you just named, so the package cannot land somewhere else. Bare <code>pip</code> is whichever one appears first on your <code>PATH</code>, which is a different question from which Python you are running.</p>
+  <p>On a server this appears in a specific and confusing way. You activate a virtual environment, install everything, test by hand, and it works. Then your process manager starts the application and it fails immediately, because systemd or a supervisor does not run your shell profile and therefore never activated anything. The service is running the system interpreter.</p>
+  <pre><code># Don't rely on activation in a service. Name the interpreter.
+/var/www/app/venv/bin/gunicorn --workers 3 "app:app"
+
+# systemd equivalent
+# ExecStart=/var/www/app/venv/bin/gunicorn --workers 3 app:app</code></pre>
+  <p>Pointing at the venv's own binary is more reliable than activating and hoping, because that binary uses its own interpreter and its own site-packages regardless of environment. If a deploy works interactively and fails as a service, this is the first thing to check.</p>
+
+  <h2>Cause three: it is not in requirements.txt</h2>
+  <p>The classic works-on-my-machine shape. During development you installed something to try it, it stayed in your virtual environment, and it never got recorded. Your machine has it, the server does not.</p>
+  <pre><code># What is actually installed here?
+python -m pip freeze &gt; /tmp/installed.txt
+
+# What does the project claim to need?
+diff &lt;(sort requirements.txt) &lt;(sort /tmp/installed.txt) | head</code></pre>
+  <p>Two habits prevent it. Install through the file rather than around it, so adding a dependency means editing <code>requirements.txt</code> and reinstalling, and the record is the source of truth rather than an afterthought. And build in a clean environment, because a fresh install from the file is the only real test that the file is complete. A deploy pipeline that creates the environment from scratch on every run catches this before your users do, which is one of the quieter benefits of automating builds.</p>
+  <p>Watch for the split-requirements version of this too. If a project has <code>requirements.txt</code> and <code>requirements-dev.txt</code>, something imported by application code but listed as a dev dependency will pass every local test and fail in production. The tell is that the missing package is a testing or tooling library.</p>
+
+  <h2>Cause four: an underscore means your Python is incomplete</h2>
+  <p>This one deserves its own section because the usual fix cannot possibly work, and the naming is the giveaway.</p>
+  <p>Modules whose names begin with an underscore, <code>_sqlite3</code>, <code>_ctypes</code>, <code>_ssl</code>, <code>_bz2</code>, are C extensions of the standard library. They are compiled when Python itself is built. If the development headers for the underlying system library were not present at that moment, Python builds successfully and silently omits that extension.</p>
+  <p>So you end up with an interpreter that looks completely healthy and is missing a piece of its own standard library. No pip package fixes it, because the missing part is not on the package index. It is part of Python.</p>
+  <pre><code># Install the headers first, then rebuild the interpreter
+sudo apt-get install -y libsqlite3-dev libffi-dev libssl-dev libbz2-dev
+
+# Then rebuild, for example with pyenv
+pyenv install 3.12.4</code></pre>
+  <p>The order matters and is the part people get wrong: headers first, then rebuild. Rebuilding without installing the headers reproduces exactly the same incomplete interpreter. This is common when Python is compiled from source or installed by a version manager on a minimal server, and it is why we cover the SQLite case in more depth in our guide to <a href="https://www.kloudbean.com/blog/fix-better-sqlite3-install-errors/">native module build errors</a>.</p>
+  <p><code>psycopg2</code> is a close relative worth mentioning here. It is a real pip package, and it compiles against PostgreSQL client libraries, so installing it on a machine without <code>libpq-dev</code> and a compiler fails at build time rather than import time. The pragmatic answer for most deployments is <code>psycopg2-binary</code>, which ships prebuilt and needs no toolchain.</p>
+
+  <h2>Cause five: the missing module is your own code</h2>
+  <p>When the name in the quotes is something like <code>'app'</code>, <code>'config'</code>, or one of your own packages, nothing is missing from your environment. Python simply cannot find your code from where it started.</p>
+  <p>Python resolves imports using <code>sys.path</code>, which includes the directory of the script being run. Start the process somewhere else and your own modules become invisible.</p>
+  <pre><code># What can Python actually see?
+python -c "import sys; print('\n'.join(sys.path))"
+
+# Where is this process running from?
+pwd</code></pre>
+  <p>The usual culprit on a server is a process manager with a different working directory from the one you tested in. Gunicorn resolving <code>app:app</code> needs to be started from the directory containing <code>app.py</code>, or told where that is.</p>
+  <pre><code># Be explicit rather than depending on where it happens to start
+# systemd
+# WorkingDirectory=/var/www/app
+# ExecStart=/var/www/app/venv/bin/gunicorn --workers 3 app:app
+
+# Or gunicorn's own option
+gunicorn --chdir /var/www/app --workers 3 app:app</code></pre>
+  <p>Two smaller variants in the same family. A module name that shadows a real library, a local <code>email.py</code> or <code>json.py</code>, breaks imports in ways that look impossible, because your file wins over the standard library. And a package directory without <code>__init__.py</code> behaves differently from what older tutorials assume, so if you are following an older guide and imports fail, check whether it expected that file.</p>
+
+  <h2>The order to work through</h2>
+  <ol>
+    <li><strong>Read the name.</strong> Underscore prefix? Cause four. Your own module? Cause five. Otherwise continue.</li>
+    <li><strong>Check the import-to-package mapping.</strong> Cheap, and it resolves a large share of cases.</li>
+    <li><strong>Confirm the interpreter.</strong> <code>python -c "import sys; print(sys.executable)"</code> and <code>python -m pip list</code>. Not bare <code>pip</code>.</li>
+    <li><strong>Compare installed against declared.</strong> <code>pip freeze</code> versus your requirements file.</li>
+    <li><strong>Only then install.</strong> With <code>python -m pip install</code>, and add it to the requirements file in the same action.</li>
+  </ol>
+  <p>Steps one to four cost under a minute together and they are the difference between fixing the cause and installing a package that was never the problem.</p>
+
+  <h2>Making it stop happening</h2>
+  <p>The structural fix is the same one that retires most environment bugs: build the environment on the target, from the declared dependency list, every time.</p>
+  <pre><code># A deploy that cannot drift from your requirements file
+python -m venv /var/www/app/venv
+/var/www/app/venv/bin/python -m pip install --upgrade pip
+/var/www/app/venv/bin/python -m pip install -r requirements.txt</code></pre>
+  <p>An automated build that does exactly this on every push cannot produce a works-locally-fails-remotely import error, because the only environment that ever runs your code is one created from the file you committed. That is the real value of a pipeline here, and it is why this class of bug quietly disappears once deploys stop being manual. Our guide to <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">auto-deploy from Git</a> covers that setup, and <a href="https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/">why apps crash on deploy</a> covers the wider environment-gap family.</p>
+  <p>Two smaller habits worth having. Pin versions rather than leaving them open, so a working environment stays working when an upstream release changes an import path. And keep the virtual environment out of version control, since it contains platform-specific binaries that will not transfer to your server.</p>
+
+  <h2>Where hosting fits</h2>
+  <p>Most of this is Python environment discipline and no platform substitutes for it. Two parts genuinely are hosting: whether dependencies get installed on the machine that runs them, and whether the process starts with the right interpreter and working directory.</p>
+  <p>On Kloudbean, Python applications including Flask, Django, and FastAPI run as managed applications, with Python runtime configuration available in the UI rather than only in files, which is where the interpreter and start command stop being guesswork. The Git integration builds and deploys on every push with live build logs, so a failed dependency install is visible in the log rather than inferred from a crash. Managed PostgreSQL, MySQL, MariaDB, Redis, Elasticsearch, and MongoDB sit alongside the application, which is also the neatest answer to the <code>psycopg2</code> problem, since a managed database means you connect to it rather than compiling client libraries by hand.</p>
+  <p>Servers run across seven clouds with your choice of region, with a Shorewall firewall and Fail2ban configured by default, free SSL issued and renewed, and automatic backups. The honest boundary stays the same one: the server, stack, SSL, backups, and patching are handled, and your application code and its dependency list remain yours to keep accurate.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="Git deployment with build commands and live build logs in the Kloudbean console">
+    <figcaption>An environment built on the target from requirements.txt cannot disagree with your laptop, because your laptop was never involved.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>For the deployment guides themselves, <a href="https://www.kloudbean.com/blog/deploy-flask-app/">Flask</a>, <a href="https://www.kloudbean.com/blog/deploy-django-app/">Django</a>, and <a href="https://www.kloudbean.com/blog/deploy-fastapi-app/">FastAPI</a>. On choosing between them, <a href="https://www.kloudbean.com/blog/flask-vs-django/">Flask versus Django</a>. For the compiled-extension version of this problem, <a href="https://www.kloudbean.com/blog/fix-better-sqlite3-install-errors/">native module build errors</a>, and the Node equivalent in <a href="https://www.kloudbean.com/blog/fix-cannot-find-module-node/">Cannot find module</a>. On the process layer, <a href="https://www.kloudbean.com/blog/gunicorn-vs-uvicorn/">Gunicorn versus Uvicorn</a>. And on configuration and deploys, <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a> and <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">auto-deploy from GitHub</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Build the environment where the code runs.</p>
+    <p style="margin:0 0 .6em">Managed Python hosting for Flask, Django, and FastAPI across seven clouds, with runtime config in the UI, Git deploys and live build logs, one-click managed databases, free SSL, and automatic backups. From $8/mo, with free migration assistance. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Flask · Django · FastAPI · Live build logs · 6 managed databases · Flat from $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I fix ModuleNotFoundError in Python?</h3>
+    <p>Identify which of five causes you have before installing anything. Check whether the import name differs from the package name, confirm you installed into the interpreter that is running by using <code>python -m pip</code>, compare installed packages against your requirements file, note that an underscore-prefixed name means your Python was built incomplete, and check the working directory if the missing module is your own code.</p>
+
+    <h3>Why does pip install not fix ModuleNotFoundError?</h3>
+    <p>Usually because it installed into a different interpreter than the one running your code, since <code>pip</code> belongs to one Python and your <code>PATH</code> decides which. Use <code>python -m pip install</code> so the package goes to the interpreter you named. It can also fail because you installed a differently named package, or because the missing module is part of the standard library rather than something on the package index.</p>
+
+    <h3>Why does "No module named 'yaml'" happen when PyYAML is installed?</h3>
+    <p>It does not, and that pairing is the point: the import name and the package name differ. <code>import yaml</code> is provided by the distribution <code>PyYAML</code>. If PyYAML really is installed in the running interpreter, the import works, so check <code>python -m pip list</code> in that specific interpreter rather than the one your shell reaches first.</p>
+
+    <h3>What does an underscore at the start of a module name mean?</h3>
+    <p>It is a C extension of the standard library, compiled when Python itself was built. Names like <code>_sqlite3</code>, <code>_ctypes</code>, and <code>_ssl</code> are missing because the development headers for the underlying system library were absent at build time, so Python built successfully without them. Install the headers, then rebuild the interpreter, in that order.</p>
+
+    <h3>Why does my app work locally but fail with ModuleNotFoundError on the server?</h3>
+    <p>Most often the package is installed on your machine and missing from <code>requirements.txt</code>, so the server never got it. The other frequent cause is that your service does not run your shell profile, so no virtual environment is activated and the process uses the system interpreter. Point your start command at the venv's own binary rather than relying on activation.</p>
+
+    <h3>Why can't Python find my own module, like 'app'?</h3>
+    <p>Because Python resolves imports relative to where the process started, so a process manager with a different working directory cannot see your code. Set the working directory explicitly, or pass <code>--chdir</code> to Gunicorn. Also check that no local file shadows a standard library name, since a file called <code>json.py</code> in your project wins over the real one.</p>
+
+    <h3>Should I use psycopg2 or psycopg2-binary?</h3>
+    <p><code>psycopg2</code> compiles against PostgreSQL client libraries, so it needs <code>libpq-dev</code> and a compiler and fails at install time without them. <code>psycopg2-binary</code> ships prebuilt and needs no toolchain, which makes it the pragmatic choice for most deployments and avoids adding build tools to a production machine.</p>
+
+    <h3>How do I stop this happening on every deploy?</h3>
+    <p>Create the virtual environment on the target machine and install from <code>requirements.txt</code> as part of the deploy, so the only environment that runs your code is one built from the file you committed. Pin versions, keep the venv out of version control since it holds platform-specific binaries, and add dependencies by editing the requirements file rather than installing around it.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · python -m pip, every time.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"ModuleNotFoundError in Python: The Name in the Quotes Tells You Which Problem You Have","description":"ModuleNotFoundError has five distinct causes and the module name identifies which. Import names that differ from pip names, two Pythons, missing requirements, and underscore modules.","image":"https://www.kloudbean.com/blog/fix-modulenotfounderror-python/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/fix-modulenotfounderror-python/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I fix ModuleNotFoundError in Python?","acceptedAnswer":{"@type":"Answer","text":"Identify which of five causes you have before installing anything. Check whether the import name differs from the package name, confirm you installed into the interpreter that is running by using python -m pip, compare installed packages against your requirements file, note that an underscore-prefixed name means your Python was built incomplete, and check the working directory if the missing module is your own code."}},
+{"@type":"Question","name":"Why does pip install not fix ModuleNotFoundError?","acceptedAnswer":{"@type":"Answer","text":"Usually because it installed into a different interpreter than the one running your code, since pip belongs to one Python and your PATH decides which. Use python -m pip install so the package goes to the interpreter you named. It can also fail because you installed a differently named package, or because the missing module is part of the standard library rather than something on the package index."}},
+{"@type":"Question","name":"Why does \"No module named 'yaml'\" happen when PyYAML is installed?","acceptedAnswer":{"@type":"Answer","text":"It does not, and that pairing is the point: the import name and the package name differ. import yaml is provided by the distribution PyYAML. If PyYAML really is installed in the running interpreter, the import works, so check python -m pip list in that specific interpreter rather than the one your shell reaches first."}},
+{"@type":"Question","name":"What does an underscore at the start of a module name mean?","acceptedAnswer":{"@type":"Answer","text":"It is a C extension of the standard library, compiled when Python itself was built. Names like _sqlite3, _ctypes, and _ssl are missing because the development headers for the underlying system library were absent at build time, so Python built successfully without them. Install the headers, then rebuild the interpreter, in that order."}},
+{"@type":"Question","name":"Why does my app work locally but fail with ModuleNotFoundError on the server?","acceptedAnswer":{"@type":"Answer","text":"Most often the package is installed on your machine and missing from requirements.txt, so the server never got it. The other frequent cause is that your service does not run your shell profile, so no virtual environment is activated and the process uses the system interpreter. Point your start command at the venv's own binary rather than relying on activation."}},
+{"@type":"Question","name":"Why can't Python find my own module, like 'app'?","acceptedAnswer":{"@type":"Answer","text":"Because Python resolves imports relative to where the process started, so a process manager with a different working directory cannot see your code. Set the working directory explicitly, or pass --chdir to Gunicorn. Also check that no local file shadows a standard library name, since a file called json.py in your project wins over the real one."}},
+{"@type":"Question","name":"Should I use psycopg2 or psycopg2-binary?","acceptedAnswer":{"@type":"Answer","text":"psycopg2 compiles against PostgreSQL client libraries, so it needs libpq-dev and a compiler and fails at install time without them. psycopg2-binary ships prebuilt and needs no toolchain, which makes it the pragmatic choice for most deployments and avoids adding build tools to a production machine."}},
+{"@type":"Question","name":"How do I stop this happening on every deploy?","acceptedAnswer":{"@type":"Answer","text":"Create the virtual environment on the target machine and install from requirements.txt as part of the deploy, so the only environment that runs your code is one built from the file you committed. Pin versions, keep the venv out of version control since it holds platform-specific binaries, and add dependencies by editing the requirements file rather than installing around it."}}
+]}
+]}
+</script>
+</body>
+</html>
