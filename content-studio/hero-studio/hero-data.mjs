@@ -611,6 +611,31 @@ function checklistData(slug) {
   return CHECKLIST_SECURITY;
 }
 
+// Per-slug hero overrides: a fully specified descriptor that bypasses the
+// automatic derivation for flagship pages the heuristics would under-serve.
+// Copy here obeys the same accuracy rules as everything else (no customer
+// counts, prices, SLA %, contested numbers).
+const HERO_OVERRIDES = {
+  // The slug reads "compliance" rather than "compliant", so familyOf routes it
+  // to "concept" and it would land on a generic centered hero. This is the CSCC
+  // pillar page, so it gets a checklist of the four public NCA control domains,
+  // which is also exactly what the article's own hero alt text describes.
+  "nca-cscc-compliance-guide": {
+    archetype: "checklist",
+    palette: "blue",
+    motif: "shield",
+    eyebrow: "NCA CSCC \u00b7 KSA",
+    headline: "NCA CSCC,\ndomain by domain.",
+    sub: "The four control domains behind Saudi Arabia's critical-systems framework.",
+    checklist: [
+      "Cybersecurity Governance",
+      "Cybersecurity Defence",
+      "Cybersecurity Resilience",
+      "Third-Party & Cloud",
+    ],
+  },
+};
+
 // ---------------------------------------------------------------------------
 // main builder
 // ---------------------------------------------------------------------------
@@ -626,6 +651,12 @@ export function buildAllHeroes() {
 
   const heroes = [];
   for (const slug of slugs) {
+    // A flagship override wins outright and skips derivation for that slug only.
+    const ov = HERO_OVERRIDES[slug];
+    if (ov) {
+      heroes.push({ slug, ...ov });
+      continue;
+    }
     const mdPath = join(CONTENT_DIR, slug, `${slug}.md`);
     const htmlPath = join(CONTENT_DIR, slug, `${slug}.html`);
     const md = readFileSync(mdPath, "utf8");
