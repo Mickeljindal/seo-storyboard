@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>This Site Can't Be Reached: Which Layer Actually Broke</title>
+<meta name="description" content="This site can't be reached is one headline for about ten different failures. Read the grey sub-code, map it to the layer that broke, and go straight to the fix.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/this-site-cant-be-reached/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="This Site Can't Be Reached: Which Layer Actually Broke">
+<meta property="og:description" content="One Chrome headline covers DNS, routing, TCP, TLS and your own Wi-Fi. Here is the map from sub-code to layer to fix.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Browser errors · Field guide</span>
+  <h1>This Site Can't Be Reached: Which Layer Actually Broke</h1>
+  <p class="byline">By Kloudbean Engineering · The headline is generic. The grey line under it is not.</p>
+
+  <figure><img src="images/hero.png" alt="A Chrome this site can't be reached page with the small grey error code highlighted underneath the headline"></figure>
+
+  <p class="lead">"This site can't be reached" is the least helpful error message Chrome has, and that's by design. It's the catch-all for roughly ten unrelated failures. Your Wi-Fi dropped. A domain doesn't resolve. A firewall silently dropped your packets. A server crashed. Each one needs a different fix, and the headline tells you nothing about which you've got. The useful part is the small grey line underneath it, which most people scroll past.</p>
+
+  <div class="tldr">
+    <strong>How do you fix "this site can't be reached"?</strong>
+    <p>Find the grey code under the headline first, because it names the layer that broke. <code>DNS_PROBE_FINISHED_NXDOMAIN</code> or <code>ERR_NAME_NOT_RESOLVED</code> means the domain never resolved to an address. <code>ERR_CONNECTION_REFUSED</code> means something answered and declined. <code>ERR_CONNECTION_TIMED_OUT</code> means nothing answered at all. <code>ERR_INTERNET_DISCONNECTED</code> means your own machine has no working link. Fix the named layer, not the headline. If there's no code at all, try the site on mobile data and from a second device, which narrows it to your network, your machine, or the server.</p>
+  </div>
+
+  <h2>The request crosses four things, and any of them can break</h2>
+  <p>Before the codes make sense, it helps to see what's actually happening. Loading a page means clearing four hurdles in order, and Chrome reports the same headline no matter which one you trip on.</p>
+
+  <figure>
+    <svg viewBox="0 0 860 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="hops-title hops-desc">
+      <title id="hops-title">The four hops between a browser and a web page</title>
+      <desc id="hops-desc">A request passes through the local network link, DNS resolution, the TCP connection, and the TLS handshake. Each hop has its own Chrome error code when it fails.</desc>
+      <rect x="0" y="0" width="860" height="300" fill="#ffffff"/>
+      <g font-family="Poppins, sans-serif" font-size="13" fill="#000f27">
+        <rect x="14" y="66" width="150" height="76" rx="10" fill="#000f27"/>
+        <text x="89" y="96" text-anchor="middle" fill="#ffffff" font-weight="600" font-size="14">1. Local link</text>
+        <text x="89" y="118" text-anchor="middle" fill="#ffffff" font-size="12">Wi-Fi, cable, VPN</text>
+
+        <rect x="188" y="66" width="150" height="76" rx="10" fill="#4F1AF3"/>
+        <text x="263" y="96" text-anchor="middle" fill="#ffffff" font-weight="600" font-size="14">2. DNS</text>
+        <text x="263" y="118" text-anchor="middle" fill="#ffffff" font-size="12">name to address</text>
+
+        <rect x="362" y="66" width="150" height="76" rx="10" fill="#4F1AF3"/>
+        <text x="437" y="96" text-anchor="middle" fill="#ffffff" font-weight="600" font-size="14">3. TCP</text>
+        <text x="437" y="118" text-anchor="middle" fill="#ffffff" font-size="12">reach the port</text>
+
+        <rect x="536" y="66" width="150" height="76" rx="10" fill="#40b75f"/>
+        <text x="611" y="96" text-anchor="middle" fill="#ffffff" font-weight="600" font-size="14">4. TLS</text>
+        <text x="611" y="118" text-anchor="middle" fill="#ffffff" font-size="12">agree encryption</text>
+
+        <rect x="710" y="66" width="136" height="76" rx="10" fill="#ffffff" stroke="#40b75f" stroke-width="2"/>
+        <text x="778" y="96" text-anchor="middle" font-weight="600" font-size="14">Page loads</text>
+        <text x="778" y="118" text-anchor="middle" font-size="12">HTTP response</text>
+
+        <g stroke="#000f27" stroke-width="2" fill="none" marker-end="url(#ar)">
+          <path d="M164 104 H186"/><path d="M338 104 H360"/><path d="M512 104 H534"/><path d="M686 104 H708"/>
+        </g>
+
+        <text x="89"  y="176" text-anchor="middle" font-size="11.5" fill="#4F1AF3" font-weight="600">ERR_INTERNET_</text>
+        <text x="89"  y="192" text-anchor="middle" font-size="11.5" fill="#4F1AF3" font-weight="600">DISCONNECTED</text>
+        <text x="263" y="176" text-anchor="middle" font-size="11.5" fill="#4F1AF3" font-weight="600">ERR_NAME_NOT_</text>
+        <text x="263" y="192" text-anchor="middle" font-size="11.5" fill="#4F1AF3" font-weight="600">RESOLVED</text>
+        <text x="437" y="176" text-anchor="middle" font-size="11.5" fill="#4F1AF3" font-weight="600">ERR_CONNECTION_</text>
+        <text x="437" y="192" text-anchor="middle" font-size="11.5" fill="#4F1AF3" font-weight="600">REFUSED / TIMED_OUT</text>
+        <text x="611" y="176" text-anchor="middle" font-size="11.5" fill="#4F1AF3" font-weight="600">ERR_SSL_PROTOCOL_</text>
+        <text x="611" y="192" text-anchor="middle" font-size="11.5" fill="#4F1AF3" font-weight="600">ERROR</text>
+
+        <rect x="14" y="228" width="832" height="52" rx="8" fill="#f4f2ff"/>
+        <text x="30" y="250" font-size="12.5" font-weight="600">Same headline at every hop.</text>
+        <text x="30" y="269" font-size="12.5">Chrome prints "This site can't be reached" for all four, so the grey sub-code is the only thing that tells you where you are.</text>
+      </g>
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0 0 L10 5 L0 10 z" fill="#000f27"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>Four hops, one error headline. The sub-code is what identifies the hop that failed.</figcaption>
+  </figure>
+
+  <h2>Match your sub-code to the layer that broke</h2>
+  <p>Look under the headline. The code is small, grey, and easy to miss, and it's the entire diagnosis. Note that it doesn't always begin with <code>ERR_</code>. DNS failures often report as <code>DNS_PROBE_</code> instead, which trips people up when they go searching.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Sub-code</th><th>What it proves</th><th>Go here</th></tr></thead>
+    <tbody>
+      <tr><td><code>ERR_INTERNET_DISCONNECTED</code></td><td>Your device has no working network at all. Nothing left the machine.</td><td>Your Wi-Fi, cable, or VPN</td></tr>
+      <tr><td><code>DNS_PROBE_FINISHED_NXDOMAIN</code></td><td>The domain resolved to nothing. It's unregistered, expired, or has no record.</td><td><a href="https://www.kloudbean.com/blog/err-name-not-resolved/">ERR_NAME_NOT_RESOLVED</a></td></tr>
+      <tr><td><code>ERR_NAME_NOT_RESOLVED</code></td><td>Same layer. The lookup failed, so there was never an address to connect to.</td><td><a href="https://www.kloudbean.com/blog/err-name-not-resolved/">ERR_NAME_NOT_RESOLVED</a></td></tr>
+      <tr><td><code>ERR_CONNECTION_REFUSED</code></td><td>Something received the request and actively said no. A stopped service or a firewall.</td><td><a href="https://www.kloudbean.com/blog/err-connection-reset/">The reset, refused and timeout split</a></td></tr>
+      <tr><td><code>ERR_CONNECTION_TIMED_OUT</code></td><td>Nothing answered. Packets are being dropped in silence.</td><td><a href="https://www.kloudbean.com/blog/err-connection-reset/">The reset, refused and timeout split</a></td></tr>
+      <tr><td><code>ERR_CONNECTION_RESET</code></td><td>The connection was open, then killed mid-flight.</td><td><a href="https://www.kloudbean.com/blog/err-connection-reset/">ERR_CONNECTION_RESET</a></td></tr>
+      <tr><td><code>ERR_ADDRESS_UNREACHABLE</code></td><td>DNS worked, but there's no route to that address from where you are.</td><td>Routing, below</td></tr>
+      <tr><td><code>ERR_NETWORK_CHANGED</code></td><td>Your network switched underneath the request. Usually harmless.</td><td>Routing, below</td></tr>
+      <tr><td><code>ERR_SSL_PROTOCOL_ERROR</code></td><td>You reached the server. Encryption is where it fell apart.</td><td><a href="https://www.kloudbean.com/blog/err-ssl-protocol-error/">ERR_SSL_PROTOCOL_ERROR</a></td></tr>
+      <tr><td><code>ERR_FAILED</code> or no code</td><td>Nothing useful. Chrome couldn't classify it.</td><td>Observations, below</td></tr>
+    </tbody>
+  </table>
+
+  <p>If you want the authoritative list rather than a summary, Chromium publishes every code it can emit in <a href="https://source.chromium.org/chromium/chromium/src/+/main:net/base/net_error_list.h">net/base/net_error_list.h</a>. Each entry carries a short comment explaining what triggers it. It's the fastest way to check whether a code you've never seen means what a forum post claims.</p>
+
+  <h2>No code? Three observations narrow it anyway</h2>
+  <p>Sometimes the code is missing, or it's <code>ERR_FAILED</code>, which means Chrome gave up classifying. You can still eliminate whole layers without it. Do these in order and stop as soon as one fails.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Observation</th><th>If it also fails</th><th>If it works</th></tr></thead>
+    <tbody>
+      <tr><td>Any other website loads</td><td>Your machine or your network</td><td>Specific to that one site</td></tr>
+      <tr><td>Same site on mobile data</td><td>The site, or the route to it</td><td>Your Wi-Fi, router, or DNS</td></tr>
+      <tr><td>Same site for a friend elsewhere</td><td>The site is genuinely down</td><td>Something local to you</td></tr>
+    </tbody>
+  </table>
+
+  <p>That third row is worth the thirty seconds. It's the difference between waiting for someone else to fix a server and digging through your own settings for an hour. And it's the check people skip most, because when a site fails it feels global.</p>
+
+  <p>One command does the same job from a terminal, and it separates DNS from connectivity in a single line:</p>
+  <pre><code># Does the name resolve, and does the port answer?
+dig +short example.com
+curl -sS -o /dev/null -w "%{http_code}\n" --max-time 10 https://example.com</code></pre>
+  <p>Empty output from <code>dig</code> is a DNS problem and nothing else. An address from <code>dig</code> plus a hang from <code>curl</code> means the name works but the server or the path to it doesn't. That's two layers eliminated in one command.</p>
+
+  <h2>The branches that don't get their own guide</h2>
+
+  <p><strong><code>ERR_INTERNET_DISCONNECTED</code> is the honest one.</strong> Chrome is telling you it never got off your machine. There's no server to blame. Check whether you're actually associated with a network, whether a VPN client is holding the default route without a working tunnel, and whether a captive portal (hotel or airport Wi-Fi) is waiting for you to accept its terms. That last one is common and looks exactly like a broken internet connection.</p>
+
+  <p><strong><code>ERR_ADDRESS_UNREACHABLE</code> means DNS worked and routing didn't.</strong> You got an address and there's no path to it. Two realistic causes. The record points at a private or stale address, which you can spot immediately because the answer starts with <code>10.</code>, <code>192.168.</code>, or <code>172.16.</code> through <code>172.31.</code> and you're not on that network. Or the destination is genuinely unroutable from your position, which happens with IPv6: your machine prefers an AAAA record, the path to it is broken, and the IPv4 address would have worked fine. Test that theory directly:</p>
+  <pre><code>curl -4 -sS -o /dev/null -w "ipv4 %{http_code}\n" https://example.com
+curl -6 -sS -o /dev/null -w "ipv6 %{http_code}\n" https://example.com</code></pre>
+  <p>If IPv4 answers and IPv6 hangs, you've found it. Your ISP or your router is advertising IPv6 it can't actually deliver. Nothing on the server is wrong.</p>
+
+  <p><strong><code>ERR_NETWORK_CHANGED</code> is usually not a problem.</strong> Your device switched network underneath an in-flight request: Wi-Fi to cellular, one access point to another, a VPN connecting or dropping. Reload and it goes away. If it keeps happening, something is flapping. A laptop roaming between two access points with the same name is the usual culprit, and so is power-saving on a wireless adapter. It's a local annoyance, not a site fault.</p>
+
+  <h2>When your own site shows "this site can't be reached" to visitors</h2>
+  <p>Different problem, different reader. If the site loads for you and not for someone else, resist the urge to change server configuration. You have a working case and a failing one, which is the best diagnostic position there is. Find what differs.</p>
+
+  <p><strong>Ask them for the grey code.</strong> A screenshot settles in seconds what guessing takes an afternoon to narrow. <code>NXDOMAIN</code> from one person while it resolves for you almost always means their resolver is caching an old record, especially soon after a DNS change.</p>
+
+  <p><strong>Check whether you blocked them.</strong> This is the one people never suspect, and it deserves naming plainly because it's caused by security software doing its job. Fail2ban watches for failed logins and bans the source address. A customer who mistyped a password several times, or a whole office sharing one public IP where somebody else did, gets dropped at the firewall. To them the site is unreachable. To you it's fine. If you use IP access control rules, check those too. A deny list written months ago outlives the reason it was written.</p>
+
+  <p><strong>Check whether the certificate expired.</strong> An expired certificate usually produces a warning rather than this headline, but some clients and older Android WebViews fail outright with a connection error instead. If the site went unreachable for a subset of visitors on a date that looks suspiciously like a renewal boundary, that's your lead.</p>
+
+  <p><strong>Confirm from outside your own network.</strong> Your machine may have a cached DNS answer, a hosts-file entry, or an allowlisted address that visitors don't. Query a public resolver directly so you see what the rest of the world sees:</p>
+  <pre><code>dig +short example.com @1.1.1.1
+dig +short example.com @8.8.8.8</code></pre>
+  <p>Different answers from different resolvers means propagation is still settling, or you have conflicting records at two providers, which happens more often than you'd think after a migration.</p>
+
+  <h2>Where hosting helps, and where it honestly doesn't</h2>
+  <p>Start with the part we can't fix, because it's the most common cause on this list. DNS usually lives at your registrar, not your host. If your domain doesn't resolve, that's a record at whoever manages your nameservers, and no hosting platform can reach in and correct it for you. Anyone implying otherwise is selling.</p>
+
+  <p>What a managed platform does remove is the subset of these failures that comes from server-side neglect. On Kloudbean, SSL certificates are issued and renewed for you, so the expiry route to an unreachable site closes. Shorewall and Fail2ban are configured by default rather than left as homework, and because they're in the dashboard you can actually see and lift a ban instead of wondering why one customer can't load the site. Server health metrics are visible in the same place, so "the box ran out of memory" is something you can check rather than infer. Seven cloud providers, one dashboard, and free migration assistance if you're moving something already running.</p>
+
+  <p>The honest boundary: managed covers the server, the stack, TLS, backups, and patching. Your application code, your DNS records, and your visitors' networks stay yours. Most of this error's causes live outside the server entirely, which is exactly why reading the sub-code first saves so much time.</p>
+
+  <h2>Related reading</h2>
+  <p>By layer: <a href="https://www.kloudbean.com/blog/err-name-not-resolved/">ERR_NAME_NOT_RESOLVED and DNS_PROBE_FINISHED_NXDOMAIN</a> for the DNS branch, and <a href="https://www.kloudbean.com/blog/dns-explained/">DNS explained</a> if the record types themselves are the confusing part. <a href="https://www.kloudbean.com/blog/err-connection-reset/">ERR_CONNECTION_RESET</a> covers the whole reset, refused and timed-out family at the TCP layer. <a href="https://www.kloudbean.com/blog/err-ssl-protocol-error/">ERR_SSL_PROTOCOL_ERROR</a> and <a href="https://www.kloudbean.com/blog/fix-ssl-certificate-errors/">fixing SSL certificate errors</a> handle the encryption hop. When the server answers but answers badly, <a href="https://www.kloudbean.com/blog/fix-504-gateway-timeout/">504 Gateway Timeout</a> and <a href="https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/">Cloudflare 521</a> are the next stops. And if pages load but slowly, <a href="https://www.kloudbean.com/blog/fix-slow-dns-lookup/">slow DNS lookups</a> is a different problem with a similar smell.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Close the server-side causes for good.</p>
+    <p style="margin:0 0 .6em">Managed servers across seven clouds, with SSL issued and renewed for you, Shorewall and Fail2ban configured by default, IP access rules and bans visible in the dashboard, and server health metrics beside them. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Free SSL, renewed · Firewall configured · Visible bans · Server metrics · One dashboard</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does this site can't be reached mean?</h3>
+    <p>It means Chrome could not open a connection to the website, without saying why. It is a catch-all headline covering about ten unrelated failures, from your own Wi-Fi being down to a domain that does not resolve to a server that never answered. The small grey code printed underneath is the actual diagnosis, and it names the layer that broke.</p>
+
+    <h3>Where is the error code on the page?</h3>
+    <p>Directly under the headline and the suggestions, in small grey text. It looks like <code>ERR_CONNECTION_TIMED_OUT</code> or <code>DNS_PROBE_FINISHED_NXDOMAIN</code>. Not every code starts with <code>ERR_</code>, which catches people out when they search for it. DNS failures often report with a <code>DNS_PROBE_</code> prefix instead.</p>
+
+    <h3>Is it my computer or the website?</h3>
+    <p>Three checks answer it. Load any other site: if everything fails, the problem is your machine or network. Load the same site on mobile data: if it works, your Wi-Fi, router, or DNS is at fault. Ask someone elsewhere to try it: if it fails for them too, the site itself is down and there is nothing to fix on your side.</p>
+
+    <h3>Does restarting my router fix this?</h3>
+    <p>Sometimes, and it is worth trying early because it costs nothing, but it only addresses a couple of the causes. A restart clears the router's DNS cache and re-establishes its connection, which helps with a stale record or a wedged link. It does nothing at all if the domain has expired, the server is down, or a certificate is broken. Read the sub-code before you start restarting things.</p>
+
+    <h3>What is the difference between ERR_CONNECTION_REFUSED and ERR_CONNECTION_TIMED_OUT?</h3>
+    <p>Refused means something was there and declined the connection, typically a stopped service or a firewall rejecting the port. Timed out means nothing answered at all, so packets are being dropped in silence. Refused is a fast, definite no. Timed out is a long wait with no reply, and the two point at different causes.</p>
+
+    <h3>Why does the site work for me but not for my visitors?</h3>
+    <p>Ask one of them for the grey code, because it usually identifies the cause immediately. Common answers: their resolver is still caching an old DNS record after a change, or your own firewall has banned their address. Fail2ban bans an IP after repeated failed logins, so a customer who mistyped a password, or an office sharing one public address, can be blocked while the site loads normally for everyone else.</p>
+
+    <h3>Can an expired SSL certificate cause this error?</h3>
+    <p>It usually produces a certificate warning rather than this headline, but some older clients and embedded browsers fail with a connection error instead. If a subset of visitors lost access on a date that lines up with a renewal, treat it as a strong lead. Automatic renewal removes this cause entirely.</p>
+
+    <h3>What if there is no error code at all?</h3>
+    <p>You may see <code>ERR_FAILED</code> or nothing, which means Chrome could not classify the failure. Fall back to observation. Run <code>dig +short</code> on the domain to test resolution, then <code>curl</code> with a short timeout to test whether the port answers. Empty output from <code>dig</code> is a DNS problem. An address from <code>dig</code> plus a hang from <code>curl</code> means the name works but the server or the route does not.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Fix the layer the code names, not the headline.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"This Site Can't Be Reached: Which Layer Actually Broke","description":"This site can't be reached is one headline for about ten different failures. Read the grey sub-code, map it to the layer that broke, and go straight to the fix.","image":"https://www.kloudbean.com/blog/this-site-cant-be-reached/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/this-site-cant-be-reached/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does this site can't be reached mean?","acceptedAnswer":{"@type":"Answer","text":"It means Chrome could not open a connection to the website, without saying why. It is a catch-all headline covering about ten unrelated failures, from your own Wi-Fi being down to a domain that does not resolve to a server that never answered. The small grey code printed underneath is the actual diagnosis, and it names the layer that broke."}},
+{"@type":"Question","name":"Where is the error code on the page?","acceptedAnswer":{"@type":"Answer","text":"Directly under the headline and the suggestions, in small grey text. It looks like ERR_CONNECTION_TIMED_OUT or DNS_PROBE_FINISHED_NXDOMAIN. Not every code starts with ERR_, which catches people out when they search for it. DNS failures often report with a DNS_PROBE_ prefix instead."}},
+{"@type":"Question","name":"Is it my computer or the website?","acceptedAnswer":{"@type":"Answer","text":"Three checks answer it. Load any other site: if everything fails, the problem is your machine or network. Load the same site on mobile data: if it works, your Wi-Fi, router, or DNS is at fault. Ask someone elsewhere to try it: if it fails for them too, the site itself is down and there is nothing to fix on your side."}},
+{"@type":"Question","name":"Does restarting my router fix this?","acceptedAnswer":{"@type":"Answer","text":"Sometimes, and it is worth trying early because it costs nothing, but it only addresses a couple of the causes. A restart clears the router's DNS cache and re-establishes its connection, which helps with a stale record or a wedged link. It does nothing at all if the domain has expired, the server is down, or a certificate is broken. Read the sub-code before you start restarting things."}},
+{"@type":"Question","name":"What is the difference between ERR_CONNECTION_REFUSED and ERR_CONNECTION_TIMED_OUT?","acceptedAnswer":{"@type":"Answer","text":"Refused means something was there and declined the connection, typically a stopped service or a firewall rejecting the port. Timed out means nothing answered at all, so packets are being dropped in silence. Refused is a fast, definite no. Timed out is a long wait with no reply, and the two point at different causes."}},
+{"@type":"Question","name":"Why does the site work for me but not for my visitors?","acceptedAnswer":{"@type":"Answer","text":"Ask one of them for the grey code, because it usually identifies the cause immediately. Common answers: their resolver is still caching an old DNS record after a change, or your own firewall has banned their address. Fail2ban bans an IP after repeated failed logins, so a customer who mistyped a password, or an office sharing one public address, can be blocked while the site loads normally for everyone else."}},
+{"@type":"Question","name":"Can an expired SSL certificate cause this error?","acceptedAnswer":{"@type":"Answer","text":"It usually produces a certificate warning rather than this headline, but some older clients and embedded browsers fail with a connection error instead. If a subset of visitors lost access on a date that lines up with a renewal, treat it as a strong lead. Automatic renewal removes this cause entirely."}},
+{"@type":"Question","name":"What if there is no error code at all?","acceptedAnswer":{"@type":"Answer","text":"You may see ERR_FAILED or nothing, which means Chrome could not classify the failure. Fall back to observation. Run dig +short on the domain to test resolution, then curl with a short timeout to test whether the port answers. Empty output from dig is a DNS problem. An address from dig plus a hang from curl means the name works but the server or the route does not."}}
+]}
+]}
+</script>
+</body>
+</html>

@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connection Timed Out Error Code 522: Which Clock Ran Out?</title>
+<meta name="description" content="Fix connection timed out error code 522. Two different Cloudflare timeouts print the same number, and knowing which one expired tells you whether to check filtering or capacity.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/cloudflare-error-522-connection-timed-out/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Connection Timed Out Error Code 522: Which Clock Ran Out?">
+<meta property="og:description" content="522 is two different failures wearing one number. The 19-second clock means packets never came back. The 90-second clock means your app never answered.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Cloudflare · Origin errors · Field guide</span>
+  <h1>Connection Timed Out Error Code 522: Which Clock Ran Out?</h1>
+  <p class="byline">By Kloudbean Engineering · Two different timeouts print the same number.</p>
+
+  <figure><img src="images/hero.png" alt="A Cloudflare error 522 connection timed out page beside a terminal showing a listen backlog and firewall rules"></figure>
+
+  <p class="lead">Almost every guide to connection timed out error code 522 tells you to check your firewall, and then stops. That advice is right about half the time. The reason it fails the other half is that 522 is not one failure. Cloudflare uses the same number for two completely different events on two separate clocks, and which one expired points at opposite ends of your stack. Work that out first and you skip most of the guessing.</p>
+
+  <div class="tldr">
+    <strong>What causes connection timed out error code 522?</strong>
+    <p>Cloudflare could not complete a TCP connection to your origin server. Per Cloudflare's documentation there are two timeouts behind the one code: before a connection exists, it gives up if no SYN+ACK arrives within 19 seconds of its SYN; once connected, it gives up if the request is not acknowledged within 90 seconds. The 19-second case means packets are being dropped, so look at cloud security groups, host firewall rules, and a full listen backlog. The 90-second case means the connection worked and your application never replied. Cloudflare names blocked or rate-limited Cloudflare IP ranges as the single most common cause.</p>
+  </div>
+
+  <h2>Two clocks, one error code</h2>
+  <p>This is the distinction the other guides skip, and it's in Cloudflare's own docs. A 522 is emitted when either of two timers runs out, and they fail at different stages.</p>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>The 19-second clock</th><th>The 90-second clock</th></tr></thead>
+    <tbody>
+      <tr><td>When</td><td>Before a TCP connection exists</td><td>After the connection is established</td></tr>
+      <tr><td>What Cloudflare waited for</td><td>A SYN+ACK answering its SYN</td><td>An acknowledgment of its request</td></tr>
+      <tr><td>What it proves</td><td>Nothing came back at all</td><td>The handshake worked, the app went quiet</td></tr>
+      <tr><td>Investigate</td><td>Packet filtering, security groups, listen backlog, an offline origin</td><td>Application workers, keepalives, resource exhaustion</td></tr>
+    </tbody>
+  </table>
+
+  <p>Where does 19 seconds come from? Cloudflare retries the SYN with a backoff of 1, 1, 1, 1, 1, 2, 4, and 8 seconds. Add those up and you get 19. That's worth knowing because it tells you Cloudflare tried eight times before giving up, so an intermittent 522 means your origin ignored eight consecutive attempts across nineteen seconds. That's not a blip. Something is genuinely wrong.</p>
+
+  <figure>
+    <svg viewBox="0 0 860 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="cf522-title cf522-desc">
+      <title id="cf522-title">The two timeouts that both produce a Cloudflare 522</title>
+      <desc id="cf522-desc">Cloudflare sends a SYN and waits up to 19 seconds for a SYN+ACK. If the handshake completes, it then waits up to 90 seconds for its request to be acknowledged. Either expiry returns error 522.</desc>
+      <rect x="0" y="0" width="860" height="320" fill="#ffffff"/>
+      <g font-family="Poppins, sans-serif" font-size="13" fill="#000f27">
+        <rect x="16" y="24" width="150" height="60" rx="10" fill="#000f27"/>
+        <text x="91" y="50" text-anchor="middle" fill="#ffffff" font-weight="600" font-size="13.5">Visitor</text>
+        <text x="91" y="70" text-anchor="middle" fill="#ffffff" font-size="11.5">requests a page</text>
+
+        <rect x="216" y="24" width="170" height="60" rx="10" fill="#4F1AF3"/>
+        <text x="301" y="50" text-anchor="middle" fill="#ffffff" font-weight="600" font-size="13.5">Cloudflare edge</text>
+        <text x="301" y="70" text-anchor="middle" fill="#ffffff" font-size="11.5">opens a TCP connection</text>
+
+        <rect x="640" y="24" width="200" height="60" rx="10" fill="#40b75f"/>
+        <text x="740" y="50" text-anchor="middle" fill="#ffffff" font-weight="600" font-size="13.5">Your origin server</text>
+        <text x="740" y="70" text-anchor="middle" fill="#ffffff" font-size="11.5">nginx, Apache, Node</text>
+
+        <g stroke="#000f27" stroke-width="2" fill="none" marker-end="url(#a2)">
+          <path d="M166 54 H214"/>
+        </g>
+
+        <g stroke="#4F1AF3" stroke-width="2" fill="none" marker-end="url(#a3)">
+          <path d="M390 122 H636"/>
+        </g>
+        <text x="513" y="114" text-anchor="middle" font-size="12" font-weight="600" fill="#4F1AF3">SYN</text>
+        <text x="513" y="142" text-anchor="middle" font-size="11.5">retries at 1, 1, 1, 1, 1, 2, 4, 8 seconds</text>
+
+        <g stroke="#40b75f" stroke-width="2" fill="none" marker-end="url(#a4)" stroke-dasharray="6 4">
+          <path d="M636 176 H392"/>
+        </g>
+        <text x="513" y="168" text-anchor="middle" font-size="12" font-weight="600" fill="#40b75f">SYN + ACK</text>
+        <text x="513" y="196" text-anchor="middle" font-size="11.5">silence for 19 seconds returns 522</text>
+
+        <g stroke="#4F1AF3" stroke-width="2" fill="none" marker-end="url(#a5)">
+          <path d="M390 236 H636"/>
+        </g>
+        <text x="513" y="228" text-anchor="middle" font-size="12" font-weight="600" fill="#4F1AF3">HTTP request</text>
+        <text x="513" y="256" text-anchor="middle" font-size="11.5">no acknowledgment in 90 seconds also returns 522</text>
+
+        <rect x="16" y="278" width="828" height="32" rx="8" fill="#f4f2ff"/>
+        <text x="32" y="299" font-size="12.5"><tspan font-weight="600">Either expiry prints the same 522.</tspan> The first points at filtering or capacity. The second points at your application.</text>
+      </g>
+      <defs>
+        <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#000f27"/></marker>
+        <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#4F1AF3"/></marker>
+        <marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#40b75f"/></marker>
+        <marker id="a5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#4F1AF3"/></marker>
+      </defs>
+    </svg>
+    <figcaption>Cloudflare's two origin timeouts. Both return 522, and they mean opposite things.</figcaption>
+  </figure>
+
+  <h2>Ask one question first: constant or intermittent?</h2>
+  <p>Before touching anything, establish whether every request fails or only some. This single answer eliminates half the causes below, and it's free.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Pattern</th><th>Almost always</th><th>Skip</th></tr></thead>
+    <tbody>
+      <tr><td>Every request, immediately after a change</td><td>Configuration: a firewall rule, a wrong origin IP</td><td>Capacity work</td></tr>
+      <tr><td>Every request, no change made</td><td>The origin is down, or its address moved</td><td>Cloudflare settings</td></tr>
+      <tr><td>Some requests, worse under traffic</td><td>Capacity: listen backlog, connection tracking, workers</td><td>Firewall rules</td></tr>
+      <tr><td>Some requests, specific URLs only</td><td>Slow endpoints holding workers open</td><td>Network layer</td></tr>
+    </tbody>
+  </table>
+
+  <p>That last row has a shortcut. Cloudflare's Origin Analytics reports TCP connection failures per endpoint, so if the failure rate concentrates on a few paths, the problem is those paths and not your network. It's the fastest way to tell "my server is broken" from "one slow report is eating every worker".</p>
+
+  <h2>The constant case: something is dropping packets in silence</h2>
+
+  <p><strong>Why this is 522 and not 521.</strong> Here's the mechanical detail that makes firewall rules make sense. A rule that uses <code>DROP</code> discards the packet and sends nothing back, so Cloudflare waits out all 19 seconds and reports 522. The very same rule written with <code>REJECT</code> sends a refusal immediately, and Cloudflare reports <a href="https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/">521</a> instead. Identical intent, different error code, entirely because of one word. Check which yours uses:</p>
+  <pre><code>sudo iptables -L INPUT -n --line-numbers | grep -E 'DROP|REJECT'
+# On a Shorewall host the compiled result is still visible here.</code></pre>
+
+  <p><strong>Check the layer above your server, because it drops silently too.</strong> This is the one that wastes afternoons. Cloud provider firewalls sit in front of the host, and nothing you do inside the machine can override them. A security group or network ACL that doesn't allow Cloudflare's ranges on 443 will discard the traffic before your host firewall ever sees it, and your host logs will show nothing at all, because nothing arrived. If your host firewall looks correct and packets still vanish, go up a level.</p>
+
+  <p><strong>Confirm the origin actually answers, bypassing Cloudflare entirely.</strong> This is the single most useful command on the page, because it splits "my server is broken" from "Cloudflare cannot reach my working server":</p>
+  <pre><code># Ask your origin directly, with the right Host header and SNI
+curl -sS -o /dev/null -w "%{http_code}\n" --max-time 20 \
+  --resolve example.com:443:203.0.113.10 https://example.com/</code></pre>
+  <p>A status code means your server is fine and the path from Cloudflare to it is the problem. A hang means the origin itself is not accepting connections, and Cloudflare is only reporting what it found.</p>
+
+  <p><strong>Is your allowlist stale?</strong> Cloudflare publishes its ranges at <a href="https://www.cloudflare.com/ips/">cloudflare.com/ips</a> and the list changes. An allowlist copied into <code>.htaccess</code> or iptables two years ago will be missing addresses today, which produces the maddening version of this bug: most requests work, some fail, depending which edge machine served them. Cloudflare names blocked or rate-limited ranges as the most common cause of 522 overall. The <a href="https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/">521 guide</a> covers allowlisting and the Fail2ban trap in detail, and both apply here unchanged.</p>
+
+  <p><strong>Does the origin IP in your DNS still exist?</strong> Cloudflare connects to whatever address your DNS record holds. Rebuild a server, resize an instance, or migrate a host, and that address can change while the record stays put. Cloudflare then dutifully tries an address nobody is listening on for 19 seconds. Compare the record against the address your provider currently shows for the machine. It takes ten seconds and it's a surprisingly common answer after any migration.</p>
+
+  <h2>The intermittent case: capacity, not configuration</h2>
+  <p>If some requests succeed, your firewall is fine. Stop looking at it. What you're seeing is a server that accepts connections until it can't.</p>
+
+  <p><strong>The listen backlog is full.</strong> Every listening socket has a queue of connections waiting to be accepted. When the application can't accept them fast enough, the queue fills and further SYN packets are dropped, silently, exactly like a firewall would. Cloudflare cannot tell the difference. Look at the <code>Send-Q</code> column, which shows the backlog limit, and watch for overflow counters climbing:</p>
+  <pre><code>ss -ltn                       # Recv-Q is the current queue, Send-Q the limit
+netstat -s | grep -i listen   # "listen queue overflowed" means you found it</code></pre>
+  <p>A climbing overflow counter is a definite answer, not a hint. The fix is either more workers or faster handlers, not a bigger queue, because a longer queue only delays the same failure.</p>
+
+  <p><strong>The connection tracking table is full.</strong> Less known and very satisfying to find. A Linux host with a stateful firewall tracks every connection in a fixed-size table. When that table fills, new connections are dropped and the kernel logs it plainly:</p>
+  <pre><code>cat /proc/sys/net/netfilter/nf_conntrack_count
+cat /proc/sys/net/netfilter/nf_conntrack_max
+dmesg | grep -i conntrack     # "table full, dropping packet" is unambiguous</code></pre>
+  <p>If <code>count</code> sits near <code>max</code>, you've found your intermittent 522. This also explains 522s that appear only during traffic peaks and vanish afterwards with nothing in the web server log, because the request never reached the web server.</p>
+
+  <p><strong>Keepalives are disabled at the origin.</strong> Cloudflare reuses open TCP connections rather than building a new one per request, and it documents disabled origin keepalives as a cause of 522. With keepalives off, every request needs a fresh handshake, which multiplies connection load and makes backlog exhaustion far easier to hit. If you disabled keepalive to "save memory" at some point, that trade is working against you here.</p>
+
+  <h2>The Cloudflare-side causes almost nobody mentions</h2>
+  <p>These are documented and genuinely obscure. If your origin is healthy and your firewall is open, one of them may be your answer.</p>
+
+  <p><strong>A Worker fetching its own hostname.</strong> If you use Workers with a Custom Domain and the Worker performs a fetch to its own hostname, you get 522. The request loops back into the edge instead of reaching an origin. Cloudflare's fixes: use a Route instead of a Custom Domain, fetch a different hostname, or enable the <code>global_fetch_strictly_public</code> compatibility flag. Worth checking before you touch a single firewall rule, because no amount of server work fixes it.</p>
+
+  <p><strong>An Origin Rule pointing somewhere unresolvable.</strong> Origin Rules rewrite the hostname Cloudflare connects to. If the result doesn't resolve, or resolves to a reserved address such as <code>192.0.2.0</code> or <code>100::</code>, the connection has nowhere to go and you get 522. Reserved ranges are easy to end up with in a placeholder record that was never replaced.</p>
+
+  <p><strong>Cloudflare Pages without a proper custom domain.</strong> On Pages, confirm the custom domain is configured and the CNAME points at your custom Pages domain rather than something else.</p>
+
+  <h2>What not to do</h2>
+  <p><strong>Don't start toggling Cloudflare settings.</strong> Development mode, cache purges, and Rocket Loader have nothing to do with a TCP connection that never completed. Cloudflare's own engineering write-up on this class of problem puts the cause most often at the origin being slow, offline, or losing packets, and less often at their end. Changing edge features to fix a handshake is motion, not progress.</p>
+
+  <p><strong>Don't raise a timeout to make 522 go away.</strong> The connect timeout isn't yours to raise, and the 90-second one is long enough that hitting it means something is genuinely stuck. If a request legitimately needs more than 90 seconds, it shouldn't be an HTTP request. Move it to a background job and return immediately.</p>
+
+  <p><strong>Don't confuse 522 with 524 or 504.</strong> They feel the same to a visitor and have unrelated causes. 522 means the connection failed. <a href="https://www.kloudbean.com/blog/fix-504-gateway-timeout/">504</a> and 524 mean the connection worked and the response was too slow. Fixing a slow query will not help a dropped packet.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Code</th><th>What happened</th><th>Where to look</th></tr></thead>
+    <tbody>
+      <tr><td>521</td><td>Origin refused the connection</td><td>Stopped service, REJECT rule</td></tr>
+      <tr><td>522</td><td>Handshake never completed</td><td>DROP rule, security group, backlog</td></tr>
+      <tr><td>523</td><td>Cloudflare could not route to the address</td><td>Wrong or dead origin IP</td></tr>
+      <tr><td>524</td><td>Connected, but the response was too slow</td><td>Slow queries, long-running work</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Where hosting fits, honestly</h2>
+  <p>Two of the causes above are outside any host's reach. A cloud provider security group sits above the machine, so a rule there drops Cloudflare before the server sees anything, and no host-level configuration overrides it. And Fail2ban, which is genuinely useful and which Kloudbean configures by default, can itself be the thing banning a Cloudflare address after it forwards requests that look like failed logins. A tool doing its job can be the cause.</p>
+
+  <p>What a managed platform changes is how quickly you can see the rest. On Kloudbean, Shorewall and Fail2ban are configured up front rather than left as homework, and both live in the dashboard, so checking or lifting a ban is a look rather than an SSH session. Server health metrics sit in the same place, which matters here because the intermittent version of 522 is a capacity story and you need memory and load history to read it. Seven cloud providers, one dashboard, free SSL issued and renewed, and free migration assistance if you're moving something already running.</p>
+
+  <p>The boundary stays where it always is. Managed covers the server, the stack, TLS, backups, and patching. Your application code, your DNS records, and your Cloudflare configuration remain yours.</p>
+
+  <h2>Related reading</h2>
+  <p>Start at the <a href="https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/">Cloudflare 5xx error codes</a> overview if you're not certain which number you have. The nearest neighbours: <a href="https://www.kloudbean.com/blog/cloudflare-error-521-web-server-is-down/">521 web server is down</a> for the refused case and the allowlist detail, <a href="https://www.kloudbean.com/blog/cloudflare-error-520/">520</a> when the origin replies with something Cloudflare cannot parse, and <a href="https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/">525 SSL handshake failed</a> when the connection succeeds and TLS does not. For the slow-response family, <a href="https://www.kloudbean.com/blog/fix-504-gateway-timeout/">504 Gateway Timeout</a> and <a href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/">502 Bad Gateway</a>. At the browser layer the same refused-versus-ignored logic appears in <a href="https://www.kloudbean.com/blog/err-connection-reset/">ERR_CONNECTION_RESET</a>, and <a href="https://www.kloudbean.com/blog/this-site-cant-be-reached/">this site can't be reached</a> maps every Chrome code to its layer.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">See the firewall and the load in one place.</p>
+    <p style="margin:0 0 .6em">Managed servers across seven clouds, with Shorewall and Fail2ban configured by default, IP access rules and bans visible in the dashboard, and server health metrics beside them. Free SSL issued and renewed. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Firewall configured · Visible bans · Server metrics · Free SSL · One dashboard</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does connection timed out error code 522 mean?</h3>
+    <p>It means Cloudflare could not complete a TCP connection to your origin server, so it had nothing to return to the visitor. Cloudflare documents two timeouts behind the single code: no SYN+ACK within 19 seconds of its SYN before a connection exists, or no acknowledgment of its request within 90 seconds after one is established. The error is about reaching your server, not about your server being slow.</p>
+
+    <h3>How long does Cloudflare wait before returning 522?</h3>
+    <p>Nineteen seconds for the initial handshake, with SYN retries backing off at 1, 1, 1, 1, 1, 2, 4, and 8 seconds, which is exactly where the 19 comes from. Once a connection is established the second timeout is 90 seconds. Some older articles still quote 15 seconds for the first one; Cloudflare's current documentation says 19.</p>
+
+    <h3>What is the difference between error 521 and 522?</h3>
+    <p>521 means your origin actively refused the connection, so something answered and said no. 522 means nothing answered at all. Mechanically it often comes down to one word in a firewall rule: <code>REJECT</code> sends a refusal and produces 521, while <code>DROP</code> discards the packet in silence and produces 522. Same intent, different code, different investigation.</p>
+
+    <h3>Why do I get 522 only sometimes?</h3>
+    <p>Intermittent 522 is a capacity problem rather than a configuration one, because a firewall rule would block every request equally. The usual causes are a full listen backlog, where connections queue faster than the application accepts them, and a full connection tracking table on the host. Check for a climbing listen queue overflow counter and compare <code>nf_conntrack_count</code> against <code>nf_conntrack_max</code>.</p>
+
+    <h3>How do I test my origin server directly?</h3>
+    <p>Bypass Cloudflare with a curl request that resolves the hostname to your origin address, so the correct Host header and SNI are still sent. If it returns a status code, your server is healthy and the path from Cloudflare is the problem. If it hangs, the origin itself is not accepting connections and Cloudflare is only reporting what it found.</p>
+
+    <h3>Can my cloud provider firewall cause 522 even if my server firewall is open?</h3>
+    <p>Yes, and it is a common blind spot. A security group or network ACL sits in front of the machine and discards traffic before the host firewall sees it, so your server logs show nothing because nothing arrived. No host-level configuration can override a rule at that layer. If the host firewall looks correct and packets still vanish, check the provider layer next.</p>
+
+    <h3>Can a Cloudflare Worker cause a 522?</h3>
+    <p>Yes. If you use Workers with a Custom Domain and the Worker fetches its own hostname, the request loops back into the edge instead of reaching an origin, and Cloudflare returns 522. The documented fixes are to use a Route rather than a Custom Domain, fetch a different hostname, or enable the <code>global_fetch_strictly_public</code> compatibility flag. Server-side changes will not help.</p>
+
+    <h3>Should I raise a timeout to fix 522?</h3>
+    <p>No. The connect timeout is not yours to change, and the 90-second one is long enough that reaching it means something is genuinely stuck rather than merely slow. If a request truly needs longer than 90 seconds, move that work into a background job and return a response immediately. Raising limits hides the failure until it returns under more load.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Work out which clock expired, then fix that half of the stack.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Connection Timed Out Error Code 522: Which Clock Ran Out?","description":"Fix connection timed out error code 522. Two different Cloudflare timeouts print the same number, and knowing which one expired tells you whether to check filtering or capacity.","image":"https://www.kloudbean.com/blog/cloudflare-error-522-connection-timed-out/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/cloudflare-error-522-connection-timed-out/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does connection timed out error code 522 mean?","acceptedAnswer":{"@type":"Answer","text":"It means Cloudflare could not complete a TCP connection to your origin server, so it had nothing to return to the visitor. Cloudflare documents two timeouts behind the single code: no SYN+ACK within 19 seconds of its SYN before a connection exists, or no acknowledgment of its request within 90 seconds after one is established. The error is about reaching your server, not about your server being slow."}},
+{"@type":"Question","name":"How long does Cloudflare wait before returning 522?","acceptedAnswer":{"@type":"Answer","text":"Nineteen seconds for the initial handshake, with SYN retries backing off at 1, 1, 1, 1, 1, 2, 4, and 8 seconds, which is exactly where the 19 comes from. Once a connection is established the second timeout is 90 seconds. Some older articles still quote 15 seconds for the first one; Cloudflare's current documentation says 19."}},
+{"@type":"Question","name":"What is the difference between error 521 and 522?","acceptedAnswer":{"@type":"Answer","text":"521 means your origin actively refused the connection, so something answered and said no. 522 means nothing answered at all. Mechanically it often comes down to one word in a firewall rule: REJECT sends a refusal and produces 521, while DROP discards the packet in silence and produces 522. Same intent, different code, different investigation."}},
+{"@type":"Question","name":"Why do I get 522 only sometimes?","acceptedAnswer":{"@type":"Answer","text":"Intermittent 522 is a capacity problem rather than a configuration one, because a firewall rule would block every request equally. The usual causes are a full listen backlog, where connections queue faster than the application accepts them, and a full connection tracking table on the host. Check for a climbing listen queue overflow counter and compare nf_conntrack_count against nf_conntrack_max."}},
+{"@type":"Question","name":"How do I test my origin server directly?","acceptedAnswer":{"@type":"Answer","text":"Bypass Cloudflare with a curl request that resolves the hostname to your origin address, so the correct Host header and SNI are still sent. If it returns a status code, your server is healthy and the path from Cloudflare is the problem. If it hangs, the origin itself is not accepting connections and Cloudflare is only reporting what it found."}},
+{"@type":"Question","name":"Can my cloud provider firewall cause 522 even if my server firewall is open?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it is a common blind spot. A security group or network ACL sits in front of the machine and discards traffic before the host firewall sees it, so your server logs show nothing because nothing arrived. No host-level configuration can override a rule at that layer. If the host firewall looks correct and packets still vanish, check the provider layer next."}},
+{"@type":"Question","name":"Can a Cloudflare Worker cause a 522?","acceptedAnswer":{"@type":"Answer","text":"Yes. If you use Workers with a Custom Domain and the Worker fetches its own hostname, the request loops back into the edge instead of reaching an origin, and Cloudflare returns 522. The documented fixes are to use a Route rather than a Custom Domain, fetch a different hostname, or enable the global_fetch_strictly_public compatibility flag. Server-side changes will not help."}},
+{"@type":"Question","name":"Should I raise a timeout to fix 522?","acceptedAnswer":{"@type":"Answer","text":"No. The connect timeout is not yours to change, and the 90-second one is long enough that reaching it means something is genuinely stuck rather than merely slow. If a request truly needs longer than 90 seconds, move that work into a background job and return a response immediately. Raising limits hides the failure until it returns under more load."}}
+]}
+]}
+</script>
+</body>
+</html>

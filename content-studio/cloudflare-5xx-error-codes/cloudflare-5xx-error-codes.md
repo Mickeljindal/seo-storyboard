@@ -77,7 +77,7 @@ The three most common codes have their own detailed guides, because their causes
 awk '$NF > 10 {print $NF, $7}' /var/log/nginx/access.log | sort -rn | head -20
 ```
 
-**522, connection timed out.** The handshake never completed, so packets are being dropped rather than refused. Check cloud provider security groups and any network ACL as well as the host firewall, because a rule at the provider level drops silently while a host firewall usually refuses. An overloaded server that has exhausted its connection backlog produces the same result.
+**522, connection timed out.** The handshake never completed, so packets are being dropped rather than refused. Check cloud provider security groups and any network ACL as well as the host firewall, because a rule at the provider level drops silently while a host firewall usually refuses. An overloaded server that has exhausted its connection backlog produces the same result. Two separate Cloudflare timeouts produce this one code, and which expired tells you whether to look at filtering or at your application: the [522 connection timed out guide](https://www.kloudbean.com/blog/cloudflare-error-522-connection-timed-out/) walks through both.
 
 > **A note on 502 and 504.** Those two are different from everything above, because they can be generated either by Cloudflare or by your own server. If you are seeing a 502 or 504 rather than a 52x, start with [fixing 502 Bad Gateway](https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/), which covers the upstream side properly.
 
