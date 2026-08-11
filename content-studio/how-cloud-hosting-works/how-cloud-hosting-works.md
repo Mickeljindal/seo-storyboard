@@ -51,7 +51,7 @@ That `300` is the TTL, how many seconds the answer stays cached. It's why a DNS 
 
 For a single server, DNS points straight at it. Run more than one, and something has to decide which server answers each request. That's a **load balancer**. It sits at the front, holds the public address, and spreads traffic across a pool of backends. It runs health checks too, so a server that stops responding is pulled from rotation automatically and visitors never notice.
 
-It usually terminates SSL as well, so HTTPS ends there and you manage certificates in one place. Do you need one on day one? Honestly, no. A single well-sized server handles plenty first, and adding a balancer early is moving parts without a problem to solve. Reach for it when one server isn't enough, or when you need a dead node to be a shrug instead of an outage. Full breakdown in [how a cloud load balancer works](https://www.kloudbean.com/blog/cloud-load-balancer-explained/).
+It usually terminates SSL as well, so HTTPS ends there and you manage certificates in one place. Do you need one on day one? Honestly, no. A single well-sized server handles plenty first, and adding a balancer early is moving parts without a problem to solve. Reach for it when one server isn't enough, or when you need a dead node to be a shrug instead of an outage. Full breakdown in [how a cloud load balancer works](https://www.kloudbean.com/blog/cloud-load-balancer-explained/). It leans on [health checks](https://www.kloudbean.com/blog/nodejs-health-checks/) to route only to servers that can actually serve, which is also what makes [zero-downtime deploys](https://www.kloudbean.com/blog/zero-downtime-deployments/) safe.
 
 ![A load balancer in the Kloudbean console distributing traffic across healthy backend servers](../assets/console/flb-load-balancer.png)
 
@@ -134,7 +134,7 @@ First, latency. A server close to your users answers faster, because the request
 
 Reliability gets sold in nines. 99.9% uptime sounds airtight until you do the math: roughly 43 minutes of downtime a month. 99.99% is about 4. Each extra nine is exponentially harder and more expensive to reach, which is why a vague "high availability" claim earns a raised eyebrow.
 
-An **SLA**, a service level agreement, is the provider's written promise about uptime, usually with credits back if they miss it. Read what it actually covers. The foundation underneath matters just as much. Kloudbean runs on tier-1 clouds like AWS, Google Cloud, and DigitalOcean, so the hardware and networking beneath your server already carry serious redundancy. For reading these promises without getting spun, see [cloud SLAs, explained](https://www.kloudbean.com/blog/cloud-sla-explained/).
+An **SLA**, a service level agreement, is the provider's written promise about uptime, usually with credits back if they miss it. Read what it actually covers. The foundation underneath matters just as much. Kloudbean runs on tier-1 clouds like AWS, Google Cloud, and DigitalOcean, so the hardware and networking beneath your server already carry serious redundancy. For reading these promises without getting spun, see [cloud SLAs, explained](https://www.kloudbean.com/blog/cloud-sla-explained/). An SLA is a promise, not a measurement, so pair it with your own [uptime monitoring](https://www.kloudbean.com/blog/uptime-monitoring/) to know the truth from the outside.
 
 ## The whole stack, on one dashboard
 
