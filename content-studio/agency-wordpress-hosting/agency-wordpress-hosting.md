@@ -10,7 +10,7 @@ secondary_keywords:
   - agency hosting
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 5 — Agency & Multi-App Hosting
+cluster: 5. Agency & Multi-App Hosting
 ---
 
 ![Agency WordPress hosting: one console running a fleet of isolated client sites](images/hero.png)
@@ -98,7 +98,7 @@ After enough client sites, the same few mistakes show up again and again. Worth 
 
 ## The honest boundary
 
-One caveat, the same for any managed WordPress hosting. These are Linux stacks. The platform keeps the servers, the WordPress stack, SSL, and backups healthy and patched, while your client sites, their content, and their data stay yours and your clients'. You're outsourcing the operations so your team spends its hours on client work instead of server work. That's the trade, and for an agency it's usually a good one.
+One caveat, the same for any managed WordPress hosting. These are Linux stacks. The platform keeps the servers, the WordPress stack, SSL, and backups healthy and patched, while your client sites, their content, and their data stay yours and your clients'. Packaging that upkeep into recurring revenue is [WordPress maintenance retainer plans](https://www.kloudbean.com/blog/wordpress-maintenance-retainer-plans/). You're outsourcing the operations so your team spends its hours on client work instead of server work. That's the trade, and for an agency it's usually a good one.
 
 **One roster, one console, zero login juggling.** Run your whole client fleet from one place at [kloudbean.com](https://www.kloudbean.com/): staging, scoped access, and room to grow. Plans on [pricing](https://www.kloudbean.com/pricing/).
 

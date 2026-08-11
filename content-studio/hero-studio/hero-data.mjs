@@ -650,6 +650,21 @@ const HERO_OVERRIDES = {
       "Contractor: one app, time-boxed",
     ],
   },
+  // WordPress maintenance retainer: the care-plan deliverables.
+  "wordpress-maintenance-retainer-plans": {
+    archetype: "checklist",
+    palette: "violet",
+    motif: "wordpress",
+    eyebrow: "WordPress care plans",
+    headline: "Turn maintenance\ninto revenue.",
+    sub: "The work you already do, packaged as a plan clients renew.",
+    checklist: [
+      "Updates on staging first",
+      "Backups plus a tested restore",
+      "Security and uptime watch",
+      "A monthly report they renew for",
+    ],
+  },
   // Fleet backup strategy: checklist of the fleet rules.
   "multi-client-backup-strategy": {
     archetype: "checklist",
