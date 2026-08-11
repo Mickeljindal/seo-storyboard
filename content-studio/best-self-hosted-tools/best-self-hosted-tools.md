@@ -22,7 +22,7 @@ Add up your monthly software bills. The automation tool. The database service. T
 
 Most of those tools are open source, which means you can run them yourself. This is the hub for the best self-hosted tools worth owning, grouped by the SaaS bill each one kills. For every tool: what it replaces, roughly how much server it wants, and whether it's a one-click install on Kloudbean or something you run as a normal app. No ranking theater. Pick the category that annoys your wallet most and start there.
 
-> **The short version:** The best self-hosted tools cover automation (n8n), a full backend (Supabase), private AI chat (Ollama plus Open WebUI), LLM building (Langflow), publishing (Ghost), Git and DevOps (GitLab), file sync (Nextcloud), and design (Penpot), plus lighter picks like Plausible, Uptime Kuma, and Vaultwarden. Most are light enough to share one server. GitLab and local AI are the two that want their own box.
+> **The short version:** The best self-hosted tools cover automation (n8n), a full backend (Supabase), private AI chat (Ollama plus Open WebUI), LLM building (Langflow), publishing (Ghost), Git and DevOps (GitLab), file sync (Nextcloud), design (Penpot), and social scheduling (Postiz), plus lighter picks like Plausible, Uptime Kuma, and Vaultwarden. Most are light enough to share one server. GitLab and local AI are the two that want their own box.
 
 ## What self-hosting actually buys you, and what it costs
 
@@ -75,6 +75,10 @@ Nextcloud is file sync, sharing, calendar, and docs on your server. Instead of p
 
 Penpot is an open-source design and prototyping tool, and unlike most of this list it is built for designers and developers together. It runs on open web standards (SVG and CSS) and hands developers real code rather than a screenshot, so the design-to-code handoff gets shorter. Proprietary design tools bill per editor, so a growing team pays more just to draw; a self-hosted Penpot serves everyone from one server. Fair warning, it is heavier than the light picks (several services plus Postgres and Redis, so give it real memory), but it is a one-click app on Kloudbean, so you skip the Docker Compose file. Own it because your design files are IP. [Full Penpot guide](https://www.kloudbean.com/blog/self-host-penpot/).
 
+### Social scheduling: Postiz, instead of Buffer
+
+Postiz is an open-source social media scheduler, a self-hosted Buffer or Hootsuite alternative that posts to around twenty platforms from one calendar, with an AI copilot and a team workspace. Hosted schedulers bill per channel and per seat, so creators with many profiles and agencies posting for many clients pay more as they grow; self-hosted Postiz is a flat server cost. The honest catch: you register a developer app and API keys per platform yourself, which is the real setup work, not the install. It is a one-click app on Kloudbean, with Postgres and Redis behind it. Own it because your posting schedule and account access shouldn't be rented. [Full Postiz guide](https://www.kloudbean.com/blog/self-host-postiz/).
+
 ### Three more worth knowing
 
 A few more earn a mention, and all run as normal apps on a server:
@@ -85,7 +89,7 @@ A few more earn a mention, and all run as normal apps on a server:
 
 ## One-click or server-based? The honest map
 
-This is the bit people get wrong reading a generic roundup. On Kloudbean, four of these install in a click; the rest you run as ordinary apps on a managed server. Same server, same flat bill, different setup path. Here's the accurate breakdown, plus what each replaces and what it weighs.
+This is the bit people get wrong reading a generic roundup. On Kloudbean, five of these install in a click; the rest you run as ordinary apps on a managed server. Same server, same flat bill, different setup path. Here's the accurate breakdown, plus what each replaces and what it weighs.
 
 | Tool | Replaces | Rough RAM | On Kloudbean |
 | --- | --- | --- | --- |
@@ -97,6 +101,7 @@ This is the bit people get wrong reading a generic roundup. On Kloudbean, four o
 | **GitLab** | Per-seat Git hosting | ~8 GB | Server-based app |
 | **Nextcloud** | Google Drive / Dropbox | ~2 GB + disk | Server-based app |
 | **[Penpot](https://www.kloudbean.com/blog/self-host-penpot/)** | Figma | ~2 GB+ | One-click app |
+| **[Postiz](https://www.kloudbean.com/blog/self-host-postiz/)** | Buffer / Hootsuite | ~1-2 GB | One-click app |
 | **Plausible** | Google Analytics | ~1 GB | Server-based app |
 | **Uptime Kuma** | Paid status page | A few hundred MB | Server-based app |
 | **[Vaultwarden](https://www.kloudbean.com/blog/self-host-vaultwarden/)** | Password manager SaaS | Tiny | Server-based app |
@@ -140,7 +145,7 @@ The light, high-value ones: n8n for automation, Plausible for analytics, and Upt
 Yes. Most of these tools are lightweight, so a single well-sized server runs several as separate applications, each on its own subdomain. GitLab and local AI models are the main ones that prefer their own space.
 
 **Which of these are one-click on Kloudbean?**
-n8n, Supabase, Open WebUI, and Penpot install in a click. The others (Langflow, Ghost, GitLab, Nextcloud, Plausible, Uptime Kuma, Vaultwarden) run as ordinary apps on a managed server. Same server, same flat bill, a slightly different setup path.
+n8n, Supabase, Open WebUI, Penpot, and Postiz install in a click. The others (Langflow, Ghost, GitLab, Nextcloud, Plausible, Uptime Kuma, Vaultwarden) run as ordinary apps on a managed server. Same server, same flat bill, a slightly different setup path.
 
 **Do I actually save money self-hosting?**
 Usually, once you're past a tool or two, or a small team. The subscriptions stop and you pay a flat server price instead of per-seat or per-usage fees. For a single tiny tool, a free SaaS tier can still be cheaper. The savings grow as you consolidate.

@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Self-Host Postiz: The Open-Source Buffer Alternative, and Its Real Catch</title>
+<meta name="description" content="Postiz is an open-source, self-hostable social media scheduler for around 20 platforms. Why self-host it, the OAuth catch nobody warns you about, the security you cannot skip, and where it fits.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/self-host-postiz/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Self-Host Postiz: The Open-Source Buffer Alternative, and Its Real Catch">
+<meta property="og:description" content="One calendar for around 20 social platforms, on your own server. The honest guide: the per-platform API setup is the real work, and it holds the keys to your accounts.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Self-hosted tools · Social scheduling · Guide</span>
+  <h1>Self-Host Postiz: The Open-Source Buffer Alternative, and Its Real Catch</h1>
+  <p class="byline">By Kloudbean Engineering · Installing it is the easy part. Read on for the part that isn't.</p>
+
+  <figure><img src="images/hero.png" alt="The Postiz posting calendar on a self-hosted server, scheduling to around twenty social platforms">
+  </figure>
+
+  <p class="lead">If you post to more than a couple of social accounts, you have felt the bill. Buffer, Hootsuite, and the rest charge per channel or per seat, and the number climbs exactly as your reach does. Postiz is the open-source answer: one calendar that schedules to around twenty platforms, with an AI copilot, analytics, and a team workspace, all on a server you own at a flat cost. It is genuinely good. But there is a catch the quick tutorials skip, and it is not the install. It is that self-hosting a social scheduler means you become the one who wires up API access to every platform. This guide is honest about that, and about the fact that this app holds the keys to your accounts.</p>
+
+  <div class="tldr">
+    <strong>Should I self-host Postiz?</strong>
+    <p>Postiz is an open-source social media scheduling tool, a self-hosted alternative to Buffer and Hootsuite, covering around twenty platforms from one calendar with an AI copilot, media library, analytics, and team workspace. Self-hosting makes sense when per-channel or per-seat pricing stings, which happens fast for creators with many accounts and agencies posting for many clients. The real work is not installing it, it is registering a developer app and providing OAuth credentials for each platform you connect. And because it stores tokens to your social accounts, keeping it patched and behind HTTPS is not optional. On Kloudbean it is a one-click app on a managed server, so the install and the database are handled and you can focus on the API setup that actually matters.</p>
+  </div>
+
+  <h2>What Postiz actually is</h2>
+  <p>A single place to plan and publish across most of the social web, without renting it.</p>
+
+  <p>Postiz gives you one posting calendar that reaches around twenty platforms: X, LinkedIn, Instagram, Threads, TikTok, YouTube, Bluesky, Mastodon, Reddit, Discord, Slack, Telegram, and more. On top of scheduling it adds an AI copilot for drafting posts, a media library for your images and video, analytics, a team workspace so more than one person can work the calendar, and a public API. It is open source under the AGPL, so you can run it yourself and keep your whole content operation in-house.</p>
+
+  <p>The pitch is the same as the rest of this category: the hosted tools charge you more as you grow, and a self-hosted Postiz costs the same whether you run three accounts or thirty. For the right user that is a real saving. For the wrong user it is a weekend spent solving a problem they did not have. The next section is about telling which one you are.</p>
+
+  <h2>Why self-host it, and who shouldn't</h2>
+  <p>The case is mostly about scale and money, with a real ownership angle underneath.</p>
+
+  <p><strong>The per-channel bill.</strong> Buffer and Hootsuite price by channel and by seat, so a creator running many profiles, or an agency posting for a roster of clients, watches the monthly cost track their growth. A self-hosted Postiz serves all of it from one server at a flat cost. For an agency this is the same logic as the rest of the stack, and it sits naturally alongside <a href="https://www.kloudbean.com/blog/hosting-for-agencies-playbook/">the agency hosting playbook</a>. <strong>You own the schedule and the data.</strong> Your content calendar, your analytics, and your connected accounts live on your infrastructure, not a vendor's. <strong>No lock-in.</strong> Open source means the tool cannot be discontinued or repriced out from under you.</p>
+
+  <p>Who shouldn't bother: someone posting to one or two accounts, casually. The hosted tools have free or cheap tiers that cover light use without you running anything, and the per-platform API setup below is more effort than a casual poster should sign up for. Self-hosting Postiz pays off at many accounts, with a team, or where cost and data ownership genuinely matter. Be honest with yourself about which you are before you start.</p>
+
+  <h2>The catch nobody warns you about: per-platform API setup</h2>
+  <p>This is the part that surprises people, so let me put it before the install, not after.</p>
+
+  <p>When you use hosted Buffer, connecting your X or LinkedIn account is one click, because Buffer has already done the hard part: it registered as a developer with each platform and had its API access approved. When you self-host, that pre-approved access does not come with the software. You are now the developer. For each platform you want to post to, you generally register a developer application in that platform's developer portal, create API credentials, and paste the resulting keys and OAuth settings into Postiz so it can post on your behalf.</p>
+
+  <p>None of it is hard, exactly, but it is real work, it differs per platform, and some platforms make their developer approval slower or fussier than others. So budget time for it, connect the platforms you actually use rather than all twenty on principle, and expect the occasional platform to make you jump through a hoop. The honest headline: the software installs in minutes, and the connections are the afternoon. Knowing that up front is the difference between a smooth setup and a frustrated one.</p>
+
+  <div class="note">
+    <strong>Plan your platforms.</strong> Make a short list of the accounts you genuinely post to, and set those up first. You can always add more later. Trying to connect every supported network on day one is the fastest way to burn out on developer portals before you have scheduled a single post.
+  </div>
+
+  <h2>Security is not optional here, because it holds your keys</h2>
+  <p>Worth being blunt. Once Postiz is connected, it stores the OAuth tokens that let it post as you. That makes it a sensitive service, closer to your password manager than to a to-do list, and it should be treated that way.</p>
+
+  <p>Two consequences follow. First, it must sit behind HTTPS with sensible access controls, never exposed casually to the open internet. Second, and this is the one people underrate, you have to keep it updated. As a concrete reminder: an advisory catalogued as EUVD-2026-54488 in the EU Vulnerability Database described a path-traversal issue in Postiz's route for serving locally stored media, one that normalised no path and required no authentication. The point is not that Postiz is unsafe, because issues like this get found and fixed across all software. The point is that a self-hosted, internet-facing app is only as safe as its last update, so patching promptly and keeping it behind a proper reverse proxy is part of the job you are signing up for. If that sounds like too much, the hosted version exists for a reason.</p>
+
+  <h2>What it takes to run</h2>
+  <p>Modest, as these things go, but not nothing.</p>
+
+  <p>Postiz runs with PostgreSQL for its data and Redis for queues and scheduling, which is a sensible, familiar shape. Upstream you deploy it with Docker, wiring the app to those two services. It is lighter than a full design platform, but it is more than a single static binary, so give it a real, if small, server. On Kloudbean, Postiz is a one-click app: you launch it onto a managed server, and the database and reverse proxy are set up for you, so the only setup left is the per-platform API work that no host can do on your behalf. That is a fair division of labour. The platform handles the plumbing; you handle the accounts that are uniquely yours.</p>
+
+  <figure>
+    <svg viewBox="0 0 880 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="pz-title pz-desc">
+      <title id="pz-title">Self-hosted Postiz, and where the real work is</title>
+      <desc id="pz-desc">Postiz runs on your server with PostgreSQL and Redis behind it, behind HTTPS. It connects out to each social platform using developer API credentials you register yourself, which is the setup step unique to self-hosting.</desc>
+      <rect x="0" y="0" width="880" height="250" fill="#ffffff"/>
+      <g font-family="Poppins, sans-serif" font-size="12.5" fill="#000f27">
+        <rect x="24" y="80" width="150" height="90" rx="10" fill="#e8f7ed" stroke="#40b75f" stroke-width="1.4"/>
+        <text x="99" y="112" text-anchor="middle" font-weight="600">You + team</text>
+        <text x="99" y="134" text-anchor="middle" font-size="11">plan the calendar</text>
+
+        <g stroke="#98a2b3" stroke-width="2" fill="none" marker-end="url(#pza)"><path d="M176 125 H250"/></g>
+
+        <rect x="252" y="70" width="210" height="110" rx="12" fill="#0b1531"/>
+        <text x="357" y="98" text-anchor="middle" fill="#fff" font-weight="700">Postiz on your server</text>
+        <text x="357" y="122" text-anchor="middle" fill="#aeb6d4" font-size="11.5">behind HTTPS</text>
+        <text x="357" y="144" text-anchor="middle" fill="#8f9bc4" font-size="11">Postgres + Redis · holds tokens</text>
+
+        <g stroke="#4F1AF3" stroke-width="2.4" fill="none" marker-end="url(#pza)"><path d="M462 125 H556"/></g>
+        <text x="512" y="112" text-anchor="middle" font-size="11" fill="#4F1AF3" font-weight="600">your API keys</text>
+
+        <rect x="558" y="60" width="300" height="130" rx="12" fill="#efe9ff" stroke="#4F1AF3" stroke-width="1.3"/>
+        <text x="708" y="86" text-anchor="middle" font-weight="700" fill="#4F1AF3">~20 platforms</text>
+        <text x="708" y="110" text-anchor="middle" font-size="11">X · LinkedIn · Instagram · TikTok</text>
+        <text x="708" y="130" text-anchor="middle" font-size="11">YouTube · Bluesky · Mastodon</text>
+        <text x="708" y="150" text-anchor="middle" font-size="11">Reddit · Threads · and more</text>
+        <text x="708" y="172" text-anchor="middle" font-size="10.5" fill="#6b4bd8">each needs its own developer app</text>
+
+        <rect x="252" y="200" width="606" height="30" rx="7" fill="#000f27"/>
+        <text x="266" y="220" font-size="12" fill="#fff">The install is minutes. Registering a developer app per platform is the real setup.</text>
+      </g>
+      <defs><marker id="pza" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#98a2b3"/></marker></defs>
+    </svg>
+    <figcaption>The platform handles the server and database. The per-platform API credentials are the part only you can do.</figcaption>
+  </figure>
+
+  <h2>Backing up Postiz</h2>
+  <p>Your posting operation is worth protecting, and losing it is more disruptive than it sounds.</p>
+
+  <p>Postiz keeps its schedule, connected accounts, analytics, and settings in PostgreSQL, and your uploaded images and video in its media library. A real backup covers both: a database dump plus the media, shipped off the server automatically to <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">object storage</a>, on a schedule, with a restore you have tested once so you know it works. The general discipline is in <a href="https://www.kloudbean.com/blog/server-backups-guide/">the backups guide</a>. Using a <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a> folds the most valuable half into an automatic routine, so your queued month of content is not one server failure away from gone.</p>
+
+  <h2>Where hosting fits, honestly</h2>
+  <p>Postiz is one of the tools where a managed platform removes exactly the friction that is not the point. On Kloudbean it is a one-click app, so you skip the Docker wiring and the Compose file entirely. It runs on a managed server across any of seven clouds, with managed PostgreSQL for its data, managed Redis for the scheduling queues, free auto-renewing SSL for the HTTPS a token-holding app must have, and automatic backups as the safety net, all in one dashboard. That leaves you free to spend your setup time on the per-platform API work, which is the only part that genuinely needs you.</p>
+
+  <p>The honest boundary: the platform runs the server, database, SSL, and backups. Your social API credentials, your content, and keeping the app promptly updated are yours. Managed hosting makes Postiz easy to stand up and reliable to run. It cannot connect your accounts for you, and given what those connections can do, you would not want it to.</p>
+
+  <h2>Related reading</h2>
+  <p>For the wider set of tools worth owning, the <a href="https://www.kloudbean.com/blog/best-self-hosted-tools/">best self-hosted tools</a> guide. Close neighbours: <a href="https://www.kloudbean.com/blog/self-host-penpot/">self-hosting Penpot</a> for design and <a href="https://www.kloudbean.com/blog/self-host-n8n/">self-hosting n8n</a> for automation, which pairs well if you want to trigger posts from workflows. The pieces Postiz leans on: <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a>, <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis</a>, <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups</a>, and <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">object storage</a> for the media library. Running social for clients? <a href="https://www.kloudbean.com/blog/hosting-for-agencies-playbook/">The agency hosting playbook</a> fits alongside.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Run your own social scheduler, in one click.</p>
+    <p style="margin:0 0 .6em">Launch Postiz as a one-click app on a managed server across seven clouds, with managed PostgreSQL and Redis, free auto-renewing SSL, and automatic backups. You bring the API keys; we handle the rest. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">One-click Postiz · Managed PostgreSQL and Redis · Free auto-renewing SSL · Automatic backups</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is Postiz?</h3>
+    <p>Postiz is an open-source social media scheduling tool, a self-hosted alternative to Buffer and Hootsuite. It gives you one calendar to plan and publish across around twenty platforms, including X, LinkedIn, Instagram, TikTok, YouTube, Bluesky, Mastodon, and Reddit, plus an AI copilot for drafting, a media library, analytics, a team workspace, and a public API. Being open source, you can run it on your own server and keep your whole content operation in-house.</p>
+
+    <h3>Is self-hosting Postiz hard?</h3>
+    <p>Installing it is quick, especially as a one-click app. The part that takes real time is connecting the platforms, because self-hosting means you register a developer application and create API credentials for each network yourself, rather than relying on a hosted tool's pre-approved access. Budget an afternoon for the accounts you actually use, and it is very manageable. Just do not expect all twenty connections to happen in one click.</p>
+
+    <h3>Why do I need API keys for each social platform?</h3>
+    <p>Because hosted services like Buffer connect instantly by using their own approved developer access with each platform, and that access does not come bundled with self-hosted software. When you run Postiz yourself, you are the developer, so for each platform you register an app in its developer portal and paste the resulting credentials into Postiz so it can post on your behalf. It is the trade-off for owning the tool, and it is the single biggest surprise for first-time self-hosters.</p>
+
+    <h3>Is it safe to self-host Postiz?</h3>
+    <p>Yes, if you treat it as the sensitive service it is. Once connected, Postiz stores OAuth tokens that let it post as you, so it must run behind HTTPS with proper access controls and, crucially, be kept updated. A 2026 advisory in the EU Vulnerability Database, EUVD-2026-54488, flagged a path-traversal issue in its local media route, which is a good reminder that any internet-facing self-hosted app is only as safe as its latest patch. Keep it current and behind a reverse proxy and it is fine.</p>
+
+    <h3>What does Postiz need to run?</h3>
+    <p>PostgreSQL for its data and Redis for scheduling queues, with the app itself deployed via Docker upstream. It is lighter than a full design or DevOps platform but more than a single static binary, so give it a real, if small, server. On Kloudbean it is a one-click app on a managed server, so the database and reverse proxy are handled and you skip the Docker wiring.</p>
+
+    <h3>How do I back up Postiz?</h3>
+    <p>Back up two things: the PostgreSQL database, which holds your schedule, connected accounts, analytics, and settings, and the media library of uploaded images and video. Ship both off the server automatically to object storage on a schedule, and test a restore once so you know it works. Using a managed PostgreSQL puts the most important half on an automatic backup routine, so a queued month of content is not one failure away from vanishing.</p>
+
+    <h3>Is Postiz a one-click app on Kloudbean?</h3>
+    <p>Yes. Postiz is one of Kloudbean's one-click apps, so you launch it onto a managed server without writing Docker configuration, with the database and SSL handled for you. That removes the plumbing and leaves you to do the per-platform API setup, which is the only part of running Postiz that no host can do for you.</p>
+
+    <h3>Is self-hosting Postiz cheaper than Buffer or Hootsuite?</h3>
+    <p>It can be, and the more accounts you run the more likely it is. Hosted schedulers charge per channel or per seat, so costs scale with your growth, while a self-hosted Postiz is a flat server cost no matter how many accounts or team members you add. For a creator with many profiles or an agency posting for many clients, that flips the maths. For one or two casual accounts, a hosted free tier is usually the better deal.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · The keys to your accounts live here. Patch it, and back it up.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Self-Host Postiz: The Open-Source Buffer Alternative, and Its Real Catch","description":"Postiz is an open-source, self-hostable social media scheduler for around 20 platforms. Why self-host it, the OAuth catch nobody warns you about, the security you cannot skip, and where it fits.","image":"https://www.kloudbean.com/blog/self-host-postiz/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/self-host-postiz/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is Postiz?","acceptedAnswer":{"@type":"Answer","text":"Postiz is an open-source social media scheduling tool, a self-hosted alternative to Buffer and Hootsuite. It gives you one calendar to plan and publish across around twenty platforms, including X, LinkedIn, Instagram, TikTok, YouTube, Bluesky, Mastodon, and Reddit, plus an AI copilot for drafting, a media library, analytics, a team workspace, and a public API. Being open source, you can run it on your own server and keep your whole content operation in-house."}},
+{"@type":"Question","name":"Is self-hosting Postiz hard?","acceptedAnswer":{"@type":"Answer","text":"Installing it is quick, especially as a one-click app. The part that takes real time is connecting the platforms, because self-hosting means you register a developer application and create API credentials for each network yourself, rather than relying on a hosted tool's pre-approved access. Budget an afternoon for the accounts you actually use, and it is very manageable. Just do not expect all twenty connections to happen in one click."}},
+{"@type":"Question","name":"Why do I need API keys for each social platform?","acceptedAnswer":{"@type":"Answer","text":"Because hosted services like Buffer connect instantly by using their own approved developer access with each platform, and that access does not come bundled with self-hosted software. When you run Postiz yourself, you are the developer, so for each platform you register an app in its developer portal and paste the resulting credentials into Postiz so it can post on your behalf. It is the trade-off for owning the tool, and it is the single biggest surprise for first-time self-hosters."}},
+{"@type":"Question","name":"Is it safe to self-host Postiz?","acceptedAnswer":{"@type":"Answer","text":"Yes, if you treat it as the sensitive service it is. Once connected, Postiz stores OAuth tokens that let it post as you, so it must run behind HTTPS with proper access controls and, crucially, be kept updated. A 2026 advisory in the EU Vulnerability Database, EUVD-2026-54488, flagged a path-traversal issue in its local media route, which is a good reminder that any internet-facing self-hosted app is only as safe as its latest patch. Keep it current and behind a reverse proxy and it is fine."}},
+{"@type":"Question","name":"What does Postiz need to run?","acceptedAnswer":{"@type":"Answer","text":"PostgreSQL for its data and Redis for scheduling queues, with the app itself deployed via Docker upstream. It is lighter than a full design or DevOps platform but more than a single static binary, so give it a real, if small, server. On Kloudbean it is a one-click app on a managed server, so the database and reverse proxy are handled and you skip the Docker wiring."}},
+{"@type":"Question","name":"How do I back up Postiz?","acceptedAnswer":{"@type":"Answer","text":"Back up two things: the PostgreSQL database, which holds your schedule, connected accounts, analytics, and settings, and the media library of uploaded images and video. Ship both off the server automatically to object storage on a schedule, and test a restore once so you know it works. Using a managed PostgreSQL puts the most important half on an automatic backup routine, so a queued month of content is not one failure away from vanishing."}},
+{"@type":"Question","name":"Is Postiz a one-click app on Kloudbean?","acceptedAnswer":{"@type":"Answer","text":"Yes. Postiz is one of Kloudbean's one-click apps, so you launch it onto a managed server without writing Docker configuration, with the database and SSL handled for you. That removes the plumbing and leaves you to do the per-platform API setup, which is the only part of running Postiz that no host can do for you."}},
+{"@type":"Question","name":"Is self-hosting Postiz cheaper than Buffer or Hootsuite?","acceptedAnswer":{"@type":"Answer","text":"It can be, and the more accounts you run the more likely it is. Hosted schedulers charge per channel or per seat, so costs scale with your growth, while a self-hosted Postiz is a flat server cost no matter how many accounts or team members you add. For a creator with many profiles or an agency posting for many clients, that flips the maths. For one or two casual accounts, a hosted free tier is usually the better deal."}}
+]}
+]}
+</script>
+</body>
+</html>

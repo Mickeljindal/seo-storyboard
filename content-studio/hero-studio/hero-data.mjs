@@ -680,6 +680,21 @@ const HERO_OVERRIDES = {
       "No per-seat bill",
     ],
   },
+  // Self-hosted social scheduler: value props plus the honest "you bring the keys".
+  "self-host-postiz": {
+    archetype: "checklist",
+    palette: "teal",
+    motif: "network",
+    eyebrow: "Self-hosted \u00b7 Social scheduling",
+    headline: "Own your posting,\nnot the bill.",
+    sub: "Open-source Buffer alternative. One calendar, ~20 platforms, flat cost.",
+    checklist: [
+      "~20 platforms, one calendar",
+      "Open source, no per-channel bill",
+      "You bring the API keys",
+      "One-click on Kloudbean",
+    ],
+  },
   // WordPress maintenance retainer: the care-plan deliverables.
   "wordpress-maintenance-retainer-plans": {
     archetype: "checklist",
