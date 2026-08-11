@@ -913,6 +913,46 @@ const HERO_OVERRIDES = {
     sub: "Forge manages a server you own; Kloudbean runs it for you.",
     checklist: ["Forge: you own the box", "Kloudbean: fully managed", "7 DB engines, 7 clouds", "Own the server, or not?"],
   },
+  // Python: PEP 668 externally-managed-environment.
+  "pip-externally-managed-environment": {
+    archetype: "checklist", palette: "green", motif: "generic",
+    eyebrow: "Python \u00b7 pip",
+    headline: "pip won't install?\nThat's on purpose.",
+    sub: "PEP 668 protects the system Python on Debian 12. Use a virtual environment.",
+    checklist: ["externally-managed = PEP 668", "venv for app libraries", "pipx for CLI tools", "break-system-packages: last resort"],
+  },
+  // Node: OpenSSL 3 digital envelope error.
+  "fix-digital-envelope-routines-unsupported-node": {
+    archetype: "checklist", palette: "amber", motif: "shield",
+    eyebrow: "Node.js \u00b7 Build",
+    headline: "digital envelope\nroutines unsupported",
+    sub: "Node 17+ ships OpenSSL 3, which rejects the old build-tool hash.",
+    checklist: ["Node 17+ means OpenSSL 3", "Old Webpack triggers it", "Real fix: upgrade the tooling", "The flag is a bridge, not a cure"],
+  },
+  // Node: EACCES permission denied on a port.
+  "fix-eacces-permission-denied-node": {
+    archetype: "checklist", palette: "maroon", motif: "network",
+    eyebrow: "Node.js \u00b7 Ports",
+    headline: "listen EACCES:\npermission denied",
+    sub: "A privileged port under 1024, not a busy one. Different fix.",
+    checklist: ["Permission, not occupancy", "Ports under 1024 need root", "Run a high port behind a proxy", "Never run Node as root"],
+  },
+  // Node: EMFILE too many open files.
+  "fix-emfile-too-many-open-files-node": {
+    archetype: "checklist", palette: "teal", motif: "generic",
+    eyebrow: "Node.js \u00b7 Production",
+    headline: "EMFILE: too many\nopen files",
+    sub: "You hit the file-descriptor limit. Is it a leak, or real load?",
+    checklist: ["Sockets count as files", "Climbing count means a leak", "Raise the limit only if real", "Find the leak with lsof"],
+  },
+  // HTTP: 404 after deploy.
+  "http-error-404-not-found": {
+    archetype: "checklist", palette: "blue", motif: "network",
+    eyebrow: "HTTP \u00b7 Deploy",
+    headline: "404 after deploy?\nIt's routing.",
+    sub: "Case sensitivity, a missing SPA fallback, or the wrong folder.",
+    checklist: ["Server answered, path wrong", "Linux is case-sensitive", "SPA needs an index.html fallback", "Check the build output dir"],
+  },
   // WordPress maintenance retainer: the care-plan deliverables.
   "wordpress-maintenance-retainer-plans": {
     archetype: "checklist",

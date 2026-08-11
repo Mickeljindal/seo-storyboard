@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>404 Not Found: Why It Appears After Deploy, and How to Fix It</title>
+<meta name="description" content="A 404 that works locally but breaks in production is almost never a missing page. It's routing, case sensitivity on Linux, or a single-page-app fallback. What a 404 rules out, and the real deploy causes.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/http-error-404-not-found/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="404 Not Found: Why It Appears After Deploy, and How to Fix It">
+<meta property="og:description" content="The confusing 404s are the ones that work locally and break in production: case sensitivity on Linux, single-page-app routing, and build-path mismatches.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">HTTP status · Deployment · Fix</span>
+  <h1>404 Not Found: Why It Appears After Deploy, and How to Fix It</h1>
+  <p class="byline">By Kloudbean Engineering · A 404 that only shows up in production is a routing story, not a missing file.</p>
+
+  <figure><img src="images/hero.png" alt="The same URL working on a Mac and returning 404 on a Linux server, highlighting case sensitivity">
+  </figure>
+
+  <p class="lead">Everyone knows a 404 means "not found." The interesting 404s are the ones that make no sense: the page that works perfectly on your machine and returns 404 the moment you deploy, or the app route that loads fine until someone refreshes it. Those are not really about a missing page. They are about the gap between how files and routes resolve on your laptop and how they resolve on a Linux server. This guide is mostly about that gap, because that is where the confusing 404s live.</p>
+
+  <div class="tldr">
+    <strong>Why does my page work locally but 404 after deploy?</strong>
+    <p>Three causes cover most of it. First, case sensitivity: Linux servers treat <code>About.js</code> and <code>about.js</code> as different files, while macOS and Windows usually don't, so a wrong-case path works locally and 404s in production. Second, single-page-app routing: the server needs a fallback so deep links like <code>/dashboard</code> serve <code>index.html</code> instead of looking for a file that isn't there. Third, the build output or base path is wrong, so the server is looking in the wrong folder. A 404 means the server was reachable and answered, so the problem is where it's looking, not whether it's up.</p>
+  </div>
+
+  <h2>What a 404 actually rules out</h2>
+  <p>Start with what the code tells you, because it eliminates more than it says.</p>
+
+  <p>A 404 is defined in the HTTP spec as the server being reachable and understanding your request, but not finding a matching resource. That negative information is useful: your DNS resolved, the server is up, the connection succeeded, and something answered. This is not a server that's down (that's a 502 or 503) and not a name that won't resolve (that's a DNS error). The machine is there and talking. So a 404 narrows the problem to one thing: the server looked for what you asked for and didn't find it where it expected. The entire investigation is therefore about the path, what you requested versus what actually exists on the server and how it maps requests to files or routes. Once you frame it that way, "the page is missing" becomes "the server is looking in the wrong place, or under the wrong name," which is a far more findable problem.</p>
+
+  <h2>Case sensitivity: the Linux surprise that gets everyone</h2>
+  <p>If your 404 appeared the instant you deployed, check this first. It is the most common cause and the least obvious.</p>
+
+  <p>macOS and Windows filesystems are usually case-insensitive: <code>Header.css</code>, <code>header.css</code>, and <code>HEADER.CSS</code> all point to the same file. Linux, which almost every server runs, is case-sensitive: those are three different files. So a link, import, or asset path with the wrong case works flawlessly on your Mac and returns a 404 the moment it runs on the server, because the file it names does not exist there, only a differently-cased version does. This catches an enormous number of people, precisely because it cannot reproduce locally. If <code>/assets/Logo.png</code> 404s in production but the file is committed as <code>logo.png</code>, that mismatch is your bug. The fix is to make the reference match the actual filename exactly, and then to stop relying on your local filesystem to paper over case mistakes. This is the same root cause behind a lot of "cannot find module" failures too, which <a href="https://www.kloudbean.com/blog/fix-cannot-find-module-node/">the cannot-find-module guide</a> covers from the import side. Commit filenames in a consistent case and reference them exactly, and a whole category of production-only 404s disappears.</p>
+
+  <h2>Single-page apps: the 404 on refresh</h2>
+  <p>If your app loads at the home page but 404s when you refresh a deep link, this is your cause, and it's a configuration one-liner.</p>
+
+  <p>A single-page app (React, Vue, Angular, and friends) does its own routing in the browser. When you navigate to <code>/dashboard</code> by clicking inside the app, JavaScript handles it and no server request happens. But when you refresh that URL or paste it fresh, the browser asks the server for <code>/dashboard</code>, the server looks for a file or folder called <code>dashboard</code>, finds nothing, and returns 404. The app never got a chance to route. The fix is to tell the server to fall back to <code>index.html</code> for any path it doesn't recognise, so the app always loads and then handles the route itself. On Nginx that's a <code>try_files $uri $uri/ /index.html;</code> directive; most static hosts have an equivalent "rewrite everything to index.html" setting. This is not a bug in your app, it's a server that doesn't yet know your app owns its own routing. Configure the fallback and deep links start working on refresh.</p>
+
+  <h2>The rest of the deploy checklist</h2>
+  <p>If it's neither case nor SPA routing, work down this short list, which covers almost everything else.</p>
+
+  <ul>
+    <li><strong>Wrong build output directory.</strong> The server is serving a different folder than the one your build produces (serving the project root instead of <code>dist</code> or <code>build</code>, for example). Point it at the actual output directory.</li>
+    <li><strong>A base path or subdirectory mismatch.</strong> If the app is served from a subfolder but built for the root (or the reverse), every asset path is off by that prefix. Set the base path to match where it's actually hosted.</li>
+    <li><strong>Missing rewrite rules for clean URLs.</strong> Frameworks that expect a front controller (many PHP apps) need a rewrite so requests route through <code>index.php</code>; without it, every pretty URL 404s.</li>
+    <li><strong>A trailing-slash or index-file assumption.</strong> The server may expect <code>index.html</code> in a directory, or may redirect <code>/page</code> to <code>/page/</code> differently than you assume; a mismatch shows up as a 404.</li>
+  </ul>
+
+  <p>Each of these is the same underlying story as the rest of the article: the request and what exists on the server don't line up, and the fix is making them line up rather than adding a page.</p>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>A good part of the deploy-time 404 category comes from wiring the web server up by hand, the fallback rule, the output directory, the rewrite for a front controller, and getting one of them slightly wrong. On Kloudbean the web server sits in front of your app already configured for the stack you deployed, so the single-page-app fallback and the front-controller rewrite are handled as part of the platform rather than a config file you hope you got right. You deploy from Git, the server routes to your app, and the common "works locally, 404 in prod" wiring mistakes are mostly designed out. It runs on Linux, so the case-sensitivity rule still applies, that one is in your filenames, not the host.</p>
+
+  <p>The honest boundary: the platform can route correctly and serve the right directory, but it can't fix a link that points at the wrong-case filename or an asset your build never produced, because those live in your code and your build. What managed hosting removes is the class of 404 that comes from hand-rolling server config; what stays yours is referencing your own files correctly. For deploying a static site or SPA specifically, see <a href="https://www.kloudbean.com/blog/deploy-static-site/">deploy a static site</a>, and for the wider "why does it only break in production" question, <a href="https://www.kloudbean.com/blog/why-my-ai-app-works-locally-but-not-in-production/">why my app works locally but not in production</a>.</p>
+
+  <h2>Related reading</h2>
+  <p>The production-only version of this is explored in <a href="https://www.kloudbean.com/blog/why-my-ai-app-works-locally-but-not-in-production/">why my app works locally but not in production</a>, and the import-side of case sensitivity is in <a href="https://www.kloudbean.com/blog/fix-cannot-find-module-node/">fixing cannot find module</a>. For deploying front ends, <a href="https://www.kloudbean.com/blog/deploy-static-site/">deploy a static site</a> and <a href="https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/">deploy a Next.js app</a>. A neighbouring status code with a similar "the server answered" logic is <a href="https://www.kloudbean.com/blog/405-method-not-allowed/">405 method not allowed</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Deploy where the routing is already wired.</p>
+    <p style="margin:0 0 .6em">On Kloudbean the web server is configured for your stack, so single-page-app fallbacks and front-controller rewrites are handled, and the common deploy-time 404s don't appear. Git deploys, free SSL, managed servers on seven clouds. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>, or compare options in <a href="https://www.kloudbean.com/blog/best-managed-cloud-hosting/">best managed cloud hosting</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Routing configured for your stack · SPA fallback handled · Git deploys · Free SSL</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does a 404 not found error mean?</h3>
+    <p>It means the server was reachable and understood the request but could not find a resource matching the URL. Importantly, that tells you the server is up and answering, so the problem is not a down server (which gives a 502 or 503) or a DNS failure. A 404 narrows the issue to the path: the server looked for what you asked for and did not find it where it expected, so the fix is about where it is looking, not whether it is running.</p>
+
+    <h3>Why does my page work locally but return 404 in production?</h3>
+    <p>The most common reason is case sensitivity. macOS and Windows filesystems usually ignore case, but Linux servers do not, so a path with the wrong case works on your machine and 404s in production because the exact filename does not exist there. Other frequent causes are a single-page-app route with no server fallback, a wrong build output directory, or a base-path mismatch. All of them are the request and the server disagreeing about where a file is.</p>
+
+    <h3>How do I fix a 404 on refresh in a React or Vue app?</h3>
+    <p>Configure the server to fall back to index.html for any path it does not recognise, so the app always loads and then handles routing in the browser. On Nginx this is a try_files directive ending in /index.html; most static hosts have a rewrite-to-index setting. The 404 happens because refreshing a deep link asks the server for that path directly, and without the fallback the server looks for a file that does not exist. The fallback hands routing back to your app.</p>
+
+    <h3>Why does case sensitivity cause 404s on a server?</h3>
+    <p>Because Linux treats filenames as case-sensitive, so Logo.png and logo.png are two different files, while your Mac or Windows machine treats them as the same. A reference with the wrong case finds the file locally but not on the Linux server, producing a production-only 404 that you cannot reproduce in development. The fix is to make every link, import, and asset path match the actual filename's case exactly, and to keep filename casing consistent in your repository.</p>
+
+    <h3>Is a 404 bad for SEO?</h3>
+    <p>A genuine 404 for a page that truly does not exist is normal and fine; search engines expect them. The problems are a 404 on a page that should exist (which means real content is unreachable) and a soft 404, where a page returns a 200 status but shows "not found" content, which confuses crawlers. Return a real 404 status for missing pages, fix 404s on URLs that should work, and avoid serving not-found content with a success status.</p>
+
+    <h3>What is the difference between 404 and 410?</h3>
+    <p>A 404 means the resource is not found, with no statement about whether it ever existed or might come back. A 410 Gone is a deliberate, stronger signal that the resource existed and has been intentionally removed permanently. Use 410 when you have retired a URL on purpose and want to tell clients and search engines it is not coming back; use 404 for the general not-found case where the absence may be temporary or unintended.</p>
+
+    <h3>How do I fix a 404 for clean URLs in a PHP app?</h3>
+    <p>Many PHP applications route all requests through a front controller like index.php and rely on a server rewrite rule to do it. Without that rewrite, requesting a pretty URL makes the server look for a matching file or folder, find nothing, and return 404. The fix is to add the rewrite (an .htaccess rule on Apache, or a location block on Nginx) that sends requests through index.php, so the framework's router handles the URL instead of the filesystem.</p>
+
+    <h3>Does managed hosting prevent deploy-time 404s?</h3>
+    <p>It prevents the ones caused by hand-configuring the web server. On a managed platform like Kloudbean the server is set up for your stack, so single-page-app fallbacks and front-controller rewrites are handled rather than left to a config file you might get wrong. It cannot fix a link pointing at a wrong-case filename or an asset your build never generated, because those are in your code, but it removes the whole category of 404s that come from server misconfiguration.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · A production 404 is the server and your paths disagreeing. Make them agree.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"404 Not Found: Why It Appears After Deploy, and How to Fix It","description":"A 404 that works locally but breaks in production is almost never a missing page. It's routing, case sensitivity on Linux, or a single-page-app fallback. What a 404 rules out, and the real deploy causes.","image":"https://www.kloudbean.com/blog/http-error-404-not-found/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/http-error-404-not-found/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does a 404 not found error mean?","acceptedAnswer":{"@type":"Answer","text":"It means the server was reachable and understood the request but could not find a resource matching the URL. Importantly, that tells you the server is up and answering, so the problem is not a down server (which gives a 502 or 503) or a DNS failure. A 404 narrows the issue to the path: the server looked for what you asked for and did not find it where it expected, so the fix is about where it is looking, not whether it is running."}},
+{"@type":"Question","name":"Why does my page work locally but return 404 in production?","acceptedAnswer":{"@type":"Answer","text":"The most common reason is case sensitivity. macOS and Windows filesystems usually ignore case, but Linux servers do not, so a path with the wrong case works on your machine and 404s in production because the exact filename does not exist there. Other frequent causes are a single-page-app route with no server fallback, a wrong build output directory, or a base-path mismatch. All of them are the request and the server disagreeing about where a file is."}},
+{"@type":"Question","name":"How do I fix a 404 on refresh in a React or Vue app?","acceptedAnswer":{"@type":"Answer","text":"Configure the server to fall back to index.html for any path it does not recognise, so the app always loads and then handles routing in the browser. On Nginx this is a try_files directive ending in /index.html; most static hosts have a rewrite-to-index setting. The 404 happens because refreshing a deep link asks the server for that path directly, and without the fallback the server looks for a file that does not exist. The fallback hands routing back to your app."}},
+{"@type":"Question","name":"Why does case sensitivity cause 404s on a server?","acceptedAnswer":{"@type":"Answer","text":"Because Linux treats filenames as case-sensitive, so Logo.png and logo.png are two different files, while your Mac or Windows machine treats them as the same. A reference with the wrong case finds the file locally but not on the Linux server, producing a production-only 404 that you cannot reproduce in development. The fix is to make every link, import, and asset path match the actual filename's case exactly, and to keep filename casing consistent in your repository."}},
+{"@type":"Question","name":"Is a 404 bad for SEO?","acceptedAnswer":{"@type":"Answer","text":"A genuine 404 for a page that truly does not exist is normal and fine; search engines expect them. The problems are a 404 on a page that should exist (which means real content is unreachable) and a soft 404, where a page returns a 200 status but shows not-found content, which confuses crawlers. Return a real 404 status for missing pages, fix 404s on URLs that should work, and avoid serving not-found content with a success status."}},
+{"@type":"Question","name":"What is the difference between 404 and 410?","acceptedAnswer":{"@type":"Answer","text":"A 404 means the resource is not found, with no statement about whether it ever existed or might come back. A 410 Gone is a deliberate, stronger signal that the resource existed and has been intentionally removed permanently. Use 410 when you have retired a URL on purpose and want to tell clients and search engines it is not coming back; use 404 for the general not-found case where the absence may be temporary or unintended."}},
+{"@type":"Question","name":"How do I fix a 404 for clean URLs in a PHP app?","acceptedAnswer":{"@type":"Answer","text":"Many PHP applications route all requests through a front controller like index.php and rely on a server rewrite rule to do it. Without that rewrite, requesting a pretty URL makes the server look for a matching file or folder, find nothing, and return 404. The fix is to add the rewrite (an .htaccess rule on Apache, or a location block on Nginx) that sends requests through index.php, so the framework's router handles the URL instead of the filesystem."}},
+{"@type":"Question","name":"Does managed hosting prevent deploy-time 404s?","acceptedAnswer":{"@type":"Answer","text":"It prevents the ones caused by hand-configuring the web server. On a managed platform like Kloudbean the server is set up for your stack, so single-page-app fallbacks and front-controller rewrites are handled rather than left to a config file you might get wrong. It cannot fix a link pointing at a wrong-case filename or an asset your build never generated, because those are in your code, but it removes the whole category of 404s that come from server misconfiguration."}}
+]}
+]}
+</script>
+</body>
+</html>

@@ -61,7 +61,7 @@ The honest boundary: the platform lets you choose and run a specific Node versio
 
 ## Related reading
 
-For running Node in production overall, [the best managed Node.js hosting guide](https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/) and [deploying a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/). Keeping the process alive is [the PM2 process manager guide](https://www.kloudbean.com/blog/pm2-process-manager-guide/). When a version mismatch shows up as a module error, [fixing cannot find module](https://www.kloudbean.com/blog/fix-cannot-find-module-node/) helps, and configuration that should travel with the version is covered in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
+For running Node in production overall, [the best managed Node.js hosting guide](https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/) and [deploying a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/). Keeping the process alive is [the PM2 process manager guide](https://www.kloudbean.com/blog/pm2-process-manager-guide/). When a version mismatch shows up as a module error, [fixing cannot find module](https://www.kloudbean.com/blog/fix-cannot-find-module-node/) helps, and when it shows up as an OpenSSL build failure, [the digital envelope routines error](https://www.kloudbean.com/blog/fix-digital-envelope-routines-unsupported-node/) is the fix. Configuration that should travel with the version is covered in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
 ## Set the Node version, keep every environment in step.
 

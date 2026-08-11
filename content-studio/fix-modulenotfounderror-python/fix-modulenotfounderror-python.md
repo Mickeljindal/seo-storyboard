@@ -186,7 +186,7 @@ Servers run across seven clouds with your choice of region, with a Shorewall fir
 
 ## Related reading
 
-For the deployment guides themselves, [Flask](https://www.kloudbean.com/blog/deploy-flask-app/), [Django](https://www.kloudbean.com/blog/deploy-django-app/), and [FastAPI](https://www.kloudbean.com/blog/deploy-fastapi-app/). On choosing between them, [Flask versus Django](https://www.kloudbean.com/blog/flask-vs-django/). For the compiled-extension version of this problem, [native module build errors](https://www.kloudbean.com/blog/fix-better-sqlite3-install-errors/), and the Node equivalent in [Cannot find module](https://www.kloudbean.com/blog/fix-cannot-find-module-node/). On the process layer, [Gunicorn versus Uvicorn](https://www.kloudbean.com/blog/gunicorn-vs-uvicorn/). And on configuration and deploys, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) and [auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
+For the deployment guides themselves, [Flask](https://www.kloudbean.com/blog/deploy-flask-app/), [Django](https://www.kloudbean.com/blog/deploy-django-app/), and [FastAPI](https://www.kloudbean.com/blog/deploy-fastapi-app/). On choosing between them, [Flask versus Django](https://www.kloudbean.com/blog/flask-vs-django/). For the compiled-extension version of this problem, [native module build errors](https://www.kloudbean.com/blog/fix-better-sqlite3-install-errors/), and the Node equivalent in [Cannot find module](https://www.kloudbean.com/blog/fix-cannot-find-module-node/). When pip itself refuses to install at all, [the externally-managed-environment fix](https://www.kloudbean.com/blog/pip-externally-managed-environment/) is the one. On the process layer, [Gunicorn versus Uvicorn](https://www.kloudbean.com/blog/gunicorn-vs-uvicorn/). And on configuration and deploys, [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) and [auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
 ## Build the environment where the code runs.
 
@@ -204,7 +204,7 @@ Identify which of five causes you have before installing anything. Check whether
 
 Usually because it installed into a different interpreter than the one running your code, since `pip` belongs to one Python and your `PATH` decides which. Use `python -m pip install` so the package goes to the interpreter you named. It can also fail because you installed a differently named package, or because the missing module is part of the standard library rather than something on the package index.
 
-**Why does "No module named 'yaml'" happen when PyYAML is installed?**
+**Why does No module named 'yaml' happen when PyYAML is installed?**
 
 It does not, and that pairing is the point: the import name and the package name differ. `import yaml` is provided by the distribution `PyYAML`. If PyYAML really is installed in the running interpreter, the import works, so check `python -m pip list` in that specific interpreter rather than the one your shell reaches first.
 
