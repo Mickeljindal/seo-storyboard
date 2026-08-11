@@ -131,13 +131,16 @@ What you can lean on: a hardened base, encryption in transit, private networking
 
 If you do nothing else this week, do these.
 
-- Turn on 2FA for every account, not just the owner.
-- Create least-privilege subusers with UAC; delete access nobody uses anymore.
+- Turn on [2FA or social login](https://www.kloudbean.com/blog/two-factor-and-social-login/) for every account, not just the owner.
+- Create least-privilege [subusers with UAC](https://www.kloudbean.com/blog/subuser-and-uac-guide/); delete access nobody uses anymore.
+- Restrict admin panels and staging to trusted addresses with [IP allowlisting](https://www.kloudbean.com/blog/ip-allowlisting-guide/), and hide pre-launch sites behind a [Basic Auth gate](https://www.kloudbean.com/blog/basic-auth-gate-guide/).
 - Put the database on the private network; confirm it has no public IP.
-- Verify HTTPS is forced and the certificate auto-renews.
-- Set your app's security headers (CSP, HSTS) and validate all input.
-- Move every secret into environment variables; scrub keys from Git history.
-- Restore a backup on purpose, once, to prove the path works.
+- Verify HTTPS is forced and the certificate auto-renews, and know your [encryption at rest and in transit](https://www.kloudbean.com/blog/data-encryption-at-rest-and-in-transit/).
+- Set your app's [security headers](https://www.kloudbean.com/blog/security-headers-guide/) (CSP, HSTS) and validate all input.
+- Move every secret into environment variables and [manage them properly](https://www.kloudbean.com/blog/secrets-management-guide/); scrub keys from Git history.
+- Confirm your [firewall and brute-force protection](https://www.kloudbean.com/blog/fail2ban-and-shorewall-guide/) are on, and restore a backup on purpose, once, to prove the path works.
+
+That is the short version. The full, categorized audit, with the reasoning behind each item and a map of what the platform covers versus what you own, is in the [server security audit checklist](https://www.kloudbean.com/blog/security-audit-checklist/). And for proving your controls actually held, an [immutable audit trail](https://www.kloudbean.com/blog/audit-trail-for-compliance/) is what turns them into evidence.
 
 ---
 

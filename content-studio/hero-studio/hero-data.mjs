@@ -785,6 +785,70 @@ const HERO_OVERRIDES = {
       "Airtable, but yours",
     ],
   },
+  // Security cluster (Silo 9): host firewall + brute-force banning.
+  "fail2ban-and-shorewall-guide": {
+    archetype: "checklist", palette: "maroon", motif: "shield",
+    eyebrow: "Security \u00b7 Server hardening",
+    headline: "Close the doors,\nban the bots.",
+    sub: "The host firewall and brute-force bouncer that guard every server.",
+    checklist: ["Deny-by-default firewall", "Fail2ban bans brute force", "Auto on every server", "Host layer, not a WAF"],
+  },
+  // Security: IP allowlisting.
+  "ip-allowlisting-guide": {
+    archetype: "checklist", palette: "blue", motif: "shield",
+    eyebrow: "Security \u00b7 Access control",
+    headline: "Trust the addresses,\ndeny the rest.",
+    sub: "Lock admin panels and staging to the networks you decide.",
+    checklist: ["Allow by exception", "CIDR allow and deny", "Lock admin + staging", "Pair with a VPN"],
+  },
+  // Security: Basic Auth gate.
+  "basic-auth-gate-guide": {
+    archetype: "checklist", palette: "indigo", motif: "shield",
+    eyebrow: "Security \u00b7 Access control",
+    headline: "One password,\nwhole site hidden.",
+    sub: "The fastest way to keep staging private and out of search results.",
+    checklist: ["One password, whole site", "Perfect for staging", "Keeps Google out", "HTTPS required"],
+  },
+  // Security: 2FA + social login.
+  "two-factor-and-social-login": {
+    archetype: "checklist", palette: "violet", motif: "shield",
+    eyebrow: "Security \u00b7 Authentication",
+    headline: "The password\nis the weak part.",
+    sub: "A second factor and social login make the front door hard to break.",
+    checklist: ["Password alone loses", "Add a second factor", "Social login, no password", "Guard the session cookie"],
+  },
+  // Security: secrets management.
+  "secrets-management-guide": {
+    archetype: "checklist", palette: "amber", motif: "shield",
+    eyebrow: "Security \u00b7 Secrets",
+    headline: "Keep the keys\nout of your code.",
+    sub: "The one mistake that leaks them all, and what actually works.",
+    checklist: ["Never commit to git", "Rotate, don't delete", "Least-privilege keys", "Env vars, not code"],
+  },
+  // Security: encryption at rest and in transit.
+  "data-encryption-at-rest-and-in-transit": {
+    archetype: "checklist", palette: "teal", motif: "shield",
+    eyebrow: "Security \u00b7 Encryption",
+    headline: "Two states,\ntwo protections.",
+    sub: "TLS while it moves, AES-256 while it sits. And the nuance most miss.",
+    checklist: ["Moving and at rest", "TLS in transit", "AES-256 at rest", "Guards media, not the app"],
+  },
+  // Security: audit trail.
+  "audit-trail-for-compliance": {
+    archetype: "checklist", palette: "green", motif: "shield",
+    eyebrow: "Security \u00b7 Compliance",
+    headline: "Logs you can't\nquietly rewrite.",
+    sub: "Immutable, retained, searchable. The difference from a pile of logs.",
+    checklist: ["Who did what, when", "Immutable, WORM", "Retained for months", "Evidence, not a suggestion"],
+  },
+  // Security: the audit checklist (hub).
+  "security-audit-checklist": {
+    archetype: "checklist", palette: "magenta", motif: "shield",
+    eyebrow: "Security \u00b7 Checklist",
+    headline: "Six layers,\none honest audit.",
+    sub: "Run it before launch, after team changes, and every quarter.",
+    checklist: ["Access + network", "Data + secrets", "App + monitoring", "Know who owns what"],
+  },
   // WordPress maintenance retainer: the care-plan deliverables.
   "wordpress-maintenance-retainer-plans": {
     archetype: "checklist",

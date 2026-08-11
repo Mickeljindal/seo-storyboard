@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Server Security Audit Checklist (With the Why for Each Item)</title>
+<meta name="description" content="A practical, categorized security audit checklist for a hosted app: access, network, data, secrets, application, and monitoring. Each item with the reason it matters and what covers it.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/security-audit-checklist/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="The Server Security Audit Checklist (With the Why for Each Item)">
+<meta property="og:description" content="Run this quarterly and before every launch. A categorized security audit checklist for a hosted app, with the reasoning behind each item, not just a list of boxes.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Security · Checklist · Guide</span>
+  <h1>The Server Security Audit Checklist (With the Why for Each Item)</h1>
+  <p class="byline">By Kloudbean Engineering · Not a list of boxes to tick, a list of reasons to understand.</p>
+
+  <figure><img src="images/hero.png" alt="A categorized security audit checklist covering access, network, data, secrets, application, and monitoring">
+  </figure>
+
+  <p class="lead">Most security checklists are a wall of boxes with no explanation, so you tick them without knowing what you are actually protecting against, which is its own kind of insecurity. This one is organized by layer and gives you the reason behind each item, because a control you understand is one you will keep, and one you understand is one you can adapt when your situation changes. Run it before a launch, after any team change, and on a regular cadence such as quarterly. It will not make you certified, and it is not exhaustive for every regulated context, but it covers the ground where most real incidents actually happen, and each item links to a deeper guide when you want more.</p>
+
+  <div class="tldr">
+    <strong>What should a security audit cover?</strong>
+    <p>A practical audit walks six layers. Access: strong authentication, least-privilege permissions, and no stale accounts. Network: a deny-by-default firewall, brute-force banning, and restricting admin surfaces. Data: encryption in transit and at rest, and tested backups. Secrets: nothing sensitive in code, with rotation and scoped keys. Application: updated dependencies, security headers, and safe input handling. Monitoring: a tamper-proof audit trail and alerting. On a managed platform, several of these are handled at the infrastructure layer by default, such as the firewall, brute-force protection, SSL, and patching, while application security, secrets hygiene, and access reviews remain your responsibility. Use the checklist quarterly and before launches, and treat it as a floor, not a certificate.</p>
+  </div>
+
+  <h2>How to use this checklist</h2>
+  <p>A checklist is only useful if you run it at the right moments and read it in the right spirit.</p>
+
+  <p>Run it at three trigger points: before you launch anything public, whenever someone joins or leaves the team, and on a regular schedule such as every quarter. Work top to bottom, and for any item you cannot honestly tick, either fix it now or write down why it is acceptable, because an undocumented gap is one you will forget. Two caveats keep you honest. First, ticking every box does not make you compliant with any specific framework; formal compliance is assessed against your whole organisation, not a list. Second, this is a strong general baseline, not a substitute for expert review in a heavily regulated context. With that framing, the six layers below are where the effort pays off.</p>
+
+  <h2>1. Access and authentication</h2>
+  <p>Most breaches start with someone getting in as a legitimate user, so this layer is the highest value.</p>
+
+  <ul>
+    <li><strong>Strong authentication on every account.</strong> A password alone is not enough given breach dumps and phishing; use a second factor or social login so a stolen password is useless. Why it matters and how to choose is in <a href="https://www.kloudbean.com/blog/two-factor-and-social-login/">two-factor and social login</a>.</li>
+    <li><strong>Least-privilege permissions.</strong> Each person and service should have only the access they need, so a compromised account does limited damage. For a team or client fleet, this is <a href="https://www.kloudbean.com/blog/subuser-and-uac-guide/">subusers and access control</a>.</li>
+    <li><strong>No stale access.</strong> Remove accounts and keys for people who have left and contractors who are done. Offboarding without revoking access is a door left open behind someone.</li>
+    <li><strong>SSH keys, not passwords.</strong> Disable SSH password login in favour of keys, which removes password-guessing as an attack entirely.</li>
+    <li><strong>Hardened sessions.</strong> Session cookies should be HttpOnly, Secure, and SameSite, so a stolen or script-read cookie does not hand over the account after login.</li>
+  </ul>
+
+  <h2>2. Network and perimeter</h2>
+  <p>Before anything reaches your app, decide what can reach the server at all, and from where.</p>
+
+  <ul>
+    <li><strong>Deny-by-default firewall.</strong> Close every port you are not using so the internet's constant scanning finds nothing. This is the host firewall half of <a href="https://www.kloudbean.com/blog/fail2ban-and-shorewall-guide/">Fail2ban and Shorewall</a>.</li>
+    <li><strong>Brute-force banning.</strong> Automatically ban IPs that hammer login on the doors you must keep open, like SSH, which is the Fail2ban half of the same guide.</li>
+    <li><strong>Restrict admin surfaces by address.</strong> Lock dashboards, database GUIs, and admin panels to your office and VPN with <a href="https://www.kloudbean.com/blog/ip-allowlisting-guide/">IP allowlisting</a>, so they are not open to the world.</li>
+    <li><strong>Gate non-public environments.</strong> Put staging and pre-launch sites behind a <a href="https://www.kloudbean.com/blog/basic-auth-gate-guide/">Basic Auth gate</a> so they stay private and out of search results.</li>
+    <li><strong>App-layer and volumetric protection.</strong> Filter malicious requests with <a href="https://www.kloudbean.com/blog/what-a-waf-does/">a WAF</a> and absorb floods with <a href="https://www.kloudbean.com/blog/ddos-protection-explained/">DDoS protection</a> at the edge. These are different layers from the host firewall, and you want them too.</li>
+  </ul>
+
+  <h2>3. Data protection</h2>
+  <p>Protect the data itself, in both the states it lives in, and make sure you can get it back.</p>
+
+  <ul>
+    <li><strong>Encryption in transit, everywhere.</strong> HTTPS on all traffic with HTTP redirected to HTTPS, so nothing travels in the clear. Free auto-renewing SSL removes the excuse.</li>
+    <li><strong>Encryption at rest.</strong> Disks, databases, backups, and object storage encrypted, so stolen media is unreadable, remembering it protects the media, not the live app. Both states are in <a href="https://www.kloudbean.com/blog/data-encryption-at-rest-and-in-transit/">encryption at rest and in transit</a>.</li>
+    <li><strong>Backups that are automatic and tested.</strong> A backup you have never restored is a guess; take them automatically, ship them off the server, and actually test a restore, per the <a href="https://www.kloudbean.com/blog/server-backups-guide/">backups guide</a>.</li>
+    <li><strong>Know where your data lives.</strong> For regulated or regional obligations, be clear on <a href="https://www.kloudbean.com/blog/data-residency-explained/">data residency</a>, because "somewhere in the cloud" is not an answer an auditor accepts.</li>
+  </ul>
+
+  <h2>4. Secrets</h2>
+  <p>The keys to everything deserve their own layer, because one leaked key can undo every other control.</p>
+
+  <ul>
+    <li><strong>No secrets in code or git.</strong> Keys, passwords, and tokens never go into the repository, because git history is permanent and bots scan public repos in seconds.</li>
+    <li><strong>Secrets in the environment, not the bundle.</strong> Application secrets live in server-side environment variables, never in the frontend bundle where anyone can read them.</li>
+    <li><strong>Rotate, especially after exposure.</strong> If a secret leaks, rotating it is the only real fix; deleting the commit does not help. Rotate on a schedule and when people leave.</li>
+    <li><strong>Scoped, least-privilege keys.</strong> Each key does only what it needs, so a leak is contained. The full discipline is in the <a href="https://www.kloudbean.com/blog/secrets-management-guide/">secrets management guide</a>.</li>
+  </ul>
+
+  <h2>5. Application security</h2>
+  <p>The layers above protect the server; this one is the app you actually wrote, which no host can secure for you.</p>
+
+  <ul>
+    <li><strong>Dependencies updated.</strong> Known vulnerabilities in outdated packages are among the most exploited paths in; keep them current and watch advisories.</li>
+    <li><strong>Guard the OWASP basics.</strong> Validate and sanitise input, use parameterised queries against SQL injection, and escape output against cross-site scripting.</li>
+    <li><strong>Security headers set.</strong> A Content-Security-Policy and friends reduce whole classes of client-side attack; see the <a href="https://www.kloudbean.com/blog/security-headers-guide/">security headers guide</a>.</li>
+    <li><strong>Scan container images.</strong> If you ship containers, scan them for known vulnerabilities before they run, as in <a href="https://www.kloudbean.com/blog/container-security-scanning/">container security scanning</a>.</li>
+    <li><strong>Patch the OS.</strong> The operating system and web stack need patching on a cadence; on a managed platform this is handled for you, which is a real load off.</li>
+  </ul>
+
+  <h2>6. Monitoring and evidence</h2>
+  <p>You cannot respond to what you cannot see, and you cannot prove what you did not record.</p>
+
+  <ul>
+    <li><strong>A tamper-proof audit trail.</strong> Record who did what, when, and from where, in a log that cannot be edited or deleted, so it survives the very person you need to catch. This is the <a href="https://www.kloudbean.com/blog/audit-trail-for-compliance/">audit trail for compliance</a>.</li>
+    <li><strong>Retention that matches your obligations.</strong> Keep logs long enough, often many months, because incidents are frequently discovered late.</li>
+    <li><strong>Alerting on the events that matter.</strong> Failed logins, permission changes, and firewall changes should raise a flag, not just sit in a log nobody reads.</li>
+    <li><strong>Uptime and health monitoring.</strong> Know when something is down before your users tell you, so an outage is not the first sign of a problem.</li>
+  </ul>
+
+  <h2>Who covers what: platform versus you</h2>
+  <p>A recurring confusion is assuming the host secures everything, or that you must do it all yourself. The truth is a split, and knowing it is half the battle.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Layer</th><th>Managed platform typically covers</th><th>You own</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Network</strong></td><td>Host firewall, brute-force banning, edge options</td><td>Allowlist rules, WAF tuning for your app</td></tr>
+      <tr><td><strong>Data in transit</strong></td><td>Free SSL, HTTPS enforced</td><td>Using HTTPS everywhere in your app</td></tr>
+      <tr><td><strong>Data at rest</strong></td><td>Disk, database, storage encryption (managed)</td><td>Classifying and minimising what you store</td></tr>
+      <tr><td><strong>Patching</strong></td><td>OS and web stack updates</td><td>Your app's dependencies</td></tr>
+      <tr><td><strong>Access</strong></td><td>Social login, session hardening, subusers</td><td>Who you grant access to, and reviews</td></tr>
+      <tr><td><strong>Secrets</strong></td><td>Env-var storage, scoped tokens</td><td>Not committing secrets, rotating them</td></tr>
+      <tr><td><strong>App security</strong></td><td>The infrastructure it runs on</td><td>The code, OWASP, input handling</td></tr>
+      <tr><td><strong>Evidence</strong></td><td>Infrastructure audit trail (enterprise)</td><td>App-level logging, reviewing the trail</td></tr>
+    </tbody>
+  </table>
+
+  <p>The pattern is consistent: the platform hardens the infrastructure, and you own the application and the decisions. Neither side can do the other's job, which is why "is it secure?" is always a shared answer.</p>
+
+  <h2>Where Kloudbean fits, honestly</h2>
+  <p>Reading down the checklist, a good number of items are handled at the infrastructure layer on Kloudbean by default: the Shorewall firewall and Fail2ban baseline, free auto-renewing SSL, automatic backups, OS patching, IP Access Control and a Basic Auth gate for the network items, social login and HttpOnly sessions for access, environment variables and scoped API tokens for secrets, and an enterprise Audit Trail for evidence. That removes a meaningful chunk of the list before you start.</p>
+
+  <p>The honest boundary is the right-hand column of that table. The platform cannot update your dependencies, write input validation, decide who gets access, avoid committing a secret, or review the audit trail for you. Those are yours, and they are where most breaches actually originate. Use the platform to make the infrastructure layer close to automatic, then spend your attention on the application and process items that only you can own. The overview of that division is <a href="https://www.kloudbean.com/blog/secure-compliant-hosting/">the secure and compliant hosting guide</a>.</p>
+
+  <h2>Related reading</h2>
+  <p>Each layer has a deeper guide: <a href="https://www.kloudbean.com/blog/fail2ban-and-shorewall-guide/">Fail2ban and Shorewall</a>, <a href="https://www.kloudbean.com/blog/ip-allowlisting-guide/">IP allowlisting</a>, <a href="https://www.kloudbean.com/blog/basic-auth-gate-guide/">the Basic Auth gate</a>, <a href="https://www.kloudbean.com/blog/two-factor-and-social-login/">two-factor and social login</a>, <a href="https://www.kloudbean.com/blog/secrets-management-guide/">secrets management</a>, <a href="https://www.kloudbean.com/blog/data-encryption-at-rest-and-in-transit/">encryption at rest and in transit</a>, and <a href="https://www.kloudbean.com/blog/audit-trail-for-compliance/">the audit trail</a>. The pillar that ties them together is <a href="https://www.kloudbean.com/blog/secure-compliant-hosting/">secure and compliant hosting</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Start with the infrastructure layer handled.</p>
+    <p style="margin:0 0 .6em">Kloudbean covers a large slice of this checklist by default: firewall and brute-force baseline, free auto-renewing SSL, automatic backups, OS patching, IP Access Control, a Basic Auth gate, social login, and an enterprise Audit Trail. You focus on the application layer only you can own. Compare it in <a href="https://www.kloudbean.com/blog/kloudbean-vs-cloudways/">Kloudbean vs Cloudways</a>, or start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Baseline hardening · Free SSL · Automatic backups · Access controls · Enterprise audit trail</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How often should I run a security audit?</h3>
+    <p>Run it at three moments: before launching anything public, whenever someone joins or leaves the team, and on a regular schedule such as quarterly. Launches and team changes are when new gaps appear, and a quarterly cadence catches drift the rest of the time. For fast-moving teams, tie parts of it to your deployment process so the most important checks happen continuously rather than only at review time.</p>
+
+    <h3>Does passing this checklist make me compliant?</h3>
+    <p>No. This is a strong general security baseline, but formal compliance with a framework like SOC 2, ISO 27001, or PCI DSS is assessed against your whole organisation, including processes and documentation, not a single checklist. Passing it means you have covered the ground where most incidents happen, which is genuinely valuable and a good foundation, but treat it as a floor to build on rather than a certificate.</p>
+
+    <h3>What is the most important item on the list?</h3>
+    <p>If forced to pick, strong authentication and least-privilege access, because most breaches begin with someone getting in as a legitimate user. Adding a second factor defeats stolen-password attacks outright, and least privilege limits the damage when an account is compromised. Encryption, backups, and monitoring all matter, but the access layer is where the highest-value, lowest-effort wins usually are.</p>
+
+    <h3>Which items does a managed host handle for me?</h3>
+    <p>Typically the infrastructure layer: the host firewall, brute-force protection, SSL, OS patching, and often backups and encryption at rest. On Kloudbean that also includes IP Access Control, a Basic Auth gate, social login, hardened sessions, and an enterprise audit trail. What no host can do is your application security, your access decisions, your secrets hygiene, and reviewing the logs, which is the right-hand side of the responsibility split.</p>
+
+    <h3>I am a solo developer. Is this overkill?</h3>
+    <p>No, though you can prioritise. The access, secrets, backups, and HTTPS items are essential even for one person, and they are mostly quick wins. Some monitoring and evidence items scale with team size and regulatory need, so a solo side project can be lighter there than a company handling customer data. Start with authentication, backups, and not committing secrets, and grow the rest as your project does.</p>
+
+    <h3>What is the difference between this and a penetration test?</h3>
+    <p>This checklist is a self-assessment of whether your controls are in place; a penetration test is an active attempt by specialists to break in and find weaknesses you missed. They are complementary: the checklist gets your baseline right so a pen test is not wasted finding obvious gaps, and the pen test then probes for the subtle flaws a checklist cannot capture. Regulated environments usually require periodic penetration testing on top of a checklist like this.</p>
+
+    <h3>How do I handle an item I cannot tick?</h3>
+    <p>Either fix it now or write down explicitly why it is acceptable for your situation, with a date to revisit. An undocumented gap is one you will forget and cannot defend; a documented, accepted risk is a deliberate decision you can review. The goal of the checklist is not a perfect score but an honest, current picture of where you stand and why, so treat gaps as decisions to record rather than boxes to fudge.</p>
+
+    <h3>Does Kloudbean help with the whole checklist?</h3>
+    <p>It covers a large part of the infrastructure layer by default, including the firewall and brute-force baseline, free SSL, automatic backups, OS patching, IP Access Control, a Basic Auth gate, social login, and an enterprise audit trail. The application-layer items, your code, dependencies, input handling, access decisions, and secrets hygiene, remain yours, because they depend on choices only you can make. The platform shrinks the list; it does not erase your half of it.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Understand each item, tick what is true, and write down what isn't.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"The Server Security Audit Checklist (With the Why for Each Item)","description":"A practical, categorized security audit checklist for a hosted app: access, network, data, secrets, application, and monitoring. Each item with the reason it matters and what covers it.","image":"https://www.kloudbean.com/blog/security-audit-checklist/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/security-audit-checklist/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How often should I run a security audit?","acceptedAnswer":{"@type":"Answer","text":"Run it at three moments: before launching anything public, whenever someone joins or leaves the team, and on a regular schedule such as quarterly. Launches and team changes are when new gaps appear, and a quarterly cadence catches drift the rest of the time. For fast-moving teams, tie parts of it to your deployment process so the most important checks happen continuously rather than only at review time."}},
+{"@type":"Question","name":"Does passing this checklist make me compliant?","acceptedAnswer":{"@type":"Answer","text":"No. This is a strong general security baseline, but formal compliance with a framework like SOC 2, ISO 27001, or PCI DSS is assessed against your whole organisation, including processes and documentation, not a single checklist. Passing it means you have covered the ground where most incidents happen, which is genuinely valuable and a good foundation, but treat it as a floor to build on rather than a certificate."}},
+{"@type":"Question","name":"What is the most important item on the list?","acceptedAnswer":{"@type":"Answer","text":"If forced to pick, strong authentication and least-privilege access, because most breaches begin with someone getting in as a legitimate user. Adding a second factor defeats stolen-password attacks outright, and least privilege limits the damage when an account is compromised. Encryption, backups, and monitoring all matter, but the access layer is where the highest-value, lowest-effort wins usually are."}},
+{"@type":"Question","name":"Which items does a managed host handle for me?","acceptedAnswer":{"@type":"Answer","text":"Typically the infrastructure layer: the host firewall, brute-force protection, SSL, OS patching, and often backups and encryption at rest. On Kloudbean that also includes IP Access Control, a Basic Auth gate, social login, hardened sessions, and an enterprise audit trail. What no host can do is your application security, your access decisions, your secrets hygiene, and reviewing the logs, which is the right-hand side of the responsibility split."}},
+{"@type":"Question","name":"I am a solo developer. Is this overkill?","acceptedAnswer":{"@type":"Answer","text":"No, though you can prioritise. The access, secrets, backups, and HTTPS items are essential even for one person, and they are mostly quick wins. Some monitoring and evidence items scale with team size and regulatory need, so a solo side project can be lighter there than a company handling customer data. Start with authentication, backups, and not committing secrets, and grow the rest as your project does."}},
+{"@type":"Question","name":"What is the difference between this and a penetration test?","acceptedAnswer":{"@type":"Answer","text":"This checklist is a self-assessment of whether your controls are in place; a penetration test is an active attempt by specialists to break in and find weaknesses you missed. They are complementary: the checklist gets your baseline right so a pen test is not wasted finding obvious gaps, and the pen test then probes for the subtle flaws a checklist cannot capture. Regulated environments usually require periodic penetration testing on top of a checklist like this."}},
+{"@type":"Question","name":"How do I handle an item I cannot tick?","acceptedAnswer":{"@type":"Answer","text":"Either fix it now or write down explicitly why it is acceptable for your situation, with a date to revisit. An undocumented gap is one you will forget and cannot defend; a documented, accepted risk is a deliberate decision you can review. The goal of the checklist is not a perfect score but an honest, current picture of where you stand and why, so treat gaps as decisions to record rather than boxes to fudge."}},
+{"@type":"Question","name":"Does Kloudbean help with the whole checklist?","acceptedAnswer":{"@type":"Answer","text":"It covers a large part of the infrastructure layer by default, including the firewall and brute-force baseline, free SSL, automatic backups, OS patching, IP Access Control, a Basic Auth gate, social login, and an enterprise audit trail. The application-layer items, your code, dependencies, input handling, access decisions, and secrets hygiene, remain yours, because they depend on choices only you can make. The platform shrinks the list; it does not erase your half of it."}}
+]}
+]}
+</script>
+</body>
+</html>

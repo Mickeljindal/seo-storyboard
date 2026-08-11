@@ -1,0 +1,100 @@
+---
+title: "Encryption at Rest and in Transit: The Two States Your Data Lives In"
+description: "Data is always either moving or sitting still, and each state needs its own encryption. What at-rest AES-256 actually protects against, what it does not, and where TLS fits."
+slug: data-encryption-at-rest-and-in-transit
+canonical: https://www.kloudbean.com/blog/data-encryption-at-rest-and-in-transit/
+cluster: 9. Security and compliance
+pillar: secure-compliant-hosting
+money_page: kloudbean-vs-cloudways
+byline: Cover both states, and remember encryption at rest guards the disk, not the door.
+---
+
+# Encryption at Rest and in Transit: The Two States Your Data Lives In
+
+By Kloudbean Engineering · One state everyone protects, one they forget, and a nuance that trips up even pros.
+
+Your data is only ever in one of two states. It is either moving, travelling between a browser and your server or between two services, or it is sitting still, written to a disk, a database, a backup, an object store. Each state faces a different threat, so each needs its own kind of encryption. Almost everyone gets the first one right, because the browser padlock made encryption in transit a habit. Far fewer think seriously about the second, and that is exactly the data a stolen disk or a leaked backup exposes. Worse, there is a widely believed half-truth about what encryption at rest protects, and getting it wrong gives people a false sense of safety. Let us fix both.
+
+> **What is encryption at rest and in transit?**
+>
+> Encryption in transit protects data while it moves, using TLS, so anyone intercepting the connection sees scrambled bytes rather than your data; it is what the browser padlock represents. Encryption at rest protects data while it is stored, using strong ciphers like AES-256 on disks, databases, backups, and object storage, so a stolen drive or a leaked backup is unreadable. The nuance most people miss: encryption at rest protects the physical media, not your live application. It is transparent to anyone with legitimate access, so it does nothing against a leaked password, a SQL injection, or a compromised app. On Kloudbean, TLS is enforced with free auto-renewing SSL, and managed engagements provide AES-256 at rest across disks, managed databases, and object storage, with customer-managed keys where required.
+
+<!-- ADD IMAGE: hero, data encrypted in transit over TLS and encrypted at rest on disk, database, and object storage -->
+
+## In transit: the padlock you already know
+
+This is the state most people already handle, so we will be brief and point you deeper where it helps.
+
+When data moves over a network, anyone positioned along the path, on shared wifi, at an internet provider, on a compromised router, could in principle read it. Encryption in transit closes that off using TLS, the protocol behind HTTPS: the connection is encrypted end to end, so an interceptor sees unreadable ciphertext instead of passwords, personal data, or API payloads. The visible sign is the padlock and the `https://` in the address bar. The firm modern rule is that everything should be over HTTPS, all the time, with plain HTTP redirected to HTTPS so there is no unencrypted path at all. How TLS actually works, the handshake, certificates, and versions, is a topic in itself, and we cover it in [SSL and TLS explained](https://www.kloudbean.com/blog/ssl-tls-explained/). For this article, the point is simply that in transit is one of your two states, and TLS is how you cover it.
+
+## At rest: the half people forget
+
+Now the state that gets neglected, because it is invisible day to day. Your data spends almost all of its life at rest.
+
+At any moment, the vast majority of your data is not moving, it is written down somewhere: on the server's disk, inside the database files, in nightly backups, in an object-storage bucket full of uploads. Encryption at rest means all of that is stored encrypted with a strong cipher, the industry standard being AES-256, so the raw bytes on the physical media are scrambled. The threat it addresses is physical and possessional: a disk that is decommissioned improperly and resold, a backup file that ends up somewhere it should not, storage media that is stolen or seized. Without encryption at rest, whoever holds that media can read everything on it directly. With it, they hold a box of noise they cannot open. For personal data and anything regulated, encryption at rest is not a nice-to-have, it is table stakes and frequently a compliance requirement.
+
+<!-- ADD IMAGE: diagram, browser to server over TLS (in transit), server writing to disks/databases/backups/object storage encrypted with AES-256 (at rest) -->
+
+## What encryption at rest does not protect against
+
+This is the nuance that even experienced people get wrong, and it is the most important paragraph here, so read it twice.
+
+Encryption at rest protects the storage media, not your running application. It is transparent to legitimate access: when your app queries the database, the data is decrypted automatically because your app is authorised, and the same is true for anyone or anything with valid access. That means encryption at rest does nothing against the attacks people most often worry about. A leaked database password, a SQL injection flaw, a stolen session, a compromised admin account, application bugs that expose data through the app itself, none of these are stopped by at-rest encryption, because in every case the attacker is coming through the front door with valid access, and the data decrypts for them exactly as it does for you. So "our data is encrypted at rest" is a true and worthwhile statement that answers a narrow question: what happens if someone physically gets the disk or the backup. It is not an answer to "is our application secure," and treating it as one is how organisations end up breached while sincerely believing encryption had them covered. At-rest encryption is one necessary layer, sitting alongside access control, application security, and everything else, never a substitute for them.
+
+## Who holds the key
+
+Encryption is only as meaningful as the control of its keys, and that raises a question worth asking your provider.
+
+By default, a managed platform encrypts your data at rest with keys it manages for you, which is convenient and covers the physical-media threat well. For organisations with stricter requirements, customer-managed encryption keys (CMEK) through a key management service (KMS) let you control the key that protects your data, so you can govern and revoke access to the ciphertext at the key level. The distinction matters most in regulated settings, where being able to demonstrate and control key custody is part of the compliance story. For many teams, provider-managed keys are entirely appropriate; for some, holding the key themselves is a requirement. Knowing which you need, and asking whether CMEK is available, is the practical takeaway.
+
+## Where Kloudbean fits, honestly
+
+Both states are covered, with the usual split between what is automatic and what belongs to a managed engagement. In transit, TLS is enforced with free auto-renewing SSL, and HTTP is redirected to HTTPS, so the moving state is handled by default without you touching a certificate. At rest, managed engagements provide AES-256 encryption across disks, managed databases, and object storage, with TLS 1.2 as a floor and 1.3 where supported, and customer-managed keys via KMS available where a regulated workload requires them.
+
+The honest boundary, which this whole article has been building toward: the platform can encrypt your data in both states, and that covers the network and the physical media. It cannot encrypt away an application flaw or a leaked credential, because those come through legitimate access that decryption serves normally. Encryption is a foundation you should absolutely have, and on its own it is not security. Pair it with the access controls, authentication, and application care covered across [the secure and compliant hosting guide](https://www.kloudbean.com/blog/secure-compliant-hosting/), and the foundation holds up the rest.
+
+## Related reading
+
+For how the in-transit half actually works, [SSL and TLS explained](https://www.kloudbean.com/blog/ssl-tls-explained/) and [fixing SSL certificate errors](https://www.kloudbean.com/blog/fix-ssl-certificate-errors/). Encryption at rest matters most alongside good [backups](https://www.kloudbean.com/blog/server-backups-guide/) (which should themselves be encrypted) and clear [data residency](https://www.kloudbean.com/blog/data-residency-explained/). It is one layer among many in [secure and compliant hosting](https://www.kloudbean.com/blog/secure-compliant-hosting/), and pairs with strong [authentication](https://www.kloudbean.com/blog/two-factor-and-social-login/) so the legitimate access it trusts is itself hard to steal.
+
+## Encrypt both states, from day one.
+
+Kloudbean enforces TLS in transit with free auto-renewing SSL, and managed engagements add AES-256 at rest across disks, managed databases, and object storage, with customer-managed keys where regulation requires them. Compare the platform in [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/), or start at [kloudbean.com](https://www.kloudbean.com/).
+
+TLS enforced · Free auto-renewing SSL · AES-256 at rest (managed) · CMEK where required
+
+## FAQ
+
+**What is the difference between encryption at rest and in transit?**
+
+Encryption in transit protects data while it moves across a network, using TLS, so an interceptor cannot read it; it is what the browser padlock signals. Encryption at rest protects data while it is stored, using a strong cipher like AES-256 on disks, databases, backups, and object storage, so stolen or leaked media is unreadable. They address different threats, the network path versus the physical media, so a complete setup uses both rather than choosing one.
+
+**Does encryption at rest protect against hackers?**
+
+Only a specific kind of threat: someone physically obtaining the storage media, such as a stolen disk or a leaked backup. It does not protect against attacks that come through legitimate access, like a leaked database password, SQL injection, a stolen session, or a compromised admin account, because the data decrypts automatically for anyone with valid access. So it is essential for the physical-media threat but not a defence against application-level attacks, which need access control and secure code.
+
+**What does AES-256 mean?**
+
+AES-256 is the Advanced Encryption Standard using a 256-bit key, a widely trusted, industry-standard cipher for encrypting stored data. The 256-bit key length makes brute-forcing the encryption infeasible with current technology. When a provider says data is encrypted at rest with AES-256, it means the stored bytes are scrambled with that strong algorithm, so the physical media is unreadable without the key.
+
+**Is TLS the same as encryption in transit?**
+
+TLS is the protocol that provides encryption in transit for web and many other connections, so in practice they are used almost interchangeably in a hosting context. TLS encrypts the connection between two endpoints, such as a browser and your server, so data in motion cannot be read by anyone intercepting the path. Encryption in transit is the goal; TLS is the standard way it is achieved.
+
+**What are customer-managed encryption keys (CMEK)?**
+
+CMEK means you, rather than the provider, control the key that encrypts your data at rest, usually through a key management service. This lets you govern and revoke access to the encrypted data at the key level, which matters in regulated environments where demonstrating key custody is part of compliance. For many teams, provider-managed keys are sufficient; CMEK is for organisations whose requirements specifically call for holding their own keys.
+
+**Should my backups be encrypted?**
+
+Yes. Backups are one of the most common places sensitive data leaks from, because they are copied, moved, and sometimes stored in less-guarded locations. Encrypting backups at rest means a backup file that ends up somewhere it should not be is unreadable. Since backups are simply data at rest in another location, the same at-rest encryption logic applies, and leaving them unencrypted undermines the protection on your primary storage.
+
+**Is encryption enough to be compliant?**
+
+No. Encryption at rest and in transit is a common requirement in frameworks like GDPR, PCI DSS, and others, so it is usually necessary, but it is only one control among many. Compliance also requires access control, logging, secure application practices, and organisational processes. Encryption is a foundation that most frameworks expect you to have, not a box that makes you compliant on its own.
+
+**How does Kloudbean handle encryption?**
+
+In transit, TLS is enforced with free auto-renewing SSL and HTTP is redirected to HTTPS, so the moving state is covered by default. At rest, managed engagements provide AES-256 across disks, managed databases, and object storage, with TLS 1.2 as a floor and 1.3 where supported, and customer-managed keys via a key management service available where a regulated workload requires them. Encryption covers the network and the media; application-level security remains a shared responsibility.
+
+Kloudbean Engineering · Cover both states, and remember encryption at rest guards the disk, not the door.
