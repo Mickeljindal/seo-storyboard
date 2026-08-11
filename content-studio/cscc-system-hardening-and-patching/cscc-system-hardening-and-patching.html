@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NCA CSCC Hardening and Patching: The 2-3 Controls, on a Schedule</title>
+<meta name="description" content="The NCA CSCC vulnerability-and-patch subdomain sets fixed cadences: patch internet-facing critical systems monthly, review hardening every six months, and remove default and hard-coded passwords. What 2-3 asks for, and how a managed cloud carries it.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/cscc-system-hardening-and-patching/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="NCA CSCC Hardening and Patching: The 2-3 Controls, on a Schedule">
+<meta property="og:description" content="CSCC 2-3 as cadences: monthly external patching, quarterly internal, six-monthly hardening review, and no default or hard-coded passwords. How a managed platform keeps the clock.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Saudi Arabia · NCA CSCC · Guide</span>
+  <h1>NCA CSCC Hardening and Patching: The 2-3 Controls, on a Schedule</h1>
+  <p class="byline">By Kloudbean Engineering · Most critical-system breaches aren't clever. They're an unpatched box and a default password.</p>
+
+  <figure><img src="images/hero.png" alt="A patch and hardening calendar: monthly external, quarterly internal, six-monthly config review, with default passwords struck out">
+  </figure>
+
+  <p class="lead">If your systems fall under the NCA's Critical Systems Cybersecurity Controls, the hardening-and-patching subdomain is one a reviewer can check almost mechanically, because it is written as cadences and concrete requirements rather than principles. When did you last patch the internet-facing systems? When did you last review the hardening configuration? Are there still default or hard-coded passwords anywhere? These are not judgement calls, they are dates and yes-or-no facts, which is exactly why they get audited hard. This guide walks the CSCC 2-3 requirements in plain terms and shows where a managed platform carries the schedule for you and where the responsibility stays yours.</p>
+
+  <div class="tldr">
+    <strong>What does CSCC require for patching and hardening?</strong>
+    <p>The CSCC 2-3 subdomain sets fixed cadences. Patch external, internet-facing critical systems at least monthly, and internal systems at least quarterly, with critical vulnerabilities remediated as soon as possible (control 2-3-1-3). Harden systems to a secure baseline, and review that configuration and hardening at least every six months (2-3-1-6). Remove hard-coded, backdoor, and default passwords entirely (2-3-1-7). And keep privileged administration on an isolated management network (2-3-1-4). The point of the subdomain is that security is a schedule you keep and can evidence, not a one-time setup.</p>
+  </div>
+
+  <h2>Why hardening and patching is its own subdomain</h2>
+  <p>The controls here exist because of how critical systems actually get breached, which is rarely dramatic.</p>
+
+  <p>The overwhelming majority of real compromises are not novel exploits. They are a known vulnerability that had a patch available for months, or a default administrator password that was never changed, or a service left running that nobody needed. The CSCC devotes a subdomain to this precisely because it is both the most common way in and the most preventable. What makes 2-3 distinctive is that it is written as a schedule. Other controls describe a state you should be in; these describe a rhythm you must keep, patch by this interval, review by that one, and be able to show the dates. That shifts the work from "set it up once" to "operate it on a clock," which is a different discipline and the one that lapses first when a team is busy. The rest of this article is those cadences, one at a time.</p>
+
+  <h2>Patch on the clock: monthly external, quarterly internal (2-3-1-3)</h2>
+  <p>This is the control with the most specific numbers, so it is the one to get exactly right.</p>
+
+  <p>Control 2-3-1-3 sets minimum patch cadences by exposure. External, internet-facing components of a critical system must be patched at least monthly, because they are the most reachable and therefore the highest risk. Internal systems must be patched at least quarterly. And critical vulnerabilities are not held for the next cycle, they are remediated as soon as possible, out of band if needed. The logic is risk-weighted: the more exposed a system is, the more often it must be brought current. Reading it the right way, monthly patching of your internet-facing tier is a floor, not a target, and the recognisable failure here is the server that was patched at launch and then left for a year because nothing appeared broken. That gap is invisible right up until a known vulnerability is used against it. A managed patching process that runs on the required cadence is the clean way to meet this, so the schedule does not depend on someone remembering.</p>
+
+  <figure>
+    <svg viewBox="0 0 880 170" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="c23-title c23-desc">
+      <title id="c23-title">The CSCC 2-3 cadences</title>
+      <desc id="c23-desc">Internet-facing critical systems patched at least monthly, internal systems at least quarterly, configuration and hardening reviewed at least every six months, and critical vulnerabilities remediated as soon as possible.</desc>
+      <rect x="0" y="0" width="880" height="170" fill="#ffffff"/>
+      <g font-family="Poppins, sans-serif" font-size="12" fill="#000f27">
+        <rect x="30" y="30" width="200" height="80" rx="10" fill="#e8f7ed" stroke="#40b75f" stroke-width="1.4"/>
+        <text x="130" y="62" text-anchor="middle" font-weight="600">Monthly</text>
+        <text x="130" y="84" text-anchor="middle" font-size="10.5" fill="#5b667e">internet-facing systems</text>
+        <rect x="245" y="30" width="200" height="80" rx="10" fill="#eef2ff" stroke="#4F1AF3" stroke-width="1.3"/>
+        <text x="345" y="62" text-anchor="middle" font-weight="600">Quarterly</text>
+        <text x="345" y="84" text-anchor="middle" font-size="10.5" fill="#5b667e">internal systems</text>
+        <rect x="460" y="30" width="200" height="80" rx="10" fill="#fff4e6" stroke="#d98324" stroke-width="1.3"/>
+        <text x="560" y="62" text-anchor="middle" font-weight="600">Every 6 months</text>
+        <text x="560" y="84" text-anchor="middle" font-size="10.5" fill="#5b667e">config + hardening review</text>
+        <rect x="675" y="30" width="175" height="80" rx="10" fill="#0b1531"/>
+        <text x="762" y="62" text-anchor="middle" font-weight="600" fill="#fff">Immediately</text>
+        <text x="762" y="84" text-anchor="middle" font-size="10.5" fill="#aeb6d4">critical vulnerabilities</text>
+        <text x="440" y="140" text-anchor="middle" font-size="11" fill="#000f27">The more exposed the system, the shorter the interval. Keep the dates as evidence.</text>
+      </g>
+    </svg>
+    <figcaption>CSCC 2-3 is a set of clocks. Meeting it is about running each on time and being able to prove it.</figcaption>
+  </figure>
+
+  <h2>Remove default, hard-coded, and backdoor passwords (2-3-1-7)</h2>
+  <p>Short control, enormous impact, and one people assume is already handled when it often is not.</p>
+
+  <p>Control 2-3-1-7 requires that hard-coded, backdoor, and default passwords be removed. Default credentials on a device or service, a password committed into source code, or a vendor backdoor account are all direct routes in that no firewall will stop, because they are legitimate credentials as far as the system is concerned. The requirement is to hunt them down and eliminate them: change every default before a system goes live, get secrets out of code and into a proper secrets store, and remove any backdoor or shared account. This pairs with good <a href="https://www.kloudbean.com/blog/secrets-management-guide/">secrets management</a> on the application side, which is where hard-coded credentials usually hide. The infrastructure side of this, no default logins on the servers and services a platform provisions, is something a managed platform can enforce as a baseline. The application side, credentials in your own code and config, stays with you, and it is worth an explicit sweep rather than an assumption.</p>
+
+  <h2>Harden the build, and review it every six months (2-3-1-6)</h2>
+  <p>Hardening is the setup; the review cadence is the part teams forget.</p>
+
+  <p>The CSCC expects critical systems to be hardened to a secure baseline, which in practice means a recognised standard like the CIS benchmarks: disable unnecessary services, close unused ports, apply secure configuration defaults, and reduce the attack surface to what the system actually needs. But 2-3-1-6 adds the part that turns hardening from a one-time task into a control: the configuration and hardening must be reviewed at least every six months. Systems drift. Someone opens a port for a debug session and forgets it, a service gets enabled for a migration and stays on, a configuration is loosened under deadline pressure. The six-monthly review catches that drift before it becomes the way in. So the requirement is really two things: harden to a baseline at build, and re-verify against that baseline on a schedule. A managed platform can apply and maintain the baseline hardening; confirming your application's own configuration hasn't drifted is a shared responsibility.</p>
+
+  <h2>The isolated management network (2-3-1-4)</h2>
+  <p>One more 2-3 control, though its natural home is alongside the network domain.</p>
+
+  <p>Control 2-3-1-4 calls for privileged administration to happen over an isolated management network, so administrators do not reach critical systems over the same paths as ordinary traffic, and never by exposing admin access to the open internet. Because this sits so closely with network segmentation, it is covered in depth in <a href="https://www.kloudbean.com/blog/cscc-network-segmentation/">CSCC network segmentation</a>, which walks the bastion-and-management-network pattern. The short version for this subdomain: the most powerful access must travel the most controlled route, typically a bastion or jump server reached with multi-factor authentication, with direct administrative access from the internet blocked.</p>
+
+  <h2>Where a managed cloud fits, and where you own it</h2>
+  <p>Most of the 2-3 subdomain is operational discipline on infrastructure, which is exactly what a managed platform is built to carry.</p>
+
+  <p>A managed cloud can run the patching on the required cadence, apply CIS-style hardening with default credentials removed, keep unnecessary services disabled, and maintain the isolated management access, delivered on managed engagements to the schedule these controls set, with the dates recorded as evidence. On Kloudbean these are part of how a managed enterprise engagement is run: monthly patching of the internet-facing layer, hardened baselines, no default logins, and privileged access through a controlled path, in-Kingdom where required. The honest boundary: the platform can carry the cadence and the baseline for the infrastructure it manages, but your own application, its dependencies, its configuration, and any credentials inside your code, is patched and hardened on your side of the line. No platform can update a vulnerable library in your app or find a password you committed to your repository. What it removes is the operational burden of keeping the infrastructure on the clock, which is the part that most often slips. The framework overview is in <a href="https://www.kloudbean.com/blog/nca-cscc-compliance-guide/">the NCA CSCC guide</a>, and the CSCC document is public, so you can cite 2-3-1-3, 2-3-1-6, and 2-3-1-7 directly in your own documentation.</p>
+
+  <h2>Related reading</h2>
+  <p>This is one subdomain of a bigger framework: start with <a href="https://www.kloudbean.com/blog/nca-cscc-compliance-guide/">the NCA CSCC guide</a>, and prepare with the <a href="https://www.kloudbean.com/blog/critical-systems-hosting-checklist/">critical systems hosting checklist</a>. The management-network control connects to <a href="https://www.kloudbean.com/blog/cscc-network-segmentation/">CSCC network segmentation</a>, and the testing cadence that finds what needs patching is in <a href="https://www.kloudbean.com/blog/cscc-vulnerability-assessment-and-pentest/">CSCC vulnerability assessment and penetration testing</a>. The general, non-critical-systems version of this is <a href="https://www.kloudbean.com/blog/server-hardening-checklist/">the server hardening checklist</a>, and credentials belong in <a href="https://www.kloudbean.com/blog/secrets-management-guide/">secrets management</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Keep the infrastructure on the clock the controls set.</p>
+    <p style="margin:0 0 .6em">On managed engagements Kloudbean runs the patch cadence, hardened baselines, and controlled privileged access the CSCC 2-3 subdomain requires, in-Kingdom where needed, with the dates recorded as evidence. Start the conversation at <a href="https://www.kloudbean.com/">kloudbean.com</a>, and read the framework overview in <a href="https://www.kloudbean.com/blog/nca-cscc-compliance-guide/">the NCA CSCC guide</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Patching on cadence · CIS-style hardened baselines · No default credentials · Evidence as managed reports</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How often does CSCC require patching?</h3>
+    <p>Control 2-3-1-3 sets minimum cadences by exposure: external, internet-facing components of critical systems must be patched at least monthly, and internal systems at least quarterly. Critical vulnerabilities are not deferred to the next cycle but remediated as soon as possible, out of band if necessary. The cadence is risk-weighted, so the more exposed a system is, the more frequently it must be brought current, and the stated intervals are minimums rather than targets.</p>
+
+    <h3>What does CSCC control 2-3-1-7 require?</h3>
+    <p>It requires the removal of hard-coded, backdoor, and default passwords. Default credentials, passwords committed into source code, and vendor backdoor accounts are all legitimate credentials from the system's point of view, so no firewall stops them. The control asks you to change every default before go-live, move secrets out of code into a proper secrets store, and eliminate backdoor or shared accounts. It is short but among the highest-impact controls, because these credentials are a direct route in.</p>
+
+    <h3>How often must hardening be reviewed under CSCC?</h3>
+    <p>At least every six months, per control 2-3-1-6. Systems are hardened to a secure baseline at build, typically using a standard like the CIS benchmarks, but configurations drift over time as ports are opened, services enabled, and settings loosened. The six-monthly review re-verifies the system against its baseline to catch that drift before it becomes an exposure. So hardening is two obligations: establish the baseline, and re-check it on the required schedule.</p>
+
+    <h3>What is a hardened baseline?</h3>
+    <p>It is a secure configuration standard that reduces a system's attack surface to only what it needs: unnecessary services disabled, unused ports closed, secure defaults applied, and default credentials removed. Recognised benchmarks such as the CIS benchmarks are the common reference. Hardening to a baseline means the system starts in a known-good, minimal-exposure state, and the CSCC then requires that state to be reviewed periodically so it does not erode.</p>
+
+    <h3>Can a managed cloud handle CSCC patching for me?</h3>
+    <p>It can carry the infrastructure side: patching the servers and managed services it provisions on the required cadence, applying hardened baselines, removing default logins, and recording the dates as evidence. What it cannot do is patch your application's own code and dependencies or find a credential you hard-coded, because those live in your side of the deployment. So a managed platform handles the operational cadence for the infrastructure, while your application's patching and configuration remain your responsibility.</p>
+
+    <h3>What is the difference between this and a normal patching routine?</h3>
+    <p>A normal routine is good practice; CSCC 2-3 makes it an auditable requirement with specific minimum cadences and a review schedule you must be able to evidence. A general setup might patch when convenient; a critical-systems deployment must patch internet-facing systems at least monthly, review hardening at least six-monthly, and prove the dates. The discipline is the same in spirit, but the fixed intervals and the evidence requirement are what a reviewer checks.</p>
+
+    <h3>Does patching on cadence make my critical system compliant?</h3>
+    <p>No. Patching and hardening are one subdomain within the CSCC, which spans identity and access, network security, encryption, logging, backups, resilience, and more, and the CSCC itself extends the ECC framework. Keeping the infrastructure patched and hardened on schedule is necessary and among the most effective controls, but it is one piece of a larger assessment made against your whole system and organisation, not a compliance finish line on its own.</p>
+
+    <h3>Can I cite the CSCC 2-3 control numbers in my documentation?</h3>
+    <p>Yes. The NCA's Critical Systems Cybersecurity Controls document is published openly with no sharing restrictions, so you can reference control numbers like 2-3-1-3 for patch cadence, 2-3-1-6 for the six-monthly hardening review, and 2-3-1-7 for removing default passwords directly in your own compliance documentation. Mapping each infrastructure practice to its specific control is exactly the traceability a reviewer expects to see.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Harden once, patch on the clock, and keep the dates. That is most of 2-3.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"NCA CSCC Hardening and Patching: The 2-3 Controls, on a Schedule","description":"The NCA CSCC vulnerability-and-patch subdomain sets fixed cadences: patch internet-facing critical systems monthly, review hardening every six months, and remove default and hard-coded passwords. What 2-3 asks for, and how a managed cloud carries it.","image":"https://www.kloudbean.com/blog/cscc-system-hardening-and-patching/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/cscc-system-hardening-and-patching/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How often does CSCC require patching?","acceptedAnswer":{"@type":"Answer","text":"Control 2-3-1-3 sets minimum cadences by exposure: external, internet-facing components of critical systems must be patched at least monthly, and internal systems at least quarterly. Critical vulnerabilities are not deferred to the next cycle but remediated as soon as possible, out of band if necessary. The cadence is risk-weighted, so the more exposed a system is, the more frequently it must be brought current, and the stated intervals are minimums rather than targets."}},
+{"@type":"Question","name":"What does CSCC control 2-3-1-7 require?","acceptedAnswer":{"@type":"Answer","text":"It requires the removal of hard-coded, backdoor, and default passwords. Default credentials, passwords committed into source code, and vendor backdoor accounts are all legitimate credentials from the system's point of view, so no firewall stops them. The control asks you to change every default before go-live, move secrets out of code into a proper secrets store, and eliminate backdoor or shared accounts. It is short but among the highest-impact controls, because these credentials are a direct route in."}},
+{"@type":"Question","name":"How often must hardening be reviewed under CSCC?","acceptedAnswer":{"@type":"Answer","text":"At least every six months, per control 2-3-1-6. Systems are hardened to a secure baseline at build, typically using a standard like the CIS benchmarks, but configurations drift over time as ports are opened, services enabled, and settings loosened. The six-monthly review re-verifies the system against its baseline to catch that drift before it becomes an exposure. So hardening is two obligations: establish the baseline, and re-check it on the required schedule."}},
+{"@type":"Question","name":"What is a hardened baseline?","acceptedAnswer":{"@type":"Answer","text":"It is a secure configuration standard that reduces a system's attack surface to only what it needs: unnecessary services disabled, unused ports closed, secure defaults applied, and default credentials removed. Recognised benchmarks such as the CIS benchmarks are the common reference. Hardening to a baseline means the system starts in a known-good, minimal-exposure state, and the CSCC then requires that state to be reviewed periodically so it does not erode."}},
+{"@type":"Question","name":"Can a managed cloud handle CSCC patching for me?","acceptedAnswer":{"@type":"Answer","text":"It can carry the infrastructure side: patching the servers and managed services it provisions on the required cadence, applying hardened baselines, removing default logins, and recording the dates as evidence. What it cannot do is patch your application's own code and dependencies or find a credential you hard-coded, because those live in your side of the deployment. So a managed platform handles the operational cadence for the infrastructure, while your application's patching and configuration remain your responsibility."}},
+{"@type":"Question","name":"What is the difference between this and a normal patching routine?","acceptedAnswer":{"@type":"Answer","text":"A normal routine is good practice; CSCC 2-3 makes it an auditable requirement with specific minimum cadences and a review schedule you must be able to evidence. A general setup might patch when convenient; a critical-systems deployment must patch internet-facing systems at least monthly, review hardening at least six-monthly, and prove the dates. The discipline is the same in spirit, but the fixed intervals and the evidence requirement are what a reviewer checks."}},
+{"@type":"Question","name":"Does patching on cadence make my critical system compliant?","acceptedAnswer":{"@type":"Answer","text":"No. Patching and hardening are one subdomain within the CSCC, which spans identity and access, network security, encryption, logging, backups, resilience, and more, and the CSCC itself extends the ECC framework. Keeping the infrastructure patched and hardened on schedule is necessary and among the most effective controls, but it is one piece of a larger assessment made against your whole system and organisation, not a compliance finish line on its own."}},
+{"@type":"Question","name":"Can I cite the CSCC 2-3 control numbers in my documentation?","acceptedAnswer":{"@type":"Answer","text":"Yes. The NCA's Critical Systems Cybersecurity Controls document is published openly with no sharing restrictions, so you can reference control numbers like 2-3-1-3 for patch cadence, 2-3-1-6 for the six-monthly hardening review, and 2-3-1-7 for removing default passwords directly in your own compliance documentation. Mapping each infrastructure practice to its specific control is exactly the traceability a reviewer expects to see."}}
+]}
+]}
+</script>
+</body>
+</html>

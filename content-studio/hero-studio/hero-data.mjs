@@ -953,6 +953,30 @@ const HERO_OVERRIDES = {
     sub: "Case sensitivity, a missing SPA fallback, or the wrong folder.",
     checklist: ["Server answered, path wrong", "Linux is case-sensitive", "SPA needs an index.html fallback", "Check the build output dir"],
   },
+  // KSA: SAMA financial-sector framework.
+  "sama-csf-compliant-hosting": {
+    archetype: "checklist", palette: "maroon", motif: "shield",
+    eyebrow: "Saudi Arabia \u00b7 SAMA",
+    headline: "Who owns your\nSAMA compliance?",
+    sub: "The framework is assessed on your institution, not your host.",
+    checklist: ["Saudi Central Bank framework", "Banks, insurers, fintechs", "SAMA and NCA both apply", "We carry ops and tech, in-Kingdom"],
+  },
+  // KSA/NCA: CSCC 2-3 hardening and patching.
+  "cscc-system-hardening-and-patching": {
+    archetype: "checklist", palette: "teal", motif: "shield",
+    eyebrow: "Saudi Arabia \u00b7 NCA CSCC",
+    headline: "Patch on the clock,\nprove the dates.",
+    sub: "CSCC 2-3 is a schedule: patch, review, and remove default passwords.",
+    checklist: ["Monthly external patching", "Quarterly internal", "6-monthly hardening review", "No default or backdoor passwords"],
+  },
+  // KSA: cross-framework decision hub.
+  "nca-cybersecurity-frameworks-explained": {
+    archetype: "checklist", palette: "indigo", motif: "compare",
+    eyebrow: "Saudi Arabia \u00b7 Frameworks",
+    headline: "Which framework\napplies to you?",
+    sub: "ECC, CSCC, CCC, PDPL, SAMA, and you are often in several at once.",
+    checklist: ["ECC is the baseline", "CSCC for critical systems", "PDPL for personal data", "SAMA for finance"],
+  },
   // WordPress maintenance retainer: the care-plan deliverables.
   "wordpress-maintenance-retainer-plans": {
     archetype: "checklist",
