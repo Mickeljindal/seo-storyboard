@@ -897,6 +897,22 @@ const HERO_OVERRIDES = {
     sub: "The even-LTS rule, matching local to prod, and the native-module trap.",
     checklist: ["Even = LTS (~30 months)", "Odd = short-lived, skip", "Pin engines + .nvmrc", "Rebuild native deps on bump"],
   },
+  // KSA/NCA: Cloud Cybersecurity Controls, provider vs subscriber.
+  "nca-ccc-cloud-cybersecurity-controls": {
+    archetype: "checklist", palette: "indigo", motif: "shield",
+    eyebrow: "Saudi Arabia \u00b7 NCA CCC",
+    headline: "Whose control\nis it, really?",
+    sub: "The Cloud Cybersecurity Controls split between the provider and you.",
+    checklist: ["Provider side: the platform", "Subscriber side: your workload", "CSCC 4-2-1-1 links them", "Verify, don't assume"],
+  },
+  // Comparison: Laravel Forge panel vs fully managed.
+  "laravel-forge-vs-kloudbean": {
+    archetype: "checklist", palette: "violet", motif: "compare",
+    eyebrow: "Comparisons \u00b7 Laravel Forge",
+    headline: "A panel, or a\nmanaged server?",
+    sub: "Forge manages a server you own; Kloudbean runs it for you.",
+    checklist: ["Forge: you own the box", "Kloudbean: fully managed", "7 DB engines, 7 clouds", "Own the server, or not?"],
+  },
   // WordPress maintenance retainer: the care-plan deliverables.
   "wordpress-maintenance-retainer-plans": {
     archetype: "checklist",

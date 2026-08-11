@@ -71,7 +71,7 @@ If the honest job is "WordPress, on a polished host, with white-glove support," 
 
 ### Bring-your-own-VPS control panels (RunCloud, SpinupWP, Ploi, ServerAvatar)
 
-These make managing your own server far less painful. You point the panel at a VPS you rent (DigitalOcean, Vultr, Linode, wherever) and it sets up the stack nicely. But be clear-eyed: this is semi-managed. You still own the box, its patching, and its 2am problems. Ploi leans Laravel and PHP; SpinupWP is WordPress-focused; RunCloud and ServerAvatar aim at general multi-app management. Great if you like control. Not the move if you wanted the server to be someone else's job. The [managed vs unmanaged breakdown](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/) spells out that tradeoff.
+These make managing your own server far less painful. You point the panel at a VPS you rent (DigitalOcean, Vultr, Linode, wherever) and it sets up the stack nicely. But be clear-eyed: this is semi-managed. You still own the box, its patching, and its 2am problems. Ploi leans Laravel and PHP; SpinupWP is WordPress-focused; RunCloud and ServerAvatar aim at general multi-app management. Great if you like control. Not the move if you wanted the server to be someone else's job. The [managed vs unmanaged breakdown](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/) spells out that tradeoff, and [Laravel Forge vs Kloudbean](https://www.kloudbean.com/blog/laravel-forge-vs-kloudbean/) is a named head-to-head in this exact category.
 
 ### Hands-off PaaS (DigitalOcean App Platform, Render, Railway)
 
