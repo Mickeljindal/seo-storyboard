@@ -77,7 +77,7 @@ A few more earn a mention, and all run as normal apps on a server:
 
 - **Plausible** for privacy-friendly web analytics, instead of Google Analytics. No cookie banner, no shipping visitor behavior to an ad company. Light, around 1 GB.
 - **Uptime Kuma** for monitoring and a status page, instead of a paid monitor. It watches your sites and pings you when something's down. Tiny, a few hundred MB.
-- **Vaultwarden** for passwords, a lightweight, Bitwarden-compatible server. Small footprint, and your vault stays on your own box.
+- **Vaultwarden** for passwords, a lightweight, Bitwarden-compatible server. Small footprint, and your vault stays on your own box. It's the highest-trust thing on this list, so read the [full Vaultwarden guide](https://www.kloudbean.com/blog/self-host-vaultwarden/) before you move real passwords in, because backups here are existential.
 
 ## One-click or server-based? The honest map
 
@@ -94,7 +94,7 @@ This is the bit people get wrong reading a generic roundup. On Kloudbean, three 
 | **Nextcloud** | Google Drive / Dropbox | ~2 GB + disk | Server-based app |
 | **Plausible** | Google Analytics | ~1 GB | Server-based app |
 | **Uptime Kuma** | Paid status page | A few hundred MB | Server-based app |
-| **Vaultwarden** | Password manager SaaS | Tiny | Server-based app |
+| **[Vaultwarden](https://www.kloudbean.com/blog/self-host-vaultwarden/)** | Password manager SaaS | Tiny | Server-based app |
 
 ## Where to run these self-hosted tools (the one-server trick)
 

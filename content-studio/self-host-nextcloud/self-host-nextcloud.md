@@ -11,7 +11,7 @@ secondary_keywords:
   - dropbox alternative
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 2 — Self-Hosted Tools
+cluster: 2. Self-Hosted Tools
 ---
 
 ![Self-host Nextcloud: your own Drive, file sync and sharing on a server you control](images/hero.png)
@@ -153,7 +153,7 @@ The financial case is simple, and it's why most teams look. Google Drive and Dro
 
 For a privacy-conscious team, or anyone tired of per-seat Drive and Dropbox fees, yes. Nextcloud on a small managed server with object storage behind it is a genuinely strong alternative that you own outright. The cost is that you run the app and mind its backups, which the platform's server-level protections make lighter than it sounds.
 
-Where it isn't the answer: if you just need personal file sync for one person and never want to see a server, a consumer cloud is simpler and fine. The moment files become *team* files that matter, and the seat count starts to sting, owning them looks wise. Nextcloud is one of a handful of tools that pay off when you run them yourself; our [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) roundup shows where it sits, and if code is next, [self-hosting GitLab](https://www.kloudbean.com/blog/self-host-gitlab/) follows the same own-it logic.
+Where it isn't the answer: if you just need personal file sync for one person and never want to see a server, a consumer cloud is simpler and fine. The moment files become *team* files that matter, and the seat count starts to sting, owning them looks wise. Nextcloud is one of a handful of tools that pay off when you run them yourself; our [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) roundup shows where it sits, and if code is next, [self-hosting GitLab](https://www.kloudbean.com/blog/self-host-gitlab/) follows the same own-it logic, as does [self-hosting Vaultwarden](https://www.kloudbean.com/blog/self-host-vaultwarden/) for the passwords that unlock everything else.
 
 ---
 

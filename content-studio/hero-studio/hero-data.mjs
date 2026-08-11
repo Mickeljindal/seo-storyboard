@@ -650,6 +650,21 @@ const HERO_OVERRIDES = {
       "Contractor: one app, time-boxed",
     ],
   },
+  // Self-hosted password manager: the reassurance plus the three non-negotiables.
+  "self-host-vaultwarden": {
+    archetype: "checklist",
+    palette: "maroon",
+    motif: "shield",
+    eyebrow: "Self-hosted \u00b7 Password manager",
+    headline: "Own the vault\nthat holds it all.",
+    sub: "Bitwarden-compatible, zero-knowledge, and yours. Backups are the whole game.",
+    checklist: [
+      "Zero-knowledge: server can't read it",
+      "HTTPS on, always",
+      "Lock down the admin page",
+      "Backups are existential",
+    ],
+  },
   // WordPress maintenance retainer: the care-plan deliverables.
   "wordpress-maintenance-retainer-plans": {
     archetype: "checklist",
