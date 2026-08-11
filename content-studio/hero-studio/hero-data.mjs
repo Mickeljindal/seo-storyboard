@@ -650,6 +650,35 @@ const HERO_OVERRIDES = {
       "Contractor: one app, time-boxed",
     ],
   },
+  // Fleet backup strategy: checklist of the fleet rules.
+  "multi-client-backup-strategy": {
+    archetype: "checklist",
+    palette: "teal",
+    motif: "backup",
+    eyebrow: "Fleet backups",
+    headline: "Back up a fleet,\nnot a site.",
+    sub: "Isolated per client, retained per plan, and actually restore-tested.",
+    checklist: [
+      "Isolate: one client's data only",
+      "Retention per client, per plan",
+      "Off-box, automatic, 3-2-1",
+      "Sample and rotate restore tests",
+    ],
+  },
+  // Migration as a service: the safe cutover flow.
+  "agency-migration-service-guide": {
+    archetype: "flow",
+    palette: "green",
+    motif: "migrate",
+    eyebrow: "Migration service",
+    headline: "We'll move you, free, no downtime.",
+    sub: "Old site serves until a verified copy is proven. Then DNS flips.",
+    flow: [
+      { k: "copy", v: "to staging", d: "old site serves" },
+      { k: "verify", v: "definition of done", d: "on the copy" },
+      { k: "live", v: "cut over DNS", d: "only if it passed", hot: true },
+    ],
+  },
   // Agency onboarding runbook: checklist of the phases.
   "agency-onboarding-checklist": {
     archetype: "checklist",

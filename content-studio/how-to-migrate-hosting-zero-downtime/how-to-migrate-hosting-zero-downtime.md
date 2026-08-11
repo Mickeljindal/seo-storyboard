@@ -11,7 +11,7 @@ secondary_keywords:
   - lower dns ttl before migration
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 4 — vs Competitors
+cluster: 4. vs Competitors
 ---
 
 ![Migrate hosting with zero downtime: a parallel-run playbook](images/hero.png)
@@ -159,6 +159,8 @@ grep -rn "old-domain.com" .
 ## Migrating from Heroku (or any PaaS)
 
 If you're doing a Heroku migration specifically, the phases are identical, with one extra thing to watch. A PaaS bundles managed add-ons (Postgres, Redis, a scheduler, workers) that feel invisible until you leave. The most common miss when people migrate from Heroku is forgetting one of those add-ons existed at all.
+
+If you are an agency doing this repeatedly, [migration as a service](https://www.kloudbean.com/blog/agency-migration-service-guide/) covers running it as a scheduled wave and turning it into a client-acquisition wedge.
 
 So during your Phase 0 inventory, list every add-on, not just the app. On the new side you recreate each as a real service: a [managed database](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) for your Postgres, a managed Redis for your cache and queues, cron jobs for the scheduler. Then it's the same parallel-run cutover as everything else. The app code barely changes, because it was reading a `DATABASE_URL` from the environment the whole time.
 

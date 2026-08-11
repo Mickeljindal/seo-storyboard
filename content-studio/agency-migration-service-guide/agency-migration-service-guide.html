@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agency Migration Service: Turn a Dreaded Chore Into a Wedge</title>
+<meta name="description" content="Migration is how agencies win clients and consolidate a portfolio, not just a chore. The two shapes of migration, running it in waves, de-risking the cutover, and what to tell the client.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/agency-migration-service-guide/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Agency Migration Service: Turn a Dreaded Chore Into a Wedge">
+<meta property="og:description" content="Offering to move a client for free removes the biggest objection to switching. How to run migration as a service line and a portfolio wave, without downtime.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Agency ops · Migration · Service design</span>
+  <h1>Agency Migration Service: Turn a Dreaded Chore Into a Wedge</h1>
+  <p class="byline">By Kloudbean Engineering · The pain of moving is the client's biggest objection. Removing it is how you win them.</p>
+
+  <figure><img src="images/hero.png" alt="A wave of client sites migrating from various hosts onto one managed account, staging first and DNS last">
+  </figure>
+
+  <p class="lead">Most agencies treat migration as a grim chore: the thing you have to do before the real work, done nervously, one white-knuckle DNS change at a time. That framing costs you money twice. It makes you slow to switch clients onto hosting you actually control, and it hides the fact that "we'll move you, for free, with no downtime" is one of the most persuasive things you can say to a prospect sitting on a host they dislike. Migration is not a chore. It is a service line and a client-acquisition wedge, and this is how to run it as one. The per-site mechanics live in <a href="https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/">migrating hosting without downtime</a>; this page is the operation around them.</p>
+
+  <div class="tldr">
+    <strong>How should an agency run migrations?</strong>
+    <p>As a repeatable service, not a one-off scramble. There are two shapes: onboarding migration, moving a single new client in, usually offered free because it removes the biggest reason not to switch to you; and portfolio migration, moving a whole book of sites onto one managed account, which you can run as a paid project or absorb to cut your own costs. Run both the same disciplined way: batch similar sites into waves, build and verify each on staging while the old site keeps serving, and move DNS only when the new copy passes a definition of done. Done like this, the client's live site never goes dark, and migration becomes something you sell rather than dread.</p>
+  </div>
+
+  <h2>Migration is a wedge, not a cost</h2>
+  <p>Start with the commercial point, because it changes how much migration is worth to you.</p>
+
+  <p>When a prospect is unhappy with their current host, the single biggest thing stopping them from moving is not price or features. It is the fear of the move itself: downtime, broken links, lost email, a site that comes back wrong. Every agency that says "you'd have to migrate" is reinforcing that fear. The agency that says "we'll handle the entire move for you, for free, and your site won't go down" has removed the objection and, very often, won the client on the spot.</p>
+
+  <p>So migration is a sales tool. The cost of moving a site is small and, with free migration assistance, largely not yours to bear, while the value of removing a prospect's biggest hesitation is the whole deal. Treat "we migrate you free" as a headline of your pitch, not a reluctant concession at the end of it.</p>
+
+  <h2>The two shapes of an agency migration</h2>
+  <p>They look similar technically and are completely different commercially, so decide which one you are doing before you start.</p>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>Onboarding migration</th><th>Portfolio migration</th></tr></thead>
+    <tbody>
+      <tr><td>What moves</td><td>One new client's site</td><td>Your whole book of existing sites</td></tr>
+      <tr><td>Why</td><td>To win and onboard the client</td><td>To consolidate onto one managed account you control</td></tr>
+      <tr><td>Who pays</td><td>Usually free, it is client acquisition</td><td>A paid project, or absorbed to cut your own hosting costs</td></tr>
+      <tr><td>Pace</td><td>One site, promptly</td><td>Waves, scheduled over weeks</td></tr>
+      <tr><td>Follows into</td><td>The <a href="https://www.kloudbean.com/blog/agency-onboarding-checklist/">onboarding runbook</a></td><td>The consolidation in <a href="https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/">hosting 20 client apps</a></td></tr>
+    </tbody>
+  </table>
+
+  <p>The portfolio case is the one agencies underrate. Moving all your clients onto one managed account is what makes the billing math work, because consolidation is what lowers your per-client cost, as covered in <a href="https://www.kloudbean.com/blog/client-billing-and-markup-for-hosting/">client billing and markup</a>. The migration is the one-time cost of a permanently better cost base.</p>
+
+  <h2>Run it as a wave, not twenty panics</h2>
+  <p>The mistake at portfolio scale is treating twenty migrations as twenty separate emergencies. Batch them instead.</p>
+
+  <p>Group the sites by similarity, the WordPress sites together, the static sites together, the one gnarly custom app on its own, and move a wave at a time. Within a wave, every site follows the same sequence, which is the same disciplined shape as any single zero-downtime move:</p>
+
+  <ol>
+    <li><strong>Intake</strong> the batch: confirm you have DNS access and source access for every site in the wave before you start any of them.</li>
+    <li><strong>Copy</strong> each site's files and database to a staging environment on the new account, leaving the live site untouched and serving.</li>
+    <li><strong>Verify</strong> each staged copy against a definition of done: it renders, logs in, processes a test action, SSL is ready.</li>
+    <li><strong>Cut over</strong> DNS only for the sites that passed, and only once you are watching. The live site was never down; you simply redirect the world to the verified copy.</li>
+    <li><strong>Confirm and close</strong> the wave, then start the next.</li>
+  </ol>
+
+  <p>The per-site mechanics of that cutover, TTL, the DNS flip, verifying propagation, are exactly the <a href="https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/">zero-downtime migration</a> process; running a wave is just doing it in a batch with a schedule. Lower the DNS TTL on the batch a day ahead so the cutover is quick, a detail covered in <a href="https://www.kloudbean.com/blog/flush-dns-cache/">how DNS caching and TTL work</a>.</p>
+
+  <figure>
+    <svg viewBox="0 0 880 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="mig-title mig-desc">
+      <title id="mig-title">The safe migration sequence</title>
+      <desc id="mig-desc">Each site is copied to staging on the new account while the old site keeps serving, verified against a definition of done, and only then does DNS cut over. Because the old site serves until the flip, there is no downtime, and a failed verification simply means you do not cut over.</desc>
+      <rect x="0" y="0" width="880" height="220" fill="#ffffff"/>
+      <g font-family="Poppins, sans-serif" font-size="12.5" fill="#000f27">
+        <rect x="20" y="80" width="150" height="56" rx="10" fill="#98a2b3"/><text x="95" y="104" text-anchor="middle" fill="#fff" font-weight="600">Old host</text><text x="95" y="122" text-anchor="middle" fill="#fff" font-size="10.5">keeps serving</text>
+        <rect x="220" y="80" width="150" height="56" rx="10" fill="#4F1AF3"/><text x="295" y="104" text-anchor="middle" fill="#fff" font-weight="600">Copy to staging</text><text x="295" y="122" text-anchor="middle" fill="#d8ccff" font-size="10.5">on new account</text>
+        <rect x="420" y="70" width="160" height="76" rx="10" fill="#40b75f"/><text x="500" y="102" text-anchor="middle" fill="#fff" font-weight="700">Verify</text><text x="500" y="122" text-anchor="middle" fill="#eafff0" font-size="10.5">definition of done</text>
+        <rect x="630" y="80" width="150" height="56" rx="10" fill="#000f27"/><text x="705" y="104" text-anchor="middle" fill="#fff" font-weight="600">Cut over DNS</text><text x="705" y="122" text-anchor="middle" fill="#aeb6d4" font-size="10.5">only if passed</text>
+        <g stroke="#98a2b3" stroke-width="2" fill="none" marker-end="url(#ma)"><path d="M170 108 H218"/><path d="M370 108 H418"/><path d="M580 108 H628"/></g>
+        <text x="440" y="176" font-size="11.5" fill="#c0392b">Fails verification? Don't cut over. The live site never knew.</text>
+        <rect x="20" y="30" width="760" height="26" rx="7" fill="#e8f7ed"/><text x="34" y="48" font-size="12" fill="#2f8f49">The old site serves the whole time. Downtime only happens if you flip DNS before verifying, so don't.</text>
+      </g>
+      <defs><marker id="ma" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#98a2b3"/></marker></defs>
+    </svg>
+    <figcaption>Staging-first, DNS-last. The client's site is down only if you cut over before verifying, which is the one thing you never do.</figcaption>
+  </figure>
+
+  <h2>De-risking: why the client's site never goes dark</h2>
+  <p>The fear you are selling against is downtime and data loss, so it is worth being precise about why a disciplined migration produces neither.</p>
+
+  <p>Downtime is impossible if you never take the old site down. It keeps serving throughout, and the only moment anything changes for visitors is the DNS cutover, which points them at a copy you have already verified works. If the staged copy fails verification, you do not cut over, and the client never knew there was an attempt. Data loss is prevented by taking a fresh backup before you touch anything and by verifying the copy processes real actions before the flip, so a broken migration is caught on staging rather than discovered in production. Free migration assistance means much of the fiddly work is not even yours to get wrong, and automatic backups mean there is always a known-good point to fall back to.</p>
+
+  <p>That is the honest basis for the promise you make the client: your site stays up, and if anything is wrong with the new copy, we simply don't switch to it.</p>
+
+  <h2>What to actually tell the client</h2>
+  <p>The client does not want the technical plan, they want to stop worrying. Give them the reassurance in plain language, roughly this:</p>
+
+  <pre><code>"Here's how the move works, so you can relax about it:
+
+  - Your current site keeps running normally the whole time.
+  - We build and test a full copy on the new hosting first.
+  - We only switch over once we've confirmed the copy works perfectly.
+  - If anything looked off, we simply wouldn't switch, and you'd never
+    have noticed. There's no window where your site is down.
+
+We'll tell you the date we plan to switch, and confirm once it's done."</code></pre>
+
+  <p>That message does the real work of a migration service, which is emotional as much as technical. A client who believes the move is safe says yes; a client who imagines their site down for a day says no, regardless of how good your process actually is.</p>
+
+  <h2>Pricing it: free to win, paid for complex</h2>
+  <p>An opinion, held loosely, because the right call depends on the job.</p>
+
+  <p>Onboarding migration, moving one new client in, should almost always be free, because it is client acquisition and the cost to you is small, especially with migration assistance doing the heavy lifting. Charging for it reintroduces the exact friction you were trying to remove.</p>
+
+  <p>A large or complex portfolio migration is different. Moving fifty sites, some with custom stacks, is a real project with real hours, and it is reasonable to price it as one, or to absorb it deliberately as an investment in a lower cost base once they are consolidated. What you should not do is let the fear of "migration is hard" stop you from consolidating your own clients, because that fear is mostly the chore-framing this article exists to dismantle. Keep specifics out of your public pricing and quote the project; the point here is the structure, not a number.</p>
+
+  <h2>Where hosting fits, honestly</h2>
+  <p>Migration as a service is only as easy to offer as the platform makes it. On Kloudbean, free migration assistance means the actual moving of files, databases, and configuration is work you can lean on rather than shoulder alone, which is what makes "we'll move you free" a promise you can keep at scale. Staging for WordPress and Laravel is where every migration gets built and verified before a single DNS record changes, automatic backups give the pre-cutover safety net, and free SSL is reissued at the destination so HTTPS is ready the moment you flip over. It all runs from one account across seven clouds, so a portfolio ends up consolidated rather than scattered, which is the whole point of the portfolio migration.</p>
+
+  <p>The honest boundary: the platform and the assistance do the heavy technical lifting, but the service is yours to run. Scheduling the waves, choosing what to charge, and above all reassuring the client are the parts only you can do, and they are what turn a capability into a service clients actually buy.</p>
+
+  <h2>Related reading</h2>
+  <p>The per-site mechanics are <a href="https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/">migrating hosting without downtime</a>, and the DNS timing detail is <a href="https://www.kloudbean.com/blog/flush-dns-cache/">how DNS caching and TTL work</a>. A migrated-in client flows into the <a href="https://www.kloudbean.com/blog/agency-onboarding-checklist/">onboarding runbook</a>; the consolidation payoff is <a href="https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/">hosting 20 client apps on one server</a> and the cost logic is <a href="https://www.kloudbean.com/blog/client-billing-and-markup-for-hosting/">client billing and markup</a>. The whole operation is the <a href="https://www.kloudbean.com/blog/hosting-for-agencies-playbook/">hosting for agencies playbook</a>, and moving a client out again is <a href="https://www.kloudbean.com/blog/agency-client-offboarding/">agency client offboarding</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Make "we'll move you, free, no downtime" your pitch.</p>
+    <p style="margin:0 0 .6em">Free migration assistance, staging to build and verify before cutover, automatic backups as the safety net, and free SSL reissued at the destination, from one account across seven clouds. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Free migration assistance · Staging · Automatic backups · Free SSL · One account · Seven clouds</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Should an agency offer website migration as a service?</h3>
+    <p>Yes, and it is worth more than it costs. The biggest reason a prospect stays on a host they dislike is the fear of moving, so offering to handle the entire migration for free, with no downtime, removes their main objection and often wins the deal. Treat migration as a client-acquisition wedge and a repeatable service line rather than a chore you do reluctantly.</p>
+
+    <h3>How do you migrate many client sites at once?</h3>
+    <p>In waves, not as twenty separate emergencies. Group sites by similarity, and for each wave copy every site to a staging environment on the new account while the old sites keep serving, verify each staged copy against a definition of done, then cut over DNS only for the sites that passed. Doing it in batches with a schedule keeps a portfolio migration controlled rather than chaotic.</p>
+
+    <h3>How do you migrate a site without downtime?</h3>
+    <p>Never take the old site down. Build and verify a complete copy on the new hosting first, with the old site serving throughout, and change DNS only once the copy is confirmed working. The only moment anything changes for visitors is that DNS cutover, which points them at a site you have already tested, so there is no window of downtime. The full mechanics are in the zero-downtime migration guide.</p>
+
+    <h3>Should I charge clients for migration?</h3>
+    <p>Onboarding migration, moving a single new client in, should usually be free, because it is client acquisition and charging for it reintroduces the friction you are trying to remove. A large or complex portfolio migration is a real project you can reasonably price, or absorb deliberately to gain a lower cost base once the clients are consolidated. Match the decision to the size of the job.</p>
+
+    <h3>What do I tell a client who is nervous about migrating?</h3>
+    <p>Tell them their current site keeps running the whole time, that you build and test a full copy on the new hosting first, and that you only switch over once the copy is confirmed working, so there is no window where their site is down. The reassurance is most of the service; a client who believes the move is safe agrees to it, and a disciplined staging-first process is what makes the reassurance true.</p>
+
+    <h3>Why migrate a whole portfolio onto one account?</h3>
+    <p>Consolidation lowers your per-client cost and puts every client on hosting you control, which is what makes agency billing margins work and access and backups manageable. The migration is a one-time cost that buys a permanently better cost base and a single dashboard instead of a scattered set of logins. It is the operational foundation the rest of the agency playbook assumes.</p>
+
+    <h3>What is the riskiest part of a migration?</h3>
+    <p>Cutting over DNS before the new copy is verified. That is the only step that can produce downtime or a broken site in front of visitors, and it is entirely avoidable: verify on staging first, and treat the DNS flip as the last action, taken only on sites that passed. A failed verification should simply mean you do not cut over, with the live site none the wiser.</p>
+
+    <h3>Does the platform do the migration or do I?</h3>
+    <p>Both, in a good split. Free migration assistance and staging do the heavy technical lifting of copying and verifying, which is what lets you promise a free, safe move at scale. Scheduling the waves, deciding what to charge, and reassuring the client are yours, because they are the service around the technical work rather than the work itself.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Selling the move is selling safety. Build on staging, flip DNS last.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Agency Migration Service: Turn a Dreaded Chore Into a Wedge","description":"Migration is how agencies win clients and consolidate a portfolio, not just a chore. The two shapes of migration, running it in waves, de-risking the cutover, and what to tell the client.","image":"https://www.kloudbean.com/blog/agency-migration-service-guide/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/agency-migration-service-guide/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Should an agency offer website migration as a service?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it is worth more than it costs. The biggest reason a prospect stays on a host they dislike is the fear of moving, so offering to handle the entire migration for free, with no downtime, removes their main objection and often wins the deal. Treat migration as a client-acquisition wedge and a repeatable service line rather than a chore you do reluctantly."}},
+{"@type":"Question","name":"How do you migrate many client sites at once?","acceptedAnswer":{"@type":"Answer","text":"In waves, not as twenty separate emergencies. Group sites by similarity, and for each wave copy every site to a staging environment on the new account while the old sites keep serving, verify each staged copy against a definition of done, then cut over DNS only for the sites that passed. Doing it in batches with a schedule keeps a portfolio migration controlled rather than chaotic."}},
+{"@type":"Question","name":"How do you migrate a site without downtime?","acceptedAnswer":{"@type":"Answer","text":"Never take the old site down. Build and verify a complete copy on the new hosting first, with the old site serving throughout, and change DNS only once the copy is confirmed working. The only moment anything changes for visitors is that DNS cutover, which points them at a site you have already tested, so there is no window of downtime. The full mechanics are in the zero-downtime migration guide."}},
+{"@type":"Question","name":"Should I charge clients for migration?","acceptedAnswer":{"@type":"Answer","text":"Onboarding migration, moving a single new client in, should usually be free, because it is client acquisition and charging for it reintroduces the friction you are trying to remove. A large or complex portfolio migration is a real project you can reasonably price, or absorb deliberately to gain a lower cost base once the clients are consolidated. Match the decision to the size of the job."}},
+{"@type":"Question","name":"What do I tell a client who is nervous about migrating?","acceptedAnswer":{"@type":"Answer","text":"Tell them their current site keeps running the whole time, that you build and test a full copy on the new hosting first, and that you only switch over once the copy is confirmed working, so there is no window where their site is down. The reassurance is most of the service; a client who believes the move is safe agrees to it, and a disciplined staging-first process is what makes the reassurance true."}},
+{"@type":"Question","name":"Why migrate a whole portfolio onto one account?","acceptedAnswer":{"@type":"Answer","text":"Consolidation lowers your per-client cost and puts every client on hosting you control, which is what makes agency billing margins work and access and backups manageable. The migration is a one-time cost that buys a permanently better cost base and a single dashboard instead of a scattered set of logins. It is the operational foundation the rest of the agency playbook assumes."}},
+{"@type":"Question","name":"What is the riskiest part of a migration?","acceptedAnswer":{"@type":"Answer","text":"Cutting over DNS before the new copy is verified. That is the only step that can produce downtime or a broken site in front of visitors, and it is entirely avoidable: verify on staging first, and treat the DNS flip as the last action, taken only on sites that passed. A failed verification should simply mean you do not cut over, with the live site none the wiser."}},
+{"@type":"Question","name":"Does the platform do the migration or do I?","acceptedAnswer":{"@type":"Answer","text":"Both, in a good split. Free migration assistance and staging do the heavy technical lifting of copying and verifying, which is what lets you promise a free, safe move at scale. Scheduling the waves, deciding what to charge, and reassuring the client are yours, because they are the service around the technical work rather than the work itself."}}
+]}
+]}
+</script>
+</body>
+</html>

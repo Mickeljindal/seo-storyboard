@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multi-Client Backup Strategy: Backing Up a Fleet, Not a Site</title>
+<meta name="description" content="Backing up one site is solved. Backing up 20 clients adds isolation, per-client retention, and restore testing you cannot do all at once. The fleet strategy, and how to prove it works.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/multi-client-backup-strategy/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Multi-Client Backup Strategy: Backing Up a Fleet, Not a Site">
+<meta property="og:description" content="One client's backup must never contain another's data. Per-client isolation, per-client retention, and a sample-and-rotate restore drill for an agency fleet.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Agency ops · Backups · Fleet strategy</span>
+  <h1>Multi-Client Backup Strategy: Backing Up a Fleet, Not a Site</h1>
+  <p class="byline">By Kloudbean Engineering · The problem is not backing up one site. It is proving twenty are safe.</p>
+
+  <figure><img src="images/hero.png" alt="A fleet of client sites, each with its own isolated backup and its own retention timeline, backed up off-box to object storage"></figure>
+
+  <p class="lead">Backing up a single website is a solved problem, and the <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a> covers the fundamentals: keep copies off the box, follow 3-2-1, and test that a restore actually works. This page assumes all of that and asks the harder question an agency faces: what changes when it is not one site but twenty clients? At that point three new problems appear that a single-site backup never has to solve, and getting them wrong is the difference between a backup that reassures a client and one that quietly leaks another client's data during a restore.</p>
+
+  <div class="tldr">
+    <strong>What is a multi-client backup strategy?</strong>
+    <p>It is the discipline of backing up an agency's whole fleet of client sites so that three things hold at once. First, isolation: each client's backup contains only their data, and restoring one client can never touch another. Second, per-client retention: different clients keep different history, driven by their contract, not one global setting. Third, restore testing at scale: since you cannot fully test twenty restores every week, you sample and rotate so every client's restore gets exercised over time. On top of the usual off-box, 3-2-1 fundamentals, those three are what make backups safe across a fleet rather than just present.</p>
+  </div>
+
+  <h2>What changes when it is a fleet</h2>
+  <p>A single-site backup answers one question: can I get this site back? A fleet backup has to answer three more, and they are the ones that bite.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Single site asks</th><th>A fleet also asks</th></tr></thead>
+    <tbody>
+      <tr><td>Can I restore it?</td><td>Can I restore <em>one</em> client without touching the others?</td></tr>
+      <tr><td>How long do I keep backups?</td><td>How long per client, given each has a different contract?</td></tr>
+      <tr><td>Did the restore work?</td><td>Did it work for <em>all twenty</em>, and when did I last check each?</td></tr>
+    </tbody>
+  </table>
+
+  <p>None of these is exotic, but all three are invisible until the day they matter, and the day they matter is a restore under pressure. The whole strategy is about making those three answers boring in advance.</p>
+
+  <h2>Isolation: one client's backup is only theirs</h2>
+  <p>This is the one that turns a backup into a liability if you get it wrong.</p>
+
+  <p>If your fleet lives as one big pile, with all clients' files under one tree and all databases in one instance, then a single backup blob contains everybody. That seems efficient until you restore. Restoring "the backup" to recover Client A now risks overwriting Client B's more recent data, and handing Client A a copy of the backup, say during an offboarding, hands them Client C's database too. A mixed backup is a privacy incident waiting for a restore to trigger it.</p>
+
+  <p>The fix is structural and it starts before backups: each client is an isolated environment with its own files and its own database, the same isolation that keeps <a href="https://www.kloudbean.com/blog/host-multiple-apps-one-server/">multiple apps on one server</a> from interfering. When each client is isolated, their backup is naturally theirs alone: you can restore one without the others noticing, and you can hand one client their complete data with nothing of anyone else's in it. Backup isolation is a consequence of hosting isolation, which is why the two decisions are really one.</p>
+
+  <figure>
+    <svg viewBox="0 0 880 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="mb-title mb-desc">
+      <title id="mb-title">A shared backup blob versus per-client isolated backups</title>
+      <desc id="mb-desc">On the left, one backup contains every client's data mixed together, so restoring one client risks the others and handing over a copy leaks everyone. On the right, each client has an isolated backup, so a restore or a handover touches only that client.</desc>
+      <rect x="0" y="0" width="880" height="250" fill="#ffffff"/>
+      <g font-family="Poppins, sans-serif" font-size="13" fill="#000f27">
+        <text x="20" y="30" font-size="14" font-weight="600" fill="#c0392b">One shared backup</text>
+        <rect x="30" y="50" width="330" height="150" rx="12" fill="#fdeeee" stroke="#c0392b" stroke-width="1.5"/>
+        <g font-size="12" fill="#000f27">
+          <rect x="55" y="75" width="120" height="40" rx="7" fill="#e07a5f"/><text x="115" y="100" text-anchor="middle" fill="#fff">Client A</text>
+          <rect x="215" y="75" width="120" height="40" rx="7" fill="#e07a5f"/><text x="275" y="100" text-anchor="middle" fill="#fff">Client B</text>
+          <rect x="55" y="135" width="120" height="40" rx="7" fill="#e07a5f"/><text x="115" y="160" text-anchor="middle" fill="#fff">Client C</text>
+          <rect x="215" y="135" width="120" height="40" rx="7" fill="#e07a5f"/><text x="275" y="160" text-anchor="middle" fill="#fff">Client D</text>
+        </g>
+        <text x="195" y="220" text-anchor="middle" font-size="11.5" fill="#c0392b">Restore one, risk all. Hand it over, leak all.</text>
+
+        <text x="500" y="30" font-size="14" font-weight="600" fill="#2f8f49">Isolated per client</text>
+        <g font-size="12">
+          <rect x="500" y="55" width="170" height="40" rx="8" fill="#e8f7ed" stroke="#40b75f"/><text x="585" y="80" text-anchor="middle">Client A backup</text>
+          <rect x="690" y="55" width="170" height="40" rx="8" fill="#e8f7ed" stroke="#40b75f"/><text x="775" y="80" text-anchor="middle">Client B backup</text>
+          <rect x="500" y="105" width="170" height="40" rx="8" fill="#e8f7ed" stroke="#40b75f"/><text x="585" y="130" text-anchor="middle">Client C backup</text>
+          <rect x="690" y="105" width="170" height="40" rx="8" fill="#e8f7ed" stroke="#40b75f"/><text x="775" y="130" text-anchor="middle">Client D backup</text>
+        </g>
+        <text x="680" y="175" text-anchor="middle" font-size="11.5" fill="#2f8f49">Restore or hand over one, and only one moves.</text>
+        <rect x="500" y="192" width="360" height="30" rx="7" fill="#000f27"/>
+        <text x="680" y="212" text-anchor="middle" font-size="12" fill="#fff">Backup isolation follows from hosting isolation.</text>
+      </g>
+    </svg>
+    <figcaption>If clients share one environment, they share one backup. Isolate the hosting and the backups isolate themselves.</figcaption>
+  </figure>
+
+  <h2>Retention is per client, not one global dial</h2>
+  <p>A single site has one retention policy. A fleet has as many as it has contracts, and treating retention as one global setting either overspends on storage or under-protects the clients who need history.</p>
+
+  <p>A client on a full care plan may be entitled to weeks of daily history and a long tail of monthly snapshots. A one-off brochure site you host as a favour needs far less. An ecommerce client mid-dispute may need you to hold a specific point in time longer than usual. So retention is a policy you set per client, ideally mapped to their plan tier, rather than a number you pick once for everyone. The <a href="https://www.kloudbean.com/blog/client-billing-and-markup-for-hosting/">billing tiers</a> are a natural place to anchor it: the retention a client gets is part of what their plan buys.</p>
+
+  <p>Two guardrails keep this sane. Do not keep everything forever "just in case", because a former client's data you no longer need is a liability, which is exactly the retention-then-delete rule from <a href="https://www.kloudbean.com/blog/agency-client-offboarding/">offboarding</a>. And do not let a generous retention promise outrun where the backups actually live: long history is only real if it is stored off-box, which is the next point.</p>
+
+  <h2>Off-box, per client, and 3-2-1 still applies</h2>
+  <p>Everything the single-site guide says about keeping backups off the machine they protect applies to every client, not as an afterthought but per client.</p>
+
+  <p>A backup that sits on the same server as the site dies with that server, whether it is one site or twenty. So each client's backups belong off-box, in object storage that is separate, durable, and outside the blast radius of the server. S3-compatible object storage, or managed GCS buckets, is the usual home, and the same 3-2-1 thinking from the <a href="https://www.kloudbean.com/blog/server-backups-guide/">backups guide</a> holds: more than one copy, more than one medium, at least one off-site. The fleet twist is only that you are doing it many times, so it needs to be automatic rather than a thing you remember per client. Automatic backups running per environment, shipped off-box, is the baseline the rest of this strategy sits on.</p>
+
+  <h2>The restore drill you can actually sustain</h2>
+  <p>Here is the honest constraint nobody admits: you cannot fully test twenty client restores every week. A test restore takes real time and attention, and doing it for the whole fleet on every cycle is not sustainable, so agencies either test nothing or pretend to test everything.</p>
+
+  <p>The workable answer is <strong>sample and rotate</strong>. Each cycle, fully test the restore of a different client, so that over a rotation every client's backup gets exercised. It looks like this:</p>
+
+  <pre><code>Week 1:  full test restore of Client A   -> record pass/fail + date
+Week 2:  full test restore of Client B   -> record pass/fail + date
+Week 3:  full test restore of Client C   -> ...
+...rotate through the fleet, then start again.
+
+Always: verify the backup JOB succeeded for ALL clients (automated check),
+        even on the clients you are not fully restore-testing this week.</code></pre>
+
+  <p>Two layers, and the distinction matters. Every client gets an automated check every cycle that the backup job ran and produced a file of a sane size, which is cheap and catches the common "backups silently stopped" failure. On top of that, one client per cycle gets a full restore actually stood up and verified, which is expensive but is the only thing that proves a backup is restorable rather than merely present. Rotate the expensive test so every client is covered over time, and keep a log of when each was last proven.</p>
+
+  <h2>Your backup is also a client-retention asset</h2>
+  <p>At fleet scale the backup stops being purely operational and becomes something you can sell and prove.</p>
+
+  <p>"We back up your site" is a claim every host makes. "Your site's last full restore test passed on the 3rd, and here is the log" is a different level of trust, and it is exactly the kind of concrete assurance that keeps a client on a care plan through a renewal. Keeping a simple record of each client's last successful backup and last proven restore turns your discipline into a visible benefit rather than invisible plumbing. On enterprise engagements, the Audit Trail provides an immutable record of that activity; on any plan, even a maintained log is worth more to the relationship than the client ever realises until the day they need it.</p>
+
+  <div class="note">
+    <strong>The number that matters is time-to-restore, not backup count.</strong> When a client site is down, nobody cares how many backups you hold, only how fast their specific site comes back. A fleet strategy is really about being able to restore one client quickly and cleanly while the other nineteen are undisturbed. Optimise for that, and the rest follows.
+  </div>
+
+  <h2>Where hosting fits, honestly</h2>
+  <p>Most of this strategy is discipline, but the platform decides how much of it you have to do by hand. On Kloudbean each client is an isolated environment, so backups are naturally per client rather than one mixed blob, which is the isolation the whole strategy depends on. Automatic backups run per environment without you remembering, and they ship off-box to S3-compatible object storage or managed GCS buckets so a dead server does not take the backups with it. It all sits in one dashboard, so checking that the backup job ran across the fleet is one place rather than twenty logins. Seven clouds to spread clients across, and free migration assistance when you bring a new client's site in to fold into the same routine.</p>
+
+  <p>The honest boundary: the platform provides isolation, automatic backups, and off-box storage. The retention policy per client, the sample-and-rotate restore schedule, and the discipline of actually running the test are yours. A backup that is never restore-tested is a hope, not a strategy, and no platform can test it for you, only make the test easy.</p>
+
+  <h2>Related reading</h2>
+  <p>The fundamentals this page builds on are in the <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a> (3-2-1, off-box, test the restore). The isolation it depends on is <a href="https://www.kloudbean.com/blog/host-multiple-apps-one-server/">hosting multiple apps on one server</a>, and the retention-then-delete rule is <a href="https://www.kloudbean.com/blog/agency-client-offboarding/">agency client offboarding</a>. Retention maps to plan tiers in <a href="https://www.kloudbean.com/blog/client-billing-and-markup-for-hosting/">client billing and markup</a>. The wider operation is the <a href="https://www.kloudbean.com/blog/hosting-for-agencies-playbook/">hosting for agencies playbook</a> and <a href="https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/">how agencies host 20 client apps on one server</a>. Off-box storage itself is <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Back up the whole fleet, prove any one on demand.</p>
+    <p style="margin:0 0 .6em">Isolated client environments with automatic per-environment backups shipped off-box to S3-compatible object storage, all in one dashboard across seven clouds. Free migration assistance to bring new clients into the routine. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Isolated backups · Automatic · Off-box object storage · One dashboard · Free migration</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is a multi-client backup strategy?</h3>
+    <p>It is how an agency backs up a whole fleet of client sites so that each client's backup is isolated to their data, retention is set per client rather than globally, and restores are tested by sampling and rotating through the fleet. It sits on top of the usual off-box, 3-2-1 fundamentals, and its goal is to be able to restore any one client quickly and cleanly without affecting the others.</p>
+
+    <h3>Why should each client's backup be isolated?</h3>
+    <p>Because a single backup containing every client's data is a privacy and compliance risk that a restore triggers. Restoring one client from a shared blob can overwrite another's more recent data, and handing a client a copy of it, during offboarding for example, leaks everyone else's data too. Isolated per-client backups let you restore or hand over one client without touching any other, and that isolation follows naturally from hosting each client in a separate environment.</p>
+
+    <h3>How long should an agency keep client backups?</h3>
+    <p>Per client, according to their plan and contract, rather than one global number. A care-plan client may warrant weeks of daily history and a longer tail of monthly snapshots, while a simple brochure site needs far less. Map retention to your billing tiers, avoid keeping former clients' data indefinitely because that becomes a liability, and make sure long history is stored off-box so it is actually real.</p>
+
+    <h3>How do you test restores across many client sites?</h3>
+    <p>Sample and rotate. Fully test one client's restore each cycle so that over a rotation every client gets exercised, and separately run a cheap automated check on every client every cycle that the backup job actually ran and produced a sane file. The automated check catches silently-stopped backups across the fleet; the rotating full restore proves that backups are genuinely restorable, which is the only thing that counts.</p>
+
+    <h3>Can I restore one client without affecting the others?</h3>
+    <p>Only if each client is isolated, with their own environment, files, and database, and their own backup. When that is true, restoring Client A touches nothing of Client B's. When clients share one environment and one backup, a restore is a blunt instrument that risks everyone, which is why backup isolation is really a hosting-isolation decision made earlier.</p>
+
+    <h3>Does 3-2-1 still apply for an agency fleet?</h3>
+    <p>Yes, per client and automatically. Every client's backups should follow the same principle of multiple copies, more than one medium, and at least one off-site, kept off the server they protect so a dead machine does not take them with it. The only difference at fleet scale is volume, so it has to run automatically per environment rather than being something you remember to do site by site.</p>
+
+    <h3>Should backups be part of what I sell clients?</h3>
+    <p>They already are, so make them visible. Every host claims to back up; being able to tell a client the date their last restore test passed is a concrete assurance that supports renewals and justifies a care plan. Keep a simple record of each client's last successful backup and last proven restore, and the discipline becomes a benefit the client can see rather than plumbing they never think about.</p>
+
+    <h3>What is the single most important backup metric for an agency?</h3>
+    <p>Time to restore one specific client, not the number of backups you hold. When a client's site is down, the only thing that matters to them is how fast their site returns, undisturbed by the rest of the fleet. Designing your strategy around fast, clean, isolated single-client restores is what makes the whole thing worth having.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · A backup you have never restored is a hope. Test one client a week.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Multi-Client Backup Strategy: Backing Up a Fleet, Not a Site","description":"Backing up one site is solved. Backing up 20 clients adds isolation, per-client retention, and restore testing you cannot do all at once. The fleet strategy, and how to prove it works.","image":"https://www.kloudbean.com/blog/multi-client-backup-strategy/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/multi-client-backup-strategy/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is a multi-client backup strategy?","acceptedAnswer":{"@type":"Answer","text":"It is how an agency backs up a whole fleet of client sites so that each client's backup is isolated to their data, retention is set per client rather than globally, and restores are tested by sampling and rotating through the fleet. It sits on top of the usual off-box, 3-2-1 fundamentals, and its goal is to be able to restore any one client quickly and cleanly without affecting the others."}},
+{"@type":"Question","name":"Why should each client's backup be isolated?","acceptedAnswer":{"@type":"Answer","text":"Because a single backup containing every client's data is a privacy and compliance risk that a restore triggers. Restoring one client from a shared blob can overwrite another's more recent data, and handing a client a copy of it, during offboarding for example, leaks everyone else's data too. Isolated per-client backups let you restore or hand over one client without touching any other, and that isolation follows naturally from hosting each client in a separate environment."}},
+{"@type":"Question","name":"How long should an agency keep client backups?","acceptedAnswer":{"@type":"Answer","text":"Per client, according to their plan and contract, rather than one global number. A care-plan client may warrant weeks of daily history and a longer tail of monthly snapshots, while a simple brochure site needs far less. Map retention to your billing tiers, avoid keeping former clients' data indefinitely because that becomes a liability, and make sure long history is stored off-box so it is actually real."}},
+{"@type":"Question","name":"How do you test restores across many client sites?","acceptedAnswer":{"@type":"Answer","text":"Sample and rotate. Fully test one client's restore each cycle so that over a rotation every client gets exercised, and separately run a cheap automated check on every client every cycle that the backup job actually ran and produced a sane file. The automated check catches silently-stopped backups across the fleet; the rotating full restore proves that backups are genuinely restorable, which is the only thing that counts."}},
+{"@type":"Question","name":"Can I restore one client without affecting the others?","acceptedAnswer":{"@type":"Answer","text":"Only if each client is isolated, with their own environment, files, and database, and their own backup. When that is true, restoring Client A touches nothing of Client B's. When clients share one environment and one backup, a restore is a blunt instrument that risks everyone, which is why backup isolation is really a hosting-isolation decision made earlier."}},
+{"@type":"Question","name":"Does 3-2-1 still apply for an agency fleet?","acceptedAnswer":{"@type":"Answer","text":"Yes, per client and automatically. Every client's backups should follow the same principle of multiple copies, more than one medium, and at least one off-site, kept off the server they protect so a dead machine does not take them with it. The only difference at fleet scale is volume, so it has to run automatically per environment rather than being something you remember to do site by site."}},
+{"@type":"Question","name":"Should backups be part of what I sell clients?","acceptedAnswer":{"@type":"Answer","text":"They already are, so make them visible. Every host claims to back up; being able to tell a client the date their last restore test passed is a concrete assurance that supports renewals and justifies a care plan. Keep a simple record of each client's last successful backup and last proven restore, and the discipline becomes a benefit the client can see rather than plumbing they never think about."}},
+{"@type":"Question","name":"What is the single most important backup metric for an agency?","acceptedAnswer":{"@type":"Answer","text":"Time to restore one specific client, not the number of backups you hold. When a client's site is down, the only thing that matters to them is how fast their site returns, undisturbed by the rest of the fleet. Designing your strategy around fast, clean, isolated single-client restores is what makes the whole thing worth having."}}
+]}
+]}
+</script>
+</body>
+</html>

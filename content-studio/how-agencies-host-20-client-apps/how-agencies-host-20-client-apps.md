@@ -10,7 +10,7 @@ secondary_keywords:
   - one server multiple websites
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 5 — Agency & Multi-App Hosting
+cluster: 5. Agency & Multi-App Hosting
 ---
 
 ![Host 20+ client apps on one managed server](images/hero.png)
@@ -142,7 +142,7 @@ Server-level backups cover the whole box. For the "roll back *just this client* 
 
 ## When to split into more servers
 
-Consolidation is a starting point, not a religion. Split a client onto its own server when its resource use is consistently crowding the others, when it needs genuine isolation for security or compliance, or when the blast radius of one shared machine gets bigger than you're comfortable with. The goal was never "everything on one server forever." It's the fewest servers you can run well, with the ops off your plate. And because it's all one console, moving one app out leaves the rest untouched. Same login, same bill.
+Consolidation is a starting point, not a religion. Split a client onto its own server when its resource use is consistently crowding the others, when it needs genuine isolation for security or compliance, or when the blast radius of one shared machine gets bigger than you're comfortable with. The goal was never "everything on one server forever." It's the fewest servers you can run well, with the ops off your plate. And because it's all one console, moving one app out leaves the rest untouched. Same login, same bill. Two fleet operations that earn their own runbooks: [backing up many clients](https://www.kloudbean.com/blog/multi-client-backup-strategy/) and [migrating a portfolio in](https://www.kloudbean.com/blog/agency-migration-service-guide/).
 
 **Run the whole client book from one console.** Spin up your first managed server, add clients as isolated apps, and watch the dashboard sprawl disappear. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
 

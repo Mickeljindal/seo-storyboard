@@ -184,6 +184,7 @@ grep -rn "old-domain.com" .</code></pre>
 
   <h2>Migrating from Heroku (or any PaaS)</h2>
   <p>If you're doing a Heroku migration specifically, the phases are identical, with one extra thing to watch. A PaaS bundles managed add-ons (Postgres, Redis, a scheduler, workers) that feel invisible until you leave. The most common miss when people migrate from Heroku is forgetting one of those add-ons existed at all.</p>
+  <p>If you are an agency doing this repeatedly, <a href="https://www.kloudbean.com/blog/agency-migration-service-guide/">migration as a service</a> covers running it as a scheduled wave and turning it into a client-acquisition wedge.</p>
   <p>So during your Phase 0 inventory, list every add-on, not just the app. On the new side you recreate each as a real service: a <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">managed database</a> for your Postgres, a managed Redis for your cache and queues, cron jobs for the scheduler. Then it's the same parallel-run cutover as everything else. The app code barely changes, because it was reading a <code>DATABASE_URL</code> from the environment the whole time.</p>
 
   <h2>Where Kloudbean fits (and the free part)</h2>
