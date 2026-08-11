@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Self-Host Plausible: Great Analytics, but Mind the ClickHouse</title>
+<meta name="description" content="Plausible Community Edition is a privacy-first, cookieless analytics tool you can self-host. The catch most guides skip is ClickHouse. How it compares to Umami, and where it fits.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/self-host-plausible/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Self-Host Plausible: Great Analytics, but Mind the ClickHouse">
+<meta property="og:description" content="Plausible CE is polished, privacy-first, cookieless analytics you own. The honest guide: it runs on ClickHouse plus Postgres, which is heavier than Umami, and that shapes the decision.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Self-hosted tools · Analytics · Guide</span>
+  <h1>Self-Host Plausible: Great Analytics, but Mind the ClickHouse</h1>
+  <p class="byline">By Kloudbean Engineering · The tool is lovely. The database it wants is the part to plan for.</p>
+
+  <figure><img src="images/hero.png" alt="The Plausible analytics dashboard on a self-hosted server, backed by ClickHouse and PostgreSQL">
+  </figure>
+
+  <p class="lead">Plausible is one of the nicest privacy-first analytics tools going: cookieless, GDPR-friendly, a tracking script small enough that it barely registers, and a dashboard that shows you what matters without the sprawl of Google Analytics. Self-hosting it means owning your visitors' data instead of shipping it to an ad company. All good so far. The thing most quick guides gloss over is what Plausible runs on, because self-hosting it is not a single lightweight container. It wants ClickHouse, and that one fact should shape your decision, your server sizing, and whether Plausible or a lighter alternative is right for you.</p>
+
+  <div class="tldr">
+    <strong>Should I self-host Plausible?</strong>
+    <p>Plausible is a privacy-first, cookieless web analytics tool built in Elixir, and its self-hosted release is Plausible Community Edition (CE), which is free and AGPL-licensed. Self-host it to own your analytics data and drop the cookie banner. The important thing to plan for: Plausible stores its analytics events in ClickHouse, a separate analytics database, alongside PostgreSQL for configuration, so it is heavier to run than single-database tools like Umami. That ClickHouse foundation is exactly why it stays fast on large traffic. Choose Plausible when you want its polish and scale and can run ClickHouse; choose Umami if you want the lightest possible self-hosted analytics or the ability to inspect individual visits.</p>
+  </div>
+
+  <h2>What Plausible actually is</h2>
+  <p>A deliberately simple, privacy-respecting way to see how your site is doing, without the baggage.</p>
+
+  <p>Plausible is web analytics built around privacy: no cookies, no cross-site tracking, a small script (the docs put it under a kilobyte), and a clean single-page dashboard of the numbers most people actually look at. It is built in Elixir, it is GDPR and CCPA friendly by design, and it is a popular, credible replacement for Google Analytics for people who want their stats without surveilling their visitors. The version you self-host is Plausible Community Edition, or CE, which is free and released under the AGPL. The company also runs a paid managed cloud, and those subscriptions fund the project's development, which is worth understanding so the CE-versus-cloud distinction does not surprise you later.</p>
+
+  <p>So far this sounds like every privacy-analytics tool, including the one you may already have read about here, Umami. The difference is underneath, and it is the whole story.</p>
+
+  <h2>The ClickHouse reality (plan for this)</h2>
+  <p>If you skim one section, make it this one, because it is the fact that changes your setup.</p>
+
+  <p>Plausible does not store analytics events in a normal relational database. It uses ClickHouse, a column-oriented database purpose-built for analytics, to hold the event data, and it uses PostgreSQL alongside for configuration and account data. That design is a genuine strength: ClickHouse is why Plausible stays fast when you are querying millions of events, and why it scales to serious traffic without slowing to a crawl. It is also, unavoidably, more to run. Self-hosting Plausible means operating ClickHouse as well as Postgres, which is more moving parts, more memory, and more to understand than a tool that lives in a single database.</p>
+
+  <p>This is not a criticism of Plausible; it is a design trade you should make on purpose. If you have real traffic and want analytics that stay snappy at scale, the ClickHouse foundation is a feature worth its weight. If you run a modest site and just want the lightest possible thing to own, the extra database is overhead you may not need, and that is precisely where a single-database alternative comes in. Either way, size your server for ClickHouse from the start rather than discovering its appetite after launch.</p>
+
+  <h2>Plausible or Umami? Weight versus scale</h2>
+  <p>Both are excellent privacy-first, cookieless analytics tools, so the choice is about fit, not quality.</p>
+
+  <p>Plausible, with ClickHouse behind it, is built to stay fast on large volumes of traffic and takes a firmly aggregate view: it shows you trends and totals rather than letting you follow a single visitor around your site. <a href="https://www.kloudbean.com/blog/self-host-umami/">Umami</a> is lighter, running on a single PostgreSQL or MySQL database, which makes it simpler and cheaper to self-host, and it will let you inspect individual visit paths if that is something you want. So the decision is honest and clean: if scale and polish matter and you can run ClickHouse, Plausible is a lovely choice; if you want the simplest, lightest self-hosted analytics, or you value drilling into individual visits, Umami is the easier yes.</p>
+
+  <table class="cmp">
+    <thead><tr><th>&nbsp;</th><th>Plausible (CE)</th><th>Umami</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Analytics store</strong></td><td>ClickHouse, plus Postgres for config</td><td>Single PostgreSQL or MySQL</td></tr>
+      <tr><td><strong>Weight to self-host</strong></td><td>Heavier (two databases)</td><td>Light (one database)</td></tr>
+      <tr><td><strong>Scales to heavy traffic</strong></td><td>Yes, that is ClickHouse's job</td><td>Fine for most sites</td></tr>
+      <tr><td><strong>View of data</strong></td><td>Aggregate stats</td><td>Aggregate plus individual visits</td></tr>
+      <tr><td><strong>Both are</strong></td><td>Cookieless, privacy-first, open source</td><td>Cookieless, privacy-first, open source</td></tr>
+      <tr><td><strong>Choose it when</strong></td><td>Scale, polish, you can run ClickHouse</td><td>Lightest self-host, individual visits</td></tr>
+    </tbody>
+  </table>
+
+  <h2>What it takes to run, and backups</h2>
+  <p>Two databases and a server, with the sizing driven by ClickHouse rather than the app.</p>
+
+  <p>Plausible CE is distributed to run with its ClickHouse and PostgreSQL dependencies, so a self-host is the Plausible app, a ClickHouse instance for events, and Postgres for configuration, behind a reverse proxy with HTTPS. ClickHouse is the memory-hungry part, so give the server room. On the Postgres side, pointing the configuration database at a <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a> takes one component off your plate and keeps it backed up, while ClickHouse runs on the server as part of Plausible's own stack.</p>
+
+  <p>For backups, remember there are two stores that matter: ClickHouse holds the analytics events, which are the actual value, and Postgres holds the configuration. A real backup routine covers both, shipped off the server on a schedule, with a restore you have tested, as in <a href="https://www.kloudbean.com/blog/server-backups-guide/">the backups guide</a>. It is easy to back up the small Postgres config and forget the ClickHouse data that is the whole point, so do not make that mistake.</p>
+
+  <figure>
+    <svg viewBox="0 0 880 232" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="pl-title pl-desc">
+      <title id="pl-title">What self-hosted Plausible actually runs on</title>
+      <desc id="pl-desc">A visitor's small script sends events to the Plausible app on your server, which writes analytics events to ClickHouse and keeps configuration in PostgreSQL. ClickHouse is the heavier component to run and holds the data that matters.</desc>
+      <rect x="0" y="0" width="880" height="232" fill="#ffffff"/>
+      <g font-family="Poppins, sans-serif" font-size="12.5" fill="#000f27">
+        <rect x="24" y="86" width="150" height="60" rx="10" fill="#e8f7ed" stroke="#40b75f" stroke-width="1.3"/>
+        <text x="99" y="112" text-anchor="middle" font-weight="600">Your site</text>
+        <text x="99" y="132" text-anchor="middle" font-size="10.5">tiny script</text>
+
+        <g stroke="#98a2b3" stroke-width="2" fill="none" marker-end="url(#pla)"><path d="M176 116 H262"/></g>
+
+        <rect x="264" y="80" width="200" height="72" rx="12" fill="#0b1531"/>
+        <text x="364" y="110" text-anchor="middle" fill="#fff" font-weight="700">Plausible (Elixir)</text>
+        <text x="364" y="132" text-anchor="middle" fill="#aeb6d4" font-size="11">on your server</text>
+
+        <g stroke="#4F1AF3" stroke-width="2.4" fill="none" marker-end="url(#pla)"><path d="M464 104 H560"/></g>
+        <rect x="562" y="70" width="292" height="46" rx="10" fill="#efe9ff" stroke="#4F1AF3" stroke-width="1.4"/>
+        <text x="708" y="92" text-anchor="middle" font-size="12" font-weight="700" fill="#4F1AF3">ClickHouse: events</text>
+        <text x="708" y="108" text-anchor="middle" font-size="10" fill="#6b4bd8">heavier, holds the data that matters</text>
+
+        <g stroke="#40b75f" stroke-width="2" fill="none" marker-end="url(#pla)"><path d="M464 128 H560"/></g>
+        <rect x="562" y="126" width="292" height="42" rx="10" fill="#e8f7ed" stroke="#40b75f" stroke-width="1.2"/>
+        <text x="708" y="152" text-anchor="middle" font-size="11.5" font-weight="600">PostgreSQL: configuration</text>
+
+        <rect x="24" y="192" width="830" height="30" rx="7" fill="#000f27"/>
+        <text x="38" y="212" font-size="11.5" fill="#fff">Two databases, not one. Back up ClickHouse too, or you back up the settings and lose the stats.</text>
+      </g>
+      <defs><marker id="pla" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#98a2b3"/></marker></defs>
+    </svg>
+    <figcaption>Plausible's speed at scale comes from ClickHouse, which is also the component that decides your server size and your backup plan.</figcaption>
+  </figure>
+
+  <h2>Where hosting fits, honestly</h2>
+  <p>Plausible runs well on a managed server, with a clear division of what the platform handles and what you do. You run the Plausible stack, including ClickHouse, on a managed server across any of seven clouds, behind a managed reverse proxy with free auto-renewing SSL, and you can put the PostgreSQL configuration database on managed PostgreSQL so that part is maintained and backed up. Honesty matters here: ClickHouse is not one of the managed database engines, so it runs on the server as part of Plausible's own stack rather than as a managed service, which is one more reason to size the box for it.</p>
+
+  <p>The honest boundary: the platform runs the server, the Postgres database, SSL, and backups, and gives you the machine to run ClickHouse on. ClickHouse itself, the Plausible application, and your analytics data are yours to operate and own. Managed hosting removes the server and Postgres busywork; it does not turn ClickHouse into someone else's problem, and pretending otherwise would just set you up for a surprise.</p>
+
+  <h2>Related reading</h2>
+  <p>For the lighter, single-database alternative and the full comparison, <a href="https://www.kloudbean.com/blog/self-host-umami/">self-hosting Umami</a>. For the wider set of tools worth owning, the <a href="https://www.kloudbean.com/blog/best-self-hosted-tools/">best self-hosted tools</a> guide. The configuration database is <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a>, and both data stores need <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups</a>. If analytics is part of a wider owned stack, <a href="https://www.kloudbean.com/blog/self-host-ghost/">self-hosting Ghost</a> for publishing is good company.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Own your analytics, on a server sized for it.</p>
+    <p style="margin:0 0 .6em">Run Plausible Community Edition on a managed server across seven clouds, with managed PostgreSQL for its configuration, free auto-renewing SSL, and automatic backups, on a box with room for ClickHouse. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed server · Managed PostgreSQL · Free auto-renewing SSL · Automatic backups</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is Plausible Community Edition?</h3>
+    <p>Plausible Community Edition, or CE, is the free, self-hostable version of Plausible Analytics, released under the AGPL license. It gives you the privacy-first, cookieless analytics that Plausible is known for, running on your own server. The company also offers a paid managed cloud, and those subscriptions fund the project, so CE is the self-hosted release rather than a stripped demo, but the CE-versus-cloud distinction is worth understanding when you plan.</p>
+
+    <h3>Why does Plausible need ClickHouse?</h3>
+    <p>ClickHouse is a column-oriented database built for analytics, and Plausible uses it to store event data so that queries stay fast even across millions of events. PostgreSQL is used alongside it for configuration and account data. The ClickHouse foundation is exactly why Plausible scales well on heavy traffic, but it also means self-hosting Plausible involves running two databases, which is more to operate than a single-database tool.</p>
+
+    <h3>Is Plausible heavier to self-host than Umami?</h3>
+    <p>Yes. Plausible runs ClickHouse plus PostgreSQL, while Umami runs on a single PostgreSQL or MySQL database. That makes Plausible more capable at scale but heavier to operate and hungrier for memory, mostly because of ClickHouse. If you want the lightest possible self-hosted analytics, Umami is simpler; if you have real traffic and want speed at scale, Plausible's extra weight buys you something real.</p>
+
+    <h3>Plausible or Umami, which should I self-host?</h3>
+    <p>Choose Plausible if you value its polish, want analytics that stay fast on large traffic, and are comfortable running ClickHouse. Choose Umami if you want the simplest, lightest self-hosted analytics on a single database, or if you want to inspect individual visitor paths, which Plausible's aggregate-focused approach does not emphasise. Both are cookieless, privacy-first, and open source, so it is a fit decision rather than a quality one.</p>
+
+    <h3>Does Plausible use cookies?</h3>
+    <p>No. Plausible is cookieless by design and does not track users across sites, which is why it can run without a cookie consent banner in many jurisdictions and is considered GDPR and CCPA friendly. It collects aggregate, privacy-respecting statistics rather than building individual profiles, which is the whole point of choosing it over a traditional analytics platform.</p>
+
+    <h3>How do I back up self-hosted Plausible?</h3>
+    <p>Back up both databases, because they hold different things. ClickHouse holds your analytics events, which are the actual value, and PostgreSQL holds configuration and account data. Ship both off the server automatically on a schedule and test a restore. A common mistake is backing up the small Postgres config and forgetting the ClickHouse data, so make sure your routine covers the events, not just the settings.</p>
+
+    <h3>Can Kloudbean run ClickHouse as a managed database?</h3>
+    <p>No. ClickHouse is not one of the managed database engines, so with Plausible it runs on your server as part of Plausible's own stack rather than as a managed service. You can, however, put the PostgreSQL configuration database on managed PostgreSQL. Practically, that means sizing the server with ClickHouse in mind, since it is the component you operate yourself.</p>
+
+    <h3>Is Plausible a one-click app on Kloudbean?</h3>
+    <p>No. Plausible runs as a standard application with its ClickHouse and PostgreSQL dependencies rather than a one-click install. You run it on a right-sized server behind a managed reverse proxy with free SSL, optionally with the Postgres configuration database on managed PostgreSQL. The platform keeps the server and Postgres healthy, while ClickHouse and the Plausible app stay yours to run.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Size for ClickHouse, back up ClickHouse, and Plausible is a joy.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Self-Host Plausible: Great Analytics, but Mind the ClickHouse","description":"Plausible Community Edition is a privacy-first, cookieless analytics tool you can self-host. The catch most guides skip is ClickHouse. How it compares to Umami, and where it fits.","image":"https://www.kloudbean.com/blog/self-host-plausible/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/self-host-plausible/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is Plausible Community Edition?","acceptedAnswer":{"@type":"Answer","text":"Plausible Community Edition, or CE, is the free, self-hostable version of Plausible Analytics, released under the AGPL license. It gives you the privacy-first, cookieless analytics that Plausible is known for, running on your own server. The company also offers a paid managed cloud, and those subscriptions fund the project, so CE is the self-hosted release rather than a stripped demo, but the CE-versus-cloud distinction is worth understanding when you plan."}},
+{"@type":"Question","name":"Why does Plausible need ClickHouse?","acceptedAnswer":{"@type":"Answer","text":"ClickHouse is a column-oriented database built for analytics, and Plausible uses it to store event data so that queries stay fast even across millions of events. PostgreSQL is used alongside it for configuration and account data. The ClickHouse foundation is exactly why Plausible scales well on heavy traffic, but it also means self-hosting Plausible involves running two databases, which is more to operate than a single-database tool."}},
+{"@type":"Question","name":"Is Plausible heavier to self-host than Umami?","acceptedAnswer":{"@type":"Answer","text":"Yes. Plausible runs ClickHouse plus PostgreSQL, while Umami runs on a single PostgreSQL or MySQL database. That makes Plausible more capable at scale but heavier to operate and hungrier for memory, mostly because of ClickHouse. If you want the lightest possible self-hosted analytics, Umami is simpler; if you have real traffic and want speed at scale, Plausible's extra weight buys you something real."}},
+{"@type":"Question","name":"Plausible or Umami, which should I self-host?","acceptedAnswer":{"@type":"Answer","text":"Choose Plausible if you value its polish, want analytics that stay fast on large traffic, and are comfortable running ClickHouse. Choose Umami if you want the simplest, lightest self-hosted analytics on a single database, or if you want to inspect individual visitor paths, which Plausible's aggregate-focused approach does not emphasise. Both are cookieless, privacy-first, and open source, so it is a fit decision rather than a quality one."}},
+{"@type":"Question","name":"Does Plausible use cookies?","acceptedAnswer":{"@type":"Answer","text":"No. Plausible is cookieless by design and does not track users across sites, which is why it can run without a cookie consent banner in many jurisdictions and is considered GDPR and CCPA friendly. It collects aggregate, privacy-respecting statistics rather than building individual profiles, which is the whole point of choosing it over a traditional analytics platform."}},
+{"@type":"Question","name":"How do I back up self-hosted Plausible?","acceptedAnswer":{"@type":"Answer","text":"Back up both databases, because they hold different things. ClickHouse holds your analytics events, which are the actual value, and PostgreSQL holds configuration and account data. Ship both off the server automatically on a schedule and test a restore. A common mistake is backing up the small Postgres config and forgetting the ClickHouse data, so make sure your routine covers the events, not just the settings."}},
+{"@type":"Question","name":"Can Kloudbean run ClickHouse as a managed database?","acceptedAnswer":{"@type":"Answer","text":"No. ClickHouse is not one of the managed database engines, so with Plausible it runs on your server as part of Plausible's own stack rather than as a managed service. You can, however, put the PostgreSQL configuration database on managed PostgreSQL. Practically, that means sizing the server with ClickHouse in mind, since it is the component you operate yourself."}},
+{"@type":"Question","name":"Is Plausible a one-click app on Kloudbean?","acceptedAnswer":{"@type":"Answer","text":"No. Plausible runs as a standard application with its ClickHouse and PostgreSQL dependencies rather than a one-click install. You run it on a right-sized server behind a managed reverse proxy with free SSL, optionally with the Postgres configuration database on managed PostgreSQL. The platform keeps the server and Postgres healthy, while ClickHouse and the Plausible app stay yours to run."}}
+]}
+]}
+</script>
+</body>
+</html>

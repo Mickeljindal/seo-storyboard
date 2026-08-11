@@ -35,7 +35,7 @@ Hosted SaaS content platforms are convenient. You sign up, you're editing in min
 - **Custom fields, plugins, and logic.** Strapi is code. You write custom controllers, add lifecycle hooks, install or build plugins, and shape content types to fit your product.
 - **Your API on your terms.** REST and GraphQL out of the box, your own auth rules and rate limits, running next to the rest of your stack instead of across the public internet.
 
-The tradeoff is honest: self-hosting means you run it, so updates and the database are yours to look after. That's the exact part a managed server eases, which is most of what this guide is about. Weighing Strapi against other tools you'd run yourself? The [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) roundup is a good map, and the sibling [self-host Supabase](https://www.kloudbean.com/blog/self-host-supabase/) guide covers a heavier backend if you need auth and storage baked in.
+The tradeoff is honest: self-hosting means you run it, so updates and the database are yours to look after. That's the exact part a managed server eases, which is most of what this guide is about. Weighing Strapi against other tools you'd run yourself? The [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) roundup is a good map, and the sibling [self-host Supabase](https://www.kloudbean.com/blog/self-host-supabase/) guide covers a heavier backend if you need auth and storage baked in. If you'd rather the CMS wrap an existing database than own the schema, [self-hosting Directus](https://www.kloudbean.com/blog/self-host-directus/) is the database-first alternative to weigh.
 
 ## What a production Strapi actually looks like
 

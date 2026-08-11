@@ -710,6 +710,81 @@ const HERO_OVERRIDES = {
       "Own your subscribers",
     ],
   },
+  // Self-hosted headless CMS: database-first is the whole story.
+  "self-host-directus": {
+    archetype: "checklist",
+    palette: "blue",
+    motif: "network",
+    eyebrow: "Self-hosted \u00b7 Headless CMS",
+    headline: "Wrap your database,\nkeep it yours.",
+    sub: "Database-first headless CMS: an instant API over the SQL you already have.",
+    checklist: [
+      "Database-first, wraps your SQL",
+      "REST + GraphQL, instantly",
+      "Your data stays portable",
+      "Mind the BSL license",
+    ],
+  },
+  // Self-hosted BaaS: Firebase-style, owned.
+  "self-host-appwrite": {
+    archetype: "checklist",
+    palette: "violet",
+    motif: "generic",
+    eyebrow: "Self-hosted \u00b7 Backend",
+    headline: "Firebase's speed,\nyour server.",
+    sub: "Auth, database, storage, and functions in one console you own.",
+    checklist: [
+      "Firebase-style, self-hosted",
+      "Auth, DB, storage, functions",
+      "One console, easy Docker",
+      "Own your backend",
+    ],
+  },
+  // Self-hosted team chat: for when the data cannot leave.
+  "self-host-mattermost": {
+    archetype: "checklist",
+    palette: "indigo",
+    motif: "shield",
+    eyebrow: "Self-hosted \u00b7 Team chat",
+    headline: "Team chat that\nstays on your side.",
+    sub: "The Slack alternative built for security-conscious and air-gapped teams.",
+    checklist: [
+      "Self-hosted team chat",
+      "Runs air-gapped",
+      "Go + PostgreSQL",
+      "Your data stays in",
+    ],
+  },
+  // Self-hosted analytics: great, but mind the ClickHouse.
+  "self-host-plausible": {
+    archetype: "checklist",
+    palette: "green",
+    motif: "network",
+    eyebrow: "Self-hosted \u00b7 Analytics",
+    headline: "Privacy analytics,\nsized for ClickHouse.",
+    sub: "Plausible Community Edition: cookieless, fast at scale, yours to run.",
+    checklist: [
+      "Privacy-first, cookieless",
+      "Runs on ClickHouse",
+      "Plausible CE, AGPL",
+      "Own your analytics",
+    ],
+  },
+  // Self-hosted no-code database: standalone, owns its own Postgres.
+  "self-host-baserow": {
+    archetype: "checklist",
+    palette: "teal",
+    motif: "generic",
+    eyebrow: "Self-hosted \u00b7 No-code database",
+    headline: "Airtable, but\nyours to own.",
+    sub: "A standalone no-code database with real-time collaboration.",
+    checklist: [
+      "No-code database, self-hosted",
+      "Owns its own Postgres",
+      "Real-time collaboration",
+      "Airtable, but yours",
+    ],
+  },
   // WordPress maintenance retainer: the care-plan deliverables.
   "wordpress-maintenance-retainer-plans": {
     archetype: "checklist",

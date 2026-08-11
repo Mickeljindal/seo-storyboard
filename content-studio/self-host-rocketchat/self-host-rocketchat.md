@@ -171,7 +171,7 @@ Rocket.Chat wants real RAM. It's a memory-hungry Meteor app. Plan for at least 2
 
 When usage grows, the levers are simple. Resize the server up; vertical headroom is the fastest win for a memory-hungry app like this. Keep the proxy configured for websockets so realtime scales with your users, and lean on the replica set for reliability under load. Rocket.Chat is also picky about MongoDB versions, so check the release notes for your version and match a supported MongoDB rather than grabbing the newest on instinct.
 
-Running other tools yourself too? The [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) roundup is a good map, and the sibling [self-host Supabase](https://www.kloudbean.com/blog/self-host-supabase/) guide walks a similar own-your-data path for a backend.
+Running other tools yourself too? The [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) roundup is a good map, and the sibling [self-host Supabase](https://www.kloudbean.com/blog/self-host-supabase/) guide walks a similar own-your-data path for a backend. And if internal team chat with air-gapped or compliance needs is the priority, [self-hosting Mattermost](https://www.kloudbean.com/blog/self-host-mattermost/) is the focused alternative to weigh.
 
 ---
 

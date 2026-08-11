@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Self-Host Baserow: The Standalone No-Code Database (vs NocoDB)</title>
+<meta name="description" content="Baserow is an open-source, self-hostable Airtable alternative that runs its own database with real-time collaboration. How it differs from NocoDB, the Premium caveat, and where it fits.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/self-host-baserow/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Self-Host Baserow: The Standalone No-Code Database (vs NocoDB)">
+<meta property="og:description" content="Baserow is a self-contained no-code database with real-time collaboration. The honest guide: how it differs from NocoDB, what is Premium, and what running it involves.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Self-hosted tools · No-code database · Guide</span>
+  <h1>Self-Host Baserow: The Standalone No-Code Database (vs NocoDB)</h1>
+  <p class="byline">By Kloudbean Engineering · Two open-source Airtables, one structural difference that decides it.</p>
+
+  <figure><img src="images/hero.png" alt="The Baserow no-code database grid on a self-hosted server, backed by its own PostgreSQL">
+  </figure>
+
+  <p class="lead">If you want an Airtable you own, the open-source world hands you two strong options: Baserow and NocoDB. They look similar in a screenshot, both give you that friendly grid of rows and fields, and people treat them as interchangeable. They are not. There is one structural difference that decides which one you actually want, and it has nothing to do with the colour of the buttons. It is about where your data lives and who owns it. Baserow is a standalone no-code database that brings its own; NocoDB is a layer over a database you already have. Get that right and the choice makes itself.</p>
+
+  <div class="tldr">
+    <strong>Should I self-host Baserow?</strong>
+    <p>Baserow is an open-source, self-hostable Airtable alternative, and it is a complete no-code platform: it runs its own PostgreSQL database and adds an app builder, automation, dashboards, role-based permissions, and real-time collaboration on top. Self-host it when you want a standalone no-code database to build in from scratch, with live multi-user editing. The key contrast is NocoDB, which puts a spreadsheet interface over an existing SQL database rather than owning one. One honest note: Baserow's core is open source, but some views like Kanban and calendar are Premium and need a paid license, so check current terms. It runs as a standard app with PostgreSQL, not a one-click install.</p>
+  </div>
+
+  <h2>What Baserow actually is</h2>
+  <p>Not just a grid, but a small platform that wants to be your whole no-code back end.</p>
+
+  <p>Baserow is an open-source no-code database that looks like a spreadsheet and behaves like a database: tables, fields, views, filters, and links between tables, all editable by non-technical people. Where it goes further than a simple grid is in trying to be the entire stack. It manages its own PostgreSQL database, and layers on an application builder, an automation engine, dashboards, role-based permissions, and real-time collaboration, with an API-first design so developers can build against it too. The core is open source under a permissive license, and you run it yourself to keep your data in-house.</p>
+
+  <p>That "manages its own database" phrase is the important one. Baserow is self-contained: you point it at a fresh PostgreSQL and it owns the structure inside, presenting it through its friendly interface. That is a different starting point from the other popular open-source Airtable alternative, and the difference is the next section.</p>
+
+  <h2>Baserow or NocoDB? Where your data lives decides it</h2>
+  <p>This is the fork in the road, and it is genuinely structural rather than a matter of taste.</p>
+
+  <p>Baserow is a standalone no-code database: it brings and manages its own PostgreSQL, and your data lives inside Baserow's world. <a href="https://www.kloudbean.com/blog/self-host-nocodb/">NocoDB</a> takes the opposite approach: it is a visual interface that sits on top of an existing SQL database, turning tables you already have into an Airtable-like UI without owning them. So the decision comes down to one question. Do you already have a SQL database that should stay the source of truth, with other systems using it directly? Then NocoDB, which wraps it, is the natural fit. Do you want to start fresh with a no-code database and have the tool be the whole stack, with live collaboration built in? Then Baserow is built for exactly that.</p>
+
+  <table class="cmp">
+    <thead><tr><th>&nbsp;</th><th>Baserow</th><th>NocoDB</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Model</strong></td><td>Standalone no-code database</td><td>Interface over an existing database</td></tr>
+      <tr><td><strong>The database</strong></td><td>Brings and owns its own Postgres</td><td>Connects to your existing SQL DB</td></tr>
+      <tr><td><strong>Real-time collaboration</strong></td><td>Yes, live edits</td><td>Changes generally need a refresh</td></tr>
+      <tr><td><strong>Best when</strong></td><td>Fresh start, be the whole stack</td><td>You have a database to expose</td></tr>
+      <tr><td><strong>Extras</strong></td><td>App builder, automation, dashboards</td><td>Spreadsheet UI over your schema</td></tr>
+      <tr><td><strong>Choose it when</strong></td><td>You want a standalone no-code DB</td><td>Your existing DB stays the source of truth</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Real-time collaboration, a genuine edge</h2>
+  <p>Small feature to describe, big difference to live with when a team shares a base.</p>
+
+  <p>Baserow supports real-time collaboration: when a teammate edits a row, you see it change, the way you would expect from a modern shared tool. NocoDB, sitting over an external database, generally needs a refresh to show changes made by others, which can lead to people overwriting each other or working from stale data. If a handful of people are in the same base at once, that difference stops being a nicety and starts being about avoiding conflicts and lost edits. For collaborative, in-the-tool work, it is one of the clearest reasons to prefer Baserow, and it follows directly from Baserow owning its own database rather than reaching into someone else's.</p>
+
+  <h2>The Premium caveat, said plainly</h2>
+  <p>Volunteering this because a self-hoster should not discover it halfway through building a workflow.</p>
+
+  <p>Baserow's core is open source and free to self-host, and it covers a lot. But not every feature is in the free core. Some views, such as Kanban and calendar, are Premium and require a paid license, so if your plan depends on a Kanban board or a calendar view, budget for that rather than assuming everything is included. Licensing details change, so check Baserow's current terms for exactly what sits in the free core versus the paid tiers before you commit a workflow to a Premium-only view. None of this makes Baserow less worth running, and the open core is genuinely capable. It just means "open source" and "every feature is free" are not the same sentence, and knowing the line up front saves a surprise.</p>
+
+  <h2>What it takes to run, and backups</h2>
+  <p>A modest server, a PostgreSQL database, and a backup habit, in the familiar shape.</p>
+
+  <p>Baserow runs as an application with PostgreSQL behind it, and a starting point of roughly a couple of CPUs and a few gigabytes of memory is a reasonable expectation for a small team, scaling up with usage. You put it behind a reverse proxy with HTTPS and point it at a database. Since Baserow owns its own PostgreSQL, that database is where all your tables and data live, so it is the thing to protect: pointing it at a <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a> keeps it maintained and automatically backed up, and attachments belong in <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">object storage</a>. A regular database dump plus attachments, shipped off the server with a tested restore, as in <a href="https://www.kloudbean.com/blog/server-backups-guide/">the backups guide</a>, is your safety net.</p>
+
+  <figure>
+    <svg viewBox="0 0 880 226" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="bs-title bs-desc">
+      <title id="bs-title">Baserow versus NocoDB, structurally</title>
+      <desc id="bs-desc">Baserow brings and owns its own PostgreSQL database, so your data lives inside Baserow. NocoDB is a visual interface that sits on top of an existing SQL database you already control.</desc>
+      <rect x="0" y="0" width="880" height="226" fill="#ffffff"/>
+      <g font-family="Poppins, sans-serif" font-size="12" fill="#000f27">
+        <text x="24" y="34" font-weight="700" fill="#4F1AF3">Baserow</text>
+        <rect x="24" y="46" width="150" height="52" rx="10" fill="#0b1531"/>
+        <text x="99" y="68" text-anchor="middle" fill="#fff" font-size="11.5" font-weight="600">Baserow app</text>
+        <text x="99" y="86" text-anchor="middle" fill="#aeb6d4" font-size="10">real-time collab</text>
+        <g stroke="#4F1AF3" stroke-width="2.2" fill="none" marker-end="url(#bsa)"><path d="M176 72 H262"/></g>
+        <rect x="264" y="46" width="180" height="52" rx="10" fill="#efe9ff" stroke="#4F1AF3" stroke-width="1.4"/>
+        <text x="354" y="68" text-anchor="middle" font-size="11.5" font-weight="700" fill="#4F1AF3">Its own Postgres</text>
+        <text x="354" y="86" text-anchor="middle" font-size="10">Baserow owns this</text>
+
+        <text x="24" y="140" font-weight="700" fill="#2f8f49">NocoDB</text>
+        <rect x="24" y="152" width="150" height="52" rx="10" fill="#0b1531"/>
+        <text x="99" y="174" text-anchor="middle" fill="#fff" font-size="11.5" font-weight="600">NocoDB UI</text>
+        <text x="99" y="192" text-anchor="middle" fill="#aeb6d4" font-size="10">a visual layer</text>
+        <g stroke="#40b75f" stroke-width="2.2" fill="none" marker-end="url(#bsa)"><path d="M176 178 H262"/></g>
+        <rect x="264" y="152" width="180" height="52" rx="10" fill="#e8f7ed" stroke="#40b75f" stroke-width="1.4"/>
+        <text x="354" y="174" text-anchor="middle" font-size="11.5" font-weight="700" fill="#2f8f49">Your existing DB</text>
+        <text x="354" y="192" text-anchor="middle" font-size="10">stays the source of truth</text>
+
+        <rect x="486" y="60" width="368" height="130" rx="12" fill="#f5f7ff" stroke="#98a2b3" stroke-width="1.2"/>
+        <text x="670" y="90" text-anchor="middle" font-size="12.5" font-weight="700">The one question</text>
+        <text x="670" y="118" text-anchor="middle" font-size="11.5">Do you have a database that should</text>
+        <text x="670" y="136" text-anchor="middle" font-size="11.5">stay the source of truth? -&gt; NocoDB</text>
+        <text x="670" y="160" text-anchor="middle" font-size="11.5">Want a fresh standalone no-code</text>
+        <text x="670" y="178" text-anchor="middle" font-size="11.5">DB with live collab? -&gt; Baserow</text>
+      </g>
+      <defs><marker id="bsa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#98a2b3"/></marker></defs>
+    </svg>
+    <figcaption>The difference is not the grid, it is who owns the database. That single question answers which tool you want.</figcaption>
+  </figure>
+
+  <h2>Where hosting fits, honestly</h2>
+  <p>Baserow is a comfortable app-plus-database deployment, and a managed platform handles the parts you would rather not. You run it as a standard application across any of seven clouds, behind a managed reverse proxy with free auto-renewing SSL, pointed at a managed PostgreSQL so the database it owns is maintained and automatically backed up, with attachments in object storage. One dashboard, and a resize when your team grows. It is not a one-click app, but it is a well-trodden path.</p>
+
+  <p>The honest boundary: the platform runs the server, the PostgreSQL database, SSL, and backups. The Baserow application, your data, and any Premium license you take out are yours. Managed hosting keeps Baserow dependable and its database safe. It does not decide your feature tier, so keep the free-versus-Premium line on your own checklist.</p>
+
+  <h2>Related reading</h2>
+  <p>For the wrap-an-existing-database alternative and the full comparison, <a href="https://www.kloudbean.com/blog/self-host-nocodb/">self-hosting NocoDB</a>. For the wider set of tools worth owning, the <a href="https://www.kloudbean.com/blog/best-self-hosted-tools/">best self-hosted tools</a> guide. The database underneath is <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a>, kept safe with <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups</a>, and attachments live in <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">object storage</a>. If you want to automate around your base, <a href="https://www.kloudbean.com/blog/self-host-n8n/">self-hosting n8n</a> pairs nicely.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Run a no-code database you own.</p>
+    <p style="margin:0 0 .6em">Host Baserow as an app on a managed server across seven clouds, with managed PostgreSQL for the database it owns, free auto-renewing SSL, and automatic backups. Live collaboration, your data in-house. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed server · Managed PostgreSQL · Free auto-renewing SSL · Automatic backups</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is Baserow?</h3>
+    <p>Baserow is an open-source, self-hostable no-code database and Airtable alternative. It presents a friendly spreadsheet-like interface over a real database, and goes further into being a platform, with an app builder, automation, dashboards, role-based permissions, and real-time collaboration. It manages its own PostgreSQL database and is API-first, so both non-technical users and developers can work with it. The core is open source and free to self-host.</p>
+
+    <h3>Baserow or NocoDB, which should I self-host?</h3>
+    <p>It depends on where your data lives. Baserow is a standalone no-code database that brings and owns its own PostgreSQL, ideal when you want to start fresh and have the tool be the whole stack. NocoDB is a visual interface over an existing SQL database, ideal when you already have a database that should stay the source of truth. Ask whether you are wrapping an existing database or starting a new one, and the answer is clear.</p>
+
+    <h3>Does Baserow support real-time collaboration?</h3>
+    <p>Yes, and it is one of its clearest advantages. When a teammate edits a row in Baserow, you see the change live, without refreshing. NocoDB, which sits over an external database, generally needs a refresh to show others' changes, which can cause conflicts or stale views when several people work at once. For collaborative, in-the-tool work, Baserow's live editing is a meaningful benefit.</p>
+
+    <h3>Is Baserow completely free?</h3>
+    <p>The core is open source and free to self-host, and it is capable on its own. However, some features and views, such as Kanban and calendar, are Premium and require a paid license. So if your plan relies on those specific views, budget for the Premium tier rather than assuming everything is free. Licensing changes over time, so verify the current split between free core and paid features before committing a workflow to a Premium-only view.</p>
+
+    <h3>What database does Baserow use?</h3>
+    <p>PostgreSQL, which Baserow manages itself. Unlike tools that connect to an existing database, Baserow brings its own and owns the structure inside it. All your tables and data live in that PostgreSQL database, which is why pointing it at a managed PostgreSQL is the sensible choice: it keeps the database maintained and automatically backed up.</p>
+
+    <h3>What does Baserow need to run?</h3>
+    <p>It runs as an application with PostgreSQL behind it, and a starting point of around a couple of CPUs and a few gigabytes of memory suits a small team, scaling with usage. You put it behind a reverse proxy with HTTPS, point it at a database, and keep attachments in object storage. It is a standard app-plus-database deployment rather than a one-click install.</p>
+
+    <h3>How do I back up Baserow?</h3>
+    <p>Back up the PostgreSQL database, since Baserow owns it and all your tables and data live there, plus attachments in object storage. Ship a database dump off the server automatically on a schedule and test a restore once so you know it works. Using a managed PostgreSQL puts the most important part on an automatic backup routine, which is the right place to be relaxed about your data.</p>
+
+    <h3>Is Baserow a one-click app on Kloudbean?</h3>
+    <p>No. Baserow runs as a standard application with a PostgreSQL database rather than a one-click install. The setup is well understood: a right-sized server, a managed PostgreSQL for the database it owns, free SSL, and object storage for attachments. The platform keeps the server and database healthy, while the Baserow app, your data, and any Premium license stay yours.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Ask who owns the database. The rest of the decision follows.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Self-Host Baserow: The Standalone No-Code Database (vs NocoDB)","description":"Baserow is an open-source, self-hostable Airtable alternative that runs its own database with real-time collaboration. How it differs from NocoDB, the Premium caveat, and where it fits.","image":"https://www.kloudbean.com/blog/self-host-baserow/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/self-host-baserow/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is Baserow?","acceptedAnswer":{"@type":"Answer","text":"Baserow is an open-source, self-hostable no-code database and Airtable alternative. It presents a friendly spreadsheet-like interface over a real database, and goes further into being a platform, with an app builder, automation, dashboards, role-based permissions, and real-time collaboration. It manages its own PostgreSQL database and is API-first, so both non-technical users and developers can work with it. The core is open source and free to self-host."}},
+{"@type":"Question","name":"Baserow or NocoDB, which should I self-host?","acceptedAnswer":{"@type":"Answer","text":"It depends on where your data lives. Baserow is a standalone no-code database that brings and owns its own PostgreSQL, ideal when you want to start fresh and have the tool be the whole stack. NocoDB is a visual interface over an existing SQL database, ideal when you already have a database that should stay the source of truth. Ask whether you are wrapping an existing database or starting a new one, and the answer is clear."}},
+{"@type":"Question","name":"Does Baserow support real-time collaboration?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it is one of its clearest advantages. When a teammate edits a row in Baserow, you see the change live, without refreshing. NocoDB, which sits over an external database, generally needs a refresh to show others' changes, which can cause conflicts or stale views when several people work at once. For collaborative, in-the-tool work, Baserow's live editing is a meaningful benefit."}},
+{"@type":"Question","name":"Is Baserow completely free?","acceptedAnswer":{"@type":"Answer","text":"The core is open source and free to self-host, and it is capable on its own. However, some features and views, such as Kanban and calendar, are Premium and require a paid license. So if your plan relies on those specific views, budget for the Premium tier rather than assuming everything is free. Licensing changes over time, so verify the current split between free core and paid features before committing a workflow to a Premium-only view."}},
+{"@type":"Question","name":"What database does Baserow use?","acceptedAnswer":{"@type":"Answer","text":"PostgreSQL, which Baserow manages itself. Unlike tools that connect to an existing database, Baserow brings its own and owns the structure inside it. All your tables and data live in that PostgreSQL database, which is why pointing it at a managed PostgreSQL is the sensible choice: it keeps the database maintained and automatically backed up."}},
+{"@type":"Question","name":"What does Baserow need to run?","acceptedAnswer":{"@type":"Answer","text":"It runs as an application with PostgreSQL behind it, and a starting point of around a couple of CPUs and a few gigabytes of memory suits a small team, scaling with usage. You put it behind a reverse proxy with HTTPS, point it at a database, and keep attachments in object storage. It is a standard app-plus-database deployment rather than a one-click install."}},
+{"@type":"Question","name":"How do I back up Baserow?","acceptedAnswer":{"@type":"Answer","text":"Back up the PostgreSQL database, since Baserow owns it and all your tables and data live there, plus attachments in object storage. Ship a database dump off the server automatically on a schedule and test a restore once so you know it works. Using a managed PostgreSQL puts the most important part on an automatic backup routine, which is the right place to be relaxed about your data."}},
+{"@type":"Question","name":"Is Baserow a one-click app on Kloudbean?","acceptedAnswer":{"@type":"Answer","text":"No. Baserow runs as a standard application with a PostgreSQL database rather than a one-click install. The setup is well understood: a right-sized server, a managed PostgreSQL for the database it owns, free SSL, and object storage for attachments. The platform keeps the server and database healthy, while the Baserow app, your data, and any Premium license stay yours."}}
+]}
+]}
+</script>
+</body>
+</html>

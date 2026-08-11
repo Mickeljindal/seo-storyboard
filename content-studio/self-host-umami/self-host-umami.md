@@ -177,7 +177,7 @@ I won't pretend self-hosting is always the answer. Stay on Umami Cloud, or even 
 
 The switch pays off when ownership, a flat bill, or accurate counts at real volume start to matter more than never touching a server.
 
-Umami is a good gateway into running your own tools. The [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) roundup is worth a read, [self-hosting Supabase](https://www.kloudbean.com/blog/self-host-supabase/) is a natural next step for your backend, and [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) covers what's running under Umami.
+Umami is a good gateway into running your own tools. The [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) roundup is worth a read, [self-hosting Supabase](https://www.kloudbean.com/blog/self-host-supabase/) is a natural next step for your backend, and [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) covers what's running under Umami. If you want analytics that scale on ClickHouse with a more polished dashboard, [self-hosting Plausible](https://www.kloudbean.com/blog/self-host-plausible/) is the heavier-but-faster alternative.
 
 ---
 

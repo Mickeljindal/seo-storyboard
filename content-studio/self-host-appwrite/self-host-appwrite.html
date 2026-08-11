@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Self-Host Appwrite: The Firebase-Style Backend You Actually Own</title>
+<meta name="description" content="Appwrite is an open-source, self-hostable backend server: auth, databases, storage, functions, and messaging in one console. How its document-style model differs from Supabase, and where it fits.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/self-host-appwrite/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Self-Host Appwrite: The Firebase-Style Backend You Actually Own">
+<meta property="og:description" content="A Firebase-like backend, self-hosted: bundled auth, databases, storage, and functions in one console. The honest guide, including how it really differs from Supabase.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Self-hosted tools · Backend · Guide</span>
+  <h1>Self-Host Appwrite: The Firebase-Style Backend You Actually Own</h1>
+  <p class="byline">By Kloudbean Engineering · If you liked Firebase's model but not the lock-in, start here.</p>
+
+  <figure><img src="images/hero.png" alt="The Appwrite console on a self-hosted server, showing auth, databases, storage, and functions bundled together">
+  </figure>
+
+  <p class="lead">If you have built on Firebase, you know the feeling: auth, a database, storage, and functions all in one place, moving fast, right up until the pricing or the lock-in makes you nervous. Appwrite is the open-source answer to that feeling. It gives you the same bundled, get-going-quickly backend, but on a server you own. The comparison everyone reaches for is Supabase, and it is a fair one, except the two make genuinely different bets. Getting that difference right is how you avoid picking the wrong backend and regretting it three months in. So this guide leads with the decision, not the install.</p>
+
+  <div class="tldr">
+    <strong>Should I self-host Appwrite?</strong>
+    <p>Appwrite is an open-source backend server, a self-hostable Firebase alternative that bundles authentication, databases, storage, serverless functions, and messaging into a single console. Under the hood it wraps a relational database (MariaDB) with Redis alongside, and it exposes a simplified, document-style API rather than raw SQL. Self-host it when you want a Firebase-style, batteries-included backend that you own, and when a straightforward Docker-based setup matters to you. The key decision is Appwrite versus Supabase: Appwrite gives you bundled services and a document-style model, while Supabase gives you a real PostgreSQL database and the SQL to go with it. Pick the model you want to build in, not the longer feature list.</p>
+  </div>
+
+  <h2>What Appwrite actually is</h2>
+  <p>A complete backend in a box, designed so you spend your time on your app rather than on plumbing.</p>
+
+  <p>Appwrite is an open-source backend server that packages the things almost every app needs into one console: user authentication, a database, file storage, serverless functions in a range of runtimes, and messaging. It has real-time updates built in across its services, GraphQL support, and scoped API keys, and its server is released under the permissive BSD 3-Clause license. Under the hood it runs on a relational database (MariaDB) with Redis alongside for caching and real-time, but you rarely touch that directly. You talk to Appwrite through its SDKs and API, using a document-style model of collections and documents that will feel immediately familiar if you have used Firebase.</p>
+
+  <p>That familiarity is the point. Appwrite is for developers who want Firebase's speed and shape without Firebase's ownership model, delivered as software they run themselves. Which brings us straight to the comparison that actually matters.</p>
+
+  <h2>Appwrite or Supabase? They make different bets</h2>
+  <p>People treat these as interchangeable open-source backends. They are not, and the difference is not cosmetic.</p>
+
+  <p>Supabase's bet is PostgreSQL. You get a real Postgres database and the tooling is built around SQL you write and own, which is wonderful if you want the power and portability of a proper relational database and are happy working in SQL. Appwrite's bet is abstraction. It wraps its database in a simplified, document-style API and bundles everything behind one console, so you move quickly using SDKs without thinking much about the database underneath. One hands you the engine, the other hands you the car.</p>
+
+  <p>So the honest way to choose is to ask which model you want to build in. If you want raw Postgres and SQL, or you value that your data is a standard relational database, go with <a href="https://www.kloudbean.com/blog/self-host-supabase/">Supabase</a>. If you want a Firebase-like developer experience, document-style data, and everything bundled with the least fuss, Appwrite is your tool. Feature checklists will tell you both do auth and storage and functions. They will not tell you the thing that actually shapes your codebase, which is the data model.</p>
+
+  <table class="cmp">
+    <thead><tr><th>&nbsp;</th><th>Appwrite</th><th>Supabase</th></tr></thead>
+    <tbody>
+      <tr><td><strong>The bet</strong></td><td>Bundled console, abstraction</td><td>Real PostgreSQL, SQL you own</td></tr>
+      <tr><td><strong>Data model</strong></td><td>Document-style (collections, documents)</td><td>Relational, SQL-first</td></tr>
+      <tr><td><strong>Feels like</strong></td><td>Firebase, self-hosted</td><td>Postgres with superpowers</td></tr>
+      <tr><td><strong>You interact via</strong></td><td>SDKs and API</td><td>SQL, plus SDKs</td></tr>
+      <tr><td><strong>Self-host shape</strong></td><td>One Docker stack, one console</td><td>Several services together</td></tr>
+      <tr><td><strong>Choose it when</strong></td><td>You want Firebase's model, owned</td><td>You want Postgres and SQL, owned</td></tr>
+    </tbody>
+  </table>
+
+  <h2>The nice surprise: it is straightforward to self-host</h2>
+  <p>Here is a genuine point in Appwrite's favour if self-hosting is your goal.</p>
+
+  <p>Appwrite is designed to be run yourself, and its Docker-based setup is refreshingly contained. Because everything lives behind one console and ships as a coordinated stack, standing it up is closer to "start the stack, open the console" than to assembling a handful of separate services and wiring them together. That relative simplicity is one of the real reasons people choose Appwrite over heavier self-hosted backends, and it also makes it a sensible pick for data-sovereignty and air-gapped situations where running the whole thing yourself is the requirement, not just a preference.</p>
+
+  <p>None of that means it is weightless. It is a full backend with a database, a cache, and several services, so give it a real server with comfortable memory. But among "run your own backend" options, Appwrite asks less of you at setup time than most, and that counts for a lot when you would rather be building your app.</p>
+
+  <h2>The tradeoff, named honestly</h2>
+  <p>Every design choice costs something, and Appwrite's is worth saying out loud so you choose with open eyes.</p>
+
+  <p>The document-style abstraction that makes Appwrite fast to build on is also a layer between you and the raw database. You get speed and a clean, consistent API, and you give up some of the direct SQL power and the it-is-just-Postgres portability that Supabase offers. For most application work that is a good trade, and it is exactly why Firebase was popular in the first place. But if your project leans on complex SQL queries, heavy relational modelling, or the ability to point any Postgres tool at your data, that abstraction can feel like a wall rather than a convenience. Neither is wrong. Just know which side of that trade your project sits on before you commit, because switching backends later is real work.</p>
+
+  <figure>
+    <svg viewBox="0 0 880 236" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="aw-title aw-desc">
+      <title id="aw-title">Appwrite as a bundled backend</title>
+      <desc id="aw-desc">Your app talks to one Appwrite console through SDKs and an API. Appwrite bundles auth, databases, storage, functions, and messaging, backed by a relational database (MariaDB) and Redis on your server.</desc>
+      <rect x="0" y="0" width="880" height="236" fill="#ffffff"/>
+      <g font-family="Poppins, sans-serif" font-size="12.5" fill="#000f27">
+        <rect x="24" y="86" width="150" height="64" rx="10" fill="#efe9ff" stroke="#4F1AF3" stroke-width="1.3"/>
+        <text x="99" y="114" text-anchor="middle" font-weight="600">Your app</text>
+        <text x="99" y="134" text-anchor="middle" font-size="10.5">SDKs + API</text>
+
+        <g stroke="#4F1AF3" stroke-width="2.4" fill="none" marker-end="url(#awa)"><path d="M176 118 H250"/></g>
+
+        <rect x="252" y="40" width="360" height="156" rx="12" fill="#0b1531"/>
+        <text x="432" y="66" text-anchor="middle" fill="#fff" font-weight="700">Appwrite console (you host)</text>
+        <g font-size="11">
+          <rect x="272" y="82" width="150" height="34" rx="7" fill="#1b2748"/><text x="347" y="104" text-anchor="middle" fill="#dfe4f5">Auth</text>
+          <rect x="442" y="82" width="150" height="34" rx="7" fill="#1b2748"/><text x="517" y="104" text-anchor="middle" fill="#dfe4f5">Databases</text>
+          <rect x="272" y="126" width="150" height="34" rx="7" fill="#1b2748"/><text x="347" y="148" text-anchor="middle" fill="#dfe4f5">Storage</text>
+          <rect x="442" y="126" width="150" height="34" rx="7" fill="#1b2748"/><text x="517" y="148" text-anchor="middle" fill="#dfe4f5">Functions + messaging</text>
+        </g>
+        <text x="432" y="184" text-anchor="middle" fill="#8f9bc4" font-size="10.5">one Docker stack</text>
+
+        <g stroke="#40b75f" stroke-width="2" fill="none" marker-end="url(#awa)"><path d="M612 118 H690"/></g>
+        <rect x="692" y="82" width="164" height="34" rx="7" fill="#e8f7ed" stroke="#40b75f" stroke-width="1.2"/>
+        <text x="774" y="104" text-anchor="middle" font-size="11.5" font-weight="600">MariaDB</text>
+        <rect x="692" y="126" width="164" height="34" rx="7" fill="#fff4e6" stroke="#d98324" stroke-width="1.2"/>
+        <text x="774" y="148" text-anchor="middle" font-size="11.5" font-weight="600">Redis</text>
+
+        <rect x="24" y="200" width="832" height="28" rx="7" fill="#000f27"/>
+        <text x="38" y="219" font-size="11.5" fill="#fff">A document-style API over a relational database. You build against the console, not raw SQL.</text>
+      </g>
+      <defs><marker id="awa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#98a2b3"/></marker></defs>
+    </svg>
+    <figcaption>Everything behind one console, backed by a relational database and a cache. That bundling is Appwrite's whole appeal.</figcaption>
+  </figure>
+
+  <h2>What it takes to run, and backups</h2>
+  <p>A real server, its data layer, and a backup habit, which is the same shape as any backend worth trusting.</p>
+
+  <p>Appwrite runs as its Docker stack on a server, with a relational database (MariaDB) and Redis as its data and cache layer. For production, the piece to treat carefully is that data layer: your users, your documents, and your files all live there, so pointing Appwrite's storage at a <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">managed MariaDB</a> and using <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis</a> means the parts that hold your data are maintained and backed up rather than left to a container you have to mind. File storage belongs in <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">object storage</a>.</p>
+
+  <p>Backups follow from that: a regular, automatic dump of the database plus your stored files, shipped off the server, with a restore you have tested once, as laid out in <a href="https://www.kloudbean.com/blog/server-backups-guide/">the backups guide</a>. A backend holds your users and their data, so this is not the corner to cut. Set it up before you launch anything real on it.</p>
+
+  <h2>Where hosting fits, honestly</h2>
+  <p>Appwrite pairs well with a managed platform because the annoying parts (the server, the database, TLS, backups) are exactly what a managed platform is for. You run Appwrite's stack on a managed server across any of seven clouds, behind a managed reverse proxy with free auto-renewing SSL, with its data layer on managed MariaDB and managed Redis so your users and documents sit on a database that is backed up automatically, and object storage for files. One dashboard, and a resize rather than a rebuild when you grow. It is not a one-click app, but its self-host story is one of the friendliest in this category.</p>
+
+  <p>The honest boundary: the platform runs the server, the database, SSL, and backups. The Appwrite application, your data, and your app's code are yours. Managed hosting makes Appwrite dependable to run and keeps its data safe. It does not write your app or choose your data model, and the data model is the one decision worth making deliberately.</p>
+
+  <h2>Related reading</h2>
+  <p>For the Postgres-first alternative and the full comparison, <a href="https://www.kloudbean.com/blog/self-host-supabase/">self-hosting Supabase</a>. For the wider set of tools worth owning, the <a href="https://www.kloudbean.com/blog/best-self-hosted-tools/">best self-hosted tools</a> guide. The data layer underneath: <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">managed MariaDB and MySQL</a> and <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis</a>, kept safe with <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups</a>, and files in <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">object storage</a>. Deploying the app that talks to it is covered in <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploying an app to production</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Own your backend, keep Firebase's speed.</p>
+    <p style="margin:0 0 .6em">Run Appwrite on a managed server across seven clouds, with managed MariaDB and Redis for its data layer, free auto-renewing SSL, and automatic backups. A bundled backend you control, without the setup grind. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed server · Managed MariaDB and Redis · Free auto-renewing SSL · Automatic backups</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is Appwrite?</h3>
+    <p>Appwrite is an open-source backend server, a self-hostable Firebase alternative. It bundles authentication, a database, file storage, serverless functions, and messaging into a single console, with real-time updates and GraphQL support. Under the hood it runs on a relational database (MariaDB) with Redis, but you build against its document-style SDKs and API rather than writing SQL directly. The server is released under the permissive BSD 3-Clause license.</p>
+
+    <h3>Appwrite or Supabase, which should I self-host?</h3>
+    <p>Choose by data model. Appwrite gives you a Firebase-style, document-based experience with everything bundled behind one console, which is fast to build on. Supabase gives you a real PostgreSQL database and SQL you write and own, which is better if you want relational power and portability. Feature lists look similar, but the model shapes your codebase, so pick the one you actually want to build in.</p>
+
+    <h3>Is Appwrite easier to self-host than Supabase?</h3>
+    <p>Generally yes. Appwrite ships as a coordinated Docker stack behind a single console, so setup is closer to starting the stack and opening the console than to wiring several separate services together. Supabase self-hosting involves more moving parts. That relative simplicity is one of the main reasons people pick Appwrite when running their own backend is the goal, including for data-sovereignty or air-gapped needs.</p>
+
+    <h3>What database does Appwrite use?</h3>
+    <p>It runs on a relational database, MariaDB, with Redis alongside for caching and real-time features. The important thing for developers is that you do not interact with that database directly through SQL. Appwrite presents a simplified, document-style API of collections and documents, and manages the underlying relational storage for you.</p>
+
+    <h3>What is the catch with Appwrite's document-style model?</h3>
+    <p>The abstraction that makes it fast to build on is also a layer between you and raw SQL. You gain a clean, consistent API and quick development, and you give up some direct relational power and the portability of data that is just standard Postgres. For most app work that is a good trade. If your project needs complex SQL or heavy relational modelling, it can feel limiting, so weigh it before committing.</p>
+
+    <h3>What does Appwrite need to run?</h3>
+    <p>A real server with comfortable memory, since it is a full backend with a database, a cache, and several services running as a Docker stack. For production, put its data layer on a managed MariaDB and managed Redis so the parts holding your users and documents are maintained and backed up, and keep files in object storage. It is more than a lightweight tool, but its setup is friendlier than most self-hosted backends.</p>
+
+    <h3>How do I back up Appwrite?</h3>
+    <p>Back up its data layer: an automatic dump of the database plus your stored files, shipped off the server on a schedule, with a restore you have tested once. Because a backend holds your users and their data, this is essential rather than optional. Using a managed MariaDB puts the most important part on an automatic backup routine, and object storage covers the files.</p>
+
+    <h3>Is Appwrite a one-click app on Kloudbean?</h3>
+    <p>No. Appwrite runs as its own Docker stack on a managed server rather than as a one-click install, though its setup is among the friendlier ones in this category. You run it on a right-sized server behind a managed reverse proxy with free SSL, with managed MariaDB and Redis for the data layer. The platform keeps the server and database healthy while the Appwrite app and your data stay yours.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Choose the data model first. Everything else follows.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Self-Host Appwrite: The Firebase-Style Backend You Actually Own","description":"Appwrite is an open-source, self-hostable backend server: auth, databases, storage, functions, and messaging in one console. How its document-style model differs from Supabase, and where it fits.","image":"https://www.kloudbean.com/blog/self-host-appwrite/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/self-host-appwrite/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is Appwrite?","acceptedAnswer":{"@type":"Answer","text":"Appwrite is an open-source backend server, a self-hostable Firebase alternative. It bundles authentication, a database, file storage, serverless functions, and messaging into a single console, with real-time updates and GraphQL support. Under the hood it runs on a relational database (MariaDB) with Redis, but you build against its document-style SDKs and API rather than writing SQL directly. The server is released under the permissive BSD 3-Clause license."}},
+{"@type":"Question","name":"Appwrite or Supabase, which should I self-host?","acceptedAnswer":{"@type":"Answer","text":"Choose by data model. Appwrite gives you a Firebase-style, document-based experience with everything bundled behind one console, which is fast to build on. Supabase gives you a real PostgreSQL database and SQL you write and own, which is better if you want relational power and portability. Feature lists look similar, but the model shapes your codebase, so pick the one you actually want to build in."}},
+{"@type":"Question","name":"Is Appwrite easier to self-host than Supabase?","acceptedAnswer":{"@type":"Answer","text":"Generally yes. Appwrite ships as a coordinated Docker stack behind a single console, so setup is closer to starting the stack and opening the console than to wiring several separate services together. Supabase self-hosting involves more moving parts. That relative simplicity is one of the main reasons people pick Appwrite when running their own backend is the goal, including for data-sovereignty or air-gapped needs."}},
+{"@type":"Question","name":"What database does Appwrite use?","acceptedAnswer":{"@type":"Answer","text":"It runs on a relational database, MariaDB, with Redis alongside for caching and real-time features. The important thing for developers is that you do not interact with that database directly through SQL. Appwrite presents a simplified, document-style API of collections and documents, and manages the underlying relational storage for you."}},
+{"@type":"Question","name":"What is the catch with Appwrite's document-style model?","acceptedAnswer":{"@type":"Answer","text":"The abstraction that makes it fast to build on is also a layer between you and raw SQL. You gain a clean, consistent API and quick development, and you give up some direct relational power and the portability of data that is just standard Postgres. For most app work that is a good trade. If your project needs complex SQL or heavy relational modelling, it can feel limiting, so weigh it before committing."}},
+{"@type":"Question","name":"What does Appwrite need to run?","acceptedAnswer":{"@type":"Answer","text":"A real server with comfortable memory, since it is a full backend with a database, a cache, and several services running as a Docker stack. For production, put its data layer on a managed MariaDB and managed Redis so the parts holding your users and documents are maintained and backed up, and keep files in object storage. It is more than a lightweight tool, but its setup is friendlier than most self-hosted backends."}},
+{"@type":"Question","name":"How do I back up Appwrite?","acceptedAnswer":{"@type":"Answer","text":"Back up its data layer: an automatic dump of the database plus your stored files, shipped off the server on a schedule, with a restore you have tested once. Because a backend holds your users and their data, this is essential rather than optional. Using a managed MariaDB puts the most important part on an automatic backup routine, and object storage covers the files."}},
+{"@type":"Question","name":"Is Appwrite a one-click app on Kloudbean?","acceptedAnswer":{"@type":"Answer","text":"No. Appwrite runs as its own Docker stack on a managed server rather than as a one-click install, though its setup is among the friendlier ones in this category. You run it on a right-sized server behind a managed reverse proxy with free SSL, with managed MariaDB and Redis for the data layer. The platform keeps the server and database healthy while the Appwrite app and your data stay yours."}}
+]}
+]}
+</script>
+</body>
+</html>

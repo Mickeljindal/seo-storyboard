@@ -22,7 +22,7 @@ Add up your monthly software bills. The automation tool. The database service. T
 
 Most of those tools are open source, which means you can run them yourself. This is the hub for the best self-hosted tools worth owning, grouped by the SaaS bill each one kills. For every tool: what it replaces, roughly how much server it wants, and whether it's a one-click install on Kloudbean or something you run as a normal app. No ranking theater. Pick the category that annoys your wallet most and start there.
 
-> **The short version:** The best self-hosted tools cover automation (n8n), a full backend (Supabase), private AI chat (Ollama plus Open WebUI), LLM building (Langflow), publishing (Ghost), Git and DevOps (GitLab), file sync (Nextcloud), design (Penpot), social scheduling (Postiz), and mailing lists (Listmonk), plus lighter picks like Plausible, Uptime Kuma, and Vaultwarden. Most are light enough to share one server. GitLab and local AI are the two that want their own box.
+> **The short version:** The best self-hosted tools cover automation (n8n), a full backend (Supabase), private AI chat (Ollama plus Open WebUI), LLM building (Langflow), publishing (Ghost), Git and DevOps (GitLab), file sync (Nextcloud), design (Penpot), social scheduling (Postiz), and mailing lists (Listmonk), plus a headless CMS (Directus), a backend (Appwrite), team chat (Mattermost), a no-code database (Baserow), and lighter picks like Plausible analytics, Uptime Kuma, and Vaultwarden. Most are light enough to share one server. GitLab and local AI are the two that want their own box.
 
 ## What self-hosting actually buys you, and what it costs
 
@@ -83,13 +83,17 @@ Postiz is an open-source social media scheduler, a self-hosted Buffer or Hootsui
 
 Listmonk is a dedicated mailing list and campaign manager, and it is a delight to run: a single Go binary with only PostgreSQL behind it, fast and light even with large lists. Hosted platforms bill by subscriber count, so a big list costs a big monthly fee; listmonk paired with a cheap sending service is a flat server cost plus pennies per thousand emails. One honest thing to know up front: listmonk manages the list and builds the campaign, but it hands the actual sending to an SMTP relay or Amazon SES, so deliverability is still your job. This is a list manager, not a publishing platform, so if you want a website with a newsletter that is Ghost's territory. Own it because a list you paid to build shouldn't cost more every time it grows. [Full Listmonk guide](https://www.kloudbean.com/blog/self-host-listmonk/).
 
-### Three more worth knowing
+### A few more worth self-hosting
 
-A few more earn a mention, and all run as normal apps on a server:
+More earn a mention, and all run as normal apps on a server:
 
-- **Plausible** for privacy-friendly web analytics, instead of Google Analytics. No cookie banner, no shipping visitor behavior to an ad company. Light, around 1 GB.
+- **Plausible** for privacy-friendly web analytics, instead of Google Analytics. No cookie banner, no shipping visitor behavior to an ad company. It runs on ClickHouse, so it is heavier than it looks, which the [full Plausible guide](https://www.kloudbean.com/blog/self-host-plausible/) explains.
 - **Uptime Kuma** for monitoring and a status page, instead of a paid monitor. It watches your sites and pings you when something's down. Tiny, a few hundred MB.
 - **Vaultwarden** for passwords, a lightweight, Bitwarden-compatible server. Small footprint, and your vault stays on your own box. It's the highest-trust thing on this list, so read the [full Vaultwarden guide](https://www.kloudbean.com/blog/self-host-vaultwarden/) before you move real passwords in, because backups here are existential.
+- **Directus** for a database-first headless CMS that wraps your existing SQL database instead of owning the schema. The [full Directus guide](https://www.kloudbean.com/blog/self-host-directus/) covers how it differs from Strapi, and the license to watch.
+- **Appwrite** for a Firebase-style backend, with auth, database, storage, and functions in one console. The [full Appwrite guide](https://www.kloudbean.com/blog/self-host-appwrite/) covers how it differs from Supabase.
+- **Mattermost** for team chat that can run air-gapped, instead of Slack. The [full Mattermost guide](https://www.kloudbean.com/blog/self-host-mattermost/) covers when it beats Rocket.Chat.
+- **Baserow** for a standalone no-code database with real-time collaboration, instead of Airtable. The [full Baserow guide](https://www.kloudbean.com/blog/self-host-baserow/) covers how it differs from NocoDB.
 
 ## One-click or server-based? The honest map
 
@@ -107,9 +111,13 @@ This is the bit people get wrong reading a generic roundup. On Kloudbean, five o
 | **[Penpot](https://www.kloudbean.com/blog/self-host-penpot/)** | Figma | ~2 GB+ | One-click app |
 | **[Postiz](https://www.kloudbean.com/blog/self-host-postiz/)** | Buffer / Hootsuite | ~1-2 GB | One-click app |
 | **[Listmonk](https://www.kloudbean.com/blog/self-host-listmonk/)** | Mailchimp | Light (Go + Postgres) | Server-based app |
-| **Plausible** | Google Analytics | ~1 GB | Server-based app |
+| **[Plausible](https://www.kloudbean.com/blog/self-host-plausible/)** | Google Analytics | ~1 GB + ClickHouse | Server-based app |
 | **Uptime Kuma** | Paid status page | A few hundred MB | Server-based app |
 | **[Vaultwarden](https://www.kloudbean.com/blog/self-host-vaultwarden/)** | Password manager SaaS | Tiny | Server-based app |
+| **[Directus](https://www.kloudbean.com/blog/self-host-directus/)** | Contentful (headless CMS) | ~1 GB + your DB | Server-based app |
+| **[Appwrite](https://www.kloudbean.com/blog/self-host-appwrite/)** | Firebase | ~2 GB+ | Server-based app |
+| **[Mattermost](https://www.kloudbean.com/blog/self-host-mattermost/)** | Slack | ~2 GB + Postgres | Server-based app |
+| **[Baserow](https://www.kloudbean.com/blog/self-host-baserow/)** | Airtable | ~2-4 GB | Server-based app |
 
 ## Where to run these self-hosted tools (the one-server trick)
 

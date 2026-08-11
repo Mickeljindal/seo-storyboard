@@ -154,7 +154,7 @@ If you don't have a database to point at yet, spin one up first: [managed Postgr
 
 <!-- ADD IMAGE: The NocoDB add-data-source dialog with host, port, user, and database filled in for a managed Postgres. -->
 
-Weighing other tools to run yourself? The [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) roundup is good company, and if you want a full backend rather than a grid, the [self-host Supabase](https://www.kloudbean.com/blog/self-host-supabase/) guide is the sibling piece.
+Weighing other tools to run yourself? The [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) roundup is good company, and if you want a full backend rather than a grid, the [self-host Supabase](https://www.kloudbean.com/blog/self-host-supabase/) guide is the sibling piece. And if you want a standalone no-code database that owns its data with real-time collaboration, rather than a layer over an existing one, [self-hosting Baserow](https://www.kloudbean.com/blog/self-host-baserow/) is the alternative.
 
 ## A spreadsheet UI on a database you own
 
