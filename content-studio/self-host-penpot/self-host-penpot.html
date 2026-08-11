@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Self-Host Penpot: The Open-Source Figma Alternative That Speaks Code</title>
+<meta name="description" content="Penpot is an open-source, self-hostable design tool built on SVG and CSS, for designers and developers. Why self-host it, the honest weight, the SMTP gotcha, and where it fits.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/self-host-penpot/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Self-Host Penpot: The Open-Source Figma Alternative That Speaks Code">
+<meta property="og:description" content="Own your design files, drop the per-seat bill, and keep design and code in one open-standards tool. The honest guide to running Penpot yourself.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Self-hosted tools · Design · Guide</span>
+  <h1>Self-Host Penpot: The Open-Source Figma Alternative That Speaks Code</h1>
+  <p class="byline">By Kloudbean Engineering · A design tool a developer can actually own.</p>
+
+  <figure><img src="images/hero.png" alt="The Penpot design canvas running on a self-hosted server, with SVG and CSS output flowing to a developer's editor">
+  </figure>
+
+  <p class="lead">Most design tools are a black box you rent per editor. Penpot is the opposite: open source, built on the same SVG and CSS the browser already speaks, and designed from day one so developers are not left begging for a handoff. That combination is why teams look at self-hosting it. You stop paying per seat, your design files live on infrastructure you control, and the thing your designers draw in is the same thing your developers can read as code. This is the honest guide to running it yourself, including the parts the quick tutorials skip.</p>
+
+  <div class="tldr">
+    <strong>Should I self-host Penpot?</strong>
+    <p>Penpot is an open-source, browser-based design and prototyping tool, a genuine Figma alternative built on open web standards (SVG and CSS) for both designers and developers. Self-hosting it makes sense when you are a team or an agency feeling per-editor pricing, or when design files need to stay on infrastructure you control. It is worth being honest that Penpot is not one of the featherweight self-hosted tools: it runs several services with PostgreSQL and Redis behind them, so give it real memory. On Kloudbean it is a one-click app, so you skip the Docker Compose file and run it on a managed server with a managed database. If you are a solo designer, the hosted free tier is genuinely fine and self-hosting is not worth your evening.</p>
+  </div>
+
+  <h2>What Penpot actually is</h2>
+  <p>Short version: the open-source design tool that treats developers as first-class users.</p>
+
+  <p>Penpot is a design and prototyping platform you use in the browser, on any operating system, with no desktop app to install. It calls itself the first open-source design tool built for cross-domain teams, meaning designers and developers working in the same file rather than throwing assets over a wall. It is open source under the MPL-2.0 licence, so you can read it, run it, and host it yourself without asking anyone.</p>
+
+  <p>The detail that matters technically: Penpot is built on open web standards. Designs are SVG under the hood, layouts use real CSS Grid and Flexbox, and the tool can hand developers usable code rather than a screenshot and a shrug. If you have ever watched a pixel-perfect mockup fall apart the moment it met real CSS, that design-to-code alignment is the whole pitch, and it is the thing no proprietary tool quite matches.</p>
+
+  <h2>Why self-host it, and who shouldn't</h2>
+  <p>Three real reasons to run your own, and one honest case where you shouldn't bother.</p>
+
+  <p><strong>The per-seat bill.</strong> Proprietary design tools charge per editor, per month, and a growing design team or an agency with many collaborators watches that number climb. A self-hosted Penpot serves everyone from one server at a flat cost, and adding the next editor does not add a line to an invoice. <strong>Data sovereignty.</strong> Your design files are intellectual property: brand work, unreleased products, client mockups. Self-hosting keeps them on infrastructure you control, which some teams want on principle and some need for client or regulatory reasons. <strong>No lock-in.</strong> Open source and open standards mean your work is not hostage to one vendor's pricing or roadmap.</p>
+
+  <p>Who shouldn't self-host it, said plainly: a solo designer or a tiny team. Penpot's hosted service has a free tier that is genuinely good, and running several services yourself to save nothing is a poor trade of your time. Self-hosting earns its place when the seat count starts to sting, or when someone with a compliance or client-confidentiality reason needs the files in-house. Do not self-host a design tool as a hobby unless you enjoy the hobby.</p>
+
+  <h2>The design-to-code part, which is the real reason to care</h2>
+  <p>This is where Penpot stops being "free Figma" and becomes its own argument.</p>
+
+  <p>Because Penpot is built on SVG and CSS rather than a proprietary rendering model, what a designer builds maps to what a browser renders. Layouts use CSS Grid and Flex, so a developer inspecting a component sees the actual layout system they will write, not an approximation. The handoff, the part of design-and-build that usually leaks time and goodwill, gets shorter because there is less translation.</p>
+
+  <p>For an agency or a product team, that is the quiet win of owning Penpot. The design tool and the front-end stack finally speak the same language. Your designers get a capable tool, your developers get real code and real layout intent, and nobody is paying per seat for the privilege. If your work is shipping interfaces, that alignment compounds over every feature.</p>
+
+  <figure>
+    <svg viewBox="0 0 880 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="pp-title pp-desc">
+      <title id="pp-title">How self-hosted Penpot fits together</title>
+      <desc id="pp-desc">Designers and developers use Penpot in the browser. Penpot runs as several services on your server, backed by PostgreSQL for the design files and Redis, with assets in object storage, and SMTP configured so invites and registration emails actually send.</desc>
+      <rect x="0" y="0" width="880" height="250" fill="#ffffff"/>
+      <g font-family="Poppins, sans-serif" font-size="12.5" fill="#000f27">
+        <rect x="24" y="40" width="150" height="60" rx="10" fill="#efe9ff" stroke="#4F1AF3" stroke-width="1.4"/>
+        <text x="99" y="66" text-anchor="middle" font-weight="600">Designers</text>
+        <text x="99" y="86" text-anchor="middle" font-size="11">in the browser</text>
+        <rect x="24" y="150" width="150" height="60" rx="10" fill="#e8f7ed" stroke="#40b75f" stroke-width="1.4"/>
+        <text x="99" y="176" text-anchor="middle" font-weight="600">Developers</text>
+        <text x="99" y="196" text-anchor="middle" font-size="11">SVG + CSS out</text>
+
+        <g stroke="#98a2b3" stroke-width="2" fill="none" marker-end="url(#ppa)">
+          <path d="M176 70 H250"/><path d="M176 180 H250"/>
+        </g>
+
+        <rect x="252" y="70" width="230" height="110" rx="12" fill="#0b1531"/>
+        <text x="367" y="98" text-anchor="middle" fill="#fff" font-weight="700">Penpot on your server</text>
+        <text x="367" y="122" text-anchor="middle" fill="#aeb6d4" font-size="11.5">frontend · backend · exporter</text>
+        <text x="367" y="146" text-anchor="middle" fill="#8f9bc4" font-size="11">several services, real memory</text>
+
+        <g stroke="#4F1AF3" stroke-width="2.2" fill="none" marker-end="url(#ppa)">
+          <path d="M482 108 H560"/><path d="M482 150 H560"/>
+        </g>
+        <rect x="562" y="72" width="140" height="46" rx="9" fill="#eef2ff" stroke="#4F1AF3" stroke-width="1.3"/>
+        <text x="632" y="100" text-anchor="middle" font-size="12" font-weight="600">PostgreSQL</text>
+        <rect x="562" y="128" width="140" height="46" rx="9" fill="#fff4e6" stroke="#d98324" stroke-width="1.3"/>
+        <text x="632" y="156" text-anchor="middle" font-size="12" font-weight="600">Redis</text>
+
+        <g stroke="#98a2b3" stroke-width="2" fill="none" marker-end="url(#ppa)"><path d="M702 95 H770"/></g>
+        <rect x="740" y="72" width="118" height="46" rx="9" fill="#e8f7ed" stroke="#40b75f" stroke-width="1.3"/>
+        <text x="799" y="100" text-anchor="middle" font-size="11.5" font-weight="600">Object storage</text>
+
+        <rect x="252" y="204" width="606" height="30" rx="7" fill="#000f27"/>
+        <text x="266" y="224" font-size="12" fill="#fff">Plus SMTP configured, or invites and registration emails silently never arrive.</text>
+      </g>
+      <defs><marker id="ppa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#98a2b3"/></marker></defs>
+    </svg>
+    <figcaption>Penpot is several services plus a database, not a single lightweight container. Plan the machine accordingly.</figcaption>
+  </figure>
+
+  <h2>What it actually takes to run</h2>
+  <p>Time for the honesty the featherweight-tool roundups skip. Penpot is worth running, but it is not tiny.</p>
+
+  <p>Where a monitoring tool sips a few hundred megabytes, Penpot is a set of services working together: a frontend, a backend, an exporter that renders your designs, and PostgreSQL and Redis behind them. So it wants a real server with real memory, not the smallest box on the menu. That is not a criticism, it is just the shape of a full design platform, and pretending otherwise is how people end up with a swapping, sluggish instance that makes them blame the software.</p>
+
+  <p>Upstream, the documented way to self-host Penpot is Docker and Docker Compose, and the official docs are candid that you need to be comfortable with Docker, DNS, and proxy configuration. That is a fair chunk of setup. On Kloudbean, Penpot is a one-click app, so you skip writing and maintaining the Compose file: you launch it onto a managed server, point a domain at it, and the database and reverse proxy are handled for you. Same Penpot, far less yak-shaving.</p>
+
+  <h2>The setup, in shape (and the gotcha nobody mentions)</h2>
+  <p>However you install it, a few things decide whether it feels solid or broken.</p>
+
+  <ul>
+    <li><strong>HTTPS from the start.</strong> Penpot sits behind a reverse proxy that terminates TLS. Use free, auto-renewing SSL so the certificate is never the thing that expires on a Friday. If proxies are unfamiliar, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">the reverse proxy guide</a> covers the pattern.</li>
+    <li><strong>The database.</strong> Penpot stores your files and teams in PostgreSQL. Point it at <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a> so the design data sits on a database that is backed up and maintained, rather than a container you have to nurse. Redis handles sessions and background work; <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis</a> keeps that off your plate too.</li>
+    <li><strong>SMTP, the invisible one.</strong> This is the setup step people miss and then assume Penpot is broken. Penpot sends email for registration confirmation and team invitations, so if you do not configure a working SMTP account, new users never get their confirmation, invites vanish, and the instance looks dead while being perfectly healthy. Configure email first, then test it by inviting yourself. If port 25 is the problem, <a href="https://www.kloudbean.com/blog/port-25-blocked-smtp-ports/">why SMTP ports get blocked</a> explains the fix.</li>
+    <li><strong>Registration policy.</strong> Decide whether the internet can sign up or whether it is invite-only, and set it before you share the URL.</li>
+  </ul>
+
+  <h2>Backing up your design files</h2>
+  <p>Your designs are now your responsibility, and they are worth more than the server they sit on.</p>
+
+  <p>Penpot's data lives in two places: the PostgreSQL database holds the files, teams, and structure, and uploaded assets sit in storage. A real backup covers both: a database dump plus the assets, shipped off the server automatically to <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">object storage</a>, on a schedule, with a restore you have actually tested at least once. The wider discipline is in <a href="https://www.kloudbean.com/blog/server-backups-guide/">the backups guide</a>, and it applies here with a designer's twist: losing a week of design iteration is its own special pain, so do not learn this lesson the expensive way.</p>
+
+  <div class="note">
+    <strong>Coming from Figma?</strong> You can bring work across, and Penpot has import paths for common formats, but treat a migration as a project, not a drag-and-drop. Move one project, check that components and layouts survived, then move the rest. The design-to-code benefits are worth the care.
+  </div>
+
+  <h2>Where hosting fits, honestly</h2>
+  <p>Penpot is a good example of where a managed platform quietly removes the annoying parts. On Kloudbean it is a one-click app, so the Docker Compose file you would otherwise write and maintain is simply not your problem. It runs on a managed server across any of seven clouds, with managed PostgreSQL for the design files, managed Redis for sessions, free auto-renewing SSL for the mandatory HTTPS, automatic backups as the safety net, and object storage for assets, all in one dashboard. When you outgrow the first server, you resize it rather than re-architecting.</p>
+
+  <p>The honest boundary: the platform keeps the server, database, SSL, and backups healthy. Your design files, your fonts, your SMTP account, and how you run your design process stay yours. Managed hosting makes Penpot easy to stand up and hard to lose. It does not, and should not, reach into your creative work.</p>
+
+  <h2>Related reading</h2>
+  <p>For the wider picture of what is worth running yourself, the <a href="https://www.kloudbean.com/blog/best-self-hosted-tools/">best self-hosted tools</a> guide. For neighbours in this cluster, <a href="https://www.kloudbean.com/blog/self-host-nextcloud/">self-hosting Nextcloud</a> for files and <a href="https://www.kloudbean.com/blog/self-host-supabase/">self-hosting Supabase</a> for an app backend. The pieces Penpot leans on: <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a>, <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis</a>, <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups</a>, and <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">object storage</a>. And if the SMTP step trips you up, <a href="https://www.kloudbean.com/blog/port-25-blocked-smtp-ports/">blocked SMTP ports explained</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Run Penpot in one click, own every design file.</p>
+    <p style="margin:0 0 .6em">Launch Penpot as a one-click app on a managed server across seven clouds, with managed PostgreSQL and Redis, free auto-renewing SSL, and automatic backups. No Compose file to babysit. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">One-click Penpot · Managed PostgreSQL and Redis · Free auto-renewing SSL · Automatic backups</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Is Penpot really a full Figma alternative?</h3>
+    <p>For most UI and UX design and prototyping work, yes. Penpot covers design, components, prototyping, and design systems, and its open-standards foundation gives it a genuine edge on developer handoff. It may not match every advanced feature of the market leader on any given day, but for teams that value open source, no per-seat lock-in, and real design-to-code alignment, it is a serious tool rather than a compromise.</p>
+
+    <h3>What do I need to self-host Penpot?</h3>
+    <p>A server with real memory, because Penpot runs several services (frontend, backend, exporter) with PostgreSQL and Redis behind them. Upstream you install it with Docker and Docker Compose, which the official docs note requires comfort with Docker, DNS, and proxy setup. On Kloudbean it is a one-click app on a managed server, so you skip the Compose file and the database is managed for you.</p>
+
+    <h3>Why do my Penpot invitations and sign-ups not work?</h3>
+    <p>Almost always because SMTP is not configured. Penpot sends email for registration confirmation and team invites, so without a working mail setup those emails never arrive and the instance looks broken while being perfectly healthy. Configure a working SMTP account, then test it by inviting yourself. If outbound mail fails, a blocked port 25 is a common cause and there are alternative submission ports.</p>
+
+    <h3>How much memory does Penpot need?</h3>
+    <p>More than the lightweight tools. It is a set of services plus PostgreSQL and Redis, so it wants a real server rather than the smallest box available. Treat it like a proper application, give it comfortable memory headroom, and it runs smoothly. Starve it and you get a sluggish instance that tempts you to blame the software rather than the sizing.</p>
+
+    <h3>Where does Penpot store my designs, and how do I back them up?</h3>
+    <p>Your files, teams, and structure live in PostgreSQL, and uploaded assets live in storage. A complete backup is a database dump plus the assets, shipped off the server automatically and restored once so you know the restore works. Using a managed PostgreSQL folds the most important half into an automatic backup routine, and object storage handles the assets.</p>
+
+    <h3>Is self-hosting Penpot worth it for a solo designer?</h3>
+    <p>Usually not. Penpot's hosted service has a genuinely good free tier, and running several services yourself to save little is a poor use of your time. Self-hosting pays off for teams and agencies feeling per-editor pricing, and for anyone with a client-confidentiality or data-residency reason to keep design files in-house. If that is not you, use the hosted version and spend the evening designing.</p>
+
+    <h3>Can designers and developers really work in the same Penpot file?</h3>
+    <p>That is the core idea. Penpot is built for cross-domain teams, so designers create while developers inspect real CSS Grid and Flex layouts and pull usable code from the same source of truth. Because it is built on SVG and CSS rather than a proprietary model, what the designer builds maps closely to what the browser renders, which is what shortens the handoff.</p>
+
+    <h3>Is Penpot a one-click app on Kloudbean?</h3>
+    <p>Yes. Penpot is one of Kloudbean's one-click apps, so you launch it onto a managed server without writing a Docker Compose file, point a domain at it, and let the managed database, SSL, and backups be handled for you. That removes most of the setup friction the upstream Docker route involves while keeping the same self-hosted ownership.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Configure SMTP before you send the first invite.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Self-Host Penpot: The Open-Source Figma Alternative That Speaks Code","description":"Penpot is an open-source, self-hostable design tool built on SVG and CSS, for designers and developers. Why self-host it, the honest weight, the SMTP gotcha, and where it fits.","image":"https://www.kloudbean.com/blog/self-host-penpot/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/self-host-penpot/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Is Penpot really a full Figma alternative?","acceptedAnswer":{"@type":"Answer","text":"For most UI and UX design and prototyping work, yes. Penpot covers design, components, prototyping, and design systems, and its open-standards foundation gives it a genuine edge on developer handoff. It may not match every advanced feature of the market leader on any given day, but for teams that value open source, no per-seat lock-in, and real design-to-code alignment, it is a serious tool rather than a compromise."}},
+{"@type":"Question","name":"What do I need to self-host Penpot?","acceptedAnswer":{"@type":"Answer","text":"A server with real memory, because Penpot runs several services (frontend, backend, exporter) with PostgreSQL and Redis behind them. Upstream you install it with Docker and Docker Compose, which the official docs note requires comfort with Docker, DNS, and proxy setup. On Kloudbean it is a one-click app on a managed server, so you skip the Compose file and the database is managed for you."}},
+{"@type":"Question","name":"Why do my Penpot invitations and sign-ups not work?","acceptedAnswer":{"@type":"Answer","text":"Almost always because SMTP is not configured. Penpot sends email for registration confirmation and team invites, so without a working mail setup those emails never arrive and the instance looks broken while being perfectly healthy. Configure a working SMTP account, then test it by inviting yourself. If outbound mail fails, a blocked port 25 is a common cause and there are alternative submission ports."}},
+{"@type":"Question","name":"How much memory does Penpot need?","acceptedAnswer":{"@type":"Answer","text":"More than the lightweight tools. It is a set of services plus PostgreSQL and Redis, so it wants a real server rather than the smallest box available. Treat it like a proper application, give it comfortable memory headroom, and it runs smoothly. Starve it and you get a sluggish instance that tempts you to blame the software rather than the sizing."}},
+{"@type":"Question","name":"Where does Penpot store my designs, and how do I back them up?","acceptedAnswer":{"@type":"Answer","text":"Your files, teams, and structure live in PostgreSQL, and uploaded assets live in storage. A complete backup is a database dump plus the assets, shipped off the server automatically and restored once so you know the restore works. Using a managed PostgreSQL folds the most important half into an automatic backup routine, and object storage handles the assets."}},
+{"@type":"Question","name":"Is self-hosting Penpot worth it for a solo designer?","acceptedAnswer":{"@type":"Answer","text":"Usually not. Penpot's hosted service has a genuinely good free tier, and running several services yourself to save little is a poor use of your time. Self-hosting pays off for teams and agencies feeling per-editor pricing, and for anyone with a client-confidentiality or data-residency reason to keep design files in-house. If that is not you, use the hosted version and spend the evening designing."}},
+{"@type":"Question","name":"Can designers and developers really work in the same Penpot file?","acceptedAnswer":{"@type":"Answer","text":"That is the core idea. Penpot is built for cross-domain teams, so designers create while developers inspect real CSS Grid and Flex layouts and pull usable code from the same source of truth. Because it is built on SVG and CSS rather than a proprietary model, what the designer builds maps closely to what the browser renders, which is what shortens the handoff."}},
+{"@type":"Question","name":"Is Penpot a one-click app on Kloudbean?","acceptedAnswer":{"@type":"Answer","text":"Yes. Penpot is one of Kloudbean's one-click apps, so you launch it onto a managed server without writing a Docker Compose file, point a domain at it, and let the managed database, SSL, and backups be handled for you. That removes most of the setup friction the upstream Docker route involves while keeping the same self-hosted ownership."}}
+]}
+]}
+</script>
+</body>
+</html>

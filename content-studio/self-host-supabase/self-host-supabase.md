@@ -10,7 +10,7 @@ secondary_keywords:
   - supabase self hosting guide
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 2 — Self-Hosted Tools
+cluster: 2. Self-Hosted Tools
 ---
 
 ![Self-host Supabase: Postgres, auth, storage and auto APIs on a server you own](images/hero.png)
@@ -138,7 +138,7 @@ The decision isn't ideological. It's about whether ownership and predictable cos
 
 ## The Lovable connection
 
-Worth calling out, because it catches people by surprise. If you built your app with **Lovable**, there's a strong chance it already uses Supabase for its database and auth. That makes this article your natural next step: instead of staying tied to a hosted Supabase project, you can move the backend onto infrastructure you own and take the frontend with it. We wrote the specifics up in [the Lovable self-hosted alternative](https://www.kloudbean.com/blog/lovable-self-hosted-alternative/) and [moving a Lovable app off Vercel](https://www.kloudbean.com/blog/move-lovable-app-off-vercel/). And if you're weighing other tools to run yourself, the [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) roundup and the sibling [self-host n8n](https://www.kloudbean.com/blog/self-host-n8n/) guide are good company.
+Worth calling out, because it catches people by surprise. If you built your app with **Lovable**, there's a strong chance it already uses Supabase for its database and auth. That makes this article your natural next step: instead of staying tied to a hosted Supabase project, you can move the backend onto infrastructure you own and take the frontend with it. We wrote the specifics up in [the Lovable self-hosted alternative](https://www.kloudbean.com/blog/lovable-self-hosted-alternative/) and [moving a Lovable app off Vercel](https://www.kloudbean.com/blog/move-lovable-app-off-vercel/). And if you're weighing other tools to run yourself, the [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) roundup and the sibling [self-host n8n](https://www.kloudbean.com/blog/self-host-n8n/) guide are good company, and [self-hosting Penpot](https://www.kloudbean.com/blog/self-host-penpot/) is another one-click app worth a look if design is on your list.
 
 ---
 

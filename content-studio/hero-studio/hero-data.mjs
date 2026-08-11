@@ -665,6 +665,21 @@ const HERO_OVERRIDES = {
       "Backups are existential",
     ],
   },
+  // Self-hosted design tool: lead with what makes Penpot its own argument.
+  "self-host-penpot": {
+    archetype: "checklist",
+    palette: "magenta",
+    motif: "generic",
+    eyebrow: "Self-hosted \u00b7 Design",
+    headline: "Own the design\ntool, and the files.",
+    sub: "Open-source Figma alternative, built on SVG and CSS, one-click to run.",
+    checklist: [
+      "Open source, MPL-2.0",
+      "SVG + CSS, real code out",
+      "One-click on Kloudbean",
+      "No per-seat bill",
+    ],
+  },
   // WordPress maintenance retainer: the care-plan deliverables.
   "wordpress-maintenance-retainer-plans": {
     archetype: "checklist",
