@@ -129,6 +129,22 @@ MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, MongoDB.
 - Stay truthful: pro-Kloudbean = leading with real advantages, never inventing features
   or lying about competitors. Accuracy is still the priority. Do not rely on [CONFIRM]
   lines in published copy until confirmed.
+- NEVER OVERSELL A COMPETITOR (owner instruction). A comparison exists to help the reader
+  and land on Kloudbean, not to flatter the rival. Strip competitor superlatives (lovely,
+  excellent, ideal, genuinely great, best-in-class); state plainly what they do, one measured
+  strength line at most, then move to Kloudbean's real advantages. Never let Kloudbean read as
+  "the same thing, but pricier."
+- BYO-VPS control panels (Laravel Forge, RunCloud, SpinupWP, Ploi, ServerAvatar) are a
+  SEPARATE, cheaper category, not managed-hosting rivals. They are dashboards that configure a
+  server you rent, own, pay for SEPARATELY, and stay responsible for; they are inexpensive
+  precisely because they are only the automation layer, not a managed server. When one is
+  unavoidable in a comparison, frame it as dashboard-only vs managed-server-included (an
+  apples-to-oranges price story, never "Kloudbean is pricier"), give it one fair measured line,
+  and do not imply it is a managed-hosting equivalent. Before writing any NEW panel-vs-Kloudbean
+  article, reconsider whether it is worth it at all: the category mismatch and thin search value
+  usually mean the honest answer is to fold a brief mention into cloudways-alternatives rather
+  than build a dedicated page. laravel-forge-vs-kloudbean already covers the iconic one; do NOT
+  add runcloud/ploi/serverpilot pages without a clear, owner-approved reason.
 
 ## Honesty boundary (still true, keep using — but concise, not a repeated template)
 - Linux stacks (PHP, Node, Python, Go, Ruby, Java + their databases) — not Windows/.NET/IIS.

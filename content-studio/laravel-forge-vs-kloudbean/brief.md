@@ -24,7 +24,17 @@ managed. deploy-laravel-app = the how-to (linked, different intent).
   You keep full SSH + own the box. Flat-rate Hobby/Growth/Business (HEDGED exact $). PHP/Laravel-first
   (docs: "PHP or other stacks"). RECENTLY added managed MySQL/Postgres (acknowledged fairly).
 - NOT Laravel Cloud (PaaS) or Vapor (serverless) - added a clarifying line to avoid confusion.
-- Fair framing: Forge genuinely great for developer server management. One measured strength paragraph.
+- Fair framing: Forge is good at its job (developer server management), stated in MEASURED terms.
+
+## Revision (owner feedback: don't oversell competitors; panels are cheap dashboards)
+Trimmed Forge superlatives (removed "lovely / close to ideal / genuinely great tool / excellent fit /
+well-loved / for good reason"). Reframed the Forge section as "What Laravel Forge is, and what it
+isn't": Forge is a DASHBOARD, not a host - it does NOT include the server; you own + pay for the cloud
+box separately; it's inexpensive precisely because it's only the automation layer, not the machine or
+the job of running it. Added a "Price covers" table row (panel only vs managed server included) and a
+sentence in the Kloudbean section so the price reads apples-to-oranges (managed server included), NOT
+"same but pricier". Still fair to Forge (accuracy priority), just not gushing. DECISION: do NOT write
+runcloud/ploi/serverpilot comparisons - same cheap dashboard-only category, mismatch risk, low value.
 
 ## Grounding (kloudbean-facts) + fair-comparison guardrails
 - Kloudbean: fully managed (server/stack/SSL/patching/backups), 7 DB engines, multi-language
