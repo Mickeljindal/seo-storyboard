@@ -695,6 +695,21 @@ const HERO_OVERRIDES = {
       "One-click on Kloudbean",
     ],
   },
+  // Self-hosted mailing-list manager: lead with the "manages, doesn't send" truth.
+  "self-host-listmonk": {
+    archetype: "checklist",
+    palette: "amber",
+    motif: "network",
+    eyebrow: "Self-hosted \u00b7 Email",
+    headline: "Own the list,\nnot the per-sub bill.",
+    sub: "Fast open-source mailing-list manager. One Go binary, one Postgres.",
+    checklist: [
+      "Go single binary + Postgres",
+      "Manages the list, not the sending",
+      "Pairs with SES: cheap at scale",
+      "Own your subscribers",
+    ],
+  },
   // WordPress maintenance retainer: the care-plan deliverables.
   "wordpress-maintenance-retainer-plans": {
     archetype: "checklist",

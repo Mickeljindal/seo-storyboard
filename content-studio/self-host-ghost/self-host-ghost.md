@@ -11,7 +11,7 @@ secondary_keywords:
   - substack alternative
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 2 — Self-Hosted Tools
+cluster: 2. Self-Hosted Tools
 ---
 
 ![Self-host Ghost: a fast publishing platform with newsletters and memberships, on your own server](images/hero.png)
@@ -154,7 +154,7 @@ Pair that with the platform's automatic [server-level backups](https://www.kloud
 
 If you're building an audience or a paid publication and you want to own it (your content, your list, your revenue, your domain) then self-hosting Ghost is a strong move, and the software itself is first-class. Get a right-sized Node server, a managed MySQL beside it, wire up Mailgun and Stripe, and you stop renting your own audience.
 
-Ghost is one of several tools that reward owning them outright. If you're mapping out a stack, our roundup of the [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) puts it in context alongside the rest.
+Ghost is one of several tools that reward owning them outright. If you're mapping out a stack, our roundup of the [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) puts it in context alongside the rest. And if what you actually want is a dedicated mailing list manager rather than a website with a newsletter, [self-hosting Listmonk](https://www.kloudbean.com/blog/self-host-listmonk/) is the pure-list tool for sending at scale.
 
 ---
 

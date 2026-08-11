@@ -22,7 +22,7 @@ Add up your monthly software bills. The automation tool. The database service. T
 
 Most of those tools are open source, which means you can run them yourself. This is the hub for the best self-hosted tools worth owning, grouped by the SaaS bill each one kills. For every tool: what it replaces, roughly how much server it wants, and whether it's a one-click install on Kloudbean or something you run as a normal app. No ranking theater. Pick the category that annoys your wallet most and start there.
 
-> **The short version:** The best self-hosted tools cover automation (n8n), a full backend (Supabase), private AI chat (Ollama plus Open WebUI), LLM building (Langflow), publishing (Ghost), Git and DevOps (GitLab), file sync (Nextcloud), design (Penpot), and social scheduling (Postiz), plus lighter picks like Plausible, Uptime Kuma, and Vaultwarden. Most are light enough to share one server. GitLab and local AI are the two that want their own box.
+> **The short version:** The best self-hosted tools cover automation (n8n), a full backend (Supabase), private AI chat (Ollama plus Open WebUI), LLM building (Langflow), publishing (Ghost), Git and DevOps (GitLab), file sync (Nextcloud), design (Penpot), social scheduling (Postiz), and mailing lists (Listmonk), plus lighter picks like Plausible, Uptime Kuma, and Vaultwarden. Most are light enough to share one server. GitLab and local AI are the two that want their own box.
 
 ## What self-hosting actually buys you, and what it costs
 
@@ -79,6 +79,10 @@ Penpot is an open-source design and prototyping tool, and unlike most of this li
 
 Postiz is an open-source social media scheduler, a self-hosted Buffer or Hootsuite alternative that posts to around twenty platforms from one calendar, with an AI copilot and a team workspace. Hosted schedulers bill per channel and per seat, so creators with many profiles and agencies posting for many clients pay more as they grow; self-hosted Postiz is a flat server cost. The honest catch: you register a developer app and API keys per platform yourself, which is the real setup work, not the install. It is a one-click app on Kloudbean, with Postgres and Redis behind it. Own it because your posting schedule and account access shouldn't be rented. [Full Postiz guide](https://www.kloudbean.com/blog/self-host-postiz/).
 
+### Mailing lists at scale: Listmonk, instead of Mailchimp
+
+Listmonk is a dedicated mailing list and campaign manager, and it is a delight to run: a single Go binary with only PostgreSQL behind it, fast and light even with large lists. Hosted platforms bill by subscriber count, so a big list costs a big monthly fee; listmonk paired with a cheap sending service is a flat server cost plus pennies per thousand emails. One honest thing to know up front: listmonk manages the list and builds the campaign, but it hands the actual sending to an SMTP relay or Amazon SES, so deliverability is still your job. This is a list manager, not a publishing platform, so if you want a website with a newsletter that is Ghost's territory. Own it because a list you paid to build shouldn't cost more every time it grows. [Full Listmonk guide](https://www.kloudbean.com/blog/self-host-listmonk/).
+
 ### Three more worth knowing
 
 A few more earn a mention, and all run as normal apps on a server:
@@ -102,6 +106,7 @@ This is the bit people get wrong reading a generic roundup. On Kloudbean, five o
 | **Nextcloud** | Google Drive / Dropbox | ~2 GB + disk | Server-based app |
 | **[Penpot](https://www.kloudbean.com/blog/self-host-penpot/)** | Figma | ~2 GB+ | One-click app |
 | **[Postiz](https://www.kloudbean.com/blog/self-host-postiz/)** | Buffer / Hootsuite | ~1-2 GB | One-click app |
+| **[Listmonk](https://www.kloudbean.com/blog/self-host-listmonk/)** | Mailchimp | Light (Go + Postgres) | Server-based app |
 | **Plausible** | Google Analytics | ~1 GB | Server-based app |
 | **Uptime Kuma** | Paid status page | A few hundred MB | Server-based app |
 | **[Vaultwarden](https://www.kloudbean.com/blog/self-host-vaultwarden/)** | Password manager SaaS | Tiny | Server-based app |
