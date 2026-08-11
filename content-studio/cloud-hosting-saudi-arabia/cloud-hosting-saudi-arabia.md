@@ -93,7 +93,7 @@ The setup is short, because the hard part (choosing the region) is a single clic
 
 ![The Kloudbean console launching a managed database into the same in-Kingdom region as the app server](../assets/console/launch-database.png)
 
-For the app-and-database pattern in detail, including connection strings and migrations, there's [how to add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/). The steps are identical in-Kingdom; you've just pinned the region to Dammam first.
+For the app-and-database pattern in detail, including connection strings and migrations, there's [how to add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/). The steps are identical in-Kingdom; you've just pinned the region to Dammam first. For the database-and-sovereignty angle specifically, across all seven managed engines, see [managed databases with Saudi data sovereignty](https://www.kloudbean.com/blog/managed-databases-saudi-data-sovereignty/).
 
 ![The Kloudbean console issuing a free auto-renewing SSL certificate for an in-Kingdom site](../assets/console/ssl-certificate.png)
 

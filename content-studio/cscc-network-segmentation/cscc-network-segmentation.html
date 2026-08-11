@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NCA CSCC Network Segmentation: Isolating Critical Systems the Right Way</title>
+<meta name="description" content="The NCA's Critical Systems Cybersecurity Controls require critical-system networks to be segregated and isolated. What the network controls actually ask for, and how a managed cloud delivers the infrastructure half.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/cscc-network-segmentation/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="NCA CSCC Network Segmentation: Isolating Critical Systems the Right Way">
+<meta property="og:description" content="Segregated networks, whitelist-only firewalls, no wireless, an isolated management network, and DDoS protection. The CSCC network domain, translated into infrastructure.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Saudi Arabia · NCA CSCC · Guide</span>
+  <h1>NCA CSCC Network Segmentation: Isolating Critical Systems the Right Way</h1>
+  <p class="byline">By Kloudbean Engineering · A flat network is the fastest way to fail a critical-systems review.</p>
+
+  <figure><img src="images/hero.png" alt="Critical-system networks segregated into isolated tiers with a whitelist-only firewall and a separate management network">
+  </figure>
+
+  <p class="lead">If your systems fall under the NCA's Critical Systems Cybersecurity Controls, the network domain is one of the places a review gets specific and unforgiving. A flat network where everything can reach everything, one open security group, a database on a public IP, an admin panel exposed to the internet, is exactly what these controls exist to prevent. The CSCC network requirements are public and concrete, and most of them are infrastructure choices rather than mysteries. This guide walks the network controls in plain terms, and shows where a managed cloud delivers the infrastructure half and where the responsibility stays with you.</p>
+
+  <div class="tldr">
+    <strong>What does CSCC require for network segmentation?</strong>
+    <p>The NCA Critical Systems Cybersecurity Controls (CSCC-1:2019) require critical-system networks to be segregated and isolated (control 2-4-1-1), protected by whitelist-only firewall rules that deny by default (2-4-1-9), kept off wireless (2-4-1-4), and defended against DDoS (2-4-1-8), with a separate, isolated management network for privileged access (2-3-1-4). In practice that means separate networks per environment, a deny-all firewall that permits only what is needed, no public database, a bastion for admin access, and edge DDoS protection. A managed cloud can provide the infrastructure: private networking, per-environment isolation, whitelist firewalling, and DDoS at the edge. The application design and the governance around it stay yours. The CSCC document is public, so its control numbers can be cited directly.</p>
+  </div>
+
+  <h2>Why segmentation is a CSCC cornerstone</h2>
+  <p>The logic behind the network controls is the same logic behind a ship's watertight compartments: contain the damage.</p>
+
+  <p>A flat network, where every server can talk to every other server, means that one compromised component gives an attacker the run of the place. Segmentation breaks the environment into isolated zones so that a breach in one is contained rather than catastrophic, which for a critical national system is the difference between an incident and a disaster. That is why the CSCC devotes a control subdomain to it and why a reviewer looks hard here. The controls are not asking for anything exotic, they are asking you to stop running everything on one open network and instead isolate the parts that matter, restrict what can talk to what, and keep the management plane separate. The rest of this article is those requirements, one at a time.</p>
+
+  <h2>Segregate and isolate critical-system networks (2-4-1-1)</h2>
+  <p>The foundational control: critical-system networks must be separated and isolated from other networks.</p>
+
+  <p>In cloud terms, this maps directly to private networking and per-environment isolation. Your production critical system should sit in its own private network, separated from development, testing, and any non-critical systems, so that traffic cannot flow freely between them. Separate virtual private clouds and subnets per environment, production, QA, and development, are the standard way to achieve this, with the critical production network isolated from the rest. The principle underneath is that isolation is the default and connectivity is the exception you deliberately allow, which is the opposite of the flat network most projects start with. If you are new to the concept, <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">what a VPC is</a> covers the private-networking foundation this control rests on.</p>
+
+  <h2>Whitelist-only firewalling, deny by default (2-4-1-9)</h2>
+  <p>Segmentation is only real if the boundaries are enforced, and that enforcement is the firewall.</p>
+
+  <p>The CSCC requires firewall rules to work on a whitelisting basis: deny everything by default, and explicitly permit only the specific traffic that is genuinely needed. This is the same deny-by-default posture that is good practice everywhere, elevated to a requirement for critical systems. In practice it means each zone allows only the connections it must, the web tier can reach the application tier, the application tier can reach the database, and nothing talks to anything it has no reason to. Broad "allow all" rules, or a security group open to the world, are precisely what this control forbids. The host-level side of this discipline, closing unused ports and banning abusive traffic, is covered in <a href="https://www.kloudbean.com/blog/fail2ban-and-shorewall-guide/">the firewall and brute-force guide</a>, and reviews of these rules should happen regularly rather than being set once and forgotten.</p>
+
+  <figure>
+    <svg viewBox="0 0 880 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ns-title ns-desc">
+      <title id="ns-title">A segmented critical-system network</title>
+      <desc id="ns-desc">Separate isolated tiers for web, application, and database, with whitelist-only rules permitting only necessary connections, a separate management network reached through a bastion, and DDoS protection at the edge.</desc>
+      <rect x="0" y="0" width="880" height="250" fill="#ffffff"/>
+      <g font-family="Poppins, sans-serif" font-size="11.5" fill="#000f27">
+        <rect x="20" y="60" width="120" height="44" rx="8" fill="#eef2ff" stroke="#4F1AF3" stroke-width="1.2"/><text x="80" y="86" text-anchor="middle">Edge + DDoS</text>
+        <rect x="180" y="60" width="120" height="44" rx="8" fill="#e8f7ed" stroke="#40b75f" stroke-width="1.2"/><text x="240" y="86" text-anchor="middle">Web tier</text>
+        <rect x="340" y="60" width="120" height="44" rx="8" fill="#e8f7ed" stroke="#40b75f" stroke-width="1.2"/><text x="400" y="86" text-anchor="middle">App tier</text>
+        <rect x="500" y="60" width="120" height="44" rx="8" fill="#0b1531"/><text x="560" y="80" text-anchor="middle" fill="#fff">Database</text><text x="560" y="96" text-anchor="middle" fill="#aeb6d4" font-size="9">private only</text>
+        <g stroke="#40b75f" stroke-width="2" fill="none" marker-end="url(#nsa)"><path d="M140 82 H178"/><path d="M300 82 H338"/><path d="M460 82 H498"/></g>
+        <text x="330" y="128" text-anchor="middle" font-size="10" fill="#2f8f49">whitelist-only: each tier reaches only the next</text>
+
+        <rect x="660" y="40" width="200" height="86" rx="10" fill="#fff4e6" stroke="#d98324" stroke-width="1.3"/>
+        <text x="760" y="66" text-anchor="middle" font-weight="600">Management network</text>
+        <text x="760" y="86" text-anchor="middle" font-size="10">isolated, via bastion + MFA</text>
+        <text x="760" y="104" text-anchor="middle" font-size="10">privileged access only</text>
+
+        <rect x="20" y="168" width="840" height="60" rx="10" fill="#f5f7ff" stroke="#98a2b3" stroke-width="1.1"/>
+        <text x="40" y="192" font-size="11" fill="#000f27" font-weight="600">Isolation is the default; connectivity is the exception you allow.</text>
+        <text x="40" y="212" font-size="10.5" fill="#5b667e">No wireless. No public database. Deny-all firewall. Separate networks per environment. Reviewed regularly.</text>
+      </g>
+      <defs><marker id="nsa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#40b75f"/></marker></defs>
+    </svg>
+    <figcaption>Isolated tiers, whitelist-only connections, a private database, and a separate management network: the CSCC network domain as a picture.</figcaption>
+  </figure>
+
+  <h2>A separate management network for privileged access (2-3-1-4)</h2>
+  <p>How administrators reach the system is itself a control, and a commonly overlooked one.</p>
+
+  <p>The CSCC calls for an isolated management network for privileged accounts, which means administrators should not reach critical systems over the same paths as ordinary traffic, and certainly not by exposing SSH or admin panels to the open internet. The standard implementation is a dedicated bastion, or jump server, that privileged users connect to first, with multi-factor authentication, and from which they reach the isolated systems. Direct administrative access from the internet is blocked. This keeps the most powerful access on a controlled, monitored path rather than a public one, and it pairs with the remote-access requirements covered in <a href="https://www.kloudbean.com/blog/cscc-remote-access-controls/">the CSCC remote access guide</a>. The theme is consistent with the rest of the domain: the more powerful the access, the more isolated and controlled the route to it must be.</p>
+
+  <h2>No wireless, and DDoS protection (2-4-1-4, 2-4-1-8)</h2>
+  <p>Two more specific network requirements round out the domain.</p>
+
+  <p>The controls prohibit wireless connectivity to critical-system networks (2-4-1-4), because wireless expands the attack surface in ways that are hard to contain, so critical systems stay on wired, controlled paths. And they require protection against distributed denial-of-service attacks (2-4-1-8), because availability is part of security for a critical national system: an attacker who cannot get in may still try to knock you offline. DDoS defence belongs at the edge, upstream of your servers, where volumetric floods can be absorbed before they reach the infrastructure, as explained in <a href="https://www.kloudbean.com/blog/ddos-protection-explained/">DDoS protection</a>. Together with segmentation and whitelisting, these controls describe a network that is isolated, minimal in what it exposes, and resilient to being overwhelmed.</p>
+
+  <h2>Where a managed cloud fits, and where you own it</h2>
+  <p>Most of the network domain is infrastructure, which is exactly where a managed platform carries real weight, so the split is favourable here.</p>
+
+  <p>A managed cloud can provide the infrastructure half of these controls: private networking to isolate critical systems, separate networks and subnets per environment, whitelist-only firewall rules that deny by default, managed databases kept on a private network with no public IP, and DDoS protection at the edge. On Kloudbean these are available as platform capabilities, private networking and per-environment isolation, a baseline host firewall, managed databases reachable only from the application layer, and Cloudflare for edge DDoS defence, delivered on managed engagements to the standard these controls call for. The honest boundary: the platform can give you a segmented, whitelisted, DDoS-protected network, but the architecture decisions, which systems are critical, how the tiers are drawn, what each rule permits, and the governance and review of it all, remain yours. The CSCC document is public and open, so you can cite these control numbers directly in your own documentation, and the wider overview of how the framework maps to infrastructure is in <a href="https://www.kloudbean.com/blog/nca-cscc-compliance-guide/">the NCA CSCC guide</a>.</p>
+
+  <h2>Related reading</h2>
+  <p>This is the network domain of a bigger framework: start with <a href="https://www.kloudbean.com/blog/nca-cscc-compliance-guide/">the NCA CSCC guide</a>, and prepare with the <a href="https://www.kloudbean.com/blog/critical-systems-hosting-checklist/">critical systems hosting checklist</a>. The controls here build on <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">private networking</a>, host-level <a href="https://www.kloudbean.com/blog/fail2ban-and-shorewall-guide/">firewalling</a>, <a href="https://www.kloudbean.com/blog/ddos-protection-explained/">DDoS protection</a>, and <a href="https://www.kloudbean.com/blog/cscc-remote-access-controls/">remote access controls</a>, plus the recurring testing cadence in <a href="https://www.kloudbean.com/blog/cscc-vulnerability-assessment-and-pentest/">CSCC vulnerability assessment and penetration testing</a>. For where the data lives, <a href="https://www.kloudbean.com/blog/data-residency-saudi-arabia/">data residency in Saudi Arabia</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Build the segmented network the controls expect.</p>
+    <p style="margin:0 0 .6em">Kloudbean can deliver private networking, per-environment isolation, whitelist-only firewalling, private-only managed databases, and edge DDoS protection on managed engagements, in-Kingdom on the Dammam region. Start the conversation at <a href="https://www.kloudbean.com/">kloudbean.com</a>, and read the framework overview in <a href="https://www.kloudbean.com/blog/nca-cscc-compliance-guide/">the NCA CSCC guide</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Private networking · Per-environment isolation · Whitelist firewalling · Edge DDoS · In-Kingdom</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does CSCC control 2-4-1-1 require?</h3>
+    <p>It requires critical-system networks to be segregated and isolated from other networks, so that traffic cannot flow freely between critical and non-critical systems. In cloud terms this means putting the critical production system in its own private network, separated from development, testing, and other systems, typically using separate virtual private clouds and subnets per environment. Isolation becomes the default and any connectivity between zones is a deliberate, permitted exception rather than the norm.</p>
+
+    <h3>What does whitelist-only firewalling mean?</h3>
+    <p>It means the firewall denies all traffic by default and permits only the specific connections that are explicitly needed, rather than allowing everything except a blocklist. For critical systems, CSCC control 2-4-1-9 requires this posture. In practice each network zone allows only necessary connections, such as the web tier reaching the application tier and the application tier reaching the database, while everything else is blocked. Broad allow-all rules or a security group open to the internet are exactly what this control prohibits.</p>
+
+    <h3>Why does CSCC require a separate management network?</h3>
+    <p>Because privileged access is the most dangerous thing to expose, control 2-3-1-4 calls for an isolated management network so administrators do not reach critical systems over ordinary or public paths. The usual implementation is a bastion or jump server that privileged users connect to first with multi-factor authentication, with direct administrative access from the internet blocked. This keeps powerful access on a controlled, monitored route rather than a publicly reachable one, reducing the risk of an exposed admin surface being attacked.</p>
+
+    <h3>Does CSCC really prohibit wireless for critical systems?</h3>
+    <p>Yes. Control 2-4-1-4 prohibits wireless connectivity to critical-system networks, because wireless broadens the attack surface in ways that are difficult to contain and control. Critical systems are expected to stay on wired, controlled network paths. For a cloud-hosted critical system this is generally satisfied by the nature of the infrastructure, but it is a requirement to be aware of when designing how any on-premises components connect.</p>
+
+    <h3>How does a managed cloud help with CSCC network controls?</h3>
+    <p>It provides the infrastructure half: private networking to isolate critical systems, separate networks per environment, whitelist-only firewall rules that deny by default, managed databases kept private with no public IP, and DDoS protection at the edge. That covers a large part of the network domain as platform capability rather than something you build by hand. What remains yours is the architecture, deciding which systems are critical and how the tiers and rules are drawn, and the governance and regular review of the configuration.</p>
+
+    <h3>Can I cite CSCC control numbers in my documentation?</h3>
+    <p>Yes. The NCA's Critical Systems Cybersecurity Controls document is published openly, marked as open with no sharing restrictions, so its control numbers and requirements can be quoted and referenced directly in your own compliance documentation. That makes it straightforward to map each infrastructure decision to the specific control it addresses, such as tying private networking to 2-4-1-1 or whitelist firewalling to 2-4-1-9, which is exactly the kind of traceability a reviewer looks for.</p>
+
+    <h3>What is the difference between this and a normal VPC setup?</h3>
+    <p>The mechanics are similar, private networks, subnets, and firewall rules, but CSCC raises them from good practice to explicit requirements with specific expectations: segregation of critical systems, deny-by-default whitelisting, an isolated management network, no wireless, and DDoS protection, all reviewed regularly. A normal VPC setup might satisfy some of these by default, but a critical-systems deployment has to satisfy all of them deliberately and be able to demonstrate it, which is why the design and documentation matter as much as the configuration.</p>
+
+    <h3>Does network segmentation on its own make a critical system compliant?</h3>
+    <p>No. Network segmentation is one control domain within the CSCC, which spans identity and access, encryption, logging, backups, vulnerability management, and more, and CSCC itself extends the ECC framework. A well-segmented network is necessary but not sufficient. It is one important piece of a much larger picture, and compliance is assessed across the whole system and organisation, so segmentation should be treated as a foundation to build the other controls on rather than a finish line.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Isolate by default, permit by exception, and keep the management plane apart.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"NCA CSCC Network Segmentation: Isolating Critical Systems the Right Way","description":"The NCA's Critical Systems Cybersecurity Controls require critical-system networks to be segregated and isolated. What the network controls actually ask for, and how a managed cloud delivers the infrastructure half.","image":"https://www.kloudbean.com/blog/cscc-network-segmentation/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/cscc-network-segmentation/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does CSCC control 2-4-1-1 require?","acceptedAnswer":{"@type":"Answer","text":"It requires critical-system networks to be segregated and isolated from other networks, so that traffic cannot flow freely between critical and non-critical systems. In cloud terms this means putting the critical production system in its own private network, separated from development, testing, and other systems, typically using separate virtual private clouds and subnets per environment. Isolation becomes the default and any connectivity between zones is a deliberate, permitted exception rather than the norm."}},
+{"@type":"Question","name":"What does whitelist-only firewalling mean?","acceptedAnswer":{"@type":"Answer","text":"It means the firewall denies all traffic by default and permits only the specific connections that are explicitly needed, rather than allowing everything except a blocklist. For critical systems, CSCC control 2-4-1-9 requires this posture. In practice each network zone allows only necessary connections, such as the web tier reaching the application tier and the application tier reaching the database, while everything else is blocked. Broad allow-all rules or a security group open to the internet are exactly what this control prohibits."}},
+{"@type":"Question","name":"Why does CSCC require a separate management network?","acceptedAnswer":{"@type":"Answer","text":"Because privileged access is the most dangerous thing to expose, control 2-3-1-4 calls for an isolated management network so administrators do not reach critical systems over ordinary or public paths. The usual implementation is a bastion or jump server that privileged users connect to first with multi-factor authentication, with direct administrative access from the internet blocked. This keeps powerful access on a controlled, monitored route rather than a publicly reachable one, reducing the risk of an exposed admin surface being attacked."}},
+{"@type":"Question","name":"Does CSCC really prohibit wireless for critical systems?","acceptedAnswer":{"@type":"Answer","text":"Yes. Control 2-4-1-4 prohibits wireless connectivity to critical-system networks, because wireless broadens the attack surface in ways that are difficult to contain and control. Critical systems are expected to stay on wired, controlled network paths. For a cloud-hosted critical system this is generally satisfied by the nature of the infrastructure, but it is a requirement to be aware of when designing how any on-premises components connect."}},
+{"@type":"Question","name":"How does a managed cloud help with CSCC network controls?","acceptedAnswer":{"@type":"Answer","text":"It provides the infrastructure half: private networking to isolate critical systems, separate networks per environment, whitelist-only firewall rules that deny by default, managed databases kept private with no public IP, and DDoS protection at the edge. That covers a large part of the network domain as platform capability rather than something you build by hand. What remains yours is the architecture, deciding which systems are critical and how the tiers and rules are drawn, and the governance and regular review of the configuration."}},
+{"@type":"Question","name":"Can I cite CSCC control numbers in my documentation?","acceptedAnswer":{"@type":"Answer","text":"Yes. The NCA's Critical Systems Cybersecurity Controls document is published openly, marked as open with no sharing restrictions, so its control numbers and requirements can be quoted and referenced directly in your own compliance documentation. That makes it straightforward to map each infrastructure decision to the specific control it addresses, such as tying private networking to 2-4-1-1 or whitelist firewalling to 2-4-1-9, which is exactly the kind of traceability a reviewer looks for."}},
+{"@type":"Question","name":"What is the difference between this and a normal VPC setup?","acceptedAnswer":{"@type":"Answer","text":"The mechanics are similar, private networks, subnets, and firewall rules, but CSCC raises them from good practice to explicit requirements with specific expectations: segregation of critical systems, deny-by-default whitelisting, an isolated management network, no wireless, and DDoS protection, all reviewed regularly. A normal VPC setup might satisfy some of these by default, but a critical-systems deployment has to satisfy all of them deliberately and be able to demonstrate it, which is why the design and documentation matter as much as the configuration."}},
+{"@type":"Question","name":"Does network segmentation on its own make a critical system compliant?","acceptedAnswer":{"@type":"Answer","text":"No. Network segmentation is one control domain within the CSCC, which spans identity and access, encryption, logging, backups, vulnerability management, and more, and CSCC itself extends the ECC framework. A well-segmented network is necessary but not sufficient. It is one important piece of a much larger picture, and compliance is assessed across the whole system and organisation, so segmentation should be treated as a foundation to build the other controls on rather than a finish line."}}
+]}
+]}
+</script>
+</body>
+</html>

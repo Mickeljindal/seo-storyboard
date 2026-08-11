@@ -77,7 +77,7 @@ For regulated workloads, Kloudbean runs managed enterprise engagements on a dedi
 
 ## Related reading
 
-Start with [NCA ECC compliant hosting](https://www.kloudbean.com/blog/nca-ecc-compliant-hosting/) for the baseline, then [PDPL compliance hosting](https://www.kloudbean.com/blog/pdpl-compliance-hosting/) for the privacy side, which is a separate law with a different purpose. For the residency mechanics see [data residency in Saudi Arabia](https://www.kloudbean.com/blog/data-residency-saudi-arabia/) and [cloud hosting in Saudi Arabia](https://www.kloudbean.com/blog/cloud-hosting-saudi-arabia/). For the operating model, [managed hosting in KSA](https://www.kloudbean.com/blog/managed-hosting-ksa/).
+Start with [NCA ECC compliant hosting](https://www.kloudbean.com/blog/nca-ecc-compliant-hosting/) for the baseline, then [PDPL compliance hosting](https://www.kloudbean.com/blog/pdpl-compliance-hosting/) for the privacy side, which is a separate law with a different purpose. For the residency mechanics see [data residency in Saudi Arabia](https://www.kloudbean.com/blog/data-residency-saudi-arabia/) and [cloud hosting in Saudi Arabia](https://www.kloudbean.com/blog/cloud-hosting-saudi-arabia/). For the operating model, [managed hosting in KSA](https://www.kloudbean.com/blog/managed-hosting-ksa/). For specific control domains in depth, [CSCC network segmentation](https://www.kloudbean.com/blog/cscc-network-segmentation/) and [CSCC vulnerability assessment and penetration testing](https://www.kloudbean.com/blog/cscc-vulnerability-assessment-and-pentest/).
 
 ## Talk through the infrastructure controls
 

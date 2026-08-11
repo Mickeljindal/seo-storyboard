@@ -849,6 +849,30 @@ const HERO_OVERRIDES = {
     sub: "Run it before launch, after team changes, and every quarter.",
     checklist: ["Access + network", "Data + secrets", "App + monitoring", "Know who owns what"],
   },
+  // KSA flagship: managed databases + in-Kingdom sovereignty.
+  "managed-databases-saudi-data-sovereignty": {
+    archetype: "checklist", palette: "green", motif: "network",
+    eyebrow: "Saudi Arabia \u00b7 Managed databases",
+    headline: "Managed databases,\nin the Kingdom.",
+    sub: "Seven managed engines on the in-Kingdom Dammam region, aligned with PDPL and NCA.",
+    checklist: ["7 managed DB engines", "In-Kingdom (Dammam)", "Data stays on Saudi soil", "Aligned with PDPL + NCA"],
+  },
+  // NCA CSCC network segmentation.
+  "cscc-network-segmentation": {
+    archetype: "checklist", palette: "indigo", motif: "network",
+    eyebrow: "Saudi Arabia \u00b7 NCA CSCC",
+    headline: "Segregate the\ncritical networks.",
+    sub: "Isolation, whitelist-only firewalling, and a separate management plane.",
+    checklist: ["Segregate critical networks", "Whitelist-only firewall", "Isolated management network", "No wireless, edge DDoS"],
+  },
+  // NCA CSCC vulnerability assessment + pentest.
+  "cscc-vulnerability-assessment-and-pentest": {
+    archetype: "checklist", palette: "maroon", motif: "shield",
+    eyebrow: "Saudi Arabia \u00b7 NCA CSCC",
+    headline: "Find the gaps\non a schedule.",
+    sub: "Monthly vulnerability assessment, six-monthly pentest, and who owns what.",
+    checklist: ["Vuln scan monthly", "Pentest every 6 months", "You commission, we support infra", "Remediate on a clock"],
+  },
   // WordPress maintenance retainer: the care-plan deliverables.
   "wordpress-maintenance-retainer-plans": {
     archetype: "checklist",
