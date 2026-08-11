@@ -650,6 +650,36 @@ const HERO_OVERRIDES = {
       "Contractor: one app, time-boxed",
     ],
   },
+  // Agency onboarding runbook: checklist of the phases.
+  "agency-onboarding-checklist": {
+    archetype: "checklist",
+    palette: "green",
+    motif: "generic",
+    eyebrow: "Client onboarding",
+    headline: "Onboard the same\nway, every time.",
+    sub: "A runbook with a finish line, so nothing goes live half-configured.",
+    checklist: [
+      "Intake before you touch anything",
+      "Provision walled-off",
+      "Verify to a definition of done",
+      "Handover, then bill",
+    ],
+  },
+  // Agency offboarding runbook: the clean-exit sequence.
+  "agency-client-offboarding": {
+    archetype: "checklist",
+    palette: "maroon",
+    motif: "migrate",
+    eyebrow: "Client offboarding",
+    headline: "A clean exit,\nevery time.",
+    sub: "Their data is theirs. Hand it back completely, then close up.",
+    checklist: [
+      "Export everything, portable",
+      "Transfer the site and DNS",
+      "Revoke every login",
+      "Retain, then delete",
+    ],
+  },
   // Agency pricing spoke: a checklist of the models beats a generic centered card.
   "client-billing-and-markup-for-hosting": {
     archetype: "checklist",

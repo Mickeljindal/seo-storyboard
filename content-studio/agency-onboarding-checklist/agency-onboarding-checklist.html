@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agency Client Onboarding Checklist: The Runbook, Not the Theory</title>
+<meta name="description" content="A repeatable runbook for onboarding a new client site onto managed hosting: intake list, provisioning, go-live verification, a handover email template, and a real definition of done.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/agency-onboarding-checklist/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Agency Client Onboarding Checklist: The Runbook, Not the Theory">
+<meta property="og:description" content="Onboarding is the thing you do most and standardise least. Here is the phased runbook, the intake list, the verification checks, and the handover email.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Agency ops · Onboarding · Runbook</span>
+  <h1>Agency Client Onboarding Checklist: The Runbook, Not the Theory</h1>
+  <p class="byline">By Kloudbean Engineering · The step you do most often is the one worth standardising first.</p>
+
+  <figure><img src="images/hero.png" alt="A phased onboarding runbook checklist from intake through provisioning, verification and handover"></figure>
+
+  <p class="lead">Every agency onboards clients, and most do it slightly differently every time, which is why sites go live with SSL half-configured, backups not actually running, and a client who still cannot log in to see anything. Onboarding is the most repeated operation you have, so it is the one that most deserves a runbook. This is that runbook: the phases, the intake list to collect before you touch anything, the verification checks that define "done", and the handover email that shapes how the client feels about the whole thing. The strategy behind these choices lives in the <a href="https://www.kloudbean.com/blog/hosting-for-agencies-playbook/">agency playbook's onboarding phase</a>; this page is the doing.</p>
+
+  <div class="tldr">
+    <strong>What should an agency onboarding checklist cover?</strong>
+    <p>Six phases, run the same way every time. Intake (collect domain, DNS, existing host, and access before you start). Provision (a new walled-off environment, not a folder on a shared box, with a scoped client login). Build or migrate the site. Verify against a concrete definition of done: SSL present and auto-renewing, backups actually running, staging in place, monitoring on, and the client's scoped access created. Handover with a short email the client understands. Set up billing. The point of writing it down is that onboarding gets a finish line, so nothing goes live half-configured.</p>
+  </div>
+
+  <h2>Phase 1: Intake, before you touch anything</h2>
+  <p>Most onboarding pain is caused by starting the technical work before you have what you need, then stalling halfway to chase a DNS login. Collect all of this first.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Collect</th><th>Why you need it up front</th></tr></thead>
+    <tbody>
+      <tr><td>Primary domain and any redirects (www, other TLDs)</td><td>Decides the site config and the SSL you will issue</td></tr>
+      <tr><td>Access to the DNS / registrar</td><td>The go-live cutover is a DNS change; chasing it later stalls launch</td></tr>
+      <tr><td>Current host and how the site is accessed (SFTP, panel, Git)</td><td>Decides the migration path</td></tr>
+      <tr><td>The stack (WordPress, Laravel, Node, static) and any versions</td><td>Decides the environment you provision</td></tr>
+      <tr><td>Who on the client side gets a login, and at what level</td><td>Decides the scoped roles you create at provision time</td></tr>
+      <tr><td>Any compliance or data-residency requirement</td><td>Decides which cloud and region you place them on</td></tr>
+    </tbody>
+  </table>
+
+  <p>The DNS access line is the one that saves the most grief. A launch is ultimately a DNS change, and discovering at go-live that nobody has the registrar login turns a ten-minute cutover into a three-day wait. Confirm you can make that change before you promise a date.</p>
+
+  <h2>Phase 2: Provision a walled-off environment</h2>
+  <p>A new client is a new isolated environment, not a directory alongside another client's files. This is the single decision that keeps one client's problem from becoming everyone's.</p>
+
+  <ul>
+    <li>Create the client's environment on the appropriate cloud and region from intake.</li>
+    <li>Give it its own database and its own credentials, never shared with another client.</li>
+    <li>Create the client's scoped login now, not at handover, so it is tested before they use it. A view-only role for the client, a working role for the developer, using the model in the <a href="https://www.kloudbean.com/blog/subuser-and-uac-guide/">subusers and UAC guide</a>.</li>
+    <li>Confirm the environment is isolated from your other clients at the server level, the point of <a href="https://www.kloudbean.com/blog/host-multiple-apps-one-server/">hosting multiple apps on one server</a> safely.</li>
+  </ul>
+
+  <h2>Phase 3: Build or migrate the site</h2>
+  <p>Either you are launching something new or moving an existing site in. If it is a migration, do it onto a staging copy first so the client's current site keeps serving until you cut over.</p>
+
+  <ul>
+    <li>Bring the files and database across. For an existing site, free migration assistance can do the heavy lifting; the mechanics are in <a href="https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/">migrating hosting without downtime</a>.</li>
+    <li>Stand it up on <a href="https://www.kloudbean.com/blog/hosting-for-agencies-playbook/">staging</a> and check it renders, logs in, and processes a test action before any DNS moves.</li>
+    <li>Set environment variables and secrets on the server, not in the code, per <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>.</li>
+    <li>Wire any scheduled tasks the site needs from the dashboard rather than hand-editing crontab.</li>
+  </ul>
+
+  <h2>Phase 4: Verify against a definition of done</h2>
+  <p>This is the phase agencies skip and regret. "The site loads" is not done. Done is a checklist, and here it is. Run these checks and do not hand over until every one passes.</p>
+
+  <pre><code># SSL present and valid, and it should auto-renew (not a one-off cert)
+curl -sI https://clientsite.com | grep -i "^HTTP\|strict-transport"
+echo | openssl s_client -connect clientsite.com:443 2>/dev/null | openssl x509 -noout -dates
+
+# The site resolves to YOUR server, not the old host
+dig +short clientsite.com
+
+# A backup has actually run, not just been "enabled"
+# (confirm the most recent automatic backup exists and its timestamp is recent)
+
+# The client's scoped login works and sees only their own resources
+# The staging environment exists and is reachable by your team</code></pre>
+
+  <table class="cmp">
+    <thead><tr><th>Definition of done</th><th>Pass looks like</th></tr></thead>
+    <tbody>
+      <tr><td>HTTPS works and renews itself</td><td>Valid cert, auto-renew on, HTTP redirects to HTTPS</td></tr>
+      <tr><td>Backups are running</td><td>A recent automatic backup exists, and you have done one test restore</td></tr>
+      <tr><td>Staging exists</td><td>A staging copy your team can push changes to first</td></tr>
+      <tr><td>Monitoring is on</td><td>You are alerted if the site goes down, before the client notices</td></tr>
+      <tr><td>Client access created</td><td>Their scoped login works and sees only their site</td></tr>
+      <tr><td>DNS fully cut over</td><td>All hostnames, including www, resolve to the new server</td></tr>
+    </tbody>
+  </table>
+
+  <p>The backup line deserves emphasis: "enabled" is not "running", and neither is a real backup until you have restored one. Do the first test restore during onboarding, while it is nobody's emergency, not during the first real incident. The reasoning is in <a href="https://www.kloudbean.com/blog/server-backups-guide/">the backups guide</a>.</p>
+
+  <h2>Phase 5: Handover, which is mostly one email</h2>
+  <p>The client does not see your provisioning work. They see the email you send when it is live, and that email is their entire impression of how professional the onboarding was. Keep it short, concrete, and free of jargon.</p>
+
+  <pre><code>Subject: [Site] is live and set up
+
+Hi [name],
+
+[Site] is live at https://clientsite.com. A few things we've set up so
+you don't have to think about them:
+
+  - HTTPS is on and renews automatically.
+  - Automatic backups are running, and we've tested a restore.
+  - We're monitoring uptime and will know before you do if anything dips.
+
+Your login: [scoped portal link]. You can view your site's status here.
+For any change, just reply to this email and we'll handle it.
+
+[Your name]</code></pre>
+
+  <p>Notice what the email does: it lists outcomes the client cares about (secure, backed up, watched) rather than tasks you performed, and it sets the support channel. That is the whole handover.</p>
+
+  <h2>Phase 6: Set up billing</h2>
+  <p>Onboarding is not finished until the recurring invoice exists, because an unbilled client is a favour, not a customer. Assign them to the right plan, give their finance contact a billing-only login if they need one, and start the recurring charge. The pricing model behind this is in <a href="https://www.kloudbean.com/blog/client-billing-and-markup-for-hosting/">client billing and markup for hosting</a>.</p>
+
+  <figure>
+    <svg viewBox="0 0 880 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="onb-title onb-desc">
+      <title id="onb-title">The six onboarding phases</title>
+      <desc id="onb-desc">Onboarding runs as a fixed sequence: intake, provision an isolated environment, build or migrate, verify against a definition of done, hand over with an email, and set up billing. The verify phase is the gate: nothing hands over until every check passes.</desc>
+      <rect x="0" y="0" width="880" height="210" fill="#ffffff"/>
+      <g font-family="Poppins, sans-serif" font-size="12.5" fill="#000f27">
+        <g>
+          <rect x="20" y="70" width="120" height="60" rx="10" fill="#000f27"/><text x="80" y="98" text-anchor="middle" fill="#fff" font-weight="600">1 Intake</text><text x="80" y="116" text-anchor="middle" fill="#aeb6d4" font-size="10.5">collect first</text>
+          <rect x="160" y="70" width="120" height="60" rx="10" fill="#4F1AF3"/><text x="220" y="98" text-anchor="middle" fill="#fff" font-weight="600">2 Provision</text><text x="220" y="116" text-anchor="middle" fill="#d8ccff" font-size="10.5">walled off</text>
+          <rect x="300" y="70" width="120" height="60" rx="10" fill="#4F1AF3"/><text x="360" y="98" text-anchor="middle" fill="#fff" font-weight="600">3 Build</text><text x="360" y="116" text-anchor="middle" fill="#d8ccff" font-size="10.5">on staging</text>
+          <rect x="440" y="60" width="130" height="80" rx="10" fill="#40b75f"/><text x="505" y="92" text-anchor="middle" fill="#fff" font-weight="700">4 Verify</text><text x="505" y="112" text-anchor="middle" fill="#eafff0" font-size="10.5">the gate</text>
+          <rect x="590" y="70" width="120" height="60" rx="10" fill="#000f27"/><text x="650" y="98" text-anchor="middle" fill="#fff" font-weight="600">5 Handover</text><text x="650" y="116" text-anchor="middle" fill="#aeb6d4" font-size="10.5">one email</text>
+          <rect x="730" y="70" width="120" height="60" rx="10" fill="#000f27"/><text x="790" y="98" text-anchor="middle" fill="#fff" font-weight="600">6 Bill</text><text x="790" y="116" text-anchor="middle" fill="#aeb6d4" font-size="10.5">recurring</text>
+        </g>
+        <g stroke="#98a2b3" stroke-width="2" fill="none" marker-end="url(#oa)">
+          <path d="M140 100 H158"/><path d="M280 100 H298"/><path d="M420 100 H438"/><path d="M570 100 H588"/><path d="M710 100 H728"/>
+        </g>
+        <text x="505" y="160" text-anchor="middle" font-size="11.5" fill="#2f8f49">Nothing passes this gate half-configured.</text>
+      </g>
+      <defs><marker id="oa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#98a2b3"/></marker></defs>
+    </svg>
+    <figcaption>Six phases, same order every time. Phase 4 is a gate, not a formality.</figcaption>
+  </figure>
+
+  <h2>The onboarding mistakes worth naming</h2>
+  <p>Patterns that turn a clean onboarding into a support ticket a month later.</p>
+
+  <p><strong>Starting before intake is complete.</strong> The stall-at-DNS problem above. Collect access first, always.</p>
+
+  <p><strong>Treating "enabled" as "working".</strong> A backup toggle switched on is not a tested restore. Monitoring configured is not monitoring you have seen fire. Verify the thing actually does its job once, during onboarding.</p>
+
+  <p><strong>Creating client access at handover.</strong> If the client's first login attempt is also the first time it has ever been used, you are debugging access live in front of them. Create and test it during provisioning.</p>
+
+  <p><strong>No finish line.</strong> Without a definition of done, "done" means "I ran out of time today", and the gaps surface as incidents. The checklist is the finish line.</p>
+
+  <h2>Where hosting fits, honestly</h2>
+  <p>A runbook is only as repeatable as the platform under it. What makes this checklist fast rather than a two-day ordeal is having the pieces in one place: a new isolated environment provisioned from one account, scoped client logins, staging for WordPress and Laravel so you build safely, automatic backups and free auto-renewing SSL so two of your definition-of-done checks are satisfied by default, and free migration assistance when a client is coming from elsewhere. Seven clouds and regions to place a client on when intake turns up a residency requirement. All from the one dashboard, which is what lets onboarding be a checklist rather than a tour of five separate control panels.</p>
+
+  <p>The honest boundary: the platform makes the steps fast and consistent, but the runbook is yours to run. Collecting intake, deciding who gets which login, and sending a handover email that sounds like a person are the parts only you can do, and they are most of what the client actually experiences.</p>
+
+  <h2>Related reading</h2>
+  <p>The other bookend is the <a href="https://www.kloudbean.com/blog/agency-client-offboarding/">agency client offboarding runbook</a>, for when a client eventually leaves. The strategy behind both is the <a href="https://www.kloudbean.com/blog/hosting-for-agencies-playbook/">hosting for agencies playbook</a>, and the scale picture is <a href="https://www.kloudbean.com/blog/how-agencies-host-20-client-apps/">how agencies host 20 client apps on one server</a>. The access step is the <a href="https://www.kloudbean.com/blog/subuser-and-uac-guide/">subusers and UAC guide</a>; the isolation step is <a href="https://www.kloudbean.com/blog/host-multiple-apps-one-server/">hosting multiple apps on one server</a>. Migration in is <a href="https://www.kloudbean.com/blog/how-to-migrate-hosting-zero-downtime/">migrating hosting without downtime</a>, the verify step leans on <a href="https://www.kloudbean.com/blog/server-backups-guide/">the backups guide</a>, and the billing step is <a href="https://www.kloudbean.com/blog/client-billing-and-markup-for-hosting/">client billing and markup</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Onboard every client the same way, fast.</p>
+    <p style="margin:0 0 .6em">Provision an isolated environment, scoped logins, staging, automatic backups, and free auto-renewing SSL from one account across seven clouds. Free migration assistance to bring a client's site in. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Isolated environments · Scoped logins · Staging · Automatic backups · Free SSL · Free migration</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What should be on an agency client onboarding checklist?</h3>
+    <p>Six phases: intake (collect domain, DNS access, current host, stack, and who gets a login before you start), provision an isolated environment with a scoped client login, build or migrate the site on staging, verify against a definition of done, hand over with a short email, and set up recurring billing. The verification phase is the one that matters most, because it is the finish line that stops sites going live half-configured.</p>
+
+    <h3>What should I collect from a client before starting?</h3>
+    <p>The primary domain and any redirects, access to their DNS or registrar, their current host and how the site is accessed, the stack and versions, who on their side needs a login and at what level, and any compliance or data-residency requirement. The DNS access is the critical one: a launch is a DNS change, and discovering nobody has the registrar login at go-live turns a ten-minute cutover into a multi-day wait.</p>
+
+    <h3>What is a good definition of done for a website launch?</h3>
+    <p>HTTPS works and renews itself with an HTTP-to-HTTPS redirect, a recent automatic backup exists and you have tested a restore, a staging copy is in place, uptime monitoring is on, the client's scoped login works and sees only their site, and every hostname including www resolves to the new server. If any of those fails, onboarding is not finished, regardless of whether the site loads.</p>
+
+    <h3>Why create the client's login during provisioning rather than at handover?</h3>
+    <p>So it is tested before the client uses it. If their first ever login attempt is also the first time that access has been exercised, you end up debugging permissions live in front of them, which is the opposite of a confident handover. Create the scoped role early and confirm it sees only what it should.</p>
+
+    <h3>Should I migrate a client's existing site straight to production?</h3>
+    <p>No, migrate onto a staging copy first so their current site keeps serving until you have verified the new one. Bring the files and database across, confirm the site renders and processes a test action, then cut DNS over. This is what keeps a migration from being visible to the client's visitors.</p>
+
+    <h3>How is this different from the agency playbook?</h3>
+    <p>The playbook covers the strategy and the why across the whole agency operation, with onboarding as one phase. This page is the operational runbook for that phase: the actual repeatable steps, the intake list, the verification commands, and a handover email template you can use directly. Read the playbook for the reasoning, use this to execute.</p>
+
+    <h3>What is the most common onboarding mistake?</h3>
+    <p>Treating "enabled" as "working". A backup toggle switched on is not a tested restore, and monitoring configured is not monitoring you have seen fire. The fix is to verify each safety net actually does its job once during onboarding, while it is nobody's emergency, rather than discovering during a real incident that it never worked.</p>
+
+    <h3>Can I standardise onboarding across different stacks?</h3>
+    <p>Yes. The six phases are the same whether the client runs WordPress, Laravel, Node, or a static site; only the build-or-migrate step changes with the stack. Keeping the phases and the definition of done constant is what makes onboarding repeatable even when the sites are not identical.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Give onboarding a finish line and nothing ships half-configured.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Agency Client Onboarding Checklist: The Runbook, Not the Theory","description":"A repeatable runbook for onboarding a new client site onto managed hosting: intake list, provisioning, go-live verification, a handover email template, and a real definition of done.","image":"https://www.kloudbean.com/blog/agency-onboarding-checklist/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/agency-onboarding-checklist/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What should be on an agency client onboarding checklist?","acceptedAnswer":{"@type":"Answer","text":"Six phases: intake (collect domain, DNS access, current host, stack, and who gets a login before you start), provision an isolated environment with a scoped client login, build or migrate the site on staging, verify against a definition of done, hand over with a short email, and set up recurring billing. The verification phase is the one that matters most, because it is the finish line that stops sites going live half-configured."}},
+{"@type":"Question","name":"What should I collect from a client before starting?","acceptedAnswer":{"@type":"Answer","text":"The primary domain and any redirects, access to their DNS or registrar, their current host and how the site is accessed, the stack and versions, who on their side needs a login and at what level, and any compliance or data-residency requirement. The DNS access is the critical one: a launch is a DNS change, and discovering nobody has the registrar login at go-live turns a ten-minute cutover into a multi-day wait."}},
+{"@type":"Question","name":"What is a good definition of done for a website launch?","acceptedAnswer":{"@type":"Answer","text":"HTTPS works and renews itself with an HTTP-to-HTTPS redirect, a recent automatic backup exists and you have tested a restore, a staging copy is in place, uptime monitoring is on, the client's scoped login works and sees only their site, and every hostname including www resolves to the new server. If any of those fails, onboarding is not finished, regardless of whether the site loads."}},
+{"@type":"Question","name":"Why create the client's login during provisioning rather than at handover?","acceptedAnswer":{"@type":"Answer","text":"So it is tested before the client uses it. If their first ever login attempt is also the first time that access has been exercised, you end up debugging permissions live in front of them, which is the opposite of a confident handover. Create the scoped role early and confirm it sees only what it should."}},
+{"@type":"Question","name":"Should I migrate a client's existing site straight to production?","acceptedAnswer":{"@type":"Answer","text":"No, migrate onto a staging copy first so their current site keeps serving until you have verified the new one. Bring the files and database across, confirm the site renders and processes a test action, then cut DNS over. This is what keeps a migration from being visible to the client's visitors."}},
+{"@type":"Question","name":"How is this different from the agency playbook?","acceptedAnswer":{"@type":"Answer","text":"The playbook covers the strategy and the why across the whole agency operation, with onboarding as one phase. This page is the operational runbook for that phase: the actual repeatable steps, the intake list, the verification commands, and a handover email template you can use directly. Read the playbook for the reasoning, use this to execute."}},
+{"@type":"Question","name":"What is the most common onboarding mistake?","acceptedAnswer":{"@type":"Answer","text":"Treating enabled as working. A backup toggle switched on is not a tested restore, and monitoring configured is not monitoring you have seen fire. The fix is to verify each safety net actually does its job once during onboarding, while it is nobody's emergency, rather than discovering during a real incident that it never worked."}},
+{"@type":"Question","name":"Can I standardise onboarding across different stacks?","acceptedAnswer":{"@type":"Answer","text":"Yes. The six phases are the same whether the client runs WordPress, Laravel, Node, or a static site; only the build-or-migrate step changes with the stack. Keeping the phases and the definition of done constant is what makes onboarding repeatable even when the sites are not identical."}}
+]}
+]}
+</script>
+</body>
+</html>

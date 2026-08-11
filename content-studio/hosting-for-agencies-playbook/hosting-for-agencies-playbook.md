@@ -58,7 +58,7 @@ That last row matters more than it looks. Scoped client access means a client lo
 
 ## Phase 2: The per-client onboarding checklist
 
-This is the routine you run every single time you take on a site. Make it muscle memory. The tenth client should feel exactly as smooth as the first, because you ran the same list.
+This is the routine you run every single time you take on a site. Make it muscle memory. The tenth client should feel exactly as smooth as the first, because you ran the same list. The step-by-step version, with an intake list and a definition of done, is the [agency onboarding checklist runbook](https://www.kloudbean.com/blog/agency-onboarding-checklist/).
 
 - **Isolate the client.** Put the site in its own app (its own system user and web root) or its own server if it's heavy. Never drop a new client into a shared pile where they can read a neighbor's files.
 - **Set up staging.** Kloudbean has one-click staging for WordPress and Laravel, so you can show the client a change before it hits their live site.
@@ -116,7 +116,7 @@ You're selling management, updates, monitoring, and a person who answers when so
 
 ## Phase 6: Offboard cleanly, because their data is theirs
 
-Sometimes a client leaves. How you handle that day says more about your agency than any pitch deck. Treat it as an ethics test you pass every time.
+Sometimes a client leaves. How you handle that day says more about your agency than any pitch deck. Treat it as an ethics test you pass every time. The export, transfer, revoke, and delete steps are the [agency client offboarding runbook](https://www.kloudbean.com/blog/agency-client-offboarding/).
 
 - **Hand over cleanly.** Give them the files and a database export, or migrate the site to wherever they're going. Their site and data belong to them. Don't hold either hostage, ever.
 - **Revoke access** and remove the site from your account once handover is confirmed.
