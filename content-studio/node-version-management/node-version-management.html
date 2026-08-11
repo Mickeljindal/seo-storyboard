@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Node.js Version Management: Which Version to Run, and Why It Breaks Deploys</title>
+<meta name="description" content="The Node.js version you run decides which features work, whether native modules compile, and how long you get security fixes. The LTS rule, pinning versions, the native-module trap, and upgrading safely.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/node-version-management/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Node.js Version Management: Which Version to Run, and Why It Breaks Deploys">
+<meta property="og:description" content="Why 'works on my machine' is often a Node version mismatch, the even-numbered LTS rule, pinning with engines and .nvmrc, and the native-module ABI trap that breaks builds.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Node.js · Versions · Guide</span>
+  <h1>Node.js Version Management: Which Version to Run, and Why It Breaks Deploys</h1>
+  <p class="byline">By Kloudbean Engineering · "Works on my machine" is a version number more often than anyone admits.</p>
+
+  <figure><img src="images/hero.png" alt="A package.json engines field and .nvmrc pinning a Node LTS version so local and production match">
+  </figure>
+
+  <p class="lead">The Node.js version you run feels like a background detail until the day it is the whole problem. An app that runs perfectly on your laptop throws errors in production, a dependency refuses to install, a build that worked last month fails after a server rebuild. A surprising share of these come down to one thing: the Node version differs somewhere, or you are on a version you should not be running at all. Picking and pinning your Node version is a five-minute habit that prevents a category of confusing failures, and it is worth understanding the few rules that make the choice obvious.</p>
+
+  <div class="tldr">
+    <strong>Which Node.js version should I run in production?</strong>
+    <p>Run an even-numbered Active LTS version. Node releases a new major roughly every six months, and only the even-numbered majors become LTS (Long Term Support), with about 30 months of maintenance; odd-numbered majors are short-lived, around eight months, and are not meant for production. So use the current Active LTS in production, and skip odd versions there. Pin it so your machine and your server match: set the engines field in package.json and an .nvmrc file, and use nvm locally. Watch for the native-module trap, packages with compiled bindings can break when the Node major version changes and need a reinstall or rebuild. On Kloudbean you set the Node version for your app in the console, so local and production can be kept aligned deliberately.</p>
+  </div>
+
+  <h2>Why the Node version matters more than it looks</h2>
+  <p>Three separate things ride on the version number, which is why getting it wrong shows up in such different ways.</p>
+
+  <p>First, <strong>language features</strong>: newer Node versions support newer JavaScript syntax and APIs, so code that uses a recent feature will simply fail on an older runtime, and occasionally something removed will fail on a newer one. Second, <strong>security support</strong>: each version line only receives fixes for a defined window, and once it reaches end of life it stops getting security patches entirely, so running an unsupported Node version means known vulnerabilities that will never be fixed for you. Third, and most sneakily, <strong>native modules</strong>: packages with compiled C++ bindings are built against a specific Node version's binary interface, and moving between major versions can break them until they are rebuilt. Any one of these can be the reason your app behaves differently in two places. The version is not a detail; it is three important guarantees bundled into one number.</p>
+
+  <h2>The LTS rule, worth learning once</h2>
+  <p>Node's release scheme looks arbitrary until you know the pattern, and then choosing a version becomes trivial.</p>
+
+  <p>Node releases a new major version on a regular cadence, historically every six months in April and October, and the even-versus-odd distinction is the key. <strong>Even-numbered majors</strong> (such as 18, 20, 22) are promoted to LTS and maintained for roughly 30 months total, moving from Current to Active LTS to Maintenance before end of life. <strong>Odd-numbered majors</strong> are short-lived, supported for around eight months and never promoted to LTS, so they exist mainly for testing upcoming features, not for production. The rule that falls out of this is simple: <em>run an even-numbered Active LTS version in production, and do not run odd versions there</em>. It is also worth knowing the cadence is evolving, with Node moving toward annual major releases in the future, so rather than memorising specific end-of-life dates, learn the signature: an even number is a safe production bet, an odd number is not, and any version past its support window should be upgraded off promptly. The recognisable sign that you have drifted onto an unsupported version is security advisories you cannot patch and, eventually, tools and dependencies dropping support for it.</p>
+
+  <figure>
+    <svg viewBox="0 0 880 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="nv-title nv-desc">
+      <title id="nv-title">Even versus odd Node versions</title>
+      <desc id="nv-desc">Even-numbered Node majors become LTS with about 30 months of support and are for production. Odd-numbered majors last about 8 months, are not LTS, and are for testing only.</desc>
+      <rect x="0" y="0" width="880" height="220" fill="#ffffff"/>
+      <g font-family="Poppins, sans-serif" font-size="12" fill="#000f27">
+        <rect x="30" y="46" width="390" height="140" rx="12" fill="#e8f7ed" stroke="#40b75f" stroke-width="1.4"/>
+        <text x="225" y="74" text-anchor="middle" font-weight="700" fill="#2f8f49">Even majors (18, 20, 22...)</text>
+        <text x="225" y="100" text-anchor="middle" font-size="11.5">become LTS, ~30 months support</text>
+        <text x="225" y="122" text-anchor="middle" font-size="11.5">Current -&gt; Active LTS -&gt; Maintenance</text>
+        <rect x="120" y="140" width="210" height="30" rx="7" fill="#fff" stroke="#40b75f" stroke-width="1.1"/>
+        <text x="225" y="160" text-anchor="middle" font-size="11" font-weight="600">Run these in production</text>
+
+        <rect x="460" y="46" width="390" height="140" rx="12" fill="#fdecea" stroke="#c0392b" stroke-width="1.4"/>
+        <text x="655" y="74" text-anchor="middle" font-weight="700" fill="#c0392b">Odd majors (19, 21, 23...)</text>
+        <text x="655" y="100" text-anchor="middle" font-size="11.5">short-lived, ~8 months</text>
+        <text x="655" y="122" text-anchor="middle" font-size="11.5">never promoted to LTS</text>
+        <rect x="550" y="140" width="210" height="30" rx="7" fill="#fff" stroke="#c0392b" stroke-width="1.1"/>
+        <text x="655" y="160" text-anchor="middle" font-size="11" font-weight="600">Testing only, not production</text>
+      </g>
+    </svg>
+    <figcaption>The whole rule in one picture: even is a production LTS, odd is short-lived and for testing. Pick even.</figcaption>
+  </figure>
+
+  <h2>Pin the version so local and production match</h2>
+  <p>Choosing the right version is half the job; making sure every environment actually uses it is the other half, and where "works on my machine" is born.</p>
+
+  <p>If your laptop runs one Node major and your server runs another, you are testing against a different runtime than you ship to, which is exactly how a bug hides until production. Pin the version explicitly in a few places. The <code>engines</code> field in <code>package.json</code> declares which Node version your app expects, so tooling can warn or refuse when it is wrong. An <code>.nvmrc</code> file records the version for anyone using <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">nvm</a> locally, so a quick <code>nvm use</code> switches everyone to the same version. And your production environment should be set to that same major version deliberately, not left to whatever default happens to be installed. The goal is that "which Node are we on?" has one answer across every machine, because the moment the answer differs by environment, you have reintroduced the class of bug pinning was meant to prevent. Treat the Node version as part of your app's configuration, not an accident of the host.</p>
+
+  <h2>The native-module trap that breaks builds</h2>
+  <p>This is the one that produces the most baffling errors, so it earns its own section.</p>
+
+  <p>Some npm packages include native code, C++ addons compiled against Node's binary interface, its ABI, which changes between major versions. When it works you never think about it. When you change the Node major version and do not rebuild, you get errors that look nothing like a version problem: a module that "was compiled against a different Node.js version," a failed <code>node-gyp</code> build, or an import that simply cannot find the binary. The fix is to reinstall or rebuild native dependencies after a Node version change, often by deleting <code>node_modules</code> and reinstalling so the native pieces compile against the new version, which is one of the causes explored in <a href="https://www.kloudbean.com/blog/fix-cannot-find-module-node/">fixing cannot find module errors</a>. The lesson to internalise: changing the Node major version is not a free swap, it can invalidate compiled dependencies, so a version bump and a clean reinstall belong together. This is also why matching versions across environments matters so much, since a native module built on your laptop's Node will not necessarily load on a server running a different major.</p>
+
+  <h2>Upgrading Node without drama</h2>
+  <p>Versions age out, so upgrading is not optional, but it is very manageable if you do it deliberately rather than in a panic when support ends.</p>
+
+  <p>When your LTS line approaches end of life, move to the next even LTS on purpose: install it in a testing environment, run your test suite and your app against it, and watch for deprecation warnings, which Node prints before it removes things, giving you notice. Reinstall dependencies cleanly so native modules rebuild, check that your key libraries support the new version, and only then promote it to production, ideally with a way to roll back if something surfaces. The mistake to avoid is drifting: staying on an end-of-life version because upgrading feels risky, which just accumulates unpatched vulnerabilities and a larger, scarier jump later. Small, regular upgrades to the current LTS are far less painful than a rushed migration off a version that stopped getting security fixes months ago. Put the next upgrade on the calendar rather than waiting for something to force it.</p>
+
+  <h2>Where Kloudbean fits, honestly</h2>
+  <p>On Kloudbean, the Node version for your app is something you set in the console rather than a property of whatever image the host happened to ship, so you can align it deliberately with the version you develop and test against. That runtime configuration for Node, alongside the PM2 multi-process support for running your app, means the version question has a clear, controllable answer in production rather than a surprising one. Deploys run from your Git repository, so the same code and the same declared version move together.</p>
+
+  <p>The honest boundary: the platform lets you choose and run a specific Node version and keeps the server and stack maintained, but which version you choose, keeping your <code>engines</code> field honest, rebuilding native modules when you bump, and upgrading before end of life, is application hygiene that stays with you. No host can decide your Node version is the right one for your dependencies, and none can rebuild a native module you have not reinstalled. What managed hosting gives you is a reliable place to set the version and a stack that is patched underneath; keeping the version current and consistent is the part you own, and it is a small, high-return habit. For where to run Node generally, see <a href="https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/">the best managed Node.js hosting guide</a>.</p>
+
+  <h2>Related reading</h2>
+  <p>For running Node in production overall, <a href="https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/">the best managed Node.js hosting guide</a> and <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploying a Node app to a managed cloud</a>. Keeping the process alive is <a href="https://www.kloudbean.com/blog/pm2-process-manager-guide/">the PM2 process manager guide</a>. When a version mismatch shows up as a module error, <a href="https://www.kloudbean.com/blog/fix-cannot-find-module-node/">fixing cannot find module</a> helps, and configuration that should travel with the version is covered in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Set the Node version, keep every environment in step.</p>
+    <p style="margin:0 0 .6em">On Kloudbean you set your app's Node version in the console, deploy from Git, and run it under PM2 on a managed, patched server, so local and production stay aligned. Compare where to run Node in <a href="https://www.kloudbean.com/blog/best-managed-nodejs-hosting-2026/">the managed Node.js hosting guide</a>, or start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Node runtime config · Git-based deploys · PM2 support · Managed, patched stack</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Which Node.js version should I use in production?</h3>
+    <p>Use an even-numbered Active LTS version. Node promotes only even-numbered major versions to LTS, with roughly 30 months of support, while odd-numbered majors are short-lived and not intended for production. So pick the current Active LTS line for anything you ship, and reserve odd or Current versions for experimenting with upcoming features. When your LTS line nears end of life, plan a move to the next even LTS rather than staying on an unsupported version.</p>
+
+    <h3>What is the difference between even and odd Node versions?</h3>
+    <p>Even-numbered majors, like 18, 20, and 22, become LTS and are maintained for about 30 months, making them the stable choice for production. Odd-numbered majors, like 19, 21, and 23, are supported for only around eight months and are never promoted to LTS, so they exist mainly for testing new features. The simple takeaway is to run even versions in production and treat odd versions as short-lived previews, not something to build a business on.</p>
+
+    <h3>How do I make sure my local and production Node versions match?</h3>
+    <p>Pin the version in multiple places. Set the engines field in package.json to declare the expected Node version, add an .nvmrc file so anyone using nvm can switch to the same version with one command, and set your production environment to that same major version deliberately. The aim is a single answer to "which Node are we on?" across every machine, because a mismatch between your laptop and your server is a leading cause of code that works locally but fails in production.</p>
+
+    <h3>Why does my native module break when I change Node versions?</h3>
+    <p>Because native modules include compiled code built against a specific Node binary interface, which changes between major versions. When you switch Node majors without rebuilding, the compiled binary no longer matches, producing errors about a module compiled against a different Node version or a failed native build. The fix is to reinstall dependencies cleanly after a version change, often by removing node_modules and reinstalling, so the native pieces recompile against the new Node version.</p>
+
+    <h3>What happens if I run an end-of-life Node version?</h3>
+    <p>It keeps working, which is the trap, but it stops receiving security patches, so any newly discovered vulnerabilities in that version line will never be fixed for you. Over time, dependencies and build tools also start dropping support for it, making installs and upgrades harder. Running an unsupported version is a slowly growing risk rather than an immediate failure, which is why upgrading to a current LTS before end of life, rather than after, is the safer habit.</p>
+
+    <h3>How often does Node release new versions?</h3>
+    <p>Historically Node has released a new major version every six months, in April and October, with even-numbered April releases becoming LTS and odd-numbered October releases being short-lived. The cadence is evolving toward annual major releases in the future, so rather than memorising exact dates, rely on the even-equals-LTS rule and check the current support status of your version. The pattern matters more than the precise schedule, since the schedule can change.</p>
+
+    <h3>How do I upgrade Node safely?</h3>
+    <p>Do it deliberately in a testing environment first: install the next even LTS, run your test suite and app against it, and watch for deprecation warnings that Node prints before removing features. Reinstall dependencies cleanly so native modules rebuild, confirm your key libraries support the new version, then promote to production with a rollback option. Small, regular upgrades to the current LTS are far easier than a rushed jump off a version that went end of life months ago.</p>
+
+    <h3>Can I set the Node version on Kloudbean?</h3>
+    <p>Yes. Kloudbean lets you configure the Node runtime version for your app in the console, so you can align production with the version you develop and test against rather than accepting a default. Combined with Git-based deploys and PM2 support for running the process, that gives the version question a clear, controllable answer. Choosing the right version, keeping your engines field accurate, and rebuilding native modules on a bump remain your responsibility as application hygiene.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Pick an even LTS, pin it everywhere, and rebuild native deps when you bump.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Node.js Version Management: Which Version to Run, and Why It Breaks Deploys","description":"The Node.js version you run decides which features work, whether native modules compile, and how long you get security fixes. The LTS rule, pinning versions, the native-module trap, and upgrading safely.","image":"https://www.kloudbean.com/blog/node-version-management/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/node-version-management/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Which Node.js version should I use in production?","acceptedAnswer":{"@type":"Answer","text":"Use an even-numbered Active LTS version. Node promotes only even-numbered major versions to LTS, with roughly 30 months of support, while odd-numbered majors are short-lived and not intended for production. So pick the current Active LTS line for anything you ship, and reserve odd or Current versions for experimenting with upcoming features. When your LTS line nears end of life, plan a move to the next even LTS rather than staying on an unsupported version."}},
+{"@type":"Question","name":"What is the difference between even and odd Node versions?","acceptedAnswer":{"@type":"Answer","text":"Even-numbered majors, like 18, 20, and 22, become LTS and are maintained for about 30 months, making them the stable choice for production. Odd-numbered majors, like 19, 21, and 23, are supported for only around eight months and are never promoted to LTS, so they exist mainly for testing new features. The simple takeaway is to run even versions in production and treat odd versions as short-lived previews, not something to build a business on."}},
+{"@type":"Question","name":"How do I make sure my local and production Node versions match?","acceptedAnswer":{"@type":"Answer","text":"Pin the version in multiple places. Set the engines field in package.json to declare the expected Node version, add an .nvmrc file so anyone using nvm can switch to the same version with one command, and set your production environment to that same major version deliberately. The aim is a single answer to which Node are we on across every machine, because a mismatch between your laptop and your server is a leading cause of code that works locally but fails in production."}},
+{"@type":"Question","name":"Why does my native module break when I change Node versions?","acceptedAnswer":{"@type":"Answer","text":"Because native modules include compiled code built against a specific Node binary interface, which changes between major versions. When you switch Node majors without rebuilding, the compiled binary no longer matches, producing errors about a module compiled against a different Node version or a failed native build. The fix is to reinstall dependencies cleanly after a version change, often by removing node_modules and reinstalling, so the native pieces recompile against the new Node version."}},
+{"@type":"Question","name":"What happens if I run an end-of-life Node version?","acceptedAnswer":{"@type":"Answer","text":"It keeps working, which is the trap, but it stops receiving security patches, so any newly discovered vulnerabilities in that version line will never be fixed for you. Over time, dependencies and build tools also start dropping support for it, making installs and upgrades harder. Running an unsupported version is a slowly growing risk rather than an immediate failure, which is why upgrading to a current LTS before end of life, rather than after, is the safer habit."}},
+{"@type":"Question","name":"How often does Node release new versions?","acceptedAnswer":{"@type":"Answer","text":"Historically Node has released a new major version every six months, in April and October, with even-numbered April releases becoming LTS and odd-numbered October releases being short-lived. The cadence is evolving toward annual major releases in the future, so rather than memorising exact dates, rely on the even-equals-LTS rule and check the current support status of your version. The pattern matters more than the precise schedule, since the schedule can change."}},
+{"@type":"Question","name":"How do I upgrade Node safely?","acceptedAnswer":{"@type":"Answer","text":"Do it deliberately in a testing environment first: install the next even LTS, run your test suite and app against it, and watch for deprecation warnings that Node prints before removing features. Reinstall dependencies cleanly so native modules rebuild, confirm your key libraries support the new version, then promote to production with a rollback option. Small, regular upgrades to the current LTS are far easier than a rushed jump off a version that went end of life months ago."}},
+{"@type":"Question","name":"Can I set the Node version on Kloudbean?","acceptedAnswer":{"@type":"Answer","text":"Yes. Kloudbean lets you configure the Node runtime version for your app in the console, so you can align production with the version you develop and test against rather than accepting a default. Combined with Git-based deploys and PM2 support for running the process, that gives the version question a clear, controllable answer. Choosing the right version, keeping your engines field accurate, and rebuilding native modules on a bump remain your responsibility as application hygiene."}}
+]}
+]}
+</script>
+</body>
+</html>

@@ -30,7 +30,7 @@ Saudi Arabia has a real data-protection law: the Personal Data Protection Law, o
 
 ### 3. Government and enterprise procurement
 
-This one closes or kills deals. Saudi government bodies and large enterprises routinely ask where data will be stored before they sign, and a good number of them require it inside the country. Vision 2030 and the Kingdom's cloud-first direction have only sharpened that expectation. In a procurement review, "our data sits in the Dammam region, inside Saudi Arabia" is a clean, winning answer. "We're hosted in Europe but it's very secure" is not. If you're bidding for Saudi contracts, in-Kingdom residency is often the price of entry, not a nice-to-have.
+This one closes or kills deals. Saudi government bodies and large enterprises routinely ask where data will be stored before they sign, and a good number of them require it inside the country. [Vision 2030 and the Kingdom's cloud-first direction](https://www.kloudbean.com/blog/saudi-vision-2030-cloud/) have only sharpened that expectation. In a procurement review, "our data sits in the Dammam region, inside Saudi Arabia" is a clean, winning answer. "We're hosted in Europe but it's very secure" is not. If you're bidding for Saudi contracts, in-Kingdom residency is often the price of entry, not a nice-to-have.
 
 ## The shape of in-Kingdom hosting
 

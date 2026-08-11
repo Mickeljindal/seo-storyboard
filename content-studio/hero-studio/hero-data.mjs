@@ -873,6 +873,30 @@ const HERO_OVERRIDES = {
     sub: "Monthly vulnerability assessment, six-monthly pentest, and who owns what.",
     checklist: ["Vuln scan monthly", "Pentest every 6 months", "You commission, we support infra", "Remediate on a clock"],
   },
+  // KSA: Vision 2030 cloud angle.
+  "saudi-vision-2030-cloud": {
+    archetype: "checklist", palette: "teal", motif: "cloud",
+    eyebrow: "Saudi Arabia \u00b7 Cloud strategy",
+    headline: "The strategy has a\nhosting decision in it.",
+    sub: "Vision 2030's digital-economy and data threads point to in-Kingdom hosting.",
+    checklist: ["Digital economy + government", "Data as a national asset", "Localization pressure", "In-Kingdom is the answer"],
+  },
+  // Comparison: raw GCP vs managed-on-GCP.
+  "gcp-vs-kloudbean": {
+    archetype: "checklist", palette: "blue", motif: "compare",
+    eyebrow: "Comparisons \u00b7 Google Cloud",
+    headline: "Operate GCP,\nor just use it?",
+    sub: "Kloudbean runs on Google Cloud and manages the hard parts for you.",
+    checklist: ["Kloudbean runs on GCP", "Raw GCP: you operate it", "Managed: one dashboard", "Same infra, less ops"],
+  },
+  // Node: version management.
+  "node-version-management": {
+    archetype: "checklist", palette: "green", motif: "generic",
+    eyebrow: "Node.js \u00b7 Versions",
+    headline: "Pick the version,\npin it everywhere.",
+    sub: "The even-LTS rule, matching local to prod, and the native-module trap.",
+    checklist: ["Even = LTS (~30 months)", "Odd = short-lived, skip", "Pin engines + .nvmrc", "Rebuild native deps on bump"],
+  },
   // WordPress maintenance retainer: the care-plan deliverables.
   "wordpress-maintenance-retainer-plans": {
     archetype: "checklist",
