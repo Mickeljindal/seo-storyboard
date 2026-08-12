@@ -10,7 +10,7 @@ secondary_keywords:
   - cloud data transfer out
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 7 — Databases, Storage & S3
+cluster: 7 - Databases, Storage & S3
 ---
 
 ![Egress fees: the hidden cost of serving your own files out of object storage](images/hero.png)
@@ -109,7 +109,7 @@ Egress hurts most in exactly the situations you'd reach for object storage in th
 
 ## How to think about it before you pick a store
 
-My honest advice: treat data-transfer-out as a first-class number, not a footnote. Before you commit to any storage, estimate roughly how many gigabytes will leave the bucket per month (visitors times page weight, downloads times file size) and price that against the egress rate. If the answer is scary, you've got options short of switching. A [CDN](https://www.kloudbean.com/blog/speed-up-wordpress/) in front of the bucket caches files at the edge so the origin is hit far less often, which cuts origin egress. Compressing files and serving right-sized images trims the gigabytes going out. Neither eliminates egress, but both soften it while you weigh a move. If serving files out is central to what you do, a zero or low-egress store is worth seeking out on purpose. All of this feeds the broader goal of [cutting your cloud bill](https://www.kloudbean.com/blog/how-to-cut-your-cloud-bill/) before it surprises you, the way one team did when they [took a runaway bill from thousands to about a hundred](https://www.kloudbean.com/blog/cut-saas-bill-4000-to-100/).
+My honest advice: treat data-transfer-out as a first-class number, not a footnote. Before you commit to any storage, estimate roughly how many gigabytes will leave the bucket per month (visitors times page weight, downloads times file size) and price that against the egress rate. If the answer is scary, you've got options short of switching. A [CDN](https://www.kloudbean.com/blog/speed-up-wordpress/) in front of the bucket caches files at the edge so the origin is hit far less often, which cuts origin egress. Compressing files and serving right-sized images trims the gigabytes going out. Neither eliminates egress, but both soften it while you weigh a move. If serving files out is central to what you do, a zero or low-egress store is worth seeking out on purpose, and [the object-storage alternatives, compared](https://www.kloudbean.com/blog/cloud-storage-alternatives/), lays out the options side by side. All of this feeds the broader goal of [cutting your cloud bill](https://www.kloudbean.com/blog/how-to-cut-your-cloud-bill/) before it surprises you, the way one team did when they [took a runaway bill from thousands to about a hundred](https://www.kloudbean.com/blog/cut-saas-bill-4000-to-100/).
 
 ## Where Kloudbean fits
 

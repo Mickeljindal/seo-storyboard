@@ -18,7 +18,7 @@ cluster: 8 - Cloud fundamentals
 
 # Reverse Proxy Explained: The Server That Sits in Front of Your App
 
-Load any site over HTTPS and there's a good chance you hit a reverse proxy before your request ever reaches the real application. Usually it's Nginx or Apache, sitting quietly out front, taking the request and handing back the reply. You never see it. Until it breaks, and a `502 Bad Gateway` shows up where your homepage should be.
+Load any site over HTTPS and there's a good chance you hit a reverse proxy before your request ever reaches the real application. Usually it's [Nginx or Apache](https://www.kloudbean.com/blog/nginx-vs-apache/), sitting quietly out front, taking the request and handing back the reply. You never see it. Until it breaks, and a `502 Bad Gateway` shows up where your homepage should be.
 
 This is reverse proxy explained the way it actually matters to someone shipping code. What a reverse proxy is, how it works, how it differs from a forward proxy and from a load balancer, and why that 502 is trying to tell you something specific. We'll read a real Nginx config too. No hand-waving.
 

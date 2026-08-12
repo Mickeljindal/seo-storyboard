@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cloud Storage Alternatives: The Object Storage Options Worth Knowing</title>
+<meta name="description" content="Looking for an S3 alternative for your app's files, uploads, or backups? The real object-storage options compared on egress fees, S3-compatibility, and lock-in, plus how to pick the right one.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/cloud-storage-alternatives/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Cloud Storage Alternatives: The Object Storage Options Worth Knowing">
+<meta property="og:description" content="The real S3 alternatives for app storage, compared on egress fees, S3-compatibility, and lock-in, and how to choose the right one.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Storage · Comparison · Guide</span>
+  <h1>Cloud Storage Alternatives: The Object Storage Options Worth Knowing</h1>
+  <p class="byline">By Kloudbean Engineering · Most "S3 is too expensive" complaints are really "S3 egress is too expensive."</p>
+
+  <figure><img src="images/hero.png" alt="A lineup of S3-compatible object-storage options with egress fees as the deciding column">
+  </figure>
+
+  <p class="lead">If you're storing an app's files, user uploads, images, video, or backups, and you're looking for a cloud storage alternative, you're usually running from one of two things: a surprise egress bill, or lock-in to one big cloud. The good news is the object-storage market got competitive, and there are genuinely good options now, several of them speaking the same S3 API so you can switch with a config change rather than a rewrite. This guide compares the real alternatives for developers, on the things that actually decide the bill and the lock-in, then helps you pick.</p>
+
+  <div class="tldr">
+    <strong>What are the best cloud storage alternatives to AWS S3?</strong>
+    <p>For application storage, the strongest S3 alternatives are the S3-compatible ones you can move to without rewriting: Cloudflare R2 and Backblaze B2 (both known for low or no egress fees), Wasabi (flat pricing), Google Cloud Storage and Azure Blob (if you're already in those clouds), MinIO (self-hosted), and built-in object storage from a managed host like Kloudbean, which keeps the bucket in the same dashboard as your servers and databases and doesn't meter egress on it. The right pick usually comes down to egress fees and whether you want the storage near the rest of your stack.</p>
+  </div>
+
+  <h2>First, which "cloud storage" do you actually mean?</h2>
+  <p>A quick fork, because "cloud storage" means two very different things and this guide is about one of them.</p>
+
+  <p>If you want a Dropbox or Google Drive replacement to sync your documents and photos across devices, that's <strong>consumer file storage</strong>, and it's not what this article covers. What we're comparing here is <strong>object storage</strong>: the developer service where your application puts files programmatically, an S3 bucket and its equivalents. That's where user uploads, generated files, media libraries, static assets, and backups belong, reached over an API from your code rather than a desktop sync client. If you're building an app and wondering where the files should live so they survive deploys and don't bloat your server, you're in the right place. If you want to sync your holiday photos, you're not.</p>
+
+  <h2>Why developers look for an S3 alternative</h2>
+  <p>Three reasons come up again and again, and naming yours tells you what to optimise for.</p>
+
+  <p>The big one is <strong>egress fees</strong>. The major clouds charge little to store data and a lot to serve it out, often around nine cents per gigabyte, so a media-heavy or high-traffic app can see a bill where transfer dwarfs storage many times over. We pulled that math apart in <a href="https://www.kloudbean.com/blog/zero-egress-object-storage/">the egress fees breakdown</a>, and it's the number one reason people move. The second is <strong>lock-in</strong>: the more data you pile into one cloud, the more it costs to leave, which is a deliberate feature of the pricing, not an accident. The third is <strong>sprawl</strong>: your storage is one more separate product with its own console, billing, and access model, disconnected from where your app and database actually run. Different alternatives solve different ones of these, so hold your reason in mind as you read the options.</p>
+
+  <h2>The main object-storage options, compared</h2>
+  <p>Most of these speak the S3 API, which is the thing that makes switching realistic. Here's the honest lineup.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Option</th><th>S3-compatible</th><th>Egress fees</th><th>Best for</th></tr></thead>
+    <tbody>
+      <tr><td><strong>AWS S3</strong></td><td>It's the standard</td><td>Yes, metered per GB</td><td>Teams already deep in AWS</td></tr>
+      <tr><td><strong>Cloudflare R2</strong></td><td>Yes</td><td>No egress fees</td><td>Serving lots of data out cheaply</td></tr>
+      <tr><td><strong>Backblaze B2</strong></td><td>Yes</td><td>Free up to a generous multiple of storage</td><td>Cheap storage with fair egress</td></tr>
+      <tr><td><strong>Wasabi</strong></td><td>Yes</td><td>No egress fee (with usage terms)</td><td>Predictable flat storage pricing</td></tr>
+      <tr><td><strong>Google Cloud Storage</strong></td><td>Partly (its own API + interop)</td><td>Yes, metered</td><td>Teams already on Google Cloud</td></tr>
+      <tr><td><strong>Azure Blob</strong></td><td>Via its own API</td><td>Yes, metered</td><td>Teams already on Azure</td></tr>
+      <tr><td><strong>MinIO (self-hosted)</strong></td><td>Yes</td><td>Your bandwidth bill</td><td>Full control, you run it</td></tr>
+      <tr><td><strong>Kloudbean built-in S3</strong></td><td>Yes</td><td>No egress on its storage</td><td>Storage next to your app and DB</td></tr>
+    </tbody>
+  </table>
+
+  <p>A few honest notes on that table. The "no egress" options (R2, Wasabi, Kloudbean's built-in storage) each have their own shape: R2 built its whole pitch on free egress; Wasabi doesn't charge egress but has fair-use terms tied to how much you store; Backblaze gives generous free egress rather than truly unlimited. Terms change, so check the current pricing page of whichever you shortlist rather than trusting a number in a blog post, including this one. The self-hosted route (MinIO) removes provider fees entirely but hands you the operational job of running and scaling it. And the hyperscaler options (S3, GCS, Azure Blob) are excellent engineering with the egress model that sent you looking in the first place.</p>
+
+  <h2>How to choose, in one pass</h2>
+  <p>Match the option to the reason you started looking. It really is mostly that simple.</p>
+
+  <p>If <strong>egress is your problem</strong> (you serve a lot of data out), prioritise a no-egress or low-egress store: R2, Wasabi, Backblaze B2, or a host whose built-in storage doesn't meter egress. If <strong>lock-in is your worry</strong>, insist on S3-compatibility so your next move is a config change, not a migration, which rules in almost everything except the proprietary APIs. If <strong>sprawl is the pain</strong>, the deciding factor isn't the storage in isolation, it's whether the bucket lives in the same place as your servers, database, and app, so you're managing one platform instead of gluing four together. And if you genuinely want <strong>total control</strong> and have the ops appetite, self-hosting MinIO is legitimate, as long as you're honest that you've taken on running it. One trap to avoid: don't pick purely on the advertised per-gigabyte storage price. It's usually the smallest line on the bill. Egress and operational overhead are where the real money and time go.</p>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>Kloudbean's answer to this is built-in S3-compatible object storage that sits in the same dashboard as your servers, managed databases, and apps, and doesn't meter egress on that storage. So the two things that send people shopping, the egress bill and the sprawl of a separate storage product, are handled in one place: your files serve out without a transfer meter running, and the bucket is right next to the app that uses it, on the same account and access model. Because it speaks the S3 API, your existing code and tools (the AWS SDK, the CLI, s3cmd) point at it with a changed endpoint and keys, covered in <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage</a>.</p>
+
+  <p>The honest boundary: this is application object storage, the same category as S3, not a consumer file-sync service, and the no-egress point applies specifically to Kloudbean's own built-in S3 storage. (Kloudbean can also provision managed Google Cloud Storage on higher tiers, but that is GCS with GCS's own transfer pricing, a different thing from the built-in store.) If your reason for shopping is egress or wanting storage that lives with the rest of your stack rather than in yet another console, it's a strong fit. If you specifically need a consumer sync client, that's a different product category entirely.</p>
+
+  <h2>Related reading</h2>
+  <p>The cost mechanics behind all of this are in <a href="https://www.kloudbean.com/blog/zero-egress-object-storage/">the egress fees breakdown</a>. For what object storage even is and why files don't belong on the app server, <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage</a>, and for the practical pattern, <a href="https://www.kloudbean.com/blog/store-user-uploads-in-object-storage/">store user uploads in object storage</a>. If you're weighing managed platforms more broadly, <a href="https://www.kloudbean.com/blog/best-managed-cloud-hosting/">best managed cloud hosting</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Put your files where your app already lives.</p>
+    <p style="margin:0 0 .6em">Kloudbean gives you S3-compatible object storage with no egress metering on it, in the same dashboard as your servers and managed databases, so storage stops being a separate bill and a separate console. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>, or read how it works in <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">S3-compatible API · No egress on built-in storage · Same dashboard as your stack · Public and private buckets</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is the best alternative to AWS S3?</h3>
+    <p>There isn't one winner; it depends on why you're leaving. If egress fees are the problem, Cloudflare R2, Wasabi, or Backblaze B2 are popular for low or no egress. If you want storage next to the rest of your stack, a managed host's built-in S3-compatible storage fits. If you want total control, self-hosted MinIO works. Because most of these speak the S3 API, you can often switch with a configuration change rather than a rewrite.</p>
+
+    <h3>Which cloud storage has no egress fees?</h3>
+    <p>Cloudflare R2 is known for no egress fees, Wasabi doesn't charge egress under its usage terms, and Backblaze B2 offers generous free egress up to a multiple of what you store. Kloudbean's built-in S3-compatible storage also doesn't meter egress. Terms differ and change, so confirm the current pricing for whichever you choose, since some no-egress offers have fair-use conditions tied to your stored volume.</p>
+
+    <h3>What does S3-compatible mean, and why does it matter?</h3>
+    <p>S3-compatible means the storage speaks the same API as Amazon S3, so the AWS SDKs, the AWS CLI, and tools like s3cmd work against it with just a different endpoint and credentials. It matters because it makes switching providers realistic: instead of rewriting your storage code, you change configuration. It's also the main defence against lock-in, since your next move stays a config change rather than a migration project.</p>
+
+    <h3>Why is AWS S3 egress so expensive?</h3>
+    <p>Moving data across a global network has a real cost, but egress pricing is also a retention mechanism: cheap to put data in, pricey to serve or move it out, which discourages leaving. On a media-heavy or high-traffic app, egress can be many times the storage cost, which is why the bill often surprises people. It's the single most common reason developers look for an S3 alternative.</p>
+
+    <h3>Is Backblaze B2 or Wasabi cheaper than S3?</h3>
+    <p>Usually yes for the common case, mainly because of egress. Both price storage competitively and are far more generous on data transfer out, which is where S3 bills add up. The exact comparison depends on your ratio of stored data to data served, so run your own numbers using both the storage and the egress lines, not just the per-gigabyte storage price, which is the smallest part of most bills.</p>
+
+    <h3>Can I self-host object storage?</h3>
+    <p>Yes. MinIO is an S3-compatible object-storage server you can run on your own infrastructure, which removes provider fees entirely and gives you full control. The trade is that you take on running it: capacity, durability, backups, and scaling become your responsibility. It's a good fit if you have the operational appetite and a reason to keep storage fully in-house, and a poor one if you were trying to get away from managing infrastructure.</p>
+
+    <h3>Does Kloudbean charge egress on object storage?</h3>
+    <p>No, Kloudbean does not meter egress on its built-in S3-compatible object storage, so serving files out of that storage doesn't add a transfer bill. Note this applies to the built-in store specifically; managed Google Cloud Storage, available on higher tiers, follows Google Cloud's own transfer pricing. For most app storage needs, the built-in S3-compatible storage is the relevant option, and it sits in the same dashboard as your servers and databases.</p>
+
+    <h3>How do I move my files off S3 to an alternative?</h3>
+    <p>Because most alternatives are S3-compatible, you point a tool like rclone or the AWS CLI at both endpoints and sync the bucket across, then update your app's endpoint and credentials to the new store. Do an initial bulk copy, then a second pass to catch anything that changed, then cut over. Keep the old bucket until you've confirmed everything serves correctly from the new one. The S3-compatible API is what makes this a copy-and-reconfigure job rather than a rewrite.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Compare the egress line, not the storage line. That's where the bill hides.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Cloud Storage Alternatives: The Object Storage Options Worth Knowing","description":"Looking for an S3 alternative for your app's files, uploads, or backups? The real object-storage options compared on egress fees, S3-compatibility, and lock-in, plus how to pick the right one.","image":"https://www.kloudbean.com/blog/cloud-storage-alternatives/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/cloud-storage-alternatives/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is the best alternative to AWS S3?","acceptedAnswer":{"@type":"Answer","text":"There isn't one winner; it depends on why you're leaving. If egress fees are the problem, Cloudflare R2, Wasabi, or Backblaze B2 are popular for low or no egress. If you want storage next to the rest of your stack, a managed host's built-in S3-compatible storage fits. If you want total control, self-hosted MinIO works. Because most of these speak the S3 API, you can often switch with a configuration change rather than a rewrite."}},
+{"@type":"Question","name":"Which cloud storage has no egress fees?","acceptedAnswer":{"@type":"Answer","text":"Cloudflare R2 is known for no egress fees, Wasabi doesn't charge egress under its usage terms, and Backblaze B2 offers generous free egress up to a multiple of what you store. Kloudbean's built-in S3-compatible storage also doesn't meter egress. Terms differ and change, so confirm the current pricing for whichever you choose, since some no-egress offers have fair-use conditions tied to your stored volume."}},
+{"@type":"Question","name":"What does S3-compatible mean, and why does it matter?","acceptedAnswer":{"@type":"Answer","text":"S3-compatible means the storage speaks the same API as Amazon S3, so the AWS SDKs, the AWS CLI, and tools like s3cmd work against it with just a different endpoint and credentials. It matters because it makes switching providers realistic: instead of rewriting your storage code, you change configuration. It's also the main defence against lock-in, since your next move stays a config change rather than a migration project."}},
+{"@type":"Question","name":"Why is AWS S3 egress so expensive?","acceptedAnswer":{"@type":"Answer","text":"Moving data across a global network has a real cost, but egress pricing is also a retention mechanism: cheap to put data in, pricey to serve or move it out, which discourages leaving. On a media-heavy or high-traffic app, egress can be many times the storage cost, which is why the bill often surprises people. It's the single most common reason developers look for an S3 alternative."}},
+{"@type":"Question","name":"Is Backblaze B2 or Wasabi cheaper than S3?","acceptedAnswer":{"@type":"Answer","text":"Usually yes for the common case, mainly because of egress. Both price storage competitively and are far more generous on data transfer out, which is where S3 bills add up. The exact comparison depends on your ratio of stored data to data served, so run your own numbers using both the storage and the egress lines, not just the per-gigabyte storage price, which is the smallest part of most bills."}},
+{"@type":"Question","name":"Can I self-host object storage?","acceptedAnswer":{"@type":"Answer","text":"Yes. MinIO is an S3-compatible object-storage server you can run on your own infrastructure, which removes provider fees entirely and gives you full control. The trade is that you take on running it: capacity, durability, backups, and scaling become your responsibility. It's a good fit if you have the operational appetite and a reason to keep storage fully in-house, and a poor one if you were trying to get away from managing infrastructure."}},
+{"@type":"Question","name":"Does Kloudbean charge egress on object storage?","acceptedAnswer":{"@type":"Answer","text":"No, Kloudbean does not meter egress on its built-in S3-compatible object storage, so serving files out of that storage doesn't add a transfer bill. Note this applies to the built-in store specifically; managed Google Cloud Storage, available on higher tiers, follows Google Cloud's own transfer pricing. For most app storage needs, the built-in S3-compatible storage is the relevant option, and it sits in the same dashboard as your servers and databases."}},
+{"@type":"Question","name":"How do I move my files off S3 to an alternative?","acceptedAnswer":{"@type":"Answer","text":"Because most alternatives are S3-compatible, you point a tool like rclone or the AWS CLI at both endpoints and sync the bucket across, then update your app's endpoint and credentials to the new store. Do an initial bulk copy, then a second pass to catch anything that changed, then cut over. Keep the old bucket until you've confirmed everything serves correctly from the new one. The S3-compatible API is what makes this a copy-and-reconfigure job rather than a rewrite."}}
+]}
+]}
+</script>
+</body>
+</html>

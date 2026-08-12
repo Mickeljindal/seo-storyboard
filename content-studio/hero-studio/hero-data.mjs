@@ -977,6 +977,22 @@ const HERO_OVERRIDES = {
     sub: "ECC, CSCC, CCC, PDPL, SAMA, and you are often in several at once.",
     checklist: ["ECC is the baseline", "CSCC for critical systems", "PDPL for personal data", "SAMA for finance"],
   },
+  // Storage: object-storage alternatives comparison.
+  "cloud-storage-alternatives": {
+    archetype: "checklist", palette: "amber", motif: "cost",
+    eyebrow: "Storage \u00b7 Comparison",
+    headline: "The bill isn't storage.\nIt's egress.",
+    sub: "The real S3 alternatives, compared on the fee that actually hurts.",
+    checklist: ["Egress is the real cost", "S3-compatible = easy switch", "R2, B2, Wasabi, MinIO", "Kloudbean S3: no egress"],
+  },
+  // Comparison: Nginx vs Apache web servers.
+  "nginx-vs-apache": {
+    archetype: "checklist", palette: "blue", motif: "compare",
+    eyebrow: "Infrastructure \u00b7 Web servers",
+    headline: "Event-driven,\nor a process each?",
+    sub: "One design choice explains every Nginx vs Apache difference.",
+    checklist: ["Nginx: a few workers", "Apache: process per connection", ".htaccess vs central config", "Managed? It's tuned for you"],
+  },
   // WordPress maintenance retainer: the care-plan deliverables.
   "wordpress-maintenance-retainer-plans": {
     archetype: "checklist",

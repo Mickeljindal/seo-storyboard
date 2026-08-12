@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nginx vs Apache: The Real Difference, and Whether It Matters for You</title>
+<meta name="description" content="Nginx and Apache take opposite approaches to handling connections. What that means for performance, .htaccess, and reverse proxying, where each wins, and why most managed setups settle the question for you.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/nginx-vs-apache/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Nginx vs Apache: The Real Difference, and Whether It Matters for You">
+<meta property="og:description" content="Event-driven vs a process per connection: the one design choice that explains every difference between Nginx and Apache, where each wins, and when it's already decided for you.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Infrastructure · Web servers · Guide</span>
+  <h1>Nginx vs Apache: The Real Difference, and Whether It Matters for You</h1>
+  <p class="byline">By Kloudbean Engineering · The honest answer starts with a question back: are you even the one configuring it?</p>
+
+  <figure><img src="images/hero.png" alt="Event-driven Nginx handling many connections in a few workers vs Apache spawning a process per connection">
+  </figure>
+
+  <p class="lead">Nginx versus Apache is one of the oldest debates in web hosting, and most of what's written about it is either a benchmark war or a shrug. The useful version is simpler. The two servers made an opposite design choice about how to handle many connections at once, and almost every practical difference, performance, memory, configuration style, flows from that one choice. Understand it and you can pick correctly in about a minute. You'll also see why, for a lot of people today, the choice is already made by the platform they're on.</p>
+
+  <div class="tldr">
+    <strong>Should I use Nginx or Apache?</strong>
+    <p>Nginx uses an event-driven model that handles many connections in a few processes, so it's excellent at high concurrency, serving static files, and acting as a reverse proxy, on modest memory. Apache uses a process or thread per connection and offers per-directory configuration via .htaccess, which is flexible and convenient for shared hosting and some legacy apps. For a new high-traffic app or an API gateway, Nginx is the usual default. For an app that depends on .htaccess or specific Apache modules, Apache fits. Many production stacks run both: Nginx in front, Apache or a language runtime behind. On a managed platform this is typically decided and tuned for you.</p>
+  </div>
+
+  <h2>The core difference: event-driven vs a process per connection</h2>
+  <p>This is the whole thing. Everything else is a consequence of it.</p>
+
+  <p>Apache, in its traditional configuration, handles each connection with its own process or thread. That's straightforward and very compatible, but each connection carries the memory overhead of a process, so under thousands of simultaneous connections the memory footprint climbs and the server can struggle. Nginx was built later, specifically to solve that, using an event-driven, asynchronous model: a small, fixed number of worker processes each juggle thousands of connections by reacting to events rather than dedicating a process to each. The result is that Nginx holds many concurrent connections on modest, predictable memory, which is exactly the shape of modern web traffic. Apache has since added an event-based mode of its own that narrows the gap, but the mental model still holds: Apache's heritage is a worker per connection, Nginx's is a few workers handling everything.</p>
+
+  <h2>Where each one wins</h2>
+  <p>Neither is simply better; they're better at different jobs. Match the tool to the workload.</p>
+
+  <p>Nginx shines at serving static files fast, handling high concurrency without ballooning memory, and acting as a reverse proxy or load balancer in front of application servers, which is why it's so often the front door of a modern stack. Apache shines on flexibility and compatibility: a huge module ecosystem, deep integration with older applications, and the per-directory configuration that a lot of traditional PHP and shared-hosting software expects. If you're standing up a new high-traffic site, an API gateway, or anything that's mostly serving assets and proxying, Nginx is the common-sense default. If you're running an application that was built around Apache's modules or its .htaccess behaviour, Apache is the path of least resistance. The workload decides, not tribal loyalty.</p>
+
+  <h2>The .htaccess question</h2>
+  <p>This is the single most practical difference for a lot of people, so it deserves its own note.</p>
+
+  <p>Apache lets you drop a <code>.htaccess</code> file into any directory to change configuration for that folder, rewrites, access rules, redirects, without touching the main server config or restarting anything. That's genuinely convenient, especially on shared hosting where you don't control the main config, and it's why so much PHP software ships <code>.htaccess</code> rules. Nginx deliberately doesn't do per-directory config files; everything lives in the central server configuration. That's faster (the server isn't checking every directory for an override on each request) but it means changes go in one central place and you need access to it. In practice this is the thing that trips people migrating an app from Apache to Nginx: their <code>.htaccess</code> rewrites don't come along automatically and have to be translated into the Nginx config. Not hard, but a real step, and the reason some apps stay on Apache.</p>
+
+  <h2>Nginx vs Apache, side by side</h2>
+  <p>The trade-offs line up cleanly once the architecture is clear.</p>
+
+  <table class="cmp">
+    <thead><tr><th>&nbsp;</th><th>Nginx</th><th>Apache</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Connection model</strong></td><td>Event-driven, a few workers</td><td>Process or thread per connection (event mode available)</td></tr>
+      <tr><td><strong>High concurrency</strong></td><td>Excellent, low memory</td><td>Heavier under many connections</td></tr>
+      <tr><td><strong>Static files</strong></td><td>Very fast</td><td>Fine, generally slower</td></tr>
+      <tr><td><strong>Per-directory config</strong></td><td>No (central config)</td><td>Yes, via .htaccess</td></tr>
+      <tr><td><strong>As a reverse proxy</strong></td><td>A primary strength</td><td>Capable, less common</td></tr>
+      <tr><td><strong>Best fit</strong></td><td>High traffic, static, proxying, APIs</td><td>.htaccess-dependent or module-heavy apps</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Does this choice even matter for you?</h2>
+  <p>Here's the opinion, because the benchmark wars miss the point for most readers.</p>
+
+  <p>If you're running your own server by hand, the choice is real and worth making deliberately along the lines above. But if you're on a managed platform, or you're building a typical web app rather than operating infrastructure, the honest truth is that this is decided and tuned for you, and you probably shouldn't spend a day on it. The other thing the debate often misses: it's not either-or. A very common production setup runs both, Nginx at the front as a reverse proxy handling connections, TLS, and static files, passing dynamic requests back to Apache or, more often now, to a language runtime like PHP-FPM or a Node process. So the "winner" in many real stacks is "Nginx in front, something else behind." Unless you have a specific reason, high concurrency pushing you to Nginx, or an .htaccess-bound app keeping you on Apache, the web server is not where your attention pays off. Your application, your database, and your deploys are.</p>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>On Kloudbean the web server is part of the managed stack, so this is a decision you don't have to make or tune. Your app runs behind a properly configured Nginx layer that handles connections, TLS, and static files, with your application or language runtime behind it, which is the front-Nginx pattern above, set up for you. That's deliberate: Nginx's event-driven model is the right default for the concurrency modern apps see, and getting the configuration right (worker counts, proxy settings, caching headers, TLS) is exactly the fiddly work a managed platform should absorb. If you're coming from an Apache app that leans on <code>.htaccess</code>, that's worth flagging when you migrate, since those rules need translating rather than copying.</p>
+
+  <p>The honest boundary: managed hosting runs and tunes the web server for you, but your application's own configuration, its routes, its rewrite logic, its framework settings, is still yours. What you're handed is a sensible, performant default so you're not benchmarking web servers instead of building. For how the pieces fit together, <a href="https://www.kloudbean.com/blog/how-cloud-hosting-works/">how cloud hosting works</a> is the overview, and the front-server role is explained in <a href="https://www.kloudbean.com/blog/reverse-proxy-explained/">reverse proxy explained</a>.</p>
+
+  <h2>Related reading</h2>
+  <p>For the front-server role Nginx so often plays, <a href="https://www.kloudbean.com/blog/reverse-proxy-explained/">reverse proxy explained</a> and, for Node specifically, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">an Nginx reverse proxy for Node</a>. The bigger picture is in <a href="https://www.kloudbean.com/blog/how-cloud-hosting-works/">how cloud hosting works</a>, and if this is really a question of how much infrastructure you want to run yourself, <a href="https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/">managed vs unmanaged hosting</a> is the honest fork.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Let the platform tune the web server, and go build.</p>
+    <p style="margin:0 0 .6em">On Kloudbean your app runs behind a managed, properly tuned Nginx layer with TLS and static handling sorted, so you're not configuring web servers by hand. Managed servers on seven clouds, Git deploys, free SSL. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>, or see the model in <a href="https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/">managed vs unmanaged hosting</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed, tuned Nginx layer · TLS and static handling · Git deploys · You build, not benchmark</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Is Nginx faster than Apache?</h3>
+    <p>For high concurrency and serving static files, Nginx is generally faster and lighter on memory, because its event-driven model handles many connections in a few worker processes rather than one process or thread per connection. For a low-traffic site the difference is often negligible. Apache's newer event mode narrows the gap too. So faster is real under load and largely irrelevant at small scale, which is most sites.</p>
+
+    <h3>What is the main difference between Nginx and Apache?</h3>
+    <p>How they handle concurrent connections. Apache traditionally uses a process or thread per connection, which is compatible and flexible but heavier under many connections. Nginx uses an event-driven, asynchronous model where a few workers juggle thousands of connections on modest memory. Almost every other difference, memory use, static-file speed, configuration style, follows from that one architectural choice.</p>
+
+    <h3>What is .htaccess and does Nginx support it?</h3>
+    <p>.htaccess is an Apache feature that lets you place configuration, rewrites, access rules, redirects, in individual directories without editing the main config. Nginx does not support it; all configuration lives centrally in the server config, which is faster but requires access to that config. This is a common snag when migrating an app from Apache to Nginx, because .htaccess rules must be translated into the Nginx configuration rather than copied over.</p>
+
+    <h3>Can I use Nginx and Apache together?</h3>
+    <p>Yes, and it's a common production pattern. Nginx sits at the front as a reverse proxy, handling incoming connections, TLS, and static files, and passes dynamic requests back to Apache behind it. This combines Nginx's strength at concurrency and static serving with Apache's module and .htaccess compatibility. That said, many modern stacks replace the Apache backend with a language runtime like PHP-FPM or a Node process behind Nginx.</p>
+
+    <h3>Which is better for WordPress, Nginx or Apache?</h3>
+    <p>Both run WordPress well. Apache is historically common because WordPress ships .htaccess rules that work out of the box, while Nginx needs those rewrite rules in its central config, which managed WordPress hosts handle for you. Nginx tends to serve high-traffic WordPress sites more efficiently. On a managed platform the web server is configured for WordPress either way, so it's rarely a decision you make yourself.</p>
+
+    <h3>Which uses less memory, Nginx or Apache?</h3>
+    <p>Nginx, typically, under concurrent load. Because it handles many connections within a few worker processes rather than allocating a process or thread per connection, its memory use stays low and predictable as connections climb. Apache's footprint grows with concurrent connections in its traditional modes, though its event MPM improves this. For memory-constrained servers facing real concurrency, Nginx is usually the lighter choice.</p>
+
+    <h3>Do I need to choose between them on managed hosting?</h3>
+    <p>Usually not. A managed platform runs and tunes the web server for you, commonly Nginx as the front layer, so you don't configure or benchmark it. Your attention goes to your application, database, and deploys instead. You'd only care about the choice if you have a specific requirement, such as an app tightly coupled to Apache's .htaccess or a particular module, which is worth raising when you migrate.</p>
+
+    <h3>Is Apache dead?</h3>
+    <p>No. Apache is still widely used, actively maintained, and the right choice for plenty of applications, particularly those built around its modules or .htaccess. Nginx has taken much of the front-server and high-concurrency role, and often fronts Apache rather than replacing it. Treat it as two mature tools with different strengths, not a winner and a loser; the correct one depends on your workload.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Pick by workload, not loyalty, and on managed hosting you rarely pick at all.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Nginx vs Apache: The Real Difference, and Whether It Matters for You","description":"Nginx and Apache take opposite approaches to handling connections. What that means for performance, .htaccess, and reverse proxying, where each wins, and why most managed setups settle the question for you.","image":"https://www.kloudbean.com/blog/nginx-vs-apache/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/nginx-vs-apache/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Is Nginx faster than Apache?","acceptedAnswer":{"@type":"Answer","text":"For high concurrency and serving static files, Nginx is generally faster and lighter on memory, because its event-driven model handles many connections in a few worker processes rather than one process or thread per connection. For a low-traffic site the difference is often negligible. Apache's newer event mode narrows the gap too. So faster is real under load and largely irrelevant at small scale, which is most sites."}},
+{"@type":"Question","name":"What is the main difference between Nginx and Apache?","acceptedAnswer":{"@type":"Answer","text":"How they handle concurrent connections. Apache traditionally uses a process or thread per connection, which is compatible and flexible but heavier under many connections. Nginx uses an event-driven, asynchronous model where a few workers juggle thousands of connections on modest memory. Almost every other difference, memory use, static-file speed, configuration style, follows from that one architectural choice."}},
+{"@type":"Question","name":"What is .htaccess and does Nginx support it?","acceptedAnswer":{"@type":"Answer","text":".htaccess is an Apache feature that lets you place configuration, rewrites, access rules, redirects, in individual directories without editing the main config. Nginx does not support it; all configuration lives centrally in the server config, which is faster but requires access to that config. This is a common snag when migrating an app from Apache to Nginx, because .htaccess rules must be translated into the Nginx configuration rather than copied over."}},
+{"@type":"Question","name":"Can I use Nginx and Apache together?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it's a common production pattern. Nginx sits at the front as a reverse proxy, handling incoming connections, TLS, and static files, and passes dynamic requests back to Apache behind it. This combines Nginx's strength at concurrency and static serving with Apache's module and .htaccess compatibility. That said, many modern stacks replace the Apache backend with a language runtime like PHP-FPM or a Node process behind Nginx."}},
+{"@type":"Question","name":"Which is better for WordPress, Nginx or Apache?","acceptedAnswer":{"@type":"Answer","text":"Both run WordPress well. Apache is historically common because WordPress ships .htaccess rules that work out of the box, while Nginx needs those rewrite rules in its central config, which managed WordPress hosts handle for you. Nginx tends to serve high-traffic WordPress sites more efficiently. On a managed platform the web server is configured for WordPress either way, so it's rarely a decision you make yourself."}},
+{"@type":"Question","name":"Which uses less memory, Nginx or Apache?","acceptedAnswer":{"@type":"Answer","text":"Nginx, typically, under concurrent load. Because it handles many connections within a few worker processes rather than allocating a process or thread per connection, its memory use stays low and predictable as connections climb. Apache's footprint grows with concurrent connections in its traditional modes, though its event MPM improves this. For memory-constrained servers facing real concurrency, Nginx is usually the lighter choice."}},
+{"@type":"Question","name":"Do I need to choose between them on managed hosting?","acceptedAnswer":{"@type":"Answer","text":"Usually not. A managed platform runs and tunes the web server for you, commonly Nginx as the front layer, so you don't configure or benchmark it. Your attention goes to your application, database, and deploys instead. You'd only care about the choice if you have a specific requirement, such as an app tightly coupled to Apache's .htaccess or a particular module, which is worth raising when you migrate."}},
+{"@type":"Question","name":"Is Apache dead?","acceptedAnswer":{"@type":"Answer","text":"No. Apache is still widely used, actively maintained, and the right choice for plenty of applications, particularly those built around its modules or .htaccess. Nginx has taken much of the front-server and high-concurrency role, and often fronts Apache rather than replacing it. Treat it as two mature tools with different strengths, not a winner and a loser; the correct one depends on your workload."}}
+]}
+]}
+</script>
+</body>
+</html>
