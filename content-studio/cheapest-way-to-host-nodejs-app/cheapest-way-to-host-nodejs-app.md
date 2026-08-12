@@ -63,7 +63,7 @@ Whichever column wins that exercise is your cheapest option, and it won't be the
 
 ## Where a flat plan wins
 
-For most apps past the demo stage, bundling beats itemizing. On Kloudbean a flat plan from $8/mo runs your Node app always-on under PM2, and the worker runs as a second process on the same server rather than as a second bill. A managed database sits in the same dashboard on a private network, egress isn't metered, and SSL, firewall hardening, backups, and the reverse proxy are handled rather than being your weekend. Free migration assistance covers moving in.
+For most apps past the demo stage, bundling beats itemizing. On Kloudbean a flat plan from $8/mo runs your Node app always-on under PM2, and the worker runs as a second process on the same server rather than as a second bill. A managed database sits in the same dashboard, locked to your app server's IP, egress isn't metered, and SSL, firewall hardening, backups, and the reverse proxy are handled rather than being your weekend. Free migration assistance covers moving in.
 
 Being straight about the tradeoff: you pay for that server whether it's busy or idle, so if your project truly sits at zero traffic most of the month, a free tier is cheaper and you should use one. The flat plan wins when you have real traffic, more than one moving piece, or a bill you need to predict.
 
@@ -73,7 +73,7 @@ Cost-specific deep dives: [Heroku costs after the free tier](https://www.kloudbe
 
 ## One number, whole stack
 
-Run your Node app and its worker always-on under PM2 with a managed database on a private network, no egress metering, and SSL, firewall, and backups handled, on a flat plan from $8/mo. Free trial and free migration assistance. Start at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Run your Node app and its worker always-on under PM2 with a managed database locked to your app server's IP, no egress metering, and SSL, firewall, and backups handled, on a flat plan from $8/mo. Free trial and free migration assistance. Start at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
 
 Flat from $8/mo · No egress metering · Managed database included in the dashboard · No cold starts · Free migration
 

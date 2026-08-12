@@ -11,7 +11,7 @@ secondary_keywords:
   - managed postgres and redis together
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 4 — Managed Cloud vs Competitors
+cluster: 4 - Managed Cloud vs Competitors
 ---
 
 ![An Aiven alternative: databases spread across a separate metered platform, versus your app and every database engine together in one dashboard](images/hero.png)

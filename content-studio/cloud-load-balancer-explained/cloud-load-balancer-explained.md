@@ -51,7 +51,7 @@ Honestly, round-robin is fine for the large majority of apps. Don't agonize over
 
 ## SSL termination: the balancer's other job
 
-Most load balancers also handle **SSL termination**, meaning the HTTPS connection ends at the balancer. It holds the certificate, decrypts the request, and passes it to a backend over the private network. That's one place to manage and renew certificates instead of copying them onto every node. If you need encryption all the way to the backend, the balancer can re-encrypt on the way in, but for most setups terminating at the edge is clean and fast.
+Most load balancers also handle **SSL termination**, meaning the HTTPS connection ends at the balancer. It holds the certificate, decrypts the request, and passes it to a backend over the internal network. That's one place to manage and renew certificates instead of copying them onto every node. If you need encryption all the way to the backend, the balancer can re-encrypt on the way in, but for most setups terminating at the edge is clean and fast.
 
 <!-- ADD IMAGE: A health-check status view, each backend node listed with its pass or fail state and the last check time. -->
 
@@ -111,7 +111,7 @@ Round-robin sends requests to each node in turn: A, B, C, then back to A. Least-
 They can, if sessions live on individual servers. A visitor logged in on one node may appear logged out when routed to another. The fix is sticky sessions, which pin a visitor to one node, or better, a shared session store like Redis that every node reads from. Sort this out before you go load-balanced.
 
 **Does a load balancer handle SSL?**
-Usually, yes. Most load balancers terminate SSL, meaning the HTTPS connection ends at the balancer, which holds the certificate and passes requests to your backends over the private network. That gives you one place to manage and renew certificates instead of copying them to every node. Kloudbean's Flexible Load Balancer includes SSL management.
+Usually, yes. Most load balancers terminate SSL, meaning the HTTPS connection ends at the balancer, which holds the certificate and passes requests to your backends over the internal network. That gives you one place to manage and renew certificates instead of copying them to every node. Kloudbean's Flexible Load Balancer includes SSL management.
 
 **What's the difference between a load balancer and a CDN?**
 A CDN caches content at global locations and serves it from near each visitor, mainly speeding up static files. A load balancer distributes live requests across your backend servers for scale and redundancy. They solve different problems and often work together: a CDN for cached content out front, a load balancer spreading the dynamic requests behind it.

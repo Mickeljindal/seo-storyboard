@@ -197,9 +197,9 @@ For neighbouring status codes, [400 Bad Request](https://www.kloudbean.com/blog/
 
 ## The database and the cache your API depends on
 
-Managed PostgreSQL, MySQL, MariaDB, and Redis in the same dashboard as your application, on a private network with automatic backups, from $8/mo. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Managed PostgreSQL, MySQL, MariaDB, and Redis in the same dashboard as your application, with automatic backups and locked to your app server's IP, from $8/mo. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
 
-Managed databases · Managed Redis · Private networking · Automatic backups · Flat from $8/mo
+Managed databases · Managed Redis · Automatic backups · Flat from $8/mo
 
 ## FAQ
 

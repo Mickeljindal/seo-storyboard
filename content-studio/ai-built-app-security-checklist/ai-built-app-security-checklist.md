@@ -14,7 +14,7 @@ A founder-level note worth saying plainly: the most common way an AI-built app g
 
 One more frame that saves a lot of confusion. Hosting security is a split. The platform hardens the infrastructure under your app, and you own the code and data inside it. That's the [shared-responsibility model](https://www.kloudbean.com/blog/secure-compliant-hosting/), and this checklist is mostly your side of that line. If you haven't shipped the app yet, the [full guide to deploying an AI-built app to production](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/) covers the going-live steps this list assumes.
 
-<!-- ADD IMAGE: bespoke SVG. The AI-built app attack surface. Left column "ships like this (risky)": secrets in client/Git, DB open to the internet, stubbed auth, unvalidated input, plain HTTP + CORS wildcard. Right column "harden it to this": env vars, private network, real auth + 2FA, validate + parameterize, HTTPS + tight CORS. -->
+<!-- ADD IMAGE: bespoke SVG. The AI-built app attack surface. Left column "ships like this (risky)": secrets in client/Git, DB open to the internet, stubbed auth, unvalidated input, plain HTTP + CORS wildcard. Right column "harden it to this": env vars, DB locked to app IP, real auth + 2FA, validate + parameterize, HTTPS + tight CORS. -->
 
 ## The AI-built app security checklist, item by item
 
@@ -45,7 +45,7 @@ DATABASE_URL=postgresql://appuser:secret@10.0.0.5:5432/appdb
 
 **Risk:** if the browser can reach your database, so can everyone. A public database with a weak password gets found by scanners in hours, and then your data is copied, encrypted for ransom, or wiped.
 
-**Fix:** put an API between the browser and the data, and keep the database off the public internet. On Kloudbean the app talks to a managed database over a private network (VPC), so the database isn't sitting on the open web. Give the app a least-privilege database user, not a superuser. The how-to is in [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/).
+**Fix:** put an API between the browser and the data, and keep the database off the public internet. On Kloudbean you whitelist your app server's IP on the managed database, so only your app can reach it and it isn't sitting on the open web. Give the app a least-privilege database user, not a superuser. The how-to is in [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/).
 
 ### 3. Missing or weak authentication and broken access control
 
@@ -145,7 +145,7 @@ The whole list in one grid. Scan it, find what matches your app, and jump back u
 | What AI-generated code often ships | Why it's risky | The fix |
 | --- | --- | --- |
 | Secrets in client code or Git | Leaked key, drained account, exposed data | Server-side env vars, rotate, scrub history |
-| Database reachable from the browser | Anyone can read or wipe your data | API in front, private network, least-privilege user |
+| Database reachable from the browser | Anyone can read or wipe your data | API in front, DB locked to app IP, least-privilege user |
 | Auth stubbed or not enforced | Broken access control, users see each other's data | Enforce on the server, verify ownership, add 2FA |
 | Input trusted as-is | SQL injection and XSS | Validate, parameterize, escape, set security headers |
 | CORS set to a wildcard | Any site can call your API | Allow only your real origins |
@@ -158,7 +158,7 @@ The whole list in one grid. Scan it, find what matches your app, and jump back u
 
 Here's the boundary that keeps you sane. Your host hardens the infrastructure. You harden the app. A good managed platform hands you the outer layers already switched on, so you can spend your effort where only you can: the code the AI wrote.
 
-On Kloudbean, the platform side is a real starting position. A Shorewall firewall and Fail2ban on by default. Free auto-renewing SSL. Private networking so the database stays off the open web. Two-factor auth, subusers, and User Access Control. Automatic backups. Environment-variable storage so secrets never live in code. That covers items 1, 2, 7, 8, and 9 on the infrastructure side, and gives you the tools for 3.
+On Kloudbean, the platform side is a real starting position. A Shorewall firewall and Fail2ban on by default. Free auto-renewing SSL. IP allow-listing so only your app server can reach the database. Two-factor auth, subusers, and User Access Control. Automatic backups. Environment-variable storage so secrets never live in code. That covers items 1, 2, 7, 8, and 9 on the infrastructure side, and gives you the tools for 3.
 
 What no host can do for you: write safe application logic. Auth enforcement, input validation, CORS rules, and keeping your dependencies patched are yours, because they live inside the code. And a straight answer on compliance, since hosting pages love to blur it: no platform makes your application compliant on its own, and nobody can honestly promise your app a certification just by hosting it. The platform supplies the infrastructure controls an auditor wants to see; you own everything above the app boundary. The full split, including how GDPR, PCI, and SOC 2 map to it, is in the [secure, compliant hosting guide](https://www.kloudbean.com/blog/secure-compliant-hosting/).
 
@@ -167,7 +167,7 @@ What no host can do for you: write safe application logic. Auth enforcement, inp
 If you do nothing else today, do these. In order.
 
 - Search your codebase for `sk-`, `key`, `secret`, and `password`. Move every hit into server-side env vars, then rotate the keys.
-- Confirm your database has no public IP and the browser can't reach it directly.
+- Confirm the browser can't reach your database directly, and only your app server's IP is allowed to connect.
 - Check that every protected API route verifies the user on the server, not just the UI.
 - Turn on HTTPS and force the redirect from HTTP.
 - Run `npm audit` or `pip-audit` and fix anything high or critical.
@@ -178,7 +178,7 @@ If you do nothing else today, do these. In order.
 
 **Ship your AI-built app on a base that arrives hardened.** Spend your time on the app-level security only you can own, while the infrastructure comes secured out of the box. Start free at [kloudbean.com](https://www.kloudbean.com/), plans from $8/mo on [pricing](https://www.kloudbean.com/pricing/) (Enterprise is custom; always verify current details there).
 
-Firewall + Fail2ban baseline · Free auto-renewing SSL · Private networking · Server-side env vars · 2FA + UAC · Automatic backups
+Firewall + Fail2ban baseline · Free auto-renewing SSL · Server-side env vars · 2FA + UAC · Automatic backups
 
 ## FAQ
 
@@ -192,7 +192,7 @@ Not usually, and that's not a knock on the tools. AI coding tools optimize for a
 Yes, and it's the most common AI-app breach there is. Anything shipped to the browser can be read by anyone, so a key in front-end code is effectively public. Move it to a server-side environment variable, have your server make the API call, and rotate the exposed key right away because it should be treated as compromised.
 
 **How do I secure a Lovable, Bolt, or Cursor app?**
-The same way regardless of which tool built it. Get secrets out of the client and out of Git, put the database behind an API on a private network, enforce auth on the server, validate input, and turn on HTTPS and backups. The tool that generated the code doesn't change the checklist; the gaps these apps ship with are remarkably consistent.
+The same way regardless of which tool built it. Get secrets out of the client and out of Git, put the database behind an API and lock it to your app server's IP, enforce auth on the server, validate input, and turn on HTTPS and backups. The tool that generated the code doesn't change the checklist; the gaps these apps ship with are remarkably consistent.
 
 **Do AI coding tools write insecure code on purpose?**
 No. They aim to produce something that runs, and they're good at it. Security requires knowing how the app will be attacked in production, which isn't part of generating a working preview. So the result works but skips guardrails like input validation, access checks, and CORS limits. Treat the AI as a fast first draft, then apply the checklist.
@@ -207,10 +207,10 @@ Yes, always, with no exceptions. Without HTTPS, logins and session cookies trave
 Use two layers. At the server level, a firewall plus Fail2ban bans addresses that repeatedly fail to log in, and on Kloudbean both are on by default. At the app level, add rate limiting to sensitive endpoints like login and password reset so a single client can't hammer them. Together they shut down most automated guessing.
 
 **Is my database safe if it works from my app?**
-Working and safe aren't the same thing. If the database has a public IP or the browser connects to it directly, it's exposed even though the app functions. Put an API between the browser and the data, keep the database on a private network, and give the app a least-privilege user. Scanners find public databases within hours.
+Working and safe aren't the same thing. If the database has a public IP or the browser connects to it directly, it's exposed even though the app functions. Put an API between the browser and the data, keep the database locked to your app server's IP, and give the app a least-privilege user. Scanners find public databases within hours.
 
 **Whose job is security, mine or the hosting platform's?**
-It's shared. The platform hardens the infrastructure: firewall, SSL, private networking, backups, access controls. You own the application: your code, secrets, auth logic, input validation, and dependencies. No host can secure the code the AI wrote for you, and no host can make your app compliant on its own. This checklist is mostly your side of that line.
+It's shared. The platform hardens the infrastructure: firewall, SSL, IP allow-listing, backups, access controls. You own the application: your code, secrets, auth logic, input validation, and dependencies. No host can secure the code the AI wrote for you, and no host can make your app compliant on its own. This checklist is mostly your side of that line.
 
 ---
 

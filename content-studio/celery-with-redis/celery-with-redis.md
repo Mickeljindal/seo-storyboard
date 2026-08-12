@@ -8,7 +8,7 @@ You shipped a Flask, Django, or FastAPI app and it works. Then someone signs up 
 
 > **The short version**
 >
-> Point `CELERY_BROKER_URL` at a `redis://` URL to use Redis as your Celery broker. Define work with the `@celery_app.task` decorator, enqueue it with `.delay()`, and run a separate worker process (`celery -A app worker`). Add **Celery Beat** for periodic jobs. Make every task idempotent, turn on retries with backoff and `acks_late`, and you've got a queue that survives production. On Kloudbean, Redis is a one-click managed engine on a private network, and your Python app plus its worker run on the same server.
+> Point `CELERY_BROKER_URL` at a `redis://` URL to use Redis as your Celery broker. Define work with the `@celery_app.task` decorator, enqueue it with `.delay()`, and run a separate worker process (`celery -A app worker`). Add **Celery Beat** for periodic jobs. Make every task idempotent, turn on retries with backoff and `acks_late`, and you've got a queue that survives production. On Kloudbean, Redis is a one-click managed engine locked to your app server's IP, and your Python app plus its worker run on the same server.
 
 ## The HTTP request is the wrong place for slow work
 
@@ -36,7 +36,7 @@ So Redis plays up to two roles here:
 - **Broker (required).** The queue itself. This is `CELERY_BROKER_URL`. No broker, no Celery.
 - **Result backend (optional).** Stores the state and return value of each task. This is `CELERY_RESULT_BACKEND`. Skip it unless you actually read results back.
 
-_Diagram: the web app calls `.delay()`, the job lands in the Redis broker, and a Celery worker pulls it and runs it. All of it stays on the private network. An optional result backend stores the return value._
+_Diagram: the web app calls `.delay()`, the job lands in the Redis broker, and a Celery worker pulls it and runs it. All of it stays on the same server, off the public internet. An optional result backend stores the return value._
 
 ## Your first Celery task
 
@@ -199,9 +199,9 @@ A queue you can't see is a queue you can't trust. **Flower** is the usual answer
 
 ## Deploy Celery and Redis on Kloudbean
 
-Here's the part the tutorials skip: where does this actually run? On Kloudbean it's one server with a managed Redis beside your Python app, so the broker sits on the private network and the worker runs a hop away from the queue.
+Here's the part the tutorials skip: where does this actually run? On Kloudbean it's one server with a managed Redis beside your Python app, so the broker sits right next to your app, locked to your app server's IP, and the worker runs a hop away from the queue.
 
-1. **Launch a managed Redis.** Open the DBS section and hit Launch Database. Redis is one of the managed engines, so it's provisioned, secured, backed up, and reachable on your private network in a minute or two.
+1. **Launch a managed Redis.** Open the DBS section and hit Launch Database. Redis is one of the managed engines, so it's provisioned, secured, backed up, and reachable only from your whitelisted app server's IP in a minute or two.
 
 ![The Kloudbean console launching a managed Redis, the broker for Celery, from the list of managed database engines](../assets/console/launch-database.png)
 
@@ -217,7 +217,7 @@ CELERY_RESULT_BACKEND=redis://:sup3r-secret@10.0.0.6:6379/1
 
 ![The Kloudbean console Environment Variables screen, where CELERY_BROKER_URL is stored safely instead of in code](../assets/console/env-vars.png)
 
-That `10.0.0.6` is a private address, and the password rides in the URL. Because it's an env var, you rotate it without touching code. There's a fuller treatment in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
+That `10.0.0.6` is an internal address, and the password rides in the URL. Because it's an env var, you rotate it without touching code. There's a fuller treatment in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
 3. **Deploy your Python app and start the worker.** Push your [Django](https://www.kloudbean.com/blog/deploy-django-app/) or [FastAPI](https://www.kloudbean.com/blog/deploy-fastapi-app/) app, then run the worker as a long-running process on the server (`celery -A app worker --loglevel=info --concurrency=4`). The worker is a persistent process, not a request handler, so it needs to stay up and restart if it dies. Keep it running under a process supervisor rather than a bare terminal.
 4. **Add a schedule.** For codebase-owned schedules, run `celery -A app beat` as its own process. For a simple recurring job, the dashboard cron works with no SSH.
@@ -230,7 +230,7 @@ That `10.0.0.6` is a private address, and the password rides in the URL. Because
 
 A broker holds your pending work, and sometimes that work carries sensitive arguments. Lock it down:
 
-- **Never expose Redis to the internet.** Port `6379` stays on the private network. An open Redis is one of the most scanned, most trivially compromised things you can leave running. On Kloudbean it sits on the VPC by default, reachable by your app, not by the world.
+- **Never expose Redis to the internet.** Keep port `6379` off the public internet. An open Redis is one of the most scanned, most trivially compromised things you can leave running. On Kloudbean you lock it to your app server's IP with IP allow-listing, so it's reachable by your app, not by the world.
 - **Keep the password in the URL, and the URL in the environment.** The credential lives in `CELERY_BROKER_URL` as an env var, never committed to Git. Rotating it is a config change.
 - **Separate your databases.** Use a different Redis DB number for the broker and for caching (the `/0` and `/1` above) so a cache flush never wipes queued jobs.
 - **Don't queue secrets as arguments.** Pass an id and look up the sensitive data inside the task. Task arguments sit in the broker in plain form, so the less they carry, the better.
@@ -243,9 +243,9 @@ A task queue rarely travels alone. The worker writes to a database, so a [manage
 
 **Move the slow work off the request.**
 
-Launch managed Redis as your Celery broker, deploy your Python app beside it, and run your worker on the same private network. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
+Launch managed Redis as your Celery broker, deploy your Python app beside it, and run your worker on the same server. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
 
-One-click managed Redis · Private networking · Automatic backups · Free migration assistance · Free trial · Simple Git deploy
+One-click managed Redis · Automatic backups · Free migration assistance · Free trial · Simple Git deploy
 
 ## FAQ
 

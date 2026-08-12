@@ -6,7 +6,7 @@ If you're hunting for a Vercel alternative for databases, the front end was prob
 
 > **Short answer**
 >
-> Vercel has no first-party managed relational database. It sunset Vercel Postgres and now routes you to partners like Neon through its Marketplace, so your data lives in a separate service you reach over the public internet. The strongest Vercel alternative for databases isn't another serverless add-on. It's a platform that runs your app and a managed Postgres or MySQL together on a private network, for one predictable price, while keeping deploy-on-push.
+> Vercel has no first-party managed relational database. It sunset Vercel Postgres and now routes you to partners like Neon through its Marketplace, so your data lives in a separate service you reach over the public internet. The strongest Vercel alternative for databases isn't another serverless add-on. It's a platform that runs your app and a managed Postgres or MySQL together on the same server, for one predictable price, while keeping deploy-on-push.
 
 ## Why the database is the real problem with Vercel
 
@@ -67,11 +67,11 @@ For the deeper version, we wrote up [database connection pooling](https://www.kl
 
 ## Two shapes for the same data layer
 
-Strip away the branding and it comes down to a picture. On one side, the Vercel external database pattern: your app reaches a database on a different provider, across the public internet. On the other, app and database sit on the same box and talk over a private network. Both ship real apps. One has fewer moving parts.
+Strip away the branding and it comes down to a picture. On one side, the Vercel external database pattern: your app reaches a database on a different provider, across the public internet. On the other, app and database sit on the same box and talk over localhost. Both ship real apps. One has fewer moving parts.
 
-<!-- Inline SVG in the HTML: left = Vercel serverless app reaching an external Postgres over the public internet through a pooler; right = Kloudbean app talking to a managed database on the same private network over localhost. Brand navy #000f27, purple #4F1AF3, green #40b75f. -->
+<!-- Inline SVG in the HTML: left = Vercel serverless app reaching an external Postgres over the public internet through a pooler; right = Kloudbean app talking to a managed database on the same server over localhost. Brand navy #000f27, purple #4F1AF3, green #40b75f. -->
 
-*Left: a Vercel app reaching an external database over the public internet, with a pooler bolted on to survive the connection storm. Right: the app and a managed database on the same private network, reached over localhost.*
+*Left: a Vercel app reaching an external database over the public internet, with a pooler bolted on to survive the connection storm. Right: the app and a managed database on the same server, reached over localhost.*
 
 ## Vercel vs Kloudbean for the data layer
 
@@ -80,7 +80,7 @@ A fair side-by-side. Vercel wins a row here, and I've marked it plainly, because
 |  | Vercel | Kloudbean |
 | --- | --- | --- |
 | **First-party managed relational DB** | No, routed to partners (Neon) via Marketplace | Yes, 7 engines you launch in the dashboard |
-| **App-to-database network** | Public internet, cross-provider | Private network, same box |
+| **App-to-database network** | Public internet, cross-provider | Same box, over localhost |
 | **Connection pooling story** | Add a pooler + serverless driver to survive bursts | One long-lived process holds one pool |
 | **One dashboard for app + DB** | Two providers, two consoles | App, database, backups in one place |
 | **Git push to deploy** | Yes, excellent | Yes, connect GitHub, build on push, live logs |
@@ -91,9 +91,9 @@ Read that last row honestly. If you're on Vercel for the edge network and scale-
 
 ## What a Vercel alternative for databases actually needs
 
-Once you know the shape of the pain, the requirements write themselves. A real Vercel alternative for databases should give you a managed relational database you launch yourself, a private network so the app never reaches its data over the open internet, a persistent process so you don't need a pooler, a price you can budget, and the git-push deploy you'd miss. That last point is where people stall. They assume owning the database means losing the developer experience. It doesn't.
+Once you know the shape of the pain, the requirements write themselves. A real Vercel alternative for databases should give you a managed relational database you launch yourself, colocation so the app never reaches its data over the open internet, a persistent process so you don't need a pooler, a price you can budget, and the git-push deploy you'd miss. That last point is where people stall. They assume owning the database means losing the developer experience. It doesn't.
 
-That's the gap [Kloudbean](https://www.kloudbean.com/) fills. You run your Next.js or Node app on a managed server it provisions for you, on the cloud you pick (AWS, Lightsail, Google Cloud, DigitalOcean, Linode, Vultr, or UpCloud, so seven providers, not one). Then you launch a managed database on the same server, and the app reaches it over a private network. Same push-to-deploy muscle memory, different thing underneath. Honest tradeoff: it's a persistent server, not a serverless edge, so it won't beat Vercel on cold starts or global delivery. What it fixes is the data-layer sprawl.
+That's the gap [Kloudbean](https://www.kloudbean.com/) fills. You run your Next.js or Node app on a managed server it provisions for you, on the cloud you pick (AWS, Lightsail, Google Cloud, DigitalOcean, Linode, Vultr, or UpCloud, so seven providers, not one). Then you launch a managed database on the same server, and the app reaches it over localhost. Same push-to-deploy muscle memory, different thing underneath. Honest tradeoff: it's a persistent server, not a serverless edge, so it won't beat Vercel on cold starts or global delivery. What it fixes is the data-layer sprawl.
 
 <!-- ADD IMAGE: the Kloudbean dashboard with a server, its Next.js app, and a managed database visible together in one view. src -> images/one-dashboard.png -->
 
@@ -107,7 +107,7 @@ Open the **DBS** section and hit **Launch Database**. Kloudbean runs seven manag
 
 ![The Kloudbean console Launch Database screen with a choice of managed PostgreSQL, MySQL, MariaDB, Redis, Memcached, Elasticsearch, or MongoDB](../assets/console/launch-database.png)
 
-*DBS then Launch Database: pick PostgreSQL or MySQL and it's provisioned on your server, on the private network, backed up automatically.*
+*DBS then Launch Database: pick PostgreSQL or MySQL and it's provisioned on your server, locked to your app server's IP, backed up automatically.*
 
 ### Step 2: Deploy your Next.js or Node app on the same server
 
@@ -129,14 +129,14 @@ If you want the framework-specific walkthrough, see [deploying Next.js to your o
 
 ### Step 3: Point the app at the database through an environment variable
 
-Your app reads its connection from the **environment**, never from the source. Open **Runtime Configuration** then **Environment Variables** and add it. Because the database is on the same server, the host is a private address, not a public endpoint on another provider:
+Your app reads its connection from the **environment**, never from the source. Open **Runtime Configuration** then **Environment Variables** and add it. Because the database is on the same server, you point at localhost, not a public endpoint on another provider:
 
 ![The Kloudbean console Environment Variables screen where the DATABASE_URL connection string is stored safely, not in code](../assets/console/env-vars.png)
 
-*Runtime Configuration then Environment Variables: the connection lives here, on the private network, never in your repository.*
+*Runtime Configuration then Environment Variables: the connection lives here, on the same server, never in your repository.*
 
 ```
-# The database is on the same box, reached over the private network
+# The database is on the same box, reached over localhost
 DATABASE_URL=postgresql://appuser:s3cret@10.0.0.5:5432/appdb
 
 # MySQL is the same idea
@@ -166,7 +166,7 @@ Then point `DATABASE_URL` at the new database and ship. Because it's standard Po
 
 ## Keep your Vercel front end, move only the database
 
-You don't have to move everything at once, and sometimes you shouldn't. A common middle path: leave the front end on Vercel where the edge earns its keep, and move the stateful part, the API and its database, onto a server you own. The front end calls your Kloudbean-hosted API, and the API reaches its database over the private network. You keep edge delivery and drop the cross-provider hop for the queries that matter.
+You don't have to move everything at once, and sometimes you shouldn't. A common middle path: leave the front end on Vercel where the edge earns its keep, and move the stateful part, the API and its database, onto a server you own. The front end calls your Kloudbean-hosted API, and the API reaches its database over localhost. You keep edge delivery and drop the cross-provider hop for the queries that matter.
 
 | Your situation | The move that fits |
 | --- | --- |
@@ -175,7 +175,7 @@ You don't have to move everything at once, and sometimes you shouldn't. A common
 | Love the edge, hate the split data layer | Front end on Vercel, API + DB on Kloudbean |
 | Want the whole stack in one place and one bill | Move app and database both, add Redis if you cache |
 
-If you decide to move the whole thing, the broader reasoning lives in the [Vercel alternative for full-stack apps](https://www.kloudbean.com/blog/vercel-alternative-for-full-stack-apps/) guide. And if your data layer grows a cache, a [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/) sits on the same private network as everything else.
+If you decide to move the whole thing, the broader reasoning lives in the [Vercel alternative for full-stack apps](https://www.kloudbean.com/blog/vercel-alternative-for-full-stack-apps/) guide. And if your data layer grows a cache, a [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/) sits on the same server as everything else.
 
 ## A fair word on the edge, and on cost
 
@@ -191,9 +191,9 @@ Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and the framewor
 
 **Your app and its database, in one place.**
 
-Keep the git-push deploys you like from Vercel, and put a real managed database next to your app on a private network. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
+Keep the git-push deploys you like from Vercel, and put a real managed database next to your app on the same server. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
 
-Managed Postgres and MySQL · Private networking · Automatic backups · Git push deploy · Free migration · Free trial · From $8/mo
+Managed Postgres and MySQL · Automatic backups · Git push deploy · Free migration · Free trial · From $8/mo
 
 ## FAQ
 
@@ -203,7 +203,7 @@ Not anymore. Vercel sunset its own Postgres product and transitioned every store
 
 ### What's the best Vercel alternative for databases?
 
-For an app whose center of gravity is the data layer, the best Vercel alternative is a platform that runs your app and a managed database together on a private network, rather than another serverless add-on you reach over the public internet. You want a real managed Postgres or MySQL, a persistent process, a flat price, and git-push deploy. Kloudbean provides that on seven cloud providers.
+For an app whose center of gravity is the data layer, the best Vercel alternative is a platform that runs your app and a managed database together on the same server, rather than another serverless add-on you reach over the public internet. You want a real managed Postgres or MySQL, a persistent process, a flat price, and git-push deploy. Kloudbean provides that on seven cloud providers.
 
 ### Can I still use Next.js if I move the database?
 
@@ -229,9 +229,9 @@ Because Vercel Postgres is Neon and Neon is plain Postgres, it's a standard dump
 
 Not always, and it's fair to say so. At very low traffic a hobby tier plus a free database can be cheaper than any always-on server. A flat server, from $8/mo, usually wins as traffic and team grow, and it's more predictable at any size because the app and the database are one line on the bill instead of a compute meter plus storage plus egress.
 
-### Does the database run on a private network?
+### Is the database exposed to the public internet?
 
-Yes. On Kloudbean the managed database sits on a private network next to your app, so the connection never crosses the public internet. Your app reaches it over a private address, which is both faster and safer than exposing a database endpoint to the open web.
+No. On Kloudbean the managed database sits right next to your app, and you whitelist your app server's IP so only that server can reach it. The connection stays on the same server and never crosses the public internet, which is both faster and safer than exposing a database endpoint to the open web.
 
 ### Which managed database should I pick for a Next.js app?
 

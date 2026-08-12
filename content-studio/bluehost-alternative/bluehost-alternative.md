@@ -136,7 +136,7 @@ Drop the TTL a day before you cut over so the change propagates quickly. Migrate
 define( 'DB_NAME',     'appdb' );
 define( 'DB_USER',     'appuser' );
 define( 'DB_PASSWORD', 's3cret' );      // set this in the console, never commit it
-define( 'DB_HOST',     '127.0.0.1' );   // the managed database stays on the private network
+define( 'DB_HOST',     '127.0.0.1' );   // the managed database sits next to the app, locked to your app server's IP
 ```
 
 Once DNS points at the new box, request a free SSL certificate and you're on HTTPS.

@@ -1,12 +1,12 @@
 # The AWS RDS Alternative for Teams Who Want Managed Postgres Without the Console Maze
 
-![An AWS RDS alternative: managed PostgreSQL and MySQL running in one dashboard alongside your app on a private network](images/hero.png)
+![An AWS RDS alternative: managed PostgreSQL and MySQL running in one dashboard alongside your app in the same account](images/hero.png)
 
 If you're shopping for an **AWS RDS alternative**, you probably don't hate RDS. You hate the bill you can't forecast, the console you relearn every few months, and the fact that your database lives in a different world from the app that talks to it.
 
-RDS is a serious product. Amazon has been running it for over a decade, and for a lot of teams it's the correct answer. For plenty of others it's more machinery than the job actually needs. This is a look at the simpler path: managed PostgreSQL or MySQL that sits next to your app, on a private network, for a price you can predict. We'll be fair about where RDS wins, because it wins in real places, then land on where a lighter setup is the better fit.
+RDS is a serious product. Amazon has been running it for over a decade, and for a lot of teams it's the correct answer. For plenty of others it's more machinery than the job actually needs. This is a look at the simpler path: managed PostgreSQL or MySQL that sits next to your app, in the same account, for a price you can predict. We'll be fair about where RDS wins, because it wins in real places, then land on where a lighter setup is the better fit.
 
-> **The short version:** Need Multi-AZ automatic failover, one-click read replicas, or Aurora at real scale, or you're already all-in on AWS? Stay on RDS. It earns its keep. If you mostly want a managed Postgres or MySQL colocated with your app in one dashboard, on a private network, at flat server-based pricing with no IOPS or egress surprises, that's the alternative this guide covers. And you can keep AWS underneath if that matters, without ever opening the RDS console.
+> **The short version:** Need Multi-AZ automatic failover, one-click read replicas, or Aurora at real scale, or you're already all-in on AWS? Stay on RDS. It earns its keep. If you mostly want a managed Postgres or MySQL colocated with your app in one dashboard, locked to your app server's IP, at flat server-based pricing with no IOPS or egress surprises, that's the alternative this guide covers. And you can keep AWS underneath if that matters, without ever opening the RDS console.
 
 ## Why teams go looking for an RDS alternative
 
@@ -38,12 +38,12 @@ If that list describes your requirements, this is easy: use RDS. Here's my hones
 
 ## So what does a simpler alternative to RDS look like?
 
-It looks like the app and the database in the same place. On Kloudbean you launch a managed PostgreSQL or MySQL (MariaDB too, among seven managed engines), and it lives on the same server and the same private network as your app. One dashboard. One login. The connection between them never leaves the private network, so there's no security group to hand-craft and no public database endpoint sitting out where scanners find it. Provisioning, patching, and automatic backups are handled. You own the schema and the data, and you can export either whenever you want.
+It looks like the app and the database in the same place. On Kloudbean you launch a managed PostgreSQL or MySQL (MariaDB too, among seven managed engines), and it lives on the same server as your app, in the same account. One dashboard. One login. The connection between them never leaves that server, so there's no security group to hand-craft, and you whitelist your app server's IP so there's no public database endpoint sitting out where scanners find it. Provisioning, patching, and automatic backups are handled. You own the schema and the data, and you can export either whenever you want.
 
 Here's the same idea as a picture. On the left, the pieces RDS asks you to wire together. On the right, the same job in one place.
 
 <figure>
-  <svg viewBox="0 0 720 430" width="100%" role="img" aria-label="A comparison diagram. On the left, AWS RDS requires wiring together an app server, an RDS instance, a VPC, subnet groups, security groups, and IAM policies, with instance, storage, IOPS, egress, and backups billed separately. On the right, Kloudbean runs your app and a managed Postgres or MySQL together in one dashboard on a private network, with automatic backups and flat pricing.">
+  <svg viewBox="0 0 720 430" width="100%" role="img" aria-label="A comparison diagram. On the left, AWS RDS requires wiring together an app server, an RDS instance, a VPC, subnet groups, security groups, and IAM policies, with instance, storage, IOPS, egress, and backups billed separately. On the right, Kloudbean runs your app and a managed Postgres or MySQL together in one dashboard on the same server, with automatic backups and flat pricing.">
     <rect x="1" y="1" width="718" height="428" rx="16" fill="#ffffff" stroke="#e6e9f2"/>
     <text x="360" y="34" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="16" font-weight="700" fill="#000f27">Two ways to run managed Postgres or MySQL</text>
     <text x="180" y="62" text-anchor="middle" font-family="Poppins,Arial,sans-serif" font-size="13" font-weight="600" fill="#4F1AF3">AWS RDS: pieces you wire together</text>
@@ -70,14 +70,14 @@ Here's the same idea as a picture. On the left, the pieces RDS asks you to wire 
       <text x="540" y="110" text-anchor="middle" font-size="11.5" font-weight="700" letter-spacing="1.5" fill="#2f9350">ONE DASHBOARD · ONE BILL</text>
       <rect x="414" y="124" width="252" height="46" rx="9" fill="#ffffff" stroke="#000f27"/><text x="540" y="152" text-anchor="middle">Your app (Node / Python)</text>
       <line x1="540" y1="170" x2="540" y2="208" stroke="#4F1AF3" stroke-width="1.6"/><polygon points="534,202 540,214 546,202" fill="#4F1AF3"/>
-      <text x="616" y="194" text-anchor="middle" font-size="11.5" fill="#4F1AF3">private network</text>
+      <text x="616" y="194" text-anchor="middle" font-size="11.5" fill="#4F1AF3">same server</text>
       <rect x="414" y="214" width="252" height="46" rx="9" fill="#ffffff" stroke="#000f27"/><text x="540" y="242" text-anchor="middle">Managed Postgres / MySQL</text>
       <rect x="414" y="276" width="252" height="60" rx="9" fill="#ffffff" stroke="#cdebd6"/>
       <text x="540" y="299" text-anchor="middle" font-weight="600" fill="#000f27">Automatic backups</text>
       <text x="540" y="320" text-anchor="middle" font-size="12.5">flat server-based pricing</text>
     </g>
   </svg>
-  <figcaption>RDS hands you a database and leaves the networking, access, and app to you. The alternative keeps the app and the managed database together on a private network, under one bill.</figcaption>
+  <figcaption>RDS hands you a database and leaves the networking, access, and app to you. The alternative keeps the app and the managed database together on the same server, under one bill.</figcaption>
 </figure>
 
 ## RDS vs managed hosting, side by side
@@ -92,7 +92,7 @@ Here's the honest matrix. RDS wins several rows outright, and I've marked them p
 | **Read replicas** | **Yes, one-click. RDS wins.** | No one-click read replicas |
 | **Aurora engine** | **Yes, Aurora only exists here. RDS wins.** | Standard PostgreSQL and MySQL, no Aurora equivalent |
 | **Instance range for huge workloads** | **Widest range. RDS wins.** | Resize the server as you grow; not aimed at the largest tiers |
-| **App and database colocation** | Separate services you connect yourself | App and DB on the same server and private network |
+| **App and database colocation** | Separate services you connect yourself | App and DB on the same server, locked to your app IP |
 | **Automatic backups** | Yes | Yes |
 | **You own the data** | Yes, export anytime | Yes, export anytime |
 | **Best fit** | Advanced HA, read scaling, Aurora, all-in-on-AWS teams | Small to medium app teams who want simple, predictable, colocated |
@@ -105,10 +105,10 @@ Flat server-based pricing isn't just cheaper on average. It's calmer. You pick a
 
 ## Wiring your app to a managed database
 
-The mechanics are the same ones you already know. Your app reads a connection string from an environment variable, never from code. Because the database sits on the private network with the app, the host is a private address, not a public endpoint.
+The mechanics are the same ones you already know. Your app reads a connection string from an environment variable, never from code. Because the database sits next to the app in the same account, you point at its internal host and lock it to your app server's IP, so it isn't a public endpoint on the open web.
 
 ```bash
-# Postgres, private-network host (app and DB on the same server)
+# Postgres host from the dashboard (app and DB on the same server)
 DATABASE_URL=postgresql://appuser:s3cret@10.0.0.5:5432/appdb
 
 # MySQL
@@ -146,7 +146,7 @@ Four steps. None of them involve a VPC diagram.
 
 ### 1. Launch a managed Postgres or MySQL
 
-Open the DBS section and hit Launch Database. Pick PostgreSQL or MySQL (MariaDB, Redis, MongoDB, and more are here too), name it, create it. A minute or two later it's provisioned, secured on the private network, and already being backed up. You'll get the host, port, database name, username, and password.
+Open the DBS section and hit Launch Database. Pick PostgreSQL or MySQL (MariaDB, Redis, MongoDB, and more are here too), name it, create it. A minute or two later it's provisioned, secured with IP allow-listing, and already being backed up. You'll get the host, port, database name, username, and password.
 
 ![The Kloudbean console Launch Database screen, choosing a managed PostgreSQL or MySQL engine](../assets/console/launch-database.png)
 
@@ -200,9 +200,9 @@ The trap is reaching for all of that on a project that will never need it. A com
 
 ---
 
-**Get managed Postgres or MySQL live next to your app today.** Spin up a database, colocate it with your [Node or Python app](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) on a private network, and keep a bill you can actually predict. Start at [kloudbean.com](https://www.kloudbean.com/); sizes and plans are on [pricing](https://www.kloudbean.com/pricing/).
+**Get managed Postgres or MySQL live next to your app today.** Spin up a database, colocate it with your [Node or Python app](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/), locked to your app server's IP, and keep a bill you can actually predict. Start at [kloudbean.com](https://www.kloudbean.com/); sizes and plans are on [pricing](https://www.kloudbean.com/pricing/).
 
-Managed Postgres and MySQL · Automatic backups · Private networking · Free migration assistance · Free trial · Simple Git deploy
+Managed Postgres and MySQL · Automatic backups · Free migration assistance · Free trial · Simple Git deploy
 
 ## FAQ
 
@@ -219,7 +219,7 @@ No, and this is where RDS genuinely wins. Kloudbean does not offer RDS-style one
 Kloudbean runs standard PostgreSQL and MySQL, not an Aurora equivalent. Aurora is Amazon's own engine with a custom storage layer, and there's no drop-in substitute for it. If you've tested Aurora and it solves a real problem for you, stay on RDS. If you're running ordinary Postgres or MySQL, which most apps are, you won't miss it.
 
 **What's the simplest alternative to RDS for a small app?**
-A managed Postgres or MySQL that lives on the same server as your app, on a private network, in one dashboard. You launch it, copy the connection string into an environment variable, and your app connects internally. No VPC, no security groups, no separate database console to learn.
+A managed Postgres or MySQL that lives on the same server as your app, in one dashboard. You launch it, copy the connection string into an environment variable, and your app connects internally. No VPC, no security groups, no separate database console to learn.
 
 **How do I migrate off RDS?**
 Export with `pg_dump` (or `mysqldump`), import into the new managed database with `psql` (or `mysql`), then repoint `DATABASE_URL` and redeploy. RDS runs standard engines, so your normal tools just work. For a large or low-downtime move, free migration assistance can run the cutover with you.
@@ -228,7 +228,7 @@ Export with `pg_dump` (or `mysqldump`), import into the new managed database wit
 Yes. AWS is one of the clouds Kloudbean runs on. You can keep AWS infrastructure underneath and get the managed database plus app in one dashboard on top, without hand-managing the RDS instance, VPC, and security groups yourself. If AWS hardware is the reason you're on RDS, this keeps it while removing the console overhead.
 
 **Is Kloudbean a managed database service like RDS?**
-In the sense that matters, yes: provisioning, patching, and automatic backups are handled for you. Managed here means the platform runs the database and keeps it on a private network, while the schema and data stay yours to export anytime. It runs on Linux, and it colocates the database with your app rather than keeping them in separate services.
+In the sense that matters, yes: provisioning, patching, and automatic backups are handled for you. Managed here means the platform runs the database and locks it to your app server's IP, while the schema and data stay yours to export anytime. It runs on Linux, and it colocates the database with your app rather than keeping them in separate services.
 
 **PostgreSQL or MySQL for my app?**
 Both are fully managed, so either is safe. If you have no strong preference, take PostgreSQL; it's what most modern frameworks and ORMs default to. Pick MySQL if your stack already expects it. There's a deeper walkthrough in the [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) and [managed MySQL](https://www.kloudbean.com/blog/managed-mysql-hosting/) guides, and tuning tips in [PostgreSQL performance tuning](https://www.kloudbean.com/blog/postgresql-performance-tuning/).

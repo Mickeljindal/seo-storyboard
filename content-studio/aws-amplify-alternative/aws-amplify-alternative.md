@@ -128,7 +128,7 @@ async def health():
     return {"ok": True, "time": str(now)}
 ```
 
-That `DATABASE_URL` points at a managed database on the same private network, not out across the public internet to a metered service. The [deploy a Node app to managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) guide walks the runtime setup, and [deploying a full-stack React app to production](https://www.kloudbean.com/blog/deploy-fullstack-react-app-to-production/) covers the frontend-plus-API shape end to end.
+That `DATABASE_URL` points at a managed database in the same account as your app, not out across the public internet to a metered service. The [deploy a Node app to managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) guide walks the runtime setup, and [deploying a full-stack React app to production](https://www.kloudbean.com/blog/deploy-fullstack-react-app-to-production/) covers the frontend-plus-API shape end to end.
 
 Deploys are Git-driven. You set the build and start commands once, and every push builds and ships.
 
@@ -156,7 +156,7 @@ Open Deploy Code, connect your GitHub repo (OAuth works), set the build and star
 
 ### Step 3: Launch a managed database beside the app
 
-From the databases section, launch a managed MySQL or PostgreSQL. Seven engines are available, including Redis and MongoDB, and each comes provisioned, backed up, and reachable over the private network. Point `DATABASE_URL` at it and you're done. The deep dives live in [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) and [managed MySQL hosting](https://www.kloudbean.com/blog/managed-mysql-hosting/).
+From the databases section, launch a managed MySQL or PostgreSQL. Seven engines are available, including Redis and MongoDB, and each comes provisioned, backed up, and locked to your app server's IP. Point `DATABASE_URL` at it and you're done. The deep dives live in [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) and [managed MySQL hosting](https://www.kloudbean.com/blog/managed-mysql-hosting/).
 
 ![Kloudbean console Launch Database screen with managed PostgreSQL, MySQL, and other engines](../assets/console/launch-database.png)
 
@@ -198,13 +198,13 @@ My honest opinion, for what it's worth: Amplify is a strong way to start inside 
 
 ## The honest limits
 
-Two things worth saying plainly, because a guide that only flatters one side isn't a guide. First, Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and the frameworks on top like React, Next.js, Vue, Django, and Laravel. It isn't for Windows, .NET, or IIS workloads. "Managed" means Kloudbean runs the server, the stack, SSL, patching, and backups, while your application and its data stay yours to export anytime. Second, about the one thing Amplify bundles that this model doesn't: there's no drop-in Cognito or AppSync here. You bring your own auth and your own API framework. What you get back is one dashboard, a flat price, and real portability, including the option to run on AWS or Lightsail through Kloudbean if you want AWS infrastructure without the AWS console. If private networking is part of your plan, [what is a VPC](https://www.kloudbean.com/blog/what-is-a-vpc/) covers how that fits.
+Two things worth saying plainly, because a guide that only flatters one side isn't a guide. First, Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and the frameworks on top like React, Next.js, Vue, Django, and Laravel. It isn't for Windows, .NET, or IIS workloads. "Managed" means Kloudbean runs the server, the stack, SSL, patching, and backups, while your application and its data stay yours to export anytime. Second, about the one thing Amplify bundles that this model doesn't: there's no drop-in Cognito or AppSync here. You bring your own auth and your own API framework. What you get back is one dashboard, a flat price, and real portability, including the option to run on AWS or Lightsail through Kloudbean if you want AWS infrastructure without the AWS console. If private networking is part of your Enterprise plan, [what is a VPC](https://www.kloudbean.com/blog/what-is-a-vpc/) covers how that fits.
 
 ## Full-stack, minus the maze
 
 Run your frontend, your backend, a managed database, and object storage on one server you control, priced flat from $8/mo. Start at [kloudbean.com](https://www.kloudbean.com/); check current plans on [pricing](https://www.kloudbean.com/pricing/).
 
-Frontend + backend on one server · One-click managed databases · S3-compatible object storage · Automatic backups · Private networking · Free SSL · Free migration · Free trial · Git deploy
+Frontend + backend on one server · One-click managed databases · S3-compatible object storage · Automatic backups · Free SSL · Free migration · Free trial · Git deploy
 
 ## FAQ
 
