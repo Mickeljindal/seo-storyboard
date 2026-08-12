@@ -69,9 +69,9 @@ The reason this category answers "I outgrew PHP" is simple. It doesn't assume PH
 
 If the honest job is "WordPress, on a polished host, with white-glove support," this category is genuinely great, and I won't pretend otherwise. The dashboards are clean, the WordPress tooling is mature, support tends to be excellent. The catch is scope. It's usually one cloud, often plan-tiered, and it gets narrow the moment you add a non-WordPress app. If that's your situation, read [Kloudbean vs Kinsta](https://www.kloudbean.com/blog/kloudbean-vs-kinsta/) and [Kloudbean vs WP Engine](https://www.kloudbean.com/blog/kloudbean-vs-wp-engine/) before you decide.
 
-### Bring-your-own-VPS control panels (RunCloud, SpinupWP, Ploi, ServerAvatar)
+### Bring-your-own-VPS control panels
 
-These make managing your own server far less painful. You point the panel at a VPS you rent (DigitalOcean, Vultr, Linode, wherever) and it sets up the stack nicely. But be clear-eyed: this is semi-managed. You still own the box, its patching, and its 2am problems. Ploi leans Laravel and PHP; SpinupWP is WordPress-focused; RunCloud and ServerAvatar aim at general multi-app management. Great if you like control. Not the move if you wanted the server to be someone else's job. The [managed vs unmanaged breakdown](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/) spells out that tradeoff, and [Laravel Forge vs Kloudbean](https://www.kloudbean.com/blog/laravel-forge-vs-kloudbean/) is a named head-to-head in this exact category.
+These make managing your own server far less painful. You point the panel at a VPS you rent (DigitalOcean, Vultr, Linode, wherever) and it sets up the stack nicely. But be clear-eyed: this is semi-managed. You still own the box, its patching, and its 2am problems. Some of these panels lean toward Laravel and PHP, some are WordPress-focused, others aim at general multi-app management. Great if you like control. Not the move if you wanted the server to be someone else's job. The [managed vs unmanaged breakdown](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/) spells out that tradeoff, and [Laravel Forge vs Kloudbean](https://www.kloudbean.com/blog/laravel-forge-vs-kloudbean/) is a named head-to-head in this exact category.
 
 ### Hands-off PaaS (DigitalOcean App Platform, Render, Railway)
 
@@ -83,9 +83,9 @@ Push code, it builds and runs, you never see a server. Lovely for small apps and
 
 | Category | Best for | The catch |
 | --- | --- | --- |
-| **Full-stack platform** (Kloudbean) | Teams past WordPress-only who want cloud choice and the whole stack in one dashboard | Linux stacks, not Windows, .NET, or IIS |
+| **Full-stack platform** (Kloudbean) | Teams past WordPress-only who want cloud choice and the whole stack in one dashboard | Linux-based stacks; Windows Server on higher tiers |
 | **Premium WordPress** (Kinsta, WP Engine) | WordPress-first teams who want a polished experience and strong support | Usually one cloud and plan tiers; narrow if you add non-WP apps |
-| **BYO-VPS panel** (RunCloud, SpinupWP, Ploi) | People happy owning a VPS who just want a friendly control panel | Semi-managed: you still patch and own the server |
+| **BYO-VPS panel** | People happy owning a VPS who just want a friendly control panel | Semi-managed: you still patch and own the server |
 | **Hands-off PaaS** (DO App Platform, Render, Railway) | Developers who want zero server ops for smaller apps | Less control; cost can climb as you scale |
 
 ## Where Kloudbean lands, and the one edge nobody can fake
@@ -117,7 +117,7 @@ Try to finish this sentence: "I'm leaving Cloudways because ______." Can't do it
 ## FAQ
 
 **What's the best Cloudways alternative?**
-There isn't one universal winner. There's the best for your reason for leaving. For cloud choice plus your whole stack in one dashboard, Kloudbean is a strong fit. For premium WordPress, Kinsta or WP Engine. For running your own VPS with a nice panel, RunCloud or SpinupWP. For zero server ops on a smaller app, a PaaS like DigitalOcean App Platform. Name your trigger and the pick narrows fast.
+There isn't one universal winner. There's the best for your reason for leaving. For cloud choice plus your whole stack in one dashboard, Kloudbean is a strong fit. For premium WordPress, Kinsta or WP Engine. For running your own VPS with a friendly control panel, a bring-your-own-VPS panel. For zero server ops on a smaller app, a PaaS like DigitalOcean App Platform. Name your trigger and the pick narrows fast.
 
 **Why do people leave Cloudways?**
 Usually because the job changed, not because the host is bad. The common triggers are outgrowing PHP-only into apps in other languages, wanting to choose the underlying cloud, getting tired of gluing together separate database and storage and load-balancer products, and needing team permissions or an audit trail for compliance.
@@ -125,7 +125,7 @@ Usually because the job changed, not because the host is bad. The common trigger
 **Which Cloudways alternative gives the most cloud choice?**
 Kloudbean runs on seven providers: AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud. That's every cloud Cloudways offers plus Lightsail and UpCloud, so it's a strict superset. Control-panel options also let you pick, since they sit on whatever VPS you rent.
 
-**Are RunCloud and SpinupWP the same as managed hosting?**
+**Are server control panels the same as managed hosting?**
 Not quite. They're control panels for servers you own, which makes them semi-managed. They configure the stack for you, but you still bring the VPS and stay responsible for patching and uptime. Fully managed platforms like Kloudbean take the whole server off your plate.
 
 **Is DigitalOcean App Platform a good Cloudways alternative?**

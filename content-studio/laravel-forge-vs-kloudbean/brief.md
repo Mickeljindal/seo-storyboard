@@ -10,8 +10,9 @@ vs managed, does laravel forge host. Primary: **laravel forge vs kloudbean**. Se
 Forge alternative, Forge vs managed hosting, do I still manage the server with Forge, Forge clouds.
 
 ## Cannibalisation (checked, grep-first vs live library)
-Laravel Forge is UNNAMED anywhere in the library. cloudways-alternatives names the BYO-VPS-panel
-category (RunCloud, SpinupWP, Ploi, ServerAvatar) + 2 FAQs, but NOT Forge. Distinct keyword intent
+Laravel Forge is UNNAMED anywhere in the library. cloudways-alternatives covers the BYO-VPS-panel
+category generically (owner deny-list: do NOT name RunCloud/SpinupWP/ServerAvatar/xCloud) + 2 FAQs,
+but NOT Forge. Distinct keyword intent
 (named-product head-to-head), consistent with library precedent (kloudbean-vs-kinsta coexists with
 cloudways-alternatives' premium-WP section). Written to ADD Forge-specific substance and LINK (not
 re-argue) the generic panel-vs-managed case to managed-vs-unmanaged-hosting + cloudways-alternatives.
@@ -34,7 +35,8 @@ box separately; it's inexpensive precisely because it's only the automation laye
 the job of running it. Added a "Price covers" table row (panel only vs managed server included) and a
 sentence in the Kloudbean section so the price reads apples-to-oranges (managed server included), NOT
 "same but pricier". Still fair to Forge (accuracy priority), just not gushing. DECISION: do NOT write
-runcloud/ploi/serverpilot comparisons - same cheap dashboard-only category, mismatch risk, low value.
+dedicated BYO-panel comparisons - same cheap dashboard-only category, mismatch, low value, and the
+owner deny-lists most of those names anyway.
 
 ## Grounding (kloudbean-facts) + fair-comparison guardrails
 - Kloudbean: fully managed (server/stack/SSL/patching/backups), 7 DB engines, multi-language
