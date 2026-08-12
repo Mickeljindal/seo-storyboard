@@ -10,7 +10,7 @@ secondary_keywords:
   - run n8n on a server
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 2 — Self-Hosted Tools
+cluster: 2 - Self-Hosted Tools
 ---
 
 ![Self-host n8n: unlimited workflow executions for the price of a small server](images/hero.png)
@@ -132,7 +132,7 @@ Self-hosting shifts a little responsibility onto you, and it's fair to name it. 
 
 **Unlimited executions. One flat bill.** Launch n8n in one click, give it a managed Postgres, and run every workflow you want on a server you own. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
 
-One-click n8n · Managed PostgreSQL · Unlimited executions · Private networking · Automatic backups · Free trial
+One-click n8n · Managed PostgreSQL · Unlimited executions · Automatic backups · Free trial
 
 ## FAQ
 
@@ -155,7 +155,7 @@ When you have a few light workflows that fit a plan's execution allowance and yo
 As many as your server can handle, with no per-execution cap. That's the core reason to self-host. Ten workflows or ten thousand executions, the cost is the same flat server. Volume simply stops being a billing question.
 
 **Is self-hosted n8n secure?**
-It's as secure as your server, and a managed platform gives you a good starting point: a firewall, free SSL, and a private network for the database. Set a strong N8N_ENCRYPTION_KEY, keep credentials in environment variables, and your workflow data and API keys stay on infrastructure you control rather than passing through a third party.
+It's as secure as your server, and a managed platform gives you a good starting point: a firewall, free SSL, and IP allow-listing so only your app server can reach the database. Set a strong N8N_ENCRYPTION_KEY, keep credentials in environment variables, and your workflow data and API keys stay on infrastructure you control rather than passing through a third party.
 
 **Can n8n handle high volume, and how do I scale it?**
 Yes. A single process handles a lot, and for real scale n8n has a queue mode where worker processes pull executions from a Redis-backed queue and run them in parallel. Add managed Redis, run workers, and you can spread load across cores or servers without changing tools.

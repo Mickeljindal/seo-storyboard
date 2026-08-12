@@ -32,9 +32,9 @@ One of these on its own is just annoying. Three or four together is your site te
 
 The core difference is simple. On shared hosting you rent a slice of one busy machine. On managed cloud you get your own server resources, and the platform runs the boring parts for you. Here's the same idea as a picture.
 
-![Diagram contrasting shared hosting, where many sites are crammed on one capped box, against managed cloud, where you get your own server plus a managed database and backups on a private network](svg-diagram)
+![Diagram contrasting shared hosting, where many sites are crammed on one capped box, against managed cloud, where you get your own server plus a managed database and automatic backups, locked to your app server's IP](svg-diagram)
 
-*Shared hosting crams many sites onto one capped box. Managed cloud gives you your own server, a managed database, and automatic backups on a private network.*
+*Shared hosting crams many sites onto one capped box. Managed cloud gives you your own server, a managed database, and automatic backups, locked to your app server's IP.*
 
 ## The Namecheap alternative when shared hosting runs out of room
 

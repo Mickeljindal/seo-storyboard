@@ -6,7 +6,7 @@ _By Kloudbean Engineering · A UI on your own database_
 
 NocoDB turns a plain SQL database into a friendly, no-code spreadsheet. Point it at Postgres or MySQL and you get sortable grids, forms, kanban boards, and shareable views on top of your real tables, which is exactly why teams reach for it as an open-source Airtable alternative. The part most guides skip: NocoDB keeps its own settings in a database too, and out of the box that's a local SQLite file that disappears on your next redeploy. This guide is how to self-host NocoDB in production properly, with its metadata on a managed database you actually own.
 
-> **Short version:** Run the NocoDB Node app on a managed Node server. Back its metadata database with a managed MySQL or PostgreSQL instead of the default SQLite, and set that connection through the `NC_DB` environment variable. Set `NC_AUTH_JWT_SECRET` so logins survive a restart, put SSL in front, and keep everything on the private network. Then add your existing SQL databases as data sources so NocoDB puts a spreadsheet UI on tables you already run.
+> **Short version:** Run the NocoDB Node app on a managed Node server. Back its metadata database with a managed MySQL or PostgreSQL instead of the default SQLite, and set that connection through the `NC_DB` environment variable. Set `NC_AUTH_JWT_SECRET` so logins survive a restart, put SSL in front, and lock the database to your app server's IP. Then add your existing SQL databases as data sources so NocoDB puts a spreadsheet UI on tables you already run.
 
 ## The Airtable problem NocoDB fixes
 
@@ -47,7 +47,7 @@ So the fix is simple to say and easy to get wrong: put the metadata database on 
                  reads / writes your tables
           NocoDB  ◄──────────────────────────►  Data sources
                                                  your existing SQL databases
-          └──────────── private network (VPC) ────────────┘
+          └────────── same account · app-server IP only ──────────┘
 ```
 
 _NocoDB stores its own config in the metadata database (set with NC_DB) and renders your existing databases as editable grids by adding them as data sources. Back up the metadata DB and you've backed up your NocoDB setup._
@@ -58,7 +58,7 @@ _NocoDB stores its own config in the metadata database (set with NC_DB) and rend
 
 Everything above comes down to one environment variable. `NC_DB` tells NocoDB where its metadata store lives. Set it to a connection string that points at your managed Postgres or MySQL, and NocoDB writes its bookkeeping there instead of a throwaway file. Miss it, and you're back on SQLite by default.
 
-NocoDB uses its own compact connection-string format for `NC_DB`. Postgres uses the `pg://` scheme, MySQL and MariaDB use `mysql2://`, and the credentials ride as query params (`u` user, `p` password, `d` database). Point the host at the private address of your managed database, not a public one.
+NocoDB uses its own compact connection-string format for `NC_DB`. Postgres uses the `pg://` scheme, MySQL and MariaDB use `mysql2://`, and the credentials ride as query params (`u` user, `p` password, `d` database). Point the host at the internal address of your managed database, not a public one.
 
 ![The Kloudbean console Environment Variables screen where NocoDB's NC_DB connection string and NC_AUTH_JWT_SECRET are stored instead of in code](../assets/console/env-vars.png)
 
@@ -118,7 +118,7 @@ If your team is three people and a couple of hundred rows and the bill isn't sti
 
 Four steps. Metadata database first, then the app, then the config, then ship it behind SSL.
 
-1. **Launch the metadata database.** Open the DBS section and hit Launch Database. Create a managed PostgreSQL or MySQL, give it a name like `nocodb`, and note the private host, port, database name, user, and password. It's provisioned, on a private network, and backed up from the start. This is where NocoDB's config will live, not SQLite.
+1. **Launch the metadata database.** Open the DBS section and hit Launch Database. Create a managed PostgreSQL or MySQL, give it a name like `nocodb`, and note the internal host, port, database name, user, and password. It's provisioned right next to your app in the same account, backed up from the start, and you whitelist your app server's IP so only it can connect. This is where NocoDB's config will live, not SQLite.
 
 ![The Kloudbean console Launch Database screen creating a managed PostgreSQL or MySQL for NocoDB's metadata store](../assets/console/launch-database.png)
 
@@ -138,7 +138,7 @@ Four steps. Metadata database first, then the app, then the config, then ship it
 
 A NocoDB instance is a window onto real data, so treat it like one. None of this is exotic, it's just the checklist people skip when they're moving fast.
 
-- **Keep both databases private.** The metadata database and every data source should sit on the private network, reachable by the app and not the public internet. NocoDB connects over the internal address, so nothing needs a public port.
+- **Lock both databases to your app server.** The metadata database and every data source should be reachable by the app and not the public internet, so whitelist your app server's IP on each one and leave everything else refused. NocoDB connects over the internal address, so nothing needs a public port.
 - **Secrets in the environment.** `NC_DB` and `NC_AUTH_JWT_SECRET` go in the env config, never in the repo. A leaked `NC_DB` is a leaked database, and a leaked JWT secret means someone can forge a login.
 - **SSL in front, always.** Free SSL on your domain so traffic to the grid is encrypted. Shorewall and Fail2ban run on the server underneath by default.
 - **Strong admin, least-privilege DB users.** Lock the first NocoDB super-admin account with a real password. Give each data source a scoped database user with only the rights it needs, not a superuser.
@@ -150,7 +150,7 @@ A NocoDB instance is a window onto real data, so treat it like one. None of this
 
 This is where NocoDB earns its keep. Once it's live, open the base settings and add a data source pointing at one of your existing managed databases. NocoDB introspects the tables and gives you an instant spreadsheet UI over them, editable grids, forms, and views, without touching your schema. Give it a scoped database user so non-technical editors can browse and update rows while the credentials stay narrow. It's the fastest way to hand a friendly interface to a database that only had a psql prompt before.
 
-If you don't have a database to point at yet, spin one up first: [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) or [managed MySQL](https://www.kloudbean.com/blog/managed-mysql-hosting/), both on a private network and backed up. NocoDB then becomes the front door.
+If you don't have a database to point at yet, spin one up first: [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) or [managed MySQL](https://www.kloudbean.com/blog/managed-mysql-hosting/), both locked to your app server's IP and backed up. NocoDB then becomes the front door.
 
 <!-- ADD IMAGE: The NocoDB add-data-source dialog with host, port, user, and database filled in for a managed Postgres. -->
 
@@ -160,7 +160,7 @@ Weighing other tools to run yourself? The [best self-hosted tools](https://www.k
 
 Run the NocoDB Node app on a managed server, back it with a managed MySQL or PostgreSQL, and point it at the databases you already have. The OS, SSL, and backups are handled while your data stays yours. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
 
-Managed Node runtime · Managed MySQL & PostgreSQL · Private networking · Automatic backups · Free SSL · Free migration · Free trial
+Managed Node runtime · Managed MySQL & PostgreSQL · Automatic backups · Free SSL · Free migration · Free trial
 
 ## FAQ
 
@@ -177,10 +177,10 @@ Because the SQLite file lives on the server's local disk, and on a managed runti
 Yes, and it's one of the best reasons to use it. Add your existing managed Postgres or MySQL as a data source and NocoDB renders its tables as editable grids without changing your schema. Use a scoped database user so editors can work with the data while the credentials stay least-privilege.
 
 ### What is the NC_DB environment variable?
-NC_DB is the connection string that tells NocoDB where to keep its metadata. Postgres uses a pg scheme and MySQL uses a mysql2 scheme, with the user, password, and database name passed as parameters. Set it to your managed database's private address and NocoDB stops falling back to SQLite.
+NC_DB is the connection string that tells NocoDB where to keep its metadata. Postgres uses a pg scheme and MySQL uses a mysql2 scheme, with the user, password, and database name passed as parameters. Set it to your managed database's internal address and NocoDB stops falling back to SQLite.
 
 ### Does NocoDB support both PostgreSQL and MySQL?
-Yes. NocoDB works with PostgreSQL, MySQL, and MariaDB for both its metadata store and its data sources. On Kloudbean all three are available as managed engines with backups and private networking, so you can mix and match freely.
+Yes. NocoDB works with PostgreSQL, MySQL, and MariaDB for both its metadata store and its data sources. On Kloudbean all three are available as managed engines with backups and IP allow-listing, so you can mix and match freely.
 
 ### Is self-hosted NocoDB free?
 NocoDB itself is open source, so the software is free to run. What you pay for is the server and the managed database it runs on, which is a flat, predictable cost rather than a per-seat or per-record charge. For most teams past a few editors that works out cheaper than a hosted no-code plan.

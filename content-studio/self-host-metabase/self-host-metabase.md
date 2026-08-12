@@ -1,8 +1,8 @@
 # How to Self-Host Metabase in Production (Without the H2 Trap)
 
-Metabase is one of the best open-source BI tools going: dashboards, ad-hoc questions, and charts your whole team can read, all from a single Java app you can run yourself. Self-host Metabase and you own your analytics outright. No per-seat Metabase Cloud bill, and your business data never leaves infrastructure you control. This guide is the production version of Metabase hosting: run the Metabase Java app on a managed server, give it a real application database instead of the bundled H2 file, put SSL in front, and connect it to your data over a private network. Most install-Metabase posts stop at the demo. The plumbing underneath is where self-hosted Metabase either runs for years or quietly loses your dashboards.
+Metabase is one of the best open-source BI tools going: dashboards, ad-hoc questions, and charts your whole team can read, all from a single Java app you can run yourself. Self-host Metabase and you own your analytics outright. No per-seat Metabase Cloud bill, and your business data never leaves infrastructure you control. This guide is the production version of Metabase hosting: run the Metabase Java app on a managed server, give it a real application database instead of the bundled H2 file, put SSL in front, and connect it to your data internally rather than over the public internet. Most install-Metabase posts stop at the demo. The plumbing underneath is where self-hosted Metabase either runs for years or quietly loses your dashboards.
 
-> **Short version:** Metabase ships as a runnable Java JAR. Run it on a managed server, but don't leave its data in the default H2 file. Back it with managed PostgreSQL as its application database (set `MB_DB_TYPE=postgres` and the rest of the `MB_DB_` vars), give the JVM a sane `-Xmx` heap, put SSL in front, and reach your data sources over the private network. On Kloudbean the OS, SSL, and backups come with the box; the dashboards and data stay yours.
+> **Short version:** Metabase ships as a runnable Java JAR. Run it on a managed server, but don't leave its data in the default H2 file. Back it with managed PostgreSQL as its application database (set `MB_DB_TYPE=postgres` and the rest of the `MB_DB_` vars), give the JVM a sane `-Xmx` heap, put SSL in front, and reach your data sources internally rather than over the public internet. On Kloudbean the OS, SSL, and backups come with the box; the dashboards and data stay yours.
 
 ## One Metabase app, two very different database jobs
 
@@ -11,9 +11,9 @@ The single idea that makes all of this click: Metabase touches *two* kinds of da
 - **Its application database.** Metabase stores its own state somewhere: your dashboards, saved questions, user accounts, permissions, settings. This is Metabase's private notebook. By default it's a local H2 file, and that default is the whole problem.
 - **Your data sources.** The databases you want to visualize: your app's Postgres, a MySQL reporting replica, whatever holds the numbers. Metabase connects and *reads* to build charts. It doesn't store your dashboards there.
 
-So Metabase is a Java process in the middle, writing its own state to an application database and reading your data sources. Both stay on a private network, and the application database is the one you must not leave on H2.
+So Metabase is a Java process in the middle, writing its own state to an application database and reading your data sources. Both sit in the same account as Metabase and talk to it internally, and the application database is the one you must not leave on H2.
 
-<!-- ADD IMAGE: bespoke SVG diagram. Metabase (Java app) writes state to a managed PostgreSQL application database (dashboards, questions, users) over the private network, and separately reads your data sources (Postgres, MySQL) to build charts. Brand navy #000f27, purple #4F1AF3, green #40b75f. -->
+<!-- ADD IMAGE: bespoke SVG diagram. Metabase (Java app) writes state to a managed PostgreSQL application database (dashboards, questions, users) internally, and separately reads your data sources (Postgres, MySQL) to build charts. Brand navy #000f27, purple #4F1AF3, green #40b75f. -->
 
 *Figure: Metabase writes its own dashboards, questions, and users to an application database (managed PostgreSQL, not H2), and separately reads your data sources to draw charts. Back up that application database and you've backed up Metabase.*
 
@@ -23,7 +23,7 @@ Metabase Cloud is a fine product, so the reason to run it yourself isn't better 
 
 - **You own your analytics.** Dashboards, saved questions, and the numbers behind them live on a server you control, not in a vendor's account. For a lot of teams that's the entire reason.
 - **You skip per-seat pricing.** Hosted BI often charges by seat or usage tier, so inviting the whole company gets expensive. A server you rent doesn't care how many people log in.
-- **Sensitive data stays inside your infra.** Metabase usually points at your production or reporting database. Self-hosting keeps the tool and the data it reads on the same private network.
+- **Sensitive data stays inside your infra.** Metabase usually points at your production or reporting database. Self-hosting keeps the tool and the data it reads in the same account, talking internally.
 - **You connect directly to your databases.** No allowlisting a vendor's IP ranges so an outside service can reach your Postgres. It's all internal.
 
 The honest tradeoff: you run it and you update it. Managed hosting takes most of that off your plate (OS, SSL, backups, and patching come with the server), but the Metabase version bumps stay yours. For most teams that's a small price for keeping analytics in-house.
@@ -34,7 +34,7 @@ The honest tradeoff: you run it and you update it. Managed hosting takes most of
 | **Cost model** | Flat server price, from a few dollars a month | Grows with seats or usage, depending on the plan |
 | **Customization** | Full: JVM flags, env vars, network, version | Whatever the plan exposes |
 | **Who runs & updates it** | You (managed hosting handles OS, SSL, backups) | The vendor, fully hands-off |
-| **Connecting to private databases** | Direct, over your private network | Needs public access, a tunnel, or an IP allowlist |
+| **Connecting to private databases** | Direct, internal to your account | Needs public access, a tunnel, or an IP allowlist |
 | **Best for** | Ownership, residency, dashboards on private data, cost at scale | Fast start, teams that never want to touch a server |
 
 Fair's fair: hosted Metabase is lower effort, and for a small team that never wants to see a server it's a reasonable trade. Once ownership, residency, or the per-seat bill matter, self-hosting wins.
@@ -67,13 +67,13 @@ The fix is a few environment variables. Metabase reads its application-database 
 # Metabase application database -> managed PostgreSQL (not H2)
 MB_DB_TYPE=postgres
 MB_DB_DBNAME=metabase
-MB_DB_HOST=10.0.0.5      # private-network address of your managed Postgres
+MB_DB_HOST=10.0.0.5      # internal address of your managed Postgres
 MB_DB_PORT=5432
 MB_DB_USER=metabase
 MB_DB_PASS=a-long-random-password
 ```
 
-`MB_DB_HOST` should be the private-network address of your database, not a public one. On Kloudbean the managed PostgreSQL sits on the same private network as Metabase, so they talk internally and the application database is never exposed.
+`MB_DB_HOST` should be the internal address of your database, not a public one. On Kloudbean the managed PostgreSQL runs in the same account, right next to Metabase, so they talk internally and the application database is never exposed to the public internet.
 
 Metabase itself runs as a plain JVM process. Give it a max heap and point Java at the JAR:
 
@@ -101,7 +101,7 @@ Honesty note first: Metabase isn't a one-click app on Kloudbean, and it doesn't 
 
 ### Step 1: Launch a managed PostgreSQL for the application database
 
-Open the **DBS** section and hit **Launch Database**. Pick PostgreSQL, name it `metabase`, create it. A minute or two later it's provisioned, on the private network, and already being backed up. This is the database that holds every dashboard and user.
+Open the **DBS** section and hit **Launch Database**. Pick PostgreSQL, name it `metabase`, create it. A minute or two later it's provisioned, running right next to your app, and already being backed up. This is the database that holds every dashboard and user.
 
 ![The Kloudbean console Launch Database screen used to provision a managed PostgreSQL as the Metabase application database](../assets/console/launch-database.png)
 
@@ -149,7 +149,7 @@ When it finishes, start Metabase with the `MB_DB_` vars still pointing at Postgr
 
 With the application database sorted, point Metabase at the data you want to see. In the admin panel you add a database as a data source (Postgres, MySQL, and plenty of others), and Metabase reads from it to build charts. A few habits keep this safe:
 
-- **Keep the connection on the private network.** Your data source and Metabase should talk internally, the same as the application database. No public exposure.
+- **Keep the connection internal.** Your data source and Metabase should talk internally, the same as the application database. No public exposure.
 - **Use a read-only user.** Analytics should read, not write. A dedicated read-only database user means a bad query or a curious analyst can't change production data.
 - **Point at a replica if you have one.** For a busy production database, aim Metabase at a read replica so heavy dashboard queries don't compete with live traffic.
 
@@ -159,7 +159,7 @@ Remember the two-database split: a data source is separate from the application 
 
 Self-hosted Metabase is exactly as secure as you set it up to be, and the checklist is short:
 
-- **Everything database talks over the private network.** Both the application database and your data sources stay on the VPC, off the public internet. On Kloudbean that's the default, with Shorewall and Fail2ban already on the server.
+- **Everything database talks internally.** Both the application database and your data sources stay in the same account, off the public internet, locked down with IP allow-listing so only your app server can reach them. On Kloudbean that's the default, with Shorewall and Fail2ban already on the server.
 - **SSL in front of the UI.** Free SSL means the login and every dashboard load run over HTTPS, and port 3000 never faces the world.
 - **Strong admin credentials.** The first Metabase admin account is a skeleton key to your dashboards and data connections. Give it a long, unique password.
 - **Secrets in env vars.** `MB_DB_PASS` and your data-source passwords belong in environment variables, not in a script that could land in Git.
@@ -169,13 +169,13 @@ Lose the server and you can rebuild it. Lose the application database and there'
 
 ## Where this fits your stack
 
-Metabase is one piece of a stack you own end to end: a Java app on your managed server, state in managed PostgreSQL, reading your other managed databases over a private network, behind free SSL and backups. One dashboard, one server, one bill. Weighing other tools to run yourself? The [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) roundup is good company, and if your app leans on Supabase, [self-hosting Supabase](https://www.kloudbean.com/blog/self-host-supabase/) follows the same own-your-data logic.
+Metabase is one piece of a stack you own end to end: a Java app on your managed server, state in managed PostgreSQL, reading your other managed databases internally, behind free SSL and backups. One dashboard, one server, one bill. Weighing other tools to run yourself? The [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) roundup is good company, and if your app leans on Supabase, [self-hosting Supabase](https://www.kloudbean.com/blog/self-host-supabase/) follows the same own-your-data logic.
 
 ---
 
-**Own your analytics, keep the keys.** Run Metabase on a managed server with managed PostgreSQL as its application database, free SSL in front, private networking to your data, and automatic backups, so your dashboards are genuinely yours. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
+**Own your analytics, keep the keys.** Run Metabase on a managed server with managed PostgreSQL as its application database, free SSL in front, an internal connection to your data, and automatic backups, so your dashboards are genuinely yours. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
 
-Managed PostgreSQL · Automatic backups · Private networking · Free SSL · Free migration · Free trial
+Managed PostgreSQL · Automatic backups · Free SSL · Free migration · Free trial
 
 ## FAQ
 
@@ -195,10 +195,10 @@ It's a JVM app, so give it a deliberate max heap with the -Xmx flag. Metabase's 
 Set the MB_DB variables to point at your new Postgres, stop Metabase, then run java -jar metabase.jar load-from-h2 with the path to your metabase.db file. Run it with the same Metabase version that wrote the H2 file, and upgrade only afterward. Free migration assistance can handle it if you'd rather not run it on production data.
 
 **Is self-hosted Metabase secure?**
-It's as secure as your setup. Put SSL in front of the UI, keep the application database and data sources on a private network, use strong admin credentials, and store secrets in environment variables. Kloudbean adds free SSL, a Shorewall firewall, and Fail2ban on the server as a baseline.
+It's as secure as your setup. Put SSL in front of the UI, keep the application database and data sources off the public internet with IP allow-listing, use strong admin credentials, and store secrets in environment variables. Kloudbean adds free SSL, a Shorewall firewall, and Fail2ban on the server as a baseline.
 
 **Can Metabase connect to my existing databases?**
-Yes. You add each one as a data source in the admin panel, and Metabase supports PostgreSQL, MySQL, and many other engines. Keep those connections on the private network and use a read-only database user so dashboards can never change production data.
+Yes. You add each one as a data source in the admin panel, and Metabase supports PostgreSQL, MySQL, and many other engines. Keep those connections internal and use a read-only database user so dashboards can never change production data.
 
 **Do I need Docker to self-host Metabase?**
 No. Metabase is a Java JAR, so a Java runtime is all you strictly need. Docker is one option among several, but running the JAR directly on a managed server with a JRE works fine and is what this guide describes.

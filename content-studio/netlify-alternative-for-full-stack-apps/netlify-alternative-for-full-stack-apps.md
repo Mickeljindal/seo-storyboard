@@ -1,7 +1,7 @@
 ---
 title: "A Netlify Alternative for Full-Stack Apps"
 slug: netlify-alternative-for-full-stack-apps
-meta_description: "The day your static site grew a real backend, Netlify starts to strain. Here's a Netlify alternative guide built around the signs you've outgrown it — and where a persistent server you own picks up."
+meta_description: "The day your static site grew a real backend, Netlify starts to strain. Here's a Netlify alternative guide built around the signs you've outgrown it, and where a persistent server you own picks up."
 target_keyword: Netlify alternative
 secondary_keywords:
   - Netlify alternative for full-stack
@@ -10,10 +10,10 @@ secondary_keywords:
   - best Netlify alternative
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 1 — Deploy AI / Vibe-Coded Apps
+cluster: 1 - Deploy AI / Vibe-Coded Apps
 ---
 
-![A Netlify alternative for full-stack apps — the day a static site grows a backend and database on one server you own](images/hero.png)
+![A Netlify alternative for full-stack apps: the day a static site grows a backend and database on one server you own](images/hero.png)
 
 # A Netlify Alternative for Full-Stack Apps
 
@@ -107,7 +107,7 @@ The limits, straight: Kloudbean runs Linux web stacks (Node, PHP, Python, Ruby, 
 
 ## Beyond static-first
 
-Bring your backend, database, and auth under one roof at [kloudbean.com](https://www.kloudbean.com/). One-click databases, automatic backups, private networking, free migration, free trial, and git deploy. Plans on [pricing](https://www.kloudbean.com/pricing/).
+Bring your backend, database, and auth under one roof at [kloudbean.com](https://www.kloudbean.com/). One-click databases, automatic backups, IP allow-listing, free migration, free trial, and git deploy. Plans on [pricing](https://www.kloudbean.com/pricing/).
 
 ## FAQ
 

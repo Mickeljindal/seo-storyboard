@@ -49,7 +49,7 @@ The table below is the article in one grid. Read the left column as what a manag
 | --- | --- | --- |
 | **Data residency** | In-Kingdom region (GCP Dammam), with the database and backups kept in-region | Deciding what data is in scope, and keeping third-party tools in-region too |
 | **Encryption** | Free, auto-renewing SSL/TLS in transit on every domain | Deciding which sensitive fields need extra encryption inside your app |
-| **Access control** | Subusers, UAC, 2FA, HttpOnly sessions, private networking | Who you invite, least-privilege roles, removing people who leave |
+| **Access control** | Subusers, UAC, 2FA, HttpOnly sessions, IP allow-listing | Who you invite, least-privilege roles, removing people who leave |
 | **Lawful basis + consent** | Nothing at this layer. It's a legal and product decision. | A valid basis to process, honest consent, clear privacy notices |
 | **Data minimization** | Storage you control; no requirement to collect anything | Collecting only what you need, not hoarding data by default |
 | **Retention + deletion** | Backups and restore; the ability to delete records you choose | Your retention schedule and actually deleting when it expires |
@@ -68,7 +68,7 @@ Pick that region when you add a server and the residency question is settled at 
 
 ![The Kloudbean console showing seven clouds with Google Cloud's Dammam (me-central2) Saudi Arabia region selected for in-Kingdom PDPL data residency](../assets/console/add-server-region.png)
 
-Because the stack is managed, in-Kingdom means more than where the app runs. The managed database launches into the same region on a [private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/), so it isn't sitting on the open internet for scanners to find. Backups, which are full copies of your data and the thing teams most often forget, are kept in the same region. That last detail matters: a backup that lands in another country quietly breaks your residency. If the concept itself is new, the plain-English version lives in [data residency explained](https://www.kloudbean.com/blog/data-residency-explained/), and the Saudi specifics are in the companion piece on [data residency in Saudi Arabia](https://www.kloudbean.com/blog/data-residency-saudi-arabia/).
+Because the stack is managed, in-Kingdom means more than where the app runs. The managed database launches into the same region, locked down with IP allow-listing so only your app server can reach it, not sitting on the open internet for scanners to find. On Enterprise, it can run on a [private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/). Backups, which are full copies of your data and the thing teams most often forget, are kept in the same region. That last detail matters: a backup that lands in another country quietly breaks your residency. If the concept itself is new, the plain-English version lives in [data residency explained](https://www.kloudbean.com/blog/data-residency-explained/), and the Saudi specifics are in the companion piece on [data residency in Saudi Arabia](https://www.kloudbean.com/blog/data-residency-saudi-arabia/).
 
 ## The infrastructure controls that support PDPL
 
@@ -82,9 +82,9 @@ Every byte between a visitor and your app rides over free, auto-renewing SSL/TLS
 
 PDPL cares a lot about who can touch personal data. Kloudbean gives you subusers and User Access Control, so permissions are granular, set per resource and per action. Your junior dev can deploy one app without seeing billing, the database, or twenty other projects. Add two-factor authentication for everyone, HttpOnly cookie sessions so a cross-site scripting bug can't lift a token, and social login that leans on providers who already do the hard identity work. Most breaches you'll ever read about trace back to a leaked credential or a token with more power than it needed. Least privilege is boring and it works.
 
-### Baseline hardening and private networking
+### Baseline hardening and locking down access
 
-Every server ships with a Shorewall firewall and Fail2ban, on from the first minute. Shorewall decides which ports are reachable; Fail2ban bans an IP that keeps failing to log in, which is exactly what a brute-force bot looks like. Want an extra layer? BitNinja is available as an added security option on higher tiers. Treat it as a bonus, not the baseline. And keep the database on the private network so it never faces the public internet, which is the single most common self-inflicted wound in hosting.
+Every server ships with a Shorewall firewall and Fail2ban, on from the first minute. Shorewall decides which ports are reachable; Fail2ban bans an IP that keeps failing to log in, which is exactly what a brute-force bot looks like. Want an extra layer? BitNinja is available as an added security option on higher tiers. Treat it as a bonus, not the baseline. And lock the database down with IP allow-listing so only your app server can reach it, never the public internet, which is the single most common self-inflicted wound in hosting.
 
 ![The Kloudbean console firewall settings showing Shorewall and Fail2ban enabled by default, with BitNinja as an added option](../assets/console/firewall.png)
 
@@ -119,7 +119,7 @@ On the platform side, baseline hardening, patching of the managed layer, and (on
 
 ## The honest answer on PDPL certification
 
-Straight talk, because this is where a lot of hosting copy quietly overreaches. Kloudbean provides the infrastructure controls that support PDPL: in-Kingdom residency, encryption in transit, private networking, least-privilege access, automatic backups, and an Enterprise audit trail. It does not claim to hold a certification on your behalf, and it does not turn your organization compliant by itself. Certification and attestation are a shared, ongoing effort. Any host that says its servers alone will get you across the PDPL line is describing a shortcut that doesn't exist, and a Saudi assessor will unwind that claim quickly.
+Straight talk, because this is where a lot of hosting copy quietly overreaches. Kloudbean provides the infrastructure controls that support PDPL: in-Kingdom residency, encryption in transit, IP allow-listing, least-privilege access, automatic backups, and, on Enterprise, private networking and an audit trail. It does not claim to hold a certification on your behalf, and it does not turn your organization compliant by itself. Certification and attestation are a shared, ongoing effort. Any host that says its servers alone will get you across the PDPL line is describing a shortcut that doesn't exist, and a Saudi assessor will unwind that claim quickly.
 
 What you can lean on is a strong, defensible starting position: your data provably inside the Kingdom, hardened by default, with the evidence an assessor asks for. That's real value. It just isn't the whole job, and honest is the only way to talk about compliance. If you're comparing managed hosts on real posture rather than badges, a like-for-like read such as [these Cloudways alternatives](https://www.kloudbean.com/blog/cloudways-alternatives/) is worth more than any logo on a homepage.
 
@@ -130,7 +130,7 @@ Two lists, because PDPL is two jobs. The first is mostly a set of clicks. The se
 ### The infrastructure half (set it up once)
 
 - Provision your server in the Dammam (me-central2) region so data sits in-Kingdom.
-- Launch the managed database into the same region, on the private network.
+- Launch the managed database into the same region, locked down with IP allow-listing so only your app server can reach it.
 - Confirm backups are enabled and staying in-region; restore one to prove it works.
 - Force HTTPS and let the free certificate auto-renew.
 - Create least-privilege subusers with UAC; turn on 2FA for everyone.
@@ -149,7 +149,7 @@ Two lists, because PDPL is two jobs. The first is mostly a set of clicks. The se
 
 **Get the PDPL foundation right on day one.** Launch in Google Cloud's Dammam region, keep your database and backups in-Kingdom, and run the whole stack from one dashboard, so you can spend your effort on the data practices only you can own. Plans start from $8/mo, Enterprise is custom. Start at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/), and always verify current details there.
 
-In-Kingdom GCP Dammam region · Private networking · Free auto-renewing SSL · Automatic backups · Free migration assistance · Free trial
+In-Kingdom GCP Dammam region · Free auto-renewing SSL · Automatic backups · Free migration assistance · Free trial
 
 ## FAQ
 

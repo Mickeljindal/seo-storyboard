@@ -180,7 +180,7 @@ The error everyone hits, a catch-all for the server turning your key away. Run `
 
 The honest boundary: Kloudbean gives you a server on your choice of seven clouds, hardened from first boot with Shorewall, Fail2ban, and free SSL, and wraps IP Access Control and User Access Control around it. What it does *not* do is hold your private keys or log in for you. There is no vault that authenticates on your behalf, which is correct: a private key only means something if you alone hold it.
 
-What you get is a starting line already hard to attack, so your keys land on a door that resists constant probing. Automatic backups and available [private networking and VPC](https://www.kloudbean.com/blog/what-is-a-vpc/) mean a missing key still leaves a route back. Test that route first; the [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/) covers how. You bring the keys. The platform brings a server hardened before you logged in.
+What you get is a starting line already hard to attack, so your keys land on a door that resists constant probing. Automatic backups mean a missing key still leaves a route back, and [private networking and a VPC](https://www.kloudbean.com/blog/what-is-a-vpc/) are there on Enterprise when you need deeper isolation. Test that backup route first; the [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/) covers how. You bring the keys. The platform brings a server hardened before you logged in.
 
 ---
 

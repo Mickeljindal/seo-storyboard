@@ -127,7 +127,7 @@ This is your team's files, so security isn't a nice-to-have. The good news is th
 
 - **HTTPS everywhere.** Free SSL on your domain, no exceptions. Files and logins over plain HTTP is a non-starter.
 - **Two-factor authentication.** Nextcloud has 2FA built in. Turn it on and require it for accounts that can see sensitive folders.
-- **Keep the database on a private network.** Your MariaDB should talk to Nextcloud over a [private network](https://www.kloudbean.com/blog/what-is-a-vpc/), not the public internet, so it's never exposed to scanners.
+- **Lock the database to your app server's IP.** Your MariaDB runs in the same account as Nextcloud, right next to it, and you whitelist your app server's IP so only that server can connect, not the public internet, so it's never exposed to scanners. On Enterprise you can go further and put it on a [private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/).
 - **Back up both halves.** Two things matter: the database (metadata, users, shares) and the files. If files live in object storage they're already durable, so make sure the database is dumped on a schedule alongside the platform's [server-level backups](https://www.kloudbean.com/blog/server-backups-guide/).
 
 <!-- ADD IMAGE: Nextcloud security settings with two-factor authentication being enabled for a user -->
@@ -159,7 +159,7 @@ Where it isn't the answer: if you just need personal file sync for one person an
 
 **One answer to "where are our files?"** Stand up your own Drive at [kloudbean.com](https://www.kloudbean.com/). A small server, a managed database, and an object-storage bucket is the whole recipe. Start on a free trial, with free migration help if you're moving off Drive or Dropbox. See plans on [pricing](https://www.kloudbean.com/pricing/).
 
-S3-compatible object storage · Managed MariaDB · Private networking · Free SSL · Automatic backups · Free trial
+S3-compatible object storage · Managed MariaDB · Free SSL · Automatic backups · Free trial
 
 ## FAQ
 
@@ -173,7 +173,7 @@ Yes, and it's the setup I'd recommend for any real team. Nextcloud supports S3-c
 Almost always two things: background jobs are running on page loads instead of via a real cron, and caching isn't set up. Switch background jobs to a system cron every five minutes and add Redis for caching and file locking. Raising PHP's memory limit helps with big uploads and previews too.
 
 **Is self-hosted Nextcloud secure enough for team files?**
-Yes, with the basics: HTTPS on your domain, two-factor authentication on logins, the database on a private network rather than the public internet, and regular backups. Managed hosting also keeps the underlying server patched and firewalled.
+Yes, with the basics: HTTPS on your domain, two-factor authentication on logins, the database locked to your app server's IP so only it can connect rather than sitting on the public internet, and regular backups. Managed hosting also keeps the underlying server patched and firewalled.
 
 **What do I need to back up?**
 Two things: the database (metadata, users, and shares) and the files themselves. If files are in object storage they're already durable, so the important habit is dumping the database on a schedule, alongside the platform's server-level backups.

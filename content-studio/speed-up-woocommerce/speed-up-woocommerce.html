@@ -99,7 +99,7 @@
   <p>WooCommerce is query-heavy by nature. Building a single product page can mean loading the product, its variations, stock, tax rules, shipping zones, active coupons, and a stack of options. Without a persistent object cache, WordPress throws a lot of that away at the end of each request and rebuilds it on the next one. Redis or Memcached holds it between requests instead. On a busy store the drop in database load is the difference you actually feel.</p>
   <p>The usual setup is a managed Redis plus the Redis Object Cache plugin. Point WordPress at the instance in <code>wp-config.php</code>:</p>
 <pre><code>// wp-config.php
-define( 'WP_REDIS_HOST', '10.0.0.5' ); // private network address
+define( 'WP_REDIS_HOST', '10.0.0.5' ); // internal address of managed Redis
 define( 'WP_REDIS_PORT', 6379 );
 define( 'WP_CACHE', true );</code></pre>
   <p>Then enable the drop-in from the plugin and confirm it connects. Memcached works too if that's what you know. Both are solid; Redis is the more common default because the tooling around it is richer. There's more on when each fits in <a href="https://www.kloudbean.com/blog/redis-caching-patterns/">Redis caching patterns</a>, and the provisioning side in <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis hosting</a> and <a href="https://www.kloudbean.com/blog/managed-memcached-hosting/">managed Memcached hosting</a>.</p>
@@ -208,21 +208,21 @@ wp db optimize</code></pre>
   <h2>Where the hosting actually helps</h2>
   <p>A good managed stack quietly handles a chunk of this so you're left with the store-side calls. On Kloudbean, the pieces line up with the fixes above.</p>
   <ul>
-    <li><strong>Managed Redis and Memcached</strong> for the object cache, launched from the same dashboard as everything else and reachable over a private network.</li>
+    <li><strong>Managed Redis and Memcached</strong> for the object cache, launched from the same dashboard as everything else and reachable at an internal address, with access locked to your app server's IP.</li>
     <li><strong>Managed MySQL and MariaDB</strong> for the store database, with room to <strong>resize</strong> as your catalog and order history grow.</li>
     <li><strong>A tuned PHP runtime</strong> kept on a current version, so the general basics are handled for you.</li>
     <li><strong>The server health view</strong> to spot CPU, memory, or database pressure before customers do, plus <strong>cron jobs from the dashboard</strong> so Action Scheduler runs reliably.</li>
     <li><strong>Staging sites</strong> so you can test a caching change or a plugin cull on a copy before it ever touches the live store.</li>
     <li><strong>Automatic backups and free SSL</strong>, and if a store outgrows one box, a built-in <strong>Flexible Load Balancer</strong> to put more servers behind it. (Autoscaling is an enterprise and custom option, not something a standard store toggles on.)</li>
   </ul>
-  <p>One dashboard for the app, the database, and the object cache is the practical part. You're not stitching a store together from three providers and hoping the private networking lines up. If genuine traffic growth is your problem rather than tuning, that's a scaling question, and <a href="https://www.kloudbean.com/blog/scalable-wordpress-hosting/">scalable WordPress hosting</a> picks up where this guide stops. And if you have not settled on the platform itself yet, <a href="https://www.kloudbean.com/blog/woocommerce-vs-shopify/">WooCommerce vs Shopify</a> is the choice that comes first.</p>
+  <p>One dashboard for the app, the database, and the object cache is the practical part. You're not stitching a store together from three providers and hoping the connections between them line up. If genuine traffic growth is your problem rather than tuning, that's a scaling question, and <a href="https://www.kloudbean.com/blog/scalable-wordpress-hosting/">scalable WordPress hosting</a> picks up where this guide stops. And if you have not settled on the platform itself yet, <a href="https://www.kloudbean.com/blog/woocommerce-vs-shopify/">WooCommerce vs Shopify</a> is the choice that comes first.</p>
 
   <!-- ADD IMAGE: the whole-stack dashboard showing an app, a managed MySQL, and a Redis instance together. Swap for a real screenshot: src -> images/whole-stack-dashboard.png -->
   <figure class="img-slot"><span><b>Add image</b><em>The dashboard with the store app, its MySQL database, and a Redis object cache side by side.</em><small>One login for the whole store.</small></span></figure>
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">A store that stays quick under real traffic.</p>
-    <p style="margin:0 0 .6em">Run WooCommerce on a stack with a managed object cache and database on the same private network, tuned PHP, and staging to test changes safely. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0 0 .6em">Run WooCommerce on a stack with a managed object cache and database in the same account as the app, tuned PHP, and staging to test changes safely. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
     <p style="margin:0">Managed Redis &amp; Memcached · Managed MySQL &amp; MariaDB · Automatic backups · Staging · Free SSL · Free migration · Free trial</p>
   </div>
 

@@ -56,16 +56,16 @@ Rocket.Chat is a realtime app. Send a message and everyone in the channel should
 
 So skip the throwaway standalone MongoDB. Rocket.Chat wants a replica set and it will tell you so, usually by working fine in a demo and then misbehaving under real use: messages that arrive late or only after a refresh, presence that lies, a log full of retries. People burn a whole day chasing a "Rocket.Chat bug" that was a MongoDB config all along.
 
-Here's the honest framing. A replica set is a MongoDB concept, not a Kloudbean button. Managed MongoDB gives you the database with backups, private networking, and controlled access handled for you. Turning it into a replica set (even a single-node one, which is fine for smaller teams) is a MongoDB step you arrange at the database layer, by initializing the set and giving Rocket.Chat a `MONGO_URL` that names it. Plan for it from the start rather than bolting it on later. Our [managed MongoDB hosting](https://www.kloudbean.com/blog/managed-mongodb-hosting/) guide and the [MongoDB connection](https://www.kloudbean.com/blog/connect-mongoose-to-mongodb/) walkthrough cover the connection-string mechanics in more depth.
+Here's the honest framing. A replica set is a MongoDB concept, not a Kloudbean button. Managed MongoDB gives you the database with backups and controlled access, locked to your app server's IP, handled for you. Turning it into a replica set (even a single-node one, which is fine for smaller teams) is a MongoDB step you arrange at the database layer, by initializing the set and giving Rocket.Chat a `MONGO_URL` that names it. Plan for it from the start rather than bolting it on later. Our [managed MongoDB hosting](https://www.kloudbean.com/blog/managed-mongodb-hosting/) guide and the [MongoDB connection](https://www.kloudbean.com/blog/connect-mongoose-to-mongodb/) walkthrough cover the connection-string mechanics in more depth.
 
 Two more traps sit right next to the replica set, and they cause most of the remaining tickets:
 
 - **Under-provisioned RAM.** Rocket.Chat is built on Meteor, and the Node process is memory-hungry. Squeeze it onto a tiny instance and you'll watch it get OOM-killed or thrash under a modest load. Give it headroom.
 - **A wrong `ROOT_URL`.** Rocket.Chat builds absolute links and its websocket address from `ROOT_URL`. Set it to `http://localhost:3000` and forget, and the app loads while login redirects, avatars, and the realtime connection quietly break. It has to match the real public address, scheme included.
 
-<!-- SVG diagram in the HTML: web and mobile clients connect over HTTPS and websockets to the Rocket.Chat Node app on a managed server, which talks over a private network to managed MongoDB running as a replica set (oplog + change streams). -->
+<!-- SVG diagram in the HTML: web and mobile clients connect over HTTPS and websockets to the Rocket.Chat Node app on a managed server, which talks to managed MongoDB in the same account (app-server IP whitelisted) running as a replica set (oplog + change streams). -->
 
-*Clients reach the Rocket.Chat Node app over HTTPS and websockets through your SSL-terminating proxy. The app talks to managed MongoDB over a private network. The replica set is what produces the oplog and change streams Rocket.Chat needs for instant messaging.*
+*Clients reach the Rocket.Chat Node app over HTTPS and websockets through your SSL-terminating proxy. The app talks to managed MongoDB in the same account, with only its app-server IP whitelisted. The replica set is what produces the oplog and change streams Rocket.Chat needs for instant messaging.*
 
 <!-- ADD IMAGE: A mongo shell showing rs.status() with the replica set reporting a healthy primary. -->
 
@@ -88,7 +88,7 @@ Credit where it's due: Slack's onboarding is frictionless and there's nothing to
 
 You're running two things that talk to each other: managed MongoDB (as a replica set) and the Rocket.Chat Node app. Do them in this order.
 
-1. **Provision managed MongoDB first.** Launch a MongoDB database, note its private-network address, and create a dedicated Rocket.Chat user with a strong password. This is also where you arrange the replica set, since Rocket.Chat's connection string names it.
+1. **Provision managed MongoDB first.** Launch a MongoDB database, note its internal address, and create a dedicated Rocket.Chat user with a strong password. This is also where you arrange the replica set, since Rocket.Chat's connection string names it.
 2. **Create the Node application for Rocket.Chat.** Add an application on the managed Node runtime. This runs the Rocket.Chat server bundle. It isn't a one-click Rocket.Chat installer; you're running the Rocket.Chat Node app on a managed runtime, which is the honest and flexible way to do it.
 3. **Set the environment variables.** `MONGO_URL`, `ROOT_URL`, and `PORT` go in the Environment Variables screen, never in code.
 4. **Point your domain and turn on SSL.** Map `chat.example.com` to the app, issue a free certificate, and make sure the proxy forwards websocket upgrades.
@@ -96,7 +96,7 @@ You're running two things that talk to each other: managed MongoDB (as a replica
 
 ![The Kloudbean console Launch Database screen used to provision managed MongoDB for Rocket.Chat](../assets/console/launch-database.png)
 
-*Step 1: launch managed MongoDB. Backups and private networking come with it; the replica set is the MongoDB-level piece you arrange so Rocket.Chat gets its oplog.*
+*Step 1: launch managed MongoDB. Backups come with it, and you whitelist your app server's IP so only it can connect; the replica set is the MongoDB-level piece you arrange so Rocket.Chat gets its oplog.*
 
 ![The Kloudbean console Add Application screen where the Rocket.Chat Node app is created on the managed Node runtime](../assets/console/add-application.png)
 
@@ -131,7 +131,7 @@ ROOT_URL=https://chat.example.com
 PORT=3000
 ```
 
-A couple of notes so this doesn't bite you. The `10.0.0.5` stands in for your MongoDB's private-network address, so database traffic never leaves your infrastructure. `MONGO_OPLOG_URL` is optional on modern Rocket.Chat, which prefers change streams; if you set it, point it at the `local` database and keep the `replicaSet` name consistent. And `ROOT_URL` is `https://`, not `http://`, because SSL terminates at the proxy in front.
+A couple of notes so this doesn't bite you. The `10.0.0.5` stands in for your MongoDB's internal address, so database traffic never leaves your account. `MONGO_OPLOG_URL` is optional on modern Rocket.Chat, which prefers change streams; if you set it, point it at the `local` database and keep the `replicaSet` name consistent. And `ROOT_URL` is `https://`, not `http://`, because SSL terminates at the proxy in front.
 
 Rocket.Chat starts as a normal Node process (the entry point is `main.js` in the built server bundle), and the managed runtime keeps it alive and restarts it if it exits. For keeping secrets like `MONGO_URL` out of your codebase, see [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
@@ -158,7 +158,7 @@ proxy_set_header X-Forwarded-Proto $scheme;
 
 A team chat server holds your most candid internal conversations, so treat security as part of the deploy, not a later chore.
 
-- **Keep MongoDB on the private network.** The database should never be reachable from the public internet. App-to-database traffic stays inside your infrastructure, and the baseline Shorewall firewall plus Fail2ban keep the front door sensible.
+- **Lock MongoDB to your app server's IP.** The database should never be reachable from the public internet, so whitelist your app server's IP and refuse everything else. App-to-database traffic stays inside your account, and the baseline Shorewall firewall plus Fail2ban keep the front door sensible.
 - **Feed `MONGO_URL` through env, never code.** The connection string holds your database password. It belongs in Environment Variables, not a repo where it leaks in a commit.
 - **Use a least-privilege database user.** Give Rocket.Chat a user scoped to its own `rocketchat` database, not an admin account that can touch everything.
 - **Serve everything over HTTPS, websockets included.** With SSL terminating at the proxy and `ROOT_URL` set to `https://`, both page loads and the realtime connection are encrypted.
@@ -175,9 +175,9 @@ Running other tools yourself too? The [best self-hosted tools](https://www.kloud
 
 ---
 
-**Own your team chat, top to bottom.** Run the Rocket.Chat Node app on a managed server, backed by managed MongoDB with backups and private networking handled, your history in your region and your bill flat. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
+**Own your team chat, top to bottom.** Run the Rocket.Chat Node app on a managed server, backed by managed MongoDB with backups and access locked to your app server's IP, your history in your region and your bill flat. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
 
-Managed Node runtime · Managed MongoDB · Private networking · Free SSL · Automatic backups · Free migration · Free trial
+Managed Node runtime · Managed MongoDB · Free SSL · Automatic backups · Free migration · Free trial
 
 ## FAQ
 
@@ -185,7 +185,7 @@ Managed Node runtime · Managed MongoDB · Private networking · Free SSL · Aut
 For teams that want to own their data and avoid per-seat pricing, yes. Rocket.Chat covers the core Slack workflow: channels, direct messages, threads, file sharing, search, and integrations. What you trade for ownership is that you run it yourself, though a managed platform makes that far lighter. Slack still wins on zero-ops polish if that's your priority.
 
 **Does Rocket.Chat need MongoDB?**
-Yes. MongoDB is Rocket.Chat's only supported database, and it stores everything: users, channels, messages, and file metadata. You can't swap it for Postgres or MySQL. The real decision is where MongoDB runs, and a managed MongoDB with backups and private networking is the sensible answer for production.
+Yes. MongoDB is Rocket.Chat's only supported database, and it stores everything: users, channels, messages, and file metadata. You can't swap it for Postgres or MySQL. The real decision is where MongoDB runs, and a managed MongoDB with backups and IP allow-listing is the sensible answer for production.
 
 **Why does Rocket.Chat need a MongoDB replica set?**
 Rocket.Chat delivers messages in realtime by watching MongoDB for changes through change streams and the oplog. Both only exist when MongoDB runs as a replica set. On a standalone MongoDB there's no oplog, so realtime becomes unreliable and messages arrive late or only after a refresh. Even a single-node replica set satisfies the requirement.
@@ -200,7 +200,7 @@ Plan for at least 2 GB for a small team, and 4 GB or more as history and traffic
 Provision managed MongoDB as a replica set, run the Rocket.Chat Node app on a managed Node server, set MONGO_URL and ROOT_URL through environment variables, and put SSL plus a websocket-aware reverse proxy in front. Then start it and finish the admin setup wizard. It isn't a one-click installer, but the steps are straightforward once the database is right.
 
 **What is MONGO_URL in Rocket.Chat?**
-MONGO_URL is the environment variable that tells Rocket.Chat how to reach its database. It's a standard MongoDB connection string, and it must include the replicaSet name, for example mongodb://user:pass@10.0.0.5:27017/rocketchat?replicaSet=rs0. Point it at your database's private-network address so traffic never crosses the public internet.
+MONGO_URL is the environment variable that tells Rocket.Chat how to reach its database. It's a standard MongoDB connection string, and it must include the replicaSet name, for example mongodb://user:pass@10.0.0.5:27017/rocketchat?replicaSet=rs0. Point it at your database's internal address so traffic never crosses the public internet.
 
 **Why is my Rocket.Chat ROOT_URL breaking links or websockets?**
 ROOT_URL must exactly match the public address users hit, scheme included. Rocket.Chat builds its links and websocket connection from it, so a value like http://localhost:3000 on a real deployment causes broken redirects and a failing realtime connection. Set it to your real https domain, for example https://chat.example.com, and restart.

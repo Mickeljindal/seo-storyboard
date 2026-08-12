@@ -206,7 +206,7 @@ USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);</code></pre>
   <p>Start on Postgres, measure, and move only if you actually hit a wall. Premature "we need a vector database" is a classic case of solving a scale problem you don't have yet.</p>
 
   <h2>Running pgvector on a managed Postgres</h2>
-  <p>So where does this land in practice? pgvector is a standard PostgreSQL extension, so the real question is where your Postgres runs. On <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a>, one of Kloudbean's seven managed database engines, you get the database provisioned, patched, backed up, and kept on a <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">private network</a> with controlled access. Your app reaches it over that private network with a connection string in an environment variable, the same as any Postgres.</p>
+  <p>So where does this land in practice? pgvector is a standard PostgreSQL extension, so the real question is where your Postgres runs. On <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a>, one of Kloudbean's seven managed database engines, you get the database provisioned, patched, backed up, and locked down with controlled access, so only your whitelisted app server IP can reach it. Your app reaches it with a connection string in an environment variable, the same as any Postgres. On Enterprise, it can run on a <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">private network (VPC)</a>.</p>
   <p>One honest note, because I won't oversell it: enabling the pgvector extension depends on your specific Postgres setup and version, so check availability for your instance rather than assuming it's turned on. Kloudbean doesn't sell a separate "vector database" product, and it doesn't need to. Run one managed Postgres, keep your app data and your embeddings together, and back the whole thing up as a unit.</p>
 
   <figure>
@@ -224,8 +224,8 @@ DATABASE_URL=postgresql://appuser:s3cret@10.0.0.5:5432/appdb</code></pre>
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Keep your vectors where your data already lives.</p>
-    <p style="margin:0 0 .6em">Run a managed PostgreSQL for your app data and your embeddings together, with automatic backups, private networking, and free migration help. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">Managed PostgreSQL · Automatic backups · Private networking · Free migration · Free trial · Simple Git deploy</p>
+    <p style="margin:0 0 .6em">Run a managed PostgreSQL for your app data and your embeddings together, with automatic backups, IP allow-listing, and free migration help. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed PostgreSQL · Automatic backups · Free migration · Free trial · Simple Git deploy</p>
   </div>
 
   <h2>FAQ</h2>
@@ -249,7 +249,7 @@ DATABASE_URL=postgresql://appuser:s3cret@10.0.0.5:5432/appdb</code></pre>
     <h3>How many vectors can pgvector handle?</h3>
     <p>Comfortably into the millions on a right-sized instance, especially with an HNSW index. The practical limits are index memory and query latency, which scale with row count and dimensions. Look at a specialised engine around tens of millions of vectors with heavy traffic.</p>
     <h3>Is pgvector available on managed Postgres or Kloudbean?</h3>
-    <p>pgvector is the standard PostgreSQL vector extension, and Kloudbean offers managed PostgreSQL with backups, private networking, and controlled access. Whether the extension can be enabled depends on your specific Postgres setup and version, so check availability for your instance. Kloudbean does not sell a separate vector database product.</p>
+    <p>pgvector is the standard PostgreSQL vector extension, and Kloudbean offers managed PostgreSQL with backups, IP allow-listing, and controlled access. Whether the extension can be enabled depends on your specific Postgres setup and version, so check availability for your instance. Kloudbean does not sell a separate vector database product.</p>
   </div>
 
   <p class="byline">By Kloudbean · Vectors, in your database.</p>
@@ -268,7 +268,7 @@ DATABASE_URL=postgresql://appuser:s3cret@10.0.0.5:5432/appdb</code></pre>
 {"@type":"Question","name":"Can I use pgvector for RAG?","acceptedAnswer":{"@type":"Answer","text":"Yes, it's a main reason people install it. You chunk documents, embed each chunk, and store the text and vector in pgvector. At query time you embed the question, fetch the top-k nearest chunks, and pass them to the LLM as context."}},
 {"@type":"Question","name":"What distance should I use, cosine or L2?","acceptedAnswer":{"@type":"Answer","text":"For most text embeddings, cosine distance is standard, since it compares direction rather than magnitude. pgvector also supports Euclidean (L2) distance and inner product. Match the distance to what your embedding model was trained with, and use the matching index operator class."}},
 {"@type":"Question","name":"How many vectors can pgvector handle?","acceptedAnswer":{"@type":"Answer","text":"Comfortably into the millions on a right-sized instance, especially with an HNSW index. The practical limits are index memory and query latency, which scale with row count and dimensions. Look at a specialised engine around tens of millions of vectors with heavy traffic."}},
-{"@type":"Question","name":"Is pgvector available on managed Postgres or Kloudbean?","acceptedAnswer":{"@type":"Answer","text":"pgvector is the standard PostgreSQL vector extension, and Kloudbean offers managed PostgreSQL with backups, private networking, and controlled access. Whether the extension can be enabled depends on your specific Postgres setup and version, so check availability for your instance. Kloudbean does not sell a separate vector database product."}}
+{"@type":"Question","name":"Is pgvector available on managed Postgres or Kloudbean?","acceptedAnswer":{"@type":"Answer","text":"pgvector is the standard PostgreSQL vector extension, and Kloudbean offers managed PostgreSQL with backups, IP allow-listing, and controlled access. Whether the extension can be enabled depends on your specific Postgres setup and version, so check availability for your instance. Kloudbean does not sell a separate vector database product."}}
 ]}
 ]}
 </script>

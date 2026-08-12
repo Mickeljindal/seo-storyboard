@@ -28,7 +28,7 @@ They do overlap. Good access control and encryption help satisfy both. But they'
 
 ## Does "NCA ECC compliant hosting" actually exist?
 
-Yes and no, and the honest answer is worth more than a marketing one here. "NCA ECC compliant hosting" is fine as shorthand for hosting that supports your ECC program: a hardened server, private networking, encryption, backups, logs you can hand to an assessor. That's a real and useful thing to buy. What doesn't exist is a host that flips your whole organization into ECC alignment the moment you sign up. No server setting writes your cybersecurity policy or runs your risk assessment.
+Yes and no, and the honest answer is worth more than a marketing one here. "NCA ECC compliant hosting" is fine as shorthand for hosting that supports your ECC program: a hardened server, IP allow-listing, encryption, backups, logs you can hand to an assessor. That's a real and useful thing to buy. What doesn't exist is a host that flips your whole organization into ECC alignment the moment you sign up. No server setting writes your cybersecurity policy or runs your risk assessment.
 
 Look back at those domains. Cybersecurity Governance is entirely about your organization: strategy, roles, policies, oversight. Risk management is your assessments and decisions. Awareness and training is your staff. A host has nothing to install for any of those. The controls a platform can genuinely help with sit mostly inside one domain, Cybersecurity Defence, and even there you still own the configuration choices. So ECC hosting covers a slice, an important slice, but a slice.
 
@@ -59,7 +59,7 @@ The table below is the whole article in one grid. Read the middle column as what
 | **Cybersecurity governance** | Nothing here; it's an organizational function | Strategy, roles, program ownership, management sign-off |
 | **Risk management** | A documented, hardened baseline to assess against | Your risk assessments, treatment plans, and acceptance decisions |
 | **Identity and access** | Subusers, UAC, 2FA, HttpOnly sessions | Who you grant access, least-privilege reviews, offboarding |
-| **Network security** | Private networking (VPC), Shorewall firewall, Fail2ban | App-level rules, IP allowlists, deciding what you expose |
+| **Network security** | IP allow-listing, Shorewall firewall, Fail2ban (private networking/VPC on Enterprise) | App-level rules, IP allowlists, deciding what you expose |
 | **Hardening + patching** | OS, stack, and managed-layer patching handled | Your app dependencies and their CVEs, framework versions |
 | **Cryptography** | Free, auto-renewing SSL/TLS in transit on every domain | Encrypting sensitive fields at rest inside your app |
 | **Backup + resilience** | Automatic, restorable backups | Retention, restore testing, your business-continuity plan |
@@ -76,7 +76,7 @@ Now the middle column, because this is the real value a managed platform brings 
 
 ### Network security and system hardening
 
-ECC leans hard on network security and on protecting the systems themselves. On the platform side, that starts with a Shorewall firewall and Fail2ban on every server, on from the first minute. Shorewall decides which ports are reachable. Fail2ban bans an IP that keeps failing to log in, which is exactly what a brute-force bot looks like. Keep the database on a [private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/) so it never faces the public internet, the single most common self-inflicted wound in hosting. Patching of the operating system, the stack, and the managed layer is handled too, so a known kernel or runtime bug doesn't sit exposed for months.
+ECC leans hard on network security and on protecting the systems themselves. On the platform side, that starts with a Shorewall firewall and Fail2ban on every server, on from the first minute. Shorewall decides which ports are reachable. Fail2ban bans an IP that keeps failing to log in, which is exactly what a brute-force bot looks like. Lock the database down with IP allow-listing so only your app server can reach it, never the public internet, the single most common self-inflicted wound in hosting. On Enterprise, it can run on a [private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/). Patching of the operating system, the stack, and the managed layer is handled too, so a known kernel or runtime bug doesn't sit exposed for months.
 
 Want an extra layer? BitNinja is available as an added security option on higher tiers. Treat it as a bonus, not the baseline. The firewall, Fail2ban, and patching are the floor, and they're already under your feet. That baseline maps cleanly onto the network and hardening subdomains of Cybersecurity Defence.
 
@@ -123,7 +123,7 @@ Two things to keep honest here, because marketing tends to blur them. It isn't t
 
 ## The honest answer on NCA ECC certification
 
-Straight talk, because compliance copy loves to overreach here. Kloudbean provides the infrastructure controls that support the ECC: baseline hardening, private networking, encryption in transit, least-privilege access, automatic backups, and, on Enterprise, an audit trail that produces evidence. It makes no certification claim on your behalf, and it does not turn your organization compliant by itself. Certification and attestation are a shared, ongoing effort, and where any certifications exist they're pursued and maintained over time, never a badge that transfers to your account. Any host telling you its servers alone clear the ECC bar is describing a shortcut that doesn't exist, and an NCA assessor will unwind that claim quickly.
+Straight talk, because compliance copy loves to overreach here. Kloudbean provides the infrastructure controls that support the ECC: baseline hardening, IP allow-listing, encryption in transit, least-privilege access, automatic backups, and, on Enterprise, private networking and an audit trail that produces evidence. It makes no certification claim on your behalf, and it does not turn your organization compliant by itself. Certification and attestation are a shared, ongoing effort, and where any certifications exist they're pursued and maintained over time, never a badge that transfers to your account. Any host telling you its servers alone clear the ECC bar is describing a shortcut that doesn't exist, and an NCA assessor will unwind that claim quickly.
 
 What you can lean on is a strong, defensible starting position for the infrastructure-shaped controls, with real evidence to show. That's genuine value. It just isn't the whole job, and honest is the only sane way to talk about compliance. If you're weighing managed platforms on real security posture rather than logos, a like-for-like read such as [these Cloudways alternatives](https://www.kloudbean.com/blog/cloudways-alternatives/) beats any badge on a homepage. And if you want the framework-agnostic version of this same split, the [secure, compliant hosting hub](https://www.kloudbean.com/blog/secure-compliant-hosting/) lays out who secures what, while the [SOC 2 hosting guide](https://www.kloudbean.com/blog/soc2-compliant-hosting/) walks the same logic for an international audit.
 
@@ -134,7 +134,7 @@ Two lists, because ECC is two jobs. The first is mostly clicks and configuration
 ### The infrastructure half (configure it)
 
 - Confirm the Shorewall firewall and Fail2ban are on, and lock down which ports are reachable.
-- Put the database on the private network; check it has no public IP.
+- Lock the database down with IP allow-listing so only your app server can reach it.
 - Force HTTPS and let the free certificate auto-renew.
 - Create least-privilege subusers with UAC, and turn on 2FA for every account.
 - Verify automatic backups run, and restore one on purpose to prove the path works.
@@ -155,7 +155,7 @@ Two lists, because ECC is two jobs. The first is mostly clicks and configuration
 
 **Get the infrastructure controls right on day one.** Launch on a hardened, managed stack, keep it in-Kingdom on Google Cloud's Dammam region if you need to, and run the whole thing from one dashboard, so you can spend your effort on the governance only your organization can own. Plans start from $8/mo, Enterprise is custom. Start at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/), and always verify current details there.
 
-Firewall + Fail2ban baseline · Private networking · Free auto-renewing SSL · Automatic backups · Audit trail (Enterprise) · Free migration assistance · Free trial
+Firewall + Fail2ban baseline · Free auto-renewing SSL · Automatic backups · Audit trail (Enterprise) · Free migration assistance · Free trial
 
 ## FAQ
 
@@ -172,13 +172,13 @@ The ECC applies to Saudi government bodies and their affiliated entities, and to
 NCA ECC is a cybersecurity framework overseen by the National Cybersecurity Authority; it sets security controls. PDPL is Saudi Arabia's Personal Data Protection Law, overseen by SDAIA; it governs privacy and personal data. One protects systems, the other protects people's data. They overlap on things like access control and encryption, but they're assessed separately and answer different questions.
 
 ### Which ECC controls can a hosting platform cover?
-Mostly the infrastructure-shaped ones inside Cybersecurity Defence and Resilience: network security via a firewall and private networking, system hardening and patching, cryptography in transit through SSL/TLS, backup and recovery, and event logging. A managed platform can arrive with these configured and produce evidence for them, which is a real head start on that slice of the controls.
+Mostly the infrastructure-shaped ones inside Cybersecurity Defence and Resilience: network security via a firewall and IP allow-listing, system hardening and patching, cryptography in transit through SSL/TLS, backup and recovery, and event logging. A managed platform can arrive with these configured and produce evidence for them, which is a real head start on that slice of the controls.
 
 ### Which ECC controls stay my responsibility?
 The governance and process half. That means your cybersecurity strategy and policies, named roles, risk management, staff awareness and training, incident response, and third-party management. It also includes actually running least privilege, reviewing logs, and testing restores. No host can write your policies, run your risk assessment, or train your people.
 
 ### Can a host handle NCA ECC certification for me?
-No host can grant your organization ECC certification or do your assessment for you. A platform provides the infrastructure controls that support the ECC, such as hardening, private networking, encryption, backups, and an Enterprise audit trail. Certification and attestation are a shared, ongoing effort, and the governance and process controls always remain yours. Be wary of any host that claims otherwise.
+No host can grant your organization ECC certification or do your assessment for you. A platform provides the infrastructure controls that support the ECC, such as hardening, IP allow-listing, encryption, backups, and, on Enterprise, private networking and an audit trail. Certification and attestation are a shared, ongoing effort, and the governance and process controls always remain yours. Be wary of any host that claims otherwise.
 
 ### Do I need in-Kingdom hosting for NCA ECC?
 The ECC is about security controls rather than residency specifically, so it doesn't demand in-Kingdom hosting the way many PDPL use cases do. That said, Saudi enterprise and government buyers often expect in-Kingdom data, and the ECC's third-party and cloud domain expects you to know where your infrastructure runs. On Kloudbean, the in-Kingdom option is Google Cloud's Dammam region (me-central2).

@@ -75,7 +75,7 @@ The fastest way to a running Supabase you own is the one-click app. Add an appli
 
 ![The Kloudbean console Add Application screen where Supabase can be deployed in one click onto your own server](../assets/console/add-application.png)
 
-There's a second path. If you actually want a plain, standalone **managed PostgreSQL** for your own app (not the full Supabase bundle), Kloudbean runs that as its own product, backed up and on a private network. That's the route many people take when they realize they used Supabase mostly for its database. The [add a managed database](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) guide walks through it, and there's a dedicated [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) page too.
+There's a second path. If you actually want a plain, standalone **managed PostgreSQL** for your own app (not the full Supabase bundle), Kloudbean runs that as its own product, backed up and locked to your app server's IP. That's the route many people take when they realize they used Supabase mostly for its database. The [add a managed database](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) guide walks through it, and there's a dedicated [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) page too.
 
 <!-- ADD IMAGE: Supabase Studio running on your own domain, showing the table editor with your project's tables. -->
 
@@ -144,7 +144,7 @@ Worth calling out, because it catches people by surprise. If you built your app 
 
 **Own the backend, keep the keys.** Launch Supabase in one click on a server you control, with the OS, SSL, and server backups handled and your data in your region. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
 
-One-click Supabase · Managed PostgreSQL · Private networking · Automatic backups · Free migration · Free trial
+One-click Supabase · Managed PostgreSQL · Automatic backups · Free migration · Free trial
 
 ## FAQ
 

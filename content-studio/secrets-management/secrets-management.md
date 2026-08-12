@@ -159,7 +159,7 @@ None of this is exotic. Keep secrets out of code and out of Git, hand them to th
 
 **Keep your secrets out of your code, and out of the incident channel.**
 
-Set environment variables and runtime config in the console at [kloudbean.com](https://www.kloudbean.com/), with scoped API tokens, automatic backups, private networking, and free migration on a free trial. Check server sizes on [pricing](https://www.kloudbean.com/pricing/).
+Set environment variables and runtime config in the console at [kloudbean.com](https://www.kloudbean.com/), with scoped API tokens, automatic backups, IP allow-listing, and free migration on a free trial. Check server sizes on [pricing](https://www.kloudbean.com/pricing/).
 
 ## FAQ
 

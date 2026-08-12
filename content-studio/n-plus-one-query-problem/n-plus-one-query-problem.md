@@ -237,11 +237,11 @@ The companion fixes live on the platform side and pair with the real fix in your
 
 <!-- ADD IMAGE: launching a managed PostgreSQL or MySQL database in the Kloudbean console (../assets/console/launch-database.png). -->
 
-*DBS -> Launch Database. Managed Postgres or MySQL on a private network with automatic backups, so app and database talk over a fast internal link.*
+*DBS -> Launch Database. Managed Postgres or MySQL with automatic backups, colocated with your app so they talk over a fast internal link.*
 
 <!-- ADD IMAGE: query count or database CPU before and after adding eager loading, on the same page. -->
 
-One private network matters more than it sounds here. When your app and database sit on the same private network, even a chatty query pattern pays a tiny round trip instead of a public-internet one, so a mild N+1 hurts less while you fix it. The full walkthrough of wiring a database into an app is the pillar guide, [add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), and the engine-specific view is [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/).
+Colocation matters more than it sounds here. When your app and database sit in the same account, right next to each other, even a chatty query pattern pays a tiny round trip instead of a public-internet one, so a mild N+1 hurts less while you fix it. The full walkthrough of wiring a database into an app is the pillar guide, [add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), and the engine-specific view is [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/).
 
 ---
 
@@ -249,7 +249,7 @@ One private network matters more than it sounds here. When your app and database
 
 Launch managed PostgreSQL or MySQL, watch query volume and CPU in one dashboard, and pair eager loading with indexing, pooling, and managed Redis when you need them. Start free at [kloudbean.com](https://www.kloudbean.com/), or see [pricing](https://www.kloudbean.com/pricing/).
 
-Managed PostgreSQL & MySQL · Automatic backups · Private networking · Resize on demand · Free migration · Free trial
+Managed PostgreSQL & MySQL · Automatic backups · Resize on demand · Free migration · Free trial
 
 ## FAQ
 

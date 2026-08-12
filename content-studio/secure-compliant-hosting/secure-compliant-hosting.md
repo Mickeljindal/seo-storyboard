@@ -17,7 +17,7 @@ Every serious cloud runs on a shared responsibility model, and it's worth intern
 | Area | Platform provides | You own |
 |---|---|---|
 | **Physical + datacenter** | Tier-1 provider facilities (AWS, Google Cloud, Linode, Vultr, DigitalOcean, UpCloud, Lightsail) | Nothing at this layer. You inherit it. |
-| **Network isolation** | VPC / private networking so services talk internally | Don't expose what should be private; keep the database off the public internet |
+| **Network isolation** | IP allow-listing so only your app server reaches the database, private networking/VPC on Enterprise | Don't expose what should be private; keep the database off the public internet |
 | **Firewall + intrusion** | Shorewall firewall and Fail2ban, on by default | IP allowlists and app-level rate limits you choose to add |
 | **OS + stack patching** | Kernel, runtime, and stack updates handled for you | Your dependencies and framework versions, your package CVEs |
 | **Encryption in transit** | Free, auto-renewing SSL/TLS | Force HTTPS, set HSTS, encrypt sensitive fields in your app |
@@ -35,7 +35,7 @@ Every serious cloud runs on a shared responsibility model, and it's worth intern
 
 Security isn't one wall. It's a stack of them, so when one fails (and one eventually does) the next still holds. Attackers call it work; defenders call it defense in depth. A managed platform should hand you most of these layers already switched on, not as a paid upsell you find after an incident.
 
-<!-- SVG diagram: defense-in-depth stack. Edge (Cloudflare) -> Firewall (Shorewall + Fail2ban) -> Encryption in transit (SSL/TLS) -> Access (UAC + 2FA) -> Private network (VPC) -> Resilience (backups + audit trail) -> core: your app and your data (you own this). -->
+<!-- SVG diagram: defense-in-depth stack. Edge (Cloudflare) -> Firewall (Shorewall + Fail2ban) -> Encryption in transit (SSL/TLS) -> Access (UAC + 2FA) -> Network isolation (IP allow-listing) -> Resilience (backups + audit trail) -> core: your app and your data (you own this). -->
 
 ### The edge: soak up floods, filter bad requests
 
@@ -69,11 +69,11 @@ Layer identity on top. Two-factor authentication means a stolen password alone i
 
 Admin panels, staging sites, and internal dashboards don't need to greet the whole internet. Two cheap controls shrink that surface fast. IP Access Control allows or denies by address or CIDR range, so only your office or VPN reaches a sensitive path. A Basic Auth gate puts a username and password wall in front of an app before anyone sees it, ideal for staging you don't want indexed or probed. Neither is fancy. The bots can't attack a door they can't reach.
 
-### Private networking: keep the database off the public internet
+### Network isolation: keep the database off the public internet
 
-The most common self-inflicted wound in hosting is a database with a public IP and a weak password. Scanners find it in hours. So keep internal services internal. On Kloudbean your app talks to its database over a VPC and private networking, so the database isn't sitting on the open web waiting to be discovered. The app reaches it on the inside; the internet can't. For admin work you tunnel in through the server rather than exposing a port to the world.
+The most common self-inflicted wound in hosting is a database with a public IP and a weak password. Scanners find it in hours. So keep internal services internal. On Kloudbean your database runs right next to your app, and IP Access Control lets you whitelist your app server's IP so only that server can connect; everything else is refused. The app reaches it on the inside; the public internet can't. For admin work you tunnel in through the server rather than exposing a port to the world. On Enterprise you can go further and put the database on a private network (VPC).
 
-<!-- ADD IMAGE: network topology showing app and database on a private network, public internet blocked from the database -->
+<!-- ADD IMAGE: network topology showing the app whitelisted to reach the database, public internet blocked from the database -->
 
 ### Backups: the first step of resilience
 
@@ -125,7 +125,7 @@ SOC 2 is less about a specific technology and more about proving your controls o
 
 Straight talk, because this is where a lot of hosting copy quietly lies. Kloudbean provides the infrastructure controls that support GDPR, PCI DSS, and SOC 2. That does not mean your app is certified, and it does not mean you can skip your own work. Certification and attestation are a shared, ongoing effort, and some certifications are in progress rather than finished. Any vendor that says their hosting alone makes you "certified" is selling a story an auditor will unwind in five minutes.
 
-What you can lean on: a hardened base, encryption in transit, private networking, least-privilege access, automatic backups, and, on Enterprise, an audit trail that produces the evidence an assessor asks for. That's a real, defensible starting position. If you're weighing managed platforms on security posture rather than logos, a like-for-like read such as [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/) beats any badge on a homepage.
+What you can lean on: a hardened base, encryption in transit, IP allow-listing, least-privilege access, automatic backups, and, on Enterprise, an audit trail that produces the evidence an assessor asks for. That's a real, defensible starting position. If you're weighing managed platforms on security posture rather than logos, a like-for-like read such as [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/) beats any badge on a homepage.
 
 ## A practical hardening checklist
 
@@ -134,7 +134,7 @@ If you do nothing else this week, do these.
 - Turn on [2FA or social login](https://www.kloudbean.com/blog/two-factor-and-social-login/) for every account, not just the owner.
 - Create least-privilege [subusers with UAC](https://www.kloudbean.com/blog/subuser-and-uac-guide/); delete access nobody uses anymore.
 - Restrict admin panels and staging to trusted addresses with [IP allowlisting](https://www.kloudbean.com/blog/ip-allowlisting-guide/), and hide pre-launch sites behind a [Basic Auth gate](https://www.kloudbean.com/blog/basic-auth-gate-guide/).
-- Put the database on the private network; confirm it has no public IP.
+- Lock the database to your app server's IP with IP Access Control so only that server can connect.
 - Verify HTTPS is forced and the certificate auto-renews, and know your [encryption at rest and in transit](https://www.kloudbean.com/blog/data-encryption-at-rest-and-in-transit/).
 - Set your app's [security headers](https://www.kloudbean.com/blog/security-headers-guide/) (CSP, HSTS) and validate all input.
 - Move every secret into environment variables and [manage them properly](https://www.kloudbean.com/blog/secrets-management-guide/); scrub keys from Git history.
@@ -146,7 +146,7 @@ That is the short version. The full, categorized audit, with the reasoning behin
 
 **A hardened base, on day one.** Ship on infrastructure that arrives secured, so you can spend your effort on the app-level controls only you can own. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/), and always verify current details there.
 
-Firewall + Fail2ban baseline · Free auto-renewing SSL · Private networking · Subusers + UAC · 2FA · Automatic backups · Audit trail (Enterprise)
+Firewall + Fail2ban baseline · Free auto-renewing SSL · Subusers + UAC · 2FA · Automatic backups · Audit trail (Enterprise)
 
 ## FAQ
 
@@ -160,11 +160,11 @@ It's the split of security duties between the platform and the customer. The pla
 
 ### Is Kloudbean GDPR, PCI, or SOC 2 certified?
 
-Kloudbean provides the infrastructure controls that support GDPR, PCI DSS, and SOC 2, such as encryption in transit, private networking, access controls, backups, and an Enterprise audit trail. Certification and attestation are a shared, ongoing effort, and some certifications are in progress. No host makes your application compliant on its own. You still own the app-level and process requirements each framework asks for.
+Kloudbean provides the infrastructure controls that support GDPR, PCI DSS, and SOC 2, such as encryption in transit, IP allow-listing, access controls, backups, and an Enterprise audit trail. Certification and attestation are a shared, ongoing effort, and some certifications are in progress. No host makes your application compliant on its own. You still own the app-level and process requirements each framework asks for.
 
 ### What security is on by default?
 
-Every Kloudbean server ships with a Shorewall firewall and Fail2ban already enabled, plus free, auto-renewing SSL for your domains. You can also keep your database on a private network so it never faces the public internet. Extra layers like BitNinja are available on Premium and Enterprise, but the firewall, Fail2ban, and SSL are the baseline you start with.
+Every Kloudbean server ships with a Shorewall firewall and Fail2ban already enabled, plus free, auto-renewing SSL for your domains. You can also lock your database to your app server's IP so it never faces the public internet. Extra layers like BitNinja are available on Premium and Enterprise, but the firewall, Fail2ban, and SSL are the baseline you start with.
 
 ### Does secure hosting include a WAF?
 

@@ -125,11 +125,11 @@ module.exports = {
   <p>Two hard requirements fall out of the design. You need Redis running continuously (it holds the jobs), and you need a worker process that stays alive to consume them. This is precisely where request-driven serverless platforms struggle: there's no durable, always-on worker, so people end up bolting on external queue services to fill the gap. If background jobs are core to your app, running on infrastructure that gives you a persistent process and a managed Redis in the first place is far simpler. We dug into that tradeoff in <a href="https://www.kloudbean.com/blog/vercel-for-node-backends-limits/">Vercel for Node.js backends</a>.</p>
 
   <h2>How this fits on Kloudbean</h2>
-  <p>This is a case where the hosting model genuinely matters. On Kloudbean you launch a managed Redis instance in a few clicks (with backups), and it sits in the same dashboard as your app on a private network, so your queue connection is a supplied <code>REDIS_URL</code> over a private link rather than a public endpoint. Your worker runs alongside the web app under PM2, both always-on, so jobs are consumed continuously. It's the persistent-process, managed-Redis setup that BullMQ wants, without you assembling it from separate providers.</p>
+  <p>This is a case where the hosting model genuinely matters. On Kloudbean you launch a managed Redis instance in a few clicks (with backups), and it sits in the same dashboard as your app, right next to it, so your queue connection is a supplied <code>REDIS_URL</code> over an internal link, locked to your app server's IP, rather than a public endpoint. Your worker runs alongside the web app under PM2, both always-on, so jobs are consumed continuously. It's the persistent-process, managed-Redis setup that BullMQ wants, without you assembling it from separate providers.</p>
 
   <figure>
     <img src="../assets/console/launch-database.png" alt="Launching a managed Redis instance in the Kloudbean console to back a BullMQ queue">
-    <figcaption>Launch managed Redis in the same dashboard as your app, then point BullMQ at it over the private network.</figcaption>
+    <figcaption>Launch managed Redis in the same dashboard as your app, then point BullMQ at it over an internal link, locked to your app server's IP.</figcaption>
   </figure>
 
   <h2>Related reading</h2>
@@ -137,8 +137,8 @@ module.exports = {
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Give BullMQ the Redis and worker it wants.</p>
-    <p style="margin:0 0 .6em">Launch managed Redis in the same dashboard as your always-on Node app, run your worker alongside the web process under PM2, and connect over a private network, on flat pricing from $8/mo. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">Managed Redis · Always-on worker under PM2 · Private networking · GitHub deploys · Flat from $8/mo</p>
+    <p style="margin:0 0 .6em">Launch managed Redis in the same dashboard as your always-on Node app, run your worker alongside the web process under PM2, and connect over an internal link locked to your app server's IP, on flat pricing from $8/mo. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed Redis · Always-on worker under PM2 · GitHub deploys · Flat from $8/mo</p>
   </div>
 
   <h2>FAQ</h2>

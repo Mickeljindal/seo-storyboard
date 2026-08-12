@@ -1,7 +1,7 @@
 ---
 title: "A Railway Alternative for Vibe-Coded Apps"
 slug: railway-alternative-for-vibe-coded-apps
-meta_description: "Railway's DX is a joy, but usage-based pricing is hard to budget. An honest Railway alternative guide — a cost-predictability and ownership decision framework, and how a flat-rate server you own compares."
+meta_description: "Railway's DX is a joy, but usage-based pricing is hard to budget. An honest Railway alternative guide: a cost-predictability and ownership decision framework, and how a flat-rate server you own compares."
 target_keyword: Railway alternative
 secondary_keywords:
   - Railway alternative with flat pricing
@@ -10,10 +10,10 @@ secondary_keywords:
   - cheaper Railway alternative
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 1 — Deploy AI / Vibe-Coded Apps
+cluster: 1 - Deploy AI / Vibe-Coded Apps
 ---
 
-![A Railway alternative for vibe-coded apps — a flat-rate server you own with the database next to the app](images/hero.png)
+![A Railway alternative for vibe-coded apps: a flat-rate server you own with the database next to the app](images/hero.png)
 
 # A Railway Alternative for Vibe-Coded Apps
 
@@ -108,7 +108,7 @@ Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and frameworks l
 
 ## Keep the ease. Lose the meter.
 
-Run your vibe-coded apps on one flat-rate server you own at [kloudbean.com](https://www.kloudbean.com/). One-click databases, automatic backups, private networking, free migration, free trial, and git deploy. Plans on [pricing](https://www.kloudbean.com/pricing/).
+Run your vibe-coded apps on one flat-rate server you own at [kloudbean.com](https://www.kloudbean.com/). One-click databases, automatic backups, IP allow-listing, free migration, free trial, and git deploy. Plans on [pricing](https://www.kloudbean.com/pricing/).
 
 ## FAQ
 

@@ -127,7 +127,7 @@
     <tbody>
       <tr><td><strong>Data residency</strong></td><td>In-Kingdom region (GCP Dammam), with the database and backups kept in-region</td><td>Deciding what data is in scope, and keeping third-party tools in-region too</td></tr>
       <tr><td><strong>Encryption</strong></td><td>Free, auto-renewing SSL/TLS in transit on every domain</td><td>Deciding which sensitive fields need extra encryption inside your app</td></tr>
-      <tr><td><strong>Access control</strong></td><td>Subusers, UAC, 2FA, HttpOnly sessions, private networking</td><td>Who you invite, least-privilege roles, removing people who leave</td></tr>
+      <tr><td><strong>Access control</strong></td><td>Subusers, UAC, 2FA, HttpOnly sessions, IP allow-listing</td><td>Who you invite, least-privilege roles, removing people who leave</td></tr>
       <tr><td><strong>Lawful basis + consent</strong></td><td>Nothing at this layer. It's a legal and product decision.</td><td>A valid basis to process, honest consent, clear privacy notices</td></tr>
       <tr><td><strong>Data minimization</strong></td><td>Storage you control; no requirement to collect anything</td><td>Collecting only what you need, not hoarding data by default</td></tr>
       <tr><td><strong>Retention + deletion</strong></td><td>Backups and restore; the ability to delete records you choose</td><td>Your retention schedule and actually deleting when it expires</td></tr>
@@ -149,7 +149,7 @@
     <figcaption>Add Server: choosing Google Cloud's Dammam (me-central2) region pins your data inside Saudi Arabia. That single click covers the residency half of PDPL hosting.</figcaption>
   </figure>
 
-  <p>Because the stack is managed, in-Kingdom means more than where the app runs. The managed database launches into the same region on a <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">private network (VPC)</a>, so it isn't sitting on the open internet for scanners to find. Backups, which are full copies of your data and the thing teams most often forget, are kept in the same region. That last detail matters: a backup that lands in another country quietly breaks your residency. If the concept itself is new, the plain-English version lives in <a href="https://www.kloudbean.com/blog/data-residency-explained/">data residency explained</a>, and the Saudi specifics are in the companion piece on <a href="https://www.kloudbean.com/blog/data-residency-saudi-arabia/">data residency in Saudi Arabia</a>.</p>
+  <p>Because the stack is managed, in-Kingdom means more than where the app runs. The managed database launches into the same region, locked down with IP allow-listing so only your app server can reach it, not sitting on the open internet for scanners to find. On Enterprise, it can run on a <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">private network (VPC)</a>. Backups, which are full copies of your data and the thing teams most often forget, are kept in the same region. That last detail matters: a backup that lands in another country quietly breaks your residency. If the concept itself is new, the plain-English version lives in <a href="https://www.kloudbean.com/blog/data-residency-explained/">data residency explained</a>, and the Saudi specifics are in the companion piece on <a href="https://www.kloudbean.com/blog/data-residency-saudi-arabia/">data residency in Saudi Arabia</a>.</p>
 
   <h2>The infrastructure controls that support PDPL</h2>
   <p>Residency is the headline, but PDPL also expects appropriate technical measures around the data. This is where a managed platform saves you a pile of setup, because the controls arrive switched on rather than as a checklist you assemble yourself. Here's the honest scope of what's in the box.</p>
@@ -160,8 +160,8 @@
   <h3>Access controls and least privilege</h3>
   <p>PDPL cares a lot about who can touch personal data. Kloudbean gives you subusers and User Access Control, so permissions are granular, set per resource and per action. Your junior dev can deploy one app without seeing billing, the database, or twenty other projects. Add two-factor authentication for everyone, HttpOnly cookie sessions so a cross-site scripting bug can't lift a token, and social login that leans on providers who already do the hard identity work. Most breaches you'll ever read about trace back to a leaked credential or a token with more power than it needed. Least privilege is boring and it works.</p>
 
-  <h3>Baseline hardening and private networking</h3>
-  <p>Every server ships with a Shorewall firewall and Fail2ban, on from the first minute. Shorewall decides which ports are reachable; Fail2ban bans an IP that keeps failing to log in, which is exactly what a brute-force bot looks like. Want an extra layer? BitNinja is available as an added security option on higher tiers. Treat it as a bonus, not the baseline. And keep the database on the private network so it never faces the public internet, which is the single most common self-inflicted wound in hosting.</p>
+  <h3>Baseline hardening and locking down access</h3>
+  <p>Every server ships with a Shorewall firewall and Fail2ban, on from the first minute. Shorewall decides which ports are reachable; Fail2ban bans an IP that keeps failing to log in, which is exactly what a brute-force bot looks like. Want an extra layer? BitNinja is available as an added security option on higher tiers. Treat it as a bonus, not the baseline. And lock the database down with IP allow-listing so only your app server can reach it, never the public internet, which is the single most common self-inflicted wound in hosting.</p>
 
   <figure>
     <img src="../assets/console/firewall.png" alt="The Kloudbean console firewall settings showing Shorewall and Fail2ban enabled by default, with BitNinja as an added option">
@@ -197,7 +197,7 @@
   <p>On the platform side, baseline hardening, patching of the managed layer, and (on Enterprise) an immutable, searchable audit trail with CSV export give you real evidence to show an assessor. On your side sit your application's own controls, your written policies, your staff access reviews, and the process discipline to follow them. Neither PDPL nor NCA ECC is a badge a host grants you. The same shared-responsibility logic runs through Kloudbean's <a href="https://www.kloudbean.com/blog/secure-compliant-hosting/">secure, compliant hosting hub</a>, and the privacy-law parallel is spelled out in <a href="https://www.kloudbean.com/blog/gdpr-compliant-hosting/">GDPR-compliant hosting</a>, PDPL's closest international cousin.</p>
 
   <h2>The honest answer on PDPL certification</h2>
-  <p>Straight talk, because this is where a lot of hosting copy quietly overreaches. Kloudbean provides the infrastructure controls that support PDPL: in-Kingdom residency, encryption in transit, private networking, least-privilege access, automatic backups, and an Enterprise audit trail. It does not claim to hold a certification on your behalf, and it does not turn your organization compliant by itself. Certification and attestation are a shared, ongoing effort. Any host that says its servers alone will get you across the PDPL line is describing a shortcut that doesn't exist, and a Saudi assessor will unwind that claim quickly.</p>
+  <p>Straight talk, because this is where a lot of hosting copy quietly overreaches. Kloudbean provides the infrastructure controls that support PDPL: in-Kingdom residency, encryption in transit, IP allow-listing, least-privilege access, automatic backups, and, on Enterprise, private networking and an audit trail. It does not claim to hold a certification on your behalf, and it does not turn your organization compliant by itself. Certification and attestation are a shared, ongoing effort. Any host that says its servers alone will get you across the PDPL line is describing a shortcut that doesn't exist, and a Saudi assessor will unwind that claim quickly.</p>
   <p>What you can lean on is a strong, defensible starting position: your data provably inside the Kingdom, hardened by default, with the evidence an assessor asks for. That's real value. It just isn't the whole job, and honest is the only way to talk about compliance. If you're comparing managed hosts on real posture rather than badges, a like-for-like read such as <a href="https://www.kloudbean.com/blog/cloudways-alternatives/">these Cloudways alternatives</a> is worth more than any logo on a homepage.</p>
 
   <h2>A practical PDPL compliance hosting checklist</h2>
@@ -205,7 +205,7 @@
   <h3>The infrastructure half (set it up once)</h3>
   <ul>
     <li>Provision your server in the Dammam (me-central2) region so data sits in-Kingdom.</li>
-    <li>Launch the managed database into the same region, on the private network.</li>
+    <li>Launch the managed database into the same region, locked down with IP allow-listing so only your app server can reach it.</li>
     <li>Confirm backups are enabled and staying in-region; restore one to prove it works.</li>
     <li>Force HTTPS and let the free certificate auto-renew.</li>
     <li>Create least-privilege subusers with UAC; turn on 2FA for everyone.</li>
@@ -223,7 +223,7 @@
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Get the PDPL foundation right on day one.</p>
     <p style="margin:0 0 .6em">Launch in Google Cloud's Dammam region, keep your database and backups in-Kingdom, and run the whole stack from one dashboard, so you can spend your effort on the data practices only you can own. Plans start from $8/mo, Enterprise is custom. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see options on <a href="https://www.kloudbean.com/pricing/">pricing</a>, and always verify current details there.</p>
-    <p style="margin:0; font-size:15px; opacity:.85">In-Kingdom GCP Dammam region &middot; Private networking &middot; Free auto-renewing SSL &middot; Automatic backups &middot; Free migration assistance &middot; Free trial</p>
+    <p style="margin:0; font-size:15px; opacity:.85">In-Kingdom GCP Dammam region &middot; IP allow-listing &middot; Free auto-renewing SSL &middot; Automatic backups &middot; Free migration assistance &middot; Free trial</p>
   </div>
 
   <h2>FAQ</h2>

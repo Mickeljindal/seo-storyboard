@@ -11,7 +11,7 @@ secondary_keywords:
   - gitlab ram requirements
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 2 — Self-Hosted Tools
+cluster: 2 - Self-Hosted Tools
 ---
 
 ![Self-host GitLab: repos, CI/CD, and a container registry on a server you control](images/hero.png)
@@ -144,7 +144,7 @@ Curious what else earns its keep on your own server? Our [best self-hosted tools
 
 **Own the repo, not the per-seat bill.** Spin up a right-sized server for GitLab at [kloudbean.com](https://www.kloudbean.com/). Pick 8 GB, a region near your team, and free SSL. Start on a free trial and scale up as you grow. See plans on [pricing](https://www.kloudbean.com/pricing/).
 
-7 clouds · Right-size the RAM · Free SSL · Server-level backups · Private networking · Free trial
+7 clouds · Right-size the RAM · Free SSL · Server-level backups · Free trial
 
 ## FAQ
 
@@ -173,7 +173,7 @@ Yes. GitLab has built-in export and import for groups and projects, and because 
 For a growing team, usually yes. A flat server cost doesn't rise when you add developers, so past a handful of seats the math tilts toward self-hosting. For one or two people, GitLab.com's free tier is hard to beat and not worth replacing with a server.
 
 **Is a self-hosted GitLab secure enough for private code?**
-Yes, with the basics in place: HTTPS on your domain, the server firewalled, private networking between components, and GitLab's backups running. Managed hosting keeps the OS patched and the firewall on, and keeping the box on a private network limits its exposure.
+Yes, with the basics in place: HTTPS on your domain, the server firewalled, access locked down to trusted IPs, and GitLab's backups running. Managed hosting keeps the OS patched and the firewall on, and limiting who can reach the box keeps its exposure small.
 
 ---
 

@@ -181,7 +181,7 @@ On Kloudbean the reverse proxy is just there, part of the managed stack. You dep
 
 Need more than one backend? That's when the built-in **Flexible Load Balancer** comes in, the specialized reverse proxy from earlier, sitting in front of a pool with health checks and SSL management. It's on every account, off until you switch it on. And because servers, apps, databases, and the load balancer all live under one dashboard, you're not stitching the proxy layer together from separate products and separate bills.
 
-The division of labour stays honest. The platform runs the proxy and the SSL. You own the app that listens behind it, on Linux stacks like Node, PHP, Python, Ruby, and Java. Keeping that backend on a [private network](https://www.kloudbean.com/blog/what-is-a-vpc/) means the only public door is the proxy, which is exactly where you want it.
+The division of labour stays honest. The platform runs the proxy and the SSL. You own the app that listens behind it, on Linux stacks like Node, PHP, Python, Ruby, and Java. Your backend listens on an internal port, so the only public door is the proxy out front, which is exactly where you want it. On Enterprise you can put that backend on a [private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/) as well.
 
 ![The Kloudbean dashboard showing servers, applications, databases, and the load balancer in one place](../assets/console/dashboard.png)
 
@@ -197,7 +197,7 @@ A forward proxy points the other way, standing in front of clients. A load balan
 
 **Let the platform run the proxy. You run the app.** Deploy on Kloudbean and a web server sits in front of your app with free auto-renewing SSL, wired to the right port for you. Flip on the built-in load balancer the day one backend isn't enough. Start free at [kloudbean.com](https://www.kloudbean.com/); compare plans from $8/mo on [pricing](https://www.kloudbean.com/pricing/).
 
-One dashboard · Managed web server and SSL · Built-in load balancer · Private networking · 7 clouds · Free migration · Free trial
+One dashboard · Managed web server and SSL · Built-in load balancer · 7 clouds · Free migration · Free trial
 
 ## FAQ
 

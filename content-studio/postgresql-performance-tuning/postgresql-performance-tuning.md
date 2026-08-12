@@ -191,13 +191,13 @@ But tune queries and indexes first. Bad SQL scales badly no matter the hardware.
 
 ## Put it into practice on managed PostgreSQL
 
-The tuning above is plain Postgres; it works anywhere. What a managed platform changes is the ops around it. Provisioning, the private network, patching, and backups are handled, so your time goes to schema, queries, and indexes.
+The tuning above is plain Postgres; it works anywhere. What a managed platform changes is the ops around it. Provisioning, IP allow-listing, patching, and backups are handled, so your time goes to schema, queries, and indexes.
 
-**1. Launch a managed PostgreSQL.** Postgres is one of seven managed database engines here. In the DBS section, pick Postgres, name it, and it's provisioned on a private network with automatic backups on. You own the schema, queries, and data; the platform handles provisioning, patching, and backups.
+**1. Launch a managed PostgreSQL.** Postgres is one of seven managed database engines here. In the DBS section, pick Postgres, name it, and it's provisioned with automatic backups on and locked to your app server's IP. You own the schema, queries, and data; the platform handles provisioning, patching, and backups.
 
-![The Kloudbean console launching a managed PostgreSQL database with automatic backups and private networking](../assets/console/launch-database.png)
+![The Kloudbean console launching a managed PostgreSQL database with automatic backups and IP allow-listing](../assets/console/launch-database.png)
 
-**2. Connect over the private network.** Put the connection string in an environment variable, set your pool size there, and keep the database off the public internet. Your Node or Python app reads the variable and connects internally. Wiring up an app? [Deploying a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) walks the path.
+**2. Connect and lock it down.** Put the connection string in an environment variable, set your pool size there, then whitelist your app server's IP so only it can reach the database, keeping it off the public internet. Your Node or Python app reads the variable and connects internally. Wiring up an app? [Deploying a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) walks the path.
 
 ![The Kloudbean console environment variables screen holding the PostgreSQL connection string safely out of code](../assets/console/env-vars.png)
 
@@ -209,9 +209,9 @@ Backups run automatically, but a backup you've never restored is a hope. Do a te
 
 ---
 
-**Make Postgres earn its keep.** Managed PostgreSQL on Kloudbean gives you a real box on a private network, automatic backups, and one-click provisioning, so the only thing left to tune is your own queries. Start free at [kloudbean.com](https://www.kloudbean.com/) and see plans on [pricing](https://www.kloudbean.com/pricing/).
+**Make Postgres earn its keep.** Managed PostgreSQL on Kloudbean gives you a real box locked to your app server's IP, automatic backups, and one-click provisioning, so the only thing left to tune is your own queries. Start free at [kloudbean.com](https://www.kloudbean.com/) and see plans on [pricing](https://www.kloudbean.com/pricing/).
 
-Managed PostgreSQL · Automatic backups · Private networking · Resize as you grow · Free migration · Free trial
+Managed PostgreSQL · Automatic backups · Resize as you grow · Free migration · Free trial
 
 ## FAQ
 

@@ -58,9 +58,9 @@ Umami is two things: a Node app and a database. The app is a Next.js application
 
 Under the hood Umami uses Prisma to talk to the database, and it ships its schema as migrations. You don't design any tables. When the app builds, it applies those migrations and the database goes from empty to fully set up. The one thing you must not do is point it at some scratch database on the same box that gets wiped on a redeploy. That's the classic way people lose six months of history. Analytics only get more valuable with age, so the database is the part worth protecting from day one.
 
-<!-- SVG diagram in the HTML: the Umami tracking script in a visitor browser sends pageviews to the Umami Node app on your server, which writes events to managed PostgreSQL over the private network. Boundary labeled "your server, your data". -->
+<!-- SVG diagram in the HTML: the Umami tracking script in a visitor browser sends pageviews to the Umami Node app on your server, which writes events to managed PostgreSQL in the same account (app-server IP whitelisted). Boundary labeled "your server, your data". -->
 
-*The tracking script runs in your visitors' browsers and sends each pageview to the Umami app on your server. Umami writes every event to managed PostgreSQL over the private network. Nothing leaves for an ad network, and the data sits in a database you own.*
+*The tracking script runs in your visitors' browsers and sends each pageview to the Umami app on your server. Umami writes every event to managed PostgreSQL in the same account, reachable only from its whitelisted IP. Nothing leaves for an ad network, and the data sits in a database you own.*
 
 ## Self-hosted Umami vs Google Analytics vs Umami Cloud
 
@@ -85,7 +85,7 @@ Here's the production path end to end. Four steps, and the order matters: databa
 
 ### 1. Launch managed PostgreSQL
 
-Start with the database, because Umami needs it before it'll boot. Provision a managed PostgreSQL instance, create a database named `umami`, and grab its private-network host and credentials. Managed here means the engine is provisioned, patched, and backed up for you, and it sits on a private network your app can reach without exposing a public port.
+Start with the database, because Umami needs it before it'll boot. Provision a managed PostgreSQL instance, create a database named `umami`, and grab its internal host and credentials. Managed here means the engine is provisioned, patched, and backed up for you, and you whitelist your app server's IP so it can reach the database without exposing a public port.
 
 ![The Kloudbean console Launch Database screen used to provision managed PostgreSQL for a self-hosted Umami analytics instance](../assets/console/launch-database.png)
 
@@ -110,7 +110,7 @@ DATABASE_TYPE=postgresql
 APP_SECRET=a-long-random-string-you-generate-once
 ```
 
-A few things worth knowing here. The host in that connection string (`10.0.0.5` in the example) is the database's private-network address, not a public one. `DATABASE_TYPE` is usually inferred from the URL scheme, but setting it explicitly to `postgresql` removes any doubt. And `APP_SECRET` matters more than it looks: if you skip it, Umami derives one from your `DATABASE_URL`, which means the day you rotate the database password, every login token silently breaks. Set an explicit `APP_SECRET` once and never think about it again. Our [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) guide goes deeper on the habit.
+A few things worth knowing here. The host in that connection string (`10.0.0.5` in the example) is the database's internal address, not a public one. `DATABASE_TYPE` is usually inferred from the URL scheme, but setting it explicitly to `postgresql` removes any doubt. And `APP_SECRET` matters more than it looks: if you skip it, Umami derives one from your `DATABASE_URL`, which means the day you rotate the database password, every login token silently breaks. Set an explicit `APP_SECRET` once and never think about it again. Our [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) guide goes deeper on the habit.
 
 ### 4. Build, migrate, and deploy
 
@@ -158,7 +158,7 @@ Swap `analytics.example.com` for your Umami domain and the ID for the one Umami 
 
 Self-hosting means the security defaults are yours to set. None of this is hard, but skipping it is how a quiet analytics box becomes a problem.
 
-- **Keep the database on the private network.** Umami reaches PostgreSQL over the private address, and the database never needs a public port. Don't open one.
+- **Lock the database to your app server's IP.** Umami reaches PostgreSQL over its internal address, and the database never needs a public port. Don't open one.
 - **Secrets in env vars, never in code.** `APP_SECRET` and the database credentials live in the environment, not in a config file that could land in Git.
 - **Keep .env out of your repo.** Add it to `.gitignore` before the first commit. A leaked `DATABASE_URL` is a leaked database.
 - **Least-privilege database user.** The `umami` user needs access to the `umami` database and nothing else. Don't hand it a superuser role it will never use.
@@ -183,7 +183,7 @@ Umami is a good gateway into running your own tools. The [best self-hosted tools
 
 **Analytics that stay yours.** Run the Umami Node app on a managed server, back it with managed PostgreSQL, and keep every pageview in a database you own. The OS, SSL, and backups are handled. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
 
-Managed Node runtime · Managed PostgreSQL · Private networking · Automatic backups · Free SSL · Free migration · Free trial
+Managed Node runtime · Managed PostgreSQL · Automatic backups · Free SSL · Free migration · Free trial
 
 ## FAQ
 
@@ -191,7 +191,7 @@ Managed Node runtime · Managed PostgreSQL · Private networking · Automatic ba
 For most sites, yes. Umami gives you the numbers people actually check (pageviews, referrers, top pages, countries, devices) in a clean interface, without cookies or sampling. It won't replace GA4 if you depend on deep Google Ads integration, but for owning your traffic data it's one of the strongest self-hosted options going.
 
 **What database does Umami need?**
-Umami needs PostgreSQL or MySQL. It uses Prisma to talk to whichever you pick and ships its schema as migrations. For production, managed PostgreSQL is the safe choice: it backs up cleanly, runs on a private network, and is the engine most Umami deployments use.
+Umami needs PostgreSQL or MySQL. It uses Prisma to talk to whichever you pick and ships its schema as migrations. For production, managed PostgreSQL is the safe choice: it backs up cleanly, locks down to your app server's IP, and is the engine most Umami deployments use.
 
 **Is self-hosted Umami GDPR compliant?**
 Umami's cookieless, no-personal-data design removes the biggest sources of trouble, which is a real head start. But no tool makes you automatically compliant. Compliance depends on how you configure it, what you track, and your own legal setup, so the responsibility stays with you as the site owner. Umami makes doing the right thing much easier; it doesn't do it for you.

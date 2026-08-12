@@ -143,7 +143,7 @@
   <ul>
     <li><strong>HTTPS everywhere.</strong> Free SSL on your domain, no exceptions. Files and logins over plain HTTP is a non-starter.</li>
     <li><strong>Two-factor authentication.</strong> Nextcloud has 2FA built in. Turn it on and require it for accounts that can see sensitive folders.</li>
-    <li><strong>Keep the database on a private network.</strong> Your MariaDB should talk to Nextcloud over a <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">private network</a>, not the public internet, so it's never exposed to scanners.</li>
+    <li><strong>Lock the database to your app server's IP.</strong> Your MariaDB runs in the same account as Nextcloud, right next to it, and you whitelist your app server's IP so only that server can connect, not the public internet, so it's never exposed to scanners. On Enterprise you can go further and put it on a <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">private network (VPC)</a>.</li>
     <li><strong>Back up both halves.</strong> Two things matter: the database (metadata, users, shares) and the files. If files live in object storage they're already durable, so make sure the database is dumped on a schedule alongside the platform's <a href="https://www.kloudbean.com/blog/server-backups-guide/">server-level backups</a>.</li>
   </ul>
 
@@ -173,7 +173,7 @@
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">One answer to "where are our files?"</p>
     <p style="margin:0">Stand up your own Drive at <a href="https://www.kloudbean.com/">kloudbean.com</a>. A small server, a managed database, and an object-storage bucket is the whole recipe. Start on a free trial, with free migration help if you're moving off Drive or Dropbox. See plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:.6em 0 0; font-size:15px">S3-compatible object storage · Managed MariaDB · Private networking · Free SSL · Automatic backups · Free trial</p>
+    <p style="margin:.6em 0 0; font-size:15px">S3-compatible object storage · Managed MariaDB · Free SSL · Automatic backups · Free trial</p>
   </div>
 
   <h2>FAQ</h2>
@@ -185,7 +185,7 @@
     <h3>Why is my Nextcloud slow?</h3>
     <p>Almost always two things: background jobs are running on page loads instead of via a real cron, and caching isn't set up. Switch background jobs to a system cron every five minutes and add Redis for caching and file locking. Raising PHP's memory limit helps with big uploads and previews too.</p>
     <h3>Is self-hosted Nextcloud secure enough for team files?</h3>
-    <p>Yes, with the basics: HTTPS on your domain, two-factor authentication on logins, the database on a private network rather than the public internet, and regular backups. Managed hosting also keeps the underlying server patched and firewalled.</p>
+    <p>Yes, with the basics: HTTPS on your domain, two-factor authentication on logins, the database locked to your app server's IP so only it can connect rather than sitting on the public internet, and regular backups. Managed hosting also keeps the underlying server patched and firewalled.</p>
     <h3>What do I need to back up?</h3>
     <p>Two things: the database (metadata, users, and shares) and the files themselves. If files are in object storage they're already durable, so the important habit is dumping the database on a schedule, alongside the platform's server-level backups.</p>
     <h3>How much does self-hosting Nextcloud cost?</h3>
@@ -210,7 +210,7 @@
 {"@type":"Question","name":"What does Nextcloud need to run?","acceptedAnswer":{"@type":"Answer","text":"A PHP web stack, a MariaDB or MySQL database for metadata, and somewhere to store the files. A 2 GB server is a fine start, and the PHP stack comes ready on a managed server, so you're mostly installing Nextcloud and choosing where files live."}},
 {"@type":"Question","name":"Can Nextcloud store files in object storage instead of on the server?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it's the setup to recommend for any real team. Nextcloud supports S3-compatible object storage as its primary file store, so all uploaded files go to a bucket instead of the server disk. Storage then scales independently and the app server stays small and cheap."}},
 {"@type":"Question","name":"Why is my Nextcloud slow?","acceptedAnswer":{"@type":"Answer","text":"Almost always two things: background jobs are running on page loads instead of via a real cron, and caching isn't set up. Switch background jobs to a system cron every five minutes and add Redis for caching and file locking. Raising PHP's memory limit helps with big uploads and previews too."}},
-{"@type":"Question","name":"Is self-hosted Nextcloud secure enough for team files?","acceptedAnswer":{"@type":"Answer","text":"Yes, with the basics: HTTPS on your domain, two-factor authentication on logins, the database on a private network rather than the public internet, and regular backups. Managed hosting also keeps the underlying server patched and firewalled."}},
+{"@type":"Question","name":"Is self-hosted Nextcloud secure enough for team files?","acceptedAnswer":{"@type":"Answer","text":"Yes, with the basics: HTTPS on your domain, two-factor authentication on logins, the database locked to your app server's IP so only it can connect rather than sitting on the public internet, and regular backups. Managed hosting also keeps the underlying server patched and firewalled."}},
 {"@type":"Question","name":"What do I need to back up?","acceptedAnswer":{"@type":"Answer","text":"Two things: the database (metadata, users, and shares) and the files themselves. If files are in object storage they're already durable, so the important habit is dumping the database on a schedule, alongside the platform's server-level backups."}},
 {"@type":"Question","name":"How much does self-hosting Nextcloud cost?","acceptedAnswer":{"@type":"Answer","text":"You pay for a server and a storage bucket, not per user. That's the whole appeal versus Drive or Dropbox for Business, where every seat adds to the monthly bill. Adding people to Nextcloud is just adding accounts."}},
 {"@type":"Question","name":"Does Nextcloud have desktop and mobile sync apps?","acceptedAnswer":{"@type":"Answer","text":"Yes. There are official desktop clients for Windows, Mac, and Linux that sync a folder just like Dropbox, plus mobile apps for phones and tablets. To users it behaves like the cloud drive they already know."}},

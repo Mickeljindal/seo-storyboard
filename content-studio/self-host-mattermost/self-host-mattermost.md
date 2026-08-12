@@ -58,17 +58,17 @@ Familiar and dependable: an app, a database, and a sensible amount of memory.
 
 Mattermost runs as a Go application with PostgreSQL behind it, and its own guidance is to run the database separately from the app in production rather than on the same box. Plan for a couple of gigabytes of memory as a starting point and scale from there with your team. You put the app behind a reverse proxy with HTTPS and point it at a database, and the piece worth doing properly is that database, since it holds every message and every channel. A [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) keeps that data maintained and backed up and matches Mattermost's separate-database recommendation without you running a second box by hand.
 
-<!-- ADD IMAGE: diagram, Mattermost as a Go app behind HTTPS inside a private network, with a separate PostgreSQL database and file storage, no outside dependency -->
+<!-- ADD IMAGE: diagram, Mattermost as a Go app behind HTTPS on a server you control, with a separate PostgreSQL database and file storage, no outside dependency -->
 
 ## Backups and access, because this holds your internal record
 
 Team chat quietly becomes your organisation's memory, so protect it like one.
 
-Your messages, channels, and users live in PostgreSQL, and uploaded files in your file store, so a real backup covers both: an automatic database dump plus the files, shipped off the server, with a restore you have tested once, per [the backups guide](https://www.kloudbean.com/blog/server-backups-guide/). Access matters as much as backups here, because this is internal communication. Keep it behind HTTPS, control who can reach the admin surface, and if isolation is part of your requirement, run it on a private network rather than exposing it to the open internet. For teams that need it, keeping the whole deployment inside a controlled network is not paranoia, it is the reason they chose to self-host in the first place.
+Your messages, channels, and users live in PostgreSQL, and uploaded files in your file store, so a real backup covers both: an automatic database dump plus the files, shipped off the server, with a restore you have tested once, per [the backups guide](https://www.kloudbean.com/blog/server-backups-guide/). Access matters as much as backups here, because this is internal communication. Keep it behind HTTPS, control who can reach the admin surface, and if isolation is part of your requirement, lock access down to trusted IPs rather than exposing it to the open internet (private networking is available on Enterprise). For teams that need it, keeping the whole deployment inside a controlled network is not paranoia, it is the reason they chose to self-host in the first place.
 
 ## Where hosting fits, honestly
 
-Mattermost suits a managed server well, and the platform can take on the parts that are not your team's job. You run it as a standard application across any of seven clouds, behind a managed reverse proxy with free auto-renewing SSL, pointed at a managed PostgreSQL that matches its separate-database guidance and is backed up automatically. Where isolation matters, private networking keeps the deployment off the public internet, and running across multiple clouds and regions gives options for where the data physically lives. It is not a one-click app, but it is a well-understood app-plus-database deployment.
+Mattermost suits a managed server well, and the platform can take on the parts that are not your team's job. You run it as a standard application across any of seven clouds, behind a managed reverse proxy with free auto-renewing SSL, pointed at a managed PostgreSQL that matches its separate-database guidance and is backed up automatically. Where isolation matters, locking access to trusted IPs keeps the deployment off the open internet (with private networking available on Enterprise), and running across multiple clouds and regions gives options for where the data physically lives. It is not a one-click app, but it is a well-understood app-plus-database deployment.
 
 The honest boundary, which matters for a tool chosen on compliance grounds: the platform provides the infrastructure controls, the managed database, SSL, backups, and network isolation. Your conversations, your retention and access policies, and your organisation's own compliance obligations remain yours. Managed hosting gives you a solid, controllable place to run Mattermost. The governance around what is said in it, and proving your compliance, stays with your organisation, as it must.
 
@@ -78,9 +78,9 @@ For the omnichannel alternative and the full comparison, [self-hosting Rocket.Ch
 
 ## Run team chat on infrastructure you control.
 
-Host Mattermost as an app on a managed server across seven clouds, with managed PostgreSQL, free auto-renewing SSL, automatic backups, and private networking where isolation matters. Your team's conversations stay on your side. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+Host Mattermost as an app on a managed server across seven clouds, with managed PostgreSQL, free auto-renewing SSL, automatic backups, and IP allow-listing where access needs to stay tight. Your team's conversations stay on your side. Start at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
 
-Managed server · Managed PostgreSQL · Free auto-renewing SSL · Private networking available
+Managed server · Managed PostgreSQL · Free auto-renewing SSL available
 
 ## FAQ
 
@@ -114,6 +114,6 @@ At scale it usually is. Hosted chat tools charge per user per month, so costs ri
 
 **Is Mattermost a one-click app on Kloudbean?**
 
-No. Mattermost runs as a standard application with a separate PostgreSQL database rather than a one-click install. The deployment is well understood: a right-sized server, a managed PostgreSQL, free SSL, and private networking where isolation is required. The platform keeps the server, database, and network controls healthy, while your conversations and compliance policies remain yours.
+No. Mattermost runs as a standard application with a separate PostgreSQL database rather than a one-click install. The deployment is well understood: a right-sized server, a managed PostgreSQL, free SSL, and IP allow-listing where access needs to stay tight. The platform keeps the server, database, and network controls healthy, while your conversations and compliance policies remain yours.
 
 Kloudbean Engineering · When the data has to stay, self-hosting is the answer, not a workaround.

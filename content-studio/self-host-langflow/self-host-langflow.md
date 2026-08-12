@@ -142,9 +142,9 @@ A few sharp edges we see people hit, worth naming so you don't:
 
 Self-hosted Langflow isn't an island. It's a Python app next to a database, which is a shape the platform is built for. Keep the model private by pairing it with [your own Ollama and Open WebUI](https://www.kloudbean.com/blog/self-host-ollama-open-webui/). Lean on [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) for both flows and pgvector embeddings. Because Langflow is so light, it'll happily [share one server with your other apps](https://www.kloudbean.com/blog/host-multiple-apps-one-server/), so the box already running your automations can host your AI flows too. Set [the wider AI app](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/) around it, and let [automatic backups](https://www.kloudbean.com/blog/server-backups-guide/) cover the database. Want the map of everything self-hostable? Start from the [self-hosted tools hub](https://www.kloudbean.com/blog/best-self-hosted-tools/).
 
-**Build the AI backend. Keep the keys, the docs, and the flows.** Run Langflow on a small managed server with a managed PostgreSQL and pgvector for embeddings, private networking, free SSL, and automatic backups. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+**Build the AI backend. Keep the keys, the docs, and the flows.** Run Langflow on a small managed server with a managed PostgreSQL and pgvector for embeddings, IP allow-listing, free SSL, and automatic backups. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
 
-Managed server · Managed PostgreSQL + pgvector · Private networking · Automatic backups · Free SSL · Free trial
+Managed server · Managed PostgreSQL + pgvector · Automatic backups · Free SSL · Free trial
 
 ## FAQ
 

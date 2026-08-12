@@ -44,13 +44,13 @@
   <p>Strapi on your laptop is one process reading a file. In production it's three moving parts, and the two that hold state have to live outside the app process, because that process is disposable. It gets restarted, redeployed, sometimes cloned. Here's the shape you're building toward.</p>
 
   <figure>
-    <svg viewBox="0 0 760 372" role="img" aria-label="Architecture diagram: client to Strapi Node app, Strapi to managed PostgreSQL over a private network, and Strapi uploads to S3-compatible object storage" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+    <svg viewBox="0 0 760 372" role="img" aria-label="Architecture diagram: client to Strapi Node app, Strapi to managed PostgreSQL in the same account (app-server IP whitelisted), and Strapi uploads to S3-compatible object storage" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
       <text x="28" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Self-hosted Strapi, the production layout</text>
       <text x="28" y="55" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">State lives outside the app process: database + object storage</text>
 
-      <!-- private network boundary -->
+      <!-- same-account boundary -->
       <rect x="196" y="86" width="452" height="150" rx="16" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5" stroke-dasharray="6 6"/>
-      <text x="212" y="108" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.5">PRIVATE NETWORK · VPC</text>
+      <text x="212" y="108" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.5">SAME ACCOUNT · APP-SERVER IP ONLY</text>
 
       <!-- client -->
       <rect x="24" y="128" width="120" height="66" rx="12" fill="#000f27"/>
@@ -94,7 +94,7 @@
       <polygon points="304,284 300,275 308,275" fill="#40b75f"/>
       <text x="314" y="250" fill="#40b75f" font-family="Poppins,sans-serif" font-size="10">upload provider</text>
     </svg>
-    <figcaption>The Strapi Node app serves the API and admin. Content and users live in managed PostgreSQL over a private network. Uploads go to S3-compatible object storage, not the app's disk.</figcaption>
+    <figcaption>The Strapi Node app serves the API and admin. Content and users live in managed PostgreSQL in the same account, reachable only from Strapi's whitelisted IP. Uploads go to S3-compatible object storage, not the app's disk.</figcaption>
   </figure>
 
   <p>Notice what's not inside the app box: your data and your files. That separation is the whole game. When the Strapi process can be thrown away and recreated without losing a thing, you're in production. When your data rides inside the process, you're one redeploy from an incident.</p>
@@ -162,7 +162,7 @@ module.exports = ({ env }) =&gt; ({
     acquireConnectionTimeout: env.int('DATABASE_CONNECTION_TIMEOUT', 60000),
   },
 });</code></pre>
-  <p>If your database sits on a private network, where it should, you can usually leave <code>DATABASE_SSL</code> off, since traffic never crosses the public internet. TypeScript projects use the same shape in <code>config/database.ts</code>.</p>
+  <p>If your database is locked to your app server's IP and reachable only internally, where it should be, you can usually leave <code>DATABASE_SSL</code> off, since traffic never crosses the public internet. TypeScript projects use the same shape in <code>config/database.ts</code>.</p>
 
   <h3>The environment variables that matter</h3>
   <p>These are the secrets and settings Strapi needs in production. Set them in your host's environment, never in code. Generate each secret as its own long random string, for example with <code>openssl rand -base64 32</code>:</p>
@@ -234,7 +234,7 @@ module.exports = ({ env }) =&gt; ({
   <p>Strapi is a Node app, so you deploy it like any Node service: add it to the managed Node runtime, give it a managed PostgreSQL, set the env vars, connect Git. One clarification. There's no one-click "Strapi" button here. You deploy your own Strapi repo onto the managed Node runtime, which is what you want for an app you're customizing. Same general flow as <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploy a Node app to a managed cloud</a>.</p>
 
   <h3>1. Launch managed PostgreSQL</h3>
-  <p>Open the database section and launch a PostgreSQL instance. It's provisioned, secured, kept on a private network, and backed up for you. Note the connection details for the env vars next.</p>
+  <p>Open the database section and launch a PostgreSQL instance. It's provisioned, secured, locked to your app server's IP, and backed up for you. Note the connection details for the env vars next.</p>
   <figure>
     <img src="../assets/console/launch-database.png" alt="The Kloudbean console Launch Database screen, creating the managed PostgreSQL that backs self-hosted Strapi">
     <figcaption>Launch a managed PostgreSQL for Strapi. More on sizing and backups in the <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a> guide.</figcaption>
@@ -269,7 +269,7 @@ module.exports = ({ env }) =&gt; ({
   <ul>
     <li><strong>Secrets in env, never in code.</strong> Every value from the env block belongs in the environment. Nothing sensitive in the repo, ever.</li>
     <li><strong>Keep <code>.env</code> out of Git.</strong> Add it to <code>.gitignore</code> and set values on the server. A leaked <code>ADMIN_JWT_SECRET</code> is an admin-account problem.</li>
-    <li><strong>Database on the private network.</strong> Your PostgreSQL should be reachable by Strapi internally, not exposed to the public internet where scanners find it.</li>
+    <li><strong>Lock the database to your app server's IP.</strong> Your PostgreSQL should be reachable by Strapi over its whitelisted IP, not exposed to the public internet where scanners find it.</li>
     <li><strong>Least-privilege database user.</strong> Strapi's Postgres user needs its own database and normal read/write rights, not superuser.</li>
     <li><strong>Lock down the admin route.</strong> Restrict who can reach the admin panel, use strong admin passwords, and lean on the Shorewall firewall and Fail2ban that come with the server.</li>
     <li><strong>Back up the database.</strong> The Postgres database is your content. Server-level backups cover the box; keep database dumps too. Our <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a> has sane defaults.</li>
@@ -289,7 +289,7 @@ module.exports = ({ env }) =&gt; ({
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Own your content layer, end to end.</p>
     <p style="margin:0 0 .6em">Run self-hosted Strapi on a managed Node server, backed by managed PostgreSQL and S3-compatible uploads, with secrets in env, Git deploys, and automatic backups handled for you. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">Managed Node runtime · Managed PostgreSQL · S3-compatible storage · Private networking · Automatic backups · Free migration · Free trial</p>
+    <p style="margin:0">Managed Node runtime · Managed PostgreSQL · S3-compatible storage · Automatic backups · Free migration · Free trial</p>
   </div>
 
   <h2>FAQ</h2>
@@ -298,7 +298,7 @@ module.exports = ({ env }) =&gt; ({
     <p>Yes. Strapi is open source and self-hosting is how it's designed to run. You deploy the Strapi Node app on a server you control, back it with a real database, and point uploads at object storage. On a managed Node server the OS, SSL, and backups are handled while you keep the code and data.</p>
 
     <h3>What database should Strapi use in production?</h3>
-    <p>PostgreSQL is the safe default, and MySQL or MariaDB also work. Use a real client-server database with its own storage, its own backups, and support for many concurrent writers. Managed PostgreSQL on a private network is a clean fit for Strapi.</p>
+    <p>PostgreSQL is the safe default, and MySQL or MariaDB also work. Use a real client-server database with its own storage, its own backups, and support for many concurrent writers. Managed PostgreSQL locked to your app server's IP is a clean fit for Strapi.</p>
 
     <h3>Why not use SQLite with Strapi in production?</h3>
     <p>SQLite is a single file on disk, so it inherits the disk's fate. On ephemeral filesystems a redeploy or restart can wipe it, and it allows only one writer at a time. It's excellent for local development and wrong once real editors and content are involved. Switch to PostgreSQL before launch.</p>
@@ -333,7 +333,7 @@ module.exports = ({ env }) =&gt; ({
 {"@type":"Article","headline":"How to Self-Host Strapi in Production (Without Losing Your Data)","description":"How to self-host Strapi, the open-source Node.js headless CMS, in production: use PostgreSQL not SQLite, put uploads on S3-compatible storage, set APP_KEYS and secrets via environment variables, build the admin panel, and deploy from Git on a managed Node server.","image":"https://www.kloudbean.com/blog/self-host-strapi/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/self-host-strapi/"},
 {"@type":"FAQPage","mainEntity":[
 {"@type":"Question","name":"Can I self-host Strapi?","acceptedAnswer":{"@type":"Answer","text":"Yes. Strapi is open source and self-hosting is how it is designed to run. You deploy the Strapi Node app on a server you control, back it with a real database, and point uploads at object storage. On a managed Node server the OS, SSL, and backups are handled while you keep the code and data."}},
-{"@type":"Question","name":"What database should Strapi use in production?","acceptedAnswer":{"@type":"Answer","text":"PostgreSQL is the safe default, and MySQL or MariaDB also work. Use a real client-server database with its own storage, its own backups, and support for many concurrent writers. Managed PostgreSQL on a private network is a clean fit for Strapi."}},
+{"@type":"Question","name":"What database should Strapi use in production?","acceptedAnswer":{"@type":"Answer","text":"PostgreSQL is the safe default, and MySQL or MariaDB also work. Use a real client-server database with its own storage, its own backups, and support for many concurrent writers. Managed PostgreSQL locked to your app server's IP is a clean fit for Strapi."}},
 {"@type":"Question","name":"Why not use SQLite with Strapi in production?","acceptedAnswer":{"@type":"Answer","text":"SQLite is a single file on disk, so it inherits the disk's fate. On ephemeral filesystems a redeploy or restart can wipe it, and it allows only one writer at a time. It is excellent for local development and wrong once real editors and content are involved. Switch to PostgreSQL before launch."}},
 {"@type":"Question","name":"Where should Strapi store uploaded media?","acceptedAnswer":{"@type":"Answer","text":"In S3-compatible object storage through an upload provider, not the local disk. Local uploads disappear on redeploy and are not shared across instances. Install a provider like the AWS S3 provider, point it at your bucket, and your media becomes durable and shared."}},
 {"@type":"Question","name":"What are Strapi APP_KEYS?","acceptedAnswer":{"@type":"Answer","text":"APP_KEYS is a comma-separated list of secret keys Strapi uses to sign session cookies. If it is missing, Strapi will not start cleanly in production; if it changes between deploys, everyone gets logged out. Set it once as an environment variable and keep it stable across deploys."}},

@@ -10,7 +10,7 @@ secondary_keywords:
   - run ollama on a server
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 2 — Self-Hosted Tools
+cluster: 2 - Self-Hosted Tools
 ---
 
 ![Self-host Ollama and Open WebUI: a private AI chat on a server you own](images/hero.png)
@@ -93,7 +93,7 @@ I've watched the same handful of mistakes turn a promising setup into "this is u
 
 ## Give your team access, safely
 
-Open WebUI has real user accounts, so you don't hand everyone the same door. Make yourself admin, add teammates, and put the whole thing behind your domain with SSL so logins are encrypted. For an extra layer, keep it on a private network so the model runtime isn't exposed at all; here's [what a VPC is](https://www.kloudbean.com/blog/what-is-a-vpc/) and why it helps. Now it's a shared internal tool with the data staying in-house. For a lot of companies, that's the entire reason to self-host this.
+Open WebUI has real user accounts, so you don't hand everyone the same door. Make yourself admin, add teammates, and put the whole thing behind your domain with SSL so logins are encrypted. For an extra layer, lock down access with IP allow-listing so the model runtime isn't exposed to the public internet; on Enterprise you can go further and put it on a [private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/), and that page explains why it helps. Now it's a shared internal tool with the data staying in-house. For a lot of companies, that's the entire reason to self-host this.
 
 <!-- ADD IMAGE: Open WebUI admin panel showing user accounts and roles for a team. -->
 
@@ -111,7 +111,7 @@ What you own is the setup: the server, the models you pull, and the updates. The
 
 **A ChatGPT-style assistant that keeps its mouth shut.** Deploy Open WebUI with DeepSeek in one click on a memory-ready server, with the model runtime on a box you size and control. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
 
-One-click Open WebUI · Your models, your server · No per-token bill · Private networking · Free SSL · Free trial
+One-click Open WebUI · Your models, your server · No per-token bill · Free SSL · Free trial
 
 ## FAQ
 
@@ -128,7 +128,7 @@ As a rough guide: about 8 GB for a small (7B) model, 16 GB or more for a mid-siz
 Ollama is the runtime that downloads and serves the models. Open WebUI is the chat interface your team uses, sitting in front of the runtime. You need both for a full private AI chat: one to run the model, one to talk to it comfortably.
 
 **Is my data really private?**
-Yes. The model runs locally, so nothing is sent to an outside AI provider, and conversations stay in Open WebUI's storage on your server. Keep it behind a login and SSL, and ideally on a private network, and it stays that way. This is the core reason teams self-host it.
+Yes. The model runs locally, so nothing is sent to an outside AI provider, and conversations stay in Open WebUI's storage on your server. Keep it behind a login and SSL, and lock down access with IP allow-listing, and it stays that way. This is the core reason teams self-host it.
 
 **Is a local model as good as GPT-4 or GPT-5?**
 Not at the frontier. The largest hosted models still lead on the hardest reasoning and broadest knowledge. But for drafting, summarizing, coding help, and internal chat, a good open model is plenty. The smart pattern is a local model for the bulk of the work and a hosted model only for the occasional heavy lift.

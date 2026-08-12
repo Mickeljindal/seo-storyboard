@@ -85,7 +85,7 @@ The deeper lesson: any real-time state you keep in a JavaScript variable, who's 
 
 ## Why this needs persistent processes
 
-Worth naming plainly: WebSockets want long-lived processes. A connection that stays open for hours is the opposite of a request-scoped serverless function, which is why real-time apps on function platforms end up constrained by execution limits, forced reconnects, and external state requirements. On Kloudbean your Node app runs always-on under PM2 on a real server, so it can hold WebSocket connections normally, and you can launch managed Redis in the same dashboard for the pub/sub adapter over a private network. If you need to spread connections across servers, the built-in Flexible Load Balancer handles the front door. It's the persistent-process setup real-time actually wants.
+Worth naming plainly: WebSockets want long-lived processes. A connection that stays open for hours is the opposite of a request-scoped serverless function, which is why real-time apps on function platforms end up constrained by execution limits, forced reconnects, and external state requirements. On Kloudbean your Node app runs always-on under PM2 on a real server, so it can hold WebSocket connections normally, and you can launch managed Redis in the same dashboard for the pub/sub adapter, running right next to your app. If you need to spread connections across servers, the built-in Flexible Load Balancer handles the front door. It's the persistent-process setup real-time actually wants.
 
 ## Related reading
 
@@ -93,9 +93,9 @@ Redis is doing the heavy lifting here, so see [managed Redis hosting](https://ww
 
 ## Real-time needs a real server
 
-Run always-on Node under PM2 holding WebSocket connections, with managed Redis for pub/sub in the same dashboard over a private network, and a load balancer in front when you scale out. Flat pricing from $8/mo. Start at [kloudbean.com](https://www.kloudbean.com/).
+Run always-on Node under PM2 holding WebSocket connections, with managed Redis for pub/sub in the same dashboard right next to your app, and a load balancer in front when you scale out. Flat pricing from $8/mo. Start at [kloudbean.com](https://www.kloudbean.com/).
 
-Always-on Node under PM2 · Managed Redis · Built-in load balancer · Private networking · Flat from $8/mo
+Always-on Node under PM2 · Managed Redis · Built-in load balancer · Flat from $8/mo
 
 ## FAQ
 

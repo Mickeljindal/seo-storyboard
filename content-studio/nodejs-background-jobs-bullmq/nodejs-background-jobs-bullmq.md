@@ -112,7 +112,7 @@ Two hard requirements fall out of the design. You need Redis running continuousl
 
 ## How this fits on Kloudbean
 
-This is a case where the hosting model genuinely matters. On Kloudbean you launch a managed Redis instance in a few clicks (with backups), and it sits in the same dashboard as your app on a private network, so your queue connection is a supplied `REDIS_URL` over a private link rather than a public endpoint. Your worker runs alongside the web app under PM2, both always-on, so jobs are consumed continuously. It's the persistent-process, managed-Redis setup that BullMQ wants, without you assembling it from separate providers.
+This is a case where the hosting model genuinely matters. On Kloudbean you launch a managed Redis instance in a few clicks (with backups), and it sits in the same dashboard as your app, right next to it, so your queue connection is a supplied `REDIS_URL` over an internal link, locked to your app server's IP, rather than a public endpoint. Your worker runs alongside the web app under PM2, both always-on, so jobs are consumed continuously. It's the persistent-process, managed-Redis setup that BullMQ wants, without you assembling it from separate providers.
 
 ## Related reading
 
@@ -120,9 +120,9 @@ Redis is the engine here, so start with [managed Redis hosting](https://www.klou
 
 ## Give BullMQ the Redis and worker it wants
 
-Launch managed Redis in the same dashboard as your always-on Node app, run your worker alongside the web process under PM2, and connect over a private network, on flat pricing from $8/mo. Start at [kloudbean.com](https://www.kloudbean.com/).
+Launch managed Redis in the same dashboard as your always-on Node app, run your worker alongside the web process under PM2, and connect over an internal link locked to your app server's IP, on flat pricing from $8/mo. Start at [kloudbean.com](https://www.kloudbean.com/).
 
-Managed Redis · Always-on worker under PM2 · Private networking · GitHub deploys · Flat from $8/mo
+Managed Redis · Always-on worker under PM2 · GitHub deploys · Flat from $8/mo
 
 ## FAQ
 

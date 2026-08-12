@@ -48,7 +48,7 @@ The usual setup is a managed Redis plus the Redis Object Cache plugin. Point Wor
 
 ```php
 // wp-config.php
-define( 'WP_REDIS_HOST', '10.0.0.5' ); // private network address
+define( 'WP_REDIS_HOST', '10.0.0.5' ); // internal address of managed Redis
 define( 'WP_REDIS_PORT', 6379 );
 define( 'WP_CACHE', true );
 ```
@@ -180,14 +180,14 @@ Themes get blamed because they're visible. You can see a heavy theme. You can't 
 
 A good managed stack quietly handles a chunk of this so you're left with the store-side calls. On Kloudbean, the pieces line up with the fixes above.
 
-- **Managed Redis and Memcached** for the object cache, launched from the same dashboard as everything else and reachable over a private network.
+- **Managed Redis and Memcached** for the object cache, launched from the same dashboard as everything else and reachable at an internal address, with access locked to your app server's IP.
 - **Managed MySQL and MariaDB** for the store database, with room to **resize** as your catalog and order history grow.
 - **A tuned PHP runtime** kept on a current version, so the general basics are handled for you.
 - **The server health view** to spot CPU, memory, or database pressure before customers do, plus **cron jobs from the dashboard** so Action Scheduler runs reliably.
 - **Staging sites** so you can test a caching change or a plugin cull on a copy before it ever touches the live store.
 - **Automatic backups and free SSL**, and if a store outgrows one box, a built-in **Flexible Load Balancer** to put more servers behind it. (Autoscaling is an enterprise and custom option, not something a standard store toggles on.)
 
-One dashboard for the app, the database, and the object cache is the practical part. You're not stitching a store together from three providers and hoping the private networking lines up. If genuine traffic growth is your problem rather than tuning, that's a scaling question, and [scalable WordPress hosting](https://www.kloudbean.com/blog/scalable-wordpress-hosting/) picks up where this guide stops. And if you have not settled on the platform itself yet, [WooCommerce vs Shopify](https://www.kloudbean.com/blog/woocommerce-vs-shopify/) is the choice that comes first.
+One dashboard for the app, the database, and the object cache is the practical part. You're not stitching a store together from three providers and hoping the connections between them line up. If genuine traffic growth is your problem rather than tuning, that's a scaling question, and [scalable WordPress hosting](https://www.kloudbean.com/blog/scalable-wordpress-hosting/) picks up where this guide stops. And if you have not settled on the platform itself yet, [WooCommerce vs Shopify](https://www.kloudbean.com/blog/woocommerce-vs-shopify/) is the choice that comes first.
 
 <!-- ADD IMAGE: the dashboard with the store app, its MySQL database, and a Redis object cache side by side. -->
 
@@ -195,7 +195,7 @@ One dashboard for the app, the database, and the object cache is the practical p
 
 **A store that stays quick under real traffic.**
 
-Run WooCommerce on a stack with a managed object cache and database on the same private network, tuned PHP, and staging to test changes safely. Start at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
+Run WooCommerce on a stack with a managed object cache and database in the same account as the app, tuned PHP, and staging to test changes safely. Start at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
 
 Managed Redis & Memcached · Managed MySQL & MariaDB · Automatic backups · Staging · Free SSL · Free migration · Free trial
 

@@ -12,7 +12,7 @@ secondary_keywords:
   - mariadb vs mysql
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 7 — Databases, Storage & S3
+cluster: 7 - Databases, Storage & S3
 ---
 
 ![MySQL vs PostgreSQL, a decision guide for real projects](images/hero.png)
@@ -117,7 +117,7 @@ Both are mature, actively developed, free, and open source, and both will outrun
 
 ## You don't have to marry one
 
-Here's the part that takes the pressure off. On Kloudbean, MySQL and PostgreSQL are both one-click managed engines, next to MariaDB, Redis, Elasticsearch, and MongoDB. You launch the one you chose, get a connection string, point your app at it, and it's on a private network and backed up from minute one.
+Here's the part that takes the pressure off. On Kloudbean, MySQL and PostgreSQL are both one-click managed engines, next to MariaDB, Redis, Elasticsearch, and MongoDB. You launch the one you chose, get a connection string, point your app at it, and it's backed up from minute one and locked to your app server's IP so only it can connect.
 
 ![The Kloudbean console launching a managed database, with MySQL, PostgreSQL, MariaDB, Redis, Elasticsearch, and MongoDB as choices](../assets/console/launch-database.png)
 
@@ -131,13 +131,13 @@ DATABASE_URL=postgresql://appuser:secret@10.0.0.5:5432/appdb
 DATABASE_URL=mysql://appuser:secret@10.0.0.5:3306/appdb
 ```
 
-Managed here means the platform runs and patches the engine, keeps it on a private network, and backs it up, while your schema and data stay yours and exportable anytime. Both engines run on Linux, where nearly every web app lives. For the deeper how-to, see [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), or the guides for [managed MySQL hosting](https://www.kloudbean.com/blog/managed-mysql-hosting/) and [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/). Rather run it yourself? [Managed vs self-managed](https://www.kloudbean.com/blog/managed-database-vs-self-managed/) weighs that honestly. When reads pile up, [read replicas](https://www.kloudbean.com/blog/database-read-replicas-scaling/) are the usual next step for either engine, and a [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/) cache takes pressure off both.
+Managed here means the platform runs and patches the engine, locks it down so only your whitelisted app server can reach it, and backs it up, while your schema and data stay yours and exportable anytime. Both engines run on Linux, where nearly every web app lives. For the deeper how-to, see [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), or the guides for [managed MySQL hosting](https://www.kloudbean.com/blog/managed-mysql-hosting/) and [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/). Rather run it yourself? [Managed vs self-managed](https://www.kloudbean.com/blog/managed-database-vs-self-managed/) weighs that honestly. When reads pile up, [read replicas](https://www.kloudbean.com/blog/database-read-replicas-scaling/) are the usual next step for either engine, and a [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/) cache takes pressure off both.
 
 ---
 
-**Pick the engine that fits, run it managed, get back to building.** MySQL and PostgreSQL, launched in a click, backed up automatically, and kept on a private network, with your data yours to export whenever you like.
+**Pick the engine that fits, run it managed, get back to building.** MySQL and PostgreSQL, launched in a click, backed up automatically, and locked to your app server's IP, with your data yours to export whenever you like.
 
-One-click MySQL or PostgreSQL · Automatic backups · Private networking · Free migration help · Free trial · Start at [kloudbean.com](https://www.kloudbean.com/) · See [pricing](https://www.kloudbean.com/pricing/).
+One-click MySQL or PostgreSQL · Automatic backups · Free migration help · Free trial · Start at [kloudbean.com](https://www.kloudbean.com/) · See [pricing](https://www.kloudbean.com/pricing/).
 
 ## FAQ
 

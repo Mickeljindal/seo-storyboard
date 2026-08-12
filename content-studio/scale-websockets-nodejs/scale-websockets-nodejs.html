@@ -90,7 +90,7 @@ const socket = io("https://api.example.com", { transports: ["websocket"] });</co
   <p>The deeper lesson: any real-time state you keep in a JavaScript variable, who's online, room membership, unread counts, is invisible to your other instances and lost on restart. Once you're running more than one process, that state belongs in Redis (or your database) where every instance can see it. Design for that from the start and scaling from one instance to three is a config change instead of a rewrite. Leave it in memory and you'll be debugging phantom presence for weeks.</p>
 
   <h2>Why this needs persistent processes</h2>
-  <p>Worth naming plainly: WebSockets want long-lived processes. A connection that stays open for hours is the opposite of a request-scoped serverless function, which is why real-time apps on function platforms end up constrained by execution limits, forced reconnects, and external state requirements. On Kloudbean your Node app runs always-on under PM2 on a real server, so it can hold WebSocket connections normally, and you can launch managed Redis in the same dashboard for the pub/sub adapter over a private network. If you need to spread connections across servers, the built-in Flexible Load Balancer handles the front door. It's the persistent-process setup real-time actually wants.</p>
+  <p>Worth naming plainly: WebSockets want long-lived processes. A connection that stays open for hours is the opposite of a request-scoped serverless function, which is why real-time apps on function platforms end up constrained by execution limits, forced reconnects, and external state requirements. On Kloudbean your Node app runs always-on under PM2 on a real server, so it can hold WebSocket connections normally, and you can launch managed Redis in the same dashboard for the pub/sub adapter, running right next to your app. If you need to spread connections across servers, the built-in Flexible Load Balancer handles the front door. It's the persistent-process setup real-time actually wants.</p>
 
   <figure>
     <img src="../assets/console/flb-load-balancer.png" alt="Configuring the Kloudbean Flexible Load Balancer in front of Node instances holding WebSocket connections">
@@ -102,8 +102,8 @@ const socket = io("https://api.example.com", { transports: ["websocket"] });</co
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Real-time needs a real server.</p>
-    <p style="margin:0 0 .6em">Run always-on Node under PM2 holding WebSocket connections, with managed Redis for pub/sub in the same dashboard over a private network, and a load balancer in front when you scale out. Flat pricing from $8/mo. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">Always-on Node under PM2 · Managed Redis · Built-in load balancer · Private networking · Flat from $8/mo</p>
+    <p style="margin:0 0 .6em">Run always-on Node under PM2 holding WebSocket connections, with managed Redis for pub/sub in the same dashboard right next to your app, and a load balancer in front when you scale out. Flat pricing from $8/mo. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Always-on Node under PM2 · Managed Redis · Built-in load balancer · Flat from $8/mo</p>
   </div>
 
   <h2>FAQ</h2>

@@ -89,7 +89,7 @@ sudo ufw allow 443
 sudo ufw enable
 ```
 
-The most common self-inflicted breach is a database listening on a public IP with a weak password. Postgres on 5432, MySQL on 3306, Redis on 6379, Mongo on 27017, all wide open because someone bound it to 0.0.0.0 and forgot. Scanners find those in hours. Keep your database on a private network, off the public firewall entirely. If it doesn't need a public port, it shouldn't have one.
+The most common self-inflicted breach is a database listening on a public IP with a weak password. Postgres on 5432, MySQL on 3306, Redis on 6379, Mongo on 27017, all wide open because someone bound it to 0.0.0.0 and forgot. Scanners find those in hours. Lock your database to your app server's IP so only that server can connect, and keep it off the public internet entirely. If it doesn't need a public port, it shouldn't have one.
 
 ![The Kloudbean console firewall settings, showing the Shorewall firewall and Fail2ban enabled by default](../assets/console/firewall.png)
 
@@ -222,7 +222,7 @@ It's still worth running. Key-based auth stops the guessing from succeeding, but
 
 ### What ports should I leave open on a web server?
 
-For a typical web server, just SSH on 22, HTTP on 80, and HTTPS on 443, with everything else blocked by a default-deny rule. Database ports like 5432, 3306, 6379, and 27017 should never face the public internet; keep the database on a private network instead. The rule of thumb is simple: if a port doesn't need to be public, close it.
+For a typical web server, just SSH on 22, HTTP on 80, and HTTPS on 443, with everything else blocked by a default-deny rule. Database ports like 5432, 3306, 6379, and 27017 should never face the public internet; lock the database to your app server's IP instead. The rule of thumb is simple: if a port doesn't need to be public, close it.
 
 ### Does managed hosting harden the server for me?
 

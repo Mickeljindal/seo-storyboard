@@ -166,7 +166,7 @@ Start on Postgres, measure, and move only if you actually hit a wall. Premature 
 
 ## Running pgvector on a managed Postgres
 
-So where does this land in practice? pgvector is a standard PostgreSQL extension, so the real question is where your Postgres runs. On [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/), one of Kloudbean's seven managed database engines, you get the database provisioned, patched, backed up, and kept on a [private network](https://www.kloudbean.com/blog/what-is-a-vpc/) with controlled access. Your app reaches it over that private network with a connection string in an environment variable, the same as any Postgres.
+So where does this land in practice? pgvector is a standard PostgreSQL extension, so the real question is where your Postgres runs. On [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/), one of Kloudbean's seven managed database engines, you get the database provisioned, patched, backed up, and locked down with controlled access, so only your whitelisted app server IP can reach it. Your app reaches it with a connection string in an environment variable, the same as any Postgres. On Enterprise, it can run on a [private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/).
 
 One honest note, because I won't oversell it: enabling the pgvector extension depends on your specific Postgres setup and version, so check availability for your instance rather than assuming it's turned on. Kloudbean doesn't sell a separate "vector database" product, and it doesn't need to. Run one managed Postgres, keep your app data and your embeddings together, and back the whole thing up as a unit.
 
@@ -186,9 +186,9 @@ From there it's ordinary Postgres work. Your ORM connects the usual way (here's 
 
 **Keep your vectors where your data already lives.**
 
-Run a managed PostgreSQL for your app data and your embeddings together, with automatic backups, private networking, and free migration help. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Run a managed PostgreSQL for your app data and your embeddings together, with automatic backups, IP allow-listing, and free migration help. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
 
-Managed PostgreSQL · Automatic backups · Private networking · Free migration · Free trial · Simple Git deploy
+Managed PostgreSQL · Automatic backups · Free migration · Free trial · Simple Git deploy
 
 ## FAQ
 
@@ -220,6 +220,6 @@ For most text embeddings, cosine distance is standard, since it compares directi
 Comfortably into the millions on a right-sized instance, especially with an HNSW index. The practical limits are index memory and query latency, which scale with row count and dimensions. Look at a specialised engine around tens of millions of vectors with heavy traffic.
 
 **Is pgvector available on managed Postgres or Kloudbean?**
-pgvector is the standard PostgreSQL vector extension, and Kloudbean offers managed PostgreSQL with backups, private networking, and controlled access. Whether the extension can be enabled depends on your specific Postgres setup and version, so check availability for your instance. Kloudbean does not sell a separate vector database product.
+pgvector is the standard PostgreSQL vector extension, and Kloudbean offers managed PostgreSQL with backups, IP allow-listing, and controlled access. Whether the extension can be enabled depends on your specific Postgres setup and version, so check availability for your instance. Kloudbean does not sell a separate vector database product.
 
 _By Kloudbean · Vectors, in your database._

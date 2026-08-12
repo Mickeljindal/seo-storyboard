@@ -10,7 +10,7 @@ secondary_keywords:
   - PCI compliant server
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 10 — Enterprise & Compliance
+cluster: 10 - Enterprise & Compliance
 ---
 ![PCI-compliant hosting: shrink your scope by letting a processor handle card data](images/hero.png)
 # PCI-Compliant Hosting: Why Scope Reduction Beats Everything Else
@@ -82,7 +82,7 @@ Reducing scope shrinks the problem. It doesn't erase it. You still run a server 
 
 PCI compliance is a process *you* complete. For most merchants that means a Self-Assessment Questionnaire, sometimes quarterly ASV scans, and for larger volumes a formal assessment by a QSA that produces a Report on Compliance. Your acquiring bank and payment provider define which applies and are the ones who ultimately sign off. No host does that for you.
 
-What a host provides is the infrastructure the standard leans on. Kloudbean, for its part, gives you the controls that support the scope you keep: free SSL for encryption in transit, a configured Shorewall firewall with Fail2ban brute-force blocking, private networking to keep the database off the public internet, subusers and granular access control for least privilege, IP access control, automatic backups, and an immutable audit trail on enterprise accounts. It runs on tier-1 clouds whose data centers carry the major certifications. What it won't do, because no honest host can, is make you PCI compliant on its own or hand you a finished status. Reduce your scope, secure what's left on solid infrastructure, and complete the validation your bank requires. That's PCI done properly. If you're mapping several obligations at once, the siblings help: [SOC 2 compliant hosting](https://www.kloudbean.com/blog/soc2-compliant-hosting/) and [GDPR compliant hosting](https://www.kloudbean.com/blog/gdpr-compliant-hosting/).
+What a host provides is the infrastructure the standard leans on. Kloudbean, for its part, gives you the controls that support the scope you keep: free SSL for encryption in transit, a configured Shorewall firewall with Fail2ban brute-force blocking, IP access control so only your app server can reach the database, subusers and granular access control for least privilege, automatic backups, and, on enterprise accounts, private networking and an immutable audit trail. It runs on tier-1 clouds whose data centers carry the major certifications. What it won't do, because no honest host can, is make you PCI compliant on its own or hand you a finished status. Reduce your scope, secure what's left on solid infrastructure, and complete the validation your bank requires. That's PCI done properly. If you're mapping several obligations at once, the siblings help: [SOC 2 compliant hosting](https://www.kloudbean.com/blog/soc2-compliant-hosting/) and [GDPR compliant hosting](https://www.kloudbean.com/blog/gdpr-compliant-hosting/).
 
 <!-- ADD IMAGE: the SAQ A questionnaire from your acquiring bank, or the compliance tab in your processor dashboard -->
 
@@ -94,7 +94,7 @@ A last note on keys. The API keys and secrets your app uses to talk to the payme
 
 **A smaller thing to secure, on a stronger foundation.** Run payments on managed infrastructure with the controls that support your PCI work, all on one dashboard. Start free at [kloudbean.com](https://www.kloudbean.com/) and see plans on [pricing](https://www.kloudbean.com/pricing/).
 
-Free SSL · Firewall + brute-force blocking · Private networking · Access control · Automatic backups · Enterprise audit trail
+Free SSL · Firewall + brute-force blocking · Access control · Automatic backups · Enterprise audit trail
 
 ## PCI hosting FAQ
 
@@ -111,13 +111,13 @@ An SAQ is a Self-Assessment Questionnaire you complete to validate PCI complianc
 Yes. Any page or API call involving payment or personal data must run over HTTPS/TLS with no mixed content. It's non-negotiable under PCI and easy to satisfy, because a managed host issues and auto-renews a free SSL certificate, so encryption in transit is on by default.
 
 **Should my database be on the public internet for PCI?**
-No. Sensitive components, especially your database, belong on a private network with no public address, behind a firewall that closes unused ports. Keeping the database off the public internet in a VPC removes it as a target for the constant scanning that finds exposed databases within hours.
+No. Your database should never have a public address. The self-serve control every user can apply is IP allow-listing: whitelist your app server's IP so only it can connect, behind a firewall that closes unused ports. For the fuller network segmentation PCI expects on critical systems, a private network (VPC) removes the public endpoint entirely, which on Kloudbean is an Enterprise capability. Either way, keeping the database off the public internet takes it off the scanners' radar.
 
 **Can I store card numbers if I encrypt them?**
 You can, but you probably shouldn't. Storing card data, even encrypted, pulls your systems into full PCI scope with far more requirements, scans, and cost. Encryption is required if you store it, but the cheaper and safer choice for most businesses is to not store it at all and let a processor hold it.
 
 **What hosting controls actually help with PCI?**
-Encryption in transit through free SSL, a configured firewall with brute-force protection, private networking to isolate the database, unique logins and least-privilege access, IP access control, automatic tested backups, and tamper-resistant logging through an audit trail on enterprise setups. These cover the infrastructure side. Reducing scope and securing your app cover the rest.
+Encryption in transit through free SSL, a configured firewall with brute-force protection, IP access control so only your app server reaches the database, unique logins and least-privilege access, automatic tested backups, and tamper-resistant logging through an audit trail on enterprise setups. These cover the infrastructure side. Reducing scope and securing your app cover the rest.
 
 **Do I need a QSA audit or just an SAQ?**
 Most smaller merchants complete an SAQ and, where required, quarterly ASV scans. Higher transaction volumes or storing card data can trigger a formal assessment by a Qualified Security Assessor that produces a Report on Compliance. Your acquiring bank sets the requirement based on your volume and how you handle data.

@@ -10,7 +10,7 @@ secondary_keywords:
   - lock down wp-admin
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 6 — WordPress & Frontend
+cluster: 6 - WordPress & Frontend
 ---
 
 ![Secure WordPress hosting: a layered defense split between the app layer you own and the server layer your host handles](images/hero.png)
@@ -50,7 +50,7 @@ This is the half people forget while installing security plugins. On managed hos
 - **OS and stack patching.** The server's operating system and web stack get security fixes constantly. Miss them and you're running a known hole no plugin can patch over. On managed hosting this is handled for you.
 - **A firewall and brute-force banning.** Every Kloudbean server ships with a **Shorewall** firewall and **Fail2ban** configured automatically. Fail2ban watches for repeated failed logins and connection abuse, then bans the offending IP for a while. That quietly kills a lot of brute-force before it ever reaches WordPress.
 - **Enforced, free SSL.** Auto-renewing certificates so traffic is encrypted and you're not shipping login credentials in plain text. If you want the mechanics, see [custom domains and SSL](https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/).
-- **Isolation and a private network.** One site's problem shouldn't reach another, and your database shouldn't sit on the public internet where scanners find it. A [database exposed to the open web](https://www.kloudbean.com/blog/fix-error-establishing-database-connection-wordpress/) is an invitation. Keep it on a private network.
+- **Isolation and locked-down database access.** One site's problem shouldn't reach another, and your database shouldn't sit on the public internet where scanners find it. A [database exposed to the open web](https://www.kloudbean.com/blog/fix-error-establishing-database-connection-wordpress/) is an invitation. Whitelist your app server's IP so only it can connect.
 - **Off-site automatic backups.** A backup on the same box that just got ransomed is not a backup. Off-site, automatic, restorable. The full story is in the [backups guide](https://www.kloudbean.com/blog/server-backups-guide/).
 - **An optional edge layer.** Cloudflare (including its Enterprise edge caching) is a paid add-on, included for Enterprise accounts. At the edge it soaks up floods and filters junk before it reaches your origin. See [DDoS protection](https://www.kloudbean.com/blog/ddos-protection-explained/) and [what a WAF does](https://www.kloudbean.com/blog/what-a-waf-does/).
 
@@ -105,7 +105,7 @@ The whole thing on one screen. The middle column matters most.
 | Stolen or reused password | Unique password, 2FA, least-privilege roles | You |
 | Server or OS exploit | Automatic patching, firewall, site isolation | Platform |
 | Traffic flood (DDoS) | Edge network plus tier-1 cloud infrastructure | Platform |
-| Exposed database | Private network (VPC), database off the public internet | Platform |
+| Exposed database | IP allow-listing, database off the public internet | Platform |
 | Defacement or ransom | A tested off-site backup and a fast restore | Shared |
 
 ## If you're already hacked: the recovery order
@@ -130,12 +130,12 @@ A backup you've actually test-restored, plus plugins that are current, beats any
 
 **You mind the site. We keep the stack hardened.** Run WordPress on hosting that owns the server layer for you at [kloudbean.com](https://www.kloudbean.com/). Plans on [pricing](https://www.kloudbean.com/pricing/).
 
-Auto firewall + Fail2ban · Free SSL · Off-site backups · Private networking · Staging · Free migration · Free trial
+Auto firewall + Fail2ban · Free SSL · Off-site backups · Staging · Free migration · Free trial
 
 ## FAQ
 
 **What is secure WordPress hosting?**
-It's hosting where the provider owns the server-layer security so you can focus on the app layer. The host handles patching, a firewall and brute-force banning, SSL, isolation, a private network, and off-site backups. You still handle updates, strong logins, roles, and config. It's both halves working together, not one.
+It's hosting where the provider owns the server-layer security so you can focus on the app layer. The host handles patching, a firewall and brute-force banning, SSL, isolation, IP allow-listing, and off-site backups. You still handle updates, strong logins, roles, and config. It's both halves working together, not one.
 
 **How do WordPress sites usually get hacked?**
 Almost always through boring, automated attacks: an outdated plugin, theme, or core with a known hole; a weak or reused admin password; brute-force on the login; or an open XML-RPC endpoint. Novel attacks are rare, which is why keeping software current, using strong logins with 2FA, and locking the login covers most of the risk.
@@ -153,7 +153,7 @@ Yes, a lot. Two-factor authentication defeats the overwhelming majority of autom
 If nothing you run needs it, yes. The xmlrpc.php endpoint can be abused to try many passwords in one request and to bounce traffic at other sites. Some older apps and a few plugins still use it, so check first. If you're unsure and your site is a normal website, disabling it removes a real attack vector with no downside.
 
 **What does the host handle versus what do I handle?**
-The host owns the server layer: patching, firewall, SSL, isolation, private networking, and off-site backups. You own the app layer: updating core, plugins, and themes, using strong logins with 2FA, assigning least-privilege roles, locking down wp-config, and removing unused code. Security is shared, and a site is only as safe as the weaker of the two halves.
+The host owns the server layer: patching, firewall, SSL, isolation, IP allow-listing, and off-site backups. You own the app layer: updating core, plugins, and themes, using strong logins with 2FA, assigning least-privilege roles, locking down wp-config, and removing unused code. Security is shared, and a site is only as safe as the weaker of the two halves.
 
 **How often should I update plugins and core?**
 As soon as practical after an update lands, especially anything flagged as a security release. The window between a fix being published and bots scanning for the old version is short. Test updates on staging first so nothing breaks the live site, then push. Delete plugins and themes you no longer use rather than leaving them to rot.

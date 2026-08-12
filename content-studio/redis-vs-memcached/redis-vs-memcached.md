@@ -141,7 +141,7 @@ MEMCACHED_URL=10.0.0.6:11211
 Here's what makes the choice low-stakes. On Kloudbean, Redis and Memcached are both managed engines, launched the same way. No "Redis is easier to get" or "Memcached needs extra setup." You pick on fit, not availability.
 
 1. **Launch the engine.** Open the DBS section and hit Launch Database. Kloudbean runs seven managed engines: MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB. Pick Redis or Memcached, name it, create it. It's provisioned and secured in a minute or two.
-2. **Grab the connection details.** You'll get a private host and port. Redis also gives you a password. Both sit on your server's private network, not the public internet.
+2. **Grab the connection details.** You'll get an internal host and port. Redis also gives you a password. Both live on your server, reachable internally rather than over the public internet.
 3. **Set it as an environment variable.** Add `REDIS_URL` or `MEMCACHED_URL` in Runtime Configuration, so your app reads the connection from the environment instead of your source code.
 4. **Install the client and deploy.** Add the client library (`ioredis`, `redis`, or `memcached` for Node, `redis` or `pymemcache` for Python), deploy, then confirm with a quick set and get.
 
@@ -155,7 +155,7 @@ One honest note on backups. Redis can persist to disk, so a managed Redis has so
 
 <!-- ADD IMAGE: the DBS list showing a running Redis instance and a Memcached instance side by side on one server -->
 
-> **You can even use both.** They're not mutually exclusive. A common setup: Memcached for a big page-fragment cache, Redis for sessions, rate limiting, and queues. Both are managed engines on the same private network here, so running the two together is just two launches and two env vars.
+> **You can even use both.** They're not mutually exclusive. A common setup: Memcached for a big page-fragment cache, Redis for sessions, rate limiting, and queues. Both are managed engines that run right next to your app here, so running the two together is just two launches and two env vars.
 
 ## So what should you actually pick?
 
@@ -163,9 +163,9 @@ The call: Redis by default; Memcached only when you've got a specific reason, li
 
 ---
 
-**Spin up the right cache in one click.** Managed Redis and managed Memcached, both provisioned in minutes on your private network, with the whole stack in one dashboard. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+**Spin up the right cache in one click.** Managed Redis and managed Memcached, both provisioned in minutes right next to your app, with the whole stack in one dashboard. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
 
-One-click Redis & Memcached · Private networking · Redis persistence & backups · Free migration · Free trial
+One-click Redis & Memcached · Redis persistence & backups · Free migration · Free trial
 
 ## FAQ
 
@@ -197,7 +197,7 @@ When you need a simple, very large, shared cache of opaque string values and not
 Yes, for the right job. It remains a fast, rock-solid, dead-simple cache, and plenty of large systems still run it happily. It just does less than Redis on purpose, so it fits when a pure cache is all you want and you value simplicity over features.
 
 **Can I run both Redis and Memcached on Kloudbean?**
-Yes. Both are one-click managed engines, so you can launch a Redis instance and a Memcached instance on the same server and private network. A common pattern is Memcached for a big page-fragment cache and Redis for sessions, rate limiting, and queues.
+Yes. Both are one-click managed engines, so you can launch a Redis instance and a Memcached instance on the same server, right next to your app. A common pattern is Memcached for a big page-fragment cache and Redis for sessions, rate limiting, and queues.
 
 ---
 

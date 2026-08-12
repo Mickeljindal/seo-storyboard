@@ -212,7 +212,7 @@ The mental test: if Redis vanished this second, your app should get slow, not lo
 
 ## Running these patterns on managed Redis
 
-The patterns are the same wherever Redis runs. What changes is how much of the babysitting is yours. On Kloudbean, Redis is one of the managed database engines, so you launch it from the same place as your Postgres or MySQL, on the same private network, and it stays patched and backed up while you use it.
+The patterns are the same wherever Redis runs. What changes is how much of the babysitting is yours. On Kloudbean, Redis is one of the managed database engines, so you launch it from the same place as your Postgres or MySQL, running right next to it, and it stays patched and backed up while you use it.
 
 ![The Kloudbean console launching a managed Redis instance alongside the other managed database engines](../assets/console/launch-database.png)
 
@@ -220,7 +220,7 @@ Then you wire it in exactly like the database: one connection value, read from t
 
 ![The Kloudbean console environment variables screen holding REDIS_URL for the app to read](../assets/console/env-vars.png)
 
-Keeping Redis and the database on one private network also erases the most common connection headache. When the app and Redis sit on the same network, you're not debugging cross-provider routing or firewall rules, and connection reuse stays cheap (the same reason an always-on server makes [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/) simpler than it is on serverless). If you're already following [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), adding Redis is the identical flow with one more env var.
+Keeping Redis and the database in the same account also erases the most common connection headache. When the app and Redis sit right next to each other, you're not debugging cross-provider routing or firewall rules, and connection reuse stays cheap (the same reason an always-on server makes [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/) simpler than it is on serverless). If you're already following [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), adding Redis is the identical flow with one more env var.
 
 <!-- ADD IMAGE: terminal with redis-cli MONITOR streaming GET and SETEX calls as the app serves traffic -->
 
@@ -228,7 +228,7 @@ Keeping Redis and the database on one private network also erases the most commo
 
 **Put the fast layer where it belongs.** Launch a [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/) next to your app, connect it with one URL, and let cache-aside lift the repeat load off your database. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
 
-One-click Redis · On a private network · Automatic backups · Free migration · Free trial
+One-click Redis · IP allow-listing · Automatic backups · Free migration · Free trial
 
 ## FAQ
 

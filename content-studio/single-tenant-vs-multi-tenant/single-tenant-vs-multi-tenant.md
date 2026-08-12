@@ -98,7 +98,7 @@ Single-tenant earns its cost when isolation stops being a preference and becomes
 
 Once you've decided at which layer you need isolation, hosting is how you deliver it. A managed platform lets you build either shape deliberately, on the cloud you pick.
 
-For single-tenant isolation, you give a customer their own server and their own managed database, on a [private network or dedicated VPC](https://www.kloudbean.com/blog/what-is-a-vpc/), and you can pin the region for residency. Granular User Access Control (UAC) and subusers let you scope who can touch which resource, which matters when "isolated" also means "only these people administer it." Enterprise and government setups can go further with dedicated VPCs and custom architectures.
+For single-tenant isolation, you give a customer their own server and their own managed database, locked down so only their app server's IP can reach it, and you can pin the region for residency. Granular User Access Control (UAC) and subusers let you scope who can touch which resource, which matters when "isolated" also means "only these people administer it." Enterprise and government setups can go further, putting each tenant on a [private network or dedicated VPC](https://www.kloudbean.com/blog/what-is-a-vpc/) with custom architectures.
 
 ![The Kloudbean console launching a dedicated server, single-tenant at the infrastructure layer](../assets/console/add-server.png)
 
@@ -106,19 +106,19 @@ Or you run a shared app efficiently, and here's the pragmatic middle a lot of te
 
 ![The Kloudbean console running several applications on one dedicated server](../assets/console/add-application.png)
 
-If that agency-style split is your model, [reseller hosting versus managed cloud](https://www.kloudbean.com/blog/reseller-hosting-vs-managed-cloud/) digs into it, and the whole managed-versus-raw question sits in [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/). I won't oversell the point: Kloudbean gives you the building blocks (isolated servers, managed databases, private networking, UAC) to implement whichever tenancy your architecture calls for. The design decision is still yours.
+If that agency-style split is your model, [reseller hosting versus managed cloud](https://www.kloudbean.com/blog/reseller-hosting-vs-managed-cloud/) digs into it, and the whole managed-versus-raw question sits in [managed vs unmanaged hosting](https://www.kloudbean.com/blog/managed-vs-unmanaged-hosting/). I won't oversell the point: Kloudbean gives you the building blocks (isolated servers, managed databases, IP allow-listing, UAC, and private networking on Enterprise) to implement whichever tenancy your architecture calls for. The design decision is still yours.
 
 ## You're not locked into your first choice
 
 Don't agonize over day one. This isn't a one-way door. Most teams start multi-tenant and move a demanding customer to a single-tenant setup the day a real requirement appears. Because your app and its data are standard and portable, promoting one tenant onto a dedicated server and database is a migration, not a rewrite. Pick what fits where you are now. Revisit it when a concrete need, not a hypothetical one, changes the answer.
 
-The boundary, plainly: there's no universal winner, only a trade you make on purpose. Isolation costs money, sharing saves it. A managed host on a Linux stack can support both, a dedicated server with private networking (and dedicated VPCs plus custom setups for enterprise) when isolation is the requirement, or efficient shared use of a box you own when it isn't. Either way, your application and data stay yours while the platform runs the server, stack, SSL, and backups underneath. Decide by asking what you actually need to isolate, and what that isolation is worth.
+The boundary, plainly: there's no universal winner, only a trade you make on purpose. Isolation costs money, sharing saves it. A managed host on a Linux stack can support both: a dedicated server with the database locked to its app server's IP (and private networking or dedicated VPCs plus custom setups on Enterprise) when isolation is the requirement, or efficient shared use of a box you own when it isn't. Either way, your application and data stay yours while the platform runs the server, stack, SSL, and backups underneath. Decide by asking what you actually need to isolate, and what that isolation is worth.
 
 ---
 
-**Isolate what matters. Share the rest.** Build single-tenant isolation or an efficient shared setup on the cloud you choose, with dedicated servers, managed databases, and private networking. Start free at [kloudbean.com](https://www.kloudbean.com/), or see plans on [pricing](https://www.kloudbean.com/pricing/).
+**Isolate what matters. Share the rest.** Build single-tenant isolation or an efficient shared setup on the cloud you choose, with dedicated servers, managed databases, and IP allow-listing (private networking on Enterprise). Start free at [kloudbean.com](https://www.kloudbean.com/), or see plans on [pricing](https://www.kloudbean.com/pricing/).
 
-Dedicated servers · Managed databases · Private networking + VPC · User Access Control · Free migration help · Free trial
+Dedicated servers · Managed databases · IP allow-listing · User Access Control · Free migration help · Free trial
 
 ## FAQ
 
@@ -141,7 +141,7 @@ When isolation is a real requirement, not a preference: a regulated customer who
 App-layer tenancy is whether customers share one running app and database. Infrastructure-layer tenancy is whether they share the physical server. They're independent: a multi-tenant app can run on a dedicated (single-tenant) server, and a single-tenant design can sit on shared hardware. When someone asks which you are, ask back: at which layer?
 
 **Can I run single-tenant on a managed host?**
-Yes. You give each customer their own server and managed database on a private network or dedicated VPC, and pin the region for residency. User Access Control scopes who can administer what. On Kloudbean you build that on the cloud you choose, and enterprise setups can add dedicated VPCs and custom architectures.
+Yes. You give each customer their own server and managed database, locked down so only their app server's IP can reach it, and pin the region for residency. User Access Control scopes who can administer what. On Kloudbean you build that on the cloud you choose, and enterprise setups can add private networking, dedicated VPCs, and custom architectures.
 
 **Can I switch from multi-tenant to single-tenant later?**
 Usually yes. Because your app and data are standard and portable, promoting a demanding tenant onto a dedicated server and database is a migration, not a rewrite. Many teams start multi-tenant and move specific customers to single-tenant when a real requirement appears.

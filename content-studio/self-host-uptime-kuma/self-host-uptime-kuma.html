@@ -103,7 +103,7 @@
 
   <h2>What you're running when you self-host Uptime Kuma</h2>
   <p>Uptime Kuma is a single Node.js application with a Vue frontend. That's the whole thing, and it runs anywhere Node runs, which is why it lives comfortably on a managed Node server. By default it listens on port <code>3001</code>, and a managed platform puts a web layer and SSL in front so you reach it at your own domain over HTTPS.</p>
-  <p>The interesting decision is storage. Out of the box, Uptime Kuma keeps everything in a local <strong>SQLite</strong> file inside its data directory (<code>DATA_DIR</code>, holding <code>kuma.db</code>). SQLite is fine for a small single instance, as long as that directory lives on storage that persists. It also supports an external <strong>MariaDB</strong>, and for anything you depend on that's the sturdier choice: managed MariaDB is backed up for you, sits on a private network, and survives redeploys. Everything else (monitors, notifications, status pages, even the database choice) is set in the web UI after first launch. What you decide at deploy time is where data lives, the port, and that it's reachable over SSL.</p>
+  <p>The interesting decision is storage. Out of the box, Uptime Kuma keeps everything in a local <strong>SQLite</strong> file inside its data directory (<code>DATA_DIR</code>, holding <code>kuma.db</code>). SQLite is fine for a small single instance, as long as that directory lives on storage that persists. It also supports an external <strong>MariaDB</strong>, and for anything you depend on that's the sturdier choice: managed MariaDB is backed up for you, locks down to your app server's IP, and survives redeploys. Everything else (monitors, notifications, status pages, even the database choice) is set in the web UI after first launch. What you decide at deploy time is where data lives, the port, and that it's reachable over SSL.</p>
 
   <h2>Self-hosted Uptime Kuma vs a hosted monitor</h2>
   <p>Uptime Kuma is a strong UptimeRobot alternative and a credible self-hosted Pingdom alternative, but a fair comparison names what the hosted services do well. Here's the honest side by side.</p>
@@ -128,7 +128,7 @@
   <p>Here's the production path end to end. Five steps, and the order is deliberate: durable data first, then the app, then config, then the deploy, then SSL.</p>
 
   <h3>1. Launch managed MariaDB for durable history</h3>
-  <p>Start with the database, the piece you least want to lose. Provision a managed MariaDB instance, create a database named <code>uptimekuma</code>, and note its private-network host and credentials. Managed means it's provisioned, patched, and backed up for you, on a private network your monitor reaches without a public port. Prefer SQLite? Skip this and make sure the data directory lands on a persistent volume instead.</p>
+  <p>Start with the database, the piece you least want to lose. Provision a managed MariaDB instance, create a database named <code>uptimekuma</code>, and note its internal host and credentials. Managed means it's provisioned, patched, and backed up for you, and you whitelist your monitor's IP so it reaches the database without a public port. Prefer SQLite? Skip this and make sure the data directory lands on a persistent volume instead.</p>
 
   <figure>
     <img src="../assets/console/launch-database.png" alt="The Kloudbean console Launch Database screen used to provision managed MariaDB so Uptime Kuma monitoring history survives redeploys">
@@ -154,7 +154,7 @@
 <pre><code># Point Uptime Kuma at managed MariaDB instead of the default SQLite file.
 # Set these as environment variables in the console (never in a committed file).
 UPTIME_KUMA_DB_TYPE=mariadb
-UPTIME_KUMA_DB_HOSTNAME=10.0.0.7        # private-network address of managed MariaDB
+UPTIME_KUMA_DB_HOSTNAME=10.0.0.7        # internal address of managed MariaDB
 UPTIME_KUMA_DB_PORT=3306
 UPTIME_KUMA_DB_NAME=uptimekuma
 UPTIME_KUMA_DB_USERNAME=kuma
@@ -242,7 +242,7 @@ node server/server.js   # starts Uptime Kuma on port 3001</code></pre>
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Know before your users do.</p>
     <p style="margin:0 0 .6em">Run the Uptime Kuma Node app on a managed server, keep its history in managed MariaDB, and host it on its own independent box. The OS, SSL, and backups are handled, so you watch your stack instead of babysitting the watcher. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">Managed Node runtime · Managed MariaDB · Private networking · Automatic backups · Free SSL · Free migration · Free trial</p>
+    <p style="margin:0">Managed Node runtime · Managed MariaDB · Automatic backups · Free SSL · Free migration · Free trial</p>
   </div>
 
   <h2>FAQ</h2>
@@ -266,7 +266,7 @@ node server/server.js   # starts Uptime Kuma on port 3001</code></pre>
     <p>Yes. It can publish status pages, public for customers or internal for your team, and you choose which monitors appear on each. So you can show a clean customer-facing status while keeping sensitive internal checks private.</p>
 
     <h3>How do I connect Uptime Kuma to MariaDB?</h3>
-    <p>Set the database environment variables at deploy time: UPTIME_KUMA_DB_TYPE=mariadb plus the hostname, port, database name, username, and password. Point the hostname at your managed MariaDB private-network address. Leave them unset and it uses the default SQLite file.</p>
+    <p>Set the database environment variables at deploy time: UPTIME_KUMA_DB_TYPE=mariadb plus the hostname, port, database name, username, and password. Point the hostname at your managed MariaDB internal address. Leave them unset and it uses the default SQLite file.</p>
 
     <h3>Do I need Docker to self-host Uptime Kuma?</h3>
     <p>No. Docker is one common way to run it, but Uptime Kuma is a plain Node.js app, so you can run it directly on a managed Node runtime. That keeps updates on your schedule while the platform handles the server, SSL, and backups.</p>
@@ -285,7 +285,7 @@ node server/server.js   # starts Uptime Kuma on port 3001</code></pre>
 {"@type":"Question","name":"Is Uptime Kuma a good UptimeRobot alternative?","acceptedAnswer":{"@type":"Answer","text":"For most teams, yes. You get unlimited monitors, status pages, and over 90 notification channels with no per-monitor pricing, and your data stays in-house. Hosted monitors like UptimeRobot and Pingdom do check from many global locations more easily, so some people run both."}},
 {"@type":"Question","name":"How do I get alerts from Uptime Kuma?","acceptedAnswer":{"@type":"Answer","text":"Add a notification in the settings and attach it to your monitors. It supports Slack, email, Telegram, Discord, webhooks, and dozens more. Wire up at least one, then trigger a test failure to confirm the alert actually reaches you."}},
 {"@type":"Question","name":"Can Uptime Kuma make a status page?","acceptedAnswer":{"@type":"Answer","text":"Yes. It can publish status pages, public for customers or internal for your team, and you choose which monitors appear on each. So you can show a clean customer-facing status while keeping sensitive internal checks private."}},
-{"@type":"Question","name":"How do I connect Uptime Kuma to MariaDB?","acceptedAnswer":{"@type":"Answer","text":"Set the database environment variables at deploy time: UPTIME_KUMA_DB_TYPE set to mariadb, plus the hostname, port, database name, username, and password. Point the hostname at your managed MariaDB private-network address. Leave them unset and it uses the default SQLite file."}},
+{"@type":"Question","name":"How do I connect Uptime Kuma to MariaDB?","acceptedAnswer":{"@type":"Answer","text":"Set the database environment variables at deploy time: UPTIME_KUMA_DB_TYPE set to mariadb, plus the hostname, port, database name, username, and password. Point the hostname at your managed MariaDB internal address. Leave them unset and it uses the default SQLite file."}},
 {"@type":"Question","name":"Do I need Docker to self-host Uptime Kuma?","acceptedAnswer":{"@type":"Answer","text":"No. Docker is one common way to run it, but Uptime Kuma is a plain Node.js app, so you can run it directly on a managed Node runtime. That keeps updates on your schedule while the platform handles the server, SSL, and backups."}}
 ]}
 ]}

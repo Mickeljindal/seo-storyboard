@@ -26,7 +26,7 @@ _By Kloudbean Engineering · Cache smart, not hard._
 
 Your database keeps answering the same question. Same query, same rows, every few seconds, all day. Redis caching fixes that by holding hot answers in memory, so repeated reads come back in under a millisecond instead of hammering Postgres or MySQL. This Redis caching guide is the practical version: what to actually cache, how to cache with Redis using the cache-aside pattern, how to set a sane Redis TTL, and how to survive the two things that bite, cache invalidation and cache stampede. Real Node and Python code included.
 
-> **The short version.** Redis caching keeps frequently read data in memory so requests skip the database. The default pattern is cache-aside: check Redis, on a miss read the database, then store the result with a TTL using `SETEX`. Put a TTL on every key, delete the key when the record changes, and add a little TTL jitter so one popular key expiring can't stampede your database. On Kloudbean, Redis is a one-click managed engine on the same private network as your app and database.
+> **The short version.** Redis caching keeps frequently read data in memory so requests skip the database. The default pattern is cache-aside: check Redis, on a miss read the database, then store the result with a TTL using `SETEX`. Put a TTL on every key, delete the key when the record changes, and add a little TTL jitter so one popular key expiring can't stampede your database. On Kloudbean, Redis is a one-click managed engine that runs in the same account, right next to your app and database.
 
 ## Why Redis caching works, and what you should actually cache
 
@@ -48,7 +48,7 @@ Some data has no business in a cache. Don't cache anything that must be correct 
 
 Cache-aside (sometimes called lazy loading) is the workhorse of Redis caching. Your app owns the logic. Check Redis first. If the value's there, return it, a hit. If not, a miss: read the database, write the answer into Redis with a TTL, and return it. Nothing gets cached until someone asks for it, so the cache fills with exactly what your traffic wants.
 
-<!-- Bespoke inline SVG in the HTML: the cache-aside read path over the private network.
+<!-- Bespoke inline SVG in the HTML: the cache-aside read path inside your account.
      (1) App sends GET key to Redis. HIT returns in under 1 ms.
      (2) MISS falls through to the managed DB (Postgres / MySQL).
      (3) DB result is written back with SETEX + TTL. Brand navy / purple / green. -->
@@ -59,7 +59,7 @@ Cache-aside (sometimes called lazy loading) is the workhorse of Redis caching. Y
      ^                       ^                   Postgres / MySQL
      |__ HIT: under 1 ms ____|                        |
                              |__ 3: SETEX + TTL <------|
-        ( all on the private network / VPC )
+        ( all in the same account, next to your app )
 ```
 
 Here it is in Node with `ioredis`. Read the connection URL from the environment, never hard-code it (more on why in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/)).
@@ -229,7 +229,7 @@ Sessions fit Redis well: short-lived (a timeout is just a TTL) and not your sour
 
 ## Deploy managed Redis and wire it up
 
-The patterns are the same wherever Redis runs; what changes is how much babysitting is yours. On Kloudbean, Redis is one of seven managed database engines (MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, MongoDB), launched from the same place as your database, on the same private network, patched and backed up while you use it. The wiring, start to finish:
+The patterns are the same wherever Redis runs; what changes is how much babysitting is yours. On Kloudbean, Redis is one of seven managed database engines (MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, MongoDB), launched from the same place as your database, running right next to it, patched and backed up while you use it. The wiring, start to finish:
 
 1. **Launch a managed Redis.** Open the DBS section, hit Launch Database, and pick Redis. Name it, create it. A minute or two later it's provisioned, secured, and being backed up. No config files, no `apt install`.
 
@@ -242,7 +242,7 @@ The patterns are the same wherever Redis runs; what changes is how much babysitt
 REDIS_URL=redis://:your-strong-password@10.0.0.6:6379/0
 
 # use rediss:// (double s) when you front the connection with TLS
-# 10.0.0.6 is a private-network address, not a public one
+# 10.0.0.6 is an internal address, not a public one
 ```
 
 The empty slot before the colon is the (usually blank) username, then the password, host, port, and the database number (`0` by default). Redis gives you 16 numbered logical databases per instance.
@@ -251,15 +251,15 @@ The empty slot before the colon is the (usually blank) username, then the passwo
 
 ![The Kloudbean console environment variables screen holding REDIS_URL for the app to read at runtime](../assets/console/env-vars.png)
 
-4. **Install a client and connect.** `ioredis` or `node-redis` for Node, `redis-py` for Python. Each reads `REDIS_URL` and connects. The client is just a library; your app runs on Kloudbean's managed runtime and talks to managed Redis over the private network.
+4. **Install a client and connect.** `ioredis` or `node-redis` for Node, `redis-py` for Python. Each reads `REDIS_URL` and connects. The client is just a library; your app runs on Kloudbean's managed runtime and talks to managed Redis over its internal address, not the public internet.
 5. **Deploy and watch a hit.** Push through [Git-based deploys](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/), redeploy so the app picks up `REDIS_URL`, then load a cached endpoint twice. First a miss, second a hit.
 
 ## Keep Redis private: security that isn't optional
 
-Redis is fast partly because it trusts its network. Fine on a private network, dangerous on a public one. An open Redis on the internet gets found and abused within minutes, and known attacks turn an exposed instance into remote code execution. So, non-negotiable:
+Redis is fast partly because it trusts its network. Fine when only your app can reach it, dangerous when it's open to the internet. An open Redis on the internet gets found and abused within minutes, and known attacks turn an exposed instance into remote code execution. So, non-negotiable:
 
-- **Never expose port 6379 to the internet.** On Kloudbean, Redis sits on a private network (VPC) and your app reaches it internally. Keep it that way.
-- **Require a password.** Set `requirepass` and keep the credentials in `REDIS_URL`, loaded from an environment variable, not baked into code. Use `rediss://` for anything that leaves the private network.
+- **Never expose port 6379 to the internet.** On Kloudbean, managed Redis runs right next to your app, and you lock it down with IP allow-listing so only your app server's IP can connect. Keep it that way.
+- **Require a password.** Set `requirepass` and keep the credentials in `REDIS_URL`, loaded from an environment variable, not baked into code. Use `rediss://` for any connection that leaves your server.
 - **Lean on the baseline, keep backups on.** The managed layer runs Shorewall and Fail2ban and keeps the engine patched, and backups are automatic if you use Redis for anything you'd miss.
 
 ## Gotchas that bite in production
@@ -282,13 +282,13 @@ maxmemory-policy allkeys-lru
 
 ## How Redis caching fits the rest of your stack
 
-Caching is one layer. Your app reads and writes a real database, caches hot reads in Redis, keeps sessions there, and rate-limits its endpoints with the same instance. Because app and Redis share a private network, connection reuse stays cheap, the same reason [connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/) is gentler on an always-on server than on serverless. One dashboard, one server, one bill, and the fast layer right where it belongs.
+Caching is one layer. Your app reads and writes a real database, caches hot reads in Redis, keeps sessions there, and rate-limits its endpoints with the same instance. Because app and Redis sit side by side in the same account, connection reuse stays cheap, the same reason [connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/) is gentler on an always-on server than on serverless. One dashboard, one server, one bill, and the fast layer right where it belongs.
 
 ---
 
-**Put the fast layer next to your app.** Launch a managed Redis in a click, connect it with one `REDIS_URL`, and let cache-aside lift the repeat load off your database. Sessions, rate limiting, and caching from a single managed instance on a private network. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+**Put the fast layer next to your app.** Launch a managed Redis in a click, connect it with one `REDIS_URL`, and let cache-aside lift the repeat load off your database. Sessions, rate limiting, and caching from a single managed instance right next to your app. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
 
-One-click Redis · On a private network · Automatic backups · Free migration assistance · Free trial · Simple Git deploy
+One-click Redis · IP allow-listing · Automatic backups · Free migration assistance · Free trial · Simple Git deploy
 
 ## FAQ
 

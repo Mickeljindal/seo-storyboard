@@ -221,15 +221,15 @@ RESET work_mem;</code></pre>
   <p>But tune queries and indexes first. Bad SQL scales badly no matter the hardware. A missing index that scans five million rows scans them faster on a bigger box, then falls over again at ten million. Doubling your server to hide an N+1 loop is the most expensive way to not fix a bug. For read-heavy workloads, a <a href="https://www.kloudbean.com/blog/redis-caching-guide/">managed Redis cache</a> in front of your hottest reads often buys more headroom than a bigger database.</p>
 
   <h2>Put it into practice on managed PostgreSQL</h2>
-  <p>The tuning above is plain Postgres; it works anywhere. What a managed platform changes is the ops around it. Provisioning, the private network, patching, and backups are handled, so your time goes to schema, queries, and indexes.</p>
+  <p>The tuning above is plain Postgres; it works anywhere. What a managed platform changes is the ops around it. Provisioning, IP allow-listing, patching, and backups are handled, so your time goes to schema, queries, and indexes.</p>
 
-  <p><strong>1. Launch a managed PostgreSQL.</strong> Postgres is one of seven managed database engines here. In the DBS section, pick Postgres, name it, and it's provisioned on a private network with automatic backups on. You own the schema, queries, and data; the platform handles provisioning, patching, and backups.</p>
+  <p><strong>1. Launch a managed PostgreSQL.</strong> Postgres is one of seven managed database engines here. In the DBS section, pick Postgres, name it, and it's provisioned with automatic backups on and locked to your app server's IP. You own the schema, queries, and data; the platform handles provisioning, patching, and backups.</p>
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed PostgreSQL database with automatic backups and private networking">
-    <figcaption>DBS then Launch Database: managed PostgreSQL, provisioned on a private network with backups running.</figcaption>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed PostgreSQL database with automatic backups and IP allow-listing">
+    <figcaption>DBS then Launch Database: managed PostgreSQL, provisioned with automatic backups running, locked to your app server's IP.</figcaption>
   </figure>
 
-  <p><strong>2. Connect over the private network.</strong> Put the connection string in an environment variable, set your pool size there, and keep the database off the public internet. Your Node or Python app reads the variable and connects internally. Wiring up an app? <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">Deploying a Node app to a managed cloud</a> walks the path.</p>
+  <p><strong>2. Connect and lock it down.</strong> Put the connection string in an environment variable, set your pool size there, then whitelist your app server's IP so only it can reach the database, keeping it off the public internet. Your Node or Python app reads the variable and connects internally. Wiring up an app? <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">Deploying a Node app to a managed cloud</a> walks the path.</p>
   <figure>
     <img src="../assets/console/env-vars.png" alt="The Kloudbean console environment variables screen holding the PostgreSQL connection string safely out of code">
     <figcaption>Runtime configuration then Environment Variables: the connection string and pool size live here, never in your repo.</figcaption>
@@ -245,8 +245,8 @@ RESET work_mem;</code></pre>
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Make Postgres earn its keep.</p>
-    <p style="margin:0 0 .6em">Managed PostgreSQL on Kloudbean gives you a real box on a private network, automatic backups, and one-click provisioning, so the only thing left to tune is your own queries. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> and see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">Managed PostgreSQL · Automatic backups · Private networking · Resize as you grow · Free migration · Free trial</p>
+    <p style="margin:0 0 .6em">Managed PostgreSQL on Kloudbean gives you a real box locked to your app server's IP, automatic backups, and one-click provisioning, so the only thing left to tune is your own queries. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> and see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Managed PostgreSQL · Automatic backups · Resize as you grow · Free migration · Free trial</p>
   </div>
 
   <h2>FAQ</h2>
