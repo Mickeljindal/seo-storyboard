@@ -252,7 +252,7 @@ send_email(job)</code></pre>
     <figcaption>Launch managed PostgreSQL and managed Redis from the same screen. One click each, both provisioned and backed up.</figcaption>
   </figure>
 
-  <p>Because each is a one-click launch, running both is just two launches in one account, on the same private network. Your app reaches Postgres and Redis internally, not over the public internet, which erases a class of connection and firewall headaches and keeps connection reuse cheap (the same reason an always-on server makes <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a> simpler than serverless).</p>
+  <p>Because each is a one-click launch, running both is just two launches in one account, right next to your app. Your app reaches Postgres and Redis by their connection strings, each locked to your app server's IP so nothing else can connect, which erases a class of connection and firewall headaches and keeps connection reuse cheap (the same reason an always-on server makes <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a> simpler than serverless).</p>
 
   <p>You wire both the same way: one connection value each, read from the environment, so rotating a password is a config change, not a code change.</p>
 
@@ -261,19 +261,19 @@ send_email(job)</code></pre>
     <figcaption>Runtime Configuration: <code>DATABASE_URL</code> and <code>REDIS_URL</code> live here, side by side, never in your repository.</figcaption>
   </figure>
 
-<pre><code># Both connections as environment variables, on the same private network
+<pre><code># Both connections as environment variables, in the same account
 DATABASE_URL=postgresql://appuser:secret@10.0.0.5:5432/appdb
 REDIS_URL=redis://:secret@10.0.0.6:6379/0</code></pre>
 
   <!-- ADD IMAGE: the Kloudbean dashboard showing a Postgres instance and a Redis instance side by side in one account. Swap for a real screenshot: src -> images/both-engines-dashboard.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The dashboard with a managed Postgres and a managed Redis in the same account, to show both engines living together.</em><small>Optional: highlight the private network they share.</small></span></figure>
+  <figure class="img-slot"><span><b>Add image</b><em>The dashboard with a managed Postgres and a managed Redis in the same account, to show both engines living together.</em><small>Optional: show both engines living in one account.</small></span></figure>
 
-  <p>Managed means the platform provisions, patches, and backs up the engine on a private network, while your schema and data stay yours to export anytime. Both run on Linux. Setting up the durable side first? <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">Adding a managed database to your app</a> walks the full flow, and adding Redis after is the same pattern with one more env var. For engine details, see <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a> and <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis hosting</a>. One honest note: Kloudbean doesn't autoscale a standard app. Autoscaling and Kubernetes are enterprise and custom setups, not a toggle on a normal account.</p>
+  <p>Managed means the platform provisions, patches, and backs up the engine, locked to your app server's IP, while your schema and data stay yours to export anytime. Both run on Linux. Setting up the durable side first? <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">Adding a managed database to your app</a> walks the full flow, and adding Redis after is the same pattern with one more env var. For engine details, see <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a> and <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis hosting</a>. One honest note: Kloudbean doesn't autoscale a standard app. Autoscaling and Kubernetes are enterprise and custom setups, not a toggle on a normal account.</p>
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Run the truth and the fast layer side by side.</p>
-    <p style="margin:0 0 .6em">Launch managed PostgreSQL for your source of truth and managed Redis for the hot paths, both one click, both on a private network, both backed up. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">One-click Postgres and Redis · Private networking · Automatic backups · Free migration · Free trial · Simple Git deploy</p>
+    <p style="margin:0 0 .6em">Launch managed PostgreSQL for your source of truth and managed Redis for the hot paths, both one click, both locked to your app server's IP, both backed up. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">One-click Postgres and Redis · Automatic backups · Free migration · Free trial · Simple Git deploy</p>
   </div>
 
   <h2>FAQ</h2>

@@ -141,7 +141,7 @@ def process_webhook(event):
     handle_event(event)            # the actual work
 ```
 
-On Kloudbean this maps cleanly onto one server. Your Node or Python app is the receiver, a [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/) sits on the private network as the broker, and the worker is another process running beside the app. The full setup, including how to keep the worker alive, is in the guide to [running Celery with managed Redis](https://www.kloudbean.com/blog/celery-with-redis/). Redis is one click to launch, on a private network, and backed up.
+On Kloudbean this maps cleanly onto one server. Your Node or Python app is the receiver, a [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/) sits on the same server as the broker, and the worker is another process running beside the app. The full setup, including how to keep the worker alive, is in the guide to [running Celery with managed Redis](https://www.kloudbean.com/blog/celery-with-redis/). Redis is one click to launch, locked to your app server's IP, and backed up.
 
 ### Step 3: Make the handler idempotent (dedupe duplicate webhook events)
 
@@ -251,7 +251,7 @@ A webhook receiver is a normal Node or Python app, a Redis queue, and a worker. 
 
 ![The Kloudbean console Environment Variables screen where the webhook signing secret is stored](../assets/console/env-vars.png)
 
-3. **Launch managed Redis for the queue.** From the DBS section, launch a Redis instance. It comes up on the private network, one click, and it's backed up. That's your BullMQ or Celery broker, reachable by the app internally and not exposed to the internet.
+3. **Launch managed Redis for the queue.** From the DBS section, launch a Redis instance. It comes up locked to your app server's IP, one click, and it's backed up. That's your BullMQ or Celery broker, reachable by the app internally and not exposed to the internet.
 
 ![The Kloudbean console Launch Database screen selecting managed Redis for the webhook queue](../assets/console/launch-database.png)
 
@@ -276,9 +276,9 @@ Webhook security comes down to a handful of habits. Skip any one and endpoints g
 
 ---
 
-**Ship a webhook receiver that doesn't drop events.** Put your Node or Python app, a one-click Redis queue, and your worker on the same server, behind free SSL and a private network. Start free at [kloudbean.com](https://www.kloudbean.com/), and check plans on [pricing](https://www.kloudbean.com/pricing/). Free migration assistance if you're moving an existing integration over.
+**Ship a webhook receiver that doesn't drop events.** Put your Node or Python app, a one-click Redis queue, and your worker on the same server, behind free SSL and IP allow-listing. Start free at [kloudbean.com](https://www.kloudbean.com/), and check plans on [pricing](https://www.kloudbean.com/pricing/). Free migration assistance if you're moving an existing integration over.
 
-Managed Node and Python · One-click Redis · Private networking · Env-stored secrets · Free SSL · Simple Git deploy
+Managed Node and Python · One-click Redis · Env-stored secrets · Free SSL · Simple Git deploy
 
 ## FAQ
 
@@ -304,7 +304,7 @@ Verify every signature, serve the endpoint over HTTPS, keep the signing secret i
 It varies by provider, but most retry failed or timed-out deliveries several times over minutes or hours on a backoff schedule, then give up. That's exactly why idempotency matters: across those retries you may receive the same event more than once, and your handler needs to make repeats a no-op.
 
 **Can I use Redis as the webhook queue?**
-Yes, and it's the common choice. BullMQ on Node and Celery on Python both use Redis as the broker. On Kloudbean you launch a managed Redis on the private network with one click, point your app and worker at it, and it's backed up for you. Redis also works nicely as the store for your idempotency keys.
+Yes, and it's the common choice. BullMQ on Node and Celery on Python both use Redis as the broker. On Kloudbean you launch a managed Redis locked to your app server's IP with one click, point your app and worker at it, and it's backed up for you. Redis also works nicely as the store for your idempotency keys.
 
 **How do I test webhooks during development?**
 Use the provider's own test or "send test event" feature where they have one, and a tunneling tool to expose your local endpoint over HTTPS while you build. Log the event id and type as they arrive so you can confirm verification passed and the job was queued. Once it works locally, deploy the same code and point the provider at your live HTTPS URL.

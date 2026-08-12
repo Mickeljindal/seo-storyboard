@@ -213,27 +213,27 @@ The patterns above run anywhere. What changes is how much babysitting is yours. 
 
 ![The Kloudbean console launching a managed database, with PostgreSQL, Redis, MySQL, MariaDB, and more as one-click choices](../assets/console/launch-database.png)
 
-Because each is a one-click launch, running both is just two launches in one account, on the same private network. Your app reaches Postgres and Redis internally, not over the public internet, which erases a class of connection and firewall headaches and keeps connection reuse cheap (the same reason an always-on server makes [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/) simpler than serverless).
+Because each is a one-click launch, running both is just two launches in one account, right next to your app. Your app reaches Postgres and Redis by their connection strings, each locked to your app server's IP so nothing else can connect, which erases a class of connection and firewall headaches and keeps connection reuse cheap (the same reason an always-on server makes [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/) simpler than serverless).
 
 You wire both the same way: one connection value each, read from the environment, so rotating a password is a config change, not a code change.
 
 ![The Kloudbean console environment variables screen holding DATABASE_URL and REDIS_URL for the app to read](../assets/console/env-vars.png)
 
 ```bash
-# Both connections as environment variables, on the same private network
+# Both connections as environment variables, in the same account
 DATABASE_URL=postgresql://appuser:secret@10.0.0.5:5432/appdb
 REDIS_URL=redis://:secret@10.0.0.6:6379/0
 ```
 
 <!-- ADD IMAGE: the dashboard with a managed Postgres and a managed Redis in the same account, to show both engines living together -->
 
-Managed means the platform provisions, patches, and backs up the engine on a private network, while your schema and data stay yours to export anytime. Both run on Linux. Setting up the durable side first? [Adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) walks the full flow, and adding Redis after is the same pattern with one more env var. For engine details, see [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) and [managed Redis hosting](https://www.kloudbean.com/blog/managed-redis-hosting/). One honest note: Kloudbean doesn't autoscale a standard app. Autoscaling and Kubernetes are enterprise and custom setups, not a toggle on a normal account.
+Managed means the platform provisions, patches, and backs up the engine, locked to your app server's IP, while your schema and data stay yours to export anytime. Both run on Linux. Setting up the durable side first? [Adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) walks the full flow, and adding Redis after is the same pattern with one more env var. For engine details, see [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) and [managed Redis hosting](https://www.kloudbean.com/blog/managed-redis-hosting/). One honest note: Kloudbean doesn't autoscale a standard app. Autoscaling and Kubernetes are enterprise and custom setups, not a toggle on a normal account.
 
 ---
 
-**Run the truth and the fast layer side by side.** Launch managed PostgreSQL for your source of truth and managed Redis for the hot paths, both one click, both on a private network, both backed up. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+**Run the truth and the fast layer side by side.** Launch managed PostgreSQL for your source of truth and managed Redis for the hot paths, both one click, both locked to your app server's IP, both backed up. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
 
-One-click Postgres and Redis · Private networking · Automatic backups · Free migration · Free trial · Simple Git deploy
+One-click Postgres and Redis · Automatic backups · Free migration · Free trial · Simple Git deploy
 
 ## FAQ
 

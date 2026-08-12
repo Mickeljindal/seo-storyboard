@@ -167,7 +167,7 @@ Strip it right down. SSL is the old name, TLS is what actually runs, and every r
 
 **Stop babysitting certificates. Ship with the padlock already on.** Deploy on Kloudbean and every app and site gets free, auto-renewing SSL, terminated at the proxy for you, so you never generate a `.pem` file or diarize a renewal again. Start free at [kloudbean.com](https://www.kloudbean.com/), and compare plans from $8/mo on [pricing](https://www.kloudbean.com/pricing/).
 
-Free auto-renewing SSL · Managed web server · One dashboard · Private networking · 7 clouds · Free migration · Free trial
+Free auto-renewing SSL · Managed web server · One dashboard · 7 clouds · Free migration · Free trial
 
 ## FAQ
 
@@ -192,7 +192,7 @@ Yes, in most ways that matter. TLS 1.3 has a faster one round trip handshake, a 
 **Do I need to renew my SSL certificate?**
 Yes. Certificates expire on purpose, and an expired one takes your site down with a browser-blocking error. The fix is automation: a scheduled renewal, or a managed platform that renews for you before the cert lapses. Renewing by hand is asking for a surprise outage.
 
-**Why does my browser say "Not Secure"?**
+**Why does my browser say 'Not Secure'?**
 It means the page isn't protected by valid TLS: no certificate, an expired one, a name that doesn't match the domain, or an incomplete chain. Anything you type on a "Not Secure" page can be read by others on the network, so fix the certificate before trusting the site with data.
 
 **What is TLS termination?**

@@ -162,7 +162,7 @@ None of that is heavy process. It turns "deploy and pray" into "deploy and know.
 
 ## Why one dashboard makes this gap smaller
 
-Most of these failures share a root: the app needs services and config that live somewhere other than your laptop, and stitching them across three or four providers is where things slip through. That's the part Kloudbean removes. Your managed database, environment variables, object storage, and build logs sit in one dashboard, on a server you own, on a private network. You set the port and env vars in the UI, launch the database next to the app, and watch the build stream live. Fewer moving pieces, fewer places for a localhost assumption to hide.
+Most of these failures share a root: the app needs services and config that live somewhere other than your laptop, and stitching them across three or four providers is where things slip through. That's the part Kloudbean removes. Your managed database, environment variables, object storage, and build logs sit in one dashboard, on a server you own, in one account. You set the port and env vars in the UI, launch the database next to the app, and watch the build stream live. Fewer moving pieces, fewer places for a localhost assumption to hide.
 
 Weighing where to put a vibe-coded app after a hobby host? The [Render alternative for vibe-coded apps](https://www.kloudbean.com/blog/render-alternative-for-vibe-coded-apps/) breaks down the tradeoffs, and the pillar guide, [how to deploy an AI-built app to production](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/), ties every step together.
 
@@ -170,7 +170,7 @@ Weighing where to put a vibe-coded app after a hobby host? The [Render alternati
 
 **The code already runs. Now give it a real home.** Launch a managed server, database, and object storage from one dashboard at [kloudbean.com](https://www.kloudbean.com/), with a free trial and your first migration done for you. Sizes and plans on [pricing](https://www.kloudbean.com/pricing/).
 
-Managed databases · Environment variables in the UI · Object storage · Private networking · Live build logs · Free migration
+Managed databases · Environment variables in the UI · Object storage · Live build logs · Free migration
 
 ## FAQ
 

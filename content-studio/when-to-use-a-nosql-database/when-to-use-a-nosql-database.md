@@ -141,7 +141,7 @@ On Kloudbean the families in this guide aren't abstract. They're one-click manag
 ![The Kloudbean console Launch Database screen showing relational and document engines side by side](../assets/console/launch-database.png)
 *Launch Database: relational (PostgreSQL, MySQL, MariaDB) and document (MongoDB) sit in the same engine list, one click either way.*
 
-Every engine lands on a private network, gets automatic backups, and hands you a connection string for an environment variable. Your app reads its connection from config, not code, so switching engines is a config change. The [how-to on adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) covers that wiring.
+Every engine is locked to your app server's IP, gets automatic backups, and hands you a connection string for an environment variable. Your app reads its connection from config, not code, so switching engines is a config change. The [how-to on adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) covers that wiring.
 
 ![The Kloudbean dashboard showing servers, applications, and managed databases on one screen](../assets/console/dashboard.png)
 *Relational as the backbone, a document store or Redis alongside it, one dashboard. Polyglot persistence, no second bill to chase.*
@@ -154,9 +154,9 @@ If MongoDB is the piece you need, the [managed MongoDB hosting](https://www.klou
 
 **Start relational, scale into more when the workload demands it.**
 
-Launch PostgreSQL, MySQL, MongoDB, Redis, or Elasticsearch in a click, each on a private network, backed up automatically, and connected with one environment variable. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Launch PostgreSQL, MySQL, MongoDB, Redis, or Elasticsearch in a click, each locked to your app server's IP, backed up automatically, and connected with one environment variable. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
 
-One-click databases · Automatic backups · Private networking · Free migration · Free trial · From $8/mo
+One-click databases · Automatic backups · Free migration · Free trial · From $8/mo
 
 ## FAQ
 

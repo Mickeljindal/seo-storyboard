@@ -1,7 +1,7 @@
 ---
 title: "A Vercel Alternative for Full-Stack Apps"
 slug: vercel-alternative-for-full-stack-apps
-meta_description: "Your app outgrew Vercel's serverless model. An honest Vercel alternative breakdown — where serverless stops fitting, how the metered bill behaves, and when a persistent server you own is the better call."
+meta_description: "Your app outgrew Vercel's serverless model. An honest Vercel alternative breakdown: where serverless stops fitting, how the metered bill behaves, and when a persistent server you own is the better call."
 target_keyword: Vercel alternative
 secondary_keywords:
   - Vercel alternative for full-stack
@@ -10,10 +10,10 @@ secondary_keywords:
   - best Vercel alternative
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 1 — Deploy AI / Vibe-Coded Apps
+cluster: 1 - Deploy AI / Vibe-Coded Apps
 ---
 
-![A Vercel alternative for full-stack apps — a persistent server you own, with the database next to the code, at a flat price](images/hero.png)
+![A Vercel alternative for full-stack apps: a persistent server you own, with the database next to the code, at a flat price](images/hero.png)
 
 # A Vercel Alternative for Full-Stack Apps
 
@@ -120,7 +120,7 @@ Kloudbean runs Linux web stacks: Node, PHP, Python, Ruby, Java, and the framewor
 
 ## A server, not a workaround
 
-See how the whole stack on one owned server compares for your app at [kloudbean.com](https://www.kloudbean.com/). One-click databases, automatic backups, private networking, free migration, free trial, and git deploy. Plans on [pricing](https://www.kloudbean.com/pricing/).
+See how the whole stack on one owned server compares for your app at [kloudbean.com](https://www.kloudbean.com/). One-click databases, automatic backups, IP allow-listing, free migration, free trial, and git deploy. Plans on [pricing](https://www.kloudbean.com/pricing/).
 
 ## FAQ
 
