@@ -174,7 +174,7 @@ DB_NAME=appdb</code></pre>
   <p>If MySQL is working, "should I switch from MySQL to MariaDB" usually has a boring answer: not without a reason. Good reasons exist. You want off Oracle's licensing. You need a MariaDB-only feature. Your distro already moved and you're just following it. A vague sense that MariaDB is "more open" is a fine reason for a new project and a weak one for migrating a healthy production database. If you do switch, test the JSON and replication bits the hardest, since that's where the two disagree most.</p>
 
   <h2>Run either one on Kloudbean</h2>
-  <p>Both MariaDB and MySQL are one-click managed engines here, sitting alongside PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB. Managed means we handle provisioning, patching, and automatic backups, and the engine lives on a private network. You own the schema, the queries, and the data, and you can export any time.</p>
+  <p>Both MariaDB and MySQL are one-click managed engines here, sitting alongside PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB. Managed means we handle provisioning, patching, and automatic backups, and the engine is locked down with IP allow-listing so only your app server can reach it. You own the schema, the queries, and the data, and you can export any time.</p>
 
   <ol>
     <li><strong>Launch the engine.</strong> Open <strong>DBS</strong> and click <strong>Launch Database</strong>. Choose MariaDB or MySQL, name it, create it. It's provisioned, secured, and backed up within a couple of minutes.</li>
@@ -202,8 +202,8 @@ DB_NAME=appdb</code></pre>
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Run MariaDB or MySQL without babysitting it.</p>
-    <p style="margin:0 0 .6em">Both are one-click managed engines with automatic backups, private networking, and free migration help, deployed next to your app with simple Git deploys. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">One-click databases · Automatic backups · Private networking · Free migration · Free trial</p>
+    <p style="margin:0 0 .6em">Both are one-click managed engines with automatic backups, IP allow-listing, and free migration help, deployed next to your app with simple Git deploys. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">One-click databases · Automatic backups · Free migration · Free trial</p>
   </div>
 
   <h2>FAQ</h2>
@@ -236,7 +236,7 @@ DB_NAME=appdb</code></pre>
     <p>MySQL has the edge for heavy JSON work. It stores JSON as a validated binary type for faster access, while MariaDB implements the JSON type as an alias for <code>LONGTEXT</code> with a validity check, stored as text. Both support JSON functions and both are fine for light JSON use, but a JSON-centric schema leans toward MySQL.</p>
 
     <h3>Are both MariaDB and MySQL managed on Kloudbean?</h3>
-    <p>Yes. Both are one-click managed engines, alongside PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB, with automatic backups, controlled access, and private networking. Managed means provisioning, patching, and backups are handled while you keep full ownership of your schema and data.</p>
+    <p>Yes. Both are one-click managed engines, alongside PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB, with automatic backups, controlled access, and IP allow-listing. Managed means provisioning, patching, and backups are handled while you keep full ownership of your schema and data.</p>
   </div>
 
   <p class="byline">By Kloudbean Data · Managed MySQL and MariaDB. Same roots, different paths.</p>
@@ -247,7 +247,7 @@ DB_NAME=appdb</code></pre>
 {"@type":"Article","headline":"MariaDB vs MySQL: Which One Should You Actually Run?","description":"A fair comparison of MariaDB vs MySQL: the 2009 fork, licensing and governance, JSON storage, storage engines, clustering, performance, WordPress, migration, and a clear recommendation. Both are one-click managed engines on Kloudbean.","image":"https://www.kloudbean.com/blog/mariadb-vs-mysql/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/mariadb-vs-mysql/"},
 {"@type":"FAQPage","mainEntity":[
 {"@type":"Question","name":"Is MariaDB a drop-in replacement for MySQL?","acceptedAnswer":{"@type":"Answer","text":"It began as one, and for many apps it still swaps in cleanly, since they share the wire protocol, port 3306, the mysql scheme, and tools like mysqldump. But the two have diverged since 2009, so treat MariaDB as highly compatible rather than identical. Test anything that uses JSON columns, specific replication setups, or version-specific features before you rely on the swap."}},
-{"@type":"Question","name":"What is the main difference between MariaDB and MySQL?","acceptedAnswer":{"@type":"Answer","text":"Governance and licensing. MariaDB is fully open and community-run under the MariaDB Foundation with a single GPL edition, while MySQL is owned by Oracle, dual-licensed, and offers a paid Enterprise edition with extra features. On top of that they differ in JSON storage, bundled storage engines, and clustering technology."}},
+{"@type":"Question","name":"What's the main difference between MariaDB and MySQL?","acceptedAnswer":{"@type":"Answer","text":"Governance and licensing. MariaDB is fully open and community-run under the MariaDB Foundation with a single GPL edition, while MySQL is owned by Oracle, dual-licensed, and offers a paid Enterprise edition with extra features. On top of that they differ in JSON storage, bundled storage engines, and clustering technology."}},
 {"@type":"Question","name":"Is MariaDB faster than MySQL?","acceptedAnswer":{"@type":"Answer","text":"For most real applications the difference is negligible, and benchmarks swing both ways depending on the workload. What makes your database fast is indexing, query design, connection pooling, and RAM, not the choice between these two engines. Pick on licensing and fit, then tune the database you chose."}},
 {"@type":"Question","name":"MariaDB or MySQL for WordPress?","acceptedAnswer":{"@type":"Answer","text":"Either works, and both are officially supported (WordPress needs MySQL 5.5.5 or newer, or MariaDB 10.0 or newer). Many managed WordPress hosts default to MariaDB because it is a clean open drop-in, but you will not notice a difference in the admin or on the front end. Choose based on what your host offers and what your team is comfortable with."}},
 {"@type":"Question","name":"Is MariaDB free?","acceptedAnswer":{"@type":"Answer","text":"Yes. MariaDB server is licensed under GPLv2 and is fully free and open source, with no paid edition of the core database that gates features. Commercial support is available if you want it, but the database itself is free to run."}},
@@ -255,7 +255,7 @@ DB_NAME=appdb</code></pre>
 {"@type":"Question","name":"Can I migrate data between MariaDB and MySQL?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it is straightforward because they share tooling. Export with mysqldump and import with the mysql client in either direction, then repoint your connection string. Watch JSON columns and replication config, and run your test suite afterward, since drift tends to surface there."}},
 {"@type":"Question","name":"Do MariaDB and MySQL use the same port and connection string?","acceptedAnswer":{"@type":"Answer","text":"They do. Both listen on port 3306 by default and use the mysql connection scheme, so a DATABASE_URL like mysql user pass host 3306 db works for either. Frameworks that read discrete host and port variables do not need to know which engine they are talking to."}},
 {"@type":"Question","name":"Does MariaDB or MySQL handle JSON better?","acceptedAnswer":{"@type":"Answer","text":"MySQL has the edge for heavy JSON work. It stores JSON as a validated binary type for faster access, while MariaDB implements the JSON type as an alias for LONGTEXT with a validity check, stored as text. Both support JSON functions and both are fine for light JSON use, but a JSON-centric schema leans toward MySQL."}},
-{"@type":"Question","name":"Are both MariaDB and MySQL managed on Kloudbean?","acceptedAnswer":{"@type":"Answer","text":"Yes. Both are one-click managed engines, alongside PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB, with automatic backups, controlled access, and private networking. Managed means provisioning, patching, and backups are handled while you keep full ownership of your schema and data."}}
+{"@type":"Question","name":"Are both MariaDB and MySQL managed on Kloudbean?","acceptedAnswer":{"@type":"Answer","text":"Yes. Both are one-click managed engines, alongside PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB, with automatic backups, controlled access, and IP allow-listing. Managed means provisioning, patching, and backups are handled while you keep full ownership of your schema and data."}}
 ]}
 ]}
 </script>

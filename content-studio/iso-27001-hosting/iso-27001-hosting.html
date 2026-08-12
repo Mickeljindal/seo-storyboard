@@ -46,7 +46,7 @@
       <tr><td>Access control</td><td>Only authorized identities reach systems, at least privilege</td><td>Unique logins, role-based permissions, IP restrictions</td></tr>
       <tr><td>Cryptography</td><td>Protect data moving over networks</td><td>TLS/SSL everywhere, plus an at-rest decision you make</td></tr>
       <tr><td>Operations security</td><td>Hardened, patched systems; controlled change</td><td>Firewall, brute-force blocking, patching, change history</td></tr>
-      <tr><td>Communications security</td><td>Segment and isolate networks</td><td>Private networking so databases are not public</td></tr>
+      <tr><td>Communications security</td><td>Segment and isolate networks</td><td>IP allow-listing so databases are reachable only from trusted hosts (private networking on Enterprise)</td></tr>
       <tr><td>Physical security</td><td>Protect the facilities holding data</td><td>Tier-1 data centers with their own certification</td></tr>
       <tr><td>Backup and availability</td><td>Data survives and can be restored</td><td>Automatic backups, and a restore you have tested</td></tr>
       <tr><td>Logging and monitoring</td><td>Record and review significant activity</td><td>An activity log or audit trail you can search and export</td></tr>
@@ -61,7 +61,7 @@
     <tbody>
       <tr><td>Physical data-center security (ISO 27001 at the provider level)</td><td>The ISMS itself: how your organization manages security risk</td></tr>
       <tr><td>Infrastructure hardening (firewall, Fail2ban)</td><td>Risk assessment and risk treatment decisions</td></tr>
-      <tr><td>Network isolation and private networking</td><td>Security policies, procedures, and their upkeep</td></tr>
+      <tr><td>Network isolation and IP allow-listing (private networking on Enterprise)</td><td>Security policies, procedures, and their upkeep</td></tr>
       <tr><td>Encryption in transit (free SSL)</td><td>Staff training and security awareness</td></tr>
       <tr><td>Automatic backups</td><td>Access governance: joiners, movers, and leavers</td></tr>
       <tr><td>Access controls (UAC, IP rules)</td><td>Your certification scope and Statement of Applicability</td></tr>
@@ -83,7 +83,7 @@
 
       <rect x="30" y="176" width="470" height="96" rx="14" fill="#4F1AF3"/>
       <text x="265" y="218" text-anchor="middle" fill="#ffffff" font-size="17" font-weight="700" font-family="Poppins,sans-serif">Kloudbean infrastructure controls</text>
-      <text x="265" y="244" text-anchor="middle" fill="#d7ccff" font-size="12.5" font-family="Poppins,sans-serif">hardening · free SSL · access control · private net · backups</text>
+      <text x="265" y="244" text-anchor="middle" fill="#d7ccff" font-size="12.5" font-family="Poppins,sans-serif">hardening · free SSL · access control · IP allow-listing · backups</text>
 
       <rect x="30" y="288" width="470" height="96" rx="14" fill="#000f27"/>
       <text x="265" y="330" text-anchor="middle" fill="#ffffff" font-size="17" font-weight="700" font-family="Poppins,sans-serif">Tier-1 cloud data centers (AWS, Google Cloud)</text>
@@ -124,7 +124,7 @@
       <tr><td>Access control</td><td>Subusers with granular User Access Control (per-resource, per-action); IP Access Control by CIDR; HttpOnly cookie sessions; a Basic Auth gate for apps still in progress</td></tr>
       <tr><td>Cryptography (in transit)</td><td>Free SSL/TLS, issued and auto-renewed across your app and its APIs</td></tr>
       <tr><td>Operations security</td><td>Shorewall firewall and Fail2ban brute-force blocking, on by default</td></tr>
-      <tr><td>Communications security</td><td>Private networking / VPC keeps managed databases off the public internet</td></tr>
+      <tr><td>Communications security</td><td>IP Access Control locks managed databases to your app server's IP; private networking / VPC available on Enterprise</td></tr>
       <tr><td>Physical security</td><td>Runs on tier-1 clouds (AWS, Google Cloud) whose data centers hold ISO 27001 at the infrastructure level</td></tr>
       <tr><td>Backup and availability</td><td>Automatic backups, plus seven managed database engines with controlled access and their own backups, on a tier-1 uptime foundation</td></tr>
       <tr><td>Logging and monitoring</td><td>Enterprise Audit Trail: immutable, searchable, account-wide, CSV export</td></tr>
@@ -150,7 +150,7 @@
   </figure>
 
   <h3>Step 3. Harden the servers and isolate the network</h3>
-  <p>Unpatched software and open ports start a lot of incidents, so keep the stack patched and run baseline protections like a firewall and brute-force blocking by default. Then take databases off the public internet entirely by putting them on a private network, so a scanner can't even find them. That single move closes a whole class of exposure. Here's <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">what a VPC is</a> if the concept is new.</p>
+  <p>Unpatched software and open ports start a lot of incidents, so keep the stack patched and run baseline protections like a firewall and brute-force blocking by default. Then lock your managed database down with IP allow-listing, so only your app server's IP can reach it and a random scanner can't even knock. That single move closes a whole class of exposure. On Enterprise, private networking (a VPC) takes the database off the public internet entirely. Here's <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">what a VPC is</a> if the concept is new.</p>
   <figure>
     <img src="../assets/console/firewall.png" alt="The Kloudbean console firewall settings closing unused ports, mapping to the ISO 27001 operations-security area">
     <figcaption>Operations security: a firewall that closes everything you don't explicitly need open.</figcaption>
@@ -184,14 +184,14 @@
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Build on a foundation your ISO 27001 program can point to.</p>
-    <p style="margin:0 0 .6em">Run your app on infrastructure with hardening, encryption in transit, private networking, access controls, and automatic backups, all on tier-1 clouds and all on one dashboard. Talk to us about the enterprise Audit Trail and custom setups for your ISO 27001 program. Start with a free trial and free migration assistance at <a href="https://www.kloudbean.com/">kloudbean.com</a>, and see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">Access control (UAC) · Free SSL · Shorewall + Fail2ban · Private networking / VPC · Automatic backups · Enterprise Audit Trail</p>
+    <p style="margin:0 0 .6em">Run your app on infrastructure with hardening, encryption in transit, IP allow-listing, access controls, and automatic backups, all on tier-1 clouds and all on one dashboard. Talk to us about the enterprise Audit Trail, private networking, and custom setups for your ISO 27001 program. Start with a free trial and free migration assistance at <a href="https://www.kloudbean.com/">kloudbean.com</a>, and see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Access control (UAC) · Free SSL · Shorewall + Fail2ban · IP allow-listing · Automatic backups · Enterprise Audit Trail</p>
   </div>
 
   <h2>ISO 27001 hosting FAQ</h2>
   <div class="faq">
     <h3>Is Kloudbean ISO 27001 certified?</h3>
-    <p>ISO 27001 covers an organization's information security management system, so it isn't something a hosting product carries on your behalf. Kloudbean provides infrastructure controls that map to Annex A areas, including access control, encryption in transit, hardening, private networking, and backups, and these support your ISO 27001 program. The tier-1 cloud data centers it runs on, operated by providers like AWS and Google Cloud, hold ISO 27001 at the data-center level. Your own organization's certification is separate and yours to pursue, and you should confirm any provider's current certifications with them directly.</p>
+    <p>ISO 27001 covers an organization's information security management system, so it isn't something a hosting product carries on your behalf. Kloudbean provides infrastructure controls that map to Annex A areas, including access control, encryption in transit, hardening, IP allow-listing, and backups, and these support your ISO 27001 program. The tier-1 cloud data centers it runs on, operated by providers like AWS and Google Cloud, hold ISO 27001 at the data-center level. Your own organization's certification is separate and yours to pursue, and you should confirm any provider's current certifications with them directly.</p>
 
     <h3>What is ISO 27001?</h3>
     <p>ISO/IEC 27001 is the international standard for an information security management system, or ISMS. It describes how an organization identifies security risks and manages them with documented policies, processes, and controls. An accredited certification body audits the ISMS, and the organization, not a server or a product, receives the certificate. Annex A is a reference catalog of controls you choose from based on your risk assessment.</p>
@@ -228,7 +228,7 @@
 {"@context":"https://schema.org","@graph":[
 {"@type":"Article","headline":"ISO 27001 Hosting: What Gets Certified, and What's Yours to Own","description":"What ISO 27001 asks of hosting, the shared-responsibility split, and how infrastructure controls map to Annex A. Careful, honest, no certification myths.","image":"https://www.kloudbean.com/blog/iso-27001-hosting/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/iso-27001-hosting/"},
 {"@type":"FAQPage","mainEntity":[
-{"@type":"Question","name":"Is Kloudbean ISO 27001 certified?","acceptedAnswer":{"@type":"Answer","text":"ISO 27001 covers an organization information security management system, so it is not something a hosting product carries on your behalf. Kloudbean provides infrastructure controls that map to Annex A areas, including access control, encryption in transit, hardening, private networking, and backups, and these support your ISO 27001 program. The tier-1 cloud data centers it runs on, operated by providers like AWS and Google Cloud, hold ISO 27001 at the data-center level. Your own organization certification is separate and yours to pursue, and you should confirm any provider current certifications with them directly."}},
+{"@type":"Question","name":"Is Kloudbean ISO 27001 certified?","acceptedAnswer":{"@type":"Answer","text":"ISO 27001 covers an organization information security management system, so it is not something a hosting product carries on your behalf. Kloudbean provides infrastructure controls that map to Annex A areas, including access control, encryption in transit, hardening, IP allow-listing, and backups, and these support your ISO 27001 program. The tier-1 cloud data centers it runs on, operated by providers like AWS and Google Cloud, hold ISO 27001 at the data-center level. Your own organization certification is separate and yours to pursue, and you should confirm any provider current certifications with them directly."}},
 {"@type":"Question","name":"What is ISO 27001?","acceptedAnswer":{"@type":"Answer","text":"ISO/IEC 27001 is the international standard for an information security management system, or ISMS. It describes how an organization identifies security risks and manages them with documented policies, processes, and controls. An accredited certification body audits the ISMS, and the organization, not a server or a product, receives the certificate. Annex A is a reference catalog of controls you choose from based on your risk assessment."}},
 {"@type":"Question","name":"Does hosting make my company ISO 27001 certified?","acceptedAnswer":{"@type":"Answer","text":"No. Certification covers your organization ISMS, which includes your policies, your risk decisions, and the scope you define. Hosting supplies infrastructure controls and evidence for the infrastructure layer, which is genuinely useful, but it is only one part. You still own your ISMS and the audit of it, so treat good hosting as a head start rather than a finished result."}},
 {"@type":"Question","name":"What is the difference between ISO 27001 and SOC 2?","acceptedAnswer":{"@type":"Answer","text":"Both give customers assurance about your security, but the deliverables differ. ISO 27001 is an international standard, and the outcome is a certification of your ISMS granted by an accredited body. SOC 2 is a US-oriented framework, and the outcome is an attestation report from an auditor describing how your controls meet the Trust Services Criteria over time. The underlying controls overlap heavily, so infrastructure groundwork tends to serve both."}},

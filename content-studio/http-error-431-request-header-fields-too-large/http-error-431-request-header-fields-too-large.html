@@ -127,7 +127,7 @@ config.setRequestHeaderSize(32768);</code></pre>
   <h2>Where hosting fits</h2>
   <p>Two halves, and it is worth separating them honestly.</p>
   <p>The limits are configuration. On Kloudbean, nginx comes configured for real applications rather than left at defaults, which is where the 8k buffer ceiling catches people out. That covers the front half of the chain.</p>
-  <p>The cause is usually application design, and the specific fix is somewhere to keep session data that is not a cookie. <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">Managed Redis</a> sits in the same dashboard as the application on a private network, which is the practical answer to both cookie payloads and JWT bloat, since both are solved by storing state server-side and looking it up cheaply.</p>
+  <p>The cause is usually application design, and the specific fix is somewhere to keep session data that is not a cookie. <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">Managed Redis</a> sits in the same dashboard as the application, in the same account, which is the practical answer to both cookie payloads and JWT bloat, since both are solved by storing state server-side and looking it up cheaply.</p>
   <p>What no platform can do is decide which of your cookies matter or trim your token claims. That is a design decision, and the honest version is that 431 is usually a prompt to make it rather than a limit to raise.</p>
 
   <figure>
@@ -140,8 +140,8 @@ config.setRequestHeaderSize(32768);</code></pre>
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Somewhere to put state that is not a cookie.</p>
-    <p style="margin:0 0 .6em">Managed Redis on a private network in the same dashboard as your application, with nginx configured for real workloads rather than defaults, from $8/mo. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">Managed Redis · Private networking · Managed nginx · Automatic backups · Flat from $8/mo</p>
+    <p style="margin:0 0 .6em">Managed Redis in the same account and dashboard as your application, with nginx configured for real workloads rather than defaults, from $8/mo. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed Redis · Managed nginx · Automatic backups · Flat from $8/mo</p>
   </div>
 
   <h2>FAQ</h2>
@@ -152,7 +152,7 @@ config.setRequestHeaderSize(32768);</code></pre>
     <h3>Why do I get a 400 instead of a 431?</h3>
     <p>Because nginx returns 400 for oversized headers while Node returns 431, so the code tells you which layer rejected the request. In a typical deployment both limits apply in series and the smaller one fires first. Raise nginx's buffers and the same requests may then start returning 431 from your application, which means you have moved one layer further along rather than broken something new.</p>
 
-    <h3>What does "Bad message 431 reason: Request Header Fields Too Large" mean?</h3>
+    <h3>What does Bad message 431 reason: Request Header Fields Too Large mean?</h3>
     <p>That exact wording comes from Jetty, so you are looking at a Java application server rather than nginx or Node. The setting to change is <code>requestHeaderSize</code> on the HTTP configuration, which commonly defaults to 8 KB. The distinctive phrasing is useful because it identifies the stack from the error text alone.</p>
 
     <h3>How do I fix a 431 caused by cookies?</h3>
@@ -180,7 +180,7 @@ config.setRequestHeaderSize(32768);</code></pre>
 {"@type":"FAQPage","mainEntity":[
 {"@type":"Question","name":"What does HTTP error 431 mean?","acceptedAnswer":{"@type":"Answer","text":"It means the request headers you sent exceeded what the server will accept. It is one of the clearest status codes in HTTP, since the cause is stated in the name. The usual culprits are accumulated cookies and an oversized JWT in the Authorization header, both of which are sent with every request."}},
 {"@type":"Question","name":"Why do I get a 400 instead of a 431?","acceptedAnswer":{"@type":"Answer","text":"Because nginx returns 400 for oversized headers while Node returns 431, so the code tells you which layer rejected the request. In a typical deployment both limits apply in series and the smaller one fires first. Raise nginx's buffers and the same requests may then start returning 431 from your application, which means you have moved one layer further along rather than broken something new."}},
-{"@type":"Question","name":"What does Bad message 431 reason Request Header Fields Too Large mean?","acceptedAnswer":{"@type":"Answer","text":"That exact wording comes from Jetty, so you are looking at a Java application server rather than nginx or Node. The setting to change is requestHeaderSize on the HTTP configuration, which commonly defaults to 8 KB. The distinctive phrasing is useful because it identifies the stack from the error text alone."}},
+{"@type":"Question","name":"What does Bad message 431 reason: Request Header Fields Too Large mean?","acceptedAnswer":{"@type":"Answer","text":"That exact wording comes from Jetty, so you are looking at a Java application server rather than nginx or Node. The setting to change is requestHeaderSize on the HTTP configuration, which commonly defaults to 8 KB. The distinctive phrasing is useful because it identifies the stack from the error text alone."}},
 {"@type":"Question","name":"How do I fix a 431 caused by cookies?","acceptedAnswer":{"@type":"Answer","text":"Immediately, clearing cookies for the domain unblocks the affected user. Properly, reduce what you send: move payloads out of cookies into a server-side session store such as Redis, remove third-party tools nobody uses, scope cookies to the paths and subdomains that need them, and set sensible expiries. Raising the limit alone just delays the same problem."}},
 {"@type":"Question","name":"Why does the error only affect some users?","acceptedAnswer":{"@type":"Answer","text":"Because cookies accumulate per browser. New visitors and private windows carry almost none, while people who have used the site for months, accepted every prompt, and logged in repeatedly carry far more. That means your most engaged users are the first to be locked out, and whoever is testing in a fresh browser cannot reproduce it."}},
 {"@type":"Question","name":"How large is too large for a JWT?","acceptedAnswer":{"@type":"Answer","text":"Past roughly 4 KB you have a design problem, because that size is sent on every request for the token's lifetime. Put a stable user identifier and the minimum needed for authorisation in the token, then resolve roles and permissions server-side from a cache. You trade a sub-millisecond cached read for smaller requests and easier revocation."}},

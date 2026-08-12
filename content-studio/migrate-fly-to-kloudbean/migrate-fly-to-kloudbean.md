@@ -51,7 +51,7 @@ For files, object storage is the better destination than a server disk, because 
 | Redis or other stateful services | Managed Redis in the same dashboard |
 | Secrets per app | Environment variables per app |
 | `fly deploy` and flyctl | GitHub deploys with live build logs |
-| WireGuard and 6PN private networking | Private networking between app and database |
+| WireGuard and 6PN private networking | App and database in one account, IP allow-listing |
 | Metered Machines, volumes, snapshots, egress, IPv4 | Flat from $8/mo, no egress metering |
 
 Your process groups become entries in a PM2 ecosystem file:

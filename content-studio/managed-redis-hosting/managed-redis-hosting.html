@@ -28,7 +28,7 @@
 
   <div class="tldr">
     <strong>The short version</strong>
-    <p>Redis is an in-memory data store you put in front of your database to make things fast. Caching, sessions, rate limits, and job queues are its bread and butter. It's an accelerator, not your source of truth. Managed Redis hosting launches one next to your app on a private network, kept running and backed up, connected with a single <code>REDIS_URL</code>.</p>
+    <p>Redis is an in-memory data store you put in front of your database to make things fast. Caching, sessions, rate limits, and job queues are its bread and butter. It's an accelerator, not your source of truth. Managed Redis hosting launches one right next to your app in the same account, locked to your app server's IP, kept running and backed up, connected with a single <code>REDIS_URL</code>.</p>
   </div>
 
   <h2>What Redis is, and what it isn't</h2>
@@ -96,14 +96,14 @@ return user;</code></pre>
   </figure>
 
   <h2>Redis as a WordPress object cache</h2>
-  <p>WordPress is a great concrete example, because it repeats the same database queries on nearly every page load. The Redis Object Cache plugin points WordPress's object cache at Redis, so those repeated queries get answered from memory instead of hitting MySQL again and again. On a busy dynamic site or a WooCommerce store, that's often the single biggest speedup available, and it's exactly the kind of thing covered in <a href="https://www.kloudbean.com/blog/speed-up-wordpress/">speeding up WordPress</a> and <a href="https://www.kloudbean.com/blog/scalable-wordpress-hosting/">scalable WordPress hosting</a>. Run Redis on the same private network as the site and the object cache is a config value away.</p>
+  <p>WordPress is a great concrete example, because it repeats the same database queries on nearly every page load. The Redis Object Cache plugin points WordPress's object cache at Redis, so those repeated queries get answered from memory instead of hitting MySQL again and again. On a busy dynamic site or a WooCommerce store, that's often the single biggest speedup available, and it's exactly the kind of thing covered in <a href="https://www.kloudbean.com/blog/speed-up-wordpress/">speeding up WordPress</a> and <a href="https://www.kloudbean.com/blog/scalable-wordpress-hosting/">scalable WordPress hosting</a>. Run Redis in the same account as the site and the object cache is a config value away.</p>
 
   <h2>Sessions that survive more than one server</h2>
   <p>By default a lot of frameworks store user sessions in a file or in local memory on one server. That works right up until you run a second app server, at which point a user's session might live on a machine they don't hit next, and they get logged out at random. Point the session store at Redis and every app server shares one fast store. It's usually a one-line config change, and it becomes close to mandatory the moment you scale past a single server.</p>
 
   <figure>
     <img src="../assets/console/add-application.png" alt="The Kloudbean console showing an application running alongside a managed Redis instance">
-    <figcaption>Redis running right beside the app it accelerates, on the same private network.</figcaption>
+    <figcaption>Redis running right beside the app it accelerates, in the same account.</figcaption>
   </figure>
 
   <h2>Rate limiting and job queues</h2>
@@ -130,22 +130,22 @@ EXPIRE ratelimit:user:123 60   # reset the count every 60 seconds</code></pre>
   <ul>
     <li><strong>Wrong URL.</strong> The host, port, or password in <code>REDIS_URL</code> doesn't match the instance. This is the usual culprit, especially right after moving environments.</li>
     <li><strong>TLS mismatch.</strong> Many managed instances require an encrypted connection. If your client connects without TLS, or tries TLS when the instance doesn't use it, it fails. Match what the instance expects.</li>
-    <li><strong>Network or firewall.</strong> The app can't reach the Redis host. On a single private network this is handled for you; across separate providers, check the routing.</li>
+    <li><strong>Network or firewall.</strong> The app can't reach the Redis host. When the app and Redis run in the same account this is handled for you; across separate providers, check the routing.</li>
     <li><strong>Out of memory or maxed connections.</strong> Under heavy load Redis can refuse new connections until there's room.</li>
   </ul>
-  <p>Check the URL and the TLS setting first. Those two account for the large majority of these errors. Running the app and Redis on the same private network takes the whole network category off the table.</p>
+  <p>Check the URL and the TLS setting first. Those two account for the large majority of these errors. Running the app and Redis in the same account takes the whole network category off the table.</p>
 
   <!-- Author: replace with a screenshot of a cache hit-rate or object-cache metrics panel. src -> images/redis-hitrate.png -->
   <figure class="img-slot"><span><b>Add image</b><em>Show a cache hit-rate chart or the WordPress object-cache status screen.</em><small>Makes the caching payoff visible.</small></span></figure>
 
   <h2>Managed Redis, Upstash, or self-host?</h2>
-  <p>Upstash is a genuinely nice serverless Redis if your whole app is built around per-request serverless functions and pay-per-command pricing. Credit where it's due. But most apps don't run that way. They run on an always-on server, and for those a managed Redis sitting on the same private network as your database, in the same dashboard, is simpler and keeps everything on infrastructure you actually control. You launch it, you get a <code>REDIS_URL</code>, and it's patched and backed up without you thinking about it. If you're already connecting a database, the flow is identical, and <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a> walks through the same env-var wiring.</p>
+  <p>Upstash is a genuinely nice serverless Redis if your whole app is built around per-request serverless functions and pay-per-command pricing. Credit where it's due. But most apps don't run that way. They run on an always-on server, and for those a managed Redis sitting right next to your database in the same account, in the same dashboard, is simpler and keeps everything on infrastructure you actually control. You launch it, you get a <code>REDIS_URL</code>, and it's patched and backed up without you thinking about it. If you're already connecting a database, the flow is identical, and <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a> walks through the same env-var wiring.</p>
   <p>The honest boundary, once: managed Redis is a Linux-based service where the platform runs and patches the engine and handles memory and backups. You own your keys and data. It's in-memory, so treat it as fast, possibly-transient storage unless you deliberately turn on persistence. For read-heavy growth beyond caching, the next lever is usually your primary database, covered in <a href="https://www.kloudbean.com/blog/database-read-replicas-scaling/">read replicas and scaling</a>.</p>
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Stop asking the database the same question twice.</p>
     <p style="margin:0 0 .6em">Add a managed Redis next to your app, connect it with one URL, and watch the repeat load lift off your database. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">One-click Redis · On a private network · Automatic backups · Free migration · Free trial</p>
+    <p style="margin:0; font-size:15px; opacity:.9">One-click Redis · IP allow-listing · Automatic backups · Free migration · Free trial</p>
   </div>
 
   <h2>FAQ</h2>
@@ -163,9 +163,9 @@ EXPIRE ratelimit:user:123 60   # reset the count every 60 seconds</code></pre>
     <h3>What eviction policy should I use for a cache?</h3>
     <p>For a pure cache, allkeys-lru is a sensible default. It drops the least-recently-used keys when memory fills, so cold entries make way for hot ones and nothing important is lost. If you rely on key expiries, volatile-lru is an alternative. Match the policy to how you use the keys.</p>
     <h3>Can I use Redis as a WordPress object cache?</h3>
-    <p>Yes, and it's one of the best speedups for a dynamic WordPress or WooCommerce site. The Redis Object Cache plugin points WordPress's object cache at Redis, so repeated database queries are answered from memory. Run Redis on the same private network as the site and it's a quick configuration.</p>
+    <p>Yes, and it's one of the best speedups for a dynamic WordPress or WooCommerce site. The Redis Object Cache plugin points WordPress's object cache at Redis, so repeated database queries are answered from memory. Run Redis in the same account as the site and it's a quick configuration.</p>
     <h3>Managed Redis vs Upstash vs self-hosting, which should I pick?</h3>
-    <p>Upstash suits apps built entirely on serverless functions with pay-per-command pricing. For the more common always-on server app, a managed Redis on the same private network as your database, in one dashboard, is simpler and keeps everything on infrastructure you control. Self-hosting is fine for learning or throwaway projects, less so for anything users depend on.</p>
+    <p>Upstash suits apps built entirely on serverless functions with pay-per-command pricing. For the more common always-on server app, a managed Redis right next to your database in the same account, in one dashboard, is simpler and keeps everything on infrastructure you control. Self-hosting is fine for learning or throwaway projects, less so for anything users depend on.</p>
     <h3>Is Redis free?</h3>
     <p>Redis the software is open source and free to run. Managed Redis hosting isn't free, because you're paying for the always-on server plus patching, memory management, and backups. As with any managed engine, the engine costs nothing; having it run reliably for you is the paid part.</p>
     <h3>Do I still need a regular database if I have Redis?</h3>
@@ -185,8 +185,8 @@ EXPIRE ratelimit:user:123 60   # reset the count every 60 seconds</code></pre>
 {"@type":"Question","name":"Why do I get error establishing a redis connection?","acceptedAnswer":{"@type":"Answer","text":"Almost always configuration. A wrong host, port, or password in the connection URL; a TLS mismatch where the instance requires encryption and the client isn't using it or vice versa; a network or firewall block between app and Redis; or Redis being out of memory or connections under load. Check the URL and the TLS setting first."}},
 {"@type":"Question","name":"Does Redis lose data when it restarts or fills up?","acceptedAnswer":{"@type":"Answer","text":"By default Redis holds data in memory and uses an eviction policy to drop keys when it hits its memory limit, which is ideal for a cache. It can be configured with persistence (RDB snapshots or AOF) to survive restarts when you need that. Use persistence for data you can't recompute, like a job queue, and skip it for a pure cache."}},
 {"@type":"Question","name":"What eviction policy should I use for a cache?","acceptedAnswer":{"@type":"Answer","text":"For a pure cache, allkeys-lru is a sensible default. It drops the least-recently-used keys when memory fills, so cold entries make way for hot ones and nothing important is lost. If you rely on key expiries, volatile-lru is an alternative. Match the policy to how you use the keys."}},
-{"@type":"Question","name":"Can I use Redis as a WordPress object cache?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it's one of the best speedups for a dynamic WordPress or WooCommerce site. The Redis Object Cache plugin points WordPress's object cache at Redis, so repeated database queries are answered from memory. Run Redis on the same private network as the site and it's a quick configuration."}},
-{"@type":"Question","name":"Managed Redis vs Upstash vs self-hosting, which should I pick?","acceptedAnswer":{"@type":"Answer","text":"Upstash suits apps built entirely on serverless functions with pay-per-command pricing. For the more common always-on server app, a managed Redis on the same private network as your database, in one dashboard, is simpler and keeps everything on infrastructure you control. Self-hosting is fine for learning or throwaway projects, less so for anything users depend on."}},
+{"@type":"Question","name":"Can I use Redis as a WordPress object cache?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it's one of the best speedups for a dynamic WordPress or WooCommerce site. The Redis Object Cache plugin points WordPress's object cache at Redis, so repeated database queries are answered from memory. Run Redis in the same account as the site and it's a quick configuration."}},
+{"@type":"Question","name":"Managed Redis vs Upstash vs self-hosting, which should I pick?","acceptedAnswer":{"@type":"Answer","text":"Upstash suits apps built entirely on serverless functions with pay-per-command pricing. For the more common always-on server app, a managed Redis right next to your database in the same account, in one dashboard, is simpler and keeps everything on infrastructure you control. Self-hosting is fine for learning or throwaway projects, less so for anything users depend on."}},
 {"@type":"Question","name":"Is Redis free?","acceptedAnswer":{"@type":"Answer","text":"Redis the software is open source and free to run. Managed Redis hosting isn't free, because you're paying for the always-on server plus patching, memory management, and backups. As with any managed engine, the engine costs nothing; having it run reliably for you is the paid part."}},
 {"@type":"Question","name":"Do I still need a regular database if I have Redis?","acceptedAnswer":{"@type":"Answer","text":"Yes. Redis is an accelerator, not a replacement. Your durable, authoritative data lives in a primary database like PostgreSQL or MySQL, and Redis sits in front of it to serve repeat reads, hold sessions, and back queues. They work together; one doesn't remove the need for the other."}}
 ]}

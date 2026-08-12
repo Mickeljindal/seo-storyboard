@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Managed PostgreSQL Hosting: The Developer's Database, Run For You</title>
-<meta name="description" content="Why teams pick Postgres (JSONB, data integrity, PostGIS, pgvector) and what managed PostgreSQL hosting unlocks: extensions, automatic backups, connection handling, and a private network. Is Postgres free? Yes. Hosting it well isn't.">
+<meta name="description" content="Why teams pick Postgres (JSONB, data integrity, PostGIS, pgvector) and what managed PostgreSQL hosting unlocks: extensions, automatic backups, connection handling, and IP allow-listing. Is Postgres free? Yes. Hosting it well isn't.">
 <meta name="author" content="Kloudbean">
 <link rel="canonical" href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">
 <meta property="og:type" content="article">
@@ -24,7 +24,7 @@
   <figure><img src="images/hero.png" alt="Managed PostgreSQL hosting, the developer's database run for you"></figure>
 
   <p class="lead">Ask a developer to pick a database for a new project with any ambition, and a lot of them say Postgres without blinking. It's strict where you want strictness, flexible where you need JSON, and it grows extensions that turn it into a geospatial engine or an AI vector store without ever leaving SQL.</p>
-  <p>Managed PostgreSQL hosting takes that same open-source engine and runs the tedious part for you: patching, automatic backups, monitoring, a private network, and a connection string you drop into an env var. This is why Postgres earns the love, and what managed adds on top of a database that's already free.</p>
+  <p>Managed PostgreSQL hosting takes that same open-source engine and runs the tedious part for you: patching, automatic backups, monitoring, IP allow-listing, and a connection string you drop into an env var. This is why Postgres earns the love, and what managed adds on top of a database that's already free.</p>
 
   <div class="tldr">
     <strong>The short version</strong>
@@ -112,7 +112,7 @@ DATABASE_URL=postgresql://appuser:s3cret@10.0.0.5:5432/appdb</code></pre>
     <figcaption>Store the connection string in the environment. Out of the repo, and easy to rotate.</figcaption>
   </figure>
 
-  <p>On Kloudbean the database lives on a <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">private network (VPC)</a>, reachable by your app internally rather than open to the internet. Give the app a least-privilege user, keep <code>.env</code> out of Git, and you've covered the security basics that actually get people breached. Worth knowing what this replaces: on a self-managed server the same question is answered by hand in <a href="https://www.kloudbean.com/blog/pg-hba-conf/">pg_hba.conf</a>, a file whose first matching rule wins and whose later rules are never read, which is why so many people spend an afternoon on a rule that was unreachable.</p>
+  <p>On Kloudbean you whitelist your app server's IP so only that server can reach the database, which runs in the same account as your app rather than open to the internet (on Enterprise it can run on a <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">private network (VPC)</a>). Give the app a least-privilege user, keep <code>.env</code> out of Git, and you've covered the security basics that actually get people breached. Worth knowing what this replaces: on a self-managed server the same question is answered by hand in <a href="https://www.kloudbean.com/blog/pg-hba-conf/">pg_hba.conf</a>, a file whose first matching rule wins and whose later rules are never read, which is why so many people spend an afternoon on a rule that was unreachable.</p>
 
   <figure>
     <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed PostgreSQL database from a choice of managed engines">
@@ -139,8 +139,8 @@ psql "$NEW_DATABASE_URL" &lt; dump.sql</code></pre>
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Give your ambitious new app the database it deserves.</p>
-    <p style="margin:0 0 .6em">Launch managed PostgreSQL with the extensions you need, automatic backups, and a private network, connected with one environment variable. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">One-click PostgreSQL · Popular extensions · Automatic backups · Private networking · Free migration · Free trial</p>
+    <p style="margin:0 0 .6em">Launch managed PostgreSQL with the extensions you need, automatic backups, and IP allow-listing, connected with one environment variable. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">One-click PostgreSQL · Popular extensions · Automatic backups · Free migration · Free trial</p>
   </div>
 
   <h2>FAQ</h2>

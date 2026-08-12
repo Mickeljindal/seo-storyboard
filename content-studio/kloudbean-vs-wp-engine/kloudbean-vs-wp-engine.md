@@ -11,7 +11,7 @@ secondary_keywords:
   - walled garden hosting
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 4 — vs Competitors
+cluster: 4 - vs Competitors
 ---
 
 ![Kloudbean vs WP Engine: a walled WordPress garden next to an open multi-cloud platform](images/hero.png)
@@ -56,7 +56,7 @@ Every enclosure has a price, and it's rarely the monthly bill. It's the shape of
 
 Here's a pattern we see all the time. A WordPress site is humming along. Then the team needs one more thing, then another. The Node API lands on one service. The Python job on a second. The extra database on a third. The storage on a fourth. Now there are four dashboards, four bills, and a mental map of which piece lives where.
 
-The WordPress part is still great. It's everything around it that got complicated. And the tax is bigger than a few extra tabs. Credentials get copied into two places and drift out of sync. The API and the WordPress site can't talk over a private network, so traffic takes the long way around. Backups run on four schedules with four restore procedures you've never tested together. When something breaks at 2am, you're correlating logs across dashboards that don't know about each other. None of it is fatal on any single day. All of it is standing friction that grows with the stack.
+The WordPress part is still great. It's everything around it that got complicated. And the tax is bigger than a few extra tabs. Credentials get copied into two places and drift out of sync. The API and the WordPress site sit on separate providers, so they can only reach each other over the public internet, taking the long way around. Backups run on four schedules with four restore procedures you've never tested together. When something breaks at 2am, you're correlating logs across dashboards that don't know about each other. None of it is fatal on any single day. All of it is standing friction that grows with the stack.
 
 ## Kloudbean vs WP Engine: the open-platform alternative
 
@@ -116,7 +116,7 @@ For a WordPress-only footprint, especially at scale, WP Engine's years of WordPr
 **Can WP Engine host a Node or Python app?**
 WP Engine is built around WordPress, including a headless WordPress path, not general-purpose apps. A standalone Node API or Python job usually has to live on a separate service, which is what leads to a multi-dashboard setup. Kloudbean gives those apps a home on the same platform as your WordPress site.
 
-**What does "walled garden" mean for hosting lock-in?**
+**What does 'walled garden' mean for hosting lock-in?**
 It means the platform's caching, deploy flow, and config are proprietary, so the smoothness comes with conventions that don't fully transfer elsewhere. Leaving means unwinding those conventions rather than copying standard files. Kloudbean runs a standard Linux stack you can export any time, which keeps switching costs low.
 
 **Can I choose my cloud provider on each platform?**

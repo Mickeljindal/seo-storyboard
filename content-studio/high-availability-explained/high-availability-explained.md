@@ -138,7 +138,7 @@ The floor was never the whole story. The **Flexible Load Balancer (FLB) is built
 ![The Kloudbean console showing per-server health with CPU, memory, and disk usage](../assets/console/server-health.png)
 *Server health at a glance. Spotting a node under strain before it falls over is half the battle.*
 
-Underneath, automatic backups cover the data layer HA can't protect, and [VPC and private networking](https://www.kloudbean.com/blog/what-is-a-vpc/) keep your database and backend nodes off the public internet. It's all one dashboard, which matters more than it sounds: redundancy you can set up in a few clicks is redundancy you'll actually set up.
+Underneath, automatic backups cover the data layer HA can't protect, and IP allow-listing keeps your database reachable only from your app servers rather than the public internet. On enterprise, you can isolate the database and backend nodes further on [a private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/). It's all one dashboard, which matters more than it sounds: redundancy you can set up in a few clicks is redundancy you'll actually set up.
 
 Two honest boundaries. Kloudbean manages Linux stacks (PHP, Node, Python, Ruby, Java and their databases), not Windows or IIS. And the heavier machinery, Kubernetes, autoscaling, and fully custom HA architectures, is an enterprise and custom offering, where Kloudbean acts like your in-house infrastructure team. On the SLA question: real uptime comes from redundancy you build on a solid base, not a banner percentage. Check the current terms for your plan directly.
 
@@ -146,9 +146,9 @@ Two honest boundaries. Kloudbean manages Linux stacks (PHP, Node, Python, Ruby, 
 
 ---
 
-**Turn one box that can die into a setup that stays up.** Run redundant servers behind a built-in load balancer, on tier-1 cloud infrastructure, with automatic backups and private networking, all from one dashboard. Start free at [kloudbean.com](https://www.kloudbean.com/) · compare plans on [pricing](https://www.kloudbean.com/pricing/).
+**Turn one box that can die into a setup that stays up.** Run redundant servers behind a built-in load balancer, on tier-1 cloud infrastructure, with automatic backups and IP allow-listing, all from one dashboard. Start free at [kloudbean.com](https://www.kloudbean.com/) · compare plans on [pricing](https://www.kloudbean.com/pricing/).
 
-Built-in load balancer · Automatic backups · Private networking · 7 clouds · Free migration · Free trial
+Built-in load balancer · Automatic backups · 7 clouds · Free migration · Free trial
 
 ## FAQ
 
@@ -177,7 +177,7 @@ Usually not on day one. HA adds cost and complexity, and a small blog or early p
 HA handles small, frequent failures automatically in seconds, keeping you up. Disaster recovery is your plan for a rare, large event like a whole region going offline, usually a slower rebuild measured in hours. A complete setup has both, plus backups.
 
 **Does Kloudbean offer high availability hosting?**
-Kloudbean gives you the foundation and the building blocks. Servers run on tier-1 infrastructure across seven clouds, the Flexible Load Balancer is built into every account for redundant servers with health checks, and automatic backups plus private networking cover the rest. Kubernetes, autoscaling, and custom HA are enterprise offerings; check your plan's SLA terms directly.
+Kloudbean gives you the foundation and the building blocks. Servers run on tier-1 infrastructure across seven clouds, the Flexible Load Balancer is built into every account for redundant servers with health checks, and automatic backups plus IP allow-listing cover the rest. Kubernetes, autoscaling, private networking, and custom HA are enterprise offerings; check your plan's SLA terms directly.
 
 ---
 

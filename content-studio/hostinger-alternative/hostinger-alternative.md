@@ -130,7 +130,7 @@ Drop the TTL a day before you cut over, then migrate and test on the new server 
 define( 'DB_NAME',     'appdb' );
 define( 'DB_USER',     'appuser' );
 define( 'DB_PASSWORD', 'set-this-in-the-console' ); // never commit this
-define( 'DB_HOST',     '127.0.0.1' );               // managed DB on the private network
+define( 'DB_HOST',     '127.0.0.1' );               // managed DB on the same server (localhost)
 ```
 
 If your Hostinger plan includes SSH, you can move the data yourself with `mysqldump`, though free migration assistance can do the whole move for you. Once DNS points at the new box, request a free SSL certificate and you're on HTTPS.

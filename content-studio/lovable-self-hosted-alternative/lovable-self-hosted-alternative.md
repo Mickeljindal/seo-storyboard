@@ -10,10 +10,10 @@ secondary_keywords:
   - Lovable independence
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 1 — Deploy AI / Vibe-Coded Apps
+cluster: 1 - Deploy AI / Vibe-Coded Apps
 ---
 
-![Self-host your Lovable app — own the running app, its data, and its domain, without becoming a sysadmin](images/hero.png)
+![Self-host your Lovable app: own the running app, its data, and its domain, without becoming a sysadmin](images/hero.png)
 
 # Self-Host Your Lovable App: Own the Running App
 
@@ -95,7 +95,7 @@ Being straight one more time: managed hosting is not the fully DIY, run-every-la
 
 Kloudbean runs Linux web stacks: Node and the modern web toolkit (React, Next.js, Vue) that Lovable produces, plus PHP, Python, Ruby, and Java. It isn't for Windows, .NET, or IIS. "Managed" means Kloudbean runs the server, the stack, SSL, patching, and automatic backups; you own and maintain the application itself. That division (you own the app and data, the platform keeps the server healthy) is precisely the "self-hosted without the sysadmin work" arrangement most Lovable builders actually want.
 
-**Built in a tool. Owned by you.** Own your app at [kloudbean.com](https://www.kloudbean.com/). One-click databases, automatic backups, private networking, free migration, free trial, and simple Git deploy. Plans on [pricing](https://www.kloudbean.com/pricing/).
+**Built in a tool. Owned by you.** Own your app at [kloudbean.com](https://www.kloudbean.com/). One-click databases, automatic backups, IP allow-listing, free migration, free trial, and simple Git deploy. Plans on [pricing](https://www.kloudbean.com/pricing/).
 
 ## FAQ
 
@@ -111,10 +111,10 @@ Self-host once the app has real users, data you can't afford to lose, or a domai
 ### Is my Lovable app portable if I self-host it?
 Yes. It's standard React and Node code on a standard Linux server, so you can move it to another host, or to a fully DIY server, whenever you want. Your database exports cleanly too. Nothing locks you in.
 
-### Is managed hosting really "self-hosted"?
+### Is managed hosting really 'self-hosted'?
 In the sense most people mean, where the app, data, and domain are yours and you can leave, yes. In the strict sense of personally operating every layer, no, because a provider runs the underlying server. The ownership that matters is yours; the chores are handled.
 
 ### Will self-hosting cost more than Lovable's hosting?
 Maybe, at tiny scale, since a builder's low tier can undercut an always-on server. Owning wins on predictability at any size and on total cost as you grow or add more apps to the same server. If your only goal is a lower bill today, check the math for your stage; if it's ownership and control, owning pays.
 
-By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.
+By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale. Faster Than Ever.

@@ -134,7 +134,7 @@ Drop the TTL a day before you cut over. Migrate and test on the new server first
 define( 'DB_NAME',     'appdb' );
 define( 'DB_USER',     'appuser' );
 define( 'DB_PASSWORD', 'set-this-in-the-console' ); // never commit this
-define( 'DB_HOST',     '127.0.0.1' );               // managed DB on the private network
+define( 'DB_HOST',     '127.0.0.1' );               // managed DB on the same server (localhost)
 ```
 
 Prefer to move the data yourself first? A plan with SSH lets you export and import with `mysqldump`, though free migration assistance can do the whole move for you. Once DNS points at the new box, request a free SSL certificate and you're on HTTPS.

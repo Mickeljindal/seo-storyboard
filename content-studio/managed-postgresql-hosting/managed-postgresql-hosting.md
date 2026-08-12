@@ -1,7 +1,7 @@
 ---
 title: "Managed PostgreSQL Hosting: The Developer's Database, Run For You"
 slug: managed-postgresql-hosting
-meta_description: "Why teams pick Postgres (JSONB, data integrity, PostGIS, pgvector) and what managed PostgreSQL hosting unlocks: extensions, automatic backups, connection handling, and a private network. Is Postgres free? Yes. Hosting it well isn't."
+meta_description: "Why teams pick Postgres (JSONB, data integrity, PostGIS, pgvector) and what managed PostgreSQL hosting unlocks: extensions, automatic backups, connection handling, and IP allow-listing. Is Postgres free? Yes. Hosting it well isn't."
 target_keyword: managed postgresql
 secondary_keywords:
   - postgres hosting
@@ -10,7 +10,7 @@ secondary_keywords:
   - postgresql hosting
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 7 — Databases, Storage & S3
+cluster: 7 - Databases, Storage & S3
 ---
 
 ![Managed PostgreSQL hosting, the developer's database run for you](images/hero.png)
@@ -19,7 +19,7 @@ cluster: 7 — Databases, Storage & S3
 
 Ask a developer to pick a database for a new project with any ambition, and a lot of them say Postgres without blinking. It's strict where you want strictness, flexible where you need JSON, and it grows extensions that turn it into a geospatial engine or an AI vector store without ever leaving SQL.
 
-Managed PostgreSQL hosting takes that same open-source engine and runs the tedious part for you: patching, automatic backups, monitoring, a private network, and a connection string you drop into an env var. This is why Postgres earns the love, and what managed adds on top of a database that's already free.
+Managed PostgreSQL hosting takes that same open-source engine and runs the tedious part for you: patching, automatic backups, monitoring, IP allow-listing, and a connection string you drop into an env var. This is why Postgres earns the love, and what managed adds on top of a database that's already free.
 
 > **The short version:** Postgres is the strong default for a new app that expects to grow, thanks to JSONB, strict data integrity, and extensions like PostGIS and pgvector. The engine is free and open source. Managed PostgreSQL hosting is you paying for the server and the operation around it: patching, backups, monitoring, connection handling, and keeping the database off the public internet.
 
@@ -96,7 +96,7 @@ DATABASE_URL=postgresql://appuser:s3cret@10.0.0.5:5432/appdb
 
 ![The Kloudbean console setting the PostgreSQL connection string as an environment variable](../assets/console/env-vars.png)
 
-On Kloudbean the database lives on a [private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/), reachable by your app internally rather than open to the internet. Give the app a least-privilege user, keep `.env` out of Git, and you've covered the security basics that actually get people breached. Worth knowing what this replaces: on a self-managed server the same question is answered by hand in [pg_hba.conf](https://www.kloudbean.com/blog/pg-hba-conf/), a file whose first matching rule wins and whose later rules are never read, which is why so many people spend an afternoon on a rule that was unreachable.
+On Kloudbean you whitelist your app server's IP so only that server can reach the database, which runs in the same account as your app rather than open to the internet (on Enterprise it can run on a [private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/)). Give the app a least-privilege user, keep `.env` out of Git, and you've covered the security basics that actually get people breached. Worth knowing what this replaces: on a self-managed server the same question is answered by hand in [pg_hba.conf](https://www.kloudbean.com/blog/pg-hba-conf/), a file whose first matching rule wins and whose later rules are never read, which is why so many people spend an afternoon on a rule that was unreachable.
 
 ![The Kloudbean console launching a managed PostgreSQL database from a choice of managed engines](../assets/console/launch-database.png)
 
@@ -123,9 +123,9 @@ The honest boundary, once: this is the open-source Postgres engine on a Linux st
 
 ---
 
-**Give your ambitious new app the database it deserves.** Launch managed PostgreSQL with the extensions you need, automatic backups, and a private network, connected with one environment variable. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+**Give your ambitious new app the database it deserves.** Launch managed PostgreSQL with the extensions you need, automatic backups, and IP allow-listing, connected with one environment variable. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
 
-One-click PostgreSQL · Popular extensions · Automatic backups · Private networking · Free migration · Free trial
+One-click PostgreSQL · Popular extensions · Automatic backups · Free migration · Free trial
 
 ## FAQ
 

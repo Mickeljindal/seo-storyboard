@@ -10,10 +10,10 @@ secondary_keywords:
   - host Lovable on AWS
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 1 — Deploy AI / Vibe-Coded Apps
+cluster: 1 - Deploy AI / Vibe-Coded Apps
 ---
 
-![Run a Lovable app on managed AWS — raw AWS service sprawl collapsing into one Kloudbean dashboard on top of AWS](images/hero.png)
+![Run a Lovable app on managed AWS: raw AWS service sprawl collapsing into one Kloudbean dashboard on top of AWS](images/hero.png)
 
 # How to Run Your Lovable App on Managed AWS with Kloudbean
 
@@ -86,7 +86,7 @@ One reason to be on AWS at all is the ceiling, and there's a lot of room above y
 
 Two straight facts. Kloudbean runs Linux web stacks on AWS: Node and the modern frameworks (React, Next.js, Vue) that Lovable produces, plus PHP, Python, Ruby, and Java. This isn't a bare-metal AWS tutorial, and it isn't for Windows, .NET, or IIS. It's managed Linux hosting that happens to run on AWS. And "managed" means Kloudbean runs the server, the stack, SSL, patching, and automatic backups; you still own your application and its data. That division is the whole value: AWS underneath, your app on top, and the ops in between handled. For the Lovable-specific side of things, the [deploy-a-Lovable-app guide](https://www.kloudbean.com/blog/deploy-lovable-app-to-your-own-server/) covers the frontend and Supabase details.
 
-**AWS underneath, without the console maze.** Run your app on managed AWS at [kloudbean.com](https://www.kloudbean.com/). One-click databases, automatic backups, private networking, free migration, free trial, and simple Git deploy. Tool-agnostic deploy walkthrough [here](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/); plans on [pricing](https://www.kloudbean.com/pricing/).
+**AWS underneath, without the console maze.** Run your app on managed AWS at [kloudbean.com](https://www.kloudbean.com/). One-click databases, automatic backups, IP allow-listing, free migration, free trial, and simple Git deploy. Tool-agnostic deploy walkthrough [here](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/); plans on [pricing](https://www.kloudbean.com/pricing/).
 
 ## FAQ
 
@@ -108,4 +108,4 @@ The AWS shocks people fear come from sprawl: forgotten resources and data-transf
 ### How do I scale a Lovable app on AWS later?
 Resize to a larger AWS instance for more CPU and memory, which doesn't change your code. When one box isn't enough, put a load balancer in front and run more instances, or move the database to its own server. You can also host several apps on one server, so growth doesn't always mean a bigger bill.
 
-By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.
+By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale. Faster Than Ever.

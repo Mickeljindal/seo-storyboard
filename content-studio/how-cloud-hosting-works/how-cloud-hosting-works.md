@@ -19,7 +19,7 @@ The old way was one physical server in a rack. It died, you drove to it. You out
 Before we walk each piece, here's the whole path in one picture. A request enters from the left, threads through the layers, and returns the same way. Object storage and backups branch off to the side.
 
 ```
-                          ┌───────────── PRIVATE NETWORK · VPC ─────────────┐
+                          ┌──────────── YOUR ACCOUNT · INTERNAL ────────────┐
 You ─▶ DNS ─▶ Load balancer ─▶ App server ─▶ Managed DB
 (browser) (name→IP) (public door·SSL)   │              │
                                          ▼              ▼
@@ -69,7 +69,7 @@ Here's a failure mode worth naming, one of the most common going. The app hard-c
 
 ### The managed database: where your data lives
 
-Your app needs to remember things. Users, orders, posts, sessions. That's the **database**, the one component you can't rebuild from your code repo if it's lost. On any sane setup it does not sit on the public internet. It lives on a **private network**, a VPC, reachable by your app over an internal address and nothing else. Scanners hammer public database ports constantly, so keeping it off the open web isn't optional.
+Your app needs to remember things. Users, orders, posts, sessions. That's the **database**, the one component you can't rebuild from your code repo if it's lost. On any sane setup it does not sit open on the public internet. It's reachable by your app and nothing else, whether you lock it to your app server's IP with IP allow-listing or, on bigger setups, put it on a **private network** (a VPC). Scanners hammer public database ports constantly, so keeping it off the open web isn't optional.
 
 A **managed** database goes further: the platform provisions the engine, patches it, keeps it private, and backs it up, while the schema and the data stay yours. A trap worth flagging: plenty of generated apps ship with SQLite, a single file on the app server's disk. Great in dev, wrong in production, because the next redeploy can wipe that file and every row in it. A real client-server database is the fix. More on walling it off in [what a VPC is and why your database belongs in one](https://www.kloudbean.com/blog/what-is-a-vpc/).
 
@@ -168,7 +168,7 @@ Managed cloud hosting means the platform handles the operations layer for you: p
 Usually not at first. A single well-sized server handles a surprising amount of traffic, and a load balancer adds cost and moving parts. You want one when you outgrow the largest sensible single server, or when you need redundancy so one server failing does not take you offline. Add it when the scale or uptime need is real, not before.
 
 **Where is my data actually stored?**
-In the data center region you choose when you create the server. Structured data lives in your database on a private network, large files live in object storage, and both are covered by automatic backups. The region matters for speed, because closer is faster, and for data residency, because some regulations require personal data to stay inside a specific country or region.
+In the data center region you choose when you create the server. Structured data lives in your database, reachable only by your app and not the public internet, large files live in object storage, and both are covered by automatic backups. The region matters for speed, because closer is faster, and for data residency, because some regulations require personal data to stay inside a specific country or region.
 
 **How does scaling work in cloud hosting?**
 Two ways. Vertical scaling makes the server bigger, more CPU and RAM, which is the simplest first move and covers most apps for a long time. Horizontal scaling adds more servers behind a load balancer to spread the work and add redundancy. Autoscaling, which adds servers automatically, is rarely needed by small or mid-sized apps and on Kloudbean is part of enterprise and custom setups.

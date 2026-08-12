@@ -10,7 +10,7 @@ secondary_keywords:
   - wpgraphql vs rest api
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 6 — WordPress & Frontend
+cluster: 6 - WordPress & Frontend
 ---
 
 ![Headless WordPress hosting topology: a WordPress backend feeding a decoupled front end through a content API, both on one platform](images/hero.png)
@@ -29,7 +29,7 @@ Normal WordPress does two jobs at once. It *stores* your content (the CMS) and i
 
 A separate front-end app then fetches that content and renders the site. React or Next.js, Vue or Nuxt, Astro, whatever your team likes. WordPress is the body (the content engine). Your front end is the head. Take the usual head off and you've gone headless. Simple idea. The interesting part is what it does to your hosting.
 
-<!-- Inline SVG in the HTML version: topology of writers editing in the WordPress backend, content flowing through a REST/GraphQL API to a decoupled front end that serves web, mobile and kiosk, with both apps on one platform and a private network. -->
+<!-- Inline SVG in the HTML version: topology of writers editing in the WordPress backend, content flowing through a REST/GraphQL API to a decoupled front end that serves web, mobile and kiosk, with both apps on one platform in the same account. -->
 
 ## Headless WordPress hosting means running two apps
 
@@ -37,7 +37,7 @@ This is the consequence people underestimate, and it's the whole reason "headles
 
 Keep them together. When the front end and the backend sit on the same platform, they can talk over a fast internal connection instead of the public internet, and you've got one dashboard and one bill instead of two. Split them across unrelated providers and you invite the annoying stuff: extra latency on every content fetch, CORS headers to wrangle, auth to coordinate across two systems, and two invoices to reconcile at month end.
 
-This mixed setup is exactly what Kloudbean is built for. It runs the WordPress backend on its managed PHP and MySQL stack, and it runs a Node or static front end right alongside it, on whichever of the seven supported clouds you pick. One place, one login, both halves on a private network. That's the practical difference between headless being tidy and headless being a chore.
+This mixed setup is exactly what Kloudbean is built for. It runs the WordPress backend on its managed PHP and MySQL stack, and it runs a Node or static front end right alongside it, on whichever of the seven supported clouds you pick. One place, one login, both halves side by side in one account. That's the practical difference between headless being tidy and headless being a chore.
 
 ![The Kloudbean console: adding the WordPress backend and a separate front-end app side by side on one platform](../assets/console/add-application.png)
 
@@ -124,7 +124,7 @@ Under the hood it's all Linux, headless or not. The platform manages the server,
 
 **One backend. Any front end. One place to run both.** Host the WordPress backend and your decoupled front end together at [kloudbean.com](https://www.kloudbean.com/). Plans on [pricing](https://www.kloudbean.com/pricing/).
 
-Managed WordPress + Node/static · One private network · Git deploy · Staging · Free migration · Free trial
+Managed WordPress + Node/static · One account · Git deploy · Staging · Free migration · Free trial
 
 ## FAQ
 
@@ -150,7 +150,7 @@ Plugins that manage content in the admin generally still work. Plugins that rend
 It can be, because a static or server-rendered front end can be very fast and is decoupled from WordPress's PHP rendering. But speed depends on how you build and host the front end, and a slow content API will still slow you down. Headless enables high performance; it doesn't hand it to you automatically.
 
 **Can I host the WordPress backend and the front end together?**
-Yes, and you should. Keeping both on one platform lets them talk over a private network instead of the public internet, avoids CORS and cross-provider auth headaches, and gives you one dashboard and one bill. Kloudbean is built for this mixed stack, running managed WordPress alongside a Node or static front end.
+Yes, and you should. Keeping both on one platform lets them talk to each other in the same account instead of over the public internet, avoids CORS and cross-provider auth headaches, and gives you one dashboard and one bill. Kloudbean is built for this mixed stack, running managed WordPress alongside a Node or static front end.
 
 **Does going headless change who manages the server?**
 No. It's still a Linux stack, and on managed hosting the platform handles the server, the WordPress stack, SSL, and backups. You own your WordPress content and your front-end code. Headless changes the number of moving parts you run, not the split between what the platform manages and what you own.

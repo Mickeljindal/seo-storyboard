@@ -11,7 +11,7 @@ secondary_keywords:
   - is managed hosting just shared hosting
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 4 — vs Competitors
+cluster: 4 - vs Competitors
 ---
 
 ![Managed cloud hosting myths, busted one by one](images/hero.png)
@@ -85,7 +85,7 @@ The difference from DIY isn't *whether* you can scale. It's that the tools are p
 
 **Reality:** they operate the infrastructure; your code and data stay yours to export anytime.
 
-"Managed" describes who keeps the server patched and backed up, not who owns your work. Your code is in your repo. Your data is in your database, which on Kloudbean sits on a **private network (VPC)**, off the public internet where scanners poke around. Who on your *own* team can touch what is up to you, through subusers and **User Access Control**, granular per-resource, per-action permissions. Compliance is shared work: the platform provides the infrastructure controls, you own the application-level compliance. None of that is the host reading your source over your shoulder.
+"Managed" describes who keeps the server patched and backed up, not who owns your work. Your code is in your repo. Your data is in your database, which on Kloudbean is locked down with **IP allow-listing** so only your app server can reach it, not the scanners poking around the public internet. Who on your *own* team can touch what is up to you, through subusers and **User Access Control**, granular per-resource, per-action permissions. Compliance is shared work: the platform provides the infrastructure controls, you own the application-level compliance. None of that is the host reading your source over your shoulder.
 
 <!-- ADD IMAGE: the User Access Control screen with per-resource permissions set for a subuser -->
 
@@ -114,7 +114,7 @@ The whole set, side by side, for when you need to talk someone out of a myth qui
 | **You're locked in** | Standard Linux and databases; leaving is redeploy, export, repoint DNS |
 | **Linux pros don't need it** | Many choose it on purpose to reclaim hours from patching and pager duty |
 | **It can't scale** | Resize, load-balance, cache; enterprise k8s and autoscaling for the big cases |
-| **The host owns your code/data** | Your code and data stay yours and exportable; VPC and UAC keep access controlled |
+| **The host owns your code/data** | Your code and data stay yours and exportable; IP allow-listing and UAC keep access controlled |
 | **One dashboard = one cloud** | One dashboard spans seven providers; pick cloud and region per server |
 | **It's only for WordPress** | PHP, Node, Python, Ruby, Java, static sites, and one-click AI apps |
 
@@ -155,7 +155,7 @@ Not strictly, but many experienced engineers choose it anyway. Knowing how to ru
 Yes. Resize the server for more CPU and RAM, add app servers behind a built-in load balancer to scale out, and cache hot reads with managed Redis. The scaling tools are provided rather than hand-built. For the largest workloads, Kubernetes and autoscaling are available at the enterprise tier.
 
 **Can the host see or own my code and data?**
-No. Managed means the platform operates the infrastructure, not that it owns your work. Your code stays in your repo and your data stays in your database, which can sit on a private network off the public internet. Team access is controlled by you through subusers and per-resource permissions.
+No. Managed means the platform operates the infrastructure, not that it owns your work. Your code stays in your repo and your data stays in your database, which you can lock to your app server's IP so only it connects. Team access is controlled by you through subusers and per-resource permissions.
 
 **Is managed cloud hosting only for WordPress?**
 No. It runs PHP apps (WordPress, WooCommerce, Laravel, Magento, Drupal, Joomla), Node, Python, Ruby, and Java, plus free static site hosting and one-click AI apps like n8n and Supabase. If it runs on Linux, it very likely runs on a modern managed cloud platform.

@@ -99,7 +99,7 @@ Then you deploy your app by pointing at it, not by hand-configuring Nginx and a 
 
 ![The Kloudbean console deploying an application without configuring the operating system](../assets/console/add-application.png)
 
-The backups run on a schedule (do go test a restore before you need one, that's the step everybody skips, and there's a walkthrough in the [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/)). Your database sits on a [private network](https://www.kloudbean.com/blog/what-is-a-vpc/) rather than out on the public internet where scanners live. When you want to ship changes, you wire up [Git auto-deploy](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/) and push. That gap between "bare Linux" and "running app served over HTTPS" is the thing you're paying for. It's a different product that happens to sit on the same hardware, not a markup on the same one.
+The backups run on a schedule (do go test a restore before you need one, that's the step everybody skips, and there's a walkthrough in the [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/)). Your database is locked down with IP allow-listing so only your app server can reach it, rather than sitting out on the public internet where scanners live (on Enterprise it can run on a [private network](https://www.kloudbean.com/blog/what-is-a-vpc/)). When you want to ship changes, you wire up [Git auto-deploy](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/) and push. That gap between "bare Linux" and "running app served over HTTPS" is the thing you're paying for. It's a different product that happens to sit on the same hardware, not a markup on the same one.
 
 ## IaaS, PaaS, and the managed middle
 
@@ -149,7 +149,7 @@ Yes. Basic instances from DigitalOcean, Vultr, and Linode are unmanaged infrastr
 **Is managed hosting worth the extra cost?**
 It's worth it when your time is better spent building than administering servers. The higher price buys back the hours you'd otherwise spend on setup, patching, SSL, backups, and incident response, plus the risk of a bad upgrade or a missing backup. If you enjoy or want that work, unmanaged is cheaper. If you don't, managed usually wins on real cost.
 
-**What does "managed" actually include?**
+**What does managed actually include?**
 Typically the operating system, the stack (web server, runtime, database), OS and security patching, SSL issuance and renewal, firewall and intrusion blocking, automatic backups, and health monitoring. On Kloudbean that means a Shorewall firewall and Fail2ban on by default, free SSL, and automatic backups from launch. Your app code and data stay yours.
 
 **What is IaaS vs PaaS, and where does managed hosting fit?**

@@ -17,7 +17,7 @@ hero_image: images/hero.png
 cluster: 4, vs Competitors
 ---
 
-![A Google Cloud Run alternative: an always-on managed server with a colocated managed database on one private network](images/hero.png)
+![A Google Cloud Run alternative: an always-on managed server with a colocated managed database in one account](images/hero.png)
 
 # A Google Cloud Run Alternative for Always-On Apps (No Cold Starts)
 
@@ -25,7 +25,7 @@ Google Cloud Run is one of the tidier things Google ships. You hand it a contain
 
 But plenty of people typing "Google Cloud Run alternative" into search aren't running spiky workloads at all. They're running a steady, always-on app, and they've hit cold starts, a bill that's hard to predict, or the serverless-to-database connection mess. This is the honest version of that comparison, and where an always-on managed server is the better Cloud Run alternative.
 
-> **Short answer:** If your traffic is genuinely spiky or infrequent and you want containers that scale to zero and bill per request, Cloud Run is great. Stay there. If you're running a steady, always-on app and you'd rather have it sitting next to a managed database in one dashboard, with no cold starts and a predictable monthly price, that's the Cloud Run alternative this article is about. Kloudbean runs your app on an always-on managed server across seven clouds (Google Cloud included), with the database on the same private network.
+> **Short answer:** If your traffic is genuinely spiky or infrequent and you want containers that scale to zero and bill per request, Cloud Run is great. Stay there. If you're running a steady, always-on app and you'd rather have it sitting next to a managed database in one dashboard, with no cold starts and a predictable monthly price, that's the Cloud Run alternative this article is about. Kloudbean runs your app on an always-on managed server across seven clouds (Google Cloud included), with the database colocated in the same account.
 
 ## Why teams go looking for a Cloud Run alternative
 
@@ -57,7 +57,7 @@ Those aren't small advantages. If they describe your workload, Cloud Run is the 
             requests                 |            requests
                |                     |               |
    scale from 0, cold start          |     +---------------------------+
-   [inst] [inst] [inst]              |     | one private network       |
+   [inst] [inst] [inst]              |     | same account, colocated   |
         \    |    /                  |     |  [ always-on server ]      |
       [ pooler / proxy ]             |     |    warm, no cold start     |
                |                     |     |         |  one pool        |
@@ -65,7 +65,7 @@ Those aren't small advantages. If they describe your workload, Cloud Run is the 
  Scales to zero. First hit waits.    |     +---------------------------+
  Bursts need a pooler in front.      |   Always warm. App + DB colocated.
 ```
-*Cloud Run scales to zero, so the first request after idle pays a cold start, and a burst of instances funnels connections through a pooler to an external database. An always-on server stays warm and keeps the app and its managed database on one private network, with a single pool opened once.*
+*Cloud Run scales to zero, so the first request after idle pays a cold start, and a burst of instances funnels connections through a pooler to an external database. An always-on server stays warm and keeps the app and its managed database colocated in one account, with a single pool opened once.*
 
 ## Serverless vs always-on: which model fits your app?
 
@@ -87,7 +87,7 @@ Here's the Cloud Run vs managed server comparison without the spin. Cloud Run wi
 | **Cold starts** | Yes, after scaling to zero | None, the process stays warm |
 | **Scale to zero** | Yes (a real advantage) | No, it's always running |
 | **Pricing** | Per request, plus CPU and memory | Flat server price, from $8/mo |
-| **Database** | External, often needs a pooler or proxy | Managed DB on the same private network |
+| **Database** | External, often needs a pooler or proxy | Managed DB colocated in the same account |
 | **Container-native** | Yes, bring your image (advantage) | No, deploys language runtimes from Git |
 | **Autoscaling** | Automatic, per request | Resize or add nodes; autoscaling is enterprise/custom |
 | **Dashboard** | Several GCP services to wire together | One dashboard for the whole stack |
@@ -97,11 +97,11 @@ Here's the Cloud Run vs managed server comparison without the spin. Cloud Run wi
 
 ## The always-on Google Cloud Run alternative: app and database in one dashboard
 
-Kloudbean is the always-on side of that table. You run your app on a managed server you control, and the managed database sits right beside it on the same private network. App, database, object storage, SSL, backups, and firewall all live in one dashboard instead of six GCP services. And because Kloudbean supports seven clouds, Google Cloud among them, you can even run on Google's infrastructure through Kloudbean without touching the GCP console.
+Kloudbean is the always-on side of that table. You run your app on a managed server you control, and the managed database sits right beside it in the same account. App, database, object storage, SSL, backups, and firewall all live in one dashboard instead of six GCP services. And because Kloudbean supports seven clouds, Google Cloud among them, you can even run on Google's infrastructure through Kloudbean without touching the GCP console.
 
 One honest note up front, because it matters. Kloudbean is not a serverless container platform. It does not scale to zero, it does not bill per request, and it isn't running your arbitrary Docker container. It runs managed language runtimes (Node.js, Python, PHP, Ruby, Java) plus static sites, deployed straight from your Git repo. That's a different model on purpose. If you want scale-to-zero and container-native deploys, that's Cloud Run's column, not this one.
 
-What you get in exchange is an app that's always warm with no cold starts, a database on a private network next door, and a flat monthly price you can actually forecast (plans start at $8/mo). If you're shipping a specific stack, the guides for [deploying a Node app to managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/), [deploying a Django app](https://www.kloudbean.com/blog/deploy-django-app/), and a [full-stack React app](https://www.kloudbean.com/blog/deploy-fullstack-react-app-to-production/) walk the exact flow.
+What you get in exchange is an app that's always warm with no cold starts, a managed database right next door in the same account, and a flat monthly price you can actually forecast (plans start at $8/mo). If you're shipping a specific stack, the guides for [deploying a Node app to managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/), [deploying a Django app](https://www.kloudbean.com/blog/deploy-django-app/), and a [full-stack React app](https://www.kloudbean.com/blog/deploy-fullstack-react-app-to-production/) walk the exact flow.
 
 ## The database connection problem, and why colocation fixes it
 
@@ -114,7 +114,7 @@ On Cloud Run your app is stateless and the database lives elsewhere, often Cloud
 # Each instance dials out over the network or through a proxy.
 DATABASE_URL="postgresql://app_user:secret@db-host:5432/appdb"
 
-# Always-on server: the managed database sits on the same private network.
+# Always-on server: the managed database sits in the same account, next to the app.
 DATABASE_URL="postgresql://app_user:secret@10.0.0.5:5432/appdb?sslmode=require"
 ```
 
@@ -130,7 +130,7 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 10 });
 // The same pool is reused for every request. No per-request connection storm.
 ```
 
-On an always-on server the shape is different. Your app is one long-lived process, so it opens a single connection pool once at boot and reuses it for every request. There's no fleet of cold instances each grabbing connections, so the too-many-connections scramble mostly disappears. And because the managed database is on the same private network as the app, traffic between them doesn't take a public detour. Lower latency, smaller attack surface, one less proxy to run.
+On an always-on server the shape is different. Your app is one long-lived process, so it opens a single connection pool once at boot and reuses it for every request. There's no fleet of cold instances each grabbing connections, so the too-many-connections scramble mostly disappears. And because the managed database sits in the same account right next to the app, traffic between them doesn't take a public detour. Lower latency, smaller attack surface, one less proxy to run.
 
 If you want the deeper version, our guide to [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/) covers pool sizing, and [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) walks through running Postgres this way.
 
@@ -180,7 +180,7 @@ Your Cloud Run environment variables and anything you kept in Secret Manager bec
 
 ### 4. Launch a managed database and import your data
 
-Spin up Postgres or MySQL on the same private network, export from your current database, import, and repoint `DATABASE_URL`. The app and the database now share one network, so you drop the external-connection detour and the pooler you were running to survive it.
+Spin up Postgres or MySQL in the same account, export from your current database, import, and repoint `DATABASE_URL`. The app and the database now sit right next to each other, so you drop the external-connection detour and the pooler you were running to survive it.
 
 ### 5. Point your domain, enable SSL, turn on auto-deploy
 
@@ -192,7 +192,7 @@ Add your domain, get free SSL, and switch on deploy-on-push. Test on the tempora
 
 **Always-on, no cold starts, one dashboard.** Run your app on a managed server with the database right beside it at [kloudbean.com](https://www.kloudbean.com/). Free trial, and we'll handle your first migration. Plans on [pricing](https://www.kloudbean.com/pricing/).
 
-Always-on managed server · App and managed database in one dashboard · Private networking · 7 clouds incl. Google Cloud · Git push-to-deploy · Automatic backups · Free SSL · Free migration · Free trial
+Always-on managed server · App and managed database in one dashboard · 7 clouds incl. Google Cloud · Git push-to-deploy · Automatic backups · Free SSL · Free migration · Free trial
 
 ## FAQ
 

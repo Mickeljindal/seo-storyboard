@@ -10,10 +10,10 @@ secondary_keywords:
   - Vercel to managed cloud
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 1 — Deploy AI / Vibe-Coded Apps
+cluster: 1 - Deploy AI / Vibe-Coded Apps
 ---
 
-![Move a Lovable app off Vercel to a managed server you own — a timed DNS cutover with no downtime](images/hero.png)
+![Move a Lovable app off Vercel to a managed server you own: a timed DNS cutover with no downtime](images/hero.png)
 
 # Move Your Lovable App Off Vercel to Kloudbean (Migration Guide)
 
@@ -120,7 +120,7 @@ Don't expect a smaller number in every case, because that's not always true. Ver
 
 Kloudbean runs Linux web stacks: Node and the modern web toolkit (React, Next.js, Vue) plus PHP, Python, Ruby, and Java when you need them. That's exactly what Lovable produces, so you're in the right place. It isn't for Windows, .NET, or IIS. "Managed" means Kloudbean runs the server, the stack, SSL, patching, and automatic backups; you own the application and its data. And because it's a standard Linux box running standard code, you can move it again later. This migration off Vercel is the same move in reverse whenever you want it.
 
-**A rehoming, not a rebuild.** Move your app at [kloudbean.com](https://www.kloudbean.com/). One-click databases, automatic backups, private networking, free migration, free trial, and simple Git deploy. Fresh-deploy walkthrough [here](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/); plans on [pricing](https://www.kloudbean.com/pricing/).
+**A rehoming, not a rebuild.** Move your app at [kloudbean.com](https://www.kloudbean.com/). One-click databases, automatic backups, IP allow-listing, free migration, free trial, and simple Git deploy. Fresh-deploy walkthrough [here](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/); plans on [pricing](https://www.kloudbean.com/pricing/).
 
 ## FAQ
 
@@ -142,4 +142,4 @@ Run dig +short yourdomain.com to check it resolves to the new IP, and curl -sI h
 ### Is a managed server cheaper than Vercel?
 Not always, and it's fair to say so. At very low traffic a hobby plan can be cheaper than any always-on server. A flat server usually wins as traffic and team grow, and it's more predictable at any size, since the price is the same in a quiet month and a busy one, with several apps able to share one box.
 
-By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.
+By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale. Faster Than Ever.

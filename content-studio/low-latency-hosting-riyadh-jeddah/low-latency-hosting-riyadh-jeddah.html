@@ -101,7 +101,7 @@ round-trip floor : ~40 ms         (and real fiber routes run longer)</code></pre
 
   <h2>The round trip nobody measures: your app to its database</h2>
   <p>Here's a mistake I see constantly, and it's sneaky because it survives every user-facing test. You move the app to Dammam, latency to Riyadh drops, everyone celebrates. But the managed database is still in a default US or EU region from when you first clicked around the console. Now a page running five queries pays a cross-continent round trip five times, server to database, invisible to a browser ping.</p>
-  <p>Co-location fixes it. Put the app and its database in the same region, on the same private network, and each query drops to sub-millisecond or low single digits. On Kloudbean the whole stack lives under one login, so launching the database into the same Dammam region is the default path. For the shape of that, see <a href="https://www.kloudbean.com/blog/how-cloud-hosting-works/">how cloud hosting works</a>. Latency between your app and your data matters as much as latency between your user and your app.</p>
+  <p>Co-location fixes it. Put the app and its database in the same region and the same account, right next to each other, and each query drops to sub-millisecond or low single digits. On Kloudbean the whole stack lives under one login, so launching the database into the same Dammam region is the default path. For the shape of that, see <a href="https://www.kloudbean.com/blog/how-cloud-hosting-works/">how cloud hosting works</a>. Latency between your app and your data matters as much as latency between your user and your app.</p>
 
   <h2>How do you actually measure latency to Riyadh and Jeddah?</h2>
   <p>Don't guess, measure. And measure from where your users are, not from your machine next to the data center. Three cheap tools cover most of it; real user monitoring covers the rest.</p>
@@ -140,7 +140,7 @@ tracert your-site.com        # Windows</code></pre>
   <p>The fix is short, because the expensive part is one decision made at launch. On Kloudbean it's a few clicks.</p>
   <ol>
     <li><strong>Add a server in the Dammam region.</strong> You pick the cloud and region when you add a server: Google Cloud, then <strong>Dammam (me-central2), Saudi Arabia</strong>. This one choice sets baseline latency for every Saudi user. Don't accept the console's default out of habit; that's how apps end up in Iowa serving Jeddah.</li>
-    <li><strong>Launch the managed database in the same region.</strong> Keep app and data together on a private network so queries stay in-region. Skip this and you quietly re-add the tax on every query.</li>
+    <li><strong>Launch the managed database in the same region.</strong> Keep app and data colocated in one account so queries stay in-region. Skip this and you quietly re-add the tax on every query.</li>
     <li><strong>Add a CDN for the static layer.</strong> Optional but worth it, so the edge serves images and public pages while the nearby origin handles dynamic calls.</li>
     <li><strong>Measure again from the Kingdom.</strong> Re-run ping and TTFB after the move. Numbers, not vibes.</li>
   </ol>
@@ -171,7 +171,7 @@ tracert your-site.com        # Windows</code></pre>
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Put the server where your users are.</p>
     <p style="margin:0 0 .6em">Launch a managed server and database in Google Cloud's Dammam region (me-central2) and cut the round trip for Riyadh and Jeddah users, all from one dashboard. Plans start from $8/mo, Enterprise is custom. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see options on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.85">In-Kingdom Dammam region · App and database co-located · Private networking · Automatic backups · Free SSL · Free migration assistance · Free trial</p>
+    <p style="margin:0; font-size:15px; opacity:.85">In-Kingdom Dammam region · App and database co-located · Automatic backups · Free SSL · Free migration assistance · Free trial</p>
   </div>
 
   <h2>FAQ</h2>

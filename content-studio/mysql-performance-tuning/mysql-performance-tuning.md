@@ -191,13 +191,13 @@ But tune queries and indexes first. Bad SQL scales badly no matter the hardware.
 
 ## Put it into practice on managed MySQL
 
-Everything above is plain MySQL and works anywhere. What a managed platform changes is the ops around it: provisioning, the private network, patching, and backups are handled, so your time goes to schema, queries, and indexes.
+Everything above is plain MySQL and works anywhere. What a managed platform changes is the ops around it: provisioning, IP allow-listing, patching, and backups are handled, so your time goes to schema, queries, and indexes.
 
-**1. Launch a managed MySQL.** MySQL is one of seven managed database engines here, alongside MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB. In the DBS section, pick MySQL, name it, and it's provisioned on a private network with automatic backups already on. You own the schema, queries, and data; the platform handles provisioning, patching, and backups. More in [managed MySQL hosting](https://www.kloudbean.com/blog/managed-mysql-hosting/).
+**1. Launch a managed MySQL.** MySQL is one of seven managed database engines here, alongside MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB. In the DBS section, pick MySQL, name it, and it's provisioned with automatic backups already on and locked to your app server's IP. You own the schema, queries, and data; the platform handles provisioning, patching, and backups. More in [managed MySQL hosting](https://www.kloudbean.com/blog/managed-mysql-hosting/).
 
-![The Kloudbean console launching a managed MySQL database with automatic backups and private networking](../assets/console/launch-database.png)
+![The Kloudbean console launching a managed MySQL database with automatic backups and IP allow-listing](../assets/console/launch-database.png)
 
-**2. Connect over the private network.** Put the connection string in an environment variable, set your pool size there, and keep the database off the public internet so your app reaches it internally. Wiring up an app end to end? [Deploying a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) walks the whole path.
+**2. Connect and lock it down.** Put the connection string in an environment variable, set your pool size there, and whitelist your app server's IP so only your app can reach the database, keeping it off the public internet. Wiring up an app end to end? [Deploying a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/) walks the whole path.
 
 ![The Kloudbean console environment variables screen holding the MySQL connection string out of the codebase](../assets/console/env-vars.png)
 
@@ -211,9 +211,9 @@ Backups run automatically, but a backup you've never restored is just a hope. Do
 
 ---
 
-**Make MySQL earn its keep.** Managed MySQL on Kloudbean gives you a real box on a private network, automatic backups, and one-click provisioning, so the only thing left to tune is your own queries. Start free at [kloudbean.com](https://www.kloudbean.com/) and see plans on [pricing](https://www.kloudbean.com/pricing/).
+**Make MySQL earn its keep.** Managed MySQL on Kloudbean gives you a real box locked to your app server's IP, automatic backups, and one-click provisioning, so the only thing left to tune is your own queries. Start free at [kloudbean.com](https://www.kloudbean.com/) and see plans on [pricing](https://www.kloudbean.com/pricing/).
 
-Managed MySQL and MariaDB · Automatic backups · Private networking · Resize as you grow · Free migration · Free trial
+Managed MySQL and MariaDB · Automatic backups · Resize as you grow · Free migration · Free trial
 
 ## FAQ
 

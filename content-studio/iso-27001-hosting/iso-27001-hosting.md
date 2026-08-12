@@ -44,7 +44,7 @@ Most ISO 27001 hosting requirements trace back to a handful of Annex A control a
 | Access control | Only authorized identities reach systems, at least privilege | Unique logins, role-based permissions, IP restrictions |
 | Cryptography | Protect data moving over networks | TLS/SSL everywhere, plus an at-rest decision you make |
 | Operations security | Hardened, patched systems; controlled change | Firewall, brute-force blocking, patching, change history |
-| Communications security | Segment and isolate networks | Private networking so databases are not public |
+| Communications security | Segment and isolate networks | IP allow-listing so databases are reachable only from trusted hosts (private networking on Enterprise) |
 | Physical security | Protect the facilities holding data | Tier-1 data centers with their own certification |
 | Backup and availability | Data survives and can be restored | Automatic backups, and a restore you have tested |
 | Logging and monitoring | Record and review significant activity | An activity log or audit trail you can search and export |
@@ -59,7 +59,7 @@ Here's the idea that untangles the topic. ISO 27001 responsibility splits across
 | --- | --- |
 | Physical data-center security (ISO 27001 at the provider level) | The ISMS itself: how your organization manages security risk |
 | Infrastructure hardening (firewall, Fail2ban) | Risk assessment and risk treatment decisions |
-| Network isolation and private networking | Security policies, procedures, and their upkeep |
+| Network isolation and IP allow-listing (private networking on Enterprise) | Security policies, procedures, and their upkeep |
 | Encryption in transit (free SSL) | Staff training and security awareness |
 | Automatic backups | Access governance: joiners, movers, and leavers |
 | Access controls (UAC, IP rules) | Your certification scope and Statement of Applicability |
@@ -78,7 +78,7 @@ Look at the right column. That's most of the standard, and no server touches it.
    ┌────────────────────────────────────────────┐
    │  KLOUDBEAN INFRASTRUCTURE CONTROLS           │   controls that
    │  hardening · free SSL · access control ·     │   map to Annex A
-   │  private networking · backups                │
+   │  IP allow-listing · backups                  │
    └────────────────────────────────────────────┘
 
    ┌────────────────────────────────────────────┐   ┐
@@ -108,7 +108,7 @@ Honest framing before the table: none of this makes your organization ISO 27001 
 | Access control | Subusers with granular User Access Control (per-resource, per-action); IP Access Control by CIDR; HttpOnly cookie sessions; a Basic Auth gate for apps still in progress |
 | Cryptography (in transit) | Free SSL/TLS, issued and auto-renewed across your app and its APIs |
 | Operations security | Shorewall firewall and Fail2ban brute-force blocking, on by default |
-| Communications security | Private networking / VPC keeps managed databases off the public internet |
+| Communications security | IP Access Control locks managed databases to your app server's IP; private networking / VPC available on Enterprise |
 | Physical security | Runs on tier-1 clouds (AWS, Google Cloud) whose data centers hold ISO 27001 at the infrastructure level |
 | Backup and availability | Automatic backups, plus seven managed database engines with controlled access and their own backups, on a tier-1 uptime foundation |
 | Logging and monitoring | Enterprise Audit Trail: immutable, searchable, account-wide, CSV export |
@@ -133,7 +133,7 @@ Serve every page and API call over HTTPS, with no mixed content, so data in tran
 
 ### Step 3. Harden the servers and isolate the network
 
-Unpatched software and open ports start a lot of incidents, so keep the stack patched and run baseline protections like a firewall and brute-force blocking by default. Then take databases off the public internet entirely by putting them on a private network, so a scanner can't even find them. That single move closes a whole class of exposure. Here's [what a VPC is](https://www.kloudbean.com/blog/what-is-a-vpc/) if the concept is new.
+Unpatched software and open ports start a lot of incidents, so keep the stack patched and run baseline protections like a firewall and brute-force blocking by default. Then lock your managed database down with IP allow-listing, so only your app server's IP can reach it and a random scanner can't even knock. That single move closes a whole class of exposure. On Enterprise, private networking (a VPC) takes the database off the public internet entirely. Here's [what a VPC is](https://www.kloudbean.com/blog/what-is-a-vpc/) if the concept is new.
 
 ![The Kloudbean console firewall settings closing unused ports, mapping to the ISO 27001 operations-security area](../assets/console/firewall.png)
 
@@ -167,14 +167,14 @@ Where Kloudbean fits: the infrastructure side, with controls that map to Annex A
 
 ---
 
-**Build on a foundation your ISO 27001 program can point to.** Run your app on infrastructure with hardening, encryption in transit, private networking, access controls, and automatic backups, all on tier-1 clouds and all on one dashboard. Talk to us about the enterprise Audit Trail and custom setups for your ISO 27001 program. Start with a free trial and free migration assistance at [kloudbean.com](https://www.kloudbean.com/), and see plans on [pricing](https://www.kloudbean.com/pricing/).
+**Build on a foundation your ISO 27001 program can point to.** Run your app on infrastructure with hardening, encryption in transit, IP allow-listing, access controls, and automatic backups, all on tier-1 clouds and all on one dashboard. Talk to us about the enterprise Audit Trail, private networking, and custom setups for your ISO 27001 program. Start with a free trial and free migration assistance at [kloudbean.com](https://www.kloudbean.com/), and see plans on [pricing](https://www.kloudbean.com/pricing/).
 
-Access control (UAC) · Free SSL · Shorewall + Fail2ban · Private networking / VPC · Automatic backups · Enterprise Audit Trail
+Access control (UAC) · Free SSL · Shorewall + Fail2ban · IP allow-listing · Automatic backups · Enterprise Audit Trail
 
 ## ISO 27001 hosting FAQ
 
 **Is Kloudbean ISO 27001 certified?**
-ISO 27001 covers an organization's information security management system, so it isn't something a hosting product carries on your behalf. Kloudbean provides infrastructure controls that map to Annex A areas, including access control, encryption in transit, hardening, private networking, and backups, and these support your ISO 27001 program. The tier-1 cloud data centers it runs on, operated by providers like AWS and Google Cloud, hold ISO 27001 at the data-center level. Your own organization's certification is separate and yours to pursue, and you should confirm any provider's current certifications with them directly.
+ISO 27001 covers an organization's information security management system, so it isn't something a hosting product carries on your behalf. Kloudbean provides infrastructure controls that map to Annex A areas, including access control, encryption in transit, hardening, IP allow-listing, and backups, and these support your ISO 27001 program. The tier-1 cloud data centers it runs on, operated by providers like AWS and Google Cloud, hold ISO 27001 at the data-center level. Your own organization's certification is separate and yours to pursue, and you should confirm any provider's current certifications with them directly.
 
 **What is ISO 27001?**
 ISO/IEC 27001 is the international standard for an information security management system, or ISMS. It describes how an organization identifies security risks and manages them with documented policies, processes, and controls. An accredited certification body audits the ISMS, and the organization, not a server or a product, receives the certificate. Annex A is a reference catalog of controls you choose from based on your risk assessment.

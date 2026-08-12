@@ -51,7 +51,7 @@ Before you switch a service to deny-by-default, be certain your own current addr
 
 ## Where Kloudbean fits, honestly
 
-On Kloudbean, IP Access Control lets you set allow and deny rules, including CIDR ranges, to restrict who can reach your services by network address. That gives you the allow-by-exception posture this article recommends without hand-editing firewall rules: lock an admin surface or a staging environment to your office and VPN, and deny the rest by default. It sits naturally alongside the baseline [Shorewall firewall and Fail2ban](https://www.kloudbean.com/blog/fail2ban-and-shorewall-guide/) that every server already runs, and private networking is available when a service should not touch the public internet at all.
+On Kloudbean, IP Access Control lets you set allow and deny rules, including CIDR ranges, to restrict who can reach your services by network address. That gives you the allow-by-exception posture this article recommends without hand-editing firewall rules: lock an admin surface or a staging environment to your office and VPN, and deny the rest by default. It sits naturally alongside the baseline [Shorewall firewall and Fail2ban](https://www.kloudbean.com/blog/fail2ban-and-shorewall-guide/) that every server already runs. On Enterprise plans, private networking (a VPC) can take a service off the public internet entirely; for everyone else, allow-by-exception is the everyday tool.
 
 The honest boundary: an allowlist controls which addresses may reach a service; it does not authenticate the person behind the address, and it does not replace login, a WAF, or the rest of your security. It is one strong, blunt layer among several. Used for the right things, admin surfaces and known callers, it removes a huge amount of risk for almost no effort. Used as your only control, it will eventually let the wrong person through a trusted door.
 
@@ -63,7 +63,7 @@ Allowlisting is one access control among several. To gate an app behind a passwo
 
 Kloudbean's IP Access Control lets you allow and deny by address and CIDR range, so admin panels and staging stay reachable only from your office and VPN. It sits on top of baseline firewall and brute-force protection. Compare the security story in [Kloudbean vs Cloudways](https://www.kloudbean.com/blog/kloudbean-vs-cloudways/), or start at [kloudbean.com](https://www.kloudbean.com/).
 
-IP Access Control · CIDR allow and deny · Private networking · Baseline hardening
+IP Access Control · CIDR allow and deny · Baseline hardening
 
 ## FAQ
 
@@ -97,6 +97,6 @@ They are closely related. A host firewall decides which ports are open at all, w
 
 **Does Kloudbean support IP allowlisting?**
 
-Yes. Kloudbean's IP Access Control lets you set allow and deny rules, including CIDR ranges, to control which addresses can reach your services. That gives you an allow-by-exception posture for admin surfaces and staging without editing raw firewall rules, on top of the Shorewall and Fail2ban baseline every server runs, with private networking available for services that should not be public at all.
+Yes. Kloudbean's IP Access Control lets you set allow and deny rules, including CIDR ranges, to control which addresses can reach your services. That gives you an allow-by-exception posture for admin surfaces and staging without editing raw firewall rules, on top of the Shorewall and Fail2ban baseline every server runs. On Enterprise plans, private networking (a VPC) is also available for services that should not be public at all.
 
 Kloudbean Engineering · Deny by default, allow the few you trust, and keep a way back in.

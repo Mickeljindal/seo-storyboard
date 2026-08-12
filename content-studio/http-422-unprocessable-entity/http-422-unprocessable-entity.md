@@ -124,9 +124,9 @@ Its closest neighbour, [400 Bad Request](https://www.kloudbean.com/blog/400-bad-
 
 ## Your database and your app in one place
 
-Managed PostgreSQL, MySQL, MariaDB, and Redis alongside your application on a private network, with automatic backups and visible server metrics, from $8/mo. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Managed PostgreSQL, MySQL, MariaDB, and Redis alongside your application in the same account, with automatic backups and visible server metrics, from $8/mo. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
 
-Managed databases · Private networking · Automatic backups · Server metrics · Flat from $8/mo
+Managed databases · Automatic backups · Server metrics · Flat from $8/mo
 
 ## FAQ
 

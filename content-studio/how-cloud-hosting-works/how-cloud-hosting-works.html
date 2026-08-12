@@ -44,7 +44,7 @@
   <p>Before we walk each piece, here's the whole path in one picture. A request enters from the left, threads through the layers, and returns the same way. Object storage and backups branch off to the side.</p>
 
   <figure>
-    <svg viewBox="0 0 840 340" role="img" aria-label="How cloud hosting works: a request flows from the user to DNS to the load balancer, then into the app server and the managed database on a private network, with object storage and automatic backups branching off." xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+    <svg viewBox="0 0 840 340" role="img" aria-label="How cloud hosting works: a request flows from the user to DNS to the load balancer, then into the app server and the managed database reachable only by the app, with object storage and automatic backups branching off." xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
       <defs>
         <marker id="ap" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4F1AF3"/></marker>
         <marker id="ag" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#40b75f"/></marker>
@@ -52,7 +52,7 @@
       <text x="26" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">The life of one request</text>
 
       <rect x="470" y="58" width="356" height="250" rx="16" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5" stroke-dasharray="6 6"/>
-      <text x="484" y="80" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.4">PRIVATE NETWORK · VPC</text>
+      <text x="484" y="80" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.4">YOUR ACCOUNT · INTERNAL</text>
       <text x="150" y="214" fill="#8a94a6" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.4">PUBLIC INTERNET</text>
 
       <rect x="18" y="84" width="104" height="62" rx="12" fill="#000f27"/>
@@ -95,7 +95,7 @@
       <text x="576" y="206" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10">big files</text>
       <text x="742" y="206" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10">nightly copy</text>
     </svg>
-    <figcaption>One request, in order: your browser to DNS, to the load balancer, into the app server, out to the managed database. Object storage and automatic backups sit alongside on a private network.</figcaption>
+    <figcaption>One request, in order: your browser to DNS, to the load balancer, into the app server, out to the managed database. Object storage and automatic backups sit alongside in the same account.</figcaption>
   </figure>
 
   <h2>How cloud hosting works, one hop at a time</h2>
@@ -131,7 +131,7 @@ curl -I https://example.com</code></pre>
   <p>Here's a failure mode worth naming, one of the most common going. The app hard-codes a port the platform doesn't expect, or binds to <code>localhost</code> instead of <code>0.0.0.0</code>, so the web server can't reach it and every request returns a <code>502</code> or <code>503</code>. The code is fine. The wiring is wrong. The fix is boring: read the port from an environment variable and bind where the platform tells you. Most deploy failures are config, not code.</p>
 
   <h3>The managed database: where your data lives</h3>
-  <p>Your app needs to remember things. Users, orders, posts, sessions. That's the <strong>database</strong>, the one component you can't rebuild from your code repo if it's lost. On any sane setup it does not sit on the public internet. It lives on a <strong>private network</strong>, a VPC, reachable by your app over an internal address and nothing else. Scanners hammer public database ports constantly, so keeping it off the open web isn't optional.</p>
+  <p>Your app needs to remember things. Users, orders, posts, sessions. That's the <strong>database</strong>, the one component you can't rebuild from your code repo if it's lost. On any sane setup it does not sit open on the public internet. It's reachable by your app and nothing else, whether you lock it to your app server's IP with IP allow-listing or, on bigger setups, put it on a <strong>private network</strong> (a VPC). Scanners hammer public database ports constantly, so keeping it off the open web isn't optional.</p>
   <p>A <strong>managed</strong> database goes further: the platform provisions the engine, patches it, keeps it private, and backs it up, while the schema and the data stay yours. A trap worth flagging: plenty of generated apps ship with SQLite, a single file on the app server's disk. Great in dev, wrong in production, because the next redeploy can wipe that file and every row in it. A real client-server database is the fix. More on walling it off in <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">what a VPC is and why your database belongs in one</a>.</p>
 
   <h3>Object storage: the files that don't belong in a database</h3>
@@ -218,7 +218,7 @@ curl -I https://example.com</code></pre>
     <h3>Do I need a load balancer for my site?</h3>
     <p>Usually not at first. A single well-sized server handles a surprising amount of traffic, and a load balancer adds cost and moving parts. You want one when you outgrow the largest sensible single server, or when you need redundancy so one server failing does not take you offline. Add it when the scale or uptime need is real, not before.</p>
     <h3>Where is my data actually stored?</h3>
-    <p>In the data center region you choose when you create the server. Structured data lives in your database on a private network, large files live in object storage, and both are covered by automatic backups. The region matters for speed, because closer is faster, and for data residency, because some regulations require personal data to stay inside a specific country or region.</p>
+    <p>In the data center region you choose when you create the server. Structured data lives in your database, reachable only by your app and not the public internet, large files live in object storage, and both are covered by automatic backups. The region matters for speed, because closer is faster, and for data residency, because some regulations require personal data to stay inside a specific country or region.</p>
     <h3>How does scaling work in cloud hosting?</h3>
     <p>Two ways. Vertical scaling makes the server bigger, more CPU and RAM, which is the simplest first move and covers most apps for a long time. Horizontal scaling adds more servers behind a load balancer to spread the work and add redundancy. Autoscaling, which adds servers automatically, is rarely needed by small or mid-sized apps and on Kloudbean is part of enterprise and custom setups.</p>
     <h3>How reliable is cloud hosting?</h3>
@@ -237,7 +237,7 @@ curl -I https://example.com</code></pre>
 {"@type":"Question","name":"How is cloud hosting different from traditional web hosting?","acceptedAnswer":{"@type":"Answer","text":"Traditional web hosting often meant your site shared one physical server with many others, with fixed resources and little room to grow. Cloud hosting runs on virtual servers backed by large fleets of hardware, so you can resize on demand, survive a hardware failure by moving to another host, and pay for what you use. The request path is similar; the flexibility and resilience underneath are the difference."}},
 {"@type":"Question","name":"What is managed cloud hosting?","acceptedAnswer":{"@type":"Answer","text":"Managed cloud hosting means the platform handles the operations layer for you: provisioning the server, configuring the stack, applying security patches, issuing and renewing SSL, and running automatic backups. You still own your application code and your data and can export them anytime. Unmanaged hosting gives you a bare server and leaves all of that work to you."}},
 {"@type":"Question","name":"Do I need a load balancer for my site?","acceptedAnswer":{"@type":"Answer","text":"Usually not at first. A single well-sized server handles a surprising amount of traffic, and a load balancer adds cost and moving parts. You want one when you outgrow the largest sensible single server, or when you need redundancy so one server failing does not take you offline. Add it when the scale or uptime need is real, not before."}},
-{"@type":"Question","name":"Where is my data actually stored?","acceptedAnswer":{"@type":"Answer","text":"In the data center region you choose when you create the server. Structured data lives in your database on a private network, large files live in object storage, and both are covered by automatic backups. The region matters for speed, because closer is faster, and for data residency, because some regulations require personal data to stay inside a specific country or region."}},
+{"@type":"Question","name":"Where is my data actually stored?","acceptedAnswer":{"@type":"Answer","text":"In the data center region you choose when you create the server. Structured data lives in your database, reachable only by your app and not the public internet, large files live in object storage, and both are covered by automatic backups. The region matters for speed, because closer is faster, and for data residency, because some regulations require personal data to stay inside a specific country or region."}},
 {"@type":"Question","name":"How does scaling work in cloud hosting?","acceptedAnswer":{"@type":"Answer","text":"Two ways. Vertical scaling makes the server bigger, more CPU and RAM, which is the simplest first move and covers most apps for a long time. Horizontal scaling adds more servers behind a load balancer to spread the work and add redundancy. Autoscaling, which adds servers automatically, is rarely needed by small or mid-sized apps and on Kloudbean is part of enterprise and custom setups."}},
 {"@type":"Question","name":"How reliable is cloud hosting?","acceptedAnswer":{"@type":"Answer","text":"It depends on the design and the foundation. Uptime is measured in nines: 99.9% is about 43 minutes of downtime a month, 99.99% about 4. Running on tier-1 cloud infrastructure gives you hardware and network redundancy underneath, and adding a load balancer with more than one server removes the single point of failure. An SLA is the provider's written uptime commitment, worth reading closely."}}
 ]}

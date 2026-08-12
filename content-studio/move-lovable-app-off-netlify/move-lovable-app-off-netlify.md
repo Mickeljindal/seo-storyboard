@@ -10,10 +10,10 @@ secondary_keywords:
   - deploy Lovable to managed cloud
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 1 — Deploy AI / Vibe-Coded Apps
+cluster: 1 - Deploy AI / Vibe-Coded Apps
 ---
 
-![Move a Lovable app off Netlify to a server you own — an inventory of Netlify-specific pieces mapped to their new homes](images/hero.png)
+![Move a Lovable app off Netlify to a server you own: an inventory of Netlify-specific pieces mapped to their new homes](images/hero.png)
 
 # Move Your Lovable App Off Netlify to Kloudbean (Migration Guide)
 
@@ -96,7 +96,7 @@ Don't expect a smaller number in every case. Netlify's free and starter tiers ar
 
 Kloudbean runs Linux stacks: Node and the modern web toolkit (React, Vue, Next.js) that Lovable produces, plus PHP, Python, Ruby, and Java when you need them. It isn't for Windows, .NET, or IIS. "Managed" means Kloudbean runs the server, the stack, SSL, patching, and automatic backups; you own and maintain the application and its data. That split is the whole point: the pieces Netlify used to hide are now yours, in one place you can actually see into.
 
-**Nothing left behind.** Move your app at [kloudbean.com](https://www.kloudbean.com/). One-click databases, automatic backups, private networking, free migration, free trial, and simple Git deploy. Deploy walkthrough [here](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/); plans on [pricing](https://www.kloudbean.com/pricing/).
+**Nothing left behind.** Move your app at [kloudbean.com](https://www.kloudbean.com/). One-click databases, automatic backups, IP allow-listing, free migration, free trial, and simple Git deploy. Deploy walkthrough [here](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/); plans on [pricing](https://www.kloudbean.com/pricing/).
 
 ## FAQ
 
@@ -118,4 +118,4 @@ No. You can keep pointing at your existing Supabase and change nothing, or move 
 ### How do I avoid downtime during the Netlify move?
 Test on the temporary kloudbeansite.com URL first, add your domain and SSL, then repoint DNS. Lower your DNS TTL a couple of days ahead and flip the record last, with the Netlify site still live, so the switch propagates fast and no user hits a dead server. Retire Netlify only after the domain is confirmed serving from the new box.
 
-By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.
+By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale. Faster Than Ever.

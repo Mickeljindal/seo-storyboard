@@ -23,7 +23,7 @@
 
   <figure><img src="images/hero.png" alt="Managed MariaDB hosting, the open fork of MySQL, fully managed"></figure>
 
-  <p class="lead">You've probably run <code>apt install mariadb-server</code>, or watched MariaDB show up when you were sure you asked for MySQL. That's not a bug. MariaDB is the community-built fork of MySQL, and on many Linux distributions it's now the default. Managed MariaDB hosting takes that engine and runs the boring, load-bearing parts for you: provisioning, patching, automatic backups, a private network. This guide covers what MariaDB really is, how MariaDB vs MySQL shakes out, when to pick it, and how to connect your app: same mysql driver, same port 3306, same <code>mysqldump</code> you know.</p>
+  <p class="lead">You've probably run <code>apt install mariadb-server</code>, or watched MariaDB show up when you were sure you asked for MySQL. That's not a bug. MariaDB is the community-built fork of MySQL, and on many Linux distributions it's now the default. Managed MariaDB hosting takes that engine and runs the boring, load-bearing parts for you: provisioning, patching, automatic backups, and IP allow-listing. This guide covers what MariaDB really is, how MariaDB vs MySQL shakes out, when to pick it, and how to connect your app: same mysql driver, same port 3306, same <code>mysqldump</code> you know.</p>
 
   <div class="tldr">
     <strong>The short version</strong>
@@ -139,7 +139,7 @@ DATABASE_URL=mysql://appuser:s3cret@10.0.0.7:3306/appdb?charset=utf8mb4</code></
   <figure class="img-slot"><span><b>Add image</b><em>A database client connected to the managed MariaDB, showing your tables.</em><small>Proves the mysql driver connects to MariaDB unchanged.</small></span></figure>
 
   <h2>Launching a managed MariaDB</h2>
-  <p>Open the DBS section and hit Launch Database. Kloudbean runs seven managed engines: MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB. Pick MariaDB, name it, create it. A minute or two later it's provisioned, secured on a private network, and already being backed up, and you get the connection details (host, port 3306, database name, user, password) for that <code>DATABASE_URL</code>.</p>
+  <p>Open the DBS section and hit Launch Database. Kloudbean runs seven managed engines: MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB. Pick MariaDB, name it, create it. A minute or two later it's provisioned, secured with IP allow-listing, and already being backed up, and you get the connection details (host, port 3306, database name, user, password) for that <code>DATABASE_URL</code>.</p>
 
   <figure>
     <img src="../assets/console/launch-database.png" alt="The Kloudbean console Launch Database screen with MariaDB among the managed engine choices">
@@ -150,7 +150,7 @@ DATABASE_URL=mysql://appuser:s3cret@10.0.0.7:3306/appdb?charset=utf8mb4</code></
   <ul>
     <li><strong>Provisioning and patching.</strong> The engine arrives installed, configured, and kept current on security fixes.</li>
     <li><strong>Automatic backups.</strong> They run on a schedule, with a restore path that exists before you need it. Test a restore anyway; a backup nobody has restored is a rumor.</li>
-    <li><strong>Private network.</strong> The database sits on a <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">private network (VPC)</a>, reachable by your app internally, not exposed to scanners on the open web.</li>
+    <li><strong>IP allow-listing.</strong> The database is locked down so only your app server's IP can connect, not scanners on the open web. On Enterprise, it can sit on a <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">private network (VPC)</a>.</li>
     <li><strong>Sane defaults, resizable.</strong> Memory and connection limits start defensible; resize the server as you grow.</li>
   </ul>
   <p>You still own what's yours: the schema, the queries, the data. Managed hosting operates the database; it never owns what's inside it, and a standard <code>mysqldump</code> walks the whole thing out whenever you want. For the full case on handing off operations, <a href="https://www.kloudbean.com/blog/managed-database-vs-self-managed/">managed database vs self-managed</a> makes it in detail.</p>
@@ -180,19 +180,19 @@ mysql -h NEW_HOST -u USER -p appdb &lt; appdb.sql</code></pre>
     <li><strong>Cache hot reads.</strong> Put a managed Redis in front of your most repeated queries and MariaDB barely sees them.</li>
   </ul>
 
-  <!-- ADD IMAGE: the private network / VPC view showing MariaDB reachable internally, not on the public internet. Swap for a real screenshot: src -> images/mariadb-private-network.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The private network view with MariaDB reachable internally, not on the public internet.</em><small>Backs up the security points.</small></span></figure>
+  <!-- ADD IMAGE: the IP Access Control view showing MariaDB reachable only from your app server's IP, not the public internet. Swap for a real screenshot: src -> images/mariadb-ip-access-control.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The IP Access Control view with MariaDB reachable only from your app server's IP, not the public internet.</em><small>Backs up the security points.</small></span></figure>
 
   <p>One anti-pattern worth calling out, the classic MariaDB and MySQL production stumble: leaving <code>max_connections</code> at a low default while a busy PHP site spawns a worker per request. Traffic climbs, workers pile up, and the site throws <code>Too many connections</code> while the database sits mostly idle. The fix is right-sizing that limit for your actual RAM and caching repeat reads, not panic-buying a bigger server.</p>
 
   <h2>How managed MariaDB fits the rest of your stack</h2>
-  <p>A managed MariaDB is one tile in a bigger picture, and the picture is the pitch: one dashboard for the whole stack. Your app connects over the private network. Repeat reads get cached in Redis. Big uploads go to object storage instead of bloating the database. Everything sits behind <a href="https://www.kloudbean.com/blog/server-backups-guide/">automatic backups</a> and free SSL, on infrastructure run by tier-one clouds. One login, one server, one bill, plans from $8 a month, enterprise custom. Comparing where that server lives? <a href="https://www.kloudbean.com/blog/digitalocean-vs-kloudbean/">DigitalOcean vs Kloudbean</a> is the honest side-by-side.</p>
+  <p>A managed MariaDB is one tile in a bigger picture, and the picture is the pitch: one dashboard for the whole stack. Your app connects with a connection string, locked to its IP. Repeat reads get cached in Redis. Big uploads go to object storage instead of bloating the database. Everything sits behind <a href="https://www.kloudbean.com/blog/server-backups-guide/">automatic backups</a> and free SSL, on infrastructure run by tier-one clouds. One login, one server, one bill, plans from $8 a month, enterprise custom. Comparing where that server lives? <a href="https://www.kloudbean.com/blog/digitalocean-vs-kloudbean/">DigitalOcean vs Kloudbean</a> is the honest side-by-side.</p>
   <p>The boundary, stated once: these are Linux-based managed engines. Your schema, queries, and data stay yours, exportable with a normal dump whenever you leave.</p>
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Run MariaDB without babysitting it.</p>
-    <p style="margin:0 0 .6em">Launch a managed MariaDB, patched and backed up from minute one, on a private network with the same mysql driver your app uses. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">One-click MariaDB and MySQL · Automatic backups · Private networking · Free migration · Free trial</p>
+    <p style="margin:0 0 .6em">Launch a managed MariaDB, patched and backed up from minute one, locked to your app server's IP, with the same mysql driver your app uses. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">One-click MariaDB and MySQL · Automatic backups · Free migration · Free trial</p>
   </div>
 
   <h2>FAQ</h2>

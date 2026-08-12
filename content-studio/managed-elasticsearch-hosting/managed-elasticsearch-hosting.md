@@ -28,7 +28,7 @@ That gap is where Elasticsearch earns its keep. Managed Elasticsearch hosting me
 
 Elasticsearch is a distributed search and analytics engine built on top of Apache Lucene. You give it JSON documents, it builds an inverted index, and then it answers search queries in milliseconds with results ranked by relevance. It speaks HTTP over a REST API, so any language can talk to it.
 
-Managed Elasticsearch hosting takes the annoying part off your plate. Instead of installing Java, tuning heap, wiring up a cluster, and remembering to snapshot it, you launch an instance from a dashboard. The platform provisions it, patches the engine, keeps it on a private network, and backs it up. You own your indices and your data. You just don't own the 2am pager when a node runs out of memory.
+Managed Elasticsearch hosting takes the annoying part off your plate. Instead of installing Java, tuning heap, wiring up a cluster, and remembering to snapshot it, you launch an instance from a dashboard. The platform provisions it, patches the engine, locks it down with IP allow-listing, and backs it up. You own your indices and your data. You just don't own the 2am pager when a node runs out of memory.
 
 ## Elasticsearch is a search engine, not your database
 
@@ -99,7 +99,7 @@ Here's the part tutorials skip. Elasticsearch doesn't magically know about your 
 - **Batch reindex.** A scheduled job reads changed rows from the database and bulk-indexes them. Easy to reason about, and a nightly or hourly cron is plenty for catalogs that don't change by the second.
 - **Change data capture.** A pipeline streams row changes from the database into Elasticsearch in near real time. It's the most robust and the most moving parts. Reach for it when drift actually hurts.
 
-Start with a batch reindex. It's boring, it's debuggable, and you can always rebuild the whole index from scratch, which is the entire point of keeping the database as the source of truth. On one private network, that reindex job talks to both over internal addresses and never touches the public internet.
+Start with a batch reindex. It's boring, it's debuggable, and you can always rebuild the whole index from scratch, which is the entire point of keeping the database as the source of truth. With your app, database, and search instance colocated in the same account, that reindex job reaches both locally and never touches the public internet.
 
 Launching the engine is the easy bit. Open the DBS section, hit Launch Database, and pick Elasticsearch from the managed engines. Kloudbean runs seven: PostgreSQL, MySQL, MariaDB, Redis, Memcached, Elasticsearch, and MongoDB. A minute or two later it's provisioned on your server, secured, and already being backed up.
 
@@ -209,24 +209,24 @@ This is the real reason managed Elasticsearch hosting exists, and it comes down 
 
 That's just the sizing. Running a cluster well also means managing shards and replicas, watching health flip from green to yellow to red, clearing unassigned shards after a restart, taking snapshots, and upgrading versions without downtime. None of it is impossible. All of it is work you didn't sign up for when you just wanted a good search box.
 
-Managed hosting collapses that. The instance is sized and provisioned for you, the engine is patched, it sits on a [private network](https://www.kloudbean.com/blog/what-is-a-vpc/) instead of the open internet, and it's backed up on a schedule you don't maintain. If you want to understand the backup side in general, [the server backups guide](https://www.kloudbean.com/blog/server-backups-guide/) covers how automatic backups and restores work across the platform. You still own your indices and can export them whenever you like.
+Managed hosting collapses that. The instance is sized and provisioned for you, the engine is patched, it's locked down with IP allow-listing so only your app reaches it, not the open internet (and on Enterprise it can sit on a [private network](https://www.kloudbean.com/blog/what-is-a-vpc/)), and it's backed up on a schedule you don't maintain. If you want to understand the backup side in general, [the server backups guide](https://www.kloudbean.com/blog/server-backups-guide/) covers how automatic backups and restores work across the platform. You still own your indices and can export them whenever you like.
 
 <!-- ADD IMAGE: cluster health (green/yellow/red) and JVM heap usage -->
 
 ## Managed Elasticsearch, or run the cluster yourself?
 
-Self-hosting is fine for learning or a throwaway project. For anything users depend on, a managed instance on the same private network as your app and database, in one dashboard, means one place to launch it, one bill, and no cluster babysitting. If you're weighing where that infrastructure should live, [DigitalOcean vs Kloudbean](https://www.kloudbean.com/blog/digitalocean-vs-kloudbean/) lays out the raw-VPS-versus-managed tradeoff. And mind that the two engines scale differently: Elasticsearch grows by adding nodes and shards, while your primary database usually scales reads with [read replicas](https://www.kloudbean.com/blog/database-read-replicas-scaling/). Keep the roles clear and each stays simple.
+Self-hosting is fine for learning or a throwaway project. For anything users depend on, a managed instance in the same account as your app and database, in one dashboard, means one place to launch it, one bill, and no cluster babysitting. If you're weighing where that infrastructure should live, [DigitalOcean vs Kloudbean](https://www.kloudbean.com/blog/digitalocean-vs-kloudbean/) lays out the raw-VPS-versus-managed tradeoff. And mind that the two engines scale differently: Elasticsearch grows by adding nodes and shards, while your primary database usually scales reads with [read replicas](https://www.kloudbean.com/blog/database-read-replicas-scaling/). Keep the roles clear and each stays simple.
 
 ---
 
 **Give your app search that actually feels like search.** Launch managed Elasticsearch beside your database, index a copy of your data, and connect with one URL, on infrastructure you control. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
 
-One-click Elasticsearch · On a private network · Automatic backups · Free migration · Free trial
+One-click Elasticsearch · IP allow-listing · Automatic backups · Free migration · Free trial
 
 ## FAQ
 
 **What is managed Elasticsearch hosting used for?**
-Full-text search, faceted filtering, autocomplete, and log or analytics data, mostly. Elasticsearch ranks results by relevance and handles typos and aggregations that are painful in plain SQL. Managed Elasticsearch hosting means the platform provisions the instance, patches the engine, keeps it on a private network, and backs it up, so you launch one and connect with a URL.
+Full-text search, faceted filtering, autocomplete, and log or analytics data, mostly. Elasticsearch ranks results by relevance and handles typos and aggregations that are painful in plain SQL. Managed Elasticsearch hosting means the platform provisions the instance, patches the engine, locks it down with IP allow-listing, and backs it up, so you launch one and connect with a URL.
 
 **Is Elasticsearch a database?**
 Not in the way Postgres or MySQL is. It's a search and analytics engine, near-real-time rather than strongly consistent, and it wasn't built to be your single source of truth. Keep your authoritative data in a transactional database and index a copy into Elasticsearch for search. If the index is ever lost, you rebuild it from the database.
@@ -250,7 +250,7 @@ It runs on the JVM and relies on both heap and the operating system's filesystem
 Yes, that's one of its biggest uses. The ELK stack pairs Elasticsearch with Logstash for ingestion and Kibana for dashboards. Log data goes into time-based indices, and you can search and chart huge volumes quickly. It's a common alternative to grepping across servers by hand.
 
 **Managed Elasticsearch or self-hosting, which should I pick?**
-Self-hosting is fine for learning or a throwaway project. For anything users rely on, managed hosting removes the hard parts: sizing, patching, shard and cluster management, snapshots, and upgrades. A managed instance on the same private network as your app and database, in one dashboard, is simpler and keeps everything on infrastructure you control.
+Self-hosting is fine for learning or a throwaway project. For anything users rely on, managed hosting removes the hard parts: sizing, patching, shard and cluster management, snapshots, and upgrades. A managed instance in the same account as your app and database, in one dashboard, is simpler and keeps everything on infrastructure you control.
 
 ---
 

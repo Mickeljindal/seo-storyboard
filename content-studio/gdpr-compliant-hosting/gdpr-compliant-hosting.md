@@ -10,7 +10,7 @@ secondary_keywords:
   - data processing agreement hosting
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 10 — Enterprise & Compliance
+cluster: 10 - Enterprise & Compliance
 ---
 ![GDPR-compliant hosting: the split between what your host owns and what you own](images/hero.png)
 # GDPR-Compliant Hosting: Who Actually Owns What
@@ -63,7 +63,7 @@ Four of GDPR's ideas land squarely on hosting. This is the host's homework, and 
 
 **Data residency.** Keeping EU residents' personal data in an EU region is the cleanest path, and it's a choose-your-region decision at launch. It isn't strictly mandatory, because GDPR allows transfers out of the EU with proper safeguards like an adequacy decision or Standard Contractual Clauses. But picking Frankfurt or Amsterdam up front removes a whole category of paperwork and doubt. If you're weighing where to put things, we go deeper in [data residency explained](https://www.kloudbean.com/blog/data-residency-explained/).
 
-**Security of processing.** GDPR expects appropriate technical measures, which in practice means encryption in transit, a firewall, access control, and a stack that gets patched. Keeping personal data off the public internet is a big one. Put your database on a private network so scanners never find it (that's what [a VPC](https://www.kloudbean.com/blog/what-is-a-vpc/) is for), and tighten the app itself with sensible [security headers](https://www.kloudbean.com/blog/security-headers-guide/).
+**Security of processing.** GDPR expects appropriate technical measures, which in practice means encryption in transit, a firewall, access control, and a stack that gets patched. Keeping personal data off the public internet is a big one. Lock your database down with IP allow-listing so only your app server can reach it and scanners never find it. On enterprise you can go further and isolate it on [a private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/). Then tighten the app itself with sensible [security headers](https://www.kloudbean.com/blog/security-headers-guide/).
 
 **Storage limitation and resilience.** You keep data only as long as you need it, and you keep it recoverable. Automatic, tested [backups](https://www.kloudbean.com/blog/server-backups-guide/) cover the resilience half. The "how long" half is your retention policy, which is a decision, not a setting.
 
@@ -88,19 +88,19 @@ A basic control that helps: don't scatter the credentials that unlock personal d
 
 ## So what is "GDPR compliant hosting", really?
 
-It's hosting that gives you the controls to build a compliant system. Nothing more, nothing less. An EU region so residency is a choice you control. Encryption in transit so data isn't readable on the wire. Private networking so personal data isn't sitting in the open. Access control so the wrong people can't reach it. Backups so it survives a bad day. And a DPA that puts the processor relationship in writing.
+It's hosting that gives you the controls to build a compliant system. Nothing more, nothing less. An EU region so residency is a choice you control. Encryption in transit so data isn't readable on the wire. IP allow-listing so your database isn't sitting in the open. Access control so the wrong people can't reach it. Backups so it survives a bad day. And a DPA that puts the processor relationship in writing.
 
 My honest take after seeing plenty of these: pick your region on purpose, sign the DPA, and then stop worrying about the host. Spend that energy on your app, because collecting less data, having a lawful basis, and honouring requests is where the real risk sits. A perfect server in Frankfurt won't save you if you hoard data you don't need and can't delete it on request.
 
 > **One honest caveat.** This is a plain-English guide, not legal advice. GDPR has genuine nuance, and edge cases (special-category data, large-scale profiling, cross-border transfers) deserve a qualified professional. Use this to calm the panic and get the infrastructure half right, then check the specifics with someone who does this for a living.
 
-So where does Kloudbean sit in all this? Squarely on the processor's side of the line. It gives you the infrastructure controls your GDPR work stands on: your choice of cloud and EU region, free SSL for encryption in transit, private networking to keep personal data off the public internet, subusers and granular access control for least privilege, automatic backups, and, on enterprise accounts, an immutable audit trail built for exactly this kind of evidence. The servers run on tier-1 clouds whose own data centers carry the major certifications. What Kloudbean does not do, and won't pretend to, is hand you a finished status or make you compliant on its own. That half, the controller's half, stays yours. Sibling reads if you're mapping your whole obligation: [SOC 2 compliant hosting](https://www.kloudbean.com/blog/soc2-compliant-hosting/) and [PCI compliant hosting](https://www.kloudbean.com/blog/pci-compliant-hosting/).
+So where does Kloudbean sit in all this? Squarely on the processor's side of the line. It gives you the infrastructure controls your GDPR work stands on: your choice of cloud and EU region, free SSL for encryption in transit, IP allow-listing so your database answers only to your app server, subusers and granular access control for least privilege, automatic backups, and, on enterprise accounts, private networking (VPC) and an immutable audit trail built for exactly this kind of evidence. The servers run on tier-1 clouds whose own data centers carry the major certifications. What Kloudbean does not do, and won't pretend to, is hand you a finished status or make you compliant on its own. That half, the controller's half, stays yours. Sibling reads if you're mapping your whole obligation: [SOC 2 compliant hosting](https://www.kloudbean.com/blog/soc2-compliant-hosting/) and [PCI compliant hosting](https://www.kloudbean.com/blog/pci-compliant-hosting/).
 
 ---
 
 **Get the infrastructure half handled, cleanly.** Build in the region you choose, with the controls that support your GDPR work, on one dashboard. Start free at [kloudbean.com](https://www.kloudbean.com/) and see plans on [pricing](https://www.kloudbean.com/pricing/).
 
-EU-region choice · Free SSL · Private networking · Automatic backups · Subuser access control · Enterprise audit trail
+EU-region choice · Free SSL · Automatic backups · Subuser access control · Enterprise audit trail
 
 ## GDPR hosting FAQ
 
@@ -117,9 +117,9 @@ No. It's shared. You're usually the controller and your host is the processor. T
 A DPA is the contract between you (controller) and your host (processor). It sets out what the processor may do with the data and the safeguards it applies. If a provider processes personal data on your behalf, you want a DPA in place. Any serious host will offer one.
 
 **What does GDPR-compliant hosting actually include?**
-The infrastructure controls GDPR leans on: EU-region residency when you want it, encryption in transit through free SSL, access control over who can reach personal data, private networking, automatic backups, and, on enterprise, an immutable audit trail. That covers the processor half. Your practices cover the controller half.
+The infrastructure controls GDPR leans on: EU-region residency when you want it, encryption in transit through free SSL, access control over who can reach personal data, IP allow-listing, automatic backups, and, on enterprise, private networking (VPC) and an immutable audit trail. That covers the processor half. Your practices cover the controller half.
 
-**Who handles a "delete my data" request?**
+**Who handles a delete my data request?**
 Mostly your app. The host can delete data on your instruction and expire backups, but your code has to be able to find a person and erase them everywhere: the database, logs, exports, and any third-party tools. Design for real deletion early, not a soft-delete flag that leaves the data in place.
 
 **Do small sites and startups have to follow GDPR?**

@@ -65,7 +65,7 @@ So: static is a CDN problem, dynamic is a distance problem. A far origin with a 
 
 Here's a mistake I see constantly, and it's sneaky because it survives every user-facing test. You move the app to Dammam, latency to Riyadh drops, everyone celebrates. But the managed database is still in a default US or EU region from when you first clicked around the console. Now a page running five queries pays a cross-continent round trip five times, server to database, invisible to a browser ping.
 
-Co-location fixes it. Put the app and its database in the same region, on the same private network, and each query drops to sub-millisecond or low single digits. On Kloudbean the whole stack lives under one login, so launching the database into the same Dammam region is the default path. For the shape of that, see [how cloud hosting works](https://www.kloudbean.com/blog/how-cloud-hosting-works/). Latency between your app and your data matters as much as latency between your user and your app.
+Co-location fixes it. Put the app and its database in the same region and the same account, right next to each other, and each query drops to sub-millisecond or low single digits. On Kloudbean the whole stack lives under one login, so launching the database into the same Dammam region is the default path. For the shape of that, see [how cloud hosting works](https://www.kloudbean.com/blog/how-cloud-hosting-works/). Latency between your app and your data matters as much as latency between your user and your app.
 
 ## How do you actually measure latency to Riyadh and Jeddah?
 
@@ -119,7 +119,7 @@ Synthetic tests help, but your real users are on mobile networks in Riyadh and J
 The fix is short, because the expensive part is one decision made at launch. On Kloudbean it's a few clicks.
 
 1. **Add a server in the Dammam region.** You pick the cloud and region when you add a server: Google Cloud, then **Dammam (me-central2), Saudi Arabia**. This one choice sets baseline latency for every Saudi user. Don't accept the console's default out of habit; that's how apps end up in Iowa serving Jeddah.
-2. **Launch the managed database in the same region.** Keep app and data together on a private network so queries stay in-region. Skip this and you quietly re-add the tax on every query.
+2. **Launch the managed database in the same region.** Keep app and data colocated in one account so queries stay in-region. Skip this and you quietly re-add the tax on every query.
 3. **Add a CDN for the static layer.** Optional but worth it, so the edge serves images and public pages while the nearby origin handles dynamic calls.
 4. **Measure again from the Kingdom.** Re-run ping and TTFB after the move. Numbers, not vibes.
 
@@ -151,7 +151,7 @@ The usual boundaries apply. Kloudbean runs Linux stacks (PHP, Node, Python, Ruby
 
 **Put the server where your users are.** Launch a managed server and database in Google Cloud's Dammam region (me-central2) and cut the round trip for Riyadh and Jeddah users, all from one dashboard. Plans start from $8/mo, Enterprise is custom. Start at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/).
 
-In-Kingdom Dammam region · App and database co-located · Private networking · Automatic backups · Free SSL · Free migration assistance · Free trial
+In-Kingdom Dammam region · App and database co-located · Automatic backups · Free SSL · Free migration assistance · Free trial
 
 ## FAQ
 

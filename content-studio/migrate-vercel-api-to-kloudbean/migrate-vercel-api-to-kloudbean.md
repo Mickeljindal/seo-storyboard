@@ -63,7 +63,7 @@ You cannot combine a wildcard origin with credentials, so name the origins expli
 
 **2. Cookies and auth across origins.** This is the one that quietly breaks logins. A cookie set by `api.example.com` won't be sent to a frontend on a different site unless it's configured for cross-site use, meaning `SameSite=None` and `Secure`, and the frontend must send credentials with its requests. The cleaner alternative is keeping both on the same parent domain (`app.example.com` and `api.example.com`) so cookies can be scoped to `.example.com`. If you use bearer tokens in an Authorization header instead of cookies, this problem mostly disappears.
 
-**3. The database connection.** Point the new server at your database and, ideally, move the database next to it so the app talks over a private network rather than the public internet. Then set a sane pool size, since a persistent server holds a stable pool instead of the per-invocation connections that caused the exhaustion problem in the first place. See [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/).
+**3. The database connection.** Point the new server at your database and, ideally, move the database into the same account, right next to the app, so traffic stays off the public internet, then whitelist your app server's IP so only it can connect. Then set a sane pool size, since a persistent server holds a stable pool instead of the per-invocation connections that caused the exhaustion problem in the first place. See [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/).
 
 ## Migrate endpoint by endpoint
 

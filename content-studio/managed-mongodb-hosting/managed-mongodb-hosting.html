@@ -23,11 +23,11 @@
 
   <figure><img src="images/hero.png" alt="Managed MongoDB hosting, a document database run for you"></figure>
 
-  <p class="lead">If you built on MongoDB Atlas, or your Node app already imports Mongoose, you know the appeal. Throw a JSON-like object at the database and it just stores it. No migration, no rigid schema. Managed MongoDB hosting keeps that convenience and hands the operations to someone else: the server, the patching, a private network, and automatic backups are all handled, and you get a <code>mongodb://</code> connection string to point your app at. This guide covers what MongoDB actually is, the data it's genuinely good for, the far more common case where a relational database would serve you better, and how to connect and model an app once you've picked it.</p>
+  <p class="lead">If you built on MongoDB Atlas, or your Node app already imports Mongoose, you know the appeal. Throw a JSON-like object at the database and it just stores it. No migration, no rigid schema. Managed MongoDB hosting keeps that convenience and hands the operations to someone else: the server, the patching, access locked to your app server's IP, and automatic backups are all handled, and you get a <code>mongodb://</code> connection string to point your app at. This guide covers what MongoDB actually is, the data it's genuinely good for, the far more common case where a relational database would serve you better, and how to connect and model an app once you've picked it.</p>
 
   <div class="tldr">
     <strong>The short version</strong>
-    <p>Managed MongoDB hosting is the MongoDB engine run as a service: provisioned, patched, kept on a private network, and backed up, with a connection string you drop into an environment variable. Reach for MongoDB when your data is genuinely document-shaped, like content, catalogs with varying fields, or event and activity logs. For most apps built around relationships and joins, a relational database like Postgres or MySQL is the better default. Think of it as a MongoDB Atlas alternative you run on infrastructure you control.</p>
+    <p>Managed MongoDB hosting is the MongoDB engine run as a service: provisioned, patched, locked to your app server's IP, and backed up, with a connection string you drop into an environment variable. Reach for MongoDB when your data is genuinely document-shaped, like content, catalogs with varying fields, or event and activity logs. For most apps built around relationships and joins, a relational database like Postgres or MySQL is the better default. Think of it as a MongoDB Atlas alternative you run on infrastructure you control.</p>
   </div>
 
   <h2>What is MongoDB, really?</h2>
@@ -117,13 +117,13 @@
   <ul>
     <li><strong>Provisioned in a click</strong>, ready to connect a minute or two later.</li>
     <li><strong>Patched and maintained</strong>, so you're not tracking MongoDB point releases yourself.</li>
-    <li><strong>On a private network (VPC)</strong>, reachable by your app internally instead of sitting open on the public internet.</li>
+    <li><strong>Locked to your app server's IP</strong>, reachable only by your app instead of sitting open on the public internet.</li>
     <li><strong>Backed up automatically</strong>, with restore when you need it.</li>
   </ul>
   <p>It's the middle ground between fully self-hosted MongoDB (all yours to run) and a closed cloud you can't leave. The data stays yours, exportable with a plain <code>mongodump</code> anytime, which is exactly what makes it a real <strong>MongoDB Atlas alternative</strong> rather than another lock-in. MongoDB is one of seven managed engines here, alongside PostgreSQL, MySQL, MariaDB, Redis, Memcached, and Elasticsearch, so if you later decide your data was relational after all, the switch is a dashboard away. You also pick the cloud underneath it, from DigitalOcean to AWS to Google Cloud; if you're weighing where to run it, <a href="https://www.kloudbean.com/blog/digitalocean-vs-kloudbean/">DigitalOcean vs Kloudbean</a> is a fair place to start.</p>
 
   <h2>Launch a managed MongoDB</h2>
-  <p>Open the <strong>DBS</strong> section and hit <strong>Launch Database</strong>. Pick <strong>MongoDB</strong> from the engine list, name it, and create it. A couple of minutes later it's provisioned, secured on the private network, and already being backed up.</p>
+  <p>Open the <strong>DBS</strong> section and hit <strong>Launch Database</strong>. Pick <strong>MongoDB</strong> from the engine list, name it, and create it. A couple of minutes later it's provisioned, locked to your app server's IP, and already being backed up.</p>
 
   <figure>
     <img src="../assets/console/launch-database.png" alt="The Kloudbean console Launch Database screen with MongoDB among the managed engine choices">
@@ -236,7 +236,7 @@ mongorestore --uri="mongodb://appuser:s3cret@10.0.0.5:27017/appdb" dump/</code><
   <h2>Security and backups, without the checklist fatigue</h2>
   <p>A database holds the data you least want leaked, so a few basics aren't optional:</p>
   <ul>
-    <li><strong>Keep it off the public internet.</strong> On Kloudbean MongoDB sits on a private network, reachable by your app internally. Exposed MongoDB instances have been a classic breach source; not exposing yours removes the whole category.</li>
+    <li><strong>Keep it off the public internet.</strong> On Kloudbean you whitelist your app server's IP so only that server can reach MongoDB, which runs in the same account as your app. Exposed MongoDB instances have been a classic breach source; locking yours down removes the whole category.</li>
     <li><strong>Use a dedicated, least-privilege user.</strong> Your app's user needs access to its database and nothing more.</li>
     <li><strong>Never commit connection strings.</strong> Keep them in environment variables, keep <code>.env</code> in <code>.gitignore</code>.</li>
     <li><strong>Turn backups on, then test a restore.</strong> Automatic backups run for you. Restoring one before a crisis, so you know the path works, is the step people skip. More on that in the <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a>.</li>
@@ -247,8 +247,8 @@ mongorestore --uri="mongodb://appuser:s3cret@10.0.0.5:27017/appdb" dump/</code><
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Run MongoDB on infrastructure you control.</p>
-    <p style="margin:0 0 .6em">Launch a managed MongoDB with automatic backups, a private network, and free migration help, connected with one environment variable, on the same dashboard as your app. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">One-click MongoDB · Automatic backups · Private networking · Free migration · Free trial · From $8/mo</p>
+    <p style="margin:0 0 .6em">Launch a managed MongoDB with automatic backups, IP allow-listing, and free migration help, connected with one environment variable, on the same dashboard as your app. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">One-click MongoDB · Automatic backups · Free migration · Free trial · From $8/mo</p>
   </div>
 
   <h2>FAQ</h2>
@@ -262,7 +262,7 @@ mongorestore --uri="mongodb://appuser:s3cret@10.0.0.5:27017/appdb" dump/</code><
     <h3>How do I connect my app to MongoDB?</h3>
     <p>Store the mongodb:// connection string in an environment variable (most drivers read MONGODB_URI) rather than in code, then connect with your language's driver: Mongoose or the official mongodb driver for Node, PyMongo or Motor for Python, and official drivers elsewhere. Keeping the string in the environment keeps credentials out of Git and easy to rotate.</p>
     <h3>Is this a MongoDB Atlas alternative?</h3>
-    <p>Yes. It's the same MongoDB engine, so you export from Atlas with mongodump, restore with mongorestore, and repoint your connection string. The difference is the database runs on infrastructure you control, on a private network, with your data exportable anytime. Free migration assistance can run the cutover with you.</p>
+    <p>Yes. It's the same MongoDB engine, so you export from Atlas with mongodump, restore with mongorestore, and repoint your connection string. The difference is the database runs on infrastructure you control, locked to your app server's IP, with your data exportable anytime. Free migration assistance can run the cutover with you.</p>
     <h3>Do I need a schema with MongoDB?</h3>
     <p>Technically no, MongoDB won't force one. Practically, yes, you should impose a shape with schema validation or an ODM like Mongoose. A flexible schema is a gift early on, but with no discipline it drifts into inconsistent documents and defensive application code. Design the schema even though the database doesn't demand it.</p>
     <h3>What is the 16MB document limit?</h3>
@@ -286,7 +286,7 @@ mongorestore --uri="mongodb://appuser:s3cret@10.0.0.5:27017/appdb" dump/</code><
 {"@type":"Question","name":"When should I use MongoDB instead of a relational database?","acceptedAnswer":{"@type":"Answer","text":"Use MongoDB when your data is genuinely document-shaped: content, catalogs where records have different fields, event and activity logs, or a schema that's still changing fast. For apps built around relationships and joins, like users, orders, and products referencing each other, a relational database such as PostgreSQL or MySQL is usually the better default. Pick MongoDB for the data shape, not because it's trendy."}},
 {"@type":"Question","name":"Is MongoDB free? What does managed hosting cost?","acceptedAnswer":{"@type":"Answer","text":"MongoDB's Community edition is free to run. What managed hosting charges for isn't the engine, it's the always-on server plus the operation around it: patching, backups, monitoring, and keeping it safely off the public internet. On Kloudbean, plans start from $8/mo, with Enterprise on custom pricing. Check the pricing page for current numbers."}},
 {"@type":"Question","name":"How do I connect my app to MongoDB?","acceptedAnswer":{"@type":"Answer","text":"Store the mongodb connection string in an environment variable (most drivers read MONGODB_URI) rather than in code, then connect with your language's driver: Mongoose or the official mongodb driver for Node, PyMongo or Motor for Python, and official drivers elsewhere. Keeping the string in the environment keeps credentials out of Git and easy to rotate."}},
-{"@type":"Question","name":"Is this a MongoDB Atlas alternative?","acceptedAnswer":{"@type":"Answer","text":"Yes. It's the same MongoDB engine, so you export from Atlas with mongodump, restore with mongorestore, and repoint your connection string. The difference is the database runs on infrastructure you control, on a private network, with your data exportable anytime. Free migration assistance can run the cutover with you."}},
+{"@type":"Question","name":"Is this a MongoDB Atlas alternative?","acceptedAnswer":{"@type":"Answer","text":"Yes. It's the same MongoDB engine, so you export from Atlas with mongodump, restore with mongorestore, and repoint your connection string. The difference is the database runs on infrastructure you control, locked to your app server's IP, with your data exportable anytime. Free migration assistance can run the cutover with you."}},
 {"@type":"Question","name":"Do I need a schema with MongoDB?","acceptedAnswer":{"@type":"Answer","text":"Technically no, MongoDB won't force one. Practically, yes, you should impose a shape with schema validation or an ODM like Mongoose. A flexible schema is a gift early on, but with no discipline it drifts into inconsistent documents and defensive application code. Design the schema even though the database doesn't demand it."}},
 {"@type":"Question","name":"What is the 16MB document limit?","acceptedAnswer":{"@type":"Answer","text":"A single MongoDB document maxes out at 16MB. You hit it by embedding an unbounded, ever-growing array inside one document, such as every comment on a post. The fix is to reference that data as separate documents instead of embedding it. Embed what you always read together; reference what grows without limit."}},
 {"@type":"Question","name":"How does MongoDB scale?","acceptedAnswer":{"@type":"Answer","text":"First by resizing the server for more CPU, RAM, and storage, which carries most apps a long way. MongoDB's native scaling is replica sets for availability and sharding to spread a very large dataset across machines, both advanced setups you grow into rather than start with. Caching hot reads in managed Redis is often the cheapest first win."}},

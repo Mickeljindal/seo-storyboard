@@ -214,15 +214,15 @@ SHOW VARIABLES LIKE 'max_connections';</code></pre>
   <p>But tune queries and indexes first. Bad SQL scales badly no matter the hardware. A missing index that scans five million rows scans them a bit faster on a bigger box, then falls over at ten million. Doubling your server to paper over an N+1 loop is the most expensive way to not fix a bug. For read-heavy workloads, a <a href="https://www.kloudbean.com/blog/redis-caching-guide/">managed Redis cache</a> in front of your hottest reads often buys more headroom than a bigger database will.</p>
 
   <h2>Put it into practice on managed MySQL</h2>
-  <p>Everything above is plain MySQL and works anywhere. What a managed platform changes is the ops around it: provisioning, the private network, patching, and backups are handled, so your time goes to schema, queries, and indexes.</p>
+  <p>Everything above is plain MySQL and works anywhere. What a managed platform changes is the ops around it: provisioning, IP allow-listing, patching, and backups are handled, so your time goes to schema, queries, and indexes.</p>
 
-  <p><strong>1. Launch a managed MySQL.</strong> MySQL is one of seven managed database engines here, alongside MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB. In the DBS section, pick MySQL, name it, and it's provisioned on a private network with automatic backups already on. You own the schema, queries, and data; the platform handles provisioning, patching, and backups. More in <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">managed MySQL hosting</a>.</p>
+  <p><strong>1. Launch a managed MySQL.</strong> MySQL is one of seven managed database engines here, alongside MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB. In the DBS section, pick MySQL, name it, and it's provisioned with automatic backups already on and locked to your app server's IP. You own the schema, queries, and data; the platform handles provisioning, patching, and backups. More in <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">managed MySQL hosting</a>.</p>
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed MySQL database with automatic backups and private networking">
-    <figcaption>DBS then Launch Database: managed MySQL, provisioned on a private network with backups running from the start.</figcaption>
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed MySQL database with automatic backups and IP allow-listing">
+    <figcaption>DBS then Launch Database: managed MySQL, provisioned with backups running from the start and locked to your app server's IP.</figcaption>
   </figure>
 
-  <p><strong>2. Connect over the private network.</strong> Put the connection string in an environment variable, set your pool size there, and keep the database off the public internet so your app reaches it internally. Wiring up an app end to end? <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">Deploying a Node app to a managed cloud</a> walks the whole path.</p>
+  <p><strong>2. Connect and lock it down.</strong> Put the connection string in an environment variable, set your pool size there, and whitelist your app server's IP so only your app can reach the database, keeping it off the public internet. Wiring up an app end to end? <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">Deploying a Node app to a managed cloud</a> walks the whole path.</p>
   <figure>
     <img src="../assets/console/env-vars.png" alt="The Kloudbean console environment variables screen holding the MySQL connection string out of the codebase">
     <figcaption>Runtime configuration then Environment Variables: the connection string and pool size live here, never in your repo.</figcaption>
@@ -241,8 +241,8 @@ SHOW VARIABLES LIKE 'max_connections';</code></pre>
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Make MySQL earn its keep.</p>
-    <p style="margin:0 0 .6em">Managed MySQL on Kloudbean gives you a real box on a private network, automatic backups, and one-click provisioning, so the only thing left to tune is your own queries. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> and see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">Managed MySQL and MariaDB · Automatic backups · Private networking · Resize as you grow · Free migration · Free trial</p>
+    <p style="margin:0 0 .6em">Managed MySQL on Kloudbean gives you a real box locked to your app server's IP, automatic backups, and one-click provisioning, so the only thing left to tune is your own queries. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> and see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Managed MySQL and MariaDB · Automatic backups · Resize as you grow · Free migration · Free trial</p>
   </div>
 
   <h2>FAQ</h2>

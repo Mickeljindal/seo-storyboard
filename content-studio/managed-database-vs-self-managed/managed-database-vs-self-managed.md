@@ -21,7 +21,7 @@ A crashed app restarts. A misconfigured server rebuilds. A dropped table at 3am,
 
 That asymmetry is the whole reason managed database vs self-managed is a different, higher-stakes decision than picking where to host your app. Most infrastructure choices are reversible. Data loss isn't. So before we compare features, let's be honest about what's actually on the table, because it changes how you should weigh the two.
 
-> **Short answer:** Self-managed means you install the database on a server and own everything after: configuration, security, patching, version upgrades, backups, tested restores, and recovery when it breaks. Managed means you launch it, get a connection string, and the platform runs backups, access control, and the private network for you. For most teams the deciding factor isn't performance or price. It's that a database is the one place where a mistake can be permanent, and managed removes the scariest ways to lose data.
+> **Short answer:** Self-managed means you install the database on a server and own everything after: configuration, security, patching, version upgrades, backups, tested restores, and recovery when it breaks. Managed means you launch it, get a connection string, and the platform runs backups and access control, locking it to your app server's IP for you. For most teams the deciding factor isn't performance or price. It's that a database is the one place where a mistake can be permanent, and managed removes the scariest ways to lose data.
 
 ## Why a database is the worst thing to run on vibes
 
@@ -67,11 +67,11 @@ None of it is beyond a competent engineer. That's not the point. The point is th
 
 ## What "managed" hands you instead
 
-Managed collapses that list to almost nothing. On Kloudbean you open the databases section, pick an engine, and launch. A minute or two later it's provisioned, secured, sitting on a private network, and already being backed up. You get a connection string and you move on with building.
+Managed collapses that list to almost nothing. On Kloudbean you open the databases section, pick an engine, and launch. A minute or two later it's provisioned, secured, locked down with IP allow-listing, and already being backed up. You get a connection string and you move on with building.
 
 ![The Kloudbean console launching a managed database with a choice of six engines](../assets/console/launch-database.png)
 
-Six engines are on offer (PostgreSQL, MySQL, MariaDB, Redis, Elasticsearch, and MongoDB), each as a standalone one-click service with automatic backups, controlled access, and a private network so it never sits out on the public internet. That's the trade: you keep the parts that need your judgment, and hand off the parts that just need doing on time, every time, without fail. If you want the hands-on version of wiring one into an app, that's [add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), with engine-specific guides for [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) and [managed MySQL](https://www.kloudbean.com/blog/managed-mysql-hosting/).
+Six engines are on offer (PostgreSQL, MySQL, MariaDB, Redis, Elasticsearch, and MongoDB), each as a standalone one-click service with automatic backups and controlled access, locked to your app server's IP so it never sits open on the public internet. That's the trade: you keep the parts that need your judgment, and hand off the parts that just need doing on time, every time, without fail. If you want the hands-on version of wiring one into an app, that's [add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), with engine-specific guides for [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) and [managed MySQL](https://www.kloudbean.com/blog/managed-mysql-hosting/).
 
 ## The ops burden, side by side
 
@@ -79,7 +79,7 @@ Same database engine in both columns. What changes is who carries each job, and 
 
 | Database job | Self-managed (you) | Managed (the service) |
 | --- | --- | --- |
-| **Install + secure** | You, and you'd better not leave it exposed | Provisioned on a private network |
+| **Install + secure** | You, and you'd better not leave it exposed | Provisioned and locked to your app server's IP |
 | **Config + tuning** | You, from conservative defaults | Sensible defaults out of the box |
 | **OS + engine patching** | You, on the security cycle | Handled for you |
 | **Major version upgrades** | You rehearse it, or you gamble | A managed operation, not your gamble |
@@ -117,18 +117,18 @@ Myth-busting shouldn't turn into pretending self-managed is never right. It is, 
 
 Run your own when you're **learning**, and getting your hands dirty is the entire goal. Run your own for a **hobby or throwaway** project where a wipe costs you nothing and the effort is trivial. Run your own when you have a **dedicated DBA or platform team** whose actual job is this, and you need control a managed service won't give: an exotic extension, a custom replication topology, a very specific tuning profile. Those are legitimate, and nobody should be shamed off a setup that fits. What doesn't hold up is self-managing your production data by accident, because the install was easy, without a rehearsed restore. That's not a choice, it's a bet you didn't know you placed.
 
-The boundary, stated once: these are standard open-source engines on a Linux stack. Managed means the service runs, patches, and backs up the database and keeps it on a private network, while your schema, your queries, and your data stay entirely yours and exportable any day. Managed databases take the toil, not the ownership. For the data your business depends on, that's the trade worth making.
+The boundary, stated once: these are standard open-source engines on a Linux stack. Managed means the service runs, patches, and backs up the database and locks it down with IP allow-listing, while your schema, your queries, and your data stay entirely yours and exportable any day. Managed databases take the toil, not the ownership. For the data your business depends on, that's the trade worth making.
 
 ---
 
-**Launch it. Get a connection string. Stop worrying about the backup.** Run a managed database that stays yours, secured on a private network and backed up automatically, on the cloud you choose. Start free at [kloudbean.com](https://www.kloudbean.com/), or see plans on [pricing](https://www.kloudbean.com/pricing/).
+**Launch it. Get a connection string. Stop worrying about the backup.** Run a managed database that stays yours, locked to your app server's IP and backed up automatically, on the cloud you choose. Start free at [kloudbean.com](https://www.kloudbean.com/), or see plans on [pricing](https://www.kloudbean.com/pricing/).
 
-6 managed engines · Automatic backups · Private networking · Controlled access · Free migration help · Free trial
+6 managed engines · Automatic backups · Controlled access · Free migration help · Free trial
 
 ## FAQ
 
 **What's the difference between a managed database and a self-managed one?**
-Self-managed means you install the database on a server and own everything after: security, configuration, tuning, patching, version upgrades, backups, tested restores, and recovery. Managed means the service provisions it, keeps it on a private network, and runs the backups and access control, so you get a connection string and keep control of your schema, queries, and data.
+Self-managed means you install the database on a server and own everything after: security, configuration, tuning, patching, version upgrades, backups, tested restores, and recovery. Managed means the service provisions it, locks it down with IP allow-listing, and runs the backups and access control, so you get a connection string and keep control of your schema, queries, and data.
 
 **Is a managed database worth it, or should I just run my own?**
 If it's production data your business depends on, managed is usually worth it, because it removes the failure modes that cause permanent data loss: the missed patch, the full disk, and above all the backup that was never tested. Run your own when you're learning, it's throwaway, or you have a dedicated team that needs deep control.
@@ -146,7 +146,7 @@ You keep the control that matters: your schema, indexes, and queries, which driv
 You find out whether they work at the worst possible moment. An untested backup can be silently broken: stopped running weeks ago, or restoring into the wrong schema. That's the most common way self-managed databases lose data despite "having backups." Managed services keep usable restore points, and you should still confirm a restore before you rely on it.
 
 **Which databases can I run as managed?**
-On Kloudbean, six engines are available as one-click managed services: PostgreSQL, MySQL, MariaDB, Redis, Elasticsearch, and MongoDB. Each comes with automatic backups, controlled access, and a private network by default, so it isn't exposed to the public internet.
+On Kloudbean, six engines are available as one-click managed services: PostgreSQL, MySQL, MariaDB, Redis, Elasticsearch, and MongoDB. Each comes with automatic backups and controlled access, and you lock it to your app server's IP so it isn't exposed to the public internet.
 
 **Can a managed database scale for a large app?**
 Yes. The simplest move is resizing to a bigger server as CPU or memory gets tight. For read-heavy workloads, read replicas are the standard pattern, and caching hot reads in a managed Redis takes pressure off the primary. You reason about your data and queries instead of hand-building the machinery.
@@ -155,7 +155,7 @@ Yes. The simplest move is resizing to a bigger server as CPU or memory gets tigh
 Export with pg_dump or mysqldump, import into the new managed database with psql or mysql, then repoint your connection string and redeploy. Because these are standard engines, the move is a plain export and import. Kloudbean also offers free migration assistance if you'd rather not run it yourself.
 
 **Can I connect with my usual database client or GUI?**
-Yes. It's a standard engine, so any normal client or GUI connects with the usual connection string. For admin access from your own machine you tunnel in through the server rather than exposing the database to the public internet, which keeps it on the private network where it belongs.
+Yes. It's a standard engine, so any normal client or GUI connects with the usual connection string. For admin access from your own machine you tunnel in through the app server rather than opening the database to the public internet, which keeps access limited to the IP you've allow-listed.
 
 ---
 

@@ -14,7 +14,7 @@ byline: "By Kloudbean · Notes From the Cache Layer."
 You run a busy PHP app or a WordPress site, and the database is the bottleneck. The same queries fire over and over for data that barely changes. A cache fixes that, and Memcached is one of the oldest, simplest tools for the job. This guide covers managed Memcached hosting: what Memcached is, where it beats Redis, where it loses, and how to launch one and connect without treating a volatile cache like a database.
 
 > **The short version**
-> Managed Memcached hosting gives you a fast, in-memory key/value cache that the platform runs, patches, and keeps on a private network. Memcached is multi-threaded and dead simple: great for a big read cache, a session store, or a PHP object cache. It has no persistence and no data structures, so if you need either, reach for Redis.
+> Managed Memcached hosting gives you a fast, in-memory key/value cache that the platform runs, patches, and keeps locked to your app server's IP. Memcached is multi-threaded and dead simple: great for a big read cache, a session store, or a PHP object cache. It has no persistence and no data structures, so if you need either, reach for Redis.
 
 ## What Memcached actually is
 
@@ -78,7 +78,7 @@ _DBS then Launch Database: Memcached is one of seven managed engines, provisione
 
 Two things here are easy to miss.
 
-First, **private networking**. Your Memcached instance sits on a private network with your app, not on the public internet. That's not a nice-to-have. Memcached historically shipped with weak-to-no authentication and has a long history of being abused in UDP amplification attacks when exposed, so a public instance is a real risk. Keep it internal and that whole category of problem disappears. Access stays reachable by your app, not by port scanners.
+First, **locked-down access**. Your Memcached instance runs in the same account as your app, not open on the public internet, and you whitelist your app server's IP so only that server can reach it. That's not a nice-to-have. Memcached historically shipped with weak-to-no authentication and has a long history of being abused in UDP amplification attacks when exposed, so a public instance is a real risk. Lock it to your app server and that whole category of problem disappears. Access stays reachable by your app, not by port scanners.
 
 Second, **backups**. For the durable engines, automatic backups are the headline. For a pure Memcached cache there's nothing worth backing up: the data is a disposable copy of what already lives in your database. So there's no restore button on a cache, and that's fine. It's the nature of a volatile cache.
 
@@ -182,15 +182,15 @@ Get those three right and Memcached quietly lifts a big slice of repeat load off
 
 **Put a cache in front of your database in a couple of clicks.**
 
-Launch managed Memcached next to your app, on the same private network, in the same dashboard as your database. One login, one server, one bill. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Launch managed Memcached right next to your app, in the same account and dashboard as your database. One login, one server, one bill. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
 
-One-click cache engines · Memcached and Redis · Private networking · Free migration · Free trial
+One-click cache engines · Memcached and Redis · Free migration · Free trial
 
 ## FAQ
 
 ### What is managed Memcached hosting?
 
-Managed Memcached hosting means the platform launches, patches, and runs a Memcached cache for you, usually on a private network, so you just point your app at it. Memcached is an in-memory key/value cache that answers in a fraction of a millisecond and takes repeat load off your database. On Kloudbean it's one of seven managed engines you launch from the dashboard.
+Managed Memcached hosting means the platform launches, patches, and runs a Memcached cache for you, locked to your app server's IP, so you just point your app at it. Memcached is an in-memory key/value cache that answers in a fraction of a millisecond and takes repeat load off your database. On Kloudbean it's one of seven managed engines you launch from the dashboard.
 
 ### Memcached vs Redis: which should I use?
 

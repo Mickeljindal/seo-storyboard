@@ -28,7 +28,7 @@
 
   <div class="tldr">
     <strong>The short version</strong>
-    <p>MySQL powers a huge slice of the web, and for the vast majority of apps it (or MariaDB) is the safe default. Managed MySQL hosting hands the boring, critical jobs to the platform: patching, automatic backups, sensible tuning, monitoring, a private network. You keep the schema, the queries, and the data, and you can export the lot with <code>mysqldump</code> whenever you want.</p>
+    <p>MySQL powers a huge slice of the web, and for the vast majority of apps it (or MariaDB) is the safe default. Managed MySQL hosting hands the boring, critical jobs to the platform: patching, automatic backups, sensible tuning, monitoring, IP allow-listing. You keep the schema, the queries, and the data, and you can export the lot with <code>mysqldump</code> whenever you want.</p>
   </div>
 
   <h2>Why MySQL still runs so much of the web</h2>
@@ -64,7 +64,7 @@
   <text x="410" y="176" font-family="Poppins,sans-serif" font-size="14.5" fill="#fff">Automatic backups</text>
   <text x="410" y="206" font-family="Poppins,sans-serif" font-size="14.5" fill="#fff">Buffer pool and tuning</text>
   <text x="410" y="236" font-family="Poppins,sans-serif" font-size="14.5" fill="#fff">Monitoring and limits</text>
-  <text x="410" y="266" font-family="Poppins,sans-serif" font-size="14.5" fill="#fff">Private networking</text>
+  <text x="410" y="266" font-family="Poppins,sans-serif" font-size="14.5" fill="#fff">IP allow-listing</text>
 </svg>
 <figcaption>Managed MySQL hosting draws a clean line: you keep the data model, the platform keeps the database healthy.</figcaption>
   </figure>
@@ -81,7 +81,7 @@
       <tr><td>Restore path</td><td>You hope it works</td><td>A defined, ready path</td></tr>
       <tr><td>Buffer pool and tuning</td><td>You size it by hand</td><td>Sane defaults, resizable</td></tr>
       <tr><td>Connection and disk limits</td><td>You watch the graphs</td><td>Monitored</td></tr>
-      <tr><td>Private networking</td><td>You configure firewalls</td><td>On a private network</td></tr>
+      <tr><td>Network access</td><td>You configure firewalls</td><td>Locked to your app server's IP</td></tr>
     </tbody>
   </table>
 
@@ -129,14 +129,14 @@ DATABASE_URL=mysql://appuser:s3cret@10.0.0.6:3306/appdb</code></pre>
   <h2>Keep the database off the public internet</h2>
   <p>A database open to the whole internet gets found by scanners within hours. So the security basics aren't optional:</p>
   <ul>
-    <li><strong>Private network.</strong> On Kloudbean the database sits on a <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">private network (VPC)</a>, reachable by your app internally rather than exposed to the open web.</li>
+    <li><strong>Locked-down access.</strong> On Kloudbean you whitelist your app server's IP so only that server can reach the database, in the same account as your app rather than exposed to the open web. On Enterprise it can run on a <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">private network (VPC)</a>.</li>
     <li><strong>Least privilege.</strong> Your app's user should have the rights it needs and nothing more. It doesn't need to be <code>root</code>.</li>
     <li><strong>No credentials in code.</strong> The connection string lives in an environment variable, and <code>.env</code> stays out of Git.</li>
     <li><strong>Rotate freely.</strong> Because the credential is an env var, changing the password is a config edit, not a deploy.</li>
   </ul>
 
-  <!-- Author: replace with a screenshot of the private network / VPC view showing the database not exposed publicly. src -> images/mysql-private-network.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>Show the private network view with the database reachable internally, not on the public internet.</em><small>Backs up the security section.</small></span></figure>
+  <!-- Author: replace with a screenshot of the IP Access Control view showing only the app server's IP allowed to reach the database. src -> images/mysql-ip-access-control.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Show the IP Access Control view with only your app server's IP allowed to reach the database, not the public internet.</em><small>Backs up the security section.</small></span></figure>
 
   <h2>Moving an existing MySQL database in</h2>
   <p>Already have data somewhere? A migration is a plain dump and load, then you repoint the connection string:</p>
@@ -148,13 +148,13 @@ mysql -h NEW_HOST -u USER -p appdb &lt; appdb.sql</code></pre>
   <p>Point <code>DATABASE_URL</code> at the new database, redeploy, done. For a large or production database where you'd rather not do the first cutover solo, Kloudbean's free migration assistance will handle it with you.</p>
 
   <h2>How it fits the rest of your stack</h2>
-  <p>A managed MySQL is one tile in a bigger picture. Your app connects to it over the private network. Hot reads get cached in Redis. Big uploads go to <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">object storage</a> instead of bloating the database. Everything sits behind <a href="https://www.kloudbean.com/blog/server-backups-guide/">automatic backups</a> and free SSL, and read-heavy growth later points you at <a href="https://www.kloudbean.com/blog/database-read-replicas-scaling/">read replicas as a scaling concept</a>. One dashboard, one server, one bill. The <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a> option sits right beside MySQL in the same console if a project ever calls for it.</p>
+  <p>A managed MySQL is one tile in a bigger picture. Your app connects to it inside the same account, with access locked to your app server's IP. Hot reads get cached in Redis. Big uploads go to <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">object storage</a> instead of bloating the database. Everything sits behind <a href="https://www.kloudbean.com/blog/server-backups-guide/">automatic backups</a> and free SSL, and read-heavy growth later points you at <a href="https://www.kloudbean.com/blog/database-read-replicas-scaling/">read replicas as a scaling concept</a>. One dashboard, one server, one bill. The <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a> option sits right beside MySQL in the same console if a project ever calls for it.</p>
   <p>The honest boundary, stated once: these are Linux-based managed engines. Managed means the platform handles provisioning, patching, backups, tuning, and monitoring. Your schema, your queries, and your data stay yours, and a standard dump walks out the door with you whenever you want.</p>
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Ship on a database you don't have to babysit.</p>
     <p style="margin:0 0 .6em">Launch a managed MySQL or MariaDB, patched and backed up from minute one, and get back to building. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">One-click MySQL and MariaDB · Automatic backups · Private networking · Free migration · Free trial</p>
+    <p style="margin:0; font-size:15px; opacity:.9">One-click MySQL and MariaDB · Automatic backups · Free migration · Free trial</p>
   </div>
 
   <h2>FAQ</h2>

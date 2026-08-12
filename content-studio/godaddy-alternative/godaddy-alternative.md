@@ -35,7 +35,7 @@ One of these alone is just a papercut. Three or four together is your site telli
 
 The reason a cheap GoDaddy plan rarely stays cheap is the bolt-on model. You buy a base plan, then SSL, backups, and security get sold to you as separate line items. Managed cloud flips that. You rent your own server, and the platform folds the essentials in. Same idea as a picture.
 
-*(Diagram: GoDaddy sells a base plan and then bolts on SSL, backups, and security as separate charges. Managed cloud gives you one server with the essentials included, on a private network you control.)*
+*(Diagram: GoDaddy sells a base plan and then bolts on SSL, backups, and security as separate charges. Managed cloud gives you one server with the essentials included, all in one account you control.)*
 
 ## GoDaddy hosting vs managed cloud: what actually changes
 

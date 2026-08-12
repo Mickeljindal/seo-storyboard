@@ -10,7 +10,7 @@ secondary_keywords:
   - managed servers KSA
 author: Kloudbean MENA
 hero_image: images/hero.png
-cluster: Saudi Arabia (KSA) — spoke under cloud-hosting-saudi-arabia
+cluster: Saudi Arabia (KSA) - spoke under cloud-hosting-saudi-arabia
 ---
 
 ![Managed hosting in KSA: a Saudi team's server run for them in-Kingdom on Google Cloud's Dammam region](images/hero.png)
@@ -77,7 +77,7 @@ The screenshot below is the moment that decides it. Seven clouds on the left, an
 
 ![The Kloudbean console showing seven clouds with Google Cloud's Dammam (me-central2) Saudi Arabia region selected for managed in-Kingdom hosting](../assets/console/add-server-region.png)
 
-Managed makes that in-Kingdom promise real, not just a label on the app server. Because the platform runs the whole stack, the managed database launches into the same Dammam region on a private network. Free SSL is issued and auto-renews. And the automatic backups, which are the copies people most often forget, are taken and kept in the same region. That last detail matters more than it sounds. A backup that quietly lands in another country undoes your residency without anyone noticing. On a managed plan pinned to Dammam, the primary and its copies stay together, in-Kingdom.
+Managed makes that in-Kingdom promise real, not just a label on the app server. Because the platform runs the whole stack, the managed database launches into the same Dammam region, right next to your app and locked down so only your app server can reach it. Free SSL is issued and auto-renews. And the automatic backups, which are the copies people most often forget, are taken and kept in the same region. That last detail matters more than it sounds. A backup that quietly lands in another country undoes your residency without anyone noticing. On a managed plan pinned to Dammam, the primary and its copies stay together, in-Kingdom.
 
 Two things are worth being precise about, because marketing tends to blur them. Kloudbean does not own data centers in Saudi Arabia. The in-Kingdom capability comes from provisioning on Google Cloud's Dammam region, one option among the seven clouds. And hosting in the Kingdom is a strong foundation for the residency and infrastructure parts of PDPL (the Personal Data Protection Law, overseen by SDAIA) and NCA ECC, but it is not a certificate and it does not do your app-level compliance for you. That's shared responsibility, and the full picture lives in the pillar guide, [cloud hosting in Saudi Arabia](https://www.kloudbean.com/blog/cloud-hosting-saudi-arabia/). For the residency specifics, see [data residency in Saudi Arabia](https://www.kloudbean.com/blog/data-residency-saudi-arabia/), and for the latency case to Riyadh and Jeddah users, [low-latency hosting for Riyadh and Jeddah](https://www.kloudbean.com/blog/low-latency-hosting-riyadh-jeddah/).
 
@@ -120,7 +120,7 @@ On compliance, be careful how you phrase it in a tender. Hosting in the Dammam r
 
 **Let someone else run the server. Keep shipping.** Launch a fully managed server and database in Google Cloud's Dammam region (me-central2), keep backups and SSL in-Kingdom, and manage the whole stack from one dashboard. Plans start from $8/mo, Enterprise is custom. Start at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/).
 
-In-Kingdom GCP Dammam region · Managed patching · Automatic backups · Free SSL · Private networking · Free migration assistance · Free trial
+In-Kingdom GCP Dammam region · Managed patching · Automatic backups · Free SSL · Free migration assistance · Free trial
 
 ## FAQ
 

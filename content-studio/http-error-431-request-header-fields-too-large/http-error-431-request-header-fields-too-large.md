@@ -154,7 +154,7 @@ Two halves, and it is worth separating them honestly.
 
 The limits are configuration. On Kloudbean, nginx comes configured for real applications rather than left at defaults, which is where the 8k buffer ceiling catches people out. That covers the front half of the chain.
 
-The cause is usually application design, and the specific fix is somewhere to keep session data that is not a cookie. [Managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/) sits in the same dashboard as the application on a private network, which is the practical answer to both cookie payloads and JWT bloat, since both are solved by storing state server-side and looking it up cheaply.
+The cause is usually application design, and the specific fix is somewhere to keep session data that is not a cookie. [Managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/) sits in the same dashboard as the application, in the same account, which is the practical answer to both cookie payloads and JWT bloat, since both are solved by storing state server-side and looking it up cheaply.
 
 What no platform can do is decide which of your cookies matter or trim your token claims. That is a design decision, and the honest version is that 431 is usually a prompt to make it rather than a limit to raise.
 
@@ -164,9 +164,9 @@ The same root cause with a different status code, [400 Bad Request](https://www.
 
 ## Somewhere to put state that is not a cookie
 
-Managed Redis on a private network in the same dashboard as your application, with nginx configured for real workloads rather than defaults, from $8/mo. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Managed Redis in the same account and dashboard as your application, with nginx configured for real workloads rather than defaults, from $8/mo. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
 
-Managed Redis · Private networking · Managed nginx · Automatic backups · Flat from $8/mo
+Managed Redis · Managed nginx · Automatic backups · Flat from $8/mo
 
 ## FAQ
 
@@ -176,7 +176,7 @@ It means the request headers you sent exceeded what the server will accept. It i
 **Why do I get a 400 instead of a 431?**
 Because nginx returns 400 for oversized headers while Node returns 431, so the code tells you which layer rejected the request. In a typical deployment both limits apply in series and the smaller one fires first. Raise nginx's buffers and the same requests may then start returning 431 from your application, which means you have moved one layer further along rather than broken something new.
 
-**What does "Bad message 431 reason: Request Header Fields Too Large" mean?**
+**What does Bad message 431 reason: Request Header Fields Too Large mean?**
 That exact wording comes from Jetty, so you are looking at a Java application server rather than nginx or Node. The setting to change is `requestHeaderSize` on the HTTP configuration, which commonly defaults to 8 KB. The distinctive phrasing is useful because it identifies the stack from the error text alone.
 
 **How do I fix a 431 caused by cookies?**

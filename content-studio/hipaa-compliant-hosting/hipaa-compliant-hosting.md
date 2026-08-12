@@ -1,7 +1,7 @@
 ---
 title: "HIPAA-Compliant Hosting: What It Covers, and What Stays Yours"
 slug: hipaa-compliant-hosting
-meta_description: "HIPAA-compliant hosting is shared work, and HIPAA has no official certification. Your host secures the infrastructure (encryption in transit, private networking, access control, backups) while you own PHI handling, policies, and BAAs. Here is what HIPAA actually asks of hosting."
+meta_description: "HIPAA-compliant hosting is shared work, and HIPAA has no official certification. Your host secures the infrastructure (encryption in transit, IP allow-listing, access control, backups) while you own PHI handling, policies, and BAAs. Here is what HIPAA actually asks of hosting."
 target_keyword: HIPAA compliant hosting
 secondary_keywords:
   - HIPAA hosting requirements
@@ -22,7 +22,7 @@ If you're a developer or founder building a healthcare app that touches patient 
 
 HIPAA is the US health-privacy law, and its Security Rule is the part that lands on hosting. One thing worth saying plainly up front: there is no official HIPAA certification. No government body hands out a seal, and no host can sell you one. A good host gives you the infrastructure controls that support a HIPAA-aligned setup. The rest of the job is yours.
 
-> **The short version:** Hosting is one piece of HIPAA, not the whole thing. You need infrastructure controls (encryption in transit, private networking, access control, audit logging, backups), your own application-level safeguards and policies, and usually a business associate agreement (BAA) with every vendor that touches PHI. No host makes your app automatically HIPAA-compliant, and there's no official HIPAA certification to buy. Get the shared-responsibility split right and the rest gets much simpler.
+> **The short version:** Hosting is one piece of HIPAA, not the whole thing. You need infrastructure controls (encryption in transit, IP allow-listing, access control, audit logging, backups), your own application-level safeguards and policies, and usually a business associate agreement (BAA) with every vendor that touches PHI. No host makes your app automatically HIPAA-compliant, and there's no official HIPAA certification to buy. Get the shared-responsibility split right and the rest gets much simpler.
 
 ## What HIPAA-compliant hosting actually requires
 
@@ -51,7 +51,7 @@ This is the idea that makes the topic click. HIPAA compliance splits between the
 | The platform provides (infrastructure) | You own (application and policy) |
 | --- | --- |
 | Hardened, patched servers | Your application code and how it handles PHI |
-| Network isolation and private networking | Access policies: who sees PHI, and when |
+| Network isolation and IP allow-listing | Access policies: who sees PHI, and when |
 | Encryption in transit (free SSL) | Data retention and minimization decisions |
 | Automatic backups for availability | Workforce training and security awareness |
 | Access controls and firewalling | Business associate agreements with each vendor |
@@ -62,7 +62,7 @@ Look at the right column. That's most of HIPAA, and no server touches it. The fa
 ```
    How PHI flows, and who secures each part
 
-   [Patient/user] --TLS--> [Your app] --private net--> [Managed DB]
+   [Patient/user] --TLS--> [Your app] --app only--> [Managed DB]
                                                             |
                                                             v
                                                     [Automatic backups]
@@ -71,7 +71,7 @@ Look at the right column. That's most of HIPAA, and no server touches it. The fa
    │ infrastructure controls        │   │ application + policy          │
    │ • Encryption in transit (SSL)  │   │ • How your code handles PHI   │
    │ • Firewall + brute-force block │   │ • Access & retention policies │
-   │ • Private networking / VPC     │   │ • Workforce training          │
+   │ • Colocated managed DB         │   │ • Workforce training          │
    │ • Automatic backups            │   │ • BAAs with every vendor      │
    │ • Access controls (UAC, IP)    │   │ • Risk analysis + response    │
    └────────────────────────────────┘   └───────────────────────────────┘
@@ -87,7 +87,7 @@ Honest framing first: none of this makes your app HIPAA-compliant on its own. It
 
 **Transmission security.** Free SSL is issued and auto-renewed, so encryption in transit is on by default across your app and its APIs. Encryption at rest is a separate decision you make at the application or database level, so plan for it rather than assume it.
 
-**Network isolation.** Put your database on a private network so it never gets a public address and no scanner can find it. That single move removes a whole class of exposure. Pair it with the baseline Shorewall firewall and Fail2ban blocking that run by default, and here's [what a VPC is](https://www.kloudbean.com/blog/what-is-a-vpc/).
+**Network isolation.** Lock your database down with IP allow-listing so only your app server can reach it and no scanner can find it. That single move removes a whole class of exposure. Pair it with the baseline Shorewall firewall and Fail2ban blocking that run by default. On enterprise you can isolate the database further on a private network, and here's [what a VPC is](https://www.kloudbean.com/blog/what-is-a-vpc/).
 
 **Availability and integrity.** Automatic [backups](https://www.kloudbean.com/blog/server-backups-guide/) cover the recoverability HIPAA expects, and the seven managed database engines run with controlled access and their own backups. For public-facing defense, Cloudflare is a paid add-on (free on enterprise) that adds edge protection; it's worth knowing [what a web application firewall does](https://www.kloudbean.com/blog/what-a-waf-does/).
 
@@ -97,9 +97,9 @@ Honest framing first: none of this makes your app HIPAA-compliant on its own. It
 
 Concept is nice. Here's the order I'd work in, on any platform, with the console shots where they help.
 
-### Step 1. Put the database on a private network
+### Step 1. Lock the database down to your app server
 
-Before anything else, keep PHI off the public internet. Launch your managed database on a private network so it has no public address, and open only the app-to-database path. An exposed database gets found by automated scanners in hours, not weeks, and a database full of PHI is the worst thing to leave reachable.
+Before anything else, keep PHI off the public internet. Launch your managed database in the same account as your app, then lock it down with IP allow-listing so only your app server's IP can connect and everything else is refused. An exposed database gets found by automated scanners in hours, not weeks, and a database full of PHI is the worst thing to leave reachable.
 
 ### Step 2. Turn on encryption in transit
 
@@ -141,22 +141,22 @@ Now the part only you can do. List every vendor that creates, receives, stores, 
 
 ## So, is my hosting HIPAA-compliant?
 
-It's the wrong question, gently. Hosting can't be HIPAA-compliant on its own, the way a locked filing cabinet isn't a compliant medical practice. The better question: does your hosting give you the infrastructure controls a HIPAA-aligned setup needs, and have you done your half on top? PHI hosting comes down to a short checklist: encryption in transit, a private database, access control, audit logging, backups, and a BAA with anyone who touches the data.
+It's the wrong question, gently. Hosting can't be HIPAA-compliant on its own, the way a locked filing cabinet isn't a compliant medical practice. The better question: does your hosting give you the infrastructure controls a HIPAA-aligned setup needs, and have you done your half on top? PHI hosting comes down to a short checklist: encryption in transit, a database locked to your app, access control, audit logging, backups, and a BAA with anyone who touches the data.
 
 My honest opinion after plenty of healthcare builds: most early teams overspend on exotic infrastructure and underspend on the two things that catch them out, minimizing the PHI they collect and keeping it out of places they forgot to secure. HIPAA cloud hosting is a foundation, not a finish line. A hardened server won't save an app that logs patient data into a tool with no agreement behind it.
 
-Where Kloudbean fits: on the infrastructure side, giving you the controls your HIPAA work stands on, from free SSL and private networking to access control, automatic backups, and, on enterprise, an immutable Audit Trail. It runs on tier-1 clouds that maintain their own data-center security programs. What it won't do, because no honest host can, is make your app HIPAA-compliant for you or sell you a certification that doesn't exist. Mapping several obligations at once? The siblings pair well: [SOC 2 compliant hosting](https://www.kloudbean.com/blog/soc2-compliant-hosting/), [PCI compliant hosting](https://www.kloudbean.com/blog/pci-compliant-hosting/), [GDPR compliant hosting](https://www.kloudbean.com/blog/gdpr-compliant-hosting/), and the broader [secure and compliant hosting](https://www.kloudbean.com/blog/secure-compliant-hosting/) overview.
+Where Kloudbean fits: on the infrastructure side, giving you the controls your HIPAA work stands on, from free SSL and IP allow-listing to access control, automatic backups, and, on enterprise, private networking (VPC) and an immutable Audit Trail. It runs on tier-1 clouds that maintain their own data-center security programs. What it won't do, because no honest host can, is make your app HIPAA-compliant for you or sell you a certification that doesn't exist. Mapping several obligations at once? The siblings pair well: [SOC 2 compliant hosting](https://www.kloudbean.com/blog/soc2-compliant-hosting/), [PCI compliant hosting](https://www.kloudbean.com/blog/pci-compliant-hosting/), [GDPR compliant hosting](https://www.kloudbean.com/blog/gdpr-compliant-hosting/), and the broader [secure and compliant hosting](https://www.kloudbean.com/blog/secure-compliant-hosting/) overview.
 
 ---
 
-**Build healthcare apps on a foundation you can stand behind.** Run your app on infrastructure with hardening, encryption in transit, private networking, access controls, and automatic backups, all on one dashboard. Talk to us about enterprise Audit Trail and custom setups for regulated workloads. Start with a free trial and free migration assistance at [kloudbean.com](https://www.kloudbean.com/), and see plans on [pricing](https://www.kloudbean.com/pricing/).
+**Build healthcare apps on a foundation you can stand behind.** Run your app on infrastructure with hardening, encryption in transit, IP allow-listing, access controls, and automatic backups, all on one dashboard. Talk to us about enterprise Audit Trail and custom setups for regulated workloads. Start with a free trial and free migration assistance at [kloudbean.com](https://www.kloudbean.com/), and see plans on [pricing](https://www.kloudbean.com/pricing/).
 
-Free SSL · Private networking / VPC · Subuser access control · Shorewall + Fail2ban · Automatic backups · Enterprise Audit Trail
+Free SSL · IP allow-listing · Subuser access control · Shorewall + Fail2ban · Automatic backups · Enterprise Audit Trail
 
 ## HIPAA hosting FAQ
 
 **Is Kloudbean HIPAA compliant?**
-No host can be HIPAA-compliant on your behalf, because compliance describes an organization and how it handles PHI, not a product you switch on. Kloudbean provides infrastructure controls that support a HIPAA-aligned setup: encryption in transit, private networking, access control, and automatic backups. Your application, your policies, and your BAAs remain yours to own.
+No host can be HIPAA-compliant on your behalf, because compliance describes an organization and how it handles PHI, not a product you switch on. Kloudbean provides infrastructure controls that support a HIPAA-aligned setup: encryption in transit, IP allow-listing, access control, and automatic backups. Your application, your policies, and your BAAs remain yours to own.
 
 **Is there an official HIPAA certification for hosting?**
 No. HIPAA has no official certification or government seal, and the Office for Civil Rights enforces the law rather than certifying products. Any host claiming an official HIPAA seal is overstating things. Judge a provider on its actual controls and contracts, not on a badge, and confirm what it offers directly.
@@ -174,7 +174,7 @@ No. Compliance is shared. A host secures the infrastructure layer and can sign a
 PHI is protected health information: health data that can be tied to a specific person. The rules list eighteen identifiers, such as name, email, dates, and medical record numbers, that turn health data into PHI. When it is stored or transmitted electronically it is called ePHI, and that is what the Security Rule protects.
 
 **Where should PHI live so it is not exposed?**
-On a database that sits on a private network with no public address, behind a firewall, reachable only by your app. Keep PHI out of URLs, out of verbose logs, and out of any third-party tool you have not signed a BAA with. Most PHI exposure comes from these forgotten side channels, not from the main database.
+On a database locked down with IP allow-listing so only your app server can reach it, behind a firewall. Keep PHI out of URLs, out of verbose logs, and out of any third-party tool you have not signed a BAA with. Most PHI exposure comes from these forgotten side channels, not from the main database.
 
 **Do small healthcare startups have to follow HIPAA?**
 Yes, if you are a covered entity or a business associate handling PHI, size does not exempt you. A two-person telehealth app faces the same core Security Rule obligations as a hospital, scaled to its risk. The Office for Civil Rights can levy real penalties, so treat HIPAA as a day-one design constraint, not a later cleanup.

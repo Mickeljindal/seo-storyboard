@@ -10,7 +10,7 @@ secondary_keywords:
   - hosted mysql
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 7 — Databases, Storage & S3
+cluster: 7 - Databases, Storage & S3
 ---
 
 ![Managed MySQL hosting, the web's workhorse without the ops bill](images/hero.png)
@@ -21,7 +21,7 @@ Open the hood of most of the web and you'll find MySQL. WordPress, WooCommerce, 
 
 Managed MySQL hosting is about keeping it from breaking. The platform patches the engine, runs the backups, sizes the memory, and watches the connection count, so you get a connection string and get back to your app. This piece covers what that actually buys you, where running `mysqld` yourself is a false economy, and the two or three places self-hosting still wins.
 
-> **The short version:** MySQL powers a huge slice of the web, and for the vast majority of apps it (or MariaDB) is the safe default. Managed MySQL hosting hands the boring, critical jobs to the platform: patching, automatic backups, sensible tuning, monitoring, a private network. You keep the schema, the queries, and the data, and you can export the lot with `mysqldump` whenever you want.
+> **The short version:** MySQL powers a huge slice of the web, and for the vast majority of apps it (or MariaDB) is the safe default. Managed MySQL hosting hands the boring, critical jobs to the platform: patching, automatic backups, sensible tuning, monitoring, IP allow-listing. You keep the schema, the queries, and the data, and you can export the lot with `mysqldump` whenever you want.
 
 ## Why MySQL still runs so much of the web
 
@@ -51,7 +51,7 @@ Want the blunt version of where this goes wrong? The most common self-host disas
   | queries        |        | security patching    |
   | the data       |        | automatic backups    |
   | export anytime |        | tuning + monitoring  |
-  +----------------+        | private networking   |
+  +----------------+        | IP allow-listing     |
                             +----------------------+
 ```
 
@@ -67,7 +67,7 @@ Go managed and that chore list becomes someone else's job. You pick the engine a
 | Restore path | You hope it works | A defined, ready path |
 | Buffer pool and tuning | You size it by hand | Sane defaults, resizable |
 | Connection and disk limits | You watch the graphs | Monitored |
-| Private networking | You configure firewalls | On a private network |
+| Network access | You configure firewalls | Locked to your app server's IP |
 
 ![The Kloudbean console launching a managed MySQL database, patched, backed up, and monitored](../assets/console/launch-database.png)
 
@@ -115,12 +115,12 @@ You'll see both offered, and Kloudbean runs both as managed engines. MariaDB is 
 
 A database open to the whole internet gets found by scanners within hours. So the security basics aren't optional:
 
-- **Private network.** On Kloudbean the database sits on a [private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/), reachable by your app internally rather than exposed to the open web.
+- **Locked-down access.** On Kloudbean you whitelist your app server's IP so only that server can reach the database, in the same account as your app rather than exposed to the open web. On Enterprise it can run on a [private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/).
 - **Least privilege.** Your app's user should have the rights it needs and nothing more. It doesn't need to be `root`.
 - **No credentials in code.** The connection string lives in an environment variable, and `.env` stays out of Git.
 - **Rotate freely.** Because the credential is an env var, changing the password is a config edit, not a deploy.
 
-<!-- ADD IMAGE: private network view showing the database reachable internally, not on the public internet -->
+<!-- ADD IMAGE: IP Access Control view showing only the app server's IP allowed to reach the database, not the public internet -->
 
 ## Moving an existing MySQL database in
 
@@ -136,7 +136,7 @@ Point `DATABASE_URL` at the new database, redeploy, done. For a large or product
 
 ## How it fits the rest of your stack
 
-A managed MySQL is one tile in a bigger picture. Your app connects to it over the private network. Hot reads get cached in Redis. Big uploads go to [object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/) instead of bloating the database. Everything sits behind [automatic backups](https://www.kloudbean.com/blog/server-backups-guide/) and free SSL, and read-heavy growth later points you at [read replicas as a scaling concept](https://www.kloudbean.com/blog/database-read-replicas-scaling/). One dashboard, one server, one bill. The [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) option sits right beside MySQL in the same console if a project ever calls for it.
+A managed MySQL is one tile in a bigger picture. Your app connects to it inside the same account, with access locked to your app server's IP. Hot reads get cached in Redis. Big uploads go to [object storage](https://www.kloudbean.com/blog/s3-compatible-object-storage/) instead of bloating the database. Everything sits behind [automatic backups](https://www.kloudbean.com/blog/server-backups-guide/) and free SSL, and read-heavy growth later points you at [read replicas as a scaling concept](https://www.kloudbean.com/blog/database-read-replicas-scaling/). One dashboard, one server, one bill. The [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) option sits right beside MySQL in the same console if a project ever calls for it.
 
 The honest boundary, stated once: these are Linux-based managed engines. Managed means the platform handles provisioning, patching, backups, tuning, and monitoring. Your schema, your queries, and your data stay yours, and a standard dump walks out the door with you whenever you want.
 
@@ -144,7 +144,7 @@ The honest boundary, stated once: these are Linux-based managed engines. Managed
 
 **Ship on a database you don't have to babysit.** Launch a managed MySQL or MariaDB, patched and backed up from minute one, and get back to building. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
 
-One-click MySQL and MariaDB · Automatic backups · Private networking · Free migration · Free trial
+One-click MySQL and MariaDB · Automatic backups · Free migration · Free trial
 
 ## FAQ
 

@@ -52,7 +52,7 @@ Cloudways is built around PHP, and WordPress and Laravel run well there. Kloudbe
 
 ### Managed data: six engines, standalone
 
-On a PHP-centric host, the database is usually the MySQL or MariaDB sitting beside your app. Fine for WordPress. Kloudbean runs six managed engines as first-class, standalone services: MySQL, MariaDB, PostgreSQL, Redis, Elasticsearch, and MongoDB. Launch one, get a connection string, back it up automatically, keep it on a private network. Deciding between engines? See [MySQL vs PostgreSQL](https://www.kloudbean.com/blog/mysql-vs-postgresql/), or the how-to in [add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/).
+On a PHP-centric host, the database is usually the MySQL or MariaDB sitting beside your app. Fine for WordPress. Kloudbean runs six managed engines as first-class, standalone services: MySQL, MariaDB, PostgreSQL, Redis, Elasticsearch, and MongoDB. Launch one, get a connection string, back it up automatically, then lock it down with IP allow-listing so only your app server can reach it. Deciding between engines? See [MySQL vs PostgreSQL](https://www.kloudbean.com/blog/mysql-vs-postgresql/), or the how-to in [add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/).
 
 ### Storage and load balancing: built in, not bolted on
 

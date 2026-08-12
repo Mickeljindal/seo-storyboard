@@ -165,7 +165,7 @@ journalctl -u nginx --since "1 hour ago"  # why did it 502?</code></pre>
     <figcaption>Add an application; the platform covers the gap between bare Linux and a live, HTTPS-served app.</figcaption>
   </figure>
 
-  <p>The backups run on a schedule (do go test a restore before you need one, that's the step everybody skips, and there's a walkthrough in the <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a>). Your database sits on a <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">private network</a> rather than out on the public internet where scanners live. When you want to ship changes, you wire up <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">Git auto-deploy</a> and push. That gap between "bare Linux" and "running app served over HTTPS" is the thing you're paying for. It's a different product that happens to sit on the same hardware, not a markup on the same one.</p>
+  <p>The backups run on a schedule (do go test a restore before you need one, that's the step everybody skips, and there's a walkthrough in the <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a>). Your database is locked down with IP allow-listing so only your app server can reach it, rather than sitting out on the public internet where scanners live (on Enterprise it can run on a <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">private network</a>). When you want to ship changes, you wire up <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">Git auto-deploy</a> and push. That gap between "bare Linux" and "running app served over HTTPS" is the thing you're paying for. It's a different product that happens to sit on the same hardware, not a markup on the same one.</p>
 
   <h2>IaaS, PaaS, and the managed middle</h2>
   <p>You'll bump into these two acronyms, and they map cleanly onto this whole discussion:</p>
@@ -209,7 +209,7 @@ journalctl -u nginx --since "1 hour ago"  # why did it 502?</code></pre>
     <h3>Is managed hosting worth the extra cost?</h3>
     <p>It's worth it when your time is better spent building than administering servers. The higher price buys back the hours you'd otherwise spend on setup, patching, SSL, backups, and incident response, plus the risk of a bad upgrade or a missing backup. If you enjoy or want that work, unmanaged is cheaper. If you don't, managed usually wins on real cost.</p>
 
-    <h3>What does "managed" actually include?</h3>
+    <h3>What does managed actually include?</h3>
     <p>Typically the operating system, the stack (web server, runtime, database), OS and security patching, SSL issuance and renewal, firewall and intrusion blocking, automatic backups, and health monitoring. On Kloudbean that means a Shorewall firewall and Fail2ban on by default, free SSL, and automatic backups from launch. Your app code and data stay yours.</p>
 
     <h3>What is IaaS vs PaaS, and where does managed hosting fit?</h3>

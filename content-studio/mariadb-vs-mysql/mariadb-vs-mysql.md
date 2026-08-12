@@ -142,7 +142,7 @@ If MySQL is working, "should I switch from MySQL to MariaDB" usually has a borin
 
 ## Run either one on Kloudbean
 
-Both MariaDB and MySQL are one-click managed engines here, sitting alongside PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB. Managed means we handle provisioning, patching, and automatic backups, and the engine lives on a private network. You own the schema, the queries, and the data, and you can export any time.
+Both MariaDB and MySQL are one-click managed engines here, sitting alongside PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB. Managed means we handle provisioning, patching, and automatic backups, and the engine is locked down with IP allow-listing so only your app server can reach it. You own the schema, the queries, and the data, and you can export any time.
 
 1. **Launch the engine.** Open **DBS** and click **Launch Database**. Choose MariaDB or MySQL, name it, create it. It's provisioned, secured, and backed up within a couple of minutes.
 2. **Grab the credentials.** You'll get host, port 3306, database name, user, and password. You'll need them in a second. Don't paste them into your code.
@@ -165,9 +165,9 @@ Because both speak the same protocol and share tooling, you can start on one and
 
 ---
 
-**Run MariaDB or MySQL without babysitting it.** Both are one-click managed engines with automatic backups, private networking, and free migration help, deployed next to your app with simple Git deploys. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
+**Run MariaDB or MySQL without babysitting it.** Both are one-click managed engines with automatic backups, IP allow-listing, and free migration help, deployed next to your app with simple Git deploys. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
 
-One-click databases · Automatic backups · Private networking · Free migration · Free trial
+One-click databases · Automatic backups · Free migration · Free trial
 
 ## FAQ
 
@@ -199,7 +199,7 @@ They do. Both listen on port 3306 by default and use the `mysql://` connection s
 MySQL has the edge for heavy JSON work. It stores JSON as a validated binary type for faster access, while MariaDB implements the JSON type as an alias for `LONGTEXT` with a validity check, stored as text. Both support JSON functions and both are fine for light JSON use, but a JSON-centric schema leans toward MySQL.
 
 **Are both MariaDB and MySQL managed on Kloudbean?**
-Yes. Both are one-click managed engines, alongside PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB, with automatic backups, controlled access, and private networking. Managed means provisioning, patching, and backups are handled while you keep full ownership of your schema and data.
+Yes. Both are one-click managed engines, alongside PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB, with automatic backups, controlled access, and IP allow-listing. Managed means provisioning, patching, and backups are handled while you keep full ownership of your schema and data.
 
 ---
 

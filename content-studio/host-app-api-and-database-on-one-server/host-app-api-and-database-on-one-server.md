@@ -1,7 +1,7 @@
 ---
 title: "How to Host Your App, API, and Database on One Server"
 slug: host-app-api-and-database-on-one-server
-meta_description: "The modern default scatters your front end, API, and database across three services. Here's the case for running the whole stack on one owned server — the latency win, the ops win, and exactly how to set it up."
+meta_description: "The modern default scatters your front end, API, and database across three services. Here's the case for running the whole stack on one owned server: the latency win, the ops win, and exactly how to set it up."
 target_keyword: app api and database on one server
 secondary_keywords:
   - full stack on one server
@@ -10,10 +10,10 @@ secondary_keywords:
   - consolidate app and database
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 1 — Deploy AI / Vibe-Coded Apps
+cluster: 1 - Deploy AI / Vibe-Coded Apps
 ---
 
-![Host your app, API, and database on one server — the whole stack, one owned box](images/hero.png)
+![Host your app, API, and database on one server: the whole stack, one owned box](images/hero.png)
 
 # How to Host Your App, API, and Database on One Server
 
@@ -41,7 +41,7 @@ I'll take a position here, because the industry rarely does. Most apps don't hav
 
 ## The distance your data actually travels
 
-This is the part the scattered setup handles worst, so it's worth slowing down on. When your database is a separate hosted service, every query leaves your app, crosses the public internet, hits the database, and comes back. That round trip adds real latency to anything data-driven, and it stacks: a page that runs six queries pays that internet tax six times. When the database sits on the same server, the trip is over the machine's local loopback or private network, effectively instant.
+This is the part the scattered setup handles worst, so it's worth slowing down on. When your database is a separate hosted service, every query leaves your app, crosses the public internet, hits the database, and comes back. That round trip adds real latency to anything data-driven, and it stacks: a page that runs six queries pays that internet tax six times. When the database sits on the same server, the trip is over the machine's local loopback, effectively instant.
 
 You can see the whole difference in one environment variable. It's the host in your connection string:
 
@@ -91,7 +91,7 @@ Being honest about the limits is the point, so here's when one server stops bein
 
 Starting on one server doesn't paint you into a corner. Because it's standard Linux and standard code, splitting a component out later is a normal operation, not a rewrite. Begin simple, scale when the need is real.
 
-<!-- ADD IMAGE: the moment you outgrow one box — resizing the server, or putting a load balancer in front of a second instance -->
+<!-- ADD IMAGE: the moment you outgrow one box, resizing the server, or putting a load balancer in front of a second instance -->
 
 ## How to set it up on Kloudbean
 
@@ -143,4 +143,4 @@ Until you scale, yes, which is why managed backups matter and why you add a load
 **How do I move the database off later without a rewrite?**
 You launch a database on its own server and change the connection string in your environment variables to point at it. Because it's standard Linux and standard code, your application doesn't change; only the host in `DATABASE_URL` does. That's what makes starting on one server safe.
 
-By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.
+By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale. Faster Than Ever.
