@@ -42,7 +42,7 @@ Note the Cloudflare row: that's genuine parity, both platforms resell a Cloudfla
 
 Strip the table down and the distinction is simple. Velocity is a Node hosting product. Your app runs there, well, and the rest of your stack is a separate set of decisions and probably separate bills: where the database lives, where uploaded files go, what sits in front when you need two app servers.
 
-Kloudbean is the whole stack in one dashboard. The Node app, its managed PostgreSQL or MongoDB, managed Redis for your BullMQ queue, S3-compatible buckets for uploads, a static site for the marketing page, and a load balancer when you scale out, all in one account, on one flat plan, with no egress metering between them. That last part matters more than it sounds: when your app and database are in the same place on a private network, you're not paying to move your own data between products.
+Kloudbean is the whole stack in one dashboard. The Node app, its managed PostgreSQL or MongoDB, managed Redis for your BullMQ queue, S3-compatible buckets for uploads, a static site for the marketing page, and a load balancer when you scale out, all in one account, on one flat plan, with no egress metering between them. That last part matters more than it sounds: when your app and database are in the same place, right next to each other, you're not paying to move your own data between products.
 
 ## Where each one fits
 

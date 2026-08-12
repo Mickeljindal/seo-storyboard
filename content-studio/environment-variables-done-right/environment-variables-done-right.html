@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Environment Variables Done Right for a Deployed App</title>
-<meta name="description" content="There are only two kinds of environment variable: build-time and public, or runtime and secret. Get that split right and you fix most env-var bugs — the leaked key, the 503, the 'I changed it and nothing happened.'">
+<meta name="description" content="There are only two kinds of environment variable: build-time and public, or runtime and secret. Get that split right and you fix most env-var bugs: the leaked key, the 503, the 'I changed it and nothing happened.'">
 <meta name="author" content="Kloudbean">
 <link rel="canonical" href="https://www.kloudbean.com/blog/environment-variables-done-right/">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Environment Variables Done Right for a Deployed App">
-<meta property="og:description" content="The build-time vs runtime split explained — public NEXT_PUBLIC/VITE vars vs secret server vars — plus how to set them, keep secrets off the browser, and stop the 503.">
+<meta property="og:description" content="The build-time vs runtime split explained: public NEXT_PUBLIC/VITE vars vs secret server vars, plus how to set them, keep secrets off the browser, and stop the 503.">
 <meta property="og:image" content="images/hero.png">
 <meta property="og:site_name" content="Kloudbean">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,7 +21,7 @@
   <span class="eyebrow">Environment variables</span>
   <h1>Environment Variables Done Right for a Deployed App</h1>
 
-  <figure><img src="images/hero.png" alt="Environment variables done right — secrets and config out of your code, set on the server"></figure>
+  <figure><img src="images/hero.png" alt="Environment variables done right: secrets and config out of your code, set on the server"></figure>
 
   <p class="lead">An app that runs flawlessly on your laptop and 503s the instant you deploy it is almost always telling you one thing: a variable that lived on your machine never made it to the server. Environment variables for a deployed app are the least glamorous part of shipping, and reliably the part that breaks the first deploy. Whether you built in Lovable, v0, or Cursor, the fix is the same, and it starts with a mental model most tutorials skip. There are only two kinds of environment variable, and almost every env-var bug is a confusion between the two.</p>
 
@@ -166,7 +166,7 @@ NEXT_PUBLIC_STRIPE_KEY=pk_live_xxx                 # build-time · publishable, 
   <p>The most common first-deploy failure has the simplest cause. The app starts, tries to read a variable that isn't set on the server, and either throws immediately or falls over the first time it needs the value (a database connection with an undefined password, say). The process doesn't stay up, so the server returns a 503. It builds fine, because the build didn't need that runtime value. It just can't boot.</p>
   <p>Don't guess which variable. Read the app's own error log, which usually names the exact key it wanted:</p>
   <pre><code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/app.error.log</code></pre>
-  <p>Set the missing variable, redeploy, and the app comes up. The broader 503 playbook (missing env var, wrong start command, a build that skipped its tools) is in <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fixing a 503 after deploying</a>. And when the missing value is a database URL, the clean setup is a <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">managed database on the same server</a>, so the connection string is a private-network address you paste in once.</p>
+  <p>Set the missing variable, redeploy, and the app comes up. The broader 503 playbook (missing env var, wrong start command, a build that skipped its tools) is in <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fixing a 503 after deploying</a>. And when the missing value is a database URL, the clean setup is a <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">managed database on the same server</a>, so the connection string points at a database sitting right next to your app, and you paste it in once.</p>
 
   <!-- ADD IMAGE: swap for a real <figure> with an <img> (src -> images/error-log.png) and a <figcaption> -->
   <figure class="img-slot"><span><b>Add image</b><em>app.error.log open in the File Manager, with the line that names the exact missing environment variable highlighted.</em></span></figure>
@@ -197,7 +197,7 @@ NEXT_PUBLIC_STRIPE_KEY=pk_live_xxx                 # build-time · publishable, 
     <p>Update the variable's value on the server and redeploy. Because the secret lives in the environment rather than the code, rotation is a config change with no code edit. Quick to do, and worth doing routinely, especially if a key was ever exposed.</p>
   </div>
 
-  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.</p>
+  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale. Faster Than Ever.</p>
 </article>
 
 <script type="application/ld+json">
@@ -205,7 +205,7 @@ NEXT_PUBLIC_STRIPE_KEY=pk_live_xxx                 # build-time · publishable, 
 {"@type":"Article","headline":"Environment Variables Done Right for a Deployed App","description":"The build-time vs runtime split explained: public NEXT_PUBLIC and VITE vars vs secret server vars, how to set them, keep secrets off the browser, and stop the missing-variable 503.","image":"https://www.kloudbean.com/blog/environment-variables-done-right/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/environment-variables-done-right/"},
 {"@type":"FAQPage","mainEntity":[
 {"@type":"Question","name":"Where should environment variables go for a deployed app?","acceptedAnswer":{"@type":"Answer","text":"On the server, set through your host's configuration. On Kloudbean that's Runtime Configuration, Environment Variables, where you paste your .env and save. Never in your source code, and never committed to Git. The repo should be safe to expose without leaking anything."}},
-{"@type":"Question","name":"What is the difference between NEXT_PUBLIC_ variables and normal server env?","acceptedAnswer":{"@type":"Answer","text":"Prefixed variables (NEXT_PUBLIC_, VITE_, REACT_APP_) are baked into the front-end bundle at build time and visible in every visitor's browser, so they are for public values only. Unprefixed variables are read live by the server and stay private. Never put a secret in a prefixed variable, or you publish it to everyone."}},
+{"@type":"Question","name":"What's the difference between NEXT_PUBLIC_ variables and normal server env?","acceptedAnswer":{"@type":"Answer","text":"Prefixed variables (NEXT_PUBLIC_, VITE_, REACT_APP_) are baked into the front-end bundle at build time and visible in every visitor's browser, so they are for public values only. Unprefixed variables are read live by the server and stay private. Never put a secret in a prefixed variable, or you publish it to everyone."}},
 {"@type":"Question","name":"I changed an environment variable and nothing happened. Why?","acceptedAnswer":{"@type":"Answer","text":"If it is a build-time (prefixed) variable, its value was frozen into the bundle when you last built, so changing it does nothing until you rebuild. Set build-time variables before the build and rebuild after any change. Runtime variables only need a redeploy or restart to take effect."}},
 {"@type":"Question","name":"Why does my app 503 right after deploying?","acceptedAnswer":{"@type":"Answer","text":"Most often a missing environment variable. The app starts, can't find a value it needs (like the database password), and the process fails, so the server returns a 503. Read app.error.log; it usually names the missing key. Set it, then redeploy."}},
 {"@type":"Question","name":"Should I commit my .env file?","acceptedAnswer":{"@type":"Answer","text":"No. Add it to .gitignore and set the values on the server instead. A committed .env leaks secrets into your Git history. If that has already happened, rotate the exposed keys, because deleting the file does not remove them from history."}},

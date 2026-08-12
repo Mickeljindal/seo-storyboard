@@ -10,7 +10,7 @@ secondary_keywords:
   - read write split
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 7 — Databases, Storage & S3
+cluster: 7 - Databases, Storage & S3
 ---
 
 ![Database read replicas: writes to the primary, reads spread across replicas](images/hero.png)
@@ -129,15 +129,15 @@ These two get conflated constantly, so pin the distinction. A read replica exist
 
 ## How this maps to a managed stack
 
-In practice, Kloudbean covers the early, cheaper part of that ladder: managed [PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/), [MySQL](https://www.kloudbean.com/blog/managed-mysql-hosting/), MariaDB, Redis, Elasticsearch, and MongoDB, all with automatic backups on a [private network](https://www.kloudbean.com/blog/what-is-a-vpc/). A bigger instance is a resize, not a migration. Managed Redis is right there for the caching layer that defers replicas in the first place. Read replicas are the standard next step for read scaling once you've spent those levers, and they're a concept that sits on top of exactly this kind of managed foundation, so scale in the sane order and check the current options for your engine when you reach that stage.
+In practice, Kloudbean covers the early, cheaper part of that ladder: managed [PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/), [MySQL](https://www.kloudbean.com/blog/managed-mysql-hosting/), MariaDB, Redis, Elasticsearch, and MongoDB, all with automatic backups and IP allow-listing so only your app server can connect (a [private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/) is available on Enterprise plans). A bigger instance is a resize, not a migration. Managed Redis is right there for the caching layer that defers replicas in the first place. Read replicas are the standard next step for read scaling once you've spent those levers, and they're a concept that sits on top of exactly this kind of managed foundation, so scale in the sane order and check the current options for your engine when you reach that stage.
 
 Worth separating one thing: scaling the *database* is a different axis from scaling the *app tier*. If your app servers are the bottleneck rather than the database, a built-in [Flexible Load Balancer](https://www.kloudbean.com/blog/cloud-load-balancer-explained/) spreads traffic across multiple app nodes. If you're still deciding how much to manage yourself, the [managed vs self-managed](https://www.kloudbean.com/blog/managed-database-vs-self-managed/) comparison is a good companion, and the broader picture of wiring a database into your app lives in [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/).
 
 ---
 
-**Scale your database the sane way, in order.** Start with a managed database that's easy to index, cache, and resize as you grow. Kloudbean runs six managed engines with automatic backups on a private network, plus managed Redis for the caching that comes first. Start free at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+**Scale your database the sane way, in order.** Start with a managed database that's easy to index, cache, and resize as you grow. Kloudbean runs six managed engines with automatic backups and IP allow-listing, plus managed Redis for the caching that comes first. Start free at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
 
-Managed databases · Automatic backups · Private networking · Managed Redis · Resize on demand · Free trial
+Managed databases · Automatic backups · Managed Redis · Resize on demand · Free trial
 
 ## FAQ
 
@@ -169,7 +169,7 @@ No. Read replicas share read load for performance; high-availability failover ke
 No, and this trips people up. A replica copies everything the primary does, including mistakes, so a bad delete or a corrupted row replicates straight over. Replicas protect against read overload, not data loss. You still need real, restorable backups kept separately.
 
 **Does Kloudbean support read replicas?**
-Kloudbean runs managed PostgreSQL, MySQL, MariaDB, Redis, Elasticsearch, and MongoDB with automatic backups on a private network, a resize when you need a bigger instance, and managed Redis for the caching that usually comes before replicas. Read replicas are the standard next step for read scaling in general, so scale in that order (index, cache, resize) and check the current options for your database engine when you reach the replica stage.
+Kloudbean runs managed PostgreSQL, MySQL, MariaDB, Redis, Elasticsearch, and MongoDB with automatic backups and IP allow-listing that lets only your app server connect, a resize when you need a bigger instance, and managed Redis for the caching that usually comes before replicas. Read replicas are the standard next step for read scaling in general, so scale in that order (index, cache, resize) and check the current options for your database engine when you reach the replica stage.
 
 ---
 

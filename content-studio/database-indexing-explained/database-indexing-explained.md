@@ -193,7 +193,7 @@ A resize treats the symptom. An index treats the cause. Run `EXPLAIN ANALYZE` on
 
 ## Where the managed database fits
 
-Indexing is your job. It lives in your schema and your queries, and no host can guess which columns you filter on. The platform's job is to run the engine well and stay out of the way. On Kloudbean you launch a managed [PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/), [MySQL](https://www.kloudbean.com/blog/managed-mysql-hosting/), or MariaDB in a few clicks, on a private network, with automatic backups, then write your own `CREATE INDEX` and read your own `EXPLAIN`, because they're standard Postgres and MySQL.
+Indexing is your job. It lives in your schema and your queries, and no host can guess which columns you filter on. The platform's job is to run the engine well and stay out of the way. On Kloudbean you launch a managed [PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/), [MySQL](https://www.kloudbean.com/blog/managed-mysql-hosting/), or MariaDB in a few clicks, locked to your app server's IP, with automatic backups, then write your own `CREATE INDEX` and read your own `EXPLAIN`, because they're standard Postgres and MySQL.
 
 A server health view shows you when a database pins the CPU, so you go read the plan instead of guessing. And because it runs on a real server with room to resize, you get the honest choice: fix the index first, grow the box only when the plans are clean. Pooling is the companion lever on connections, and caching hot reads in [managed Redis](https://www.kloudbean.com/blog/redis-caching-patterns/) keeps repeat queries off the database. New to this? Start with [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/). Still choosing an engine? [MySQL vs PostgreSQL](https://www.kloudbean.com/blog/mysql-vs-postgresql/) lays out the tradeoffs.
 
@@ -201,15 +201,15 @@ A server health view shows you when a database pins the CPU, so you go read the 
 
 <!-- IMAGE: Kloudbean console launching a managed PostgreSQL, MySQL, or MariaDB database (../assets/console/launch-database.png) -->
 
-*A managed PostgreSQL, MySQL, or MariaDB on a private network with automatic backups. You add indexes and read EXPLAIN on it like any standard database.*
+*A managed PostgreSQL, MySQL, or MariaDB, locked to your app server's IP, with automatic backups. You add indexes and read EXPLAIN on it like any standard database.*
 
 ---
 
 **A managed database where you own the schema, we run the engine.**
 
-Launch a managed PostgreSQL, MySQL, or MariaDB in minutes, add your indexes, and read EXPLAIN like normal. Automatic backups, private networking, a server health view, and free migration help, all on one dashboard. Start free at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+Launch a managed PostgreSQL, MySQL, or MariaDB in minutes, add your indexes, and read EXPLAIN like normal. Automatic backups, IP allow-listing, a server health view, and free migration help, all on one dashboard. Start free at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
 
-Managed PostgreSQL, MySQL & MariaDB · Automatic backups · Private networking · Resize on demand · Free migration · Free trial
+Managed PostgreSQL, MySQL & MariaDB · Automatic backups · Resize on demand · Free migration · Free trial
 
 ## FAQ
 

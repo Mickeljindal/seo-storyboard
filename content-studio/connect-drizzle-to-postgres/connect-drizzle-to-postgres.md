@@ -75,13 +75,13 @@ Notice both snippets read `process.env.DATABASE_URL`. That's on purpose. Your Dr
 # set in Runtime Configuration, Environment Variables (not in code)
 DATABASE_URL=postgresql://appuser:s3cret@10.0.0.5:5432/appdb
 
-# reaching the DB over the public internet instead of a private network? add SSL:
+# reaching the DB over the public internet instead of internally? add SSL:
 DATABASE_URL=postgresql://appuser:s3cret@db.example.com:5432/appdb?sslmode=require
 ```
 
 Because the credentials sit in the environment, they stay out of your Git history and you can rotate a password without touching code. There's a fuller treatment in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
-> **Do I need SSL?** A managed Postgres reached over the public internet usually expects TLS, so append `?sslmode=require` to the URL or set the driver's ssl option. On Kloudbean the database sits on a private network and your app connects to it internally, so the common setup is a plain internal connection with no public exposure at all. If you do need it in code, pg takes `ssl: { rejectUnauthorized: false }` and postgres.js takes `ssl: 'require'`.
+> **Do I need SSL?** A managed Postgres reached over the public internet usually expects TLS, so append `?sslmode=require` to the URL or set the driver's ssl option. On Kloudbean you whitelist your app server's IP so only it can reach the database, and your app connects to it internally, so the common setup is a plain internal connection with no public exposure at all. If you do need it in code, pg takes `ssl: { rejectUnauthorized: false }` and postgres.js takes `ssl: 'require'`.
 
 ## Step 3: Define your schema in TypeScript
 
@@ -188,7 +188,7 @@ If `found` comes back empty on a fresh deploy, or you see `error: relation "user
 
 ## Where the DATABASE_URL comes from: launch a managed Postgres
 
-All of the above assumes you have a real Postgres to point at. On Kloudbean you open the DBS section, hit Launch Database, and pick PostgreSQL from the managed engines. A minute or two later it's provisioned, patched, sitting on a private network, and already being backed up. You copy the host, port, database, user, and password into your `DATABASE_URL`.
+All of the above assumes you have a real Postgres to point at. On Kloudbean you open the DBS section, hit Launch Database, and pick PostgreSQL from the managed engines. A minute or two later it's provisioned, patched, locked to your app server's IP, and already being backed up. You copy the host, port, database, user, and password into your `DATABASE_URL`.
 
 ![Launching a managed PostgreSQL database in the Kloudbean console to connect Drizzle to](../assets/console/launch-database.png)
 
@@ -223,20 +223,20 @@ A short field guide to the failures that cost people an evening:
 - **Used `push` in production.** A schema tweak silently drops a column, and there's no migration file to audit. Keep push in dev; use generate and migrate everywhere real.
 - **Hard-coded the connection string.** It ends up in Git, then in a screenshot, then in an incident. Read it from `DATABASE_URL`.
 - **New Pool per request.** Connections climb until Postgres refuses new ones. One pool, created once, at module scope.
-- **SSL mismatch.** Connecting over the public internet without `sslmode=require`, or with a stray ssl option on a private connection that doesn't want one. Match the setting to how you're actually reaching the database.
+- **SSL mismatch.** Connecting over the public internet without `sslmode=require`, or with a stray ssl option on an internal connection that doesn't want one. Match the setting to how you're actually reaching the database.
 
 None of these are Drizzle's fault, and that's kind of the point. Most deploy failures are configuration, not code.
 
 ---
 
-**Give your Drizzle app a Postgres that's actually production-ready.** Launch a managed PostgreSQL, drop the connection string into one environment variable, and run your migrations. Automatic backups, a private network, and free migration help, on the same server as your app. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans from $8/mo on [pricing](https://www.kloudbean.com/pricing/).
+**Give your Drizzle app a Postgres that's actually production-ready.** Launch a managed PostgreSQL, drop the connection string into one environment variable, and run your migrations. Automatic backups, IP allow-listing, and free migration help, on the same server as your app. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans from $8/mo on [pricing](https://www.kloudbean.com/pricing/).
 
-One-click PostgreSQL · Automatic backups · Private networking · Env vars in the UI · Free migration · Free trial
+One-click PostgreSQL · Automatic backups · Env vars in the UI · Free migration · Free trial
 
 ## FAQ
 
 **How do I connect Drizzle ORM to a managed Postgres?**
-Pick a driver (node-postgres or postgres.js), read your DATABASE_URL from an environment variable, and pass the client to drizzle(). Define your tables in a TypeScript schema file, then run drizzle-kit generate to create the SQL migration and drizzle-kit migrate to apply it. The database itself is a managed PostgreSQL you launch first, which arrives provisioned, backed up, and on a private network.
+Pick a driver (node-postgres or postgres.js), read your DATABASE_URL from an environment variable, and pass the client to drizzle(). Define your tables in a TypeScript schema file, then run drizzle-kit generate to create the SQL migration and drizzle-kit migrate to apply it. The database itself is a managed PostgreSQL you launch first, which arrives provisioned, backed up, and locked to your app server's IP.
 
 **Should I use node-postgres (pg) or postgres.js with Drizzle?**
 Both work well and Drizzle supports each with a dedicated import. Pick node-postgres (pg) if you want the most widely used, battle-tested option, which is what most examples and code generators assume. Pick postgres.js if you prefer its API and type ergonomics. For the majority of apps the choice makes no practical difference, so pg is a fine default.
@@ -245,7 +245,7 @@ Both work well and Drizzle supports each with a dedicated import. Pick node-post
 generate reads your TypeScript schema and writes a versioned SQL migration file. migrate applies any pending migration files to the database. push skips the files and applies the schema straight to the database, which is handy for prototyping but risky in production because it can alter or drop columns with no reviewable history. Use generate and migrate for anything with real users.
 
 **Do I need SSL to connect Drizzle to a managed Postgres?**
-It depends on how you reach the database. Over the public internet a managed Postgres usually expects TLS, so add sslmode=require to the DATABASE_URL or set the driver ssl option. When your app connects over a private network, as it does on Kloudbean, the common setup is a plain internal connection with no public exposure, so SSL is often not needed for that path.
+It depends on how you reach the database. Over the public internet a managed Postgres usually expects TLS, so add sslmode=require to the DATABASE_URL or set the driver ssl option. When your app connects to the database internally, as it does on Kloudbean, the common setup is a plain internal connection with no public exposure, so SSL is often not needed for that path.
 
 **How do I set DATABASE_URL for Drizzle?**
 Store it as an environment variable rather than hard-coding it. On Kloudbean you add it under Runtime Configuration, Environment Variables, and both the app and drizzle-kit read process.env.DATABASE_URL. Keeping it in the environment keeps credentials out of your code and Git history, and lets you rotate the password without a code change.

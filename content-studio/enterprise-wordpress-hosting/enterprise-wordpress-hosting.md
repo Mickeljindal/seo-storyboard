@@ -10,7 +10,7 @@ secondary_keywords:
   - enterprise wordpress
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 10 — Enterprise & Compliance
+cluster: 10 - Enterprise & Compliance
 ---
 
 ![Enterprise WordPress hosting: governance controls layered from the cloud edge to the audit log](images/hero.png)
@@ -21,7 +21,7 @@ Most of the time, "enterprise WordPress hosting" is sold as a bigger invoice wit
 
 So this isn't a pitch about premium plans. It's about the governance and control that make a WordPress site something a regulated organisation can put its name behind. Get those right and "enterprise" is earned. Skip them and it's just decoration.
 
-> **The short version:** Enterprise-grade means governance, not price: least-privilege access with subusers and UAC, an immutable audit trail of who changed what, private networking with deliberate region choice, hardening you inherit by default, and uptime on tier-1 cloud infrastructure. For heavier needs Kloudbean runs the enterprise path (Kubernetes, autoscaling, custom architectures) and works like your in-house infra team. Compliance stays shared: the platform secures the infrastructure, you own your application.
+> **The short version:** Enterprise-grade means governance, not price: least-privilege access with subusers and UAC, an immutable audit trail of who changed what, deliberate region choice with private networking on Enterprise plans, hardening you inherit by default, and uptime on tier-1 cloud infrastructure. For heavier needs Kloudbean runs the enterprise path (Kubernetes, autoscaling, custom architectures) and works like your in-house infra team. Compliance stays shared: the platform secures the infrastructure, you own your application.
 
 ## Enterprise WordPress hosting is a governance word, not a price tier
 
@@ -51,7 +51,7 @@ Kloudbean's **Audit Trail** (an Enterprise feature) is an immutable, searchable,
 
 Regulated organisations often have hard rules about where data physically sits. An EU company may need EU-region hosting; a public-sector body may need a specific country. So region can't be assigned at random. It has to be a deliberate choice.
 
-Because Kloudbean provisions on seven tier-1 clouds (AWS, AWS Lightsail, Google Cloud, DigitalOcean, Linode, Vultr, and UpCloud), you pick the provider and region on purpose to meet a [data-residency](https://www.kloudbean.com/blog/data-residency-explained/) requirement. And the site itself sits on a [private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/), so the database and internal services aren't exposed to the public internet where scanners find them. Data residency plus private networking is a combination most enterprise questionnaires ask about directly.
+Because Kloudbean provisions on seven tier-1 clouds (AWS, AWS Lightsail, Google Cloud, DigitalOcean, Linode, Vultr, and UpCloud), you pick the provider and region on purpose to meet a [data-residency](https://www.kloudbean.com/blog/data-residency-explained/) requirement. By default the database is locked down with IP allow-listing, so only your app server can reach it, not the public internet where scanners look. And on Enterprise plans the whole site can sit on a [private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/), with the database and internal services off the public internet entirely. Data residency plus private networking is a combination most enterprise questionnaires ask about directly.
 
 ![The Kloudbean console: choosing the cloud provider and region when provisioning, to meet a data-residency requirement](../assets/console/add-server.png)
 
@@ -78,7 +78,7 @@ Here's the whole thing as the questionnaire it usually becomes. Judge a host on 
 | **Access control** | Can I scope permissions per person, per resource? | Subusers plus UAC, social login, IP access control |
 | **Audit trail** | Is there an immutable, exportable change log? | Audit Trail (Enterprise): searchable, CSV export |
 | **Data residency** | Can I choose the exact region? | Seven tier-1 clouds, region chosen on provision |
-| **Private networking** | Is the database off the public internet? | VPC / private network by default |
+| **Private networking** | Is the database off the public internet? | IP allow-listing on every plan, private networking (VPC) on Enterprise |
 | **Hardening** | What's on by default? | Shorewall, Fail2ban, SSL, HttpOnly sessions |
 | **Safe change** | Can we stage and roll back? | Staging for WordPress and Laravel |
 | **Scale path** | What happens past one big server? | Load balancer, then enterprise k8s / custom |
@@ -94,12 +94,12 @@ So judge the eight rows above, not the badge on the plan. A plan labelled "Enter
 
 **WordPress your security review can sign off on.** Run enterprise WordPress with scoped access, an immutable audit trail, private networking, and region choice at [kloudbean.com](https://www.kloudbean.com/). Talk options on [pricing](https://www.kloudbean.com/pricing/).
 
-Least-privilege access · Audit Trail · Private networking · Region choice · Automatic backups · Free migration
+Least-privilege access · Audit Trail · Region choice · Automatic backups · Free migration
 
 ## FAQ
 
-**What makes WordPress hosting "enterprise"?**
-Governance and control, not price. Enterprise-grade WordPress hosting gives you least-privilege access, an immutable and exportable audit trail, private networking, deliberate region choice, hardening on by default, and uptime on serious infrastructure, plus a real path to scale. If a plan is labelled enterprise but can't show you an audit log or let you choose a region, the label is decoration.
+**What makes WordPress hosting 'enterprise'?**
+Governance and control, not price. Enterprise-grade WordPress hosting gives you least-privilege access, an immutable and exportable audit trail, deliberate region choice, private networking on Enterprise plans, hardening on by default, and uptime on serious infrastructure, plus a real path to scale. If a plan is labelled enterprise but can't show you an audit log or let you choose a region, the label is decoration.
 
 **Does the host being SOC 2 aligned make my WordPress site compliant?**
 No. A SOC 2 report describes the hosting platform's controls and processes. It doesn't certify your plugins, theme, custom code, or how your site handles user data. Compliance is shared: the host covers the infrastructure layer, and you own the application layer. The platform's certification supports your compliance work; it doesn't complete it.
@@ -111,7 +111,7 @@ An audit trail is an immutable, searchable record of who did what and when acros
 With least-privilege access: subusers whose permissions are scoped per resource and per action through User Access Control. Each person gets only what their role requires. Social login ties identity to accounts you already govern, a Basic Auth gate protects staging and internal environments, and IP access control limits admin to known networks.
 
 **Can I choose where my WordPress data is stored?**
-Yes. Because provisioning runs on seven tier-1 clouds, you pick the provider and region deliberately to satisfy a data-residency rule, rather than being assigned one. The site also sits on a private network, so internal services aren't exposed publicly. Region choice plus private networking is what most enterprise questionnaires ask about.
+Yes. Because provisioning runs on seven tier-1 clouds, you pick the provider and region deliberately to satisfy a data-residency rule, rather than being assigned one. By default the database is locked to your app server's IP so it isn't exposed publicly, and on Enterprise the whole site can sit on a private network (VPC). Region choice plus private networking is what most enterprise questionnaires ask about.
 
 **Does enterprise WordPress hosting need a WAF?**
 A web application firewall is one useful layer, not a complete answer. The baseline here is a Shorewall firewall and Fail2ban configured automatically, free SSL, and HttpOnly cookie sessions, with Cloudflare (including its enterprise edge) available as an add-on and included for Enterprise accounts. Treat a WAF as part of a defense-in-depth stack rather than a single box that makes a site "secure."
@@ -125,7 +125,7 @@ Ask two things: what the number is, and what backs it. A figure on a sales page 
 **Is WordPress even appropriate for enterprise use?**
 Yes, for a huge range of corporate sites, campaign estates, and content platforms, as long as the hosting brings enterprise governance around it. The honest caveat: it's a Linux and PHP stack, and you own the application layer (plugins, theme, code, and its compliance). WordPress plus enterprise-grade controls is a proven combination; WordPress on consumer hosting with the word enterprise attached is not.
 
-**What does "acts like your in-house infra team" mean?**
+**What does 'acts like your in-house infra team' mean?**
 It means the platform and team handle the infrastructure work an internal DevOps group would otherwise own: provisioning, hardening, patching, backups, scaling, and custom architectures for the heavier cases. For enterprises and governments without a large internal ops team, that's the practical value: you get the outcomes without staffing the whole function.
 
 ---

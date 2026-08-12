@@ -78,7 +78,7 @@ My honest take after watching plenty of these builds: for most teams the managed
 The setup is short, because the hard part is a single click. From empty account to a running, in-Kingdom stack:
 
 1. **Add a server and pick the Dammam region.** Choose Google Cloud, then the **Dammam (me-central2), Saudi Arabia** region. Size it for your workload; you can resize later as traffic grows. This one choice pins your residency and sets your latency floor.
-2. **Launch a managed database in the same region.** Create a managed engine (PostgreSQL, MySQL, Redis, and more) and it provisions on a private network beside your app, backed up automatically, all inside the Kingdom.
+2. **Launch a managed database in the same region.** Create a managed engine (PostgreSQL, MySQL, Redis, and more) and it provisions right beside your app, locked to your app server's IP, backed up automatically, all inside the Kingdom.
 3. **Deploy your app and turn on free SSL.** Point a domain at the server and issue an auto-renewing certificate. HTTPS becomes one step instead of a recurring chore.
 4. **Run the whole stack from one dashboard.** Server, database, storage, SSL, and backups sit under a single login, which makes "where does this run" an easy question for an auditor.
 
@@ -88,7 +88,7 @@ The setup is short, because the hard part is a single click. From empty account 
 
 The database step is worth doing at launch, so it lands in the same region from the start. The full pattern, connection strings and migrations included, is in [how to add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/). In-Kingdom, the steps are identical; you've just pinned the region to Dammam first.
 
-![The managed database launches into the same Dammam region and onto a private network, backed up automatically.](../assets/console/launch-database.png)
+![The managed database launches into the same Dammam region, locked to your app server's IP, backed up automatically.](../assets/console/launch-database.png)
 
 ![One dashboard for the whole stack, so proving where things run is a glance, not a project.](../assets/console/dashboard.png)
 
@@ -115,7 +115,7 @@ And me-central2 is the in-Kingdom choice among Kloudbean's seven clouds, not the
 
 Pick Google Cloud's Dammam region (me-central2) when you add a server, keep your database and backups in-Kingdom, and manage the whole stack from one dashboard. Plans start from $8/mo, Enterprise is custom. Start at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/).
 
-In-Kingdom GCP Dammam region · Managed databases · Private networking · Automatic backups · Free SSL · Free migration assistance · Free trial
+In-Kingdom GCP Dammam region · Managed databases · Automatic backups · Free SSL · Free migration assistance · Free trial
 
 ## FAQ
 

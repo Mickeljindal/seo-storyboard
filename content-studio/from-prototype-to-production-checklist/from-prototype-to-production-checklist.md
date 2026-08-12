@@ -150,7 +150,7 @@ Not every item is equal, and pretending otherwise wastes your time. If you're la
 
 What makes this less painful is keeping it in one place. When the database, env vars, backups, SSL, object storage, and Git deploy all live in one dashboard on a server you own, the checklist stops being ten chores across five vendors. That's the practical case for weighing [Cloudways alternatives](https://www.kloudbean.com/blog/cloudways-alternatives/) if your setup has you juggling pieces. One login, one bill, one place to tick these off.
 
-One honest note on "managed." The platform provisions the server, patches the stack, runs SSL and backups, and keeps the database on a private network. You still own your application: its logic, its data, its app-level security. Compliance splits the same way, infrastructure controls on the platform, app behavior on you. A good deal, but not magic.
+One honest note on "managed." The platform provisions the server, patches the stack, runs SSL and backups, and locks the database down so only your app server's IP can reach it. You still own your application: its logic, its data, its app-level security. Compliance splits the same way, infrastructure controls on the platform, app behavior on you. A good deal, but not magic.
 
 ## Start free
 

@@ -11,7 +11,7 @@ secondary_keywords:
   - choose data region
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 10 — Enterprise & compliance
+cluster: 10 - Enterprise & compliance
 ---
 
 ![Data residency explained: where your data physically lives and why it matters](images/hero.png)
@@ -60,13 +60,13 @@ One region. You know the answer.         Three regions. Which law applies?
 
 Here's the good news buried under all the legalese. The thing you control is simple and it's mostly one decision. When you launch a server or a managed database, you choose the cloud and the region it runs in. That choice pins where the data lives.
 
-On Kloudbean you're picking across seven clouds: AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud, each with its own regions. Choose an EU region and your app server and database run in the EU. The managed database sits on a [private network](https://www.kloudbean.com/blog/what-is-a-vpc/) rather than the open internet, so it isn't exposed for any scanner to find. You're not filing a ticket and hoping. You're clicking a region at launch.
+On Kloudbean you're picking across seven clouds: AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud, each with its own regions. Choose an EU region and your app server and database run in the EU. The managed database is locked down with IP allow-listing so only your app server can reach it rather than the open internet, so it isn't exposed for any scanner to find. On Enterprise plans it can go further onto a [private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/). You're not filing a ticket and hoping. You're clicking a region at launch.
 
 ![The Kloudbean console: choosing the cloud and region deliberately when provisioning a server](../assets/console/add-server.png)
 
 Same move for the database. A managed engine launches into the region and network you choose, and it's backed up for you from there.
 
-![The Kloudbean console: launching a managed database into a chosen region on a private network](../assets/console/launch-database.png)
+![The Kloudbean console: launching a managed database into a chosen region, locked to your app server's IP](../assets/console/launch-database.png)
 
 <!-- ADD IMAGE: a simple map or region picker showing your chosen region highlighted against the alternatives -->
 
@@ -106,9 +106,9 @@ So you provision your server and managed database in an EU region, keep processi
 
 ## Where Kloudbean fits, and where it stops
 
-Kloudbean's part is the lever, and it's a real one. When you launch a server, a managed database, or an [object storage bucket](https://www.kloudbean.com/blog/s3-compatible-object-storage/), you pick the cloud and the region, so you control where your data physically lives across those seven providers. The database and its backups stay on a private network. That region choice is the foundation of a data-residency strategy, and it's genuinely yours to control from day one.
+Kloudbean's part is the lever, and it's a real one. When you launch a server, a managed database, or an [object storage bucket](https://www.kloudbean.com/blog/s3-compatible-object-storage/), you pick the cloud and the region, so you control where your data physically lives across those seven providers. The database and its backups stay locked to your app server's IP. That region choice is the foundation of a data-residency strategy, and it's genuinely yours to control from day one.
 
-It is not the whole of compliance, and I won't pretend it is. Compliance is shared. Kloudbean provides the infrastructure controls: the region, the private network, backups, access control. You still own the app-level work, which is most of it: what data you collect, your lawful basis for collecting it, how long you keep it, and what you tell users. Storing EU data in an EU region does not make you GDPR-compliant on its own. It clears the one obstacle that's actually about location and leaves the rest to you.
+It is not the whole of compliance, and I won't pretend it is. Compliance is shared. Kloudbean provides the infrastructure controls: the region, IP allow-listing, backups, access control. You still own the app-level work, which is most of it: what data you collect, your lawful basis for collecting it, how long you keep it, and what you tell users. Storing EU data in an EU region does not make you GDPR-compliant on its own. It clears the one obstacle that's actually about location and leaves the rest to you.
 
 For the deeper regulatory angle, go to [GDPR-compliant hosting](https://www.kloudbean.com/blog/gdpr-compliant-hosting/), [SOC 2 hosting](https://www.kloudbean.com/blog/soc2-compliant-hosting/), and [PCI-compliant hosting](https://www.kloudbean.com/blog/pci-compliant-hosting/). If you're buying for a regulated org, [enterprise hosting](https://www.kloudbean.com/blog/enterprise-wordpress-hosting/) covers the audit-trail and access side. And treat this article as a plain-English map, not legal advice. For a high-stakes case, confirm the details with someone qualified.
 
@@ -116,7 +116,7 @@ For the deeper regulatory angle, go to [GDPR-compliant hosting](https://www.klou
 
 **Choose the region before it chooses you.** Launch servers, managed databases, and object storage in the exact region your users and contracts require, on infrastructure you can point at a country on day one. Start at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
 
-Region choice across 7 clouds · Private networking · Automatic backups · Free migration assistance · Free trial
+Region choice across 7 clouds · Automatic backups · Free migration assistance · Free trial
 
 ## FAQ
 
@@ -142,7 +142,7 @@ Not for public, static assets, since caching those at the edge is the normal, sa
 Usually not. Unless a law or contract requires data to live in more than one place, one deliberately chosen region covers most apps. For speed to distant users, a CDN can cache public content near them without moving your primary database. Multi-region storage is a requirement to satisfy, not a default to reach for.
 
 **How do I set data residency on Kloudbean?**
-You pick the cloud and region when you launch a server, a managed database, or an object storage bucket, across seven providers. That single choice pins where your data lives, and the database stays on a private network. It's a one-time decision at launch, not a support ticket you file later in a panic.
+You pick the cloud and region when you launch a server, a managed database, or an object storage bucket, across seven providers. That single choice pins where your data lives, and the database stays locked to your app server's IP. It's a one-time decision at launch, not a support ticket you file later in a panic.
 
 ---
 

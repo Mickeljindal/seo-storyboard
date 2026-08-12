@@ -34,13 +34,13 @@ This one closes or kills deals. Saudi government bodies and large enterprises ro
 
 ## The shape of in-Kingdom hosting
 
-Before the setup, here's the picture. Your Saudi users hit a short network hop into the Dammam region, where your managed server and database live together on a private network, and every copy that matters (the database, the backups) stays inside the Kingdom.
+Before the setup, here's the picture. Your Saudi users hit a short network hop into the Dammam region, where your managed server and database live together in the same account, and every copy that matters (the database, the backups) stays inside the Kingdom.
 
 ```
 Riyadh ┐
 Jeddah ┼─►  IN-KINGDOM · SAUDI ARABIA
 Dammam ┘     Google Cloud · Dammam (me-central2)
-               ├─ Your managed server (Linux · private network)
+               ├─ Your managed server (Linux · in-Kingdom)
                ├─ Managed database (same region)
                └─ Backups + free SSL (stored in-Kingdom)
 ```
@@ -55,7 +55,7 @@ Choosing it is the whole residency decision, and it happens once, at launch. Whe
 
 ![The Kloudbean console showing seven clouds with Google Cloud's Dammam (me-central2) Saudi Arabia region selected for in-Kingdom hosting](../assets/console/add-server-region.png)
 
-Because it's fully managed, "in-Kingdom" isn't just where the app runs. The managed database launches into the same region, sitting on a [private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/) rather than the open internet, so it isn't exposed for scanners to find. Free SSL is issued and auto-renews. And backups, which are full copies of your data and the thing people most often forget, are taken and kept in the same region. That last point matters more than it sounds: a backup landing in another country quietly undoes your residency. On the Dammam region, your primary and your copies stay together, inside the Kingdom.
+Because it's fully managed, "in-Kingdom" isn't just where the app runs. The managed database launches into the same region, locked down with IP allow-listing so only your app server can reach it rather than the open internet, so it isn't exposed for scanners to find. On Enterprise plans it can sit on a [private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/). Free SSL is issued and auto-renews. And backups, which are full copies of your data and the thing people most often forget, are taken and kept in the same region. That last point matters more than it sounds: a backup landing in another country quietly undoes your residency. On the Dammam region, your primary and your copies stay together, inside the Kingdom.
 
 <!-- ADD IMAGE: a close crop of the region dropdown with Dammam (me-central2) highlighted and confirmed. -->
 
@@ -68,7 +68,7 @@ Two acronyms come up in Saudi procurement. **PDPL** is the Personal Data Protect
 | Responsibility | Platform provides (infra) | You own (app level) |
 | --- | --- | --- |
 | **Data residency** | In-Kingdom region (GCP Dammam), database and backups in-region | Deciding what data is in scope, and keeping third parties in-region too |
-| **Network security** | Private networking, Shorewall firewall, Fail2ban, free SSL | App auth, access rules, secrets handling, who can log in |
+| **Network security** | IP allow-listing, Shorewall firewall, Fail2ban, free SSL | App auth, access rules, secrets handling, who can log in |
 | **PDPL (privacy)** | Location controls, access logs, backups you can restore | Lawful basis, consent, retention, disclosures, data-subject rights |
 | **NCA ECC (security)** | Baseline hardening, patching of the managed layer, audit trail on Enterprise | Your app's controls, policies, staff access, and evidence |
 
@@ -87,7 +87,7 @@ A fair caveat: a global CDN can cache *public*, static assets close to users reg
 The setup is short, because the hard part (choosing the region) is a single click. Here's the path from empty account to a running, in-Kingdom stack.
 
 1. **Add a server in the Dammam region.** Choose Google Cloud, then the **Dammam (me-central2), Saudi Arabia** region shown earlier. Size it for your workload; you can resize later as traffic grows. This one choice pins your residency.
-2. **Launch a managed database in the same region.** Open the databases section and create a managed engine (PostgreSQL, MySQL, Redis, and more). It provisions on a private network beside your app, and it's backed up automatically, all inside the Kingdom.
+2. **Launch a managed database in the same region.** Open the databases section and create a managed engine (PostgreSQL, MySQL, Redis, and more). It provisions right beside your app, locked to your app server's IP, and it's backed up automatically, all inside the Kingdom.
 3. **Deploy your app and turn on free SSL.** Point a domain at the server, issue an auto-renewing certificate, and you're serving HTTPS. No manual renewals to forget.
 4. **Watch the whole stack from one dashboard.** Server, database, storage, SSL, and backups live under one login, so there's no juggling separate consoles to prove where things run.
 
@@ -121,7 +121,7 @@ And compliance stays shared. Hosting in the Kingdom is a strong, real foundation
 
 **Put your data inside the Kingdom, from day one.** Launch a managed server and database in Google Cloud's Dammam region (me-central2), keep backups and SSL in-Kingdom, and manage the whole stack from one dashboard. Plans start from $8/mo, Enterprise is custom. Start at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/).
 
-In-Kingdom GCP Dammam region · Private networking · Automatic backups · Free SSL · Free migration assistance · Free trial
+In-Kingdom GCP Dammam region · Automatic backups · Free SSL · Free migration assistance · Free trial
 
 ## FAQ
 

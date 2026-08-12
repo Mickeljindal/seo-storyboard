@@ -140,7 +140,7 @@ The causes are the same minus the PHP extension. A Node client failing to reach 
 
 ## How managed Redis removes most of these
 
-Looking at the six causes, four of them are operational rather than application problems: the service not running, not being enabled at boot, the wrong bind address, and a memory policy nobody set deliberately. Those disappear when the instance is managed. On Kloudbean you launch managed Redis in a few clicks, it sits in the same dashboard as your app on a private network, and you get a connection string rather than a configuration puzzle. Because the app and the cache are on the same private network, you are not exposing Redis to the public internet to make it reachable, which is a mistake we see people make while trying to fix this error.
+Looking at the six causes, four of them are operational rather than application problems: the service not running, not being enabled at boot, the wrong bind address, and a memory policy nobody set deliberately. Those disappear when the instance is managed. On Kloudbean you launch managed Redis in a few clicks, it sits in the same dashboard as your app, right next to it, and you get a connection string rather than a configuration puzzle. Because the cache runs in the same account as your app and is locked down with IP allow-listing, you are not exposing Redis to the public internet to make it reachable, which is a mistake we see people make while trying to fix this error.
 
 What it does not fix, honestly: a wrong constant in `wp-config.php` is still a wrong constant, and a missing PHP extension is still a PHP matter. Managed Redis removes the service-level causes, not the configuration ones.
 
@@ -150,13 +150,13 @@ For the caching side, see [managed Redis hosting](https://www.kloudbean.com/blog
 
 ## Let the cache be someone else's uptime problem
 
-Launch managed Redis in the same dashboard as your site or app, on a private network with a supplied connection string, backed up automatically, on a flat plan from $8/mo. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
+Launch managed Redis in the same dashboard as your site or app, right next to it with a supplied connection string, locked to your app server's IP, backed up automatically, on a flat plan from $8/mo. Free migration assistance included. Start at [kloudbean.com](https://www.kloudbean.com/).
 
-Managed Redis · Private networking · Automatic backups · One dashboard · Flat from $8/mo
+Managed Redis · Automatic backups · One dashboard · Flat from $8/mo
 
 ## FAQ
 
-**What causes "Error establishing a Redis connection"?**
+**What causes 'Error establishing a Redis connection'?**
 Six things, in rough order of likelihood: Redis is not running, the host or port in your configuration is wrong, Redis requires a password your client is not sending, the PHP redis extension is missing, you have a socket versus TCP mismatch, or Redis has hit its memory limit with an eviction policy of `noeviction`. Running `redis-cli ping` first tells you which half of the list to look at.
 
 **How do I test whether Redis is reachable?**
@@ -172,6 +172,6 @@ Because the phpredis extension is compiled against a specific PHP version and is
 Yes, indirectly. If Redis reaches `maxmemory` while `maxmemory-policy` is `noeviction`, it refuses writes rather than evicting old keys, and clients often report that as a connection or write failure. For a cache, set `allkeys-lru` so Redis discards the least recently used keys instead of erroring.
 
 **Should Redis be exposed to the internet to fix this?**
-No. Binding Redis to a public address to make it reachable is a common and dangerous shortcut, since Redis is designed to run on a trusted network. Keep it on a private network with your application, use a password, and if you genuinely need a remote connection use TLS. A managed instance on a private network gives you this by default.
+No. Binding Redis to a public address to make it reachable is a common and dangerous shortcut, since Redis is designed to run on a trusted network. Keep it reachable only from your application, use a password, and if you genuinely need a remote connection use TLS. A managed instance locked to your app server's IP gives you this by default.
 
 *Kloudbean Engineering · Ping first. It tells you which half of the problem you have.*

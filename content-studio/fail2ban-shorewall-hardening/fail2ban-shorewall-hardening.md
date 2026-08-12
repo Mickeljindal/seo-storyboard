@@ -197,7 +197,7 @@ Here's the honest part. Shorewall and Fail2ban are the baseline, the floor you b
 
 *Least privilege in practice: a subuser gets view and deploy on one app and nothing destructive, instead of full account access.*
 
-**Keep your database off the public internet.** A database port facing the world is an accident waiting to happen. Put it on a private network so it answers your app servers and no one else. That's what a [VPC](https://www.kloudbean.com/blog/what-is-a-vpc/) is for.
+**Keep your database off the public internet.** A database port facing the world is an accident waiting to happen. Whitelist your app servers' IPs so the database answers them and no one else, which is exactly what IP Access Control does. For network-level isolation on top of that, a [VPC](https://www.kloudbean.com/blog/what-is-a-vpc/) is the Enterprise option.
 
 **Add an application-layer guard.** Shorewall and Fail2ban work at the network and log level. They don't read HTTP payloads, so they won't catch SQL injection or a flood of requests that all look valid. That's a job for a WAF or a CDN like Cloudflare in front, which Kloudbean offers as an add-on. Start with [what a WAF actually does](https://www.kloudbean.com/blog/what-a-waf-does/), and send sane [security headers](https://www.kloudbean.com/blog/security-headers-guide/) while you're at it.
 
@@ -231,7 +231,7 @@ Every managed server, on any of the seven supported clouds (AWS, AWS Lightsail, 
 
 *Launch a server on any of the seven clouds and it comes up hardened: Shorewall and Fail2ban on by default, SSL ready for your domain.*
 
-From the dashboard you can see which ports are open, watch the IPs Fail2ban has blocked, and lift a ban with one click. IP Access Control, subusers and UAC, private networking, and automatic backups all live in the same console, so the checklist above is a few toggles rather than a lost weekend.
+From the dashboard you can see which ports are open, watch the IPs Fail2ban has blocked, and lift a ban with one click. IP Access Control, subusers and UAC, and automatic backups all live in the same console, so the checklist above is a few toggles rather than a lost weekend.
 
 What's still yours: your SSH keys and your application's own security. Managed means the server, firewall, ban rules, SSL, and patching are handled for you. It does not mean your code is automatically safe. Nobody's is, and any host that tells you otherwise is selling something.
 

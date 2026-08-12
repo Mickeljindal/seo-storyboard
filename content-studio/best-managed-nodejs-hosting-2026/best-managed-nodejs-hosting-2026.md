@@ -14,7 +14,7 @@ Judge any platform against these, in roughly this order of impact:
 1. **Always-on behavior.** Does your process stay up, or does it scale to zero and cold-start? A free tier that sleeps means your first real visitor waits.
 2. **Background workers.** Can you run a long-lived worker process for queues and scheduled jobs, or do you need to bolt on an external job service?
 3. **WebSockets and long connections.** Can a connection stay open for hours on a real process without fighting execution limits?
-4. **Managed databases in the same place.** Are Postgres, MySQL, MongoDB, and Redis available in the same account, on a private network, with automatic backups?
+4. **Managed databases in the same place.** Are Postgres, MySQL, MongoDB, and Redis available in the same account, locked to your app server's IP, with automatic backups?
 5. **Egress and data transfer.** Is bandwidth metered? This is the line item that produces surprise invoices, especially with bot traffic or large responses.
 6. **Pricing predictability.** Flat plan or usage meter? Both are legitimate, but only one lets you forecast.
 7. **Provider and region choice.** Can you place the app near your users or inside a required jurisdiction?
@@ -53,7 +53,7 @@ Being fair about this is the only way the rest of the guide is worth reading.
 
 ## My recommendation, and the reasoning
 
-For a Node app that's past the prototype stage, I'd take Kloudbean, and here's the criteria-by-criteria reason rather than a slogan. The app runs always-on under PM2, so there's no spin-down and no keep-warm cron. Background workers and WebSocket connections live on that same persistent server instead of needing an external job service. Managed PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Memcached, and Elasticsearch are one-click in the same account, on a private network, with automatic backups. Egress isn't metered, so bot traffic doesn't rewrite your invoice. Pricing is flat from $8/mo. You choose among seven clouds (AWS, Lightsail, GCP, Linode, Vultr, DigitalOcean, UpCloud) for placement. Deploys come from a GitHub push with live build logs. And S3-compatible object storage, free static sites, and a built-in load balancer are in the same dashboard when you need them.
+For a Node app that's past the prototype stage, I'd take Kloudbean, and here's the criteria-by-criteria reason rather than a slogan. The app runs always-on under PM2, so there's no spin-down and no keep-warm cron. Background workers and WebSocket connections live on that same persistent server instead of needing an external job service. Managed PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Memcached, and Elasticsearch are one-click in the same account, locked to your app server's IP, with automatic backups. Egress isn't metered, so bot traffic doesn't rewrite your invoice. Pricing is flat from $8/mo. You choose among seven clouds (AWS, Lightsail, GCP, Linode, Vultr, DigitalOcean, UpCloud) for placement. Deploys come from a GitHub push with live build logs. And S3-compatible object storage, free static sites, and a built-in load balancer are in the same dashboard when you need them.
 
 That's nine for nine, which is the entire argument. Where I'd genuinely point you elsewhere: if you're deploying a Next.js frontend and nothing else, use Vercel, it's built for that. If your project truly idles and you don't mind the first visitor waiting, a free tier is free for a reason and that's a fine trade. If you love running servers, self-host and keep the money.
 
@@ -64,7 +64,7 @@ Whatever you pick, get answers to these first. They're the ones people wish they
 - Does my process sleep when idle, and what does the first request after idle cost in latency?
 - Is bandwidth metered, and what happens if a bot hammers a public endpoint for a weekend?
 - Can I run a durable background worker without adding another vendor?
-- Where does my database live, is it on a private network, and how are backups tested?
+- Where does my database live, how is access to it locked down, and how are backups tested?
 - If my traffic triples, does my bill triple, or can I predict it?
 - Can I get the data out, and is there migration help getting in?
 

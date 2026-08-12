@@ -22,7 +22,7 @@ cluster: 4 (Comparisons / Conversion)
 
 You built fast on Firebase. Auth, a database, hosting, and Cloud Functions, wired together in an afternoon. Then the app grew and the questions started. Why does the bill move with traffic in ways you can't predict? Why does every relational feature feel like a fight with Firestore? And what happens the day you want your data somewhere else? If you're hunting for a **Firebase alternative** because you'd rather own your backend and your data than rent their behavior, this is the honest version of that decision.
 
-> **The short answer:** A good Firebase alternative for owning your backend and data is a stack you control: a managed **PostgreSQL** (relational) or **MongoDB** (document) database plus your own app server for the logic that used to live in Cloud Functions. On Kloudbean that's one dashboard, backups, free SSL, and a private network, priced from $8/mo flat instead of per-operation billing. The catch worth knowing up front: because Firestore is NoSQL, this is a re-model of your data, not a copy-paste.
+> **The short answer:** A good Firebase alternative for owning your backend and data is a stack you control: a managed **PostgreSQL** (relational) or **MongoDB** (document) database plus your own app server for the logic that used to live in Cloud Functions. On Kloudbean that's one dashboard, backups, free SSL, and IP allow-listing so only your app server can reach the database, priced from $8/mo flat instead of per-operation billing. The catch worth knowing up front: because Firestore is NoSQL, this is a re-model of your data, not a copy-paste.
 
 ## First, the fair part: Firebase is a great place to launch
 
@@ -40,7 +40,7 @@ Nobody leaves Firebase on day one. They leave around the time three or four of t
 
 **Lock-in to one vendor.** The Firestore query model, the security rules, the client SDKs, the Cloud Functions triggers: they're all Google-specific. None of it is portable. The more of your app leans on Firebase-only behavior, the more "leaving" starts to mean "rewrite." That's the quiet cost that doesn't show up until you try to move.
 
-**Wanting to actually own your data.** Some teams just want their database to be a database they can point any tool at, back up on their own terms, keep on a private network, and move between clouds without permission. Owning the data (and the server it runs on) is a legitimate goal on its own, and it's the one a self-hosted Firebase alternative is really about.
+**Wanting to actually own your data.** Some teams just want their database to be a database they can point any tool at, back up on their own terms, lock down with IP allow-listing, and move between clouds without permission. Owning the data (and the server it runs on) is a legitimate goal on its own, and it's the one a self-hosted Firebase alternative is really about.
 
 ## The honest part: leaving Firebase is a re-model, not a lift-and-shift
 
@@ -146,12 +146,12 @@ Two things worth saying plainly, because a guide that only flatters one side isn
 
 Run a managed PostgreSQL or MongoDB next to your app server, on one dashboard, on infrastructure you control. Start at [kloudbean.com](https://www.kloudbean.com/); check current plans on [pricing](https://www.kloudbean.com/pricing/).
 
-Managed Postgres & MongoDB · App hosting · Private networking · Automatic backups · Free SSL · Free migration · Free trial
+Managed Postgres & MongoDB · App hosting · Automatic backups · Free SSL · Free migration · Free trial
 
 ## FAQ
 
 **What is the best Firebase alternative if I want to own my backend and data?**
-A stack you control: a managed PostgreSQL or MongoDB database plus your own app server for the logic Cloud Functions used to run. That gives you the data model that fits your product, a flat and predictable price, and full ownership of the data. On Kloudbean it's one dashboard with backups, free SSL, and a private network, priced from $8/mo. Just plan for a re-model of your Firestore data rather than a straight copy.
+A stack you control: a managed PostgreSQL or MongoDB database plus your own app server for the logic Cloud Functions used to run. That gives you the data model that fits your product, a flat and predictable price, and full ownership of the data. On Kloudbean it's one dashboard with backups, free SSL, and IP allow-listing so only your app server reaches the database, priced from $8/mo. Just plan for a re-model of your Firestore data rather than a straight copy.
 
 **Why do teams migrate off Firebase?**
 Usually a mix of four things: pricing that tracks usage and gets unpredictable as traffic grows, a NoSQL model that fights relational apps, lock-in to Google-specific SDKs and query rules, and simply wanting to own their data on infrastructure they can move. Any one is survivable. Several at once is when people start searching for an alternative.
@@ -166,7 +166,7 @@ Pick by the shape of your data, not by what looks closest to Firestore. If your 
 Firebase bills per operation: reads, writes, deletes, storage, egress, function runs. That can be cheap at low usage and unpredictable as you grow. A managed server is a flat monthly price for a known-size box, with no per-operation meter, in exchange for doing capacity planning yourself. For steady, growing traffic, the flat model is usually easier to forecast.
 
 **Can I self-host a Firebase alternative?**
-Yes. You run your own database and app server on infrastructure you control, which is the essence of a self-hosted Firebase alternative. On Kloudbean you launch a managed PostgreSQL or MongoDB and deploy your app from Git, all on your own server with backups and a private network. If you want a batteries-included feel, managed Supabase runs as a one-click app you still own.
+Yes. You run your own database and app server on infrastructure you control, which is the essence of a self-hosted Firebase alternative. On Kloudbean you launch a managed PostgreSQL or MongoDB and deploy your app from Git, all on your own server with backups and IP allow-listing so only your app reaches the database. If you want a batteries-included feel, managed Supabase runs as a one-click app you still own.
 
 **What replaces Firebase Authentication and Cloud Functions?**
 Cloud Functions become routes on your own app server (Node, Django, FastAPI, Rails, whatever you prefer), running continuously instead of as isolated snippets. Firebase Authentication becomes auth in your app, either a framework auth library or a bundled solution like managed Supabase. You gain control and lose the zero-setup convenience, which is the honest trade.

@@ -160,12 +160,12 @@ Think about it the way you'd think about adding [Redis to a Postgres app](https:
 
 ## Start in Postgres, graduate without switching vendors
 
-This is where "start simple, grow when needed" stays painless on Kloudbean. Both managed PostgreSQL and managed Elasticsearch are one-click managed engines here, among the same set of managed databases (MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, MongoDB). So you can begin with Postgres full text search, and the day you truly need a dedicated engine, you launch managed Elasticsearch from the same dashboard. Same login, same private network, same backups. No new vendor to evaluate.
+This is where "start simple, grow when needed" stays painless on Kloudbean. Both managed PostgreSQL and managed Elasticsearch are one-click managed engines here, among the same set of managed databases (MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, MongoDB). So you can begin with Postgres full text search, and the day you truly need a dedicated engine, you launch managed Elasticsearch from the same dashboard. Same login, same IP allow-listing, same backups. No new vendor to evaluate.
 
 ![The Kloudbean console, Launch Database, showing managed PostgreSQL and Elasticsearch among the managed engines](../assets/console/launch-database.png)
 *DBS, Launch Database: managed PostgreSQL now, managed Elasticsearch later, from one place.*
 
-Both engines arrive provisioned and patched, on a [private network](https://www.kloudbean.com/blog/what-is-a-vpc/) instead of the open internet, with [automatic backups](https://www.kloudbean.com/blog/server-backups-guide/) and controlled access. Your app reads the connection details from environment variables, the same discipline as [adding any managed database](https://www.kloudbean.com/blog/add-managed-database-to-your-app/). Nothing exotic, just fewer things you have to babysit.
+Both engines arrive provisioned and patched, locked down with IP allow-listing rather than left on the open internet, with [automatic backups](https://www.kloudbean.com/blog/server-backups-guide/) and controlled access. For full [network isolation on a VPC](https://www.kloudbean.com/blog/what-is-a-vpc/), that's the Enterprise step up. Your app reads the connection details from environment variables, the same discipline as [adding any managed database](https://www.kloudbean.com/blog/add-managed-database-to-your-app/). Nothing exotic, just fewer things you have to babysit.
 
 ![The Kloudbean console server health view showing CPU, RAM, and disk usage](../assets/console/server-health.png)
 *Watch CPU, RAM, and disk. When search load starts crowding your transactional queries, that's your cue to consider a dedicated engine.*
@@ -178,7 +178,7 @@ When you're deciding, the split stays simple. Keep the source of truth in [manag
 
 Launch managed PostgreSQL, use full-text search that stems and ranks, and add managed Elasticsearch later from the same dashboard when search becomes the product. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
 
-One-click databases · Automatic backups · Private networking · Free migration · Free trial
+One-click databases · Automatic backups · Free migration · Free trial
 
 ## FAQ
 
@@ -210,6 +210,6 @@ Postgres full-text search lives inside your existing database, so there's no cop
 Usually not at first. If search is a feature of your app and the data already lives in Postgres, its full-text search covers a blog, a help center, a docs site, or a modest catalog well. Reach for Elasticsearch when you need advanced relevance, facets and aggregations at scale, typo tolerance across millions of documents, or distributed search that grows by adding nodes.
 
 **Can I run both managed PostgreSQL and Elasticsearch on Kloudbean?**
-Yes. Both are one-click managed engines on Kloudbean, alongside MySQL, MariaDB, Redis, Memcached, and MongoDB. You can start with Postgres full-text search and later launch managed Elasticsearch from the same dashboard, on the same private network, with automatic backups and controlled access. It's one login instead of a second vendor.
+Yes. Both are one-click managed engines on Kloudbean, alongside MySQL, MariaDB, Redis, Memcached, and MongoDB. You can start with Postgres full-text search and later launch managed Elasticsearch from the same dashboard, locked down with the same IP allow-listing, with automatic backups and controlled access. It's one login instead of a second vendor.
 
 *By Kloudbean Data Team · Search Without a Second Database.*

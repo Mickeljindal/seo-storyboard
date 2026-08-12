@@ -1,7 +1,7 @@
 ---
 title: "Environment Variables Done Right for a Deployed App"
 slug: environment-variables-done-right
-meta_description: "There are only two kinds of environment variable: build-time and public, or runtime and secret. Get that split right and you fix most env-var bugs — the leaked key, the 503, the 'I changed it and nothing happened.'"
+meta_description: "There are only two kinds of environment variable: build-time and public, or runtime and secret. Get that split right and you fix most env-var bugs: the leaked key, the 503, the 'I changed it and nothing happened.'"
 target_keyword: environment variables for deployed app
 secondary_keywords:
   - env vars best practices
@@ -10,10 +10,10 @@ secondary_keywords:
   - NEXT_PUBLIC vs server env
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 1 — Deploy AI / Vibe-Coded Apps
+cluster: 1 - Deploy AI / Vibe-Coded Apps
 ---
 
-![Environment variables done right — secrets and config out of your code, set on the server](images/hero.png)
+![Environment variables done right: secrets and config out of your code, set on the server](images/hero.png)
 
 # Environment Variables Done Right for a Deployed App
 
@@ -27,7 +27,7 @@ Almost everything that goes wrong with env vars comes from not knowing which kin
 
 A **build-time variable** is read once, while your app is being built, and its value is written directly into the JavaScript that ships to the browser. It's frozen in the bundle from that moment. Because it lands in the browser, it's public by definition, and frameworks force you to opt in with a prefix so you can't leak a secret by accident. A **runtime variable** is read live by the server process, every time the app runs. It never goes near the browser, you can change it without rebuilding, and it's where every secret belongs.
 
-<!-- DIAGRAM: a split — BUILD-TIME · PUBLIC (left) vs RUNTIME · SECRET (right). Left: baked into the browser bundle at build; prefix VITE_ / NEXT_PUBLIC_ / REACT_APP_; set before the build; change one = rebuild; safe for secrets? NO. Right: read live by the server, never sent to the browser; no prefix (DATABASE_URL, STRIPE_SECRET_KEY); set anytime; change = restart, no rebuild; safe for secrets? YES. Caption: public vars freeze into the bundle at build time, secret vars are read live and must never touch the browser. -->
+<!-- DIAGRAM: a split: BUILD-TIME · PUBLIC (left) vs RUNTIME · SECRET (right). Left: baked into the browser bundle at build; prefix VITE_ / NEXT_PUBLIC_ / REACT_APP_; set before the build; change one = rebuild; safe for secrets? NO. Right: read live by the server, never sent to the browser; no prefix (DATABASE_URL, STRIPE_SECRET_KEY); set anytime; change = restart, no rebuild; safe for secrets? YES. Caption: public vars freeze into the bundle at build time, secret vars are read live and must never touch the browser. -->
 
 Put side by side, the differences that actually matter come down to this:
 
@@ -108,7 +108,7 @@ Don't guess which variable. Read the app's own error log, which usually names th
 /home/admin/hosted-sites/<app_system_user>/app-logs/app.error.log
 ```
 
-Set the missing variable, redeploy, and the app comes up. The broader 503 playbook (missing env var, wrong start command, a build that skipped its tools) is in [fixing a 503 after deploying](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/). And when the missing value is a database URL, the clean setup is a [managed database on the same server](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), so the connection string is a private-network address you paste in once.
+Set the missing variable, redeploy, and the app comes up. The broader 503 playbook (missing env var, wrong start command, a build that skipped its tools) is in [fixing a 503 after deploying](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/). And when the missing value is a database URL, the clean setup is a [managed database on the same server](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), so the connection string points at a database sitting right next to your app, and you paste it in once.
 
 <!-- ADD IMAGE: app.error.log open in the File Manager, with the line that names the exact missing environment variable highlighted -->
 
@@ -140,4 +140,4 @@ No. Add it to `.gitignore` and set the values on the server instead. A committed
 **How do I rotate a secret?**
 Update the variable's value on the server and redeploy. Because the secret lives in the environment rather than the code, rotation is a config change with no code edit. Quick to do, and worth doing routinely, especially if a key was ever exposed.
 
-By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.
+By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale. Faster Than Ever.

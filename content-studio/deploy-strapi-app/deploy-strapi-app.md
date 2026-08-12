@@ -38,7 +38,7 @@ The fix is to point Strapi at a client-server database that lives on its own, ge
 
 Before the steps, here's what you're actually building. Strapi (the Node app, serving both the built admin panel and the API) sits behind a reverse proxy that terminates SSL. Content goes to a managed database. Uploads go to object storage. Neither of those lives on the app server's disk.
 
-> **Diagram:** One Strapi process serves the built admin panel and the API, reading content from a managed database and pushing uploads to object storage, all behind a proxy that handles SSL. Browser/client sends HTTPS to a reverse proxy on :443, which forwards to Strapi (Node :1337). Strapi reads and writes content to a managed Postgres or MySQL on a private network with backups, and stores uploads/media in S3-compatible object storage. Content lives in the managed database, media lives in object storage, neither sits on the app disk.
+> **Diagram:** One Strapi process serves the built admin panel and the API, reading content from a managed database and pushing uploads to object storage, all behind a proxy that handles SSL. Browser/client sends HTTPS to a reverse proxy on :443, which forwards to Strapi (Node :1337). Strapi reads and writes content to a managed Postgres or MySQL reached over the local network, with backups, and stores uploads/media in S3-compatible object storage. Content lives in the managed database, media lives in object storage, neither sits on the app disk.
 
 ## What database should Strapi use in production?
 
@@ -85,7 +85,7 @@ DATABASE_URL=mysql://strapi:s3cret@10.0.0.5:3306/strapi
 The connection details (host, port, name, user, password) come from your managed database. If you want the framework-agnostic version of this step, with Prisma, Django, Rails and the rest, it's covered in [add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), and there's a deeper dive on [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/).
 
 ![Launch a managed PostgreSQL or MySQL for Strapi in the Kloudbean console](../assets/console/launch-database.png)
-*Launch a managed PostgreSQL or MySQL for Strapi. It's provisioned on a private network and backed up on a schedule.*
+*Launch a managed PostgreSQL or MySQL for Strapi. It's provisioned and backed up on a schedule, locked to your app server's IP.*
 
 ## The five secrets Strapi won't boot without
 
@@ -217,7 +217,7 @@ Create a server, pick a cloud (Kloudbean runs seven: AWS, Amazon Lightsail, Goog
 
 ### 2. Launch the managed database
 
-Open **Launch Database** and create a PostgreSQL (or MySQL). It provisions on a private network, gets automatic backups, and hands you the host, port, name, user, and password. Those go into your `DATABASE_*` env vars. Keeping the database off the public internet is not optional for a CMS that holds user data, and here it's the default.
+Open **Launch Database** and create a PostgreSQL (or MySQL). It provisions locked to your app server's IP, gets automatic backups, and hands you the host, port, name, user, and password. Those go into your `DATABASE_*` env vars. Keeping the database off the public internet is not optional for a CMS that holds user data, and IP allow-listing makes that the default: only your app server's IP can connect.
 
 ### 3. Set the secrets and the database connection
 
@@ -245,7 +245,7 @@ Self-hosting Strapi is not hard, but a handful of habits keep it boring, which i
 - **Turn backups on, then test a restore.** Automatic backups are worth little until you've proven you can restore one. Do it before you need it.
 - **Keep secrets rotated.** Since they're env vars, rotating a leaked `ADMIN_JWT_SECRET` is a config change, not a redeploy of code.
 
-Backups, private networking, and free SSL come with the managed setup, so most of this is a matter of using what's already there rather than bolting it on later.
+Backups, IP allow-listing, and free SSL come with the managed setup, so most of this is a matter of using what's already there rather than bolting it on later.
 
 ---
 
@@ -253,7 +253,7 @@ Backups, private networking, and free SSL come with the managed setup, so most o
 
 Managed Postgres or MySQL, a Node runtime, S3-compatible storage for uploads, Git deploy with live build logs, automatic backups, and free auto-renewing SSL, all in one dashboard. Start at [kloudbean.com](https://www.kloudbean.com/); sizes and plans (from $8/mo, Enterprise custom) are on [pricing](https://www.kloudbean.com/pricing/).
 
-Managed PostgreSQL and MySQL · Node runtime · S3-compatible object storage · Git deploy with live logs · Automatic backups · Private networking · Free SSL · Free migration
+Managed PostgreSQL and MySQL · Node runtime · S3-compatible object storage · Git deploy with live logs · Automatic backups · Free SSL · Free migration
 
 ## FAQ
 
@@ -291,7 +291,7 @@ That error means `APP_KEYS` is not set in the environment. In development Strapi
 
 ### Can I host Strapi on Kloudbean?
 
-Yes. Strapi runs on the managed Node.js runtime, with one-click managed PostgreSQL, MySQL, or MariaDB for its database, environment variables for the secrets, S3-compatible object storage for uploads, and Git deploy with live build logs. Backups, private networking, and free auto-renewing SSL come with the managed setup, and free migration help is available.
+Yes. Strapi runs on the managed Node.js runtime, with one-click managed PostgreSQL, MySQL, or MariaDB for its database, environment variables for the secrets, S3-compatible object storage for uploads, and Git deploy with live build logs. Backups, IP allow-listing, and free auto-renewing SSL come with the managed setup, and free migration help is available.
 
 ### Do I need Node in production, or can I export Strapi as a static site?
 

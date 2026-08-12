@@ -28,9 +28,9 @@ public class Application {
 
 A Spring Boot app is just a long-running Java process, and everything below is about running that one process well: config, a port, memory, staying alive, and a database.
 
-<!-- Bespoke SVG diagram: Git source -> mvn/gradle build -> fat JAR (your code + embedded Tomcat + dependencies) -> JVM (java -jar, :8080, heap capped by -Xmx) behind a reverse proxy on :443 for TLS, talking down to a managed Postgres/MySQL over a private network via a HikariCP pool. -->
+<!-- Bespoke SVG diagram: Git source -> mvn/gradle build -> fat JAR (your code + embedded Tomcat + dependencies) -> JVM (java -jar, :8080, heap capped by -Xmx) behind a reverse proxy on :443 for TLS, talking down to a managed Postgres/MySQL over the local network via a HikariCP pool. -->
 
-*Figure: The whole path: Git source, built by Maven or Gradle into a fat JAR with an embedded Tomcat, run as one JVM process behind a TLS proxy, talking to a managed database over a private network.*
+*Figure: The whole path: Git source, built by Maven or Gradle into a fat JAR with an embedded Tomcat, run as one JVM process behind a TLS proxy, talking to a managed database over the local network.*
 
 > **Coming from WAR files and a standalone Tomcat?** That's the old model: build a WAR, install and tune a separate Tomcat, drop the WAR into `webapps/`, manage two lifecycles apart. Fat JARs collapse that into one artifact you own end to end. You can still build a WAR for a legacy container, but for a new service the executable JAR is the right default.
 
@@ -189,11 +189,11 @@ spring.datasource.hikari.maximum-pool-size=10
 
 Size it against your database, and remember the math changes when you run more than one instance: three app instances at a pool of 10 each is 30 connections, not 10. The why-and-how of pool sizing is in [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/). For launching the database itself, wiring the connection string safely, and running migrations, follow [add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/).
 
-Two rules that aren't optional. Keep the database on a private network, not a public port, so only your app reaches it. And never hardcode credentials in `application.properties`; they belong in the environment, where you rotate a password without a code change.
+Two rules that aren't optional. Lock the database to your app server's IP, not a public port, so only your app reaches it. And never hardcode credentials in `application.properties`; they belong in the environment, where you rotate a password without a code change.
 
 ![The Kloudbean console Launch Database screen with managed PostgreSQL, MySQL, MariaDB, Redis, and more](../assets/console/launch-database.png)
 
-*Launch Database: a managed Postgres or MySQL, provisioned on a private network and backed up. Feed its details into your SPRING_DATASOURCE_ variables.*
+*Launch Database: a managed Postgres or MySQL, provisioned and backed up, locked to your app server's IP. Feed its details into your SPRING_DATASOURCE_ variables.*
 
 ## Deploy a Spring Boot app on a managed server
 
@@ -249,7 +249,7 @@ Notice what's not on that list: your business logic. It's almost never the endpo
 
 Deploy the JAR from Git with live build logs, wire in a managed Postgres or MySQL, and get a reverse proxy with free auto-renewing SSL, no hand-rolled config. Start at [kloudbean.com](https://www.kloudbean.com/); sizes and plans (from $8/mo, Enterprise custom) are on [pricing](https://www.kloudbean.com/pricing/).
 
-Managed Java runtime · Git deploy with live build logs · Managed PostgreSQL and MySQL · Reverse proxy and free SSL · Private networking · Free migration · Free trial
+Managed Java runtime · Git deploy with live build logs · Managed PostgreSQL and MySQL · Reverse proxy and free SSL · Free migration · Free trial
 
 ## FAQ
 
@@ -266,7 +266,7 @@ No. A Spring Boot fat JAR embeds Tomcat, so `java -jar app.jar` starts the serve
 Spring uses relaxed binding: uppercase a property and turn dots into underscores, so `spring.datasource.url` becomes `SPRING_DATASOURCE_URL`. Put per-environment overrides in `application-prod.yml` and set `SPRING_PROFILES_ACTIVE=prod` to activate them. Keep secrets in env vars, never in the JAR.
 
 ### How do I connect Spring Boot to a PostgreSQL or MySQL database?
-Set `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, and `SPRING_DATASOURCE_PASSWORD` from the environment and Spring auto-configures the datasource, pooled by HikariCP. Keep the database on a private network and never hardcode credentials. Launch a managed Postgres or MySQL and feed its details into those three variables.
+Set `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, and `SPRING_DATASOURCE_PASSWORD` from the environment and Spring auto-configures the datasource, pooled by HikariCP. Lock the database to your app server's IP and never hardcode credentials. Launch a managed Postgres or MySQL and feed its details into those three variables.
 
 ### What -Xmx should I set for a Spring Boot app?
 There's no universal number, so size it after watching real memory use. The point is to set it, so the heap can't outgrow a small box and get OOM-killed. And remember the heap isn't the whole process: metaspace, thread stacks, and buffers live outside `-Xmx`, so leave headroom.

@@ -42,9 +42,9 @@ DATABASE_URL="postgresql://appuser:s3cret@10.0.0.5:5432/appdb?schema=public&sslm
 DATABASE_URL="mysql://appuser:s3cret@10.0.0.5:3306/appdb?connection_limit=10"
 ```
 
-Read left to right: the user, the password, the host (a private IP on Kloudbean, not a public one), the port (`5432` for Postgres, `3306` for MySQL), the database name, then options. `connection_limit` caps the pool size, and we'll come back to why that number matters more than it looks.
+Read left to right: the user, the password, the host (an internal address on Kloudbean, reachable from your app rather than the public internet), the port (`5432` for Postgres, `3306` for MySQL), the database name, then options. `connection_limit` caps the pool size, and we'll come back to why that number matters more than it looks.
 
-**On SSL:** if the database is ever reachable over a public network, add `sslmode=require` so Postgres encrypts the connection (MySQL has its own SSL params like `sslaccept`). On a private network the database isn't exposed to the internet at all, which is the safer default and one less thing to configure. Keep `.env` out of Git either way. More on that in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
+**On SSL:** if the database is ever reachable over a public network, add `sslmode=require` so Postgres encrypts the connection (MySQL has its own SSL params like `sslaccept`). With IP allow-listing, where only your app server's IP can connect, the database isn't exposed to the internet at all, which is the safer default and one less thing to configure. Keep `.env` out of Git either way. More on that in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
 
 <!-- ADD IMAGE: schema.prisma next to the .env file, showing url = env("DATABASE_URL") and the matching variable -->
 
@@ -155,7 +155,7 @@ DATABASE_URL="postgresql://appuser:s3cret@10.0.0.5:6432/appdb?pgbouncer=true"
 DIRECT_URL="postgresql://appuser:s3cret@10.0.0.5:5432/appdb"
 ```
 
-One honest note on what's yours versus what's the platform's. A managed database on Kloudbean gives you a real Postgres or MySQL with a connection ceiling, backups, and a private address. The pooling strategy is yours to set: you choose `connection_limit`, or you run PgBouncer on your own server when you need it. There's no separate pooler product to buy, and no magic that hides the connection math from you. Understanding it is the job. The deeper mechanics live in [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/), and the engine-side view is in [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/).
+One honest note on what's yours versus what's the platform's. A managed database on Kloudbean gives you a real Postgres or MySQL with a connection ceiling, backups, and access locked to your app server's IP. The pooling strategy is yours to set: you choose `connection_limit`, or you run PgBouncer on your own server when you need it. There's no separate pooler product to buy, and no magic that hides the connection math from you. Understanding it is the job. The deeper mechanics live in [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/), and the engine-side view is in [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/).
 
 <!-- ADD IMAGE: a metrics graph of active database connections climbing under load -->
 
@@ -190,18 +190,18 @@ Prisma wants a specific thing from production: a real, always-on Postgres or MyS
 
 <!-- ADD IMAGE: Kloudbean launch-database screen choosing Postgres or MySQL -->
 
-The flow is short. Launch the database, copy the connection details into `DATABASE_URL`, and deploy your Node app on the same server so the app and the database share a private network. No public exposure, low latency, one dashboard for both. The broader walkthrough, including framework examples beyond Prisma, is the pillar guide: [add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/).
+The flow is short. Launch the database, copy the connection details into `DATABASE_URL`, and deploy your Node app on the same server so the app and the database sit side by side in one account. You whitelist the app server's IP so only it can reach the database: no public exposure, low latency, one dashboard for both. The broader walkthrough, including framework examples beyond Prisma, is the pillar guide: [add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/).
 
 ---
 
-**Give Prisma a production database it can trust.** Launch managed PostgreSQL or MySQL, set one `DATABASE_URL`, and deploy your Node app beside it on a private network with automatic backups. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+**Give Prisma a production database it can trust.** Launch managed PostgreSQL or MySQL, set one `DATABASE_URL`, and deploy your Node app beside it, with IP allow-listing and automatic backups. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
 
-One-click databases · Automatic backups · Private networking · Free migration · Free trial · Simple Git deploy
+One-click databases · Automatic backups · Free migration · Free trial · Simple Git deploy
 
 ## FAQ
 
 **How do I connect Prisma to a managed database in production?**
-Set the datasource provider to postgresql or mysql, point its url at env of DATABASE_URL, and store the real connection string as an environment variable on the server rather than in code. Then run prisma generate and prisma migrate deploy on every deploy. The database should be on a private network, so Prisma reaches it internally with no public exposure.
+Set the datasource provider to postgresql or mysql, point its url at env of DATABASE_URL, and store the real connection string as an environment variable on the server rather than in code. Then run prisma generate and prisma migrate deploy on every deploy. The database should be locked down with IP allow-listing, so only your app server can reach it and Prisma connects with no public exposure.
 
 **What is the difference between prisma migrate dev and prisma migrate deploy?**
 prisma migrate dev is for local development. It generates new migration files, applies them, uses a shadow database, and can reset data if it detects drift. prisma migrate deploy is for production and CI. It only applies migration files that already exist, with no prompts and no reset, and it is safe to run on every deploy. Never run migrate dev against production.
@@ -228,6 +228,6 @@ Yes. You change the provider to postgresql or mysql and the connection string, a
 Use migrate deploy. It applies committed migration files in order and keeps a history you can review and roll back. prisma db push syncs the schema without creating migration files, which is fine for quick prototyping but leaves you with no migration history, so it is the wrong choice for production.
 
 **How do I connect Prisma to the database over SSL?**
-For Postgres, add sslmode=require to the connection string so the connection is encrypted. MySQL uses its own SSL parameters such as sslaccept. On Kloudbean the database sits on a private network and is not exposed to the public internet, so the app connects internally, which removes most of the need to expose it over SSL in the first place.
+For Postgres, add sslmode=require to the connection string so the connection is encrypted. MySQL uses its own SSL parameters such as sslaccept. On Kloudbean you whitelist your app server's IP so only it can reach the database, and it is not exposed to the public internet, so the app connects over that internal link, which removes most of the need to expose it over SSL in the first place.
 
 By Kloudbean Engineering · Prisma in production, minus the connection storms.

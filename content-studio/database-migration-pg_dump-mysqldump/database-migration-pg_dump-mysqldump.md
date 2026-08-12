@@ -166,7 +166,7 @@ mysqldump --single-transaction appdb | gzip > appdb.sql.gz
 pg_dump "$OLD_DATABASE_URL" | psql "$NEW_DATABASE_URL"
 ```
 
-Streaming is fast, but it ties both ends together for the whole run. Network drops halfway? You start over. On a flaky link, a compressed file you can resume copying is safer. On a solid private network, streaming wins.
+Streaming is fast, but it ties both ends together for the whole run. Network drops halfway? You start over. On a flaky link, a compressed file you can resume copying is safer. On a fast, stable connection, streaming wins.
 
 ### Foreign keys, load order, and sequences that fall behind
 
@@ -279,7 +279,7 @@ All of this needs somewhere to land. On Kloudbean you launch the destination fro
 
 _Launch the target database in a click, then point pg_restore or the mysql client at it._
 
-Two things make a migration here less nerve-wracking. The database sits on a **private network**, reachable by your app internally instead of exposed to the internet, which is also the fastest path for streaming a big dump across. And **automatic backups** start immediately, so the moment your data lands you have a restore point, a safety net most people bolt on later, if ever. More in the [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/).
+Two things make a migration here less nerve-wracking. The database is locked down with **IP allow-listing**, reachable only from your whitelisted app server instead of exposed to the internet, and it sits right next to your app in the same account, which is also the fastest path for streaming a big dump across. And **automatic backups** start immediately, so the moment your data lands you have a restore point, a safety net most people bolt on later, if ever. More in the [server backups guide](https://www.kloudbean.com/blog/server-backups-guide/).
 
 ![The Kloudbean console showing automatic backups on a managed database, giving an immediate restore point after migration](../assets/console/manage-backups.png)
 
@@ -293,9 +293,9 @@ Rather not run the cutover alone? Kloudbean offers **free migration assistance**
 
 **Land your database on hosting you control.**
 
-Launch managed PostgreSQL, MySQL, or MariaDB in a click, on a private network with automatic backups from minute one. Not sure about the cutover? Free migration assistance can run it with you. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Launch managed PostgreSQL, MySQL, or MariaDB in a click, locked to your app server's IP with automatic backups from minute one. Not sure about the cutover? Free migration assistance can run it with you. Start free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
 
-One-click databases · Automatic backups · Private networking · Free migration · Free trial · Simple Git deploy
+One-click databases · Automatic backups · Free migration · Free trial · Simple Git deploy
 
 ## FAQ
 
@@ -333,7 +333,7 @@ Compare row counts with an exact `SELECT count(*)` on the tables that matter. Sp
 
 ### Can Kloudbean help migrate my database?
 
-Yes. You launch a managed PostgreSQL, MySQL, or MariaDB target from the dashboard, on a private network with automatic backups from the start. Kloudbean also offers free migration assistance to help move a large or production database and keep the freeze window short. A free trial lets you dry-run first.
+Yes. You launch a managed PostgreSQL, MySQL, or MariaDB target from the dashboard, locked to your app server's IP with automatic backups from the start. Kloudbean also offers free migration assistance to help move a large or production database and keep the freeze window short. A free trial lets you dry-run first.
 
 ---
 

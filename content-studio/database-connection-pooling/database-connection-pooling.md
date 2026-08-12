@@ -115,7 +115,7 @@ So what's a good **connection pool size**? Smaller than your instinct. A well-kn
 
 <!-- IMAGE: Kloudbean console launching a managed PostgreSQL or MySQL database (../assets/console/launch-database.png) -->
 
-*A managed PostgreSQL or MySQL on a private network with automatic backups. Your driver pool connects to it like any Postgres or MySQL.*
+*A managed PostgreSQL or MySQL, locked to your app server's IP, with automatic backups. Your driver pool connects to it like any Postgres or MySQL.*
 
 <!-- ADD IMAGE: your pool settings in code, or a graph of active connections dropping after you set a sane pool size. -->
 
@@ -182,24 +182,24 @@ My honest take: if you're running serverless functions against Postgres at any r
 
 ## How this maps to a managed database
 
-Pooling is a technique you implement, not a product you buy. On Kloudbean you launch a managed [PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) or [MySQL](https://www.kloudbean.com/blog/managed-mysql-hosting/) that's provisioned, kept on a [private network](https://www.kloudbean.com/blog/what-is-a-vpc/), and backed up automatically. The pooling lives in your app: your driver's pool for the common case of one always-on server, or PgBouncer and ProxySQL on your server when many instances share one database. You keep full control of the pool behavior.
+Pooling is a technique you implement, not a product you buy. On Kloudbean you launch a managed [PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) or [MySQL](https://www.kloudbean.com/blog/managed-mysql-hosting/) that's provisioned, locked down with IP allow-listing so only your app server can connect (a [private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/) is available on Enterprise plans), and backed up automatically. The pooling lives in your app: your driver's pool for the common case of one always-on server, or PgBouncer and ProxySQL on your server when many instances share one database. You keep full control of the pool behavior.
 
 Because a Kloudbean app runs as a long-lived process rather than per-request serverless, a normal driver pool covers most apps cleanly and never triggers the storm. A bigger database is a resize, not a migration. And it's worth separating two problems: pooling fixes *connection* pressure, while read volume is a different axis, the job of [read replicas](https://www.kloudbean.com/blog/database-read-replicas-scaling/). Caching hot reads in [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/) takes load off the database (and its connections) before you scale anything. The full picture of wiring a database into your app lives in [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/).
 
 ---
 
-**A managed database that pools cleanly.**
+**A managed database where your app's own pool just works.**
 
-Run a managed PostgreSQL or MySQL on an always-on server where a normal driver pool just works, no connection storm to fight. Automatic backups, private networking, and free migration help, all on one dashboard. Start free at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
+Run a managed PostgreSQL or MySQL on an always-on server, so your app's driver pool is reused cleanly and you skip the serverless connection storm. Pooling stays yours to set; the platform handles provisioning, IP allow-listing, backups, and free migration, all on one dashboard. Start free at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
 
-Managed PostgreSQL & MySQL · Automatic backups · Private networking · Resize on demand · Free migration · Free trial
+Managed PostgreSQL & MySQL · Automatic backups · Resize on demand · Free migration · Free trial
 
 ## FAQ
 
 **What is database connection pooling, and when do I need it?**
 Connection pooling keeps a small set of database connections open and reuses them across requests, instead of opening and closing a new connection every time. You need it once your app runs more than a couple of concurrent workers, or the moment you see a "too many connections" error. Most drivers and ORMs can pool for you once you set the pool size deliberately.
 
-**What causes the "sorry, too many clients already" error in Postgres?**
+**What causes the 'sorry, too many clients already' error in Postgres?**
 It means Postgres has reached its max_connections limit and is refusing new connections. Usually it's not one greedy process but many: the pool size multiplied by every app instance and worker process talking to the database. It tends to appear under load or after you scale out, not in development, which is why it surprises people.
 
 **What is a good connection pool size?**

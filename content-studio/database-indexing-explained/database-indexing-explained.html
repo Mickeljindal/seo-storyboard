@@ -225,7 +225,7 @@ LIMIT 10;</code></pre>
   <div class="note"><b>Indexing vs connection limits.</b> Slow under load has two very different causes. If queries are individually slow, it's usually a missing index (this article). If fast queries stack up waiting for a free connection, that's a separate fix: see <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>. Check which one your plan and connection count actually show.</div>
 
   <h2>Where the managed database fits</h2>
-  <p>Indexing is your job. It lives in your schema and your queries, and no host can guess which columns you filter on. The platform's job is to run the engine well and stay out of the way. On Kloudbean you launch a managed <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">PostgreSQL</a>, <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">MySQL</a>, or MariaDB in a few clicks, on a private network, with automatic backups, then write your own <code>CREATE INDEX</code> and read your own <code>EXPLAIN</code>, because they're standard Postgres and MySQL.</p>
+  <p>Indexing is your job. It lives in your schema and your queries, and no host can guess which columns you filter on. The platform's job is to run the engine well and stay out of the way. On Kloudbean you launch a managed <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">PostgreSQL</a>, <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">MySQL</a>, or MariaDB in a few clicks, locked to your app server's IP, with automatic backups, then write your own <code>CREATE INDEX</code> and read your own <code>EXPLAIN</code>, because they're standard Postgres and MySQL.</p>
   <p>A server health view shows you when a database pins the CPU, so you go read the plan instead of guessing. And because it runs on a real server with room to resize, you get the honest choice: fix the index first, grow the box only when the plans are clean. Pooling is the companion lever on connections, and caching hot reads in <a href="https://www.kloudbean.com/blog/redis-caching-patterns/">managed Redis</a> keeps repeat queries off the database. New to this? Start with <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a>. Still choosing an engine? <a href="https://www.kloudbean.com/blog/mysql-vs-postgresql/">MySQL vs PostgreSQL</a> lays out the tradeoffs.</p>
 
   <!-- ADD IMAGE: your query latency graph dropping after the index ships, or the plan flipping to an index scan in your client. Swap for a real screenshot: src -> images/after-index-latency.png -->
@@ -233,13 +233,13 @@ LIMIT 10;</code></pre>
 
   <figure>
     <img src="../assets/console/launch-database.png" alt="The Kloudbean console launching a managed PostgreSQL, MySQL, or MariaDB database">
-    <figcaption>A managed PostgreSQL, MySQL, or MariaDB on a private network with automatic backups. You add indexes and read EXPLAIN on it like any standard database.</figcaption>
+    <figcaption>A managed PostgreSQL, MySQL, or MariaDB, locked to your app server's IP, with automatic backups. You add indexes and read EXPLAIN on it like any standard database.</figcaption>
   </figure>
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">A managed database where you own the schema, we run the engine.</p>
-    <p style="margin:0 0 .6em">Launch a managed PostgreSQL, MySQL, or MariaDB in minutes, add your indexes, and read EXPLAIN like normal. Automatic backups, private networking, a server health view, and free migration help, all on one dashboard. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">Managed PostgreSQL, MySQL &amp; MariaDB · Automatic backups · Private networking · Resize on demand · Free migration · Free trial</p>
+    <p style="margin:0 0 .6em">Launch a managed PostgreSQL, MySQL, or MariaDB in minutes, add your indexes, and read EXPLAIN like normal. Automatic backups, IP allow-listing, a server health view, and free migration help, all on one dashboard. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed PostgreSQL, MySQL &amp; MariaDB · Automatic backups · Resize on demand · Free migration · Free trial</p>
   </div>
 
   <h2>FAQ</h2>

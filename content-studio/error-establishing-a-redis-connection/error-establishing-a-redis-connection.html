@@ -117,12 +117,12 @@ redis-cli --stat</code></pre>
   <p>The causes are the same minus the PHP extension. A Node client failing to reach Redis usually surfaces as <code>ECONNREFUSED</code>, which is the same diagnosis path: confirm the service answers, then check the host, port, and credentials your app is actually using. Our <a href="https://www.kloudbean.com/blog/fix-econnrefused-node/">ECONNREFUSED guide</a> covers that in detail, including the localhost trap where code works locally and fails in production because the database or cache is on a separate host. If you are using Redis as a queue backend, <a href="https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/">background jobs with BullMQ</a> covers the connection settings that library expects.</p>
 
   <h2>How managed Redis removes most of these</h2>
-  <p>Looking at the six causes, four of them are operational rather than application problems: the service not running, not being enabled at boot, the wrong bind address, and a memory policy nobody set deliberately. Those disappear when the instance is managed. On Kloudbean you launch managed Redis in a few clicks, it sits in the same dashboard as your app on a private network, and you get a connection string rather than a configuration puzzle. Because the app and the cache are on the same private network, you are not exposing Redis to the public internet to make it reachable, which is a mistake we see people make while trying to fix this error.</p>
+  <p>Looking at the six causes, four of them are operational rather than application problems: the service not running, not being enabled at boot, the wrong bind address, and a memory policy nobody set deliberately. Those disappear when the instance is managed. On Kloudbean you launch managed Redis in a few clicks, it sits in the same dashboard as your app, right next to it, and you get a connection string rather than a configuration puzzle. Because the cache runs in the same account as your app and is locked down with IP allow-listing, you are not exposing Redis to the public internet to make it reachable, which is a mistake we see people make while trying to fix this error.</p>
   <p>What it does not fix, honestly: a wrong constant in <code>wp-config.php</code> is still a wrong constant, and a missing PHP extension is still a PHP matter. Managed Redis removes the service-level causes, not the configuration ones.</p>
 
   <figure>
     <img src="../assets/console/launch-database.png" alt="Launching a managed Redis instance in the Kloudbean console">
-    <figcaption>Managed Redis in the same dashboard as the site, reachable over a private network with a supplied connection string.</figcaption>
+    <figcaption>Managed Redis in the same dashboard as the site, reachable only from your whitelisted app server IP with a supplied connection string.</figcaption>
   </figure>
 
   <h2>Related reading</h2>
@@ -130,13 +130,13 @@ redis-cli --stat</code></pre>
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Let the cache be someone else's uptime problem.</p>
-    <p style="margin:0 0 .6em">Launch managed Redis in the same dashboard as your site or app, on a private network with a supplied connection string, backed up automatically, on a flat plan from $8/mo. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">Managed Redis · Private networking · Automatic backups · One dashboard · Flat from $8/mo</p>
+    <p style="margin:0 0 .6em">Launch managed Redis in the same dashboard as your site or app, right next to it with a supplied connection string, locked to your app server's IP, backed up automatically, on a flat plan from $8/mo. Free migration assistance included. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed Redis · Automatic backups · One dashboard · Flat from $8/mo</p>
   </div>
 
   <h2>FAQ</h2>
   <div class="faq">
-    <h3>What causes "Error establishing a Redis connection"?</h3>
+    <h3>What causes 'Error establishing a Redis connection'?</h3>
     <p>Six things, in rough order of likelihood: Redis is not running, the host or port in your configuration is wrong, Redis requires a password your client is not sending, the PHP redis extension is missing, you have a socket versus TCP mismatch, or Redis has hit its memory limit with an eviction policy of <code>noeviction</code>. Running <code>redis-cli ping</code> first tells you which half of the list to look at.</p>
 
     <h3>How do I test whether Redis is reachable?</h3>
@@ -152,7 +152,7 @@ redis-cli --stat</code></pre>
     <p>Yes, indirectly. If Redis reaches <code>maxmemory</code> while <code>maxmemory-policy</code> is <code>noeviction</code>, it refuses writes rather than evicting old keys, and clients often report that as a connection or write failure. For a cache, set <code>allkeys-lru</code> so Redis discards the least recently used keys instead of erroring.</p>
 
     <h3>Should Redis be exposed to the internet to fix this?</h3>
-    <p>No. Binding Redis to a public address to make it reachable is a common and dangerous shortcut, since Redis is designed to run on a trusted network. Keep it on a private network with your application, use a password, and if you genuinely need a remote connection use TLS. A managed instance on a private network gives you this by default.</p>
+    <p>No. Binding Redis to a public address to make it reachable is a common and dangerous shortcut, since Redis is designed to run on a trusted network. Keep it reachable only from your application, use a password, and if you genuinely need a remote connection use TLS. A managed instance locked to your app server's IP gives you this by default.</p>
   </div>
 
   <p class="byline">Kloudbean Engineering · Ping first. It tells you which half of the problem you have.</p>
@@ -162,12 +162,12 @@ redis-cli --stat</code></pre>
 {"@context":"https://schema.org","@graph":[
 {"@type":"Article","headline":"Error Establishing a Redis Connection: How to Diagnose and Fix It","description":"Diagnose Error establishing a Redis connection in WordPress or Node: service down, wrong host, missing password, missing phpredis extension, socket mismatch, or an eviction policy problem.","image":"https://www.kloudbean.com/blog/error-establishing-a-redis-connection/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/error-establishing-a-redis-connection/"},
 {"@type":"FAQPage","mainEntity":[
-{"@type":"Question","name":"What causes Error establishing a Redis connection?","acceptedAnswer":{"@type":"Answer","text":"Six things, in rough order of likelihood: Redis is not running, the host or port in your configuration is wrong, Redis requires a password your client is not sending, the PHP redis extension is missing, you have a socket versus TCP mismatch, or Redis has hit its memory limit with an eviction policy of noeviction. Running redis-cli ping first tells you which half of the list to look at."}},
+{"@type":"Question","name":"What causes 'Error establishing a Redis connection'?","acceptedAnswer":{"@type":"Answer","text":"Six things, in rough order of likelihood: Redis is not running, the host or port in your configuration is wrong, Redis requires a password your client is not sending, the PHP redis extension is missing, you have a socket versus TCP mismatch, or Redis has hit its memory limit with an eviction policy of noeviction. Running redis-cli ping first tells you which half of the list to look at."}},
 {"@type":"Question","name":"How do I test whether Redis is reachable?","acceptedAnswer":{"@type":"Answer","text":"Run redis-cli ping on the server and expect PONG. Add the host and port flags for a remote host or non-default port, and the auth flag for a password. Connection refused means nothing is listening; NOAUTH Authentication required means Redis is healthy and only your credentials are missing."}},
 {"@type":"Question","name":"Why does Redis Object Cache say not connected when Redis is running?","acceptedAnswer":{"@type":"Answer","text":"Usually a configuration mismatch or a missing client library. Check that the Redis host, port, and any password match where Redis actually listens, that the constants sit above the wp-settings.php require line in wp-config.php, and that the PHP module list shows the redis extension. A missing phpredis extension is the cause people overlook most."}},
 {"@type":"Question","name":"Why did Redis stop working after a PHP upgrade?","acceptedAnswer":{"@type":"Answer","text":"Because the phpredis extension is compiled against a specific PHP version and is not always carried across an upgrade. Check the PHP module list, reinstall the extension for the new version, and restart PHP-FPM. The timing is the giveaway: nothing changed about Redis, so look at PHP."}},
 {"@type":"Question","name":"Can a full Redis cause connection errors?","acceptedAnswer":{"@type":"Answer","text":"Yes, indirectly. If Redis reaches its maxmemory limit while the eviction policy is noeviction, it refuses writes rather than evicting old keys, and clients often report that as a connection or write failure. For a cache, set allkeys-lru so Redis discards the least recently used keys instead of erroring."}},
-{"@type":"Question","name":"Should Redis be exposed to the internet to fix this?","acceptedAnswer":{"@type":"Answer","text":"No. Binding Redis to a public address to make it reachable is a common and dangerous shortcut, since Redis is designed to run on a trusted network. Keep it on a private network with your application, use a password, and if you genuinely need a remote connection use TLS. A managed instance on a private network gives you this by default."}}
+{"@type":"Question","name":"Should Redis be exposed to the internet to fix this?","acceptedAnswer":{"@type":"Answer","text":"No. Binding Redis to a public address to make it reachable is a common and dangerous shortcut, since Redis is designed to run on a trusted network. Keep it reachable only from your application, use a password, and if you genuinely need a remote connection use TLS. A managed instance locked to your app server's IP gives you this by default."}}
 ]}
 ]}
 </script>

@@ -69,7 +69,7 @@ The best cure is a deploy that tells you immediately when something's off. Three
 
 ## How Kloudbean makes deploy failures visible
 
-Most of the pain here is a deploy that fails quietly. Kloudbean deploys from a GitHub push through managed CI/CD with live build logs, so a failed install or build shows up in the console as it happens, not as a silent dead app. Environment variables are set per app so production stops falling back to your laptop's values, your Node app runs always-on under PM2 so a crash and its logs are visible, and a managed database sits on the same private network so the localhost trap doesn't apply. You still own your code's bugs, a genuine error will still crash, but the environment gaps that cause "works locally, crashes on deploy" are largely designed out.
+Most of the pain here is a deploy that fails quietly. Kloudbean deploys from a GitHub push through managed CI/CD with live build logs, so a failed install or build shows up in the console as it happens, not as a silent dead app. Environment variables are set per app so production stops falling back to your laptop's values, your Node app runs always-on under PM2 so a crash and its logs are visible, and a managed database sits right next to your app in the same account so the localhost trap doesn't apply. You still own your code's bugs, a genuine error will still crash, but the environment gaps that cause "works locally, crashes on deploy" are largely designed out.
 
 ## Related reading
 
@@ -92,7 +92,7 @@ Reproduce production locally: set `NODE_ENV=production`, run `npm ci --omit=dev`
 **What's the most common reason a Node app crashes on deploy?**
 A missing environment variable. The app reads a config value that exists on your laptop but was never set in production, and throws on startup. Set every required variable per environment and validate them at boot with a clear error message, so a missing one is obvious instead of a cryptic crash.
 
-**Why does it say "Cannot find module" only after deploying?**
+**Why does it say 'Cannot find module' only after deploying?**
 Usually the build didn't run on the server (so `dist` is missing), a runtime package is stuck in `devDependencies` and skipped by the production install, or a filename case mismatch fails on Linux. Confirm the build runs on deploy, move runtime packages to `dependencies`, and match import casing exactly.
 
 **Could a Node version difference cause a deploy crash?**

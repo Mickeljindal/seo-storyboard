@@ -42,7 +42,7 @@ await app.listen({ port: 3000, host: '0.0.0.0' })</code></pre>
   <p>This is the big difference from Express, and it trips up people moving over. A plain <code>app.listen(port)</code> in Express binds to all interfaces. The same instinct in Fastify binds to localhost, so the habit that always worked silently breaks. If you take one thing from this guide, take the host. We cover the Express side in <a href="https://www.kloudbean.com/blog/deploy-express-app/">deploy an Express app</a>, and this default is the reason a Fastify migration surprises people.</p>
 
   <figure>
-    <svg viewBox="0 0 780 320" role="img" aria-label="A single request path. A browser sends an HTTPS request on port 443 to a reverse proxy, which terminates TLS and sets X-Forwarded headers, then forwards to a Fastify app. If Fastify is bound to 127.0.0.1 the proxy is refused and the user gets a 502. If Fastify is bound to 0.0.0.0 on the assigned port it is reachable, logs JSON with pino to stdout, closes gracefully on SIGTERM, and talks to a managed database over the private network." style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+    <svg viewBox="0 0 780 320" role="img" aria-label="A single request path. A browser sends an HTTPS request on port 443 to a reverse proxy, which terminates TLS and sets X-Forwarded headers, then forwards to a Fastify app. If Fastify is bound to 127.0.0.1 the proxy is refused and the user gets a 502. If Fastify is bound to 0.0.0.0 on the assigned port it is reachable, logs JSON with pino to stdout, closes gracefully on SIGTERM, and talks to a managed database in the same account, over the local network." style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
       <defs>
         <marker id="fg" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5b6a86"></path></marker>
         <marker id="fp" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#4F1AF3"></path></marker>
@@ -182,7 +182,7 @@ pm2 start server.js -i max --name my-fastify-api</code></pre>
 
 // one shared pool, not a new connection per request
 const pool = new Pool({ connectionString: process.env.DATABASE_URL })</code></pre>
-  <p>Two things early. Use a connection pool, because Fastify is fast enough to open sockets faster than the database tolerates, and a handler that dials its own connection per request exhausts the limit under load. And keep the database on the private network, not a public port. The full walkthrough is in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">add a managed database to your app</a>, and sizing a pool is in <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>.</p>
+  <p>Two things early. Use a connection pool, because Fastify is fast enough to open sockets faster than the database tolerates, and a handler that dials its own connection per request exhausts the limit under load. And lock the database to your app server's IP, not a public port. The full walkthrough is in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">add a managed database to your app</a>, and sizing a pool is in <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>.</p>
 
   <h2>How to deploy a Fastify app on a managed server</h2>
   <p>Concepts done. Here is the path on <a href="https://www.kloudbean.com/">Kloudbean</a>, where the reverse proxy, PM2, and SSL come already assembled. Fastify is a Node framework, so it runs on the managed Node runtime like any other Node app.</p>
@@ -235,7 +235,7 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL })</code></pr
     <li><strong>Graceful shutdown:</strong> <code>SIGTERM</code> calls <code>app.close()</code>, with an <code>onClose</code> hook that ends the DB pool.</li>
     <li><strong>Config:</strong> secrets and the database URL in env vars, never in Git.</li>
     <li><strong>Process manager:</strong> PM2 keeps it alive and restarts on crash.</li>
-    <li><strong>Database:</strong> managed engine, pooled connections, on the private network.</li>
+    <li><strong>Database:</strong> managed engine, pooled connections, locked to your app server's IP.</li>
     <li><strong>State:</strong> sessions and cache in Redis, uploads in object storage, if you cluster.</li>
     <li><strong>TLS:</strong> a domain with auto-renewing SSL, proxy terminating on 443.</li>
   </ul>
@@ -259,7 +259,7 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL })</code></pr
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Your Fastify API, live on a server you own.</p>
     <p style="margin:0 0 .6em">Deploy from Git, let PM2 keep it up, wire in a managed database, and get free auto-renewing SSL, without hand-rolling a proxy config. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>; sizes and plans (from $8/mo, Enterprise custom) are on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">Seven clouds, one dashboard · Git deploy with live logs · PM2 process management · Seven managed databases · Private networking · Free auto-renewing SSL · Free migration · Free trial</p>
+    <p style="margin:0">Seven clouds, one dashboard · Git deploy with live logs · PM2 process management · Seven managed databases · Free auto-renewing SSL · Free migration · Free trial</p>
   </div>
 
   <h2>FAQ</h2>

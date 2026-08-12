@@ -32,7 +32,7 @@ Here's the goal in one picture: every copy of your data inside one Saudi boundar
 
 ```
 IN-KINGDOM · SAUDI ARABIA (Google Cloud · Dammam me-central2)
-  ├─ Application server (Linux · private network)   [in-region]
+  ├─ Application server (Linux)                     [in-region]
   ├─ Managed database (same region)                 [in-region]
   └─ Backups (written in the same region)           [in-region]
 
@@ -53,7 +53,7 @@ This is the decision that anchors everything else. When you add a server you cho
 
 ### 2. Keep the database in the same region
 
-Your database is where the personal data actually lives, so it matters most. Launch the managed engine (PostgreSQL, MySQL, MariaDB, Redis, and more) into the same Dammam region, on a [private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/) rather than the open internet. A common mistake we see is moving the app in-Kingdom while the database quietly stays in a default US or EU region, so the sensitive data never actually came home. Same region for both, every time. The full app-and-database wiring is in [how to add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/). The only Saudi-specific step is pinning the region to Dammam first. The database-specific version of this, across all seven managed engines, is [managed databases with Saudi data sovereignty](https://www.kloudbean.com/blog/managed-databases-saudi-data-sovereignty/).
+Your database is where the personal data actually lives, so it matters most. Launch the managed engine (PostgreSQL, MySQL, MariaDB, Redis, and more) into the same Dammam region, in the same account as your app and locked down with IP allow-listing so only your app server can reach it, rather than leaving it open to the internet. On Enterprise plans you can go further and put it on a [private network (VPC)](https://www.kloudbean.com/blog/what-is-a-vpc/). A common mistake we see is moving the app in-Kingdom while the database quietly stays in a default US or EU region, so the sensitive data never actually came home. Same region for both, every time. The full app-and-database wiring is in [how to add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/). The only Saudi-specific step is pinning the region to Dammam first. The database-specific version of this, across all seven managed engines, is [managed databases with Saudi data sovereignty](https://www.kloudbean.com/blog/managed-databases-saudi-data-sovereignty/).
 
 <!-- ADD IMAGE: a close crop of the managed database region field set to Dammam (me-central2), matching the server. -->
 
@@ -84,7 +84,7 @@ Residency you can't prove is residency you don't really have. When a procurement
 | Copy of your data | How to confirm it's in-Kingdom | Where it silently escapes |
 | --- | --- | --- |
 | **Application server** | Region label reads Dammam (me-central2) in the console | A "Middle East" label that's actually Bahrain, the UAE, or an EU region |
-| **Managed database** | Launched in the same Dammam region, on the private network | Left in a default region while only the app moved in-Kingdom |
+| **Managed database** | Launched in the same Dammam region, locked to your app server's IP | Left in a default region while only the app moved in-Kingdom |
 | **Backups** | Backup destination shows the same Dammam region | Snapshots defaulting to a global or nearest-region bucket abroad |
 | **Object storage / uploads** | Bucket region set to Dammam | A bucket created in a us or eu default without noticing |
 | **CDN cache** | Only public, static assets cached at the edge | Authenticated or personal responses cached at worldwide edges |
@@ -99,7 +99,7 @@ It takes an afternoon the first time, minutes on each re-check. The payoff is a 
 
 Now the honest boundary, because overclaiming here is how trust dies. Hosting in the Kingdom settles where your data lives. It does not make you "PDPL compliant" on its own, and no host can hand you that. PDPL is broader than residency: lawful basis, consent, retention, user disclosures, and data-subject requests. All of that is app-level work you own, wherever the servers sit.
 
-The clean way to think about it is shared responsibility. The platform provides the infrastructure controls: the in-Kingdom region, the private network, automatic backups, baseline firewalling with Shorewall and Fail2ban, access control. You own the data practices on top. Kloudbean makes no certification claim on your behalf; be wary of any host that says hosting alone makes you compliant. The same shared-responsibility logic runs through [GDPR-compliant hosting](https://www.kloudbean.com/blog/gdpr-compliant-hosting/) and maps cleanly onto PDPL; for the Saudi-specific angle, see [PDPL compliance hosting](https://www.kloudbean.com/blog/pdpl-compliance-hosting/). Treat this as a map, not legal advice, and confirm the details with someone qualified for a high-stakes tender.
+The clean way to think about it is shared responsibility. The platform provides the infrastructure controls: the in-Kingdom region, IP allow-listing that lets only your app server reach the database, automatic backups, and baseline firewalling with Shorewall and Fail2ban. You own the data practices on top. Kloudbean makes no certification claim on your behalf; be wary of any host that says hosting alone makes you compliant. The same shared-responsibility logic runs through [GDPR-compliant hosting](https://www.kloudbean.com/blog/gdpr-compliant-hosting/) and maps cleanly onto PDPL; for the Saudi-specific angle, see [PDPL compliance hosting](https://www.kloudbean.com/blog/pdpl-compliance-hosting/). Treat this as a map, not legal advice, and confirm the details with someone qualified for a high-stakes tender.
 
 My honest read after watching a lot of these reviews: most Saudi-facing teams don't need an exotic sovereign-cloud contract. They need their data physically in the Kingdom and a documented answer for procurement. Two different jobs, and the second is solved by the first plus a habit of verifying the copies. If you're weighing managed hosts for the region, this comparison of [Cloudways alternatives](https://www.kloudbean.com/blog/cloudways-alternatives/) is a useful sanity check on who actually lets you pin a region.
 
@@ -107,7 +107,7 @@ My honest read after watching a lot of these reviews: most Saudi-facing teams do
 
 **Keep your data in the Kingdom, and be able to prove it.** Launch a managed server and database in Google Cloud's Dammam region (me-central2), keep backups in-region, and manage the whole stack from one dashboard, so "where is our data stored?" has a one-line answer. Plans start from $8/mo, Enterprise is custom. Start at [kloudbean.com](https://www.kloudbean.com/), see options on [pricing](https://www.kloudbean.com/pricing/).
 
-In-Kingdom GCP Dammam region · Managed database in-region · Automatic backups · Private networking · Free migration assistance · Free trial
+In-Kingdom GCP Dammam region · Managed database in-region · Automatic backups · Free migration assistance · Free trial
 
 ## FAQ
 

@@ -4,7 +4,7 @@ On your laptop, Mongoose connects on the first try and everything feels easy. Th
 
 This is a guide to connect Mongoose to MongoDB the way it actually needs to run in production: one connection for the whole process, a capped pool, real event handlers, schemas and indexes you control, and none of the lifecycle mistakes that page you at 2am. Every snippet below is copy-paste ready. Honestly, most Mongoose production problems aren't Mongoose at all. They're how the connection was opened.
 
-> **Short version:** Call `mongoose.connect(process.env.MONGODB_URI, { maxPoolSize: 10, serverSelectionTimeoutMS: 5000 })` once at startup, never inside a route. Read the connection string from a `MONGODB_URI` environment variable, not from code. Attach `connection.on('error')` and `'connected'` handlers so failures are loud. Turn `autoIndex` off in production and build indexes on purpose. On Kloudbean the MongoDB is managed, sits on a private network, and is backed up for you.
+> **Short version:** Call `mongoose.connect(process.env.MONGODB_URI, { maxPoolSize: 10, serverSelectionTimeoutMS: 5000 })` once at startup, never inside a route. Read the connection string from a `MONGODB_URI` environment variable, not from code. Attach `connection.on('error')` and `'connected'` handlers so failures are loud. Turn `autoIndex` off in production and build indexes on purpose. On Kloudbean the MongoDB is managed, locked to your app server's IP, and is backed up for you.
 
 ## Why Mongoose apps break in production (and not in dev)
 
@@ -18,23 +18,23 @@ Locally, MongoDB runs on `127.0.0.1:27017` with no auth, your app is the only cl
 
 Notice the pattern. None of these are query bugs. They're all about *how and when* the connection is made. Get the connection lifecycle right and the rest of Mongoose behaves.
 
-<!-- DIAGRAM: A correct Mongoose to MongoDB setup. One Node process (Express plus Mongoose) holds ONE mongoose connection created at startup. That connection owns a pool of reusable sockets capped at maxPoolSize 10. Every request borrows a socket instead of opening its own. The pooled sockets bundle through a private network lane (VPC, not public) to a managed MongoDB on port 27017, which writes automatic backups underneath. Footer: connect once at startup, not per request. Brand colors navy #000f27, purple #4F1AF3, green #40b75f. -->
+<!-- DIAGRAM: A correct Mongoose to MongoDB setup. One Node process (Express plus Mongoose) holds ONE mongoose connection created at startup. That connection owns a pool of reusable sockets capped at maxPoolSize 10. Every request borrows a socket instead of opening its own. The pooled sockets bundle over an internal connection (locked to the app server IP, not public) to a managed MongoDB on port 27017, which writes automatic backups underneath. Footer: connect once at startup, not per request. Brand colors navy #000f27, purple #4F1AF3, green #40b75f. -->
 
-*The whole game is one connection with a bounded pool, reached privately. Requests borrow sockets; they don't open their own.*
+*The whole game is one connection with a bounded pool, reached over an internal connection. Requests borrow sockets; they don't open their own.*
 
 ## The Mongoose connection string and MONGODB_URI env
 
 A MongoDB connection string tells the driver where the database is, who you are, and which database to use. In production it belongs in an environment variable, usually `MONGODB_URI`, set on the server and kept out of your code and your Git history. Here's the shape:
 
 ```bash
-# Standard connection string, credentials plus private host plus db name
+# Standard connection string, credentials plus internal host plus db name
 MONGODB_URI=mongodb://appuser:s3cret@10.0.0.5:27017/appdb
 
 # If your user was created in the admin database, add authSource
 MONGODB_URI=mongodb://appuser:s3cret@10.0.0.5:27017/appdb?authSource=admin
 ```
 
-Read it apart once and it stops being cryptic. `appuser:s3cret` is the least-privilege user and password. `10.0.0.5:27017` is the private host and the default MongoDB port. `/appdb` is the database to use. Anything after `?` is options. The reason it lives in an env var, and not in a config file you commit, is covered properly in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/). Short version: secrets in code leak, and rotating a password shouldn't need a code change.
+Read it apart once and it stops being cryptic. `appuser:s3cret` is the least-privilege user and password. `10.0.0.5:27017` is the internal host and the default MongoDB port. `/appdb` is the database to use. Anything after `?` is options. The reason it lives in an env var, and not in a config file you commit, is covered properly in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/). Short version: secrets in code leak, and rotating a password shouldn't need a code change.
 
 <!-- ADD IMAGE: The app's Environment Variables panel with a MONGODB_URI row, value masked, so readers see where the connection string is stored instead of in code. -->
 
@@ -109,7 +109,7 @@ connectDB()
   });
 ```
 
-> **Coming from MongoDB Atlas?** The Mongoose code is identical; only `MONGODB_URI` changes. On [managed MongoDB hosting](https://www.kloudbean.com/blog/managed-mongodb-hosting/) the database runs on infrastructure you control, on a private network, with automatic backups. Replication and clustering are general MongoDB concepts you can architect; they're not a one-click toggle here, so plan them deliberately rather than assuming a magic global cluster.
+> **Coming from MongoDB Atlas?** The Mongoose code is identical; only `MONGODB_URI` changes. On [managed MongoDB hosting](https://www.kloudbean.com/blog/managed-mongodb-hosting/) the database runs on infrastructure you control, locked to your app server's IP, with automatic backups. Replication and clustering are general MongoDB concepts you can architect; they're not a one-click toggle here, so plan them deliberately rather than assuming a magic global cluster.
 
 ## Connect once, not on every request
 
@@ -197,13 +197,13 @@ They all connect to the same managed MongoDB. If your data is genuinely relation
 
 ## Deploy it: connect Mongoose to MongoDB on a managed server
 
-Here's the part that ties Mongoose to a real server. Your Node app runs on Kloudbean's managed Node runtime, and it talks to a managed Kloudbean MongoDB over the private network. There's no "one-click Mongoose," because Mongoose is just an npm package in your app. What's managed is the database and the runtime around your code.
+Here's the part that ties Mongoose to a real server. Your Node app runs on Kloudbean's managed Node runtime, and it talks to a managed Kloudbean MongoDB over an internal connection. There's no "one-click Mongoose," because Mongoose is just an npm package in your app. What's managed is the database and the runtime around your code.
 
 1. **Launch a managed MongoDB.** In the DBS section, choose MongoDB and create it. MongoDB is one of seven managed engines here, and it comes up provisioned, secured, and already being backed up. Copy the host, port, database, user, and password.
 
 ![The Kloudbean console launching a managed MongoDB, one of seven managed database engines, provisioned and backed up automatically](../assets/console/launch-database.png)
 
-2. **Set MONGODB_URI as an environment variable.** Open Runtime Configuration, then Environment Variables, and add `MONGODB_URI` with the private host. Use the Paste .env Content tab to drop it in. This is what your Mongoose `connect` reads.
+2. **Set MONGODB_URI as an environment variable.** Open Runtime Configuration, then Environment Variables, and add `MONGODB_URI` with the internal host. Use the Paste .env Content tab to drop it in. This is what your Mongoose `connect` reads.
 
 ![The Kloudbean Environment Variables panel where MONGODB_URI is stored on the server instead of in application code](../assets/console/env-vars.png)
 
@@ -221,11 +221,11 @@ A database holds the data you least want leaked. None of these are optional.
 
 - **Credentials in env, not code.** The connection string lives in `MONGODB_URI`, set on the server. It never appears in a source file.
 - **Keep .env out of Git.** Add `.env` to `.gitignore`. A committed connection string is a leaked one, forever, in your history.
-- **Private network to Mongo.** Your app reaches MongoDB over the private network, so port `27017` is never exposed to the public internet where scanners find open databases in minutes.
+- **IP allow-listing to Mongo.** Your app reaches MongoDB from its whitelisted IP, so port `27017` is never exposed to the public internet where scanners find open databases in minutes.
 - **Least-privilege user.** The app's MongoDB user should have rights to its own database and nothing more. It doesn't need cluster admin.
 - **Backups, and a tested restore.** Automatic backups are on. Actually restoring one before a crisis is the step people skip and later regret.
 
-The platform side of this (Shorewall firewall, Fail2ban, free SSL, private networking) is handled for you. The app side (env vars, least privilege, not committing secrets) is yours to get right.
+The platform side of this (Shorewall firewall, Fail2ban, free SSL, IP allow-listing) is handled for you. The app side (env vars, least privilege, not committing secrets) is yours to get right.
 
 ## Performance and scaling that actually matters
 
@@ -243,15 +243,15 @@ A quick honest aside, because picking the wrong database is a slow, expensive mi
 
 ---
 
-**Ship your Mongoose app on a database you own.** Run your Node app and a managed MongoDB together at [kloudbean.com](https://www.kloudbean.com/). One-click MongoDB · Automatic backups · Private networking · Env vars in the UI · Simple Git deploy · Free migration · Free trial. From $8/mo, sizes on [pricing](https://www.kloudbean.com/pricing/).
+**Ship your Mongoose app on a database you own.** Run your Node app and a managed MongoDB together at [kloudbean.com](https://www.kloudbean.com/). One-click MongoDB · Automatic backups · Env vars in the UI · Simple Git deploy · Free migration · Free trial. From $8/mo, sizes on [pricing](https://www.kloudbean.com/pricing/).
 
 ## FAQ
 
 **How do I connect Mongoose to MongoDB in production?**
-Call `mongoose.connect(process.env.MONGODB_URI, { maxPoolSize: 10, serverSelectionTimeoutMS: 5000 })` once when your process starts, not inside a route. Read the connection string from an environment variable, attach `error` and `connected` event handlers, and only start your HTTP server after the connection resolves. On a managed host the MongoDB sits on a private network and is backed up for you.
+Call `mongoose.connect(process.env.MONGODB_URI, { maxPoolSize: 10, serverSelectionTimeoutMS: 5000 })` once when your process starts, not inside a route. Read the connection string from an environment variable, attach `error` and `connected` event handlers, and only start your HTTP server after the connection resolves. On a managed host the MongoDB is locked to your app server's IP and is backed up for you.
 
 **How do I fix MongooseServerSelectionError?**
-It means the driver couldn't reach a MongoDB server before `serverSelectionTimeoutMS` elapsed. Check the host and port in `MONGODB_URI`, confirm the database is running and reachable on the private network, and make sure a firewall isn't blocking port 27017. A `connect ECONNREFUSED` usually points at a wrong host or a database that isn't up yet.
+It means the driver couldn't reach a MongoDB server before `serverSelectionTimeoutMS` elapsed. Check the host and port in `MONGODB_URI`, confirm the database is running and reachable from your whitelisted app server IP, and make sure a firewall isn't blocking port 27017. A `connect ECONNREFUSED` usually points at a wrong host or a database that isn't up yet.
 
 **What is maxPoolSize in Mongoose?**
 `maxPoolSize` is the maximum number of sockets Mongoose keeps open to MongoDB per Node process. The default is 100, which is often too high once you run several processes. Set it around 10 per process and multiply by your PM2 instance count to stay under the database's connection limit.
@@ -275,7 +275,7 @@ No. Connecting per request opens a new pool every time and quickly exhausts the 
 Multiply `maxPoolSize` by the number of PM2 instances, because each process keeps its own pool. Four instances at `maxPoolSize` 10 means up to 40 sockets to MongoDB. Size the total so it stays comfortably under what your database allows.
 
 **Does Kloudbean have managed MongoDB?**
-Yes. MongoDB is one of seven managed database engines on Kloudbean, launched with one click, kept on a private network, and backed up automatically. Your Node app runs on the managed Node runtime and connects to it with a `MONGODB_URI` environment variable.
+Yes. MongoDB is one of seven managed database engines on Kloudbean, launched with one click, kept locked to your app server's IP, and backed up automatically. Your Node app runs on the managed Node runtime and connects to it with a `MONGODB_URI` environment variable.
 
 ---
 

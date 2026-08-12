@@ -29,7 +29,7 @@
 
   <div class="tldr">
     <strong>The short version</strong>
-    <p>To connect Sequelize to a database in production, create one Sequelize instance from <code>process.env.DATABASE_URL</code>, set <code>dialect</code> to <code>postgres</code> or <code>mysql</code>, and configure the <code>pool</code> block (<code>max</code>, <code>min</code>, <code>acquire</code>, <code>idle</code>) so many app processes don't blow past the database's connection ceiling. Add SSL under <code>dialectOptions</code> if the database is public, or skip it on a private network. Never run <code>sequelize.sync({ force: true })</code> against real data. Use sequelize-cli migrations and run <code>npx sequelize-cli db:migrate</code> on every deploy.</p>
+    <p>To connect Sequelize to a database in production, create one Sequelize instance from <code>process.env.DATABASE_URL</code>, set <code>dialect</code> to <code>postgres</code> or <code>mysql</code>, and configure the <code>pool</code> block (<code>max</code>, <code>min</code>, <code>acquire</code>, <code>idle</code>) so many app processes don't blow past the database's connection ceiling. Add SSL under <code>dialectOptions</code> if the database is public, or skip it when the app reaches the database on an internal connection. Never run <code>sequelize.sync({ force: true })</code> against real data. Use sequelize-cli migrations and run <code>npx sequelize-cli db:migrate</code> on every deploy.</p>
   </div>
 
   <h2>Why your Sequelize app breaks the moment it leaves localhost</h2>
@@ -37,7 +37,7 @@
   <ul>
     <li><strong>Hardcoded localhost and credentials.</strong> The tutorial config points at <code>127.0.0.1</code> with a password in the file. In production the host is a different machine and that password can't be in Git. Result: <code>SequelizeConnectionRefusedError</code> / <code>ECONNREFUSED</code>, or a leaked secret.</li>
     <li><strong>No pool cap, or one that's too big.</strong> Every Node process opens its own pool. Run a few and you sail past the database limit, then queries fail with <code>sorry, too many clients already</code> on Postgres or <code>ER_CON_COUNT_ERROR: Too many connections</code> on MySQL. The app looks down while the code is perfectly fine.</li>
-    <li><strong>SSL required, plaintext attempted.</strong> Connect to a public managed Postgres without SSL and it slams the door: <code>no pg_hba.conf entry for host ... no encryption</code>. You need <code>dialectOptions.ssl</code>, or a private network where the question never comes up.</li>
+    <li><strong>SSL required, plaintext attempted.</strong> Connect to a public managed Postgres without SSL and it slams the door: <code>no pg_hba.conf entry for host ... no encryption</code>. You need <code>dialectOptions.ssl</code>, or an internal connection where the question never comes up.</li>
     <li><strong>Migrations never ran.</strong> The app boots, the first query hits a table that isn't there, and you get <code>relation "Users" does not exist</code> wrapped in a <code>SequelizeDatabaseError</code>. The schema lives in migration files nobody ran on deploy.</li>
   </ul>
   <p>Four problems, four fixes, one per section from here, starting with the connection.</p>
@@ -83,7 +83,7 @@ try {
   <p>Fail fast is the right call. A process that can't reach its database shouldn't be taking traffic, and a clear crash beats a stream of confusing 500s.</p>
 
   <figure>
-    <svg viewBox="0 0 780 310" role="img" aria-label="Two PM2 workers each hold a Sequelize pool of five connections, giving ten connections that cross a private network to one managed Postgres or MySQL database with automatic backups" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+    <svg viewBox="0 0 780 310" role="img" aria-label="Two PM2 workers each hold a Sequelize pool of five connections, giving ten connections that cross an internal connection to one managed Postgres or MySQL database with automatic backups" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
       <text x="28" y="36" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">One pool per process: the math that keeps a database alive</text>
 
       <rect x="26" y="64" width="212" height="196" rx="14" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
@@ -105,7 +105,7 @@ try {
       <text x="298" y="150" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="13" font-weight="700">2 × 5 = 10</text>
 
       <rect x="430" y="70" width="26" height="184" rx="8" fill="#eaf7ef" stroke="#40b75f" stroke-width="1.4"/>
-      <text x="443" y="162" text-anchor="middle" fill="#1c7a3f" font-family="Poppins,sans-serif" font-size="11" font-weight="600" transform="rotate(-90 443 162)">private network</text>
+      <text x="443" y="162" text-anchor="middle" fill="#1c7a3f" font-family="Poppins,sans-serif" font-size="11" font-weight="600" transform="rotate(-90 443 162)">IP allow-listing</text>
 
       <line x1="360" y1="169" x2="428" y2="169" stroke="#40b75f" stroke-width="2"/>
       <line x1="456" y1="169" x2="556" y2="169" stroke="#40b75f" stroke-width="2"/>
@@ -123,7 +123,7 @@ try {
 
       <text x="28" y="292" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="13">Cap the pool on purpose. Workers × pool × servers must stay under the database's connection ceiling.</text>
     </svg>
-    <figcaption>Two PM2 workers, each with a Sequelize pool of five, add up to ten live connections crossing a private network to one managed database. Do the multiplication before you pick the number.</figcaption>
+    <figcaption>Two PM2 workers, each with a Sequelize pool of five, add up to ten live connections crossing an internal connection to one managed database. Do the multiplication before you pick the number.</figcaption>
   </figure>
 
   <div class="note"><b>Coming from Prisma, Drizzle, or TypeORM?</b> Same production ideas, different config surface. See <a href="https://www.kloudbean.com/blog/connect-prisma-to-a-managed-database/">connect Prisma to a managed database</a>, <a href="https://www.kloudbean.com/blog/connect-drizzle-to-postgres/">connect Drizzle to Postgres</a>, and <a href="https://www.kloudbean.com/blog/connect-typeorm-to-a-database/">connect TypeORM to a database</a>. Sequelize's own quirks are its built-in pool and the <code>sync()</code> trap below.</div>
@@ -191,7 +191,7 @@ dialectOptions: {
   },
 }</code></pre>
 
-  <p>MySQL takes SSL through the same <code>dialectOptions.ssl</code> channel, handed to the <code>mysql2</code> driver. Here's the opinion I'll defend, though: the cleanest way to deal with database SSL is to not need it. Put the app and the database on the same private network and the database never gets a public address, so nothing is exposed to encrypt in transit. On Kloudbean the app reaches the database internally, so the common setup is a plain internal connection with no public SSL to configure. Fewer moving parts, and one less certificate to renew.</p>
+  <p>MySQL takes SSL through the same <code>dialectOptions.ssl</code> channel, handed to the <code>mysql2</code> driver. Here's the opinion I'll defend, though: the cleanest way to deal with database SSL is to not need it. Put the app and the database in the same account, with the database locked to the app server's IP, and it never gets a public address, so nothing is exposed to encrypt in transit. On Kloudbean the app reaches the database internally, so the common setup is a plain internal connection with no public SSL to configure. Fewer moving parts, and one less certificate to renew.</p>
 
   <h2>Run migrations, don't sync() in production</h2>
   <p>Sequelize has a tempting shortcut called <code>sequelize.sync()</code>. It reads your models and creates matching tables. In development it feels magic. In production it's the fastest way to lose data, so let me be blunt about the two dangerous forms.</p>
@@ -270,9 +270,9 @@ DATABASE_URL=postgres://appuser:s3cret@10.0.0.5:5432/appdb</code></pre>
   <p>MariaDB works the same way with <code>dialect: "mariadb"</code> and the <code>mariadb</code> package. Your models, queries, and migration commands don't change between engines; a few native column types differ, but the Sequelize surface stays put. Still choosing between the engines? <a href="https://www.kloudbean.com/blog/mysql-vs-postgresql/">MySQL vs PostgreSQL</a> weighs the tradeoffs without the tribalism.</p>
 
   <h2>Deploy your Sequelize app on Kloudbean, step by step</h2>
-  <p>Everything above assumes a real database on the other end: always on, backed up, patched, on a private network instead of open to the world. The whole flow, app and database in one dashboard rather than stitched across providers.</p>
+  <p>Everything above assumes a real database on the other end: always on, backed up, patched, locked to your app server's IP instead of open to the world. The whole flow, app and database in one dashboard rather than stitched across providers.</p>
 
-  <p><strong>Step 1. Launch a managed database.</strong> From the console, open DBS and launch PostgreSQL, MySQL, or MariaDB. It arrives provisioned, patched, and on an automatic backup schedule, with a private address your app can reach. No <code>apt install</code>, no hand-tuning <code>postgresql.conf</code>.</p>
+  <p><strong>Step 1. Launch a managed database.</strong> From the console, open DBS and launch PostgreSQL, MySQL, or MariaDB. It arrives provisioned, patched, and on an automatic backup schedule, reachable from your app once you whitelist its IP. No <code>apt install</code>, no hand-tuning <code>postgresql.conf</code>.</p>
 
   <figure>
     <img src="../assets/console/launch-database.png" alt="Launching a managed PostgreSQL or MySQL database in the Kloudbean console to connect a Sequelize app to">
@@ -321,7 +321,7 @@ DATABASE_URL=postgres://appuser:s3cret@10.0.0.5:5432/appdb</code></pre>
   <ul>
     <li><strong>Read credentials from the environment, never hardcode them.</strong> Every snippet above uses <code>process.env</code>.</li>
     <li><strong>Keep <code>.env</code> out of Git.</strong> Add it to <code>.gitignore</code> on day one. A connection string committed once lives in history forever.</li>
-    <li><strong>Put the database on a private network.</strong> If it has no public address, most of the internet can't even try to reach it.</li>
+    <li><strong>Whitelist your app server's IP on the database.</strong> When only your app server is allowed to connect, most of the internet can't even try to reach it.</li>
     <li><strong>Use a least-privilege database user.</strong> Your app doesn't need superuser. Grant it what it uses, nothing more.</li>
     <li><strong>Rotate passwords, and design so you can.</strong> Because the secret lives in an env var, rotating it is a config change, not a redeploy.</li>
     <li><strong>Keep automatic backups on.</strong> A managed database backs up on a schedule, the difference between a bad afternoon and a lost business.</li>
@@ -348,14 +348,14 @@ const users = await User.findAll({
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Give your Sequelize app a database that's ready for production.</p>
-    <p style="margin:0 0 .6em">Launch managed PostgreSQL or MySQL, drop the connection string into one environment variable, size the pool, and run your migrations on a private network with automatic backups. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, and see plans from $8/mo on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">One-click databases · Automatic backups · Private networking · Env vars in the UI · Free migration · Free trial</p>
+    <p style="margin:0 0 .6em">Launch managed PostgreSQL or MySQL, drop the connection string into one environment variable, size the pool, and run your migrations with IP allow-listing and automatic backups. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, and see plans from $8/mo on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">One-click databases · Automatic backups · Env vars in the UI · Free migration · Free trial</p>
   </div>
 
   <h2>FAQ</h2>
   <div class="faq">
     <h3>How do I connect Sequelize to a database in production?</h3>
-    <p>Create one Sequelize instance that reads your connection string from an environment variable, set the dialect to postgres or mysql, and configure the pool block. Verify the link at boot with authenticate so a bad connection fails fast. Run your migrations on deploy, keep the credentials in the environment, and reach the database over a private network so it has no public exposure.</p>
+    <p>Create one Sequelize instance that reads your connection string from an environment variable, set the dialect to postgres or mysql, and configure the pool block. Verify the link at boot with authenticate so a bad connection fails fast. Run your migrations on deploy, keep the credentials in the environment, and reach the database over an internal connection locked to your app server's IP so it has no public exposure.</p>
 
     <h3>Should I use sequelize.sync() in production?</h3>
     <p>No. sync with force true drops and recreates every table, which destroys data, and sync with alter true makes unreviewed schema changes that can drop or rewrite columns. Both are convenient in local development but dangerous against real rows. In production, manage the schema with sequelize-cli migrations that have reviewable up and down steps.</p>
@@ -370,10 +370,10 @@ const users = await User.findAll({
     <p>The database hit its connection ceiling. Postgres defaults to 100 total connections and reports sorry, too many clients already, while MySQL reports Too many connections. It usually means the Sequelize pool is unbounded or multiplied across many Node processes. Cap the pool max and do the workers by pool by servers arithmetic so the total stays under the limit.</p>
 
     <h3>How do I fix the no pg_hba.conf entry for host error in Sequelize?</h3>
-    <p>That Postgres error means the server rejected the connection, and when it ends with no encryption it means the server requires SSL and your client connected without it. Add SSL under dialectOptions, for example ssl with require true, or connect from an allowed private host. On a private network the database has no public endpoint, so the error does not come up.</p>
+    <p>That Postgres error means the server rejected the connection, and when it ends with no encryption it means the server requires SSL and your client connected without it. Add SSL under dialectOptions, for example ssl with require true, or connect from a whitelisted host. When the database has no public endpoint and only your app server's IP is allowed, the error does not come up.</p>
 
     <h3>How do I connect Sequelize to a database over SSL?</h3>
-    <p>Pass SSL options through dialectOptions.ssl, which Sequelize hands to the underlying driver. Setting rejectUnauthorized to false clears handshake errors but skips certificate verification, so the stricter option supplies the provider CA and keeps verification on. When the app and database share a private network, as on Kloudbean, the common setup is a plain internal connection with no public SSL to configure.</p>
+    <p>Pass SSL options through dialectOptions.ssl, which Sequelize hands to the underlying driver. Setting rejectUnauthorized to false clears handshake errors but skips certificate verification, so the stricter option supplies the provider CA and keeps verification on. When the app connects to the database internally, as on Kloudbean, with the database locked to the app server's IP, the common setup is a plain internal connection with no public SSL to configure.</p>
 
     <h3>Does Sequelize work with both PostgreSQL and MySQL?</h3>
     <p>Yes. Set dialect to postgres and install pg and pg-hstore, or set dialect to mysql and install mysql2, with MariaDB supported through the mariadb dialect. Your models, queries, and migration commands stay the same across engines. A few native column types and functions differ, but the Sequelize surface does not change. All are available as managed engines.</p>
@@ -389,13 +389,13 @@ const users = await User.findAll({
 {"@context":"https://schema.org","@graph":[
 {"@type":"Article","headline":"How to Connect Sequelize to a Database in Production","description":"Connect Sequelize to a database in production: build the Sequelize instance from DATABASE_URL, size the connection pool, set SSL through dialectOptions, and run migrations instead of sync.","image":"https://www.kloudbean.com/blog/connect-sequelize-to-a-database/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/connect-sequelize-to-a-database/"},
 {"@type":"FAQPage","mainEntity":[
-{"@type":"Question","name":"How do I connect Sequelize to a database in production?","acceptedAnswer":{"@type":"Answer","text":"Create one Sequelize instance that reads your connection string from an environment variable, set the dialect to postgres or mysql, and configure the pool block. Verify the link at boot with authenticate so a bad connection fails fast. Run your migrations on deploy, keep the credentials in the environment, and reach the database over a private network so it has no public exposure."}},
+{"@type":"Question","name":"How do I connect Sequelize to a database in production?","acceptedAnswer":{"@type":"Answer","text":"Create one Sequelize instance that reads your connection string from an environment variable, set the dialect to postgres or mysql, and configure the pool block. Verify the link at boot with authenticate so a bad connection fails fast. Run your migrations on deploy, keep the credentials in the environment, and reach the database over an internal connection locked to your app server's IP so it has no public exposure."}},
 {"@type":"Question","name":"Should I use sequelize.sync() in production?","acceptedAnswer":{"@type":"Answer","text":"No. sync with force true drops and recreates every table, which destroys data, and sync with alter true makes unreviewed schema changes that can drop or rewrite columns. Both are convenient in local development but dangerous against real rows. In production, manage the schema with sequelize-cli migrations that have reviewable up and down steps."}},
 {"@type":"Question","name":"How do I run Sequelize migrations on deploy?","acceptedAnswer":{"@type":"Answer","text":"Generate migration files with sequelize-cli, commit them, and run npx sequelize-cli db:migrate as a deploy step after the build and before the new version takes traffic. Point the CLI config at your DATABASE_URL with use_env_variable so it uses the same secret as the app. On a managed CI/CD pipeline you add the command to the deploy step and watch it apply in the live build logs."}},
 {"@type":"Question","name":"How do I set the Sequelize connection pool size?","acceptedAnswer":{"@type":"Answer","text":"Set the pool block on the Sequelize instance with max, min, acquire, and idle. Choose max deliberately, because the pool is per process. If you run PM2 cluster mode or several servers, multiply workers by max by servers and keep the total comfortably under the database connection ceiling, leaving headroom for migrations and admin connections."}},
 {"@type":"Question","name":"Why does Sequelize say too many connections or too many clients already?","acceptedAnswer":{"@type":"Answer","text":"The database hit its connection ceiling. Postgres defaults to 100 total connections and reports sorry, too many clients already, while MySQL reports Too many connections. It usually means the Sequelize pool is unbounded or multiplied across many Node processes. Cap the pool max and do the workers by pool by servers arithmetic so the total stays under the limit."}},
-{"@type":"Question","name":"How do I fix the no pg_hba.conf entry for host error in Sequelize?","acceptedAnswer":{"@type":"Answer","text":"That Postgres error means the server rejected the connection, and when it ends with no encryption it means the server requires SSL and your client connected without it. Add SSL under dialectOptions, for example ssl with require true, or connect from an allowed private host. On a private network the database has no public endpoint, so the error does not come up."}},
-{"@type":"Question","name":"How do I connect Sequelize to a database over SSL?","acceptedAnswer":{"@type":"Answer","text":"Pass SSL options through dialectOptions.ssl, which Sequelize hands to the underlying driver. Setting rejectUnauthorized to false clears handshake errors but skips certificate verification, so the stricter option supplies the provider CA and keeps verification on. When the app and database share a private network, as on Kloudbean, the common setup is a plain internal connection with no public SSL to configure."}},
+{"@type":"Question","name":"How do I fix the no pg_hba.conf entry for host error in Sequelize?","acceptedAnswer":{"@type":"Answer","text":"That Postgres error means the server rejected the connection, and when it ends with no encryption it means the server requires SSL and your client connected without it. Add SSL under dialectOptions, for example ssl with require true, or connect from a whitelisted host. When the database has no public endpoint and only your app server's IP is allowed, the error does not come up."}},
+{"@type":"Question","name":"How do I connect Sequelize to a database over SSL?","acceptedAnswer":{"@type":"Answer","text":"Pass SSL options through dialectOptions.ssl, which Sequelize hands to the underlying driver. Setting rejectUnauthorized to false clears handshake errors but skips certificate verification, so the stricter option supplies the provider CA and keeps verification on. When the app connects to the database internally, as on Kloudbean, with the database locked to the app server's IP, the common setup is a plain internal connection with no public SSL to configure."}},
 {"@type":"Question","name":"Does Sequelize work with both PostgreSQL and MySQL?","acceptedAnswer":{"@type":"Answer","text":"Yes. Set dialect to postgres and install pg and pg-hstore, or set dialect to mysql and install mysql2, with MariaDB supported through the mariadb dialect. Your models, queries, and migration commands stay the same across engines. A few native column types and functions differ, but the Sequelize surface does not change. All are available as managed engines."}},
 {"@type":"Question","name":"Sequelize vs Prisma vs Drizzle, which should I use?","acceptedAnswer":{"@type":"Answer","text":"Sequelize is a mature JavaScript-first ORM that fits large existing codebases and Express APIs without a build step. Prisma offers a generated typed client, and Drizzle stays thin and close to SQL. All three are solid and all run on the same managed Postgres or MySQL, so pick on developer preference and existing code rather than database support."}}
 ]}

@@ -187,14 +187,14 @@ LIMIT 5;</code></pre>
   <p>Think about it the way you'd think about adding <a href="https://www.kloudbean.com/blog/when-to-use-redis-vs-postgres/">Redis to a Postgres app</a>: a great tool, added when the workload asks for it, not on reflex. It's the same judgment call as picking <a href="https://www.kloudbean.com/blog/mysql-vs-postgresql/">between MySQL and PostgreSQL</a> at the start. Fit the tool to the real problem, not the problem you imagine you'll have at ten million users.</p>
 
   <h2>Start in Postgres, graduate without switching vendors</h2>
-  <p>This is where "start simple, grow when needed" stays painless on Kloudbean. Both managed PostgreSQL and managed Elasticsearch are one-click managed engines here, among the same set of managed databases (MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, MongoDB). So you can begin with Postgres full text search, and the day you truly need a dedicated engine, you launch managed Elasticsearch from the same dashboard. Same login, same private network, same backups. No new vendor to evaluate.</p>
+  <p>This is where "start simple, grow when needed" stays painless on Kloudbean. Both managed PostgreSQL and managed Elasticsearch are one-click managed engines here, among the same set of managed databases (MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, MongoDB). So you can begin with Postgres full text search, and the day you truly need a dedicated engine, you launch managed Elasticsearch from the same dashboard. Same login, same IP allow-listing, same backups. No new vendor to evaluate.</p>
 
   <figure>
     <img src="../assets/console/launch-database.png" alt="The Kloudbean console, Launch Database, showing managed PostgreSQL and Elasticsearch among the managed engines">
     <figcaption>DBS, Launch Database: managed PostgreSQL now, managed Elasticsearch later, from one place.</figcaption>
   </figure>
 
-  <p>Both engines arrive provisioned and patched, on a <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">private network</a> instead of the open internet, with <a href="https://www.kloudbean.com/blog/server-backups-guide/">automatic backups</a> and controlled access. Your app reads the connection details from environment variables, the same discipline as <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding any managed database</a>. Nothing exotic, just fewer things you have to babysit.</p>
+  <p>Both engines arrive provisioned and patched, locked down with IP allow-listing rather than left on the open internet, with <a href="https://www.kloudbean.com/blog/server-backups-guide/">automatic backups</a> and controlled access. For full <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">network isolation on a VPC</a>, that's the Enterprise step up. Your app reads the connection details from environment variables, the same discipline as <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding any managed database</a>. Nothing exotic, just fewer things you have to babysit.</p>
 
   <figure>
     <img src="../assets/console/server-health.png" alt="The Kloudbean console server health view showing CPU, RAM, and disk usage">
@@ -206,7 +206,7 @@ LIMIT 5;</code></pre>
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Give your app real search without running a second database.</p>
     <p style="margin:0 0 .6em">Launch managed PostgreSQL, use full-text search that stems and ranks, and add managed Elasticsearch later from the same dashboard when search becomes the product. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">One-click databases · Automatic backups · Private networking · Free migration · Free trial</p>
+    <p style="margin:0; font-size:15px; opacity:.9">One-click databases · Automatic backups · Free migration · Free trial</p>
   </div>
 
   <h2>FAQ</h2>
@@ -230,7 +230,7 @@ LIMIT 5;</code></pre>
     <h3>Do I need Elasticsearch for search?</h3>
     <p>Usually not at first. If search is a feature of your app and the data already lives in Postgres, its full-text search covers a blog, a help center, a docs site, or a modest catalog well. Reach for Elasticsearch when you need advanced relevance, facets and aggregations at scale, typo tolerance across millions of documents, or distributed search that grows by adding nodes.</p>
     <h3>Can I run both managed PostgreSQL and Elasticsearch on Kloudbean?</h3>
-    <p>Yes. Both are one-click managed engines on Kloudbean, alongside MySQL, MariaDB, Redis, Memcached, and MongoDB. You can start with Postgres full-text search and later launch managed Elasticsearch from the same dashboard, on the same private network, with automatic backups and controlled access. It's one login instead of a second vendor.</p>
+    <p>Yes. Both are one-click managed engines on Kloudbean, alongside MySQL, MariaDB, Redis, Memcached, and MongoDB. You can start with Postgres full-text search and later launch managed Elasticsearch from the same dashboard, locked down with the same IP allow-listing, with automatic backups and controlled access. It's one login instead of a second vendor.</p>
   </div>
 
   <p class="byline">By Kloudbean Data Team · Search Without a Second Database.</p>
@@ -247,9 +247,9 @@ LIMIT 5;</code></pre>
 {"@type":"Question","name":"How do I rank search results in Postgres?","acceptedAnswer":{"@type":"Answer","text":"Use ts_rank, which scores how well each row matches the query, then order by that score and limit the results. If you want a title to weigh more than the body, tag lexemes with setweight and ts_rank will respect the weights. That covers relevance tuning for most content sites and catalogs."}},
 {"@type":"Question","name":"Should I use to_tsquery or websearch_to_tsquery?","acceptedAnswer":{"@type":"Answer","text":"Use websearch_to_tsquery for anything a person types. It accepts Google-style input with quoted phrases and a leading minus to exclude terms, and it never errors on messy text. Plain to_tsquery expects strict syntax and throws a syntax error on a stray character, which is an easy way to break your own search endpoint."}},
 {"@type":"Question","name":"How do I add typo tolerance to Postgres search?","acceptedAnswer":{"@type":"Answer","text":"Enable the pg_trgm extension and use trigram similarity. It compares strings by three-character chunks, so misspellings still find close matches. Index the column with gin_trgm_ops, then use the similarity operator and the similarity function to power did-you-mean and fuzzy fallbacks when full-text search returns nothing."}},
-{"@type":"Question","name":"Postgres full text search vs Elasticsearch, what is the difference?","acceptedAnswer":{"@type":"Answer","text":"Postgres full-text search lives inside your existing database, so there is no copy to sync and no extra service. Elasticsearch is a dedicated search engine with stronger relevance tuning, first-class faceting, built-in fuzzy matching, and distributed scale, but it holds a copy of your data you must keep in sync. Start in Postgres, move to Elasticsearch when search becomes a core product surface."}},
+{"@type":"Question","name":"Postgres full text search vs Elasticsearch, what's the difference?","acceptedAnswer":{"@type":"Answer","text":"Postgres full-text search lives inside your existing database, so there is no copy to sync and no extra service. Elasticsearch is a dedicated search engine with stronger relevance tuning, first-class faceting, built-in fuzzy matching, and distributed scale, but it holds a copy of your data you must keep in sync. Start in Postgres, move to Elasticsearch when search becomes a core product surface."}},
 {"@type":"Question","name":"Do I need Elasticsearch for search?","acceptedAnswer":{"@type":"Answer","text":"Usually not at first. If search is a feature of your app and the data already lives in Postgres, its full-text search covers a blog, a help center, a docs site, or a modest catalog well. Reach for Elasticsearch when you need advanced relevance, facets and aggregations at scale, typo tolerance across millions of documents, or distributed search that grows by adding nodes."}},
-{"@type":"Question","name":"Can I run both managed PostgreSQL and Elasticsearch on Kloudbean?","acceptedAnswer":{"@type":"Answer","text":"Yes. Both are one-click managed engines on Kloudbean, alongside MySQL, MariaDB, Redis, Memcached, and MongoDB. You can start with Postgres full-text search and later launch managed Elasticsearch from the same dashboard, on the same private network, with automatic backups and controlled access. It is one login instead of a second vendor."}}
+{"@type":"Question","name":"Can I run both managed PostgreSQL and Elasticsearch on Kloudbean?","acceptedAnswer":{"@type":"Answer","text":"Yes. Both are one-click managed engines on Kloudbean, alongside MySQL, MariaDB, Redis, Memcached, and MongoDB. You can start with Postgres full-text search and later launch managed Elasticsearch from the same dashboard, locked down with the same IP allow-listing, with automatic backups and controlled access. It is one login instead of a second vendor."}}
 ]}
 ]}
 </script>

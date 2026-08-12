@@ -46,7 +46,7 @@ public class Application {
   <p>A Spring Boot app is just a long-running Java process, and everything below is about running that one process well: config, a port, memory, staying alive, and a database.</p>
 
   <figure>
-    <svg viewBox="0 0 780 340" role="img" aria-label="Pipeline: source in Git is built by Maven or Gradle into a fat JAR that contains your code, an embedded Tomcat, and dependencies. Running java -jar starts a JVM with a set heap. A reverse proxy on 443 terminates TLS and forwards to the JVM on 8080. The JVM talks to a managed Postgres or MySQL database over a private network using a HikariCP connection pool." style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+    <svg viewBox="0 0 780 340" role="img" aria-label="Pipeline: source in Git is built by Maven or Gradle into a fat JAR that contains your code, an embedded Tomcat, and dependencies. Running java -jar starts a JVM with a set heap. A reverse proxy on 443 terminates TLS and forwards to the JVM on 8080. The JVM talks to a managed Postgres or MySQL database over the local network using a HikariCP connection pool." style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
       <defs>
         <marker id="sbg" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5b6a86"></path></marker>
         <marker id="sbp" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#4F1AF3"></path></marker>
@@ -113,7 +113,7 @@ public class Application {
       <text x="300" y="300" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">One file, one process. Build it once, run java -jar anywhere a JVM lives.</text>
       <text x="300" y="320" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">The embedded Tomcat means there is no separate server to install or patch.</text>
     </svg>
-    <figcaption>The whole path: Git source, built by Maven or Gradle into a fat JAR with an embedded Tomcat, run as one JVM process behind a TLS proxy, talking to a managed database over a private network.</figcaption>
+    <figcaption>The whole path: Git source, built by Maven or Gradle into a fat JAR with an embedded Tomcat, run as one JVM process behind a TLS proxy, talking to a managed database over the local network.</figcaption>
   </figure>
 
   <div class="note"><b>Coming from WAR files and a standalone Tomcat?</b> That's the old model: build a WAR, install and tune a separate Tomcat, drop the WAR into <code>webapps/</code>, manage two lifecycles apart. Fat JARs collapse that into one artifact you own end to end. You can still build a WAR for a legacy container, but for a new service the executable JAR is the right default.</div>
@@ -258,11 +258,11 @@ spring.datasource.hikari.maximum-pool-size=10</code></pre>
 
   <p>Size it against your database, and remember the math changes when you run more than one instance: three app instances at a pool of 10 each is 30 connections, not 10. The why-and-how of pool sizing is in <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>. For launching the database itself, wiring the connection string safely, and running migrations, follow <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">add a managed database to your app</a>.</p>
 
-  <p>Two rules that aren't optional. Keep the database on a private network, not a public port, so only your app reaches it. And never hardcode credentials in <code>application.properties</code>; they belong in the environment, where you rotate a password without a code change.</p>
+  <p>Two rules that aren't optional. Lock the database to your app server's IP, not a public port, so only your app reaches it. And never hardcode credentials in <code>application.properties</code>; they belong in the environment, where you rotate a password without a code change.</p>
 
   <figure>
     <img src="../assets/console/launch-database.png" alt="The Kloudbean console Launch Database screen with managed PostgreSQL, MySQL, MariaDB, Redis, and more">
-    <figcaption>Launch Database: a managed Postgres or MySQL, provisioned on a private network and backed up. Feed its details into your SPRING_DATASOURCE_ variables.</figcaption>
+    <figcaption>Launch Database: a managed Postgres or MySQL, provisioned and backed up, locked to your app server's IP. Feed its details into your SPRING_DATASOURCE_ variables.</figcaption>
   </figure>
 
   <h2>Deploy a Spring Boot app on a managed server</h2>
@@ -313,7 +313,7 @@ java -Xmx512m -jar target/myapp-1.0.0.jar</code></pre>
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Your Spring Boot app, live on a server you own.</p>
     <p style="margin:0 0 .6em">Deploy the JAR from Git with live build logs, wire in a managed Postgres or MySQL, and get a reverse proxy with free auto-renewing SSL, no hand-rolled config. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>; sizes and plans (from $8/mo, Enterprise custom) are on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">Managed Java runtime · Git deploy with live build logs · Managed PostgreSQL and MySQL · Reverse proxy and free SSL · Private networking · Free migration · Free trial</p>
+    <p style="margin:0">Managed Java runtime · Git deploy with live build logs · Managed PostgreSQL and MySQL · Reverse proxy and free SSL · Free migration · Free trial</p>
   </div>
 
   <h2>FAQ</h2>
@@ -331,7 +331,7 @@ java -Xmx512m -jar target/myapp-1.0.0.jar</code></pre>
     <p>Spring uses relaxed binding: uppercase a property and turn dots into underscores, so <code>spring.datasource.url</code> becomes <code>SPRING_DATASOURCE_URL</code>. Put per-environment overrides in <code>application-prod.yml</code> and set <code>SPRING_PROFILES_ACTIVE=prod</code> to activate them. Keep secrets in env vars, never in the JAR.</p>
 
     <h3>How do I connect Spring Boot to a PostgreSQL or MySQL database?</h3>
-    <p>Set <code>SPRING_DATASOURCE_URL</code>, <code>SPRING_DATASOURCE_USERNAME</code>, and <code>SPRING_DATASOURCE_PASSWORD</code> from the environment and Spring auto-configures the datasource, pooled by HikariCP. Keep the database on a private network and never hardcode credentials. Launch a managed Postgres or MySQL and feed its details into those three variables.</p>
+    <p>Set <code>SPRING_DATASOURCE_URL</code>, <code>SPRING_DATASOURCE_USERNAME</code>, and <code>SPRING_DATASOURCE_PASSWORD</code> from the environment and Spring auto-configures the datasource, pooled by HikariCP. Lock the database to your app server's IP and never hardcode credentials. Launch a managed Postgres or MySQL and feed its details into those three variables.</p>
 
     <h3>What -Xmx should I set for a Spring Boot app?</h3>
     <p>There's no universal number, so size it after watching real memory use. The point is to set it, so the heap can't outgrow a small box and get OOM-killed. And remember the heap isn't the whole process: metaspace, thread stacks, and buffers live outside <code>-Xmx</code>, so leave headroom.</p>
@@ -360,7 +360,7 @@ java -Xmx512m -jar target/myapp-1.0.0.jar</code></pre>
 {"@type":"Question","name":"How do I run a Spring Boot JAR in production?","acceptedAnswer":{"@type":"Answer","text":"Run java -jar app.jar, but not in a terminal that closes. Wrap it in systemd with Restart=always so it survives crashes and reboots, or let a managed platform run your start command as a supervised service. Match the runtime to the Java version you built against."}},
 {"@type":"Question","name":"Do I need to install Tomcat separately for Spring Boot?","acceptedAnswer":{"@type":"Answer","text":"No. A Spring Boot fat JAR embeds Tomcat, so java -jar app.jar starts the server for you. Nothing separate to install or patch. You can still build a WAR for a legacy external container, but for a new service the embedded server is the right default."}},
 {"@type":"Question","name":"How do I set environment variables and profiles for Spring Boot?","acceptedAnswer":{"@type":"Answer","text":"Spring uses relaxed binding: uppercase a property and turn dots into underscores, so spring.datasource.url becomes SPRING_DATASOURCE_URL. Put per-environment overrides in application-prod.yml and set SPRING_PROFILES_ACTIVE=prod to activate them. Keep secrets in env vars, never in the JAR."}},
-{"@type":"Question","name":"How do I connect Spring Boot to a PostgreSQL or MySQL database?","acceptedAnswer":{"@type":"Answer","text":"Set SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME, and SPRING_DATASOURCE_PASSWORD from the environment and Spring auto-configures the datasource, pooled by HikariCP. Keep the database on a private network and never hardcode credentials. Launch a managed Postgres or MySQL and feed its details into those three variables."}},
+{"@type":"Question","name":"How do I connect Spring Boot to a PostgreSQL or MySQL database?","acceptedAnswer":{"@type":"Answer","text":"Set SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME, and SPRING_DATASOURCE_PASSWORD from the environment and Spring auto-configures the datasource, pooled by HikariCP. Lock the database to your app server's IP and never hardcode credentials. Launch a managed Postgres or MySQL and feed its details into those three variables."}},
 {"@type":"Question","name":"What -Xmx should I set for a Spring Boot app?","acceptedAnswer":{"@type":"Answer","text":"There is no universal number, so size it after watching real memory use. The point is to set it, so the heap cannot outgrow a small box and get OOM-killed. And remember the heap is not the whole process: metaspace, thread stacks, and buffers live outside -Xmx, so leave headroom."}},
 {"@type":"Question","name":"Should I run Spring Boot behind nginx or a reverse proxy?","acceptedAnswer":{"@type":"Answer","text":"Yes, in production. The proxy terminates TLS on 443 and forwards plain HTTP to the internal port your app listens on, so the JVM never handles certificates. Make sure it forwards to the same port Spring Boot listens on. On a managed server the proxy and free SSL come with the stack."}},
 {"@type":"Question","name":"Maven or Gradle for building the Spring Boot JAR?","acceptedAnswer":{"@type":"Answer","text":"Either. Use whatever your project already uses, since both produce the same executable JAR. Maven builds it with ./mvnw clean package, Gradle with ./gradlew bootJar. Use the committed wrapper so the build version is pinned and CI matches your laptop."}},

@@ -177,7 +177,7 @@ mysqldump --single-transaction appdb | gzip &gt; appdb.sql.gz
 
 # or stream directly, no intermediate file at all
 pg_dump "$OLD_DATABASE_URL" | psql "$NEW_DATABASE_URL"</code></pre>
-  <p>Streaming is fast, but it ties both ends together for the whole run. Network drops halfway? You start over. On a flaky link, a compressed file you can resume copying is safer. On a solid private network, streaming wins.</p>
+  <p>Streaming is fast, but it ties both ends together for the whole run. Network drops halfway? You start over. On a flaky link, a compressed file you can resume copying is safer. On a fast, stable connection, streaming wins.</p>
 
   <h3>Foreign keys, load order, and sequences that fall behind</h3>
   <p>A full dump restores objects in dependency order, so foreign keys generally just work. Trouble starts with partial or data-only loads. In MySQL, loading rows in the wrong order trips constraints, so wrap a data-only load:</p>
@@ -266,7 +266,7 @@ ORDER BY table_rows DESC;</code></pre>
     <figcaption>Launch the target database in a click, then point pg_restore or the mysql client at it.</figcaption>
   </figure>
 
-  <p>Two things make a migration here less nerve-wracking. The database sits on a <strong>private network</strong>, reachable by your app internally instead of exposed to the internet, which is also the fastest path for streaming a big dump across. And <strong>automatic backups</strong> start immediately, so the moment your data lands you have a restore point, a safety net most people bolt on later, if ever. More in the <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a>.</p>
+  <p>Two things make a migration here less nerve-wracking. The database is locked down with <strong>IP allow-listing</strong>, reachable only from your whitelisted app server instead of exposed to the internet, and it sits right next to your app in the same account, which is also the fastest path for streaming a big dump across. And <strong>automatic backups</strong> start immediately, so the moment your data lands you have a restore point, a safety net most people bolt on later, if ever. More in the <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a>.</p>
 
   <figure>
     <img src="../assets/console/manage-backups.png" alt="The Kloudbean console showing automatic backups on a managed database, giving an immediate restore point after migration">
@@ -280,8 +280,8 @@ ORDER BY table_rows DESC;</code></pre>
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Land your database on hosting you control.</p>
-    <p style="margin:0 0 .6em">Launch managed PostgreSQL, MySQL, or MariaDB in a click, on a private network with automatic backups from minute one. Not sure about the cutover? Free migration assistance can run it with you. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">One-click databases · Automatic backups · Private networking · Free migration · Free trial · Simple Git deploy</p>
+    <p style="margin:0 0 .6em">Launch managed PostgreSQL, MySQL, or MariaDB in a click, locked to your app server's IP with automatic backups from minute one. Not sure about the cutover? Free migration assistance can run it with you. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">One-click databases · Automatic backups · Free migration · Free trial · Simple Git deploy</p>
   </div>
 
   <h2>FAQ</h2>
@@ -311,7 +311,7 @@ ORDER BY table_rows DESC;</code></pre>
     <p>Compare row counts with an exact <code>SELECT count(*)</code> on the tables that matter. Spot-check specific rows, especially any with accents, emoji, or non-Latin text, since only reading the data catches charset damage. Then run your app against the new database in staging before you cut over.</p>
 
     <h3>Can Kloudbean help migrate my database?</h3>
-    <p>Yes. You launch a managed PostgreSQL, MySQL, or MariaDB target from the dashboard, on a private network with automatic backups from the start. Kloudbean also offers free migration assistance to help move a large or production database and keep the freeze window short. A free trial lets you dry-run first.</p>
+    <p>Yes. You launch a managed PostgreSQL, MySQL, or MariaDB target from the dashboard, locked to your app server's IP with automatic backups from the start. Kloudbean also offers free migration assistance to help move a large or production database and keep the freeze window short. A free trial lets you dry-run first.</p>
   </div>
 
   <p class="byline">By Kloudbean · Moving Data Without Downtime.</p>
@@ -329,7 +329,7 @@ ORDER BY table_rows DESC;</code></pre>
 {"@type":"Question","name":"How do I fix character set issues after a MySQL migration?","acceptedAnswer":{"@type":"Answer","text":"Charset problems come from a mismatch between what the source stored and what the dump declared, often an old latin1 database. Dump with --default-character-set matching the source, create the target as utf8mb4, and load with the same flag. Then read a row with accents or emoji, because row counts won't catch this."}},
 {"@type":"Question","name":"pg_dump plain SQL or custom format, which should I use?","acceptedAnswer":{"@type":"Answer","text":"Plain SQL is readable and simple, loaded with psql, and fine for small databases. Custom format (-Fc) is compressed, restores in parallel with pg_restore, and lets you restore selectively. Use custom format for anything sizeable; reach for plain SQL when you want to grep the dump."}},
 {"@type":"Question","name":"How do I verify a database migration worked?","acceptedAnswer":{"@type":"Answer","text":"Compare row counts with an exact SELECT count(*) on the tables that matter. Spot-check specific rows, especially any with accents, emoji, or non-Latin text, since only reading the data catches charset damage. Then run your app against the new database in staging before you cut over."}},
-{"@type":"Question","name":"Can Kloudbean help migrate my database?","acceptedAnswer":{"@type":"Answer","text":"Yes. You launch a managed PostgreSQL, MySQL, or MariaDB target from the dashboard, on a private network with automatic backups from the start. Kloudbean also offers free migration assistance to help move a large or production database and keep the freeze window short. A free trial lets you dry-run first."}}
+{"@type":"Question","name":"Can Kloudbean help migrate my database?","acceptedAnswer":{"@type":"Answer","text":"Yes. You launch a managed PostgreSQL, MySQL, or MariaDB target from the dashboard, locked to your app server's IP with automatic backups from the start. Kloudbean also offers free migration assistance to help move a large or production database and keep the freeze window short. A free trial lets you dry-run first."}}
 ]}
 ]}
 </script>

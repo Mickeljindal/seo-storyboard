@@ -9,7 +9,7 @@
 <link rel="canonical" href="https://www.kloudbean.com/blog/connect-typeorm-to-a-database/">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Connect TypeORM to a Database in Production (Postgres, MySQL)">
-<meta property="og:description" content="The production wiring for TypeORM: a DataSource from env, entities, migrations, synchronize false, connection pool sizing, and SSL versus the private network.">
+<meta property="og:description" content="The production wiring for TypeORM: a DataSource from env, entities, migrations, synchronize false, connection pool sizing, and SSL versus the internal connection.">
 <meta property="og:image" content="images/hero.png">
 <meta property="og:site_name" content="Kloudbean">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -29,7 +29,7 @@
 
   <div class="tldr">
     <strong>The short version</strong>
-    <p>To connect TypeORM to a database in production, build a <code>DataSource</code> that reads your connection string from <code>process.env</code>, list your entities and a <code>migrations</code> glob, and set <code>synchronize: false</code>. Manage schema changes with <code>typeorm migration:generate</code> and <code>migration:run</code> instead of auto-sync. Cap the pool with <code>poolSize</code> or <code>extra.max</code> so many processes don't exhaust the database, and reach the database over a private network so you rarely need public SSL at all.</p>
+    <p>To connect TypeORM to a database in production, build a <code>DataSource</code> that reads your connection string from <code>process.env</code>, list your entities and a <code>migrations</code> glob, and set <code>synchronize: false</code>. Manage schema changes with <code>typeorm migration:generate</code> and <code>migration:run</code> instead of auto-sync. Cap the pool with <code>poolSize</code> or <code>extra.max</code> so many processes don't exhaust the database, and reach the database over an internal connection, locked to your app server's IP, so you rarely need public SSL at all.</p>
   </div>
 
   <h2>What is a TypeORM DataSource?</h2>
@@ -75,11 +75,11 @@ import { AppDataSource } from "./data-source";
 await AppDataSource.initialize();
 console.log("Data Source ready");</code></pre>
 
-  <p>Both forms describe the same thing: a Node process, one DataSource holding a pool, a database at the other end. Keep the private network in that picture.</p>
+  <p>Both forms describe the same thing: a Node process, one DataSource holding a pool, a database at the other end. Keep the internal path in that picture.</p>
 
   <figure>
-    <svg viewBox="0 0 780 250" role="img" aria-label="A Node process holds one TypeORM DataSource with a connection pool, which reaches a managed Postgres or MySQL over a private network" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
-      <text x="28" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">One DataSource, one pool, a private path to the database</text>
+    <svg viewBox="0 0 780 250" role="img" aria-label="A Node process holds one TypeORM DataSource with a connection pool, which reaches a managed Postgres or MySQL over an internal connection, locked to the app server IP" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+      <text x="28" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">One DataSource, one pool, an internal path to the database</text>
 
       <rect x="28" y="70" width="180" height="120" rx="14" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
       <text x="118" y="104" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="14" font-weight="600">Node process</text>
@@ -96,7 +96,7 @@ console.log("Data Source ready");</code></pre>
       <path d="M266 130 l-10 -4 v8 z" fill="#5b6a86"/>
 
       <rect x="502" y="70" width="30" height="120" rx="8" fill="#eaf7ef" stroke="#40b75f" stroke-width="1.4"/>
-      <text x="517" y="138" text-anchor="middle" fill="#1c7a3f" font-family="Poppins,sans-serif" font-size="11" font-weight="600" transform="rotate(-90 517 138)">private network</text>
+      <text x="517" y="138" text-anchor="middle" fill="#1c7a3f" font-family="Poppins,sans-serif" font-size="11" font-weight="600" transform="rotate(-90 517 138)">IP allow-listing</text>
       <line x1="458" y1="130" x2="500" y2="130" stroke="#40b75f" stroke-width="2"/>
       <path d="M500 130 l-10 -4 v8 z" fill="#40b75f"/>
 
@@ -108,9 +108,9 @@ console.log("Data Source ready");</code></pre>
       <line x1="532" y1="130" x2="580" y2="130" stroke="#40b75f" stroke-width="2"/>
       <path d="M580 130 l-10 -4 v8 z" fill="#40b75f"/>
 
-      <text x="28" y="226" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="13">The pool lives in the DataSource. On a private network the database has no public address to attack.</text>
+      <text x="28" y="226" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="13">The pool lives in the DataSource. Locked to your app server's IP, the database has no public address to attack.</text>
     </svg>
-    <figcaption>One DataSource per process holds the pool. It reaches the managed database over a private network, not the open internet.</figcaption>
+    <figcaption>One DataSource per process holds the pool. It reaches the managed database over an internal connection, locked to your app server's IP, not the open internet.</figcaption>
   </figure>
 
   <div class="note"><b>Coming from Prisma or Drizzle?</b> Same production ideas, different config surface. See <a href="https://www.kloudbean.com/blog/connect-prisma-to-a-managed-database/">connect Prisma to a managed database</a> and <a href="https://www.kloudbean.com/blog/connect-drizzle-to-postgres/">connect Drizzle to Postgres</a>. TypeORM's distinctive bits are the decorated entity classes and the <code>synchronize</code> setting below.</div>
@@ -258,7 +258,7 @@ npm run migration:revert</code></pre>
     <figcaption>Server health (CPU, RAM, disk) in the Kloudbean console. Watch resource use as you tune pool size and worker count.</figcaption>
   </figure>
 
-  <h2>Connecting over SSL, and why the private network wins</h2>
+  <h2>Connecting over SSL, and why the internal connection wins</h2>
   <p>If your database sits behind a public endpoint, the connection should be encrypted, and many managed providers require it. TypeORM passes SSL options through <code>extra</code>:</p>
 
 <pre><code>extra: {
@@ -276,7 +276,7 @@ extra: {
   },
 }</code></pre>
 
-  <p>An opinion I'll defend: the cleanest way to handle database SSL is to not need it. If your app and database share a private network, the database never gets a public address, so there's nothing exposed to the internet to encrypt. On Kloudbean the app reaches the database internally, so the usual setup is a plain internal connection, no public SSL to configure. Fewer moving parts, smaller attack surface.</p>
+  <p>An opinion I'll defend: the cleanest way to handle database SSL is to not need it. If your app and database sit in the same account with the database locked to your app server's IP, it never gets a public address, so there's nothing exposed to the internet to encrypt. On Kloudbean the app reaches the database internally, so the usual setup is a plain internal connection, no public SSL to configure. Fewer moving parts, smaller attack surface.</p>
 
   <h2>Keep the connection string in the environment</h2>
   <p>Every snippet reads <code>process.env</code>, and that's deliberate. The connection string is a secret, and secrets don't belong in your source, your Git history, or a Slack screenshot. On Kloudbean you set them under Runtime Configuration, Environment Variables, and the app reads them at boot.</p>
@@ -344,28 +344,28 @@ export class AppModule {}</code></pre>
   <p>One more, quieter: eager relations. Load a list of users and, because a relation is eager or you passed <code>relations</code> broadly, you can fire a query per row without noticing. That's the classic N+1, and TypeORM makes it comfortable to trip over. Slow list endpoint? Check there first. Full breakdown in <a href="https://www.kloudbean.com/blog/n-plus-one-query-problem/">the N+1 query problem</a>.</p>
 
   <h2>Connect TypeORM to a managed database on Kloudbean</h2>
-  <p>Everything above assumes a real database on the other end: always-on, backed up, patched, on a private network rather than open to the world. That's a managed database, near enough exactly.</p>
+  <p>Everything above assumes a real database on the other end: always-on, backed up, patched, locked to your app server's IP rather than open to the world. That's a managed database, near enough exactly.</p>
 
   <figure>
     <img src="../assets/console/launch-database.png" alt="Launching a managed PostgreSQL or MySQL database in the Kloudbean console to connect a TypeORM app to">
     <figcaption>DBS, Launch Database: pick PostgreSQL, MySQL, or MariaDB and it arrives provisioned, patched, and backed up.</figcaption>
   </figure>
 
-  <p>The flow is short. Launch a managed PostgreSQL, MySQL, or MariaDB, copy the host, port, database, user, and password into your environment variables, then deploy your Node or NestJS app on the same server so the two share a private network. Point your DataSource at it and run your migrations. One dashboard for the app, the database, the backups, and the env vars, no separate providers to stitch together. The framework-agnostic pillar is <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">add a managed database to your app</a>, and the engine deep-dive is <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a>.</p>
+  <p>The flow is short. Launch a managed PostgreSQL, MySQL, or MariaDB, copy the host, port, database, user, and password into your environment variables, then deploy your Node or NestJS app on the same server so the two sit side by side, with the database locked to the app server's IP. Point your DataSource at it and run your migrations. One dashboard for the app, the database, the backups, and the env vars, no separate providers to stitch together. The framework-agnostic pillar is <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">add a managed database to your app</a>, and the engine deep-dive is <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a>.</p>
 
   <!-- ADD IMAGE: the connection details panel after launching the database, host and port visible. Swap for a real screenshot: src -> images/db-connection-details.png -->
   <figure class="img-slot"><span><b>Add image</b><em>The connection details panel after launch: host, port, database, user.</em><small>Shows exactly what feeds the DataSource.</small></span></figure>
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Give your TypeORM app a database built for production.</p>
-    <p style="margin:0 0 .6em">Launch managed PostgreSQL or MySQL, drop the connection string into one environment variable, set <code>synchronize: false</code>, and run your migrations on a private network with automatic backups. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans from $8/mo on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0; font-size:15px; opacity:.9">One-click databases · Automatic backups · Private networking · Env vars in the UI · Free migration · Free trial</p>
+    <p style="margin:0 0 .6em">Launch managed PostgreSQL or MySQL, drop the connection string into one environment variable, set <code>synchronize: false</code>, and run your migrations with IP allow-listing and automatic backups. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans from $8/mo on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">One-click databases · Automatic backups · Env vars in the UI · Free migration · Free trial</p>
   </div>
 
   <h2>FAQ</h2>
   <div class="faq">
     <h3>How do I connect TypeORM to a database in production?</h3>
-    <p>Create a DataSource that reads your connection string from an environment variable, list your entities and a migrations glob that points at your compiled output, and set synchronize to false. Call initialize once when the app starts. Run your migrations on deploy, cap the connection pool, and reach the database over a private network so it has no public exposure.</p>
+    <p>Create a DataSource that reads your connection string from an environment variable, list your entities and a migrations glob that points at your compiled output, and set synchronize to false. Call initialize once when the app starts. Run your migrations on deploy, cap the connection pool, and reach the database over an internal connection locked to your app server's IP so it has no public exposure.</p>
     <h3>What is a TypeORM DataSource?</h3>
     <p>The DataSource is the object that holds your connection settings, entities, migrations, and the driver connection pool. Since TypeORM 0.3 it replaces the older createConnection call. You create one DataSource, call initialize once, and share it for the life of the process rather than creating a new one per request.</p>
     <h3>Should I use synchronize in production?</h3>
@@ -375,7 +375,7 @@ export class AppModule {}</code></pre>
     <h3>How do I configure the TypeORM connection pool?</h3>
     <p>TypeORM uses the underlying driver pool, so set poolSize for a simple cap, or pass driver options through extra, such as max for the pg driver or connectionLimit for mysql2. Choose the number deliberately, because the pool is per process. If you run PM2 cluster mode or several servers, multiply workers by pool size by servers and keep the total under the database connection ceiling.</p>
     <h3>How do I connect TypeORM to a database over SSL?</h3>
-    <p>Pass SSL options through the extra field, for example ssl with rejectUnauthorized. Setting rejectUnauthorized to false stops handshake errors but skips certificate verification, so the stricter option is to supply the provider CA and keep verification on. When the app and database share a private network, as on Kloudbean, the common setup is a plain internal connection with no public SSL to configure.</p>
+    <p>Pass SSL options through the extra field, for example ssl with rejectUnauthorized. Setting rejectUnauthorized to false stops handshake errors but skips certificate verification, so the stricter option is to supply the provider CA and keep verification on. When the app and database sit in the same account, as on Kloudbean, with the database locked to the app server's IP, the common setup is a plain internal connection with no public SSL to configure.</p>
     <h3>TypeORM vs Prisma, which should I use?</h3>
     <p>TypeORM is a mature full ORM built around decorated entity classes with strong NestJS support, so it fits teams that want a classic ORM and a large existing ecosystem. Prisma offers a generated, typed client that some teams find quicker to start with. Both are solid and both run on the same managed Postgres or MySQL, so pick on developer preference rather than database support.</p>
     <h3>How do I use TypeORM with NestJS?</h3>
@@ -393,12 +393,12 @@ export class AppModule {}</code></pre>
 {"@context":"https://schema.org","@graph":[
 {"@type":"Article","headline":"How to Connect TypeORM to a Database in Production","description":"Connect TypeORM to a database in production: build a DataSource from env, define entities, run migrations, keep synchronize false, and size the connection pool.","image":"https://www.kloudbean.com/blog/connect-typeorm-to-a-database/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/connect-typeorm-to-a-database/"},
 {"@type":"FAQPage","mainEntity":[
-{"@type":"Question","name":"How do I connect TypeORM to a database in production?","acceptedAnswer":{"@type":"Answer","text":"Create a DataSource that reads your connection string from an environment variable, list your entities and a migrations glob that points at your compiled output, and set synchronize to false. Call initialize once when the app starts. Run your migrations on deploy, cap the connection pool, and reach the database over a private network so it has no public exposure."}},
+{"@type":"Question","name":"How do I connect TypeORM to a database in production?","acceptedAnswer":{"@type":"Answer","text":"Create a DataSource that reads your connection string from an environment variable, list your entities and a migrations glob that points at your compiled output, and set synchronize to false. Call initialize once when the app starts. Run your migrations on deploy, cap the connection pool, and reach the database over an internal connection locked to your app server's IP so it has no public exposure."}},
 {"@type":"Question","name":"What is a TypeORM DataSource?","acceptedAnswer":{"@type":"Answer","text":"The DataSource is the object that holds your connection settings, entities, migrations, and the driver connection pool. Since TypeORM 0.3 it replaces the older createConnection call. You create one DataSource, call initialize once, and share it for the life of the process rather than creating a new one per request."}},
 {"@type":"Question","name":"Should I use synchronize in production?","acceptedAnswer":{"@type":"Answer","text":"No. synchronize true makes TypeORM alter the database to match your entities on every boot, and a renamed property is seen as a dropped column plus a new one, which loses data with no prompt and no undo. It is convenient in local development but dangerous against real data. Set synchronize false in production and manage schema changes with migrations."}},
 {"@type":"Question","name":"How do I run TypeORM migrations?","acceptedAnswer":{"@type":"Answer","text":"Change an entity, then run typeorm migration:generate to diff it into a new SQL migration file. Review the generated SQL, commit it, and run typeorm migration:run to apply pending migrations, typically as a deploy step. Use migration:revert to roll back the most recent one. You can also set migrationsRun true to apply pending migrations automatically on initialize."}},
 {"@type":"Question","name":"How do I configure the TypeORM connection pool?","acceptedAnswer":{"@type":"Answer","text":"TypeORM uses the underlying driver pool, so set poolSize for a simple cap, or pass driver options through extra, such as max for the pg driver or connectionLimit for mysql2. Choose the number deliberately, because the pool is per process. If you run PM2 cluster mode or several servers, multiply workers by pool size by servers and keep the total under the database connection ceiling."}},
-{"@type":"Question","name":"How do I connect TypeORM to a database over SSL?","acceptedAnswer":{"@type":"Answer","text":"Pass SSL options through the extra field, for example ssl with rejectUnauthorized. Setting rejectUnauthorized to false stops handshake errors but skips certificate verification, so the stricter option is to supply the provider CA and keep verification on. When the app and database share a private network, as on Kloudbean, the common setup is a plain internal connection with no public SSL to configure."}},
+{"@type":"Question","name":"How do I connect TypeORM to a database over SSL?","acceptedAnswer":{"@type":"Answer","text":"Pass SSL options through the extra field, for example ssl with rejectUnauthorized. Setting rejectUnauthorized to false stops handshake errors but skips certificate verification, so the stricter option is to supply the provider CA and keep verification on. When the app and database sit in the same account, as on Kloudbean, with the database locked to the app server's IP, the common setup is a plain internal connection with no public SSL to configure."}},
 {"@type":"Question","name":"TypeORM vs Prisma, which should I use?","acceptedAnswer":{"@type":"Answer","text":"TypeORM is a mature full ORM built around decorated entity classes with strong NestJS support, so it fits teams that want a classic ORM and a large existing ecosystem. Prisma offers a generated, typed client that some teams find quicker to start with. Both are solid and both run on the same managed Postgres or MySQL, so pick on developer preference rather than database support."}},
 {"@type":"Question","name":"How do I use TypeORM with NestJS?","acceptedAnswer":{"@type":"Answer","text":"Register TypeOrmModule.forRoot, or forRootAsync when you need injected config, with the same production settings: read the connection from the environment and keep synchronize false. Use autoLoadEntities so registered entities are picked up. NestJS is a Node framework, so it deploys on a managed Node runtime like any other Node app."}},
 {"@type":"Question","name":"Why does TypeORM say EntityMetadataNotFound or relation does not exist?","acceptedAnswer":{"@type":"Answer","text":"EntityMetadataNotFoundError usually means TypeORM did not load your entities, often because the entities glob points at .ts files while production runs compiled .js, or because reflect-metadata was not imported. A relation does not exist error usually means migrations never ran, so the table is missing. Point globs at your compiled output or import entities directly, and run migrations on deploy."}},

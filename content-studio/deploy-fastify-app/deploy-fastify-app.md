@@ -45,7 +45,7 @@ await app.listen({ port: 3000, host: '0.0.0.0' })
 
 This is the big difference from Express, and it trips up people moving over. A plain `app.listen(port)` in Express binds to all interfaces. The same instinct in Fastify binds to localhost, so the habit that always worked silently breaks. If you take one thing from this guide, take the host. We cover the Express side in [deploy an Express app](https://www.kloudbean.com/blog/deploy-express-app/), and this default is the reason a Fastify migration surprises people.
 
-*(Diagram: a single request path. A browser sends an HTTPS request on port 443 to a reverse proxy, which terminates TLS and sets X-Forwarded headers, then forwards to a Fastify app. If Fastify is bound to 127.0.0.1 the proxy is refused and the user gets a 502. If Fastify is bound to 0.0.0.0 on the assigned port it is reachable, logs JSON with pino to stdout, closes gracefully on SIGTERM, and talks to a managed database over the private network. The fork that decides everything is which host Fastify binds.)*
+*(Diagram: a single request path. A browser sends an HTTPS request on port 443 to a reverse proxy, which terminates TLS and sets X-Forwarded headers, then forwards to a Fastify app. If Fastify is bound to 127.0.0.1 the proxy is refused and the user gets a 502. If Fastify is bound to 0.0.0.0 on the assigned port it is reachable, logs JSON with pino to stdout, closes gracefully on SIGTERM, and talks to a managed database in the same account, over the local network. The fork that decides everything is which host Fastify binds.)*
 
 <!-- ADD IMAGE: a terminal showing the Fastify boot line, Server listening at http://0.0.0.0:3000, proving it is on all interfaces and not just loopback -->
 
@@ -165,7 +165,7 @@ const { Pool } = require('pg')
 const pool = new Pool({ connectionString: process.env.DATABASE_URL })
 ```
 
-Two things early. Use a connection pool, because Fastify is fast enough to open sockets faster than the database tolerates, and a handler that dials its own connection per request exhausts the limit under load. And keep the database on the private network, not a public port. The full walkthrough is in [add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), and sizing a pool is in [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/).
+Two things early. Use a connection pool, because Fastify is fast enough to open sockets faster than the database tolerates, and a handler that dials its own connection per request exhausts the limit under load. And lock the database to your app server's IP, not a public port. The full walkthrough is in [add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), and sizing a pool is in [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/).
 
 ## How to deploy a Fastify app on a managed server
 
@@ -218,7 +218,7 @@ Run this before you call it shipped.
 - **Graceful shutdown:** `SIGTERM` calls `app.close()`, with an `onClose` hook that ends the DB pool.
 - **Config:** secrets and the database URL in env vars, never in Git.
 - **Process manager:** PM2 keeps it alive and restarts on crash.
-- **Database:** managed engine, pooled connections, on the private network.
+- **Database:** managed engine, pooled connections, locked to your app server's IP.
 - **State:** sessions and cache in Redis, uploads in object storage, if you cluster.
 - **TLS:** a domain with auto-renewing SSL, proxy terminating on 443.
 
@@ -248,7 +248,7 @@ Kloudbean runs Fastify on Linux managed cloud: the Node runtime, PM2, the revers
 
 **Your Fastify API, live on a server you own.** Deploy from Git, let PM2 keep it up, wire in a managed database, and get free auto-renewing SSL, without hand-rolling a proxy config. Start at [kloudbean.com](https://www.kloudbean.com/); sizes and plans (from $8/mo, Enterprise custom) are on [pricing](https://www.kloudbean.com/pricing/).
 
-Seven clouds, one dashboard · Git deploy with live logs · PM2 process management · Seven managed databases · Private networking · Free auto-renewing SSL · Free migration · Free trial
+Seven clouds, one dashboard · Git deploy with live logs · PM2 process management · Seven managed databases · Free auto-renewing SSL · Free migration · Free trial
 
 ## FAQ
 

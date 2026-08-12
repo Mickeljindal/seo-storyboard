@@ -36,13 +36,13 @@ Plenty of apps never need to move off the default, and that's fine. But there ar
 
 - **Ownership.** Your data sits on infrastructure you control, not inside a product whose terms can change under you.
 - **Cost at scale.** Metered backends look cheap at zero users and get spiky as you grow. A flat plan is predictable, which is what you want a bill to be.
-- **The database next to the app.** Share a private network and queries skip the round trip across the public internet. Less latency, fewer moving parts.
+- **The database next to the app.** Put them in the same account and queries skip the round trip across the public internet. Less latency, fewer moving parts.
 - **One dashboard.** Server, app, and database in one login and one bill, instead of stitching three vendors together.
 
 My honest take: most Lovable apps don't need to leave Supabase on day one. The **Lovable production database** question is an ownership question first, a technology question second. If Supabase does real work for you (login, uploads, row-level rules), owning it beats ripping it out. Move because the app is genuinely simpler your way, not to prove a point.
 
-<!-- DIAGRAM: browser calls your API over HTTPS; only the API holds DATABASE_URL and talks to the managed database on a private network. Connecting the database straight from the browser is the blocked, leaking path. -->
-*The safe shape: browser to your API over HTTPS, API to the managed database over a private network. The browser-straight-to-database path is the leak you avoid.*
+<!-- DIAGRAM: browser calls your API over HTTPS; only the API holds DATABASE_URL and talks to the managed database over an internal connection. Connecting the database straight from the browser is the blocked, leaking path. -->
+*The safe shape: browser to your API over HTTPS, API to the managed database over an internal connection. The browser-straight-to-database path is the leak you avoid.*
 
 ## The rule that keeps you safe: your database never talks to the browser
 
@@ -117,7 +117,7 @@ Here's the real click-path, whichever database you landed on. None of it needs a
 
 ### 1. Launch a managed database
 
-Open the **DBS** section and hit **Launch Database**. Kloudbean runs seven managed engines, so pick PostgreSQL (the safe default for a Lovable app, since that's what it already used) or MySQL if your stack expects it. Name it, create it, and a minute or two later it's provisioned, on a private network, and already backed up. On Path A instead? Launch **Supabase** as a one-click app here rather than a bare database.
+Open the **DBS** section and hit **Launch Database**. Kloudbean runs seven managed engines, so pick PostgreSQL (the safe default for a Lovable app, since that's what it already used) or MySQL if your stack expects it. Name it, create it, and a minute or two later it's provisioned, locked to your app server's IP, and already backed up. On Path A instead? Launch **Supabase** as a one-click app here rather than a bare database.
 
 ![Kloudbean Launch Database screen with managed PostgreSQL, MySQL, and other engines for a Lovable app](../assets/console/launch-database.png)
 
@@ -170,9 +170,9 @@ Connecting the database is one piece of owning your whole stack instead of renti
 
 ## Give your Lovable app a database it actually owns.
 
-Managed PostgreSQL and MySQL, one-click managed Supabase, automatic backups, and private networking, all beside your app on a server you control. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
+Managed PostgreSQL and MySQL, one-click managed Supabase, automatic backups, and IP allow-listing, all beside your app on a server you control. Start free at [kloudbean.com](https://www.kloudbean.com/); plans on [pricing](https://www.kloudbean.com/pricing/).
 
-One-click databases · Automatic backups · Private networking · Free migration · Free trial · Simple Git deploy
+One-click databases · Automatic backups · Free migration · Free trial · Simple Git deploy
 
 ## FAQ
 

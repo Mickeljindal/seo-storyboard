@@ -67,7 +67,7 @@ This is the network domain of a bigger framework: start with [the NCA CSCC guide
 
 Kloudbean can deliver private networking, per-environment isolation, whitelist-only firewalling, private-only managed databases, and edge DDoS protection on managed engagements, in-Kingdom on the Dammam region. Start the conversation at [kloudbean.com](https://www.kloudbean.com/), and read the framework overview in [the NCA CSCC guide](https://www.kloudbean.com/blog/nca-cscc-compliance-guide/).
 
-Private networking · Per-environment isolation · Whitelist firewalling · Edge DDoS · In-Kingdom
+Per-environment isolation · Whitelist firewalling · Edge DDoS · In-Kingdom
 
 ## FAQ
 

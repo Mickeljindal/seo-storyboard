@@ -16,7 +16,7 @@ The library is rarely the problem. Almost every SQLAlchemy incident traces back 
 - **Leaked sessions exhaust the pool.** A request opens a session and never closes it, so under load the pool drains until you hit `QueuePool limit of size 5 overflow 10 reached, connection timed out, timeout 30.00`.
 - **Stale connections after a restart.** The database gets patched, your pooled connections are dead, and the next query throws `server closed the connection unexpectedly`. That's what `pool_pre_ping` and `pool_recycle` prevent.
 - **create_all() instead of migrations.** The app hits a missing table and throws a `ProgrammingError`, or you edit a model and the live schema silently drifts.
-- **SSL required, plaintext sent.** A public managed Postgres refuses plaintext: `no pg_hba.conf entry for host ... no encryption`. You need `sslmode=require`, or a private network.
+- **SSL required, plaintext sent.** A public managed Postgres refuses plaintext: `no pg_hba.conf entry for host ... no encryption`. You need `sslmode=require`, or an internal connection where the database isn't public.
 
 ## Connect SQLAlchemy to a database: the engine and the URL
 
@@ -61,7 +61,7 @@ if url.startswith("postgres://"):
 engine = create_engine(url, pool_pre_ping=True)
 ```
 
-*(Diagram: two web workers under Gunicorn or Uvicorn, each holding its own SQLAlchemy engine with a QueuePool of up to fifteen connections, pool_size 10 plus max_overflow 5. Their lines converge, annotated 2 × 15 = 30, cross a private-network band, and land on one managed Postgres or MySQL tagged max_connections 100 with automatic backups. The lesson: workers × (pool_size + max_overflow) must stay under the database ceiling.)*
+*(Diagram: two web workers under Gunicorn or Uvicorn, each holding its own SQLAlchemy engine with a QueuePool of up to fifteen connections, pool_size 10 plus max_overflow 5. Their lines converge, annotated 2 × 15 = 30, cross an internal-connection band, and land on one managed Postgres or MySQL tagged max_connections 100 with automatic backups. The lesson: workers × (pool_size + max_overflow) must stay under the database ceiling.)*
 
 > **Coming from Django's ORM?** SQLAlchemy is more explicit on purpose: you build the engine, manage sessions, and run Alembic yourself. More wiring, more control, and it runs under any framework, not one.
 
@@ -247,13 +247,13 @@ SSL is the one place the URL grows. On a public Postgres endpoint that requires 
 postgresql+psycopg://appuser:s3cret@db.example.com:5432/appdb?sslmode=require
 ```
 
-My honest take: the cleanest way to handle database SSL is to not need it. Put the app and database on one private network, give the database no public address, and nothing is exposed in transit. That's the common Kloudbean setup. Weighing the engines? See [MySQL vs PostgreSQL](https://www.kloudbean.com/blog/mysql-vs-postgresql/), plus [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) and [managed MySQL hosting](https://www.kloudbean.com/blog/managed-mysql-hosting/).
+My honest take: the cleanest way to handle database SSL is to not need it. Put the app and database in the same account, lock the database to your app server's IP so it has no public address, and nothing is exposed in transit. That's the common Kloudbean setup. Weighing the engines? See [MySQL vs PostgreSQL](https://www.kloudbean.com/blog/mysql-vs-postgresql/), plus [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) and [managed MySQL hosting](https://www.kloudbean.com/blog/managed-mysql-hosting/).
 
 ## Deploy your SQLAlchemy app on Kloudbean, step by step
 
-Everything above assumes a real database behind it: always on, backed up, patched, private.
+Everything above assumes a real database behind it: always on, backed up, patched, and locked to your app server's IP.
 
-**Step 1. Launch a managed database.** Open DBS and launch PostgreSQL, MySQL, or MariaDB. It comes up provisioned, patched, and backed up, with a private address your app can reach.
+**Step 1. Launch a managed database.** Open DBS and launch PostgreSQL, MySQL, or MariaDB. It comes up provisioned, patched, and backed up, reachable from your app once you whitelist its IP.
 
 *(Screenshot: DBS, Launch Database in the Kloudbean console. Pick PostgreSQL, MySQL, or MariaDB and it arrives provisioned, patched, and backed up.)*
 
@@ -289,7 +289,7 @@ SQLAlchemy is framework-agnostic and gives you a full ORM plus a lower-level Cor
 
 - **Read credentials from the environment.** Every snippet here uses `os.environ`.
 - **Keep `.env` out of Git.** A string committed once lives in history forever.
-- **Put the database on a private network.** With no public address, most of the internet can't reach it.
+- **Whitelist your app server's IP on the database.** When only your app server is allowed, most of the internet can't reach it.
 - **Use a least-privilege database user.** Your app doesn't need superuser; grant what it uses.
 - **Rotate passwords, and build so you can.** With the secret in an env var, rotating it is a config change.
 - **Keep automatic backups on.** A managed database backs up on a schedule.
@@ -319,14 +319,14 @@ If a list endpoint got slow right after you added a relationship, this is almost
 
 **Give your SQLAlchemy app a database that's ready for production.**
 
-Launch managed PostgreSQL or MySQL, drop the connection string into one environment variable, size the pool, and run `alembic upgrade head` on a private network with automatic backups. Start free at [kloudbean.com](https://www.kloudbean.com/), and see plans from $8/mo on [pricing](https://www.kloudbean.com/pricing/).
+Launch managed PostgreSQL or MySQL, drop the connection string into one environment variable, size the pool, and run `alembic upgrade head` with IP allow-listing and automatic backups. Start free at [kloudbean.com](https://www.kloudbean.com/), and see plans from $8/mo on [pricing](https://www.kloudbean.com/pricing/).
 
-One-click databases · Automatic backups · Private networking · Env vars in the UI · Free migration · Free trial
+One-click databases · Automatic backups · Env vars in the UI · Free migration · Free trial
 
 ## FAQ
 
 **How do I connect SQLAlchemy to a database in production?**
-Build one engine from a connection string kept in an environment variable, hand out short-lived sessions from a sessionmaker, and run Alembic migrations on deploy over a private network.
+Build one engine from a connection string kept in an environment variable, hand out short-lived sessions from a sessionmaker, and run Alembic migrations on deploy, with the database locked to your app server's IP.
 
 **What is pool_pre_ping in SQLAlchemy?**
 pool_pre_ping runs a cheap test on a pooled connection before use. If it died while idle, SQLAlchemy swaps in a live one instead of failing the query, which kills stale-connection errors after a restart.
@@ -347,7 +347,7 @@ Pass pool_size and max_overflow to create_engine, or set them in SQLALCHEMY_ENGI
 Use postgresql+psycopg://user:password@host:5432/dbname for Postgres and mysql+pymysql://user:password@host:3306/dbname for MySQL. The shape is dialect+driver://user:password@host:port/dbname, and it belongs in a DATABASE_URL variable.
 
 **How do I connect SQLAlchemy to a database over SSL?**
-For libpq-based Postgres drivers, append sslmode=require to the URL query string. MySQL takes SSL through connect_args passed to create_engine. On a private network the database has no public endpoint, so no SSL is needed.
+For libpq-based Postgres drivers, append sslmode=require to the URL query string. MySQL takes SSL through connect_args passed to create_engine. When the database has no public endpoint and only your app server's IP can reach it, no SSL is needed.
 
 **Why do I get Can't load plugin sqlalchemy.dialects postgres?**
 Your URL starts with postgres:// but modern SQLAlchemy only accepts postgresql://; the short alias was removed in 1.4. Replace the scheme before you call create_engine.

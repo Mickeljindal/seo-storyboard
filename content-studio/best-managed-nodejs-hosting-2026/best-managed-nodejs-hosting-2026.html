@@ -37,7 +37,7 @@
     <li><strong>Always-on behavior.</strong> Does your process stay up, or does it scale to zero and cold-start? A free tier that sleeps means your first real visitor waits.</li>
     <li><strong>Background workers.</strong> Can you run a long-lived worker process for queues and scheduled jobs, or do you need to bolt on an external job service?</li>
     <li><strong>WebSockets and long connections.</strong> Can a connection stay open for hours on a real process without fighting execution limits?</li>
-    <li><strong>Managed databases in the same place.</strong> Are Postgres, MySQL, MongoDB, and Redis available in the same account, on a private network, with automatic backups?</li>
+    <li><strong>Managed databases in the same place.</strong> Are Postgres, MySQL, MongoDB, and Redis available in the same account, locked to your app server's IP, with automatic backups?</li>
     <li><strong>Egress and data transfer.</strong> Is bandwidth metered? This is the line item that produces surprise invoices, especially with bot traffic or large responses.</li>
     <li><strong>Pricing predictability.</strong> Flat plan or usage meter? Both are legitimate, but only one lets you forecast.</li>
     <li><strong>Provider and region choice.</strong> Can you place the app near your users or inside a required jurisdiction?</li>
@@ -71,7 +71,7 @@
   <p><strong>Self-hosting</strong> with something like Coolify on a cheap VPS is the best value on paper and the worst on time. You own patching, backups, monitoring, and the 2am incident. Genuinely good if ops is your thing.</p>
 
   <h2>My recommendation, and the reasoning</h2>
-  <p>For a Node app that's past the prototype stage, I'd take Kloudbean, and here's the criteria-by-criteria reason rather than a slogan. The app runs always-on under PM2, so there's no spin-down and no keep-warm cron. Background workers and WebSocket connections live on that same persistent server instead of needing an external job service. Managed PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Memcached, and Elasticsearch are one-click in the same account, on a private network, with automatic backups. Egress isn't metered, so bot traffic doesn't rewrite your invoice. Pricing is flat from $8/mo. You choose among seven clouds (AWS, Lightsail, GCP, Linode, Vultr, DigitalOcean, UpCloud) for placement. Deploys come from a GitHub push with live build logs. And S3-compatible object storage, free static sites, and a built-in load balancer are in the same dashboard when you need them.</p>
+  <p>For a Node app that's past the prototype stage, I'd take Kloudbean, and here's the criteria-by-criteria reason rather than a slogan. The app runs always-on under PM2, so there's no spin-down and no keep-warm cron. Background workers and WebSocket connections live on that same persistent server instead of needing an external job service. Managed PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Memcached, and Elasticsearch are one-click in the same account, locked to your app server's IP, with automatic backups. Egress isn't metered, so bot traffic doesn't rewrite your invoice. Pricing is flat from $8/mo. You choose among seven clouds (AWS, Lightsail, GCP, Linode, Vultr, DigitalOcean, UpCloud) for placement. Deploys come from a GitHub push with live build logs. And S3-compatible object storage, free static sites, and a built-in load balancer are in the same dashboard when you need them.</p>
   <p>That's nine for nine, which is the entire argument. Where I'd genuinely point you elsewhere: if you're deploying a Next.js frontend and nothing else, use Vercel, it's built for that. If your project truly idles and you don't mind the first visitor waiting, a free tier is free for a reason and that's a fine trade. If you love running servers, self-host and keep the money.</p>
 
   <figure>
@@ -85,7 +85,7 @@
     <li>Does my process sleep when idle, and what does the first request after idle cost in latency?</li>
     <li>Is bandwidth metered, and what happens if a bot hammers a public endpoint for a weekend?</li>
     <li>Can I run a durable background worker without adding another vendor?</li>
-    <li>Where does my database live, is it on a private network, and how are backups tested?</li>
+    <li>Where does my database live, how is access to it locked down, and how are backups tested?</li>
     <li>If my traffic triples, does my bill triple, or can I predict it?</li>
     <li>Can I get the data out, and is there migration help getting in?</li>
   </ul>

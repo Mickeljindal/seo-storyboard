@@ -5,7 +5,7 @@
 You run your app and it dies with something like `Error: connect ECONNREFUSED 127.0.0.1:5432`. Frustrating, but this is one of the most diagnosable errors in Node.js, because it tells you exactly what happened: your code tried to open a TCP connection to a host and port, and nothing there accepted it. Not a timeout, not DNS, a refusal. Once you read it that way, the fix is almost always one of a short list. Let's walk through what it means and how to clear it fast.
 
 > **How do I fix ECONNREFUSED in Node.js?**
-> ECONNREFUSED means nothing is listening at the host and port your app tried to reach, or a firewall blocked it. Check three things in order: is the target service (database, Redis, API) actually running; do the host and port in your config match where it's really listening; and in production, are you using the correct private hostname instead of `127.0.0.1`. Confirm with `pg_isready` or `redis-cli ping`, fix the address, and open the port if a firewall is in the way.
+> ECONNREFUSED means nothing is listening at the host and port your app tried to reach, or a firewall blocked it. Check three things in order: is the target service (database, Redis, API) actually running; do the host and port in your config match where it's really listening; and in production, are you using the correct database hostname instead of `127.0.0.1`. Confirm with `pg_isready` or `redis-cli ping`, fix the address, and open the port if a firewall is in the way.
 
 ## What ECONNREFUSED actually means
 
@@ -49,7 +49,7 @@ Nine times out of ten the mismatch is right there. If the service is up and the 
 
 ## The localhost trap in production
 
-This deserves its own section because it catches so many people moving from laptop to production. On your machine, the app and the database share one host, so `127.0.0.1:5432` works. Deploy that same code to a container or a platform where the database is a separate managed service, and `127.0.0.1` now means "this container," where no database is running. Refused. The fix is to never hardcode the host. Read it from an environment variable and set it to the real private hostname in production:
+This deserves its own section because it catches so many people moving from laptop to production. On your machine, the app and the database share one host, so `127.0.0.1:5432` works. Deploy that same code to a container or a platform where the database is a separate managed service, and `127.0.0.1` now means "this container," where no database is running. Refused. The fix is to never hardcode the host. Read it from an environment variable and set it to the real database hostname in production:
 
 ```bash
 # Local
@@ -91,17 +91,17 @@ This turns a fatal boot error into a few seconds of patience. Just don't use ret
 
 ## How managed infrastructure sidesteps this
 
-A lot of ECONNREFUSED pain is really "my app and my database can't find each other." That mostly disappears when they live together. On Kloudbean your Node app and its managed database run in the same dashboard on a private network, so the app connects to the database over that private link with a supplied connection string, no exposing the database to the public internet and no guessing at hostnames. The database is managed, so "is it even running" stops being your problem. It doesn't make the error impossible (a typo in an env var is still a typo), but it removes the most common structural causes.
+A lot of ECONNREFUSED pain is really "my app and my database can't find each other." That mostly disappears when they live together. On Kloudbean your Node app and its managed database run in the same dashboard, right next to each other, so the app reaches the database with a supplied connection string, locked down so only your app server's IP can connect, no exposing the database to the public internet and no guessing at hostnames. The database is managed, so "is it even running" stops being your problem. It doesn't make the error impossible (a typo in an env var is still a typo), but it removes the most common structural causes.
 
 ## Related reading
 
 Connection issues and configuration go hand in hand. See [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/) to stop the localhost trap for good, [database connection pooling](https://www.kloudbean.com/blog/database-connection-pooling/) for stable connections under load, and [managed PostgreSQL hosting](https://www.kloudbean.com/blog/managed-postgresql-hosting/) for the database side. For neighboring errors, there's [EADDRINUSE: port already in use](https://www.kloudbean.com/blog/fix-eaddrinuse-port-already-in-use-node/), and to place your app overall, [where to deploy a Node.js app](https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/).
 
-## Keep your app and database on the same private network
+## Keep your app and database right next to each other
 
-Run your Node app and a managed database in one dashboard, connected over a private network with a supplied connection string, so the usual causes of ECONNREFUSED never come up. Deploy from GitHub on flat pricing from $8/mo. Start at [kloudbean.com](https://www.kloudbean.com/).
+Run your Node app and a managed database in one dashboard, side by side, connected with a supplied connection string and locked to your app server's IP, so the usual causes of ECONNREFUSED never come up. Deploy from GitHub on flat pricing from $8/mo. Start at [kloudbean.com](https://www.kloudbean.com/).
 
-Managed database · Private networking · Env vars per environment · GitHub deploys · Flat from $8/mo
+Managed database · Env vars per environment · GitHub deploys · Flat from $8/mo
 
 ## FAQ
 
@@ -112,7 +112,7 @@ It means your app opened a TCP connection to a host and port, and the other side
 Confirm Postgres is running with `pg_isready -h host -p 5432`, then verify the host and port your app uses actually match. In production, make sure you're pointing at the real database hostname rather than `127.0.0.1`. If it's up and correct but still refused, check the firewall and the database's listen address.
 
 **Why does my app get ECONNREFUSED only in production?**
-Almost always because the code hardcodes `127.0.0.1`. Locally the app and database share a host, so localhost works; in production the database is a separate host, so localhost points at nothing. Read the connection host from an environment variable and set it to the correct private hostname per environment.
+Almost always because the code hardcodes `127.0.0.1`. Locally the app and database share a host, so localhost works; in production the database is a separate host, so localhost points at nothing. Read the connection host from an environment variable and set it to the correct database hostname per environment.
 
 **Is ECONNREFUSED a firewall problem?**
 It can be, but check the simpler causes first. A firewall or security group blocking the port will cause it, yet more often the service just isn't running or the address is wrong. Verify the service is up and the host and port match before you go digging in firewall rules.

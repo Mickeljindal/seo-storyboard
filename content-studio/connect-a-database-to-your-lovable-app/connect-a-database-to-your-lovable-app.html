@@ -40,13 +40,13 @@
   <ul>
     <li><strong>Ownership.</strong> Your data sits on infrastructure you control, not inside a product whose terms can change under you.</li>
     <li><strong>Cost at scale.</strong> Metered backends look cheap at zero users and get spiky as you grow. A flat plan is predictable, which is what you want a bill to be.</li>
-    <li><strong>The database next to the app.</strong> Share a private network and queries skip the round trip across the public internet. Less latency, fewer moving parts.</li>
+    <li><strong>The database next to the app.</strong> Put them in the same account and queries skip the round trip across the public internet. Less latency, fewer moving parts.</li>
     <li><strong>One dashboard.</strong> Server, app, and database in one login and one bill, instead of stitching three vendors together.</li>
   </ul>
   <p>My honest take: most Lovable apps don't need to leave Supabase on day one. The <strong>Lovable production database</strong> question is an ownership question first, a technology question second. If Supabase does real work for you (login, uploads, row-level rules), owning it beats ripping it out. Move because the app is genuinely simpler your way, not to prove a point.</p>
 
   <figure>
-    <svg viewBox="0 0 760 300" role="img" aria-label="Diagram: the browser calls your API over HTTPS, and only the API holds DATABASE_URL and talks to the managed database on a private network. Connecting the database straight from the browser is blocked." style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
+    <svg viewBox="0 0 760 300" role="img" aria-label="Diagram: the browser calls your API over HTTPS, and only the API holds DATABASE_URL and talks to the managed database over an internal connection. Connecting the database straight from the browser is blocked." style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
       <text x="28" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Where a database connection belongs</text>
       <text x="28" y="55" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12.5">The browser talks to your server. Only the server talks to the database.</text>
 
@@ -58,9 +58,9 @@
       </g>
       <text x="378" y="118" text-anchor="middle" fill="#c0392b" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600">DB credentials in front-end code = full leak</text>
 
-      <!-- private network box -->
+      <!-- server-side zone box -->
       <rect x="300" y="150" width="416" height="126" rx="16" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5" stroke-dasharray="6 6"/>
-      <text x="318" y="172" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.5">PRIVATE NETWORK · VPC</text>
+      <text x="318" y="172" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.5">SERVER SIDE · IP ALLOW-LISTING</text>
 
       <!-- browser node -->
       <rect x="24" y="176" width="146" height="78" rx="12" fill="#000f27"/>
@@ -93,7 +93,7 @@
       <path d="M580 215 l-9 -4 v8 z" fill="#4F1AF3"/>
       <text x="538" y="207" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="10.5">DATABASE_URL</text>
     </svg>
-    <figcaption>The safe shape: browser to your API over HTTPS, API to the managed database over a private network. The dashed red path (browser straight to the database) is the leak you avoid.</figcaption>
+    <figcaption>The safe shape: browser to your API over HTTPS, API to the managed database over an internal connection. The dashed red path (browser straight to the database) is the leak you avoid.</figcaption>
   </figure>
 
   <h2>The rule that keeps you safe: your database never talks to the browser</h2>
@@ -158,7 +158,7 @@ app.get("/api/todos", async (_req, res) =&gt; {
   <p>Here's the real click-path, whichever database you landed on. None of it needs a DevOps hire, but the steps are specific, so I'll show the actual screens.</p>
 
   <h3>1. Launch a managed database</h3>
-  <p>Open the <strong>DBS</strong> section and hit <strong>Launch Database</strong>. Kloudbean runs seven managed engines, so pick PostgreSQL (the safe default for a Lovable app, since that's what it already used) or MySQL if your stack expects it. Name it, create it, and a minute or two later it's provisioned, on a private network, and already backed up. On Path A instead? Launch <strong>Supabase</strong> as a one-click app here rather than a bare database.</p>
+  <p>Open the <strong>DBS</strong> section and hit <strong>Launch Database</strong>. Kloudbean runs seven managed engines, so pick PostgreSQL (the safe default for a Lovable app, since that's what it already used) or MySQL if your stack expects it. Name it, create it, and a minute or two later it's provisioned, locked to your app server's IP, and already backed up. On Path A instead? Launch <strong>Supabase</strong> as a one-click app here rather than a bare database.</p>
   <figure>
     <img src="../assets/console/launch-database.png" alt="Kloudbean Launch Database screen with managed PostgreSQL, MySQL, and other engines for a Lovable app">
     <figcaption>DBS then Launch Database: pick managed PostgreSQL for a Lovable app, or launch managed Supabase for Path A.</figcaption>
@@ -207,8 +207,8 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOi...</code></pre>
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Give your Lovable app a database it actually owns.</p>
-    <p style="margin:0 0 .6em">Managed PostgreSQL and MySQL, one-click managed Supabase, automatic backups, and private networking, all beside your app on a server you control. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">One-click databases · Automatic backups · Private networking · Free migration · Free trial · Simple Git deploy</p>
+    <p style="margin:0 0 .6em">Managed PostgreSQL and MySQL, one-click managed Supabase, automatic backups, and IP allow-listing, all beside your app on a server you control. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">One-click databases · Automatic backups · Free migration · Free trial · Simple Git deploy</p>
   </div>
 
   <h2>FAQ</h2>

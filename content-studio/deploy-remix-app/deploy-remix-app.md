@@ -39,7 +39,7 @@ That server step is the whole difference. Code has to run, live, for every reque
 
 If your project is genuinely all static, you'd use a plain static build and skip this. You picked Remix, so you wanted the server render. Let's deploy the server.
 
-<!-- SVG: one request to a Remix app. Browser sends GET /products to the Remix Node server; inside the server boundary, build/server/index.js receives it, the loader runs and queries a managed database over the private network, then React renders to HTML that already contains the data; the HTML plus data is sent back to the browser, which then hydrates. Navy #000f27 / purple #4F1AF3 / green #40b75f. -->
+<!-- SVG: one request to a Remix app. Browser sends GET /products to the Remix Node server; inside the server boundary, build/server/index.js receives it, the loader runs and queries a managed database over the local network, then React renders to HTML that already contains the data; the HTML plus data is sent back to the browser, which then hydrates. Navy #000f27 / purple #4F1AF3 / green #40b75f. -->
 
 *One request, start to finish. The loader and the database call both happen inside the server boundary, before any HTML reaches the browser. That server is what you deploy.*
 
@@ -191,7 +191,7 @@ import { PrismaClient } from "@prisma/client";
 export const db = new PrismaClient();   // reads DATABASE_URL from the environment
 ```
 
-Then any loader or action imports `db` and queries away, like the products example earlier. Launch a managed database, copy its connection string into `DATABASE_URL`, and reach it over the private network so the trip from your Remix server to the database stays off the public internet. Kloudbean runs seven managed engines (PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Memcached, and Elasticsearch), each with automatic backups. The full pattern is in [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), and the Prisma details are in [connecting Prisma to a managed database](https://www.kloudbean.com/blog/connect-prisma-to-a-managed-database/).
+Then any loader or action imports `db` and queries away, like the products example earlier. Launch a managed database, copy its connection string into `DATABASE_URL`, and reach it over the local network so the trip from your Remix server to the database stays off the public internet. Kloudbean runs seven managed engines (PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Memcached, and Elasticsearch), each with automatic backups. The full pattern is in [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), and the Prisma details are in [connecting Prisma to a managed database](https://www.kloudbean.com/blog/connect-prisma-to-a-managed-database/).
 
 > **Run migrations in the deploy, not by hand.** Add your migration command to the build step, for example `npx prisma migrate deploy`, so the schema exists before the app serves a request. A first deploy against a database with no tables fails in a confusing way. A common mistake we see: skipping this, then chasing a loader error that's really a missing table.
 
@@ -269,7 +269,7 @@ Second, your server lives in one region, not a global edge. Remix can target edg
 
 Deploy your Remix app from Git onto a managed Node server you own, with the reverse proxy, SSL, and process manager already handled, and a managed database a click away. Start at [kloudbean.com](https://www.kloudbean.com/) from $8/mo, or talk to us about Enterprise. Sizes on [pricing](https://www.kloudbean.com/pricing/).
 
-Node.js stack · Git deploy with live logs · Free auto-renewing SSL · Managed databases · Private networking · Automatic backups · Free migration · Free trial
+Node.js stack · Git deploy with live logs · Free auto-renewing SSL · Managed databases · Automatic backups · Free migration · Free trial
 
 ## FAQ
 
@@ -295,7 +295,7 @@ A loader runs on the server on GET requests to fetch data before the page render
 
 ### How do I connect a Remix app to a database?
 
-Put your database client in a server-only module such as `db.server.ts`, read the connection string from an environment variable like `DATABASE_URL`, and import it into your loaders and actions. Use a managed Postgres or MySQL with an ORM like Prisma or Drizzle, and reach it over a private network. Run migrations in your deploy step so the schema exists before the first request.
+Put your database client in a server-only module such as `db.server.ts`, read the connection string from an environment variable like `DATABASE_URL`, and import it into your loaders and actions. Use a managed Postgres or MySQL with an ORM like Prisma or Drizzle, and lock it to your app server's IP so only your app can reach it. Run migrations in your deploy step so the schema exists before the first request.
 
 ### Is Remix the same as React Router now?
 

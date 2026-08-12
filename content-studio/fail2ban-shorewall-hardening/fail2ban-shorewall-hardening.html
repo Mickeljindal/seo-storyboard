@@ -269,7 +269,7 @@ Status for the jail: sshd
     <figcaption>Least privilege in practice: a subuser gets view and deploy on one app and nothing destructive, instead of full account access.</figcaption>
   </figure>
 
-  <p><strong>Keep your database off the public internet.</strong> A database port facing the world is an accident waiting to happen. Put it on a private network so it answers your app servers and no one else. That's what a <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">VPC</a> is for.</p>
+  <p><strong>Keep your database off the public internet.</strong> A database port facing the world is an accident waiting to happen. Whitelist your app servers' IPs so the database answers them and no one else, which is exactly what IP Access Control does. For network-level isolation on top of that, a <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">VPC</a> is the Enterprise option.</p>
 
   <p><strong>Add an application-layer guard.</strong> Shorewall and Fail2ban work at the network and log level. They don't read HTTP payloads, so they won't catch SQL injection or a flood of requests that all look valid. That's a job for a WAF or a CDN like Cloudflare in front, which Kloudbean offers as an add-on. Start with <a href="https://www.kloudbean.com/blog/what-a-waf-does/">what a WAF actually does</a>, and send sane <a href="https://www.kloudbean.com/blog/security-headers-guide/">security headers</a> while you're at it.</p>
 
@@ -301,7 +301,7 @@ Status for the jail: sshd
     <figcaption>Launch a server on any of the seven clouds and it comes up hardened: Shorewall and Fail2ban on by default, SSL ready for your domain.</figcaption>
   </figure>
 
-  <p>From the dashboard you can see which ports are open, watch the IPs Fail2ban has blocked, and lift a ban with one click. IP Access Control, subusers and UAC, private networking, and automatic backups all live in the same console, so the checklist above is a few toggles rather than a lost weekend.</p>
+  <p>From the dashboard you can see which ports are open, watch the IPs Fail2ban has blocked, and lift a ban with one click. IP Access Control, subusers and UAC, and automatic backups all live in the same console, so the checklist above is a few toggles rather than a lost weekend.</p>
 
   <p>What's still yours: your SSH keys and your application's own security. Managed means the server, firewall, ban rules, SSL, and patching are handled for you. It does not mean your code is automatically safe. Nobody's is, and any host that tells you otherwise is selling something.</p>
 
@@ -360,7 +360,7 @@ Status for the jail: sshd
     {
       "@type": "FAQPage",
       "mainEntity": [
-        { "@type": "Question", "name": "What is the difference between Fail2ban and a firewall?", "acceptedAnswer": { "@type": "Answer", "text": "A firewall like Shorewall decides which ports are open or closed, and it applies that policy the same way to everyone, all the time. Fail2ban is reactive. It watches login activity on the ports you keep open and bans an IP only after it fails to authenticate too many times. The firewall sets the fixed policy and Fail2ban responds to behaviour. You want both." } },
+        { "@type": "Question", "name": "What's the difference between Fail2ban and a firewall?", "acceptedAnswer": { "@type": "Answer", "text": "A firewall like Shorewall decides which ports are open or closed, and it applies that policy the same way to everyone, all the time. Fail2ban is reactive. It watches login activity on the ports you keep open and bans an IP only after it fails to authenticate too many times. The firewall sets the fixed policy and Fail2ban responds to behaviour. You want both." } },
         { "@type": "Question", "name": "Does Fail2ban stop all attacks?", "acceptedAnswer": { "@type": "Answer", "text": "No, and it is not meant to. Fail2ban is very good at slowing brute force and credential stuffing against services like SSH. It does nothing about application-layer attacks such as SQL injection, or a distributed flood from thousands of IPs that each only try once. For those you need a WAF or a CDN like Cloudflare in front, plus solid application code." } },
         { "@type": "Question", "name": "How do I unban my own IP?", "acceptedAnswer": { "@type": "Answer", "text": "Run sudo fail2ban-client set sshd unbanip followed by your address, swapping sshd for whichever jail banned you. On Kloudbean you can also open the server security panel, find the IP in the blocked list, and click unblock. To stop it recurring, add your address to ignoreip in the DEFAULT section of jail.local." } },
         { "@type": "Question", "name": "Is Shorewall better than iptables?", "acceptedAnswer": { "@type": "Answer", "text": "It is a bit of a false choice, because Shorewall generates iptables rules under the hood. Raw iptables gives you total control and zero guardrails, which is powerful and easy to get wrong. Shorewall gives you readable config files that compile down to the same rules, so it is usually the better pick for a server you maintain over months. Newer systems may use nftables, which Shorewall can also target." } },

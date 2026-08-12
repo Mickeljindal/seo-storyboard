@@ -139,14 +139,14 @@ Add your custom domain in the app's domain settings, point its DNS at the server
 
 Most Express apps are an API in front of a database, so this is the part that matters. Move your data off any local file before you have users, not after. A SQLite file or a JSON store on the app server's disk works right up until your first redeploy or a second instance, and then it's gone or out of sync.
 
-Open **Launch Database** and create a managed engine. Kloudbean runs seven: PostgreSQL, MySQL, MariaDB, Redis, Memcached, Elasticsearch, and MongoDB. It provisions on the same box or a private network, gets backed up on a schedule, and hands you credentials. Feed those into your env vars as a connection string, and read it in Express, never hardcoded:
+Open **Launch Database** and create a managed engine. Kloudbean runs seven: PostgreSQL, MySQL, MariaDB, Redis, Memcached, Elasticsearch, and MongoDB. It provisions on the same box or as a separate managed instance in your account, gets backed up on a schedule, and hands you credentials. Feed those into your env vars as a connection string, and read it in Express, never hardcoded:
 
 ```js
 // read the connection string from the environment
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 ```
 
-Two things worth getting right early. Use a **connection pool** rather than opening a socket per request, because an Express app under load will exhaust a database's connection limit fast if every handler dials its own. And keep the database on the private network, not a public port, so only your app can reach it. The full walkthrough, pooling, migrations on deploy, and when an external managed database still makes sense, is in [add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/). If your Express app also runs scheduled work, you can add cron jobs from the dashboard without a separate service or SSH.
+Two things worth getting right early. Use a **connection pool** rather than opening a socket per request, because an Express app under load will exhaust a database's connection limit fast if every handler dials its own. And lock the database down with IP allow-listing so only your app server can reach it, not the public internet. The full walkthrough, pooling, migrations on deploy, and when an external managed database still makes sense, is in [add a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/). If your Express app also runs scheduled work, you can add cron jobs from the dashboard without a separate service or SSH.
 
 ## When it 502s or 503s after you deploy
 
@@ -197,7 +197,7 @@ Run it under a process manager, not in a terminal. On Kloudbean that's PM2, conf
 No. A single Express app is one process, and a managed server runs it directly, restarts it on crash, and puts it behind a proxy with SSL. Docker and Kubernetes solve orchestration across many services at scale. For shipping one API, they're extra moving parts you don't need yet.
 
 **How do I connect a database to my Express app?**
-Launch a managed database (Postgres, MySQL, Redis, and more), put its connection string in an environment variable, and read it in code with `process.env.DATABASE_URL`. Use a connection pool rather than a socket per request, and keep the database on the private network instead of a public port. Never commit credentials to the repo.
+Launch a managed database (Postgres, MySQL, Redis, and more), put its connection string in an environment variable, and read it in code with `process.env.DATABASE_URL`. Use a connection pool rather than a socket per request, and lock the database to your app server's IP instead of leaving a public port open. Never commit credentials to the repo.
 
 **How do I add a health check to an Express app?**
 Add a small route like `/healthz` that returns a 200 and touches nothing slow. Keep it independent of your database, so a brief database blip doesn't mark the whole app unhealthy and trigger restarts. If you want a deeper check, expose it on a separate path that only your monitoring calls.
