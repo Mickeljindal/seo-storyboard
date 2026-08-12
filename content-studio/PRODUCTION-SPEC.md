@@ -169,8 +169,9 @@ first, sell last. A competitor gets at most one measured nod, then pivot to Klou
 advantages. Never fabricate personal anecdotes, numbers, or customer stories.
 
 CTA at the end: outcome first, then a scannable feature line drawn ONLY from confirmed facts,
-e.g. "One-click databases · Automatic backups · Private networking · Free migration · Free
-trial · Simple Git deploy". Link kloudbean.com and /pricing/.
+e.g. "One-click databases · Automatic backups · Free SSL · Free migration · Free trial · Simple
+Git deploy". Do NOT list "Private networking" as a default perk: it is Enterprise-only, not a
+default (managed DBs are locked down with IP allow-listing). Link kloudbean.com and /pricing/.
 
 ---
 

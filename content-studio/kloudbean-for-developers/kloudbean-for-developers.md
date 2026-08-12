@@ -5,7 +5,7 @@
 This is the page to read if you're evaluating Kloudbean as an engineer and you want facts rather than a pitch. What runtimes it runs, which clouds it provisions on, which database engines are managed, how deploys work, what security is on by default, how billing is shaped, and, importantly, what it deliberately doesn't do. Everything here is checkable, and where something is gated behind an Enterprise plan we say so rather than implying it's included.
 
 > **What is Kloudbean?**
-> Kloudbean is a managed cloud hosting platform that runs your whole stack from one dashboard: application servers, managed databases, S3-compatible object storage, static sites, private networking, and a built-in load balancer. It provisions on seven cloud providers and has shipped monthly since November 2023. Applications run always-on as persistent processes rather than scale-to-zero functions, so there are no cold starts. Pricing is flat from $8/mo and egress isn't metered.
+> Kloudbean is a managed cloud hosting platform that runs your whole stack from one dashboard: application servers, managed databases, S3-compatible object storage, static sites, and a built-in load balancer. It provisions on seven cloud providers and has shipped monthly since November 2023. Applications run always-on as persistent processes rather than scale-to-zero functions, so there are no cold starts. Pricing is flat from $8/mo and egress isn't metered.
 
 ## The execution model
 
@@ -41,7 +41,7 @@ Seven engines, one-click, with automatic backups and access controls, provisione
 
 PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Memcached, and Elasticsearch.
 
-Two things make this practically different from bolting on a separate database provider. First, the app and database sit on a private network, so your connection string points at a private host rather than exposing the database to the public internet. Second, because they're in the same account and there's no egress metering, you're not paying to move your own data between products. Redis here is what you'd point BullMQ at for a job queue, or use as a Socket.IO pub/sub adapter when you scale to more than one instance.
+Two things make this practically different from bolting on a separate database provider. First, you lock the database to your app server's IP with IP Access Control, so only your app can reach it rather than the whole public internet. Second, because they're in the same account and there's no egress metering, you're not paying to move your own data between products. Redis here is what you'd point BullMQ at for a job queue, or use as a Socket.IO pub/sub adapter when you scale to more than one instance.
 
 ## Storage, static sites, and load balancing
 
@@ -86,20 +86,20 @@ Start with [where to deploy a Node.js app](https://www.kloudbean.com/blog/where-
 
 ## Try it against your own app
 
-Launch a server on your choice of seven clouds, deploy from GitHub with live build logs, add a managed database on a private network, and keep a flat bill from $8/mo with no egress metering. Free trial and free migration assistance. Start at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
+Launch a server on your choice of seven clouds, deploy from GitHub with live build logs, add a managed database locked to your app server's IP, and keep a flat bill from $8/mo with no egress metering. Free trial and free migration assistance. Start at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
 
 7 clouds · 7 managed DB engines · Always-on under PM2 · S3-compatible storage · Built-in load balancer · Flat from $8/mo
 
 ## FAQ
 
 **What is Kloudbean?**
-Kloudbean is a managed cloud hosting platform that runs your whole application stack from one dashboard: app servers, managed databases, S3-compatible object storage, static sites, private networking, and a built-in load balancer. It provisions on seven cloud providers and runs applications as persistent always-on processes rather than scale-to-zero functions.
+Kloudbean is a managed cloud hosting platform that runs your whole application stack from one dashboard: app servers, managed databases, S3-compatible object storage, static sites, and a built-in load balancer. It provisions on seven cloud providers and runs applications as persistent always-on processes rather than scale-to-zero functions.
 
 **Which cloud providers does Kloudbean support?**
 Seven: AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud. You choose the provider and region when launching a server, which determines latency to your users and which jurisdictions you can serve. Keep your app and database in the same region to avoid adding latency to every query.
 
 **Which databases does Kloudbean manage?**
-Seven engines one-click with automatic backups and access controls: PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Memcached, and Elasticsearch. They're provisioned in the same account as your app and reachable over a private network, so the database isn't exposed to the public internet and you aren't paying to move data between separate products.
+Seven engines one-click with automatic backups and access controls: PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Memcached, and Elasticsearch. They're provisioned in the same account as your app and reachable once you whitelist your app server's IP, so the database isn't exposed to the public internet and you aren't paying to move data between separate products.
 
 **Does Kloudbean have cold starts?**
 No. Applications run as persistent always-on processes, under PM2 for Node, so the process stays warm and the first request after an idle period is as fast as any other. There's no scale-to-zero and no keep-warm workaround to maintain. The tradeoff is that you pay for the server whether it's busy or idle.

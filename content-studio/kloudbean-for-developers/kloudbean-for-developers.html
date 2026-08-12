@@ -28,7 +28,7 @@
 
   <div class="tldr">
     <strong>What is Kloudbean?</strong>
-    <p>Kloudbean is a managed cloud hosting platform that runs your whole stack from one dashboard: application servers, managed databases, S3-compatible object storage, static sites, private networking, and a built-in load balancer. It provisions on seven cloud providers and has shipped monthly since November 2023. Applications run always-on as persistent processes rather than scale-to-zero functions, so there are no cold starts. Pricing is flat from $8/mo and egress isn't metered.</p>
+    <p>Kloudbean is a managed cloud hosting platform that runs your whole stack from one dashboard: application servers, managed databases, S3-compatible object storage, static sites, and a built-in load balancer. It provisions on seven cloud providers and has shipped monthly since November 2023. Applications run always-on as persistent processes rather than scale-to-zero functions, so there are no cold starts. Pricing is flat from $8/mo and egress isn't metered.</p>
   </div>
 
   <h2>The execution model</h2>
@@ -58,7 +58,7 @@
   <h2>Managed databases</h2>
   <p>Seven engines, one-click, with automatic backups and access controls, provisioned in the same account as your app:</p>
   <p>PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Memcached, and Elasticsearch.</p>
-  <p>Two things make this practically different from bolting on a separate database provider. First, the app and database sit on a private network, so your connection string points at a private host rather than exposing the database to the public internet. Second, because they're in the same account and there's no egress metering, you're not paying to move your own data between products. Redis here is what you'd point BullMQ at for a job queue, or use as a Socket.IO pub/sub adapter when you scale to more than one instance.</p>
+  <p>Two things make this practically different from bolting on a separate database provider. First, you lock the database to your app server's IP with IP Access Control, so only your app can reach it rather than the whole public internet. Second, because they're in the same account and there's no egress metering, you're not paying to move your own data between products. Redis here is what you'd point BullMQ at for a job queue, or use as a Socket.IO pub/sub adapter when you scale to more than one instance.</p>
 
   <h2>Storage, static sites, and load balancing</h2>
   <ul>
@@ -105,20 +105,20 @@
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Try it against your own app.</p>
-    <p style="margin:0 0 .6em">Launch a server on your choice of seven clouds, deploy from GitHub with live build logs, add a managed database on a private network, and keep a flat bill from $8/mo with no egress metering. Free trial and free migration assistance. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0 0 .6em">Launch a server on your choice of seven clouds, deploy from GitHub with live build logs, add a managed database locked to your app server's IP, and keep a flat bill from $8/mo with no egress metering. Free trial and free migration assistance. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>, see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
     <p style="margin:0; font-size:15px; opacity:.9">7 clouds · 7 managed DB engines · Always-on under PM2 · S3-compatible storage · Built-in load balancer · Flat from $8/mo</p>
   </div>
 
   <h2>FAQ</h2>
   <div class="faq">
     <h3>What is Kloudbean?</h3>
-    <p>Kloudbean is a managed cloud hosting platform that runs your whole application stack from one dashboard: app servers, managed databases, S3-compatible object storage, static sites, private networking, and a built-in load balancer. It provisions on seven cloud providers and runs applications as persistent always-on processes rather than scale-to-zero functions.</p>
+    <p>Kloudbean is a managed cloud hosting platform that runs your whole application stack from one dashboard: app servers, managed databases, S3-compatible object storage, static sites, and a built-in load balancer. It provisions on seven cloud providers and runs applications as persistent always-on processes rather than scale-to-zero functions.</p>
 
     <h3>Which cloud providers does Kloudbean support?</h3>
     <p>Seven: AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud. You choose the provider and region when launching a server, which determines latency to your users and which jurisdictions you can serve. Keep your app and database in the same region to avoid adding latency to every query.</p>
 
     <h3>Which databases does Kloudbean manage?</h3>
-    <p>Seven engines one-click with automatic backups and access controls: PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Memcached, and Elasticsearch. They're provisioned in the same account as your app and reachable over a private network, so the database isn't exposed to the public internet and you aren't paying to move data between separate products.</p>
+    <p>Seven engines one-click with automatic backups and access controls: PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Memcached, and Elasticsearch. They're provisioned in the same account as your app and reachable once you whitelist your app server's IP, so the database isn't exposed to the public internet and you aren't paying to move data between separate products.</p>
 
     <h3>Does Kloudbean have cold starts?</h3>
     <p>No. Applications run as persistent always-on processes, under PM2 for Node, so the process stays warm and the first request after an idle period is as fast as any other. There's no scale-to-zero and no keep-warm workaround to maintain. The tradeoff is that you pay for the server whether it's busy or idle.</p>
@@ -137,9 +137,9 @@
 {"@context":"https://schema.org","@graph":[
 {"@type":"Article","headline":"Kloudbean for Developers: The Complete Technical Reference","description":"Runtimes, providers, managed databases, storage, load balancing, CI/CD, security defaults, pricing model, and honest limits. The reference page for engineers evaluating Kloudbean.","image":"https://www.kloudbean.com/blog/kloudbean-for-developers/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/kloudbean-for-developers/"},
 {"@type":"FAQPage","mainEntity":[
-{"@type":"Question","name":"What is Kloudbean?","acceptedAnswer":{"@type":"Answer","text":"Kloudbean is a managed cloud hosting platform that runs your whole application stack from one dashboard: app servers, managed databases, S3-compatible object storage, static sites, private networking, and a built-in load balancer. It provisions on seven cloud providers and runs applications as persistent always-on processes rather than scale-to-zero functions."}},
+{"@type":"Question","name":"What is Kloudbean?","acceptedAnswer":{"@type":"Answer","text":"Kloudbean is a managed cloud hosting platform that runs your whole application stack from one dashboard: app servers, managed databases, S3-compatible object storage, static sites, and a built-in load balancer. It provisions on seven cloud providers and runs applications as persistent always-on processes rather than scale-to-zero functions."}},
 {"@type":"Question","name":"Which cloud providers does Kloudbean support?","acceptedAnswer":{"@type":"Answer","text":"Seven: AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud. You choose the provider and region when launching a server, which determines latency to your users and which jurisdictions you can serve. Keep your app and database in the same region to avoid adding latency to every query."}},
-{"@type":"Question","name":"Which databases does Kloudbean manage?","acceptedAnswer":{"@type":"Answer","text":"Seven engines one-click with automatic backups and access controls: PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Memcached, and Elasticsearch. They are provisioned in the same account as your app and reachable over a private network, so the database is not exposed to the public internet and you are not paying to move data between separate products."}},
+{"@type":"Question","name":"Which databases does Kloudbean manage?","acceptedAnswer":{"@type":"Answer","text":"Seven engines one-click with automatic backups and access controls: PostgreSQL, MySQL, MariaDB, MongoDB, Redis, Memcached, and Elasticsearch. They are provisioned in the same account as your app and reachable once you whitelist your app server's IP, so the database is not exposed to the public internet and you are not paying to move data between separate products."}},
 {"@type":"Question","name":"Does Kloudbean have cold starts?","acceptedAnswer":{"@type":"Answer","text":"No. Applications run as persistent always-on processes, under PM2 for Node, so the process stays warm and the first request after an idle period is as fast as any other. There is no scale-to-zero and no keep-warm workaround to maintain. The tradeoff is that you pay for the server whether it is busy or idle."}},
 {"@type":"Question","name":"Does Kloudbean meter bandwidth or egress?","acceptedAnswer":{"@type":"Answer","text":"No. Plans are flat, starting at 8 dollars a month, and egress is not metered, so your bill does not move because traffic did. That is the main structural difference from usage-billed platforms, where invocations, CPU, and data transfer combine into a total that is hard to forecast and exposed to bot traffic."}},
 {"@type":"Question","name":"Does Kloudbean support Kubernetes and autoscaling?","acceptedAnswer":{"@type":"Answer","text":"Those are Enterprise features, along with VPC and VPN private networking, custom architectures, and the Audit Trail. A standard account does not autoscale your application automatically. For most applications that is fine, since vertical resizing plus the built-in load balancer covers the growth path, but it is worth knowing before you plan around it."}}

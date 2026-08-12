@@ -27,7 +27,7 @@
 
   <div class="tldr">
     <strong>The short version</strong>
-    <p>Spin up a managed PostgreSQL or MySQL next to your app. Put the connection in a <code>DATABASE_URL</code> environment variable, never in your code. Run your framework's migrate command (<code>prisma migrate deploy</code>, <code>python manage.py migrate</code>, <code>php artisan migrate</code>, <code>rails db:migrate</code>), then sign up a test user to confirm it sticks. On Kloudbean the database is provisioned, kept on a private network, and backed up for you.</p>
+    <p>Spin up a managed PostgreSQL or MySQL next to your app. Put the connection in a <code>DATABASE_URL</code> environment variable, never in your code. Run your framework's migrate command (<code>prisma migrate deploy</code>, <code>python manage.py migrate</code>, <code>php artisan migrate</code>, <code>rails db:migrate</code>), then sign up a test user to confirm it sticks. On Kloudbean the database is provisioned, locked down with IP allow-listing so only your app server can reach it, and backed up for you.</p>
   </div>
 
   <h2>Why AI-built apps need a real managed database</h2>
@@ -41,13 +41,13 @@
   <p>A managed PostgreSQL or MySQL fixes all of that. It lives on its own, handles plenty of concurrent users, can be reached by more than one app server, and gets backed up without you thinking about it. That's the line between a demo and something you'd put in front of paying customers.</p>
 
   <h2>The architecture, in one picture</h2>
-  <p>Here's the shape of what you're building. A request comes in, your app reads and writes to a managed database over a private network, and that database is backed up on its own schedule.</p>
+  <p>Here's the shape of what you're building. A request comes in, your app reads and writes to a managed database that only your app server's IP is allowed to reach, and that database is backed up on its own schedule.</p>
 
   <figure>
     <svg viewBox="0 0 760 300" role="img" aria-label="Architecture diagram: User to Application to Managed Database to Backups" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
       <text x="30" y="36" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">From request to durable, backed-up data</text>
       <rect x="196" y="70" width="386" height="150" rx="16" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5" stroke-dasharray="6 6"/>
-      <text x="212" y="92" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.5">PRIVATE NETWORK · VPC</text>
+      <text x="212" y="92" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600" letter-spacing="1.5">APP-SERVER IP ONLY</text>
       <!-- User -->
       <rect x="26" y="120" width="120" height="66" rx="12" fill="#000f27"/>
       <text x="86" y="150" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="15" font-weight="600">User</text>
@@ -78,7 +78,7 @@
       <line x1="549" y1="153" x2="612" y2="153" stroke="#40b75f" stroke-width="2"/>
       <path d="M612 153 l-9 -4 v8 z" fill="#40b75f"/>
     </svg>
-    <figcaption>User → Application → Managed Database (on a private network) → automatic Backups.</figcaption>
+    <figcaption>User → Application → Managed Database (locked to your app server IP) → automatic Backups.</figcaption>
   </figure>
 
   <h2>SQLite vs PostgreSQL vs MySQL: when to use each</h2>
@@ -113,7 +113,7 @@
   <p>Open the <strong>DBS</strong> section and hit <strong>Launch Database</strong>. Kloudbean runs six managed engines: PostgreSQL, MySQL, MariaDB, Redis, Elasticsearch, and MongoDB. Pick one, give it a name, create it. A minute or two later it's provisioned, secured, and already being backed up.</p>
 
   <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean console — Launch Database with a choice of managed PostgreSQL, MySQL, MariaDB, Redis, Elasticsearch, or MongoDB">
+    <img src="../assets/console/launch-database.png" alt="The Kloudbean console: Launch Database with a choice of managed PostgreSQL, MySQL, MariaDB, Redis, Elasticsearch, or MongoDB">
     <figcaption>DBS → Launch Database: choose PostgreSQL or MySQL (six managed engines available), and it's provisioned on your server.</figcaption>
   </figure>
 
@@ -124,15 +124,15 @@
   <p>Your app should read its connection from the <strong>environment</strong>, not from a value typed into the source. Open <strong>Runtime Configuration → Environment Variables</strong> and add it, either as a single <code>DATABASE_URL</code> or as separate fields:</p>
 
   <figure>
-    <img src="../assets/console/env-vars.png" alt="The Kloudbean console — Environment Variables, where the database connection string is stored safely, not in code">
+    <img src="../assets/console/env-vars.png" alt="The Kloudbean console: Environment Variables, where the database connection string is stored safely, not in code">
     <figcaption>Runtime Configuration → Environment Variables: the connection lives here, never in your repository.</figcaption>
   </figure>
 
   <p>Here's what those values look like. Use the <strong>Paste .env Content</strong> tab to drop them all in at once:</p>
-<pre><code># PostgreSQL — single connection string
+<pre><code># PostgreSQL: single connection string
 DATABASE_URL=postgresql://appuser:s3cret@10.0.0.5:5432/appdb
 
-# MySQL — single connection string
+# MySQL: single connection string
 DATABASE_URL=mysql://appuser:s3cret@10.0.0.5:3306/appdb
 
 # Or discrete variables (many frameworks read these)
@@ -206,7 +206,7 @@ rails db:migrate                # Rails</code></pre>
   <ul>
     <li><strong>Never hard-code credentials.</strong> Connection strings live in environment variables, not in source.</li>
     <li><strong>Never commit <code>.env</code> files.</strong> Add <code>.env</code> to <code>.gitignore</code> and set the values on the server instead.</li>
-    <li><strong>Keep the database off the public internet.</strong> On Kloudbean it sits on a <strong>private network (VPC)</strong>, reachable by your app internally, not sitting out in the open where scanners find it.</li>
+    <li><strong>Keep the database off the public internet.</strong> On Kloudbean you whitelist your app server's IP on the database (<strong>IP Access Control</strong>), so only that server can connect, not the scanners sweeping the open web.</li>
     <li><strong>Use least-privilege users.</strong> Your app's database user should have the permissions it needs and nothing more. It doesn't need superuser.</li>
     <li><strong>Rotate passwords.</strong> Since the connection is an env var, rotating one is a config change, not a code change.</li>
     <li><strong>Turn on backups, then test a restore.</strong> Automatic backups are on. Actually restoring one before you're in a crisis is the part people skip.</li>
@@ -225,7 +225,7 @@ rails db:migrate                # Rails</code></pre>
 
   <h2>Migrating an existing database (including from Supabase)</h2>
   <p>Already have data? Moving it is a plain export and import, then you repoint the connection string:</p>
-<pre><code># PostgreSQL (works for Supabase too — it's just Postgres)
+<pre><code># PostgreSQL (works for Supabase too, it's just Postgres)
 pg_dump "$OLD_DATABASE_URL" &gt; dump.sql
 psql "$NEW_DATABASE_URL" &lt; dump.sql
 
@@ -248,18 +248,18 @@ mysql -h NEW_HOST -u USER -p appdb &lt; dump.sql</code></pre>
   <p>A database is one piece of owning your whole stack. It sits next to your app, wired in through environment variables, and everything else falls into place around it. Background jobs and scheduled tasks work against it. Big files go to <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">object storage</a> instead of bloating the database. Hot reads get cached in Redis. And it's all covered by <a href="https://www.kloudbean.com/blog/server-backups-guide/">automatic backups</a> behind free SSL. One dashboard, one server, one bill.</p>
 
   <h2>The honest limits</h2>
-  <p>Kloudbean runs six managed engines, PostgreSQL, MySQL, MariaDB, Redis, Elasticsearch, and MongoDB, all on <strong>Linux</strong>. It won't manage every exotic datastore, and it isn't built for Windows-only database stacks. "Managed" means the platform provisions the database, keeps it on a private network, and backs it up, while the schema and the data stay yours to export whenever you like. For plain Postgres or MySQL, which is what nearly every AI-built app actually uses, running one next to your app is about as simple as it gets.</p>
+  <p>Kloudbean runs six managed engines, PostgreSQL, MySQL, MariaDB, Redis, Elasticsearch, and MongoDB, all on <strong>Linux</strong>. It won't manage every exotic datastore, and it isn't built for Windows-only database stacks. "Managed" means the platform provisions the database, locks it down with IP allow-listing, and backs it up, while the schema and the data stay yours to export whenever you like. For plain Postgres or MySQL, which is what nearly every AI-built app actually uses, running one next to your app is about as simple as it gets.</p>
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">A production database, one click away.</p>
-    <p style="margin:0 0 .6em">Managed PostgreSQL and MySQL, with automatic backups, private networking, and free migration help, plus simple Git deploys on the same server. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
-    <p style="margin:0">One-click databases · Automatic backups · Private networking · Free migration · Free trial</p>
+    <p style="margin:0 0 .6em">Managed PostgreSQL and MySQL, with automatic backups, IP allow-listing, and free migration help, plus simple Git deploys on the same server. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">One-click databases · Automatic backups · Free migration · Free trial</p>
   </div>
 
   <h2>FAQ</h2>
   <div class="faq">
     <h3>How do I add a database to my Lovable, Bolt, or Cursor app?</h3>
-    <p>Launch a managed PostgreSQL or MySQL from the DBS section, connect your app through a <code>DATABASE_URL</code> environment variable (not hard-coded), run your framework's migrate command to create the tables, and confirm it works with a test read and write. The database lives on your server, on a private network, and it's backed up automatically.</p>
+    <p>Launch a managed PostgreSQL or MySQL from the DBS section, connect your app through a <code>DATABASE_URL</code> environment variable (not hard-coded), run your framework's migrate command to create the tables, and confirm it works with a test read and write. The database lives on your server, locked to your app server's IP, and it's backed up automatically.</p>
     <h3>PostgreSQL vs MySQL, which should I choose?</h3>
     <p>Both are excellent and fully managed, so you're not going to lose either way. Pick PostgreSQL for a new app with no strong preference. It's the default most AI tools generate against, and its JSON and rich-type support are great. Pick MySQL if your stack already expects it (WordPress, say) or your team knows it well. A typical app won't hit the limits of either.</p>
     <h3>Can I migrate from Supabase?</h3>
@@ -271,7 +271,7 @@ mysql -h NEW_HOST -u USER -p appdb &lt; dump.sql</code></pre>
     <h3>How do I import an existing database?</h3>
     <p>Export it (<code>pg_dump</code> for PostgreSQL, <code>mysqldump</code> for MySQL), import the dump into the new managed database with <code>psql</code> or <code>mysql</code>, then update <code>DATABASE_URL</code> and redeploy. For a large or production database, free migration assistance can do it with minimal downtime.</p>
     <h3>Can I connect to the database remotely?</h3>
-    <p>Your app connects over the private network by default, which is the setup you want. For admin access from your own machine, like a GUI client, you tunnel in through the server rather than exposing the database to the public internet. Keeping it off the open web is the whole point.</p>
+    <p>Your app connects with the connection string, and you whitelist the app server's IP so only it can reach the database, which is the setup you want. For admin access from your own machine, like a GUI client, you tunnel in through the server rather than exposing the database to the public internet. Keeping it off the open web is the whole point.</p>
     <h3>Can multiple apps share one database?</h3>
     <p>Yes. Several apps on the same server can point their <code>DATABASE_URL</code> at one managed database. If you want isolation, give each app its own database, or its own least-privilege user on a shared instance.</p>
     <h3>How do backups work, and can I restore them?</h3>
@@ -280,20 +280,20 @@ mysql -h NEW_HOST -u USER -p appdb &lt; dump.sql</code></pre>
     <p>Yes, unless you're importing an existing database. A new database has no tables, so run your ORM's migrate command (<code>prisma migrate deploy</code>, <code>python manage.py migrate</code>, <code>php artisan migrate</code>, <code>rails db:migrate</code>). Best to run it automatically on deploy so schema changes ship with the code.</p>
   </div>
 
-  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.</p>
+  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale. Faster Than Ever.</p>
 </article>
 
 <script type="application/ld+json">
 {"@context":"https://schema.org","@graph":[
 {"@type":"Article","headline":"How to Add a Managed Database (PostgreSQL or MySQL) to Your App","description":"A complete guide to adding a managed PostgreSQL or MySQL database to an AI-built app: connection strings, framework and ORM examples, migration commands, security, performance, and backups.","image":"https://www.kloudbean.com/blog/add-managed-database-to-your-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/add-managed-database-to-your-app/"},
 {"@type":"FAQPage","mainEntity":[
-{"@type":"Question","name":"How do I add a database to my Lovable, Bolt, or Cursor app?","acceptedAnswer":{"@type":"Answer","text":"Launch a managed PostgreSQL or MySQL from the DBS section, connect your app through a DATABASE_URL environment variable (not hard-coded), run your framework's migrate command to create the tables, and confirm it works with a test read and write. The database lives on your server, on a private network, and it's backed up automatically."}},
+{"@type":"Question","name":"How do I add a database to my Lovable, Bolt, or Cursor app?","acceptedAnswer":{"@type":"Answer","text":"Launch a managed PostgreSQL or MySQL from the DBS section, connect your app through a DATABASE_URL environment variable (not hard-coded), run your framework's migrate command to create the tables, and confirm it works with a test read and write. The database lives on your server, locked to your app server's IP, and it's backed up automatically."}},
 {"@type":"Question","name":"PostgreSQL vs MySQL, which should I choose?","acceptedAnswer":{"@type":"Answer","text":"Both are excellent and fully managed, so you're not going to lose either way. Pick PostgreSQL for a new app with no strong preference. It's the default most AI tools generate against, and its JSON and rich-type support are great. Pick MySQL if your stack already expects it (WordPress, say) or your team knows it well. A typical app won't hit the limits of either."}},
 {"@type":"Question","name":"Can I migrate from Supabase?","acceptedAnswer":{"@type":"Answer","text":"Yes. Supabase is PostgreSQL underneath, so you export with pg_dump, import into a managed PostgreSQL, and repoint DATABASE_URL. You can also launch managed Supabase itself as a one-click app on Kloudbean. Free migration assistance can handle the first move for you."}},
 {"@type":"Question","name":"Does this work with Prisma?","acceptedAnswer":{"@type":"Answer","text":"Yes. Point Prisma's datasource url at env(DATABASE_URL), set that variable to your managed database's connection string, and run npx prisma migrate deploy. Prisma behaves the same whether the database is Postgres or MySQL."}},
 {"@type":"Question","name":"Does it support Laravel?","acceptedAnswer":{"@type":"Answer","text":"Yes. Set DB_CONNECTION, DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, and DB_PASSWORD in your environment, then run php artisan migrate --force. Laravel runs comfortably on managed MySQL or PostgreSQL."}},
 {"@type":"Question","name":"How do I import an existing database?","acceptedAnswer":{"@type":"Answer","text":"Export it (pg_dump for PostgreSQL, mysqldump for MySQL), import the dump into the new managed database with psql or mysql, then update DATABASE_URL and redeploy. For a large or production database, free migration assistance can do it with minimal downtime."}},
-{"@type":"Question","name":"Can I connect to the database remotely?","acceptedAnswer":{"@type":"Answer","text":"Your app connects over the private network by default, which is the setup you want. For admin access from your own machine, like a GUI client, you tunnel in through the server rather than exposing the database to the public internet. Keeping it off the open web is the whole point."}},
+{"@type":"Question","name":"Can I connect to the database remotely?","acceptedAnswer":{"@type":"Answer","text":"Your app connects with the connection string, and you whitelist the app server's IP so only it can reach the database, which is the setup you want. For admin access from your own machine, like a GUI client, you tunnel in through the server rather than exposing the database to the public internet. Keeping it off the open web is the whole point."}},
 {"@type":"Question","name":"Can multiple apps share one database?","acceptedAnswer":{"@type":"Answer","text":"Yes. Several apps on the same server can point their DATABASE_URL at one managed database. If you want isolation, give each app its own database, or its own least-privilege user on a shared instance."}},
 {"@type":"Question","name":"How do backups work, and can I restore them?","acceptedAnswer":{"@type":"Answer","text":"Managed databases are backed up automatically, and you can restore from a backup when you need to. The data stays yours, and you can export it anytime. Do yourself a favor and test a restore before you're depending on it, so you know the path works."}},
 {"@type":"Question","name":"Do I have to run migrations?","acceptedAnswer":{"@type":"Answer","text":"Yes, unless you're importing an existing database. A new database has no tables, so run your ORM's migrate command (prisma migrate deploy, python manage.py migrate, php artisan migrate, rails db:migrate). Best to run it automatically on deploy so schema changes ship with the code."}}

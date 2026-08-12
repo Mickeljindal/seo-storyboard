@@ -67,7 +67,7 @@ The habit worth building is default-deny. Start with nothing allowed, then open 
 
 ## Why a public database is a breach waiting to happen
 
-This is the part I'll be blunt about. A database reachable from the open internet is a breach waiting to happen, so put data services on a private network from day one. Automated scanners sweep the entire IPv4 space constantly, and an open database with a weak or default password gets found fast, sometimes within hours of going live.
+This is the part I'll be blunt about. A database reachable from the open internet is a breach waiting to happen, so keep data services off the open internet from day one. Automated scanners sweep the entire IPv4 space constantly, and an open database with a weak or default password gets found fast, sometimes within hours of going live.
 
 Remember the "Meow" attacks in 2020? A bot roamed the internet finding exposed databases and simply wiped them, overwriting thousands of unsecured Elasticsearch and MongoDB instances with the word "meow" and no ransom, no warning. The common thread wasn't a clever exploit. It was databases left facing the public internet. A private subnet removes that entire category of mistake before you can make it.
 
@@ -81,11 +81,11 @@ Remember the "Meow" attacks in 2020? A bot roamed the internet finding exposed d
 
 ## How this looks on a managed platform
 
-You rarely hand-build this anymore, and honestly you shouldn't have to. A sensible managed host puts the private side in place for you. On Kloudbean, **managed databases sit on a private network** and answer your app internally, not the open internet. You launch one, wire your app to it over the private connection, and the "back room" arrangement is just how the stack is shaped from the first click.
+You rarely hand-build this anymore, and honestly you shouldn't have to. On Kloudbean the everyday way to lock a managed database down is **IP Access Control**: you whitelist your app server's IP address on the database, so only that server can connect and everything else is refused. Pair that with strong credentials and free SSL, and your data service stops answering strangers. If you need full network isolation, with the database in its own private subnet and no public address at all, that is the **VPC (private networking)** available on Enterprise plans.
 
-![The Kloudbean console launching a managed database that lives on the private network, reachable by the app but not the public internet](../assets/console/launch-database.png)
+![The Kloudbean console launching a managed database you can lock down with IP Access Control so only your app server connects](../assets/console/launch-database.png)
 
-Your app server lives on the public side so visitors can reach it, and it talks to the database privately. If you want the deeper how-to, see [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), or the engine-specific guides for [managed MySQL](https://www.kloudbean.com/blog/managed-mysql-hosting/) and [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/). Enterprise and custom setups can run in their own dedicated VPC when isolation requirements go further.
+Your app server faces visitors, and the database answers only the IP you whitelisted. If you want the deeper how-to, see [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/), or the engine-specific guides for [managed MySQL](https://www.kloudbean.com/blog/managed-mysql-hosting/) and [managed Redis](https://www.kloudbean.com/blog/managed-redis-hosting/). Enterprise and custom setups can run in their own dedicated VPC when isolation requirements go further.
 
 <!-- ADD IMAGE: Your own topology diagram, app in the public subnet, database and cache in the private subnet, traffic staying internal. -->
 
@@ -95,15 +95,15 @@ If there's a single trap here, it's giving the database a public address "just s
 
 ## What a VPC won't do for you
 
-A VPC is one strong wall, not the whole castle. It gives you **network isolation**, and on a managed Linux platform that private networking gets wired up for you, so your database sits safely in the back without you editing routing tables. But it only guards the network layer. You still have to secure the public-facing app that *does* have a door, write code that doesn't leak, protect your credentials, and keep the stack patched.
+A VPC is one strong wall, not the whole castle. It gives you **network isolation**. On Enterprise, a managed Linux platform can wire that private networking up for you as a private subnet. On a standard plan you get the same practical safety by whitelisting your app server's IP, so the database only answers that one machine. But it only guards the network layer. You still have to secure the public-facing app that *does* have a door, write code that doesn't leak, protect your credentials, and keep the stack patched.
 
 Think of it as layered defence. A VPC handles one important layer very well. The rest still needs attention, which is why it pairs naturally with [DDoS protection](https://www.kloudbean.com/blog/ddos-protection-explained/), [hardened application hosting](https://www.kloudbean.com/blog/secure-wordpress-hosting/), and, for regulated teams, [data residency controls](https://www.kloudbean.com/blog/data-residency-explained/) and [single-tenant isolation](https://www.kloudbean.com/blog/single-tenant-vs-multi-tenant/). Take the database off the sidewalk first. Then keep locking the doors that remain.
 
 ---
 
-**Your database belongs in the back room.** Run your app on a private network with the database off the public internet, on infrastructure you actually own. Managed databases on a private network, a Shorewall firewall and Fail2ban on every server, automatic backups, and free migration help to get there. Start free at [kloudbean.com](https://www.kloudbean.com/) · see plans on [pricing](https://www.kloudbean.com/pricing/).
+**Your database belongs in the back room.** Keep it off the open internet by whitelisting your app server's IP, so only your app can connect, on infrastructure you actually own. Managed databases with IP Access Control, a Shorewall firewall and Fail2ban on every server, automatic backups, and free migration help to get there. Need a fully isolated private subnet? That is the VPC on Enterprise. Start free at [kloudbean.com](https://www.kloudbean.com/) · see plans on [pricing](https://www.kloudbean.com/pricing/).
 
-Private networking · Managed databases · Shorewall + Fail2ban · Automatic backups · Free migration · Free trial
+IP allow-listing · Managed databases · Shorewall + Fail2ban · Automatic backups · Free migration · Free trial
 
 ## FAQ
 
@@ -126,7 +126,7 @@ No, and people mix them up. A VPC is a private network that your cloud resources
 A security group is a small allow-list attached to a resource that decides which traffic it accepts. A database's security group might allow port 5432 from the app servers only and deny everything else. Start default-deny, then open the specific paths your app needs.
 
 **Do I have to set up a VPC myself?**
-Not on a good managed platform. Building private networking by hand can be fiddly, but a managed host can wire it up for you so your database comes up on the private network and your app reaches it internally. You get the isolation without configuring routing tables.
+On a good managed platform, mostly no. Building a full VPC by hand can be fiddly. On Kloudbean the everyday protection is simpler: you whitelist your app server's IP on the database, so only that server can connect. A fully isolated private subnet (a dedicated VPC) is available on Enterprise, without you configuring routing tables.
 
 **Can I still connect to a private database from my laptop?**
 Yes, without giving it a public address. Tunnel in through your app server over SSH, or use a bastion host, and connect through that. It's one extra step and it keeps the database on its private IP where it belongs, instead of exposing it to the whole internet for convenience.
@@ -135,7 +135,7 @@ Yes, without giving it a public address. Tunnel in through your app server over 
 No. It secures the network layer by taking sensitive resources off the public internet, which is a big win, but it's one wall in a layered defence. You still have to secure the public-facing app, write safe code, protect credentials, and keep everything patched.
 
 **Does a VPC cost extra or slow things down?**
-Private networking is a normal part of how a well-built platform is shaped, not a premium bolt-on for typical setups, and dedicated VPCs come into play for enterprise isolation. As for speed, it usually helps: your app and database chat over a short private link instead of taking a detour through public routing.
+On Kloudbean, a dedicated VPC (private networking) is an Enterprise capability, while standard plans lock the database down with IP allow-listing at no extra cost. As for speed, keeping the database close to your app helps: they talk over a short internal hop instead of taking a detour through public routing.
 
 ---
 
