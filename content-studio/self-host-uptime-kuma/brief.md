@@ -18,8 +18,8 @@ The cannot-copy spine is the architectural insight competitors bury: a monitor o
 
 ## Accuracy guardrails (kloudbean-facts)
 - Node is a supported managed runtime; frame as "run the Uptime Kuma Node app on managed Node", NOT one-click Uptime Kuma and NOT Docker one-click. Uptime Kuma is not in the one-click app list (n8n, Supabase, OpenWebUI+DeepSeek, Postiz, Penpot).
-- MariaDB/MySQL/PostgreSQL are managed engines (one-click, backups, private networking). Uptime Kuma defaults to a local SQLite file and supports an external MariaDB; recommend managed MariaDB (or a persistent volume) so history survives redeploys. SQLite-on-ephemeral-disk is the trap.
-- Env vars in UI, managed CI/CD from GitHub with live build logs, private networking/VPC, automatic backups, Shorewall + Fail2ban, free SSL, FLB built-in.
+- MariaDB/MySQL/PostgreSQL are managed engines (one-click, backups, IP allow-listing). Uptime Kuma defaults to a local SQLite file and supports an external MariaDB; recommend managed MariaDB (or a persistent volume) so history survives redeploys. SQLite-on-ephemeral-disk is the trap.
+- Env vars in UI, managed CI/CD from GitHub with live build logs, IP allow-listing (VPC on Enterprise), automatic backups, Shorewall + Fail2ban, free SSL, FLB built-in.
 - Managed = server/stack/SSL/backups/patching handled; you own code + data. Linux only. Pricing from $8/mo; free migration assistance + free trial approved. No SLA %, no customer/country counts, never "certified". No blurb cliches.
 
 ## Verified Uptime Kuma facts used (checked against project docs/repo)

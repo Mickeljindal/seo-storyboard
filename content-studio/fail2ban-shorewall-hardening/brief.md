@@ -26,7 +26,7 @@ Cluster: Security / server hardening. Supporting explainer + how-to. Engine meth
 
 - **Internal links (all verified slugs, absolute):** ssh-key-authentication, user-access-control-explained, what-is-a-vpc, what-a-waf-does, security-headers-guide, server-backups-guide.
 
-- **Facts grounding (kloudbean-facts):** Shorewall + Fail2ban baseline on every managed server, free SSL; 7 clouds; IP Access Control (allow/deny, CIDR); subusers + UAC; private networking/VPC; automatic backups; Cloudflare as a paid add-on for L7. From $8/mo, free migration + free trial. NO managed-WAF-beyond-Shorewall/Fail2ban+Cloudflare claim; NO BitNinja; NO container scanning; NO SLA %, no customer/country counts, never "certified". SSH keys + app hardening remain the user's responsibility.
+- **Facts grounding (kloudbean-facts):** Shorewall + Fail2ban baseline on every managed server, free SSL; 7 clouds; IP Access Control (allow/deny, CIDR); subusers + UAC; IP allow-listing (VPC on Enterprise); automatic backups; Cloudflare as a paid add-on for L7. From $8/mo, free migration + free trial. NO managed-WAF-beyond-Shorewall/Fail2ban+Cloudflare claim; NO BitNinja; NO container scanning; NO SLA %, no customer/country counts, never "certified". SSH keys + app hardening remain the user's responsibility.
 
 - **Voice:** Humanized by default. Near-zero em-dashes in body, contractions, varied rhythm, one mild opinion ("if you do one thing this week, do SSH keys"), direct "you". No blurb clichés.
 - **Byline:** By Kloudbean Security · Locks on every door. (unique, not "Faster Than Ever")

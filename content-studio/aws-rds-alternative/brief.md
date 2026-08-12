@@ -25,7 +25,7 @@ want a simpler managed Postgres/MySQL. Not necessarily anti-AWS; they may want A
 ## Angle
 Fair comparison that lands on Kloudbean's REAL advantages, no faked parity. Give RDS honest credit for Multi-AZ
 automatic failover, read replicas, Aurora, widest instance range, deep AWS integration. Pivot to: managed
-Postgres/MySQL in ONE dashboard WITH the app, private networking, predictable flat server-based pricing (no
+Postgres/MySQL in ONE dashboard WITH the app, IP allow-listing, predictable flat server-based pricing (no
 IOPS/egress bill shock), simpler than the AWS console, you own it. Note you can keep AWS underneath (AWS is one
 of Kloudbean's clouds) without the RDS console.
 

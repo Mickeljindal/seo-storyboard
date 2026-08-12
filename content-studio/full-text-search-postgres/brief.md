@@ -54,7 +54,7 @@ Left-to-right pipeline: Query text ("running cats", navy) --websearch_to_tsquery
 By Kloudbean Data Team · Search Without a Second Database. (NOT "Faster Than Ever")
 
 ## Fact grounding / honesty
-- Kloudbean facts used: managed PostgreSQL AND managed Elasticsearch are both one-click managed engines among the 7 (MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, MongoDB); private networking (VPC); automatic backups; controlled access; one dashboard; env vars for connection details; free migration + free trial; from $8/mo (not stated in body). No customer/geo counts, no SLA %, no provisioning-time metric.
+- Kloudbean facts used: managed PostgreSQL AND managed Elasticsearch are both one-click managed engines among the 7 (MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, MongoDB); IP allow-listing (VPC on Enterprise); automatic backups; controlled access; one dashboard; env vars for connection details; free migration + free trial; from $8/mo (not stated in body). No customer/geo counts, no SLA %, no provisioning-time metric.
 - Postgres FTS technical specifics are real and checkable: `to_tsvector('english', 'The cats were running fast')` -> 'cat':2 'fast':5 'run':4; `websearch_to_tsquery` -> 'run' & 'cat'; `@@` match; `ts_rank` + `setweight`; generated tsvector column + GIN inverted index; `pg_trgm` trigram similarity with `%` and `similarity()`; `to_tsquery` raises `syntax error in tsquery` on bad input. No fabricated benchmarks or customer stories.
 - Elasticsearch strengths stated fairly (BM25, analyzers, synonyms, facets, distributed scale) without dismissiveness.
 

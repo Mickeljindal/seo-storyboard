@@ -33,7 +33,7 @@ give a real decision guide (reach for Postgres / reach for Redis / use both), an
 don't add Redis before a measured hot path; Postgres can fake a queue (SKIP LOCKED) and fast scratch storage
 (UNLOGGED tables) at small scale, so you may not need Redis on day one; once you're hammering the same rows or
 need TTLs / atomic counters, Redis earns its place. Land Kloudbean late and light: both are one-click managed
-engines on one private network.
+engines in one account.
 
 STRUCTURE (distinct from siblings; mysql-vs uses a decision TREE, redis-caching uses a read-path diagram):
 lead -> .tldr -> "two different jobs" mental model -> UNIQUE two-lane SVG (durable vs ephemeral) -> at-a-glance
@@ -62,7 +62,7 @@ INTERNAL LINKS (7 live slugs, all folders confirmed to exist / resolve):
 
 HONESTY / FACTS (grounded in kloudbean-facts.md):
 - 7 managed engines: PostgreSQL, MySQL, MariaDB, Redis, Memcached, Elasticsearch, MongoDB. Both Postgres and Redis
-  are one-click, backed up, on private networking; run both in one account. Managed = provision/patch/backups,
+  are one-click, backed up, with IP allow-listing; run both in one account. Managed = provision/patch/backups,
   data stays yours + exportable. Linux stacks.
 - Do NOT claim autoscaling for standard accounts (enterprise/custom only) — stated explicitly in the article.
 - No invented benchmark numbers; latency hedged as "sub-millisecond in-memory vs disk-backed."

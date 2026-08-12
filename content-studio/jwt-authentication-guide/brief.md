@@ -57,7 +57,7 @@ your own app (jsonwebtoken / PyJWT). Kloudbean is NOT auth-as-a-service and does
 /manage tokens. Env vars in UI for JWT_SECRET / RS256 keys (never in code). Free SSL so
 JWT auth runs over HTTPS. Console's own auth (HttpOnly cookie sessions, social login,
 subusers + UAC) is for the DASHBOARD, kept separate from the app's auth. Managed CI/CD from
-GitHub; private networking; automatic backups; Linux only. Pricing from $8/mo; free
+GitHub; IP allow-listing; automatic backups; Linux only. Pricing from $8/mo; free
 migration assistance + free trial. No SLA %, no customer/country counts, never "certified".
 
 ## Internal links (7, all verified-existing slugs)

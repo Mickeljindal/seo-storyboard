@@ -63,7 +63,7 @@ NOTE: pm2-vs-systemd was requested but its folder does NOT exist yet, so it was 
   normal app. Free auto-renewing SSL is in facts. Framed as platform-managed ("what the platform is doing for you").
 - Built-in Flexible Load Balancer on every account, off by default; virtual LBs + app pools + SSL management +
   access logs. Framed as the multi-backend extension of the upstream idea.
-- One dashboard for the whole stack (servers, apps, managed DBs, load balancer); Git deploy; private networking;
+- One dashboard for the whole stack (servers, apps, managed DBs, load balancer); Git deploy; IP allow-listing;
   Linux stacks (Node). Pricing from $8/mo; Enterprise custom. Free migration + free trial approved.
 - NOT claimed: users editing Kloudbean's nginx config (not in facts); autoscaling for normal users (enterprise-only);
   any customer/geo counts; any invented benchmark/metric; no certification claim.

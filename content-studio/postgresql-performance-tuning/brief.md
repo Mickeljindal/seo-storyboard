@@ -37,7 +37,7 @@ Lead -> .tldr -> measure (pg_stat_statements) -> EXPLAIN/EXPLAIN ANALYZE + Seq v
 database-indexing-explained, database-connection-pooling, redis-caching-guide, deploy-node-app-to-managed-cloud, server-backups-guide. (managed-postgresql-hosting and mysql-vs-postgresql available as adjacent links; kept the set at 5 in-body to stay natural.)
 
 ## Honesty guardrails (from kloudbean-facts + task ground truth)
-- Postgres is one of 7 managed engines; one-click, automatic backups, private networking. Managed = provisioning/patching/backups handled; customer owns schema/queries/data.
+- Postgres is one of 7 managed engines; one-click, automatic backups, IP allow-listing. Managed = provisioning/patching/backups handled; customer owns schema/queries/data.
 - Resize the managed server for more CPU/RAM = the Kloudbean-specific lever. Tuning knowledge itself is general Postgres.
 - Do NOT claim a postgresql.conf editor or specific tunable-knob UI; frame shared_buffers/work_mem/effective_cache_size as general Postgres concepts (work_mem shown as per-session SET, which any user can do). shared_buffers framed as plan-scaled default + resize.
 - Do NOT claim one-click read replicas or a built-in pooler product; PgBouncer is a general concept.

@@ -90,7 +90,7 @@ connection-pooling "funnel" SVG.
 - Managed PostgreSQL, MySQL, MariaDB (part of the 7 managed engines).
 - Managed Redis for caching hot reads.
 - Server health view (server-health console screenshot).
-- Automatic backups; private networking; one dashboard for the whole stack.
+- Automatic backups; IP allow-listing; one dashboard for the whole stack.
 - Room to resize (framed as an option, not automatic autoscaling).
 - Free migration assistance; free trial (owner-approved to feature).
 - Entry pricing "from $8/mo" implied via /pricing/ link (not stated as a number in body).

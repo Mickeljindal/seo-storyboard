@@ -12,8 +12,8 @@ Deploy-guide + "the-requirement-people-miss" centerpiece. Distinct from the tuto
 
 ## Ground truth used (kloudbean-facts)
 - Node.js is a supported managed runtime. Rocket.Chat = Node/Meteor app -> framed as "run the Rocket.Chat Node app on the managed Node runtime", NOT one-click Rocket.Chat, NOT Docker one-click. It is NOT in the one-click app list.
-- MongoDB is a managed engine (one-click provision, backups, private networking, controlled access). Rocket.Chat REQUIRES MongoDB, and requires it as a REPLICA SET (change streams / oplog). Replica set framed as a MongoDB concept the reader arranges at the DB layer, NOT a one-click Kloudbean toggle.
-- Env vars in UI (Runtime Configuration -> Environment Variables); managed CI/CD from GitHub; private networking/VPC; automatic backups; Shorewall + Fail2ban; free SSL.
+- MongoDB is a managed engine (one-click provision, backups, IP allow-listing, controlled access). Rocket.Chat REQUIRES MongoDB, and requires it as a REPLICA SET (change streams / oplog). Replica set framed as a MongoDB concept the reader arranges at the DB layer, NOT a one-click Kloudbean toggle.
+- Env vars in UI (Runtime Configuration -> Environment Variables); managed CI/CD from GitHub; IP allow-listing (VPC on Enterprise); automatic backups; Shorewall + Fail2ban; free SSL.
 - Managed = server/stack/SSL/backups/patching handled, you own code + data. Linux only. Pricing from $8/mo. Owner-approved: free migration assistance + free trial. No SLA %, no customer/country counts, never "certified".
 
 ## Rocket.Chat technical truth (external, kept accurate)
@@ -23,7 +23,7 @@ Deploy-guide + "the-requirement-people-miss" centerpiece. Distinct from the tuto
 - Meteor app -> memory-hungry; 2 GB floor for small team, 4 GB+ with real traffic. Community Edition free/open source; Enterprise add-ons optional.
 
 ## Assets
-Screenshots: launch-database.png (managed MongoDB), add-application.png (Node app), env-vars.png (MONGO_URL + ROOT_URL), ssl-certificate.png (SSL for chat domain). One bespoke inline SVG: clients -> Rocket.Chat Node app (HTTPS/WSS via proxy) -> managed MongoDB replica set (oplog + change streams) over private network. 2 .img-slot placeholders (rs.status() shell, devtools wss connection). Hero: images/hero.png (author supplies).
+Screenshots: launch-database.png (managed MongoDB), add-application.png (Node app), env-vars.png (MONGO_URL + ROOT_URL), ssl-certificate.png (SSL for chat domain). One bespoke inline SVG: clients -> Rocket.Chat Node app (HTTPS/WSS via proxy) -> managed MongoDB replica set (oplog + change streams) over the internal connection. 2 .img-slot placeholders (rs.status() shell, devtools wss connection). Hero: images/hero.png (author supplies).
 
 ## Internal links (verified slugs only)
 managed-mongodb-hosting, connect-mongoose-to-mongodb, deploy-node-app-to-managed-cloud, environment-variables-done-right, server-backups-guide, best-self-hosted-tools, self-host-supabase.

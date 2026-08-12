@@ -38,7 +38,7 @@ re-teach generic "what is a self-hosted Slack alternative".
 
 ## Claims (facts files + enterprise-compliance CAPABILITY statements only, NO client, NO certs)
 Managed server; managed PostgreSQL (backed up); free auto-renewing SSL; automatic backups; managed
-reverse proxy; PRIVATE NETWORKING / VPC available (capability statement, grounded); 7 clouds incl.
+reverse proxy; IP allow-listing (VPC on Enterprise) available (capability statement, grounded); 7 clouds incl.
 regions for data residency (GCP Dammam is a public fact but keep generic - do NOT tie to a sector/
 client); one dashboard. NOT one-click. Honest boundary: platform runs server + DB + SSL + backups +
 network isolation; the Mattermost app, your conversations, and org-level compliance are yours.

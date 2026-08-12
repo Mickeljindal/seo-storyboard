@@ -61,7 +61,7 @@
 - Free auto-renewing SSL, part of the managed stack; TLS terminated at the platform web-server/proxy layer.
 - Cloudflare edge TLS/CDN = optional PAID add-on, FREE for Enterprise; baseline free SSL included regardless.
 - Managed = server/stack/SSL/backups/patching handled; customer owns app + data. Linux stacks (PHP/Node/Python/Ruby/Java).
-- One dashboard for the whole stack; 7 clouds; private networking; from $8/mo; free migration + free trial (CTA feature line).
+- One dashboard for the whole stack; 7 clouds; IP allow-listing; from $8/mo; free migration + free trial (CTA feature line).
 
 ## Facts deliberately OMITTED / not asserted (accuracy firewall)
 - Did NOT claim Kloudbean specifically uses Let's Encrypt as its CA (not in facts). Let's Encrypt is explained only as general industry context; Kloudbean's line is "free auto-renewing SSL".

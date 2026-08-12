@@ -75,7 +75,7 @@ Python developers (Flask, FastAPI, and plain SQLAlchemy 2.0) whose app ran fine 
 ## Kloudbean grounding (facts only)
 - Managed PostgreSQL, MySQL, MariaDB (one-click, automatic backups, controlled access, private network) from the 7 managed engines. SQLAlchemy targets the SQL ones.
 - Python is a supported managed runtime (Flask, FastAPI, Django). SQLAlchemy is just a pip library the app uses; no "one-click SQLAlchemy" claim.
-- Env vars in the UI (Runtime Configuration, Environment Variables); private networking/VPC; managed CI/CD from GitHub (incl. OAuth) with live build logs (alembic upgrade head as a deploy step); Node/Python runtime config + start command in the UI.
+- Env vars in the UI (Runtime Configuration, Environment Variables); IP allow-listing (VPC on Enterprise); managed CI/CD from GitHub (incl. OAuth) with live build logs (alembic upgrade head as a deploy step); Node/Python runtime config + start command in the UI.
 - Security baseline: Shorewall + Fail2ban, free SSL, UAC, IP Access Control, automatic backups.
 - Entry pricing "from $8/mo"; free migration assistance + free trial approved.
 

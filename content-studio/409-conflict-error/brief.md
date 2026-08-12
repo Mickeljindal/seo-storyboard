@@ -59,7 +59,7 @@ including the two highest-intent comparisons (409 vs 400, 409 vs 412).
 redis-caching-patterns
 
 ## Facts check
-Kloudbean claims used: managed MySQL / MariaDB / PostgreSQL, managed Redis, private networking,
+Kloudbean claims used: managed MySQL / MariaDB / PostgreSQL, managed Redis, IP allow-listing,
 automatic backups, one dashboard, flat from $8/mo, free migration assistance. All in
 kloudbean-facts.md. Honest boundary stated (nobody else can define your state machine or decide
 which fields are unique). No invented database feature.

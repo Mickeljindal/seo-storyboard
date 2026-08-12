@@ -32,7 +32,7 @@ UP: how-cloud-hosting-works (pillar). ACROSS: cloud-load-balancer-explained, fix
 - Kloudbean runs the web server / reverse proxy (Nginx or Apache) in front of your app; free auto-renewing SSL terminates there; you don't hand-roll nginx.conf for a normal app.
 - 502/503 = proxy can't reach the app; fix = bind 0.0.0.0 + correct PORT from env.
 - Built-in Flexible Load Balancer on every account, off by default (the specialized reverse proxy).
-- One dashboard for the whole stack; private networking / VPC; Linux stacks (Node/PHP/Python/Ruby/Java).
+- One dashboard for the whole stack; IP allow-listing / VPC; Linux stacks (Node/PHP/Python/Ruby/Java).
 - Pricing: from $8/mo; Enterprise custom. Free migration + free trial approved.
 - NOT claimed: any specific proxy product/config surface the platform exposes beyond the above; no customer/geo counts; no certification.
 

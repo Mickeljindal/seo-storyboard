@@ -30,8 +30,8 @@ Fair-but-decisive comparison. Lead + .tldr, then an early "honest 30-second answ
 - Kloudbean angle competitors can't swap out: both are one-click managed engines here, same protocol/tooling, so switching between them is low-risk.
 
 ## Kloudbean facts used (ground truth only)
-- MariaDB + MySQL both among the 7 managed engines (MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, MongoDB). One-click, automatic backups, controlled access, private networking. Managed = provisioning/patching/backups handled; you own schema/queries/data. Linux only.
-- Runtimes (WordPress/WooCommerce/Laravel/Drupal, Node, Python, Ruby, Java) connect to either over the private network; env vars in UI; managed CI/CD from GitHub. Pricing from $8/mo; free migration assistance + free trial (owner-approved).
+- MariaDB + MySQL both among the 7 managed engines (MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, MongoDB). One-click, automatic backups, controlled access, IP allow-listing. Managed = provisioning/patching/backups handled; you own schema/queries/data. Linux only.
+- Runtimes (WordPress/WooCommerce/Laravel/Drupal, Node, Python, Ruby, Java) connect to either over the internal connection; env vars in UI; managed CI/CD from GitHub. Pricing from $8/mo; free migration assistance + free trial (owner-approved).
 - HONESTY: Galera / Group Replication / InnoDB Cluster framed as general engine concepts, NOT claimed as Kloudbean one-click features. No SLA %, no customer/country counts, never "certified". Compatibility framed as "highly compatible, not identical" (honest about drift).
 
 ## Internal links (only verified slugs, absolute URLs)

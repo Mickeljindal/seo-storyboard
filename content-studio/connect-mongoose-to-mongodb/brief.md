@@ -24,7 +24,7 @@ Node.js devs (Express) shipping a Mongoose app to production. Intent: how-to + t
 Production field guide framed around failure modes first, then the correct connection lifecycle, then schemas/indexes, a tooling comparison, real deploy steps, security, performance. Lands on Kloudbean: managed MongoDB (1 of 7 engines) + managed Node runtime + env vars + Git deploy, private network, automatic backups.
 
 ## Ground-truth guardrails (from kloudbean-facts)
-- MongoDB = one of 7 managed engines (MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, MongoDB). One-click, automatic backups, private networking, controlled access.
+- MongoDB = one of 7 managed engines (MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, MongoDB). One-click, automatic backups, IP allow-listing, controlled access.
 - Node.js is a managed runtime (Express/React/Vue/Angular; PM2). Mongoose is just an npm lib. NO "one-click Mongoose."
 - Managed CI/CD from GitHub, env vars in UI, cron in UI. Linux only. Managed = server/stack/SSL/backups/patching; you own code + data. From $8/mo. Free migration + free trial approved.
 - Do NOT claim one-click read replicas or Atlas-style global clusters; frame replication as a general MongoDB concept.
@@ -36,7 +36,7 @@ environment-variables-done-right · managed-mongodb-hosting · connect-typeorm-t
 ## Assets
 - Hero: images/hero.png (top <img>).
 - Real console screenshots: ../assets/console/launch-database.png, env-vars.png, git-deployment.png.
-- Bespoke inline SVG: one Node process, single mongoose connection owning a capped pool (maxPoolSize 10), bundled sockets over private network (VPC) to managed MongoDB :27017 with automatic backups. Brand navy/purple/green.
+- Bespoke inline SVG: one Node process, single mongoose connection owning a capped pool (maxPoolSize 10), bundled sockets over the internal connection (VPC) to managed MongoDB :27017 with automatic backups. Brand navy/purple/green.
 - 3 .img-slot placeholders (mongodb-uri-env, mongoose-model-query, mongo-connected-logs).
 
 ## Voice

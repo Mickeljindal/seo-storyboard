@@ -29,7 +29,7 @@ Distinct from siblings: deploy-nextjs (output:'export' vs server), deploy-nuxt (
 - The static-SPA-vs-Remix comparison table that names the exact difference (where data is fetched, whether a Node process is needed, secret exposure).
 - The "you shipped the passengers and left the driver at home" framing for the number-one mistake: uploading only `build/client/`.
 - The five-item "where Remix deploys break" field guide (static-site deploy, dev server as Start, server code leaked into a component, hard-coded port -> 502, NODE_ENV before install skipping devDependencies).
-- Grounded product tie-in: Node.js stack, managed CI/CD with live build logs, env vars in UI, 7 managed DB engines over private networking, free SSL + reverse proxy handled, PM2 process manager. No named one-click "Remix runtime" claimed (deployed as a standard Node app).
+- Grounded product tie-in: Node.js stack, managed CI/CD with live build logs, env vars in UI, 7 managed DB engines over the internal connectioning, free SSL + reverse proxy handled, PM2 process manager. No named one-click "Remix runtime" claimed (deployed as a standard Node app).
 
 ## Facts + accuracy notes
 
@@ -43,7 +43,7 @@ Slug: deploy-remix-app. Byline (unique, NOT "Faster Than Ever"): "By Kloudbean E
 
 ## SVG concept (unique to this article)
 
-A single-request lifecycle, not a decision fork. Browser sends GET /products -> into a dashed "your Remix Node server" boundary box containing `build/server/index.js` -> `loader() runs` -> queries a managed database (green) over the private network -> `render React to HTML` (the HTML already holds the data) -> green response arrow "HTML + data" back to the browser -> "then hydrates." Makes the SSR + server-side data point visual. Brand navy #000f27 / purple #4F1AF3 / green #40b75f, in `<figure>` + `<figcaption>`.
+A single-request lifecycle, not a decision fork. Browser sends GET /products -> into a dashed "your Remix Node server" boundary box containing `build/server/index.js` -> `loader() runs` -> queries a managed database (green) over the internal connection -> `render React to HTML` (the HTML already holds the data) -> green response arrow "HTML + data" back to the browser -> "then hydrates." Makes the SSR + server-side data point visual. Brand navy #000f27 / purple #4F1AF3 / green #40b75f, in `<figure>` + `<figcaption>`.
 
 ## Images
 

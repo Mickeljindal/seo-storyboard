@@ -41,7 +41,7 @@ Lead -> .tldr -> .note (Postgres cross-link) -> slow query log (measure) -> EXPL
 postgresql-performance-tuning, mysql-vs-postgresql, database-indexing-explained, database-connection-pooling, redis-caching-guide, managed-mysql-hosting, deploy-node-app-to-managed-cloud, server-backups-guide. All absolute https://www.kloudbean.com/blog/<slug>/.
 
 ## Honesty guardrails (from kloudbean-facts + task ground truth)
-- MySQL and MariaDB are 2 of 7 managed engines; one-click, automatic backups, controlled access, private networking. Managed = provisioning/patching/backups handled; customer owns schema/queries/data.
+- MySQL and MariaDB are 2 of 7 managed engines; one-click, automatic backups, controlled access, IP allow-listing. Managed = provisioning/patching/backups handled; customer owns schema/queries/data.
 - Resize the managed server for more CPU/RAM = the Kloudbean-specific lever. The tuning knowledge itself is general MySQL.
 - Do NOT claim a my.cnf editor or specific tunable-knob UI. innodb_buffer_pool_size framed as a plan-scaled default + resize lever, not a knob promised in the UI. SET GLOBAL slow_query_log / long_query_time shown as general MySQL commands.
 - Do NOT claim one-click read replicas or a built-in pooler product; framework pools and ProxySQL are general concepts.

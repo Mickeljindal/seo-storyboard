@@ -69,7 +69,7 @@ Node/JavaScript developers (Express and Fastify APIs, plenty of them inherited o
 ## Kloudbean grounding (facts only)
 - Managed PostgreSQL, MySQL, MariaDB (one-click, automatic backups, private network) from the 7 managed engines.
 - Node is a supported managed runtime (Express/Fastify frame). Sequelize is just an npm library the app uses; no "one-click Sequelize" claim.
-- Env vars in the UI (Runtime Configuration, Environment Variables); private networking/VPC; managed CI/CD from Git with live build logs (db:migrate as a deploy step).
+- Env vars in the UI (Runtime Configuration, Environment Variables); IP allow-listing (VPC on Enterprise); managed CI/CD from Git with live build logs (db:migrate as a deploy step).
 - PM2 cluster mode is confirmed; used to explain the per-process pool multiplication.
 - Entry pricing "from $8/mo"; free migration assistance + free trial approved.
 

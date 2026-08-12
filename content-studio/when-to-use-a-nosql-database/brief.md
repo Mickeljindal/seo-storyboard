@@ -91,7 +91,7 @@ Brand colors navy #000f27 / purple #4F1AF3 / green #40b75f.
 
 ## Grounding / honesty notes (kloudbean-facts.md)
 - Kloudbean facts used: 7 managed engines (PostgreSQL, MySQL, MariaDB, MongoDB, Redis,
-  Memcached, Elasticsearch), one dashboard, private networking (VPC), automatic backups,
+  Memcached, Elasticsearch), one dashboard, IP allow-listing (VPC on Enterprise), automatic backups,
   connection via env var, free migration, free trial, from $8/mo, one-click launch.
 - NO invented metrics, customer counts, SLA %, or benchmarks.
 - ACID/BASE + "MongoDB added multi-document ACID transactions in 2018" is a general,

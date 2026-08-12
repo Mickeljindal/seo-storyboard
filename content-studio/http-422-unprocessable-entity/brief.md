@@ -63,6 +63,6 @@ capacity burned by queues retrying deterministic failures.
 429-too-many-requests, nodejs-background-jobs-bullmq, postgresql-performance-tuning
 
 ## Facts check
-Kloudbean claims used: managed PostgreSQL / MySQL / MariaDB / Redis, private networking, automatic
+Kloudbean claims used: managed PostgreSQL / MySQL / MariaDB / Redis, IP allow-listing, automatic
 backups, server metrics, one dashboard, flat from $8/mo, free migration assistance. All in
 kloudbean-facts.md. 422's WebDAV origin stated as history without citing an RFC number.

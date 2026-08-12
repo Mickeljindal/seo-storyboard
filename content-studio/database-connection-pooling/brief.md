@@ -46,7 +46,7 @@ Brand navy #000f27 / purple #4F1AF3 / green #40b75f. Unique vs the read-replica 
   Prisma auto-pool FAQ. Swap in the real link once that slug ships.
 
 ## Fact / honesty guardrails (grounded in kloudbean-facts.md)
-- Managed PostgreSQL + MySQL are real; private networking (VPC); automatic backups; resize; from $8/mo,
+- Managed PostgreSQL + MySQL are real; IP allow-listing (VPC on Enterprise); automatic backups; resize; from $8/mo,
   Enterprise custom. Linux stacks only.
 - PgBouncer / ProxySQL / driver pools are STANDARD tools the READER runs and configures. Do NOT claim
   Kloudbean ships a built-in managed pooler or bundled PgBouncer (not in facts). Framed as a technique

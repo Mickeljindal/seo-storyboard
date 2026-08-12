@@ -18,15 +18,15 @@ Kloudbean-specific console flow (launch-database -> add-application -> env-vars 
 
 ## Accuracy guardrails (kloudbean-facts)
 - Node is a supported managed runtime; frame as "run the Umami Node app on managed Node", NOT one-click Umami and NOT Docker one-click. Umami is not in the one-click app list.
-- PostgreSQL + MySQL are managed engines (one-click, backups, private networking). Umami needs Postgres or MySQL; use managed PostgreSQL. Umami ships Prisma migrations run at build.
-- Env vars in UI, managed CI/CD from GitHub with live build logs, private networking/VPC, automatic backups, Shorewall + Fail2ban, free SSL.
+- PostgreSQL + MySQL are managed engines (one-click, backups, IP allow-listing). Umami needs Postgres or MySQL; use managed PostgreSQL. Umami ships Prisma migrations run at build.
+- Env vars in UI, managed CI/CD from GitHub with live build logs, IP allow-listing (VPC on Enterprise), automatic backups, Shorewall + Fail2ban, free SSL.
 - Managed = server/stack/SSL/backups/patching handled; you own code + data. Linux only. Pricing from $8/mo; free migration assistance + free trial approved. No SLA %, no customer/country counts, never "certified". No blurb cliches.
 
 ## Internal-link plan (absolute /blog/<slug>/, verified slugs only)
 deploy-node-app-to-managed-cloud, environment-variables-done-right, ci-cd-auto-deploy-from-github, server-backups-guide, best-self-hosted-tools, self-host-supabase, managed-postgresql-hosting (7 links).
 
 ## Assets
-hero.png (top <img>, author supplies) + 4 real console screenshots (launch-database, add-application, env-vars, git-deployment). One bespoke inline SVG: visitor browser + script.js -> Umami Node app -> managed PostgreSQL over private network, "your server, your data" boundary (navy #000f27, purple #4F1AF3, green #40b75f). 3 .img-slot placeholders. .tldr + .note (Coming from Google Analytics?) + table.cmp (self-hosted Umami vs GA4 vs Umami Cloud).
+hero.png (top <img>, author supplies) + 4 real console screenshots (launch-database, add-application, env-vars, git-deployment). One bespoke inline SVG: visitor browser + script.js -> Umami Node app -> managed PostgreSQL over the internal connection, "your server, your data" boundary (navy #000f27, purple #4F1AF3, green #40b75f). 3 .img-slot placeholders. .tldr + .note (Coming from Google Analytics?) + table.cmp (self-hosted Umami vs GA4 vs Umami Cloud).
 
 ## Byline
 By Kloudbean Engineering — "Analytics that stay yours". (Unique; not "Faster Than Ever".)

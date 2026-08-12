@@ -3,7 +3,7 @@
 Silo 4 (comparisons & conversion). Spoke. Converts toward managed-postgresql-hosting / managed-mysql-hosting / managed-redis-hosting / managed-mongodb-hosting.
 
 ## Angle (one line)
-Aiven is a broad, genuinely strong managed data platform (Kafka, ClickHouse, OpenSearch, Flink, plus Postgres/MySQL/Redis-Valkey) across many clouds. This page is for app teams who only need the common databases their app actually uses, colocated with the app in one dashboard, on a private network, at predictable server-based pricing. Land on that. Do not fake parity on big-data engines.
+Aiven is a broad, genuinely strong managed data platform (Kafka, ClickHouse, OpenSearch, Flink, plus Postgres/MySQL/Redis-Valkey) across many clouds. This page is for app teams who only need the common databases their app actually uses, colocated with the app in one dashboard, locked to the app server IP, at predictable server-based pricing. Land on that. Do not fake parity on big-data engines.
 
 ## Keywords (ground the article)
 - Primary: **Aiven alternative** (also **alternative to Aiven**) — commercial/decision intent. In H1, `<title>`, meta description, first 100 words, and one H2 ("Why app teams look for an Aiven alternative").
@@ -25,7 +25,7 @@ Two stacked panels. Top: "Your app" (Node/Python) --public internet (dashed)--> 
 ## Console screenshots (real, resolve)
 - ../assets/console/launch-database.png (launch the common managed engines) — step 1
 - ../assets/console/env-vars.png (DATABASE_URL / REDIS_URL as env vars) — step 3
-- 3 img-slots: Aiven services list (breadth), psql over private network (proof), migration terminal (pg_dump -> psql).
+- 3 img-slots: Aiven services list (breadth), psql over the internal connection (proof), migration terminal (pg_dump -> psql).
 - Hero referenced as images/hero.png (top <img>); images/ folder intentionally empty for the author to drop the hero in (same pattern as the img-slots).
 
 ## Internal links (8, all verified slugs)

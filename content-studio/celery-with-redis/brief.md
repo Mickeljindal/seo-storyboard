@@ -31,7 +31,7 @@ Practical production walkthrough written like an engineer who has run this. Why 
 
 ## Distinct value competitors can't copy
 
-Grounded on managed Redis as a one-click engine on the private network + the Python app and its worker on the same Kloudbean server (worker framed as a long-running process, NOT a "one-click Celery" or hosted-Celery product). UI cron positioned as a real alternative to Beat for simple schedules.
+Grounded on managed Redis as a one-click engine locked to the app server IP + the Python app and its worker on the same Kloudbean server (worker framed as a long-running process, NOT a "one-click Celery" or hosted-Celery product). UI cron positioned as a real alternative to Beat for simple schedules.
 
 ## Internal-link plan (7 verified slugs, absolute URLs)
 
@@ -46,10 +46,10 @@ Grounded on managed Redis as a one-click engine on the private network + the Pyt
 ## Assets
 
 - Hero: `images/hero.png` (author-supplied; images/ starts empty)
-- Bespoke inline SVG: web app -> Redis broker (queue) -> Celery worker over private network, optional result backend. Brand navy #000f27, purple #4F1AF3, green #40b75f.
+- Bespoke inline SVG: web app -> Redis broker (queue) -> Celery worker over the internal connection, optional result backend. Brand navy #000f27, purple #4F1AF3, green #40b75f.
 - Real console screenshots: `../assets/console/launch-database.png`, `env-vars.png`, `cron-jobs.png`
 - 4 `.img-slot` placeholders (504 log, worker startup, Flower, supervised worker process)
 
 ## Accuracy guardrails
 
-Redis is one of 7 managed engines; one-click, private networking, automatic backups. Python is a supported managed runtime (Flask/Django/FastAPI); Celery is just a pip library; the worker is a long-running process you run on the managed server (no hosted/managed Celery, no one-click worker). UI cron available (no SSH). Managed = server/stack/SSL/backups/patching handled; you own code + data. Linux only. Pricing from $8/mo; "free migration assistance" + "free trial" approved. No SLA %, no customer/country counts, never "certified". No blurb clichés.
+Redis is one of 7 managed engines; one-click, IP allow-listing, automatic backups. Python is a supported managed runtime (Flask/Django/FastAPI); Celery is just a pip library; the worker is a long-running process you run on the managed server (no hosted/managed Celery, no one-click worker). UI cron available (no SSH). Managed = server/stack/SSL/backups/patching handled; you own code + data. Linux only. Pricing from $8/mo; "free migration assistance" + "free trial" approved. No SLA %, no customer/country counts, never "certified". No blurb clichés.

@@ -46,7 +46,7 @@ Engineer-level field guide, not a listicle. Lead with why passwords lose on a pu
 - 4 `.img-slot` placeholders (ssh-keygen output, dual-terminal safe test, commented authorized_keys, ssh -v verbose output).
 
 ## Accuracy guardrails
-7 clouds; Shorewall + Fail2ban + free SSL baseline; IP Access Control (allow/deny, CIDR); subusers + UAC; dashboard MFA + social login (Google/GitHub/LinkedIn) is console-account only, distinct from SSH; automatic backups; private networking/VPC available; pricing from $8/mo (not quoted as a figure in body); free migration + free trial. No SSH-key vault, no SSO-for-SSH, no managed WAF beyond Shorewall/Fail2ban + Cloudflare, no SLA %, no customer/country counts, never "certified".
+7 clouds; Shorewall + Fail2ban + free SSL baseline; IP Access Control (allow/deny, CIDR); subusers + UAC; dashboard MFA + social login (Google/GitHub/LinkedIn) is console-account only, distinct from SSH; automatic backups; IP allow-listing (VPC on Enterprise) available; pricing from $8/mo (not quoted as a figure in body); free migration + free trial. No SSH-key vault, no SSO-for-SSH, no managed WAF beyond Shorewall/Fail2ban + Cloudflare, no SLA %, no customer/country counts, never "certified".
 
 ## Target length
 2300–2700 words. Humanized voice by default; keyword-grounded by default.
