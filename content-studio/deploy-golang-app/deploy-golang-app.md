@@ -10,10 +10,10 @@ secondary_keywords:
   - deploy go binary
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 3 — App Deployment Tutorials
+cluster: 3 - App Deployment Tutorials
 ---
 
-![Deploy a Go app — one static binary compiled with go build, running under systemd on a server you own](images/hero.png)
+![Deploy a Go app: one static binary compiled with go build, running under systemd on a server you own](images/hero.png)
 
 # Deploying a Go App Is Almost Boring (Here's Why)
 
@@ -148,7 +148,7 @@ One more perk of the single-file model. A deploy is "build this commit into a fi
 
 None of this is magic. It's what a compiled language gives you. Kloudbean runs the Linux server, its patching, the firewall, the reverse proxy and SSL, and server-level backups; you own the binary, its config, and its data. Go is a first-class Linux citizen, so there's nothing to fight. To say it once more plainly: this is the server-based path, running your compiled binary on a managed server under systemd, not a push-button "Go" runtime, and a self-contained binary is exactly the thing that doesn't need one. Coming from a runtime-managed stack instead? The contrast is [deploy a Node app to managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/). For the Go app itself, the deploy really is close to boring. Boring is the goal.
 
-**One binary. One server. Live.** Run your Go binary on a server you own at [kloudbean.com](https://www.kloudbean.com/). Managed Postgres & MySQL · Automatic backups · Free Let's Encrypt SSL · Private networking · Free migration · Free trial. A small box goes a long way with Go. Sizes on [pricing](https://www.kloudbean.com/pricing/).
+**One binary. One server. Live.** Run your Go binary on a server you own at [kloudbean.com](https://www.kloudbean.com/). Managed Postgres & MySQL · Automatic backups · Free Let's Encrypt SSL · Free migration · Free trial. A small box goes a long way with Go. Sizes on [pricing](https://www.kloudbean.com/pricing/).
 
 ## FAQ
 
@@ -173,7 +173,7 @@ No. A single static Go binary already has no runtime dependencies, so a containe
 **How much server does a Go app need?**
 Usually not much. Go binaries are small and start fast, so a modest server handles a lot, and several Go services can share one box. Size up only when your traffic or workload actually asks for it.
 
-**What about the "build for Linux" issue?**
+**What about the 'build for Linux' issue?**
 Your binary must target Linux, which is the server's OS. Building on the server handles that automatically; if you build locally, set `GOOS=linux`. If your app uses CGO, like some SQLite drivers, build on the server so the C toolchain matches.
 
 _Kloudbean · One binary, none of the drama._

@@ -179,7 +179,7 @@ Notice how much of that ladder is "scale up and keep the app clean." The exotic 
 
 **Scale up when it's easy, out when it's needed.** Resize a server in a couple of clicks, then spread traffic across a pool with the built-in Flexible Load Balancer the day one box isn't enough. One dashboard for servers, managed databases, object storage, and the load balancer. Start free at [kloudbean.com](https://www.kloudbean.com/) or compare plans on [pricing](https://www.kloudbean.com/pricing/).
 
-Resizable servers · Built-in Flexible Load Balancer · Managed databases · Object storage · Private networking · Free migration · Free trial
+Resizable servers · Built-in Flexible Load Balancer · Managed databases · Object storage · Free migration · Free trial
 
 ## FAQ
 

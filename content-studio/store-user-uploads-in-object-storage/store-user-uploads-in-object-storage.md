@@ -250,7 +250,7 @@ Uploads are one piece of keeping an app server stateless, so you can scale or re
 
 **Put the files in a bucket, keep the server disposable.** Kloudbean gives you built-in S3-compatible object storage in the same dashboard as your servers, managed databases, and apps. Full AWS S3 SDK and CLI compatibility, public and private buckets, and objects you can export anytime. Start free at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
 
-S3-compatible buckets · Managed databases · Automatic backups · Private networking · One dashboard · Free migration · Free trial
+S3-compatible buckets · Managed databases · Automatic backups · One dashboard · Free migration · Free trial
 
 ## FAQ
 

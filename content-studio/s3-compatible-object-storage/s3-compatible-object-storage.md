@@ -10,7 +10,7 @@ secondary_keywords:
   - object storage vs block storage
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 7 — Databases, Storage & S3
+cluster: 7 - Databases, Storage & S3
 ---
 
 ![S3-compatible object storage: files as objects in buckets, reached over the S3 API](images/hero.png)
@@ -183,7 +183,7 @@ One cost note before you commit to any provider: serving files out of a bucket c
 
 **Get the files off the box, keep the server disposable.** Kloudbean gives you built-in S3-compatible object storage in the same dashboard as your servers, managed databases, and apps. Full AWS S3 SDK and CLI compatibility, public and private buckets, and objects you can export anytime. Start free at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
 
-S3-compatible buckets · Managed databases · Automatic backups · Private networking · One dashboard · Free trial
+S3-compatible buckets · Managed databases · Automatic backups · One dashboard · Free trial
 
 ## FAQ
 

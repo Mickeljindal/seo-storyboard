@@ -180,7 +180,7 @@ The same managed flow deploys the frameworks that sit on top. If you're shipping
 
 **Keep your Node app alive without hand-writing a single unit file.** Deploy from Git, let the managed stack supervise the process with PM2 (multi-process supported), watch health in one dashboard, and add a managed database and free SSL when you need them. Start at [kloudbean.com](https://www.kloudbean.com/); sizes and plans (from $8/mo, Enterprise custom) are on [pricing](https://www.kloudbean.com/pricing/).
 
-PM2 process management · Git deploy with live logs · Managed databases · Free auto-renewing SSL · Private networking · Free migration · Free trial
+PM2 process management · Git deploy with live logs · Managed databases · Free auto-renewing SSL · Free migration · Free trial
 
 ## FAQ
 

@@ -11,10 +11,10 @@ secondary_keywords:
   - deploy v0 without Vercel
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 1 — Deploy AI / Vibe-Coded Apps
+cluster: 1 - Deploy AI / Vibe-Coded Apps
 ---
 
-![Deploy your v0 app — from generated Next.js UI to a production server you own](images/hero.png)
+![Deploy your v0 app: from generated Next.js UI to a production server you own](images/hero.png)
 
 # Deploy Your v0 App to a Server You Own: Start With What v0 Gave You
 
@@ -151,7 +151,7 @@ Kloudbean runs Linux stacks: Node and the modern JavaScript toolkit including Ne
 
 ## Generated UI, infrastructure you own
 
-Deploy your v0 app on a server you own at [kloudbean.com](https://www.kloudbean.com/). One-click databases · Automatic backups · Private networking · Free migration · Free trial · Git deploy. Plans on [pricing](https://www.kloudbean.com/pricing/).
+Deploy your v0 app on a server you own at [kloudbean.com](https://www.kloudbean.com/). One-click databases · Automatic backups · Free migration · Free trial · Git deploy. Plans on [pricing](https://www.kloudbean.com/pricing/).
 
 ## FAQ
 

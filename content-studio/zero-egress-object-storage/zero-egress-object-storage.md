@@ -121,7 +121,7 @@ So where does Kloudbean sit in all this? Two things. First, Kloudbean doesn't me
 
 **Keep your files and your stack in one place.** Kloudbean gives you S3-compatible object storage in the same dashboard as your servers, managed databases, and apps, with no egress fees on your object storage. Standard S3 API, public and private buckets, objects you can export anytime. Start free at [kloudbean.com](https://www.kloudbean.com/) or see [pricing](https://www.kloudbean.com/pricing/).
 
-S3-compatible buckets · No egress fees · Managed databases · Private networking · One dashboard · Free trial
+S3-compatible buckets · No egress fees · Managed databases · One dashboard · Free trial
 
 ## FAQ
 

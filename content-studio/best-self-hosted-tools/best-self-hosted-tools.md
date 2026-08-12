@@ -147,7 +147,7 @@ Pick the one bill that annoys you most and self-host that first. Automation, ana
 
 **One server. Many tools. No creeping subscriptions.** Start with a small managed server, add one-click apps like n8n and Supabase, and run the rest beside them. Begin free at [kloudbean.com](https://www.kloudbean.com/), see plans on [pricing](https://www.kloudbean.com/pricing/).
 
-One-click apps · Host many on one server · Private networking · Automatic backups · Free SSL · Free trial
+One-click apps · Host many on one server · Automatic backups · Free SSL · Free trial
 
 ## FAQ
 

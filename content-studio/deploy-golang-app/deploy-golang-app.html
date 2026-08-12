@@ -9,7 +9,7 @@
 <link rel="canonical" href="https://www.kloudbean.com/blog/deploy-golang-app/">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Deploying a Go App Is Almost Boring (Here's Why)">
-<meta property="og:description" content="Go compiles to one self-contained binary, so deploying it is the simplest deploy there is — compile, copy to a server you own, run it under systemd.">
+<meta property="og:description" content="Go compiles to one self-contained binary, so deploying it is the simplest deploy there is: compile, copy to a server you own, run it under systemd.">
 <meta property="og:image" content="images/hero.png">
 <meta property="og:site_name" content="Kloudbean">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,7 +21,7 @@
   <span class="eyebrow">App deployment</span>
   <h1>Deploying a Go App Is Almost Boring (Here's Why)</h1>
 
-  <figure><img src="images/hero.png" alt="Deploy a Go app — one static binary compiled with go build, running under systemd on a server you own"></figure>
+  <figure><img src="images/hero.png" alt="Deploy a Go app: one static binary compiled with go build, running under systemd on a server you own"></figure>
 
   <p class="lead">To deploy a Node or Python app you ship code, plus a runtime, plus a folder of dependencies, and hope the versions line up. To deploy a Golang app you ship a file. One file. That single difference is why deploying Go is the most anticlimactic deploy in this whole series, in the best way.</p>
   <p>People search this a few ways, deploy Golang, deploy a Go binary, or set up a go production server, and they all point at the same short path. This is a teardown of <em>why</em> it's so simple, because once you see it, you know exactly what to do: compile the binary, put it on a server you own, and keep it running. Let's pull it apart.</p>
@@ -189,7 +189,7 @@ scp app appuser@your-server:/home/appuser/myapp/</code></pre>
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">One binary. One server. Live.</p>
-    <p style="margin:0">Run your Go binary on a server you own at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Managed Postgres &amp; MySQL · Automatic backups · Free Let's Encrypt SSL · Private networking · Free migration · Free trial. A small box goes a long way with Go. Sizes on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0">Run your Go binary on a server you own at <a href="https://www.kloudbean.com/">kloudbean.com</a>. Managed Postgres &amp; MySQL · Automatic backups · Free Let's Encrypt SSL · Free migration · Free trial. A small box goes a long way with Go. Sizes on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
   </div>
 
   <h2>FAQ</h2>
@@ -215,7 +215,7 @@ scp app appuser@your-server:/home/appuser/myapp/</code></pre>
     <h3>How much server does a Go app need?</h3>
     <p>Usually not much. Go binaries are small and start fast, so a modest server handles a lot, and several Go services can share one box. Size up only when your traffic or workload actually asks for it.</p>
 
-    <h3>What about the "build for Linux" issue?</h3>
+    <h3>What about the 'build for Linux' issue?</h3>
     <p>Your binary must target Linux, which is the server's OS. Building on the server handles that automatically; if you build locally, set <code>GOOS=linux</code>. If your app uses CGO, like some SQLite drivers, build on the server so the C toolchain matches.</p>
   </div>
 
@@ -233,7 +233,7 @@ scp app appuser@your-server:/home/appuser/myapp/</code></pre>
 {"@type":"Question","name":"Do I need to install Go on the server?","acceptedAnswer":{"@type":"Answer","text":"Only if you build there. If the server compiles your code, Go is present for the build and the resulting binary runs on its own. If you cross-compile a Linux binary elsewhere and copy it up, the server just runs it. Either way there's no Go runtime to keep installed, because there isn't one."}},
 {"@type":"Question","name":"Do I need Docker to deploy a Go app?","acceptedAnswer":{"@type":"Answer","text":"No. A single static Go binary already has no runtime dependencies, so a container mostly wraps something that didn't need wrapping. Docker and Kubernetes solve orchestration at scale. For one binary on a server you own, systemd is enough."}},
 {"@type":"Question","name":"How much server does a Go app need?","acceptedAnswer":{"@type":"Answer","text":"Usually not much. Go binaries are small and start fast, so a modest server handles a lot, and several Go services can share one box. Size up only when your traffic or workload actually asks for it."}},
-{"@type":"Question","name":"What about the build for Linux issue?","acceptedAnswer":{"@type":"Answer","text":"Your binary must target Linux, which is the server's OS. Building on the server handles that automatically; if you build locally, set GOOS=linux. If your app uses CGO, like some SQLite drivers, build on the server so the C toolchain matches."}}
+{"@type":"Question","name":"What about the 'build for Linux' issue?","acceptedAnswer":{"@type":"Answer","text":"Your binary must target Linux, which is the server's OS. Building on the server handles that automatically; if you build locally, set GOOS=linux. If your app uses CGO, like some SQLite drivers, build on the server so the C toolchain matches."}}
 ]}
 ]}
 </script>

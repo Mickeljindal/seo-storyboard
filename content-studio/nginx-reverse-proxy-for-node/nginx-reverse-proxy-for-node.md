@@ -238,7 +238,7 @@ The split stays clear. The platform runs the proxy and the SSL. You own the Node
 
 Deploy your Node app on Kloudbean and a reverse proxy sits in front with free auto-renewing SSL, wired to the right port for you. Flip on the built-in load balancer the day one backend isn't enough. Start at [kloudbean.com](https://www.kloudbean.com/), and compare plans from $8/mo on [pricing](https://www.kloudbean.com/pricing/).
 
-One dashboard · Managed reverse proxy and SSL · Built-in load balancer · Git deploy · Private networking · Free migration · Free trial
+One dashboard · Managed reverse proxy and SSL · Built-in load balancer · Git deploy · Free migration · Free trial
 
 ## FAQ
 

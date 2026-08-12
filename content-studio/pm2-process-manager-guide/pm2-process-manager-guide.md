@@ -230,7 +230,7 @@ PM2 isn't the only way to supervise Node. systemd, the init system already on yo
 
 **Keep the Node process up without hand-rolling a supervisor.** Deploy from Git, let the managed Node runtime run your app under PM2 (multi-process supported), watch health in one dashboard, and add a managed database and free SSL when you need them. Start at [kloudbean.com](https://www.kloudbean.com/); sizes and plans (from $8/mo, Enterprise custom) are on [pricing](https://www.kloudbean.com/pricing/).
 
-PM2 multi-process · Cluster mode across cores · Git deploy with live logs · Managed databases · Free auto-renewing SSL · Private networking · Free migration · Free trial
+PM2 multi-process · Cluster mode across cores · Git deploy with live logs · Managed databases · Free auto-renewing SSL · Free migration · Free trial
 
 ## FAQ
 

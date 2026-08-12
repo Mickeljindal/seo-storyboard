@@ -11,7 +11,7 @@ secondary_keywords:
   - err_cert_authority_invalid
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 9 — Security, Scaling & Load Balancing
+cluster: 9 - Security, Scaling & Load Balancing
 ---
 
 ![SSL certificate errors decoded: a field guide organized by the exact error message](images/hero.png)
@@ -102,11 +102,11 @@ That leaves exactly one on your side of the line: mixed content, because only yo
 
 **A green padlock you never have to renew.** Serve your site with free, auto-provisioning, auto-renewing SSL and the full chain installed for you, on [kloudbean.com](https://www.kloudbean.com/). Most of these errors never occur. Plans on [pricing](https://www.kloudbean.com/pricing/).
 
-One-line feature recap: Free auto-renewing SSL · Full chain installed · Custom domains · Private networking · Free migration · Free trial
+One-line feature recap: Free auto-renewing SSL · Full chain installed · Custom domains · Free migration · Free trial
 
 ## FAQ
 
-**Why does my site say "Your connection is not private"?**
+**Why does my site say 'Your connection is not private'?**
 The browser doesn't trust your certificate, and the code underneath says why. Usually it has expired (`NET::ERR_CERT_DATE_INVALID`), it's for the wrong domain, or it's self-signed. Read the specific code on the warning, then renew, reissue for the right names, or replace a self-signed cert with one from a trusted CA. Auto-renewal stops the expiry version coming back.
 
 **What does NET::ERR_CERT_DATE_INVALID mean?**
