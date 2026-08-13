@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Migrate Your AI App from SQLite to PostgreSQL</title>
+<meta name="description" content="How to migrate SQLite to PostgreSQL for an AI-built app that keeps losing data on redeploy: provision managed Postgres, move the schema and data with pgloader or your ORM, handle the type gotchas, and cut over safely without losing a row.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/migrate-ai-app-sqlite-to-postgres/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Migrate Your AI App from SQLite to PostgreSQL">
+<meta property="og:description" content="A real SQLite to Postgres migration for AI-built apps: provision managed Postgres, move schema and data with pgloader or your ORM, fix the type gotchas, and cut over without losing a row.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+<style>
+  .img-slot{display:flex;align-items:center;justify-content:center;min-height:150px;border:1.5px dashed #c7cee0;border-radius:16px;background:#f6f7fb;color:#5b6a86;text-align:center;padding:22px;margin:2em 0}
+  .img-slot span{display:block}
+  .img-slot b{display:block;color:#4F1AF3;font-size:12px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px}
+  .img-slot em{display:block;font-style:normal;font-size:15px;color:#1c2536}
+  .img-slot small{display:block;margin-top:6px;font-size:12.5px;color:#5b6a86}
+</style>
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">AI apps in production</span>
+  <h1>How to Migrate Your AI App from SQLite to PostgreSQL</h1>
+
+  <figure><img src="images/hero.png" alt="The migration flow: a SQLite file on the left, its schema and data extracted and type-mapped, loaded into a managed Postgres, the app repointed and verified, with the old SQLite kept as a rollback"></figure>
+
+  <p class="lead">Your AI builder handed you a working app and quietly wired it to SQLite. It was perfect on your laptop. Then you deployed, shipped a small fix a week later, and half your data was gone. If that's you, it's time to migrate SQLite to PostgreSQL, and the good news is this is a well-trodden path with real tools, not a rewrite.</p>
+  <p>This is a migration guide, not a lecture on why SQLite lost your data. We'll provision a managed Postgres, move the schema, move the data, deal with the type differences that actually bite, then cut over without losing a row. The scary part isn't the tooling. It's doing the cutover in the wrong order. So we'll get the order right.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>To migrate SQLite to PostgreSQL, provision a managed Postgres that lives outside your app, then move the schema and data with either pgloader (one command, handles most type mapping for you) or your ORM's migration flow. Fix the type gotchas (AUTOINCREMENT becomes SERIAL, 0/1 booleans become true/false, TEXT dates become timestamptz), reset the sequences, verify row counts match, then repoint <code>DATABASE_URL</code> and deploy. Keep the old .db file until you're sure.</p>
+  </div>
+
+  <h2>First, why you're moving off SQLite</h2>
+  <p>Quick version, because another page owns the full argument. Your app's filesystem on most hosts is ephemeral. A redeploy builds a fresh instance from your code and throws the old disk away, and your <code>app.db</code> file goes with it. The fix isn't a better backup script. It's moving the data into a database that runs as its own service, outside the app process, so deploys never touch it. The full mechanism is in <a href="https://www.kloudbean.com/blog/why-sqlite-data-disappears-on-redeploy/">why your SQLite data disappears on redeploy</a>, and this whole class of "the builder skipped it" problem is mapped in <a href="https://www.kloudbean.com/blog/last-mile-of-vibe-coding/">the last mile of vibe coding</a>.</p>
+  <p>Postgres is the natural landing spot. It's strict where SQLite is loose, it handles real concurrency, and a managed one is a solved problem to run. If you're still deciding what belongs in a database versus object storage versus a cache, <a href="https://www.kloudbean.com/blog/persistent-storage-for-ai-apps/">persistent storage for AI apps</a> sorts that out. Assuming you've decided, let's move.</p>
+
+  <!-- ADD IMAGE: src -> images/localhost-vs-production.png. Side by side of app.db on the app disk versus a managed Postgres running as its own service outside the app. -->
+  <figure class="img-slot"><span><b>Add image</b><em>app.db on the app's local disk versus a managed Postgres running outside the app.</em><small>A simple two-panel contrast works here.</small></span></figure>
+
+  <h2>The plan to migrate SQLite to PostgreSQL</h2>
+  <p>Here's the whole SQLite to Postgres migration in six moves. Read it once so the later detail has somewhere to hang.</p>
+  <ol>
+    <li><strong>Provision a managed Postgres.</strong> A real one, running outside the app, with its own connection string.</li>
+    <li><strong>Move the schema.</strong> Create the tables in Postgres, with the right Postgres types (not SQLite's loose ones).</li>
+    <li><strong>Move the data.</strong> Copy every row across, transforming types as you go.</li>
+    <li><strong>Reset the sequences.</strong> So the next insert doesn't collide with an existing id.</li>
+    <li><strong>Verify.</strong> Row counts match, and a few spot-checks look right, while the app is still safely on SQLite.</li>
+    <li><strong>Cut over.</strong> Repoint <code>DATABASE_URL</code>, deploy, watch. Keep the old .db as a rollback until you're confident.</li>
+  </ol>
+
+  <figure>
+    <svg viewBox="0 0 800 400" role="img" aria-label="The SQLite to Postgres migration flow. On the left, a SQLite file on the app disk. Its schema and data are extracted, then the types are transformed (AUTOINCREMENT to SERIAL, 0 and 1 to true and false, TEXT to timestamptz), then loaded into a managed Postgres that runs outside the app. Below, the app is repointed by changing DATABASE_URL, then verified by matching row counts. The old SQLite file is kept as a rollback until the cutover is confirmed." xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="mp" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4F1AF3"/></marker>
+        <marker id="mg" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#40b75f"/></marker>
+      </defs>
+
+      <text x="28" y="34" font-family="Poppins,sans-serif" font-size="13" font-weight="700" fill="#000f27">Migrating SQLite to managed Postgres</text>
+
+      <rect x="24" y="66" width="132" height="70" rx="12" fill="#fff" stroke="#000f27" stroke-width="1.6"/>
+      <text x="90" y="97" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">SQLite file</text>
+      <text x="90" y="116" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">app.db on disk</text>
+
+      <rect x="210" y="66" width="140" height="70" rx="12" fill="#f6f7fb" stroke="#4F1AF3" stroke-width="1.5"/>
+      <text x="280" y="97" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">Extract</text>
+      <text x="280" y="116" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">schema + data</text>
+
+      <rect x="404" y="66" width="152" height="70" rx="12" fill="#f6f7fb" stroke="#4F1AF3" stroke-width="1.5"/>
+      <text x="480" y="93" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">Transform types</text>
+      <text x="480" y="112" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#5b6a86">SERIAL, bool, timestamptz</text>
+
+      <rect x="612" y="60" width="164" height="82" rx="12" fill="#40b75f"/>
+      <text x="694" y="93" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13.5" font-weight="700" fill="#fff">Managed Postgres</text>
+      <text x="694" y="113" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#eafaef">runs outside the app</text>
+
+      <line x1="156" y1="101" x2="206" y2="101" stroke="#4F1AF3" stroke-width="2" marker-end="url(#mp)"/>
+      <line x1="350" y1="101" x2="400" y2="101" stroke="#4F1AF3" stroke-width="2" marker-end="url(#mp)"/>
+      <line x1="556" y1="101" x2="608" y2="101" stroke="#40b75f" stroke-width="2.4" marker-end="url(#mg)"/>
+      <text x="582" y="92" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#40b75f">load</text>
+
+      <line x1="694" y1="142" x2="694" y2="236" stroke="#40b75f" stroke-width="2.4" marker-end="url(#mg)"/>
+
+      <rect x="612" y="238" width="164" height="70" rx="12" fill="#fff" stroke="#40b75f" stroke-width="1.6"/>
+      <text x="694" y="268" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">Verify</text>
+      <text x="694" y="287" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">row counts + spot checks</text>
+
+      <rect x="404" y="238" width="152" height="70" rx="12" fill="#f6f7fb" stroke="#4F1AF3" stroke-width="1.5"/>
+      <text x="480" y="268" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">Repoint app</text>
+      <text x="480" y="287" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#5b6a86">change DATABASE_URL</text>
+
+      <rect x="212" y="238" width="140" height="70" rx="12" fill="#000f27"/>
+      <text x="282" y="268" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#fff">Cut over</text>
+      <text x="282" y="287" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#9fb0cc">deploy + watch</text>
+
+      <line x1="610" y1="273" x2="560" y2="273" stroke="#40b75f" stroke-width="2" marker-end="url(#mg)"/>
+      <text x="585" y="264" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#40b75f">match?</text>
+      <line x1="402" y1="273" x2="356" y2="273" stroke="#4F1AF3" stroke-width="2" marker-end="url(#mp)"/>
+
+      <rect x="24" y="238" width="160" height="70" rx="12" fill="#fff" stroke="#000f27" stroke-width="1.4" stroke-dasharray="6 5"/>
+      <text x="104" y="266" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600" fill="#000f27">Keep old SQLite</text>
+      <text x="104" y="284" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#5b6a86">rollback until verified</text>
+      <line x1="90" y1="136" x2="90" y2="236" stroke="#000f27" stroke-width="1.3" stroke-dasharray="4 4" marker-end="url(#mp)"/>
+    </svg>
+    <figcaption>Extract, transform types, load into a managed Postgres, then verify before you repoint the app. The old SQLite file stays put as a rollback until the cutover is confirmed.</figcaption>
+  </figure>
+
+  <p>Provisioning the Postgres is the one step you don't have to script. On a managed platform you create the database from a dashboard and get a connection string back. If you've never wired a managed database into an app before, <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">add a managed database to your app</a> walks the wiring, and <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a> covers running it day to day.</p>
+
+  <h2>The type and dialect gotchas that actually bite</h2>
+  <p>This is the part generic tutorials skip, and it's the part that fails your import at 11pm. SQLite is loosely typed. It'll happily store a string in a column you meant to be a number, and it treats a lot of types as suggestions. Postgres is strict. It checks every value against the column type and rejects anything that doesn't fit. So the migration isn't only a copy. It's a cleanup.</p>
+  <p>Five differences cause almost all the pain when you convert a SQLite database to Postgres:</p>
+  <ul>
+    <li><strong>AUTOINCREMENT primary keys.</strong> SQLite's <code>INTEGER PRIMARY KEY AUTOINCREMENT</code> becomes a Postgres <code>SERIAL</code> or, better on modern Postgres, an <code>IDENTITY</code> column backed by a sequence.</li>
+    <li><strong>Loose typing, mixed values.</strong> A SQLite column can hold a number in one row and text in another. Postgres won't. Find and clean those rows before the import, or the load aborts partway.</li>
+    <li><strong>Booleans stored as 0 and 1.</strong> SQLite has no real boolean, so your ORM probably stored <code>0</code>/<code>1</code> (or <code>'t'</code>/<code>'f'</code>). Postgres wants a true <code>boolean</code>. These need converting.</li>
+    <li><strong>Dates and times stored as TEXT.</strong> SQLite often keeps timestamps as strings. In Postgres you want <code>timestamptz</code>. Pick a convention (store UTC), and convert the strings as you load.</li>
+    <li><strong>The sequence after import.</strong> Even after ids copy over fine, Postgres doesn't know the highest id you used. Its sequence still starts at 1, so the next insert collides. You have to reset it.</li>
+  </ul>
+
+  <table class="cmp">
+    <thead><tr><th>SQLite (loose)</th><th>Postgres (strict)</th><th>What to watch</th></tr></thead>
+    <tbody>
+      <tr><td><code>INTEGER PRIMARY KEY AUTOINCREMENT</code></td><td><code>SERIAL</code> / <code>GENERATED AS IDENTITY</code></td><td>Reset the sequence after the data loads, or the next insert collides</td></tr>
+      <tr><td>Dynamic typing (any value, any column)</td><td>Static typing, checked per row</td><td>Clean mixed-type rows first; Postgres rejects what SQLite tolerated</td></tr>
+      <tr><td><code>INTEGER</code> used as boolean (0 / 1)</td><td><code>boolean</code> (true / false)</td><td>Convert 0 and 1 to false and true; don't leave a smallint pretending to be a flag</td></tr>
+      <tr><td>Dates as <code>TEXT</code></td><td><code>timestamptz</code> (or <code>date</code>)</td><td>Decide UTC, parse the strings; a bad format string quietly shifts times</td></tr>
+      <tr><td><code>REAL</code> for money</td><td><code>numeric</code></td><td>Floating point drift; use exact <code>numeric</code> for currency</td></tr>
+    </tbody>
+  </table>
+
+  <p>Once you're actually on Postgres, it's worth designing the schema like you mean it (indexes, constraints, sensible types), which <a href="https://www.kloudbean.com/blog/production-database-design-for-ai-apps/">production database design for AI apps</a> walks through. A migration is a rare good moment to fix the sloppy bits your builder generated.</p>
+
+  <h2>Path A: pgloader, the tool built for exactly this</h2>
+  <p>If your data lives in a single SQLite file, pgloader is the shortest honest path. It's an open-source tool whose entire job is reading from one database and loading into Postgres, and it already knows the common SQLite-to-Postgres type mappings. It'll turn integer booleans into booleans, map the primary keys, and create the tables for you. One command does a surprising amount.</p>
+  <p>The simplest form points pgloader straight at your file and your new database:</p>
+  <pre><code>pgloader ./app.db postgresql://USER:PASSWORD@HOST:5432/appdb</code></pre>
+  <p>For anything beyond a toy database, use a load file so you can set options and casting rules. The shape looks like this (check pgloader's current docs for the exact casting syntax, since it evolves):</p>
+  <pre><code>LOAD DATABASE
+  FROM sqlite:///data/app.db
+  INTO postgresql://USER:PASSWORD@HOST:5432/appdb
+
+WITH include drop, create tables, create indexes, reset sequences
+
+CAST type integer to bigint,
+     column users.is_active to boolean;</code></pre>
+  <p>Notice <code>reset sequences</code> in there. That's pgloader handling gotcha number five for you, which is one big reason to prefer it over a hand-rolled dump. When it finishes it prints a summary table: rows read, rows loaded, and any that errored. Read that summary. If the counts don't match, something got rejected and you want to know before you cut over, not after.</p>
+
+  <!-- ADD IMAGE: src -> images/pgloader-summary.png. A terminal showing pgloader's end-of-run summary table with rows read and rows loaded per table. -->
+  <figure class="img-slot"><span><b>Add image</b><em>pgloader's end-of-run summary: rows read and rows loaded per table.</em><small>A real terminal capture reassures the reader the counts matched.</small></span></figure>
+
+  <p>pgloader isn't the answer for everyone. If your app already manages its schema through an ORM, running pgloader can leave the ORM's migration history out of step with reality. In that case, path B is cleaner.</p>
+
+  <h2>Path B: let your ORM handle the switch</h2>
+  <p>If you use Prisma, Drizzle, Sequelize, Django, or Rails, your schema is defined in code and applied through migrations. So you don't dump and load here. You change the database provider, generate a fresh Postgres migration, then move the data across.</p>
+  <p>The provider change is usually a one-liner. In Prisma, you edit the datasource block:</p>
+  <pre><code>datasource db {
+-  provider = "sqlite"
+-  url      = "file:./dev.db"
++  provider = "postgresql"
++  url      = env("DATABASE_URL")
+}</code></pre>
+  <p>Then you point <code>DATABASE_URL</code> at the new Postgres, generate a migration against it, and apply it so the tables exist with Postgres types. The exact commands differ by tool (<code>prisma migrate</code>, <code>drizzle-kit</code>, <code>django migrate</code>, <code>rails db:migrate</code>), so follow your ORM's current docs rather than trusting my memory of the flags. The pattern is the same across all of them: change the dialect, regenerate the schema for Postgres, then import the rows.</p>
+  <p>For the data itself you've got options. A small dataset can go through a short script that reads from SQLite and writes through your ORM, which reuses your existing validation and type coercion. That's often the cleanest for AI-built apps, because your model definitions already describe the correct Postgres types. For a quick look at what's inside the file before you script anything, <code>.dump</code> is handy:</p>
+  <pre><code>sqlite3 app.db .dump &gt; dump.sql</code></pre>
+  <p>You won't usually replay that dump straight into Postgres (the SQL dialects differ), but reading it tells you exactly which tables, columns, and quirks you're dealing with. Treat it as a map, not a migration.</p>
+
+  <h2>Cut over safely, without losing a row</h2>
+  <p>This is where people actually lose data, and it's avoidable. The rule: migrate into the new Postgres while the app is still running on SQLite. Nothing about the old setup changes until the new one is proven.</p>
+  <p>So the safe order is:</p>
+  <ol>
+    <li>Load everything into Postgres (path A or B).</li>
+    <li>Reset the sequences if the tool didn't. For each table with a serial id: <code>SELECT setval('users_id_seq', (SELECT max(id) FROM users));</code></li>
+    <li>Verify. Count rows per table in both databases and compare. <code>SELECT count(*) FROM users;</code> on each side should match. Then spot-check a few real records, especially ones with dates and booleans, since those are the values most likely to have shifted.</li>
+    <li>Only now, repoint <code>DATABASE_URL</code> at Postgres and deploy.</li>
+    <li>Watch the app. Keep the old SQLite file untouched for a while. If anything looks wrong, you flip <code>DATABASE_URL</code> back and you're exactly where you started.</li>
+  </ol>
+  <p>And here's the anti-pattern that catches people, because it looks like success. You repoint the app at a brand-new, empty Postgres and deploy before moving the data. The app boots. No errors. It "works." Except it's a fresh install with zero rows, and if any code path writes before you notice, you now have data split across two databases and a real mess to reconcile. An empty database that starts clean is not the same as a migrated one. Verify row counts before you trust a green deploy.</p>
+
+  <!-- ADD IMAGE: src -> images/row-count-match.png. Two count queries side by side, the same SELECT count of rows on SQLite and on Postgres, showing the totals match before cutover. -->
+  <figure class="img-slot"><span><b>Add image</b><em>The same row-count query on SQLite and on Postgres, totals matching before cutover.</em><small>This is the single check that prevents most data loss.</small></span></figure>
+
+  <p>Do the migration now, while the data is still small. That's the one strong opinion I'll push here. Every week you leave an AI app on SQLite in production, the dataset grows, more real users depend on it, and the cutover gets riskier. The migration you do at 200 rows is a coffee break. The one you keep putting off until 200,000 rows and paying customers is a maintenance window with your heart rate up. Small is easy. Waiting only makes it harder.</p>
+  <p>One more thing for after cutover. Postgres has a real connection limit, and a busy app (or a serverless one opening a fresh connection per request) can exhaust it fast. If you see connection errors under load, that's expected, and <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a> is the fix. SQLite never made you think about this because it was just a file. Postgres is a server, so plan for it.</p>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>The reason this feels heavy is usually that the database and the app live in different places, with a different console for each. Kloudbean puts them in one dashboard. You provision a managed PostgreSQL in a few clicks, get a connection string, and it runs as its own service outside your app, so redeploys never touch your data again. You lock it down by whitelisting your app server's IP, so only your app can reach the database and everything else is refused (public access is off by default). Automatic backups, free SSL, and Git deploy come with it, and plans start at $8/mo.</p>
+  <p>Moving an existing app is the nervous part, so Kloudbean offers free migration assistance to help you land it cleanly. And the honest boundary, because it matters: managed means the platform runs the server, the Postgres engine, SSL, backups, and patching. Your app code, your schema, and your data stay yours. A private VPC around the database is an Enterprise capability, not the default; on a standard plan the IP allow-list is how you keep Postgres off the open internet. Kloudbean makes the database easy to run. It doesn't decide your schema or clean your data for you, and this page just walked you through that part.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Move your AI app onto Postgres for good.</p>
+    <p style="margin:0 0 .6em">Provision a managed PostgreSQL that survives every redeploy, then bring your data across with free migration help. One dashboard, a connection string, and your data finally lives somewhere a deploy can't wipe.</p>
+    <p style="margin:0">Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">Managed Postgres · Free migration assistance · Automatic backups · Free SSL · IP allow-listing · Git deploy · From $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I migrate SQLite to Postgres?</h3>
+    <p>Provision a managed Postgres, then move the schema and data with either pgloader (one command that reads your .db file and handles most type mapping) or your ORM's migration flow. Reset the sequences, verify that row counts match while the app is still on SQLite, then repoint <code>DATABASE_URL</code> and deploy. Keep the old file as a rollback until you're confident.</p>
+    <h3>Will I lose data migrating from SQLite to Postgres?</h3>
+    <p>Not if you do the cutover in the right order. Migrate into the new Postgres while the app still runs on SQLite, compare row counts on both sides, and spot-check a few records before you repoint anything. Because the old .db file stays untouched until you're sure, you can always roll back. Data loss comes from repointing first and verifying later.</p>
+    <h3>What is pgloader?</h3>
+    <p>pgloader is an open-source tool built to load data into PostgreSQL from other databases, including SQLite. Point it at your SQLite file and your Postgres connection string and it creates the tables, copies the rows, maps common types, and can reset sequences for you. For anything past a toy database, use a load file so you can set casting rules explicitly.</p>
+    <h3>How do I convert SQLite types to Postgres?</h3>
+    <p>Map the loose SQLite types to strict Postgres ones: AUTOINCREMENT integer keys become SERIAL or IDENTITY, 0/1 booleans become real true/false, TEXT timestamps become timestamptz (store UTC), and floats used for money become numeric. pgloader handles most of this automatically; with the ORM path your model definitions describe the correct Postgres types. Clean mixed-type rows first, since Postgres rejects what SQLite tolerated.</p>
+    <h3>Can I migrate SQLite to Postgres using my ORM (Prisma, Drizzle, Django, Rails)?</h3>
+    <p>Yes, and it's often the cleaner route if your schema lives in code. Change the database provider or dialect from SQLite to PostgreSQL, generate a fresh migration against the new database so the tables exist with Postgres types, then move the rows (a short script that reads SQLite and writes through the ORM reuses your existing validation). Check your ORM's current docs for the exact commands.</p>
+    <h3>Why do I need to reset the sequence after importing into Postgres?</h3>
+    <p>Because copying the id values doesn't tell Postgres what the next id should be. The sequence behind a SERIAL column still starts at 1, so your next insert tries to reuse an id that already exists and fails on a duplicate key. Run setval to move the sequence past your highest existing id. pgloader's reset sequences option does this for you.</p>
+    <h3>How long does a SQLite to Postgres migration take?</h3>
+    <p>For a small AI-built app, minutes. pgloader on a modest file is fast, and the real time goes into verifying and testing, not copying. This is exactly why you should do it early: the migration scales with your data size and your risk tolerance, so a small dataset is quick and low-stakes while a large one becomes a planned maintenance window.</p>
+    <h3>Do I need to change my application code to move off SQLite?</h3>
+    <p>Usually a little. The connection string changes, and if you use an ORM you switch the provider from SQLite to PostgreSQL. Raw SQL might need small tweaks where the dialects differ (booleans, date functions, autoincrement). Most app logic stays the same, because the ORM or driver abstracts the database. The bigger change is operational: Postgres is a service with a connection limit, not a file.</p>
+    <h3>Is SQLite ever fine to use in production?</h3>
+    <p>Sometimes, yes. SQLite is excellent for local development, for read-heavy apps on a single server with a genuinely persistent disk, and for embedded use. The trouble is deploying it on an ephemeral filesystem where every redeploy wipes the file, which is the default on most app platforms. If your data must survive deploys and concurrent writes, move to Postgres.</p>
+    <h3>Do I need connection pooling after switching to Postgres?</h3>
+    <p>Probably, once you have real traffic. Postgres caps how many connections it allows, and an app that opens a connection per request (or a serverless one) can hit that ceiling and start throwing errors. A pool reuses a small set of connections instead. SQLite never surfaced this because it was a file, so it's a new thing to plan for once you're on a database server.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Move the data first, repoint second, keep the old file until you're sure.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Migrate Your AI App from SQLite to PostgreSQL","description":"How to migrate SQLite to PostgreSQL for an AI-built app that keeps losing data on redeploy: provision managed Postgres, move the schema and data with pgloader or your ORM, handle the type gotchas, and cut over safely without losing a row.","image":"https://www.kloudbean.com/blog/migrate-ai-app-sqlite-to-postgres/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/migrate-ai-app-sqlite-to-postgres/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I migrate SQLite to Postgres?","acceptedAnswer":{"@type":"Answer","text":"Provision a managed Postgres, then move the schema and data with either pgloader (one command that reads your .db file and handles most type mapping) or your ORM migration flow. Reset the sequences, verify that row counts match while the app is still on SQLite, then repoint DATABASE_URL and deploy. Keep the old file as a rollback until you are confident."}},
+{"@type":"Question","name":"Will I lose data migrating from SQLite to Postgres?","acceptedAnswer":{"@type":"Answer","text":"Not if you do the cutover in the right order. Migrate into the new Postgres while the app still runs on SQLite, compare row counts on both sides, and spot-check a few records before you repoint anything. Because the old .db file stays untouched until you are sure, you can always roll back. Data loss comes from repointing first and verifying later."}},
+{"@type":"Question","name":"What is pgloader?","acceptedAnswer":{"@type":"Answer","text":"pgloader is an open-source tool built to load data into PostgreSQL from other databases, including SQLite. Point it at your SQLite file and your Postgres connection string and it creates the tables, copies the rows, maps common types, and can reset sequences for you. For anything past a toy database, use a load file so you can set casting rules explicitly."}},
+{"@type":"Question","name":"How do I convert SQLite types to Postgres?","acceptedAnswer":{"@type":"Answer","text":"Map the loose SQLite types to strict Postgres ones: AUTOINCREMENT integer keys become SERIAL or IDENTITY, 0 and 1 booleans become real true and false, TEXT timestamps become timestamptz (store UTC), and floats used for money become numeric. pgloader handles most of this automatically; with the ORM path your model definitions describe the correct Postgres types. Clean mixed-type rows first, since Postgres rejects what SQLite tolerated."}},
+{"@type":"Question","name":"Can I migrate SQLite to Postgres using my ORM (Prisma, Drizzle, Django, Rails)?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it is often the cleaner route if your schema lives in code. Change the database provider or dialect from SQLite to PostgreSQL, generate a fresh migration against the new database so the tables exist with Postgres types, then move the rows (a short script that reads SQLite and writes through the ORM reuses your existing validation). Check your ORM current docs for the exact commands."}},
+{"@type":"Question","name":"Why do I need to reset the sequence after importing into Postgres?","acceptedAnswer":{"@type":"Answer","text":"Because copying the id values does not tell Postgres what the next id should be. The sequence behind a SERIAL column still starts at 1, so your next insert tries to reuse an id that already exists and fails on a duplicate key. Run setval to move the sequence past your highest existing id. The reset sequences option in pgloader does this for you."}},
+{"@type":"Question","name":"How long does a SQLite to Postgres migration take?","acceptedAnswer":{"@type":"Answer","text":"For a small AI-built app, minutes. pgloader on a modest file is fast, and the real time goes into verifying and testing, not copying. This is exactly why you should do it early: the migration scales with your data size and your risk tolerance, so a small dataset is quick and low-stakes while a large one becomes a planned maintenance window."}},
+{"@type":"Question","name":"Do I need to change my application code to move off SQLite?","acceptedAnswer":{"@type":"Answer","text":"Usually a little. The connection string changes, and if you use an ORM you switch the provider from SQLite to PostgreSQL. Raw SQL might need small tweaks where the dialects differ (booleans, date functions, autoincrement). Most app logic stays the same, because the ORM or driver abstracts the database. The bigger change is operational: Postgres is a service with a connection limit, not a file."}},
+{"@type":"Question","name":"Is SQLite ever fine to use in production?","acceptedAnswer":{"@type":"Answer","text":"Sometimes, yes. SQLite is excellent for local development, for read-heavy apps on a single server with a genuinely persistent disk, and for embedded use. The trouble is deploying it on an ephemeral filesystem where every redeploy wipes the file, which is the default on most app platforms. If your data must survive deploys and concurrent writes, move to Postgres."}},
+{"@type":"Question","name":"Do I need connection pooling after switching to Postgres?","acceptedAnswer":{"@type":"Answer","text":"Probably, once you have real traffic. Postgres caps how many connections it allows, and an app that opens a connection per request (or a serverless one) can hit that ceiling and start throwing errors. A pool reuses a small set of connections instead. SQLite never surfaced this because it was a file, so it is a new thing to plan for once you are on a database server."}}
+]}
+]}
+</script>
+</body>
+</html>

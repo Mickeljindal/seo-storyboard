@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Run a Long AI Task Without Hitting a Timeout</title>
+<meta name="description" content="The long running task timeout, explained: why a proxy or serverless function quits after about 30 to 60 seconds while your AI job is still running, and the 202 Accepted pattern that fixes it. Return a job id, do the work on a background worker, and poll, stream, or webhook for the result.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/deploy-long-running-ai-task-without-timeout/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Run a Long AI Task Without Hitting a Timeout">
+<meta property="og:description" content="Why long AI tasks die with a 504, and the 202 accept-then-work-in-background pattern that fixes it. Return a job id, run it on a worker, and poll for the result.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">AI apps in production</span>
+  <h1>How to Run a Long AI Task Without Hitting a Timeout</h1>
+
+  <figure><img src="images/hero.png" alt="Two request paths compared: a long task run inside the request that times out at the proxy, and the same task accepted with 202 and finished by a background worker while the client polls"></figure>
+
+  <p class="lead">Your AI feature works on localhost. Then you ship it, a real request comes in, the model takes fifty seconds to answer, and the request dies with a 504. That's the long running task timeout in a nutshell: the work would have finished, but something sitting in front of your app quit waiting first. When an AI task times out this way, it's rarely the model's fault and rarely your code. It's where you're running the work, and what's between the browser and that work.</p>
+  <p>The instinct is to bump a timeout somewhere and move on. Don't, or at least don't stop there. The durable fix isn't a bigger number, it's a different shape: stop doing slow work inside the web request. Accept the request, hand the job to a background worker, and let the client find out when it's done. This page walks that pattern end to end, the 202 Accepted flow, real code you can paste, and the three ways a client collects a result that took a minute to make.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>A long request times out because a proxy, gateway, or serverless function in front of your app cuts the connection after a fixed wait, often around 30 to 60 seconds, while your model call or agent run is still going. Raising that limit just moves the ceiling. The real fix: return 202 Accepted with a job id right away, run the task on a background worker, and let the client poll a status endpoint, hold a stream, or wait for a webhook.</p>
+  </div>
+
+  <h2>Why your long running task times out</h2>
+  <p>Picture the layers between a user and your slow code. The browser opens a connection to a reverse proxy or load balancer. That proxy passes the request to your app, which might be a serverless function or an always-on server. Each of those layers has its own patience, a request timeout, and it's usually shorter than you think. Proxies commonly default to around 30 or 60 seconds. Serverless functions often cap a single invocation somewhere in that range too. Whoever runs out of patience first kills the connection, and the user gets an error while your model call is still happily generating.</p>
+  <p>The status code names the layer that gave up. A 504 Gateway Timeout means an upstream proxy or gateway waited for your app and quit. A dropped connection or a 502 can mean a serverless function hit its execution ceiling mid-run. A client fetch that rejects with a timeout means the browser or your HTTP client gave up first. Same root cause every time: one request tried to stay open longer than one of the hops allows.</p>
+  <p>This shows up anywhere the work is genuinely slow. A long model generation that runs 30 to 120 seconds. An agent run that fires several tool calls in sequence, each adding latency, until the whole thing blows past the ceiling (an agent run timeout). A batch embedding job pushing thousands of chunks through an embeddings API (a batch embedding timeout). None of these are broken. They're just too long to live inside one HTTP request. Timeouts on long model calls are one of the classic ways <a href="https://www.kloudbean.com/blog/why-ai-apps-fail-in-production/">AI apps fail in production</a>, and this is the fix for that particular failure.</p>
+
+  <!-- ADD IMAGE: src -> images/504-network-tab.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A 504 Gateway Timeout in the browser network tab, next to a request that hung for about 30 seconds before failing.</em><small>Shows the exact failure a reader recognizes.</small></span></figure>
+
+  <h2>Why raising the proxy timeout doesn't really fix it</h2>
+  <p>The obvious move is to find the timeout and make it bigger. Set nginx <code>proxy_read_timeout</code> to 300 seconds, or raise the gateway limit, and the error vanishes in testing. Feels fixed. It isn't, not really.</p>
+  <p>Two problems. First, you've only moved the ceiling. A job that runs 60 seconds today can run 180 tomorrow when someone pastes a longer prompt or the provider is slow, and you're back to the same 504 with a bigger number in the config. You didn't remove the limit. You relocated it. Second, and worse, every one of those long requests pins a web worker for its entire duration. Your server has a finite pool of workers to handle incoming traffic. If each slow job holds one hostage for two or three minutes, a handful at once and there's nothing left for anyone else. Fast requests, health checks, logins, they all start queuing behind the slow ones.</p>
+  <p>So the anti-pattern, stated plainly: cranking the gateway timeout to 300 seconds and calling it done. It hides the error in a demo and falls apart the first time real traffic sends a few long jobs at once. And if your app runs on serverless, there's often a hard execution limit you can't raise past at all, which is its own reason to <a href="https://www.kloudbean.com/blog/move-ai-app-off-serverless/">move an AI app off serverless</a> when it needs to do real work. Raising a timeout buys minutes. The pattern below removes the problem.</p>
+
+  <h2>The fix: accept the work, then finish it in the background</h2>
+  <p>The pattern has a shape you'll recognize once you've seen it. Your API doesn't do the slow work while the client waits. It does the fast part, validates the input, creates a job record with an id, drops that job on a queue, and returns immediately. The status code for "immediately" is 202 Accepted, which means exactly this: I've taken your request, I haven't finished it, here's where to check.</p>
+  <p>A separate background worker picks the job off the queue and does the slow part, the model call, the agent run, the batch embedding, whatever it is. It runs off the request path, so no proxy is watching a clock. When it's done, the worker writes the result and marks the job finished. The client, holding that job id, comes back to collect. Nothing stays open for two minutes. No web worker is held hostage. The 30-second ceiling never comes into play, because no single request is ever slow.</p>
+  <p>This is the 202 Accepted pattern, and it's the standard answer to work that outlives a request. The diagram shows the two worlds side by side: the same task once inside the request where a proxy times out, and once accepted and pushed to a worker.</p>
+
+  <figure>
+    <svg viewBox="0 0 800 440" role="img" aria-label="Two request paths compared. On top, inside the request: the browser calls a proxy or gateway, which calls the app to run a long task, but the proxy gives up after about thirty seconds and returns a 504 while the app is still running, wasting the work. On the bottom, the accepted pattern: the browser posts to the API, which returns 202 with a job id right away and enqueues the work, a worker runs the long task off the request path and writes the result to Postgres, and the browser polls a jobs endpoint until the API returns the finished result." xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="p" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4F1AF3"/></marker>
+        <marker id="g" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#40b75f"/></marker>
+        <marker id="r" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#d64545"/></marker>
+      </defs>
+
+      <rect x="24" y="30" width="752" height="150" rx="14" fill="#fff" stroke="#d64545" stroke-width="1.3" stroke-dasharray="7 6"/>
+      <text x="44" y="56" font-family="Poppins,sans-serif" font-size="12" font-weight="700" letter-spacing="1" fill="#d64545">INSIDE THE REQUEST (it times out)</text>
+
+      <rect x="48" y="86" width="118" height="56" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="107" y="112" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">Browser</text>
+      <text x="107" y="129" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">the user</text>
+
+      <rect x="306" y="86" width="170" height="56" rx="10" fill="#f6f7fb" stroke="#4F1AF3" stroke-width="1.5"/>
+      <text x="391" y="110" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">Proxy / gateway</text>
+      <text x="391" y="127" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#d64545">waits about 30s</text>
+
+      <rect x="612" y="86" width="140" height="56" rx="10" fill="#000f27"/>
+      <text x="682" y="110" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#fff">App</text>
+      <text x="682" y="127" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#9fb0cc">60s model call</text>
+
+      <line x1="166" y1="104" x2="302" y2="104" stroke="#4F1AF3" stroke-width="2" marker-end="url(#p)"/>
+      <text x="234" y="98" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#4F1AF3">1 request</text>
+      <line x1="476" y1="104" x2="608" y2="104" stroke="#4F1AF3" stroke-width="2" marker-end="url(#p)"/>
+      <text x="542" y="98" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#4F1AF3">2 long call</text>
+      <line x1="306" y1="128" x2="170" y2="128" stroke="#d64545" stroke-width="2" marker-end="url(#r)"/>
+      <text x="238" y="143" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#d64545">504 after ~30s</text>
+      <text x="682" y="168" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#d64545">still running, wasted</text>
+
+      <rect x="24" y="228" width="752" height="196" rx="14" fill="#fff" stroke="#40b75f" stroke-width="1.4"/>
+      <text x="44" y="254" font-family="Poppins,sans-serif" font-size="12" font-weight="700" letter-spacing="1" fill="#40b75f">ACCEPTED, THEN DONE IN THE BACKGROUND</text>
+
+      <rect x="48" y="286" width="118" height="110" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="107" y="336" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">Browser</text>
+      <text x="107" y="354" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">the user</text>
+
+      <rect x="300" y="286" width="150" height="110" rx="10" fill="#000f27"/>
+      <text x="375" y="330" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#fff">Your API</text>
+      <text x="375" y="348" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#9fb0cc">always-on</text>
+      <text x="375" y="366" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#40b75f">returns 202 + id</text>
+
+      <rect x="496" y="292" width="96" height="52" rx="10" fill="#f6f7fb" stroke="#4F1AF3" stroke-width="1.4"/>
+      <text x="544" y="315" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="600" fill="#000f27">Queue</text>
+      <text x="544" y="331" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#5b6a86">(Redis)</text>
+
+      <rect x="624" y="292" width="128" height="52" rx="10" fill="#f6f7fb" stroke="#40b75f" stroke-width="1.4"/>
+      <text x="688" y="314" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="600" fill="#000f27">Worker</text>
+      <text x="688" y="330" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#5b6a86">runs the task</text>
+
+      <rect x="624" y="360" width="128" height="40" rx="10" fill="#f6f7fb" stroke="#000f27" stroke-width="1.2"/>
+      <text x="688" y="385" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600" fill="#000f27">Job state (Postgres)</text>
+
+      <line x1="166" y1="312" x2="296" y2="312" stroke="#40b75f" stroke-width="2" marker-end="url(#g)"/>
+      <text x="231" y="306" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#40b75f">1 POST /generate</text>
+      <line x1="296" y1="336" x2="166" y2="336" stroke="#40b75f" stroke-width="2" marker-end="url(#g)"/>
+      <text x="231" y="350" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#40b75f">2 202 + job id</text>
+
+      <line x1="450" y1="316" x2="492" y2="316" stroke="#4F1AF3" stroke-width="2" marker-end="url(#p)"/>
+      <text x="471" y="309" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9" fill="#4F1AF3">3 enqueue</text>
+      <line x1="592" y1="316" x2="620" y2="316" stroke="#4F1AF3" stroke-width="2" marker-end="url(#p)"/>
+      <line x1="688" y1="344" x2="688" y2="356" stroke="#4F1AF3" stroke-width="2" marker-end="url(#p)"/>
+      <text x="712" y="354" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9" fill="#4F1AF3">4 write</text>
+
+      <line x1="166" y1="372" x2="296" y2="372" stroke="#40b75f" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#g)"/>
+      <text x="231" y="368" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#40b75f">5 poll /jobs/:id</text>
+      <line x1="296" y1="390" x2="166" y2="390" stroke="#40b75f" stroke-width="2" marker-end="url(#g)"/>
+      <text x="231" y="404" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#40b75f">6 done + result</text>
+      <line x1="450" y1="380" x2="620" y2="380" stroke="#40b75f" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#g)"/>
+      <text x="535" y="374" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9" fill="#40b75f">read state</text>
+    </svg>
+    <figcaption>Same slow task, two shapes. Inside the request, the proxy quits at about 30 seconds and the work is wasted. Accepted with 202, a worker finishes it off the request path and the client polls for the result.</figcaption>
+  </figure>
+
+  <h2>Three ways the client gets its result</h2>
+  <p>Once the work is off doing its thing, the client still needs to learn the outcome. There are three ways, and they fit different situations. Pick by how fast the result needs to land and how much infrastructure you want to run.</p>
+  <table class="cmp">
+    <thead><tr><th>Method</th><th>How it works</th><th>Best for</th><th>The cost</th></tr></thead>
+    <tbody>
+      <tr><td>Polling</td><td>Client calls <code>GET /jobs/:id</code> every few seconds until status is done</td><td>Browser UIs, simple setups, most cases</td><td>A little extra traffic; the result lands one poll interval late</td></tr>
+      <tr><td>Streaming (SSE)</td><td>Client holds an open connection and the server pushes progress or the result</td><td>Live progress, token-by-token output</td><td>A held connection; needs proxy buffering turned off</td></tr>
+      <tr><td>Webhook / callback</td><td>Your service calls the client's URL when the job finishes</td><td>Server-to-server flows, other backends</td><td>The receiver needs a public endpoint and must handle retries</td></tr>
+    </tbody>
+  </table>
+  <p>For a browser waiting on a result, polling is the boring, correct default. The client kicks off the job, gets a job id, and asks a status endpoint every couple of seconds until the answer is ready. It's trivial to build, it survives a dropped connection (the next poll just tries again), and it holds nothing open. Webhooks shine when the caller is another server that would rather be told than keep asking. Streaming is its own thing, and it's worth being precise about when it's the right tool.</p>
+
+  <h2>The code: return 202 with a job id, then poll for status</h2>
+  <p>Here's the whole pattern in two small pieces. The server exposes one endpoint that accepts work and hands back a job id, and one that reports a job's status. This example uses Express and a queue, but the shape is identical in FastAPI, Django, Rails, or anything else.</p>
+  <pre><code>// POST /generate -&gt; validate, create a job, enqueue, answer 202 right away
+app.post('/generate', async (req, res) =&gt; {
+  const { prompt } = req.body;
+  if (!prompt) return res.status(400).json({ error: 'prompt required' });
+
+  const jobId = crypto.randomUUID();
+  await db.query('insert into jobs (id, status) values ($1, $2)', [jobId, 'queued']);
+  await queue.add('generate', { jobId, prompt });  // hand the slow work to a worker
+
+  // 202 Accepted: taken, not finished. Tell the client where to look.
+  res.status(202).location(`/jobs/${jobId}`).json({ id: jobId, status: 'queued' });
+});
+
+// GET /jobs/:id -&gt; the client polls this until status is 'done'
+app.get('/jobs/:id', async (req, res) =&gt; {
+  const { rows } = await db.query('select status, result from jobs where id = $1', [req.params.id]);
+  if (!rows.length) return res.status(404).json({ error: 'no such job' });
+  res.json(rows[0]);  // { status: 'queued' | 'running' | 'done' | 'failed', result }
+});</code></pre>
+  <p>And the client side, kicking off the job and polling for the answer without holding one long request open:</p>
+  <pre><code>async function runLongTask(prompt) {
+  // 1. Start the job. This returns in milliseconds, not minutes.
+  const { id } = await fetch('/generate', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ prompt }),
+  }).then(r =&gt; r.json());
+
+  // 2. Poll the status endpoint until it's done. Give up eventually.
+  for (let i = 0; i &lt; 150; i++) {
+    await new Promise(r =&gt; setTimeout(r, 2000));   // wait 2s between polls
+    const job = await fetch(`/jobs/${id}`).then(r =&gt; r.json());
+    if (job.status === 'done') return job.result;
+    if (job.status === 'failed') throw new Error('job failed');
+  }
+  throw new Error('gave up waiting for the job');
+}</code></pre>
+  <p>That's the core of it. The POST returns in milliseconds. The worker takes as long as it takes. The client checks in every two seconds and shows a spinner or a progress note until the result is there. No layer in the middle ever waits long enough to time out, because nothing in the middle is waiting at all.</p>
+
+  <!-- ADD IMAGE: src -> images/polling-ui.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A simple UI showing a progress spinner while the client polls, then the finished result appearing once the job status flips to done.</em><small>Optional: use your own app screenshot.</small></span></figure>
+
+  <h2>When streaming is the right answer instead</h2>
+  <p>Polling isn't always the best experience. If the whole point is to show output as it's produced, a chat reply appearing token by token, then making the user wait for a job to finish and only then poll feels worse, not better. That's the streaming case, and it's genuinely different.</p>
+  <p>When you stream, the connection stays open on purpose and the server sends data continuously as it's generated. Because bytes keep flowing, the connection isn't idle, so the silent long wait that trips a blocked request doesn't bite the same way. The user sees progress right away. The catch is that streaming has its own production gotchas, chiefly a reverse proxy that buffers the response and delivers it in one lump, quietly breaking the stream. <a href="https://www.kloudbean.com/blog/llm-streaming-in-production/">LLM streaming in production</a> covers those, and it's the right read if token-by-token output is your goal. A <a href="https://www.kloudbean.com/blog/host-ai-chatbot-in-production/">hosted AI chatbot</a> leans on exactly this.</p>
+  <p>So draw the line clearly. Streaming solves the perceived wait for work that produces output incrementally. The job pattern solves the truly long task that has no partial output to show: a batch embedding run, a document index, a multi-step agent that only has an answer at the very end. Some apps use both. They stream the chat reply, but push a big re-index to a background job. They aren't competing. They solve different problems.</p>
+
+  <h2>The worker and queue behind it</h2>
+  <p>The pattern leans on two pieces you might not have yet: a queue and a worker. The queue is a durable list of jobs waiting to run, usually backed by Redis. The worker is a separate long-running process that pulls jobs off the queue, one or a few at a time, and does the slow work. Keeping the worker separate from the web server is the whole point. Your web process stays free to answer requests fast while the worker grinds through the heavy stuff. The full shape of running an API, a worker, and a database together is in <a href="https://www.kloudbean.com/blog/run-ai-app-api-worker-database/">how to run an AI app with an API, a worker, and a database</a>.</p>
+  <p>A queue buys you more than just moving work off the request path. You get retries when a job fails, control over how many jobs run at once (so ten users don't launch ten simultaneous GPU-heavy calls), and a record of what ran. In Node, the common tool is BullMQ on top of Redis; <a href="https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/">background jobs in Node.js with BullMQ</a> covers the worker, retries, and concurrency in detail. Python has RQ and Celery in the same role. The job's state, queued, running, done, or failed, plus the result, lives in your database, which is what the status endpoint reads back. This whole setup, API plus worker plus queue plus store, is laid out in the <a href="https://www.kloudbean.com/blog/ai-app-reference-architecture/">AI app reference architecture</a>, and it's the natural next step after <a href="https://www.kloudbean.com/blog/last-mile-of-vibe-coding/">the last mile of vibe coding</a> leaves you with a working prototype and a production gap.</p>
+
+  <!-- ADD IMAGE: src -> images/queue-states.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A queue dashboard showing jobs moving through queued, running, done, and failed states with counts.</em><small>Shows the worker draining real work.</small></span></figure>
+
+  <p>One opinion, from watching this play out more than once: if a task can plausibly run past about 30 seconds, build it as a background job from day one. Retrofitting the 202 pattern after you've already hit the timeout in production, with users watching, is more work and more stress than designing it that way up front. It's far easier to start with a job you don't strictly need than to bolt one on during an incident.</p>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>This pattern needs a few things running at once: an always-on server that can hold a worker process, a queue, and somewhere to keep job state. Kloudbean gives you all of it in one dashboard. You run an always-on server (not a serverless function with a hard execution limit), so a long job is never cut off by a platform ceiling. The reverse proxy in front of your app is managed for you. You add a background worker and schedule cron jobs from the dashboard, back the queue with a managed Redis, and keep job state in a managed Postgres. Deploy from Git, get free SSL, done.</p>
+  <p>The honest part: managed means Kloudbean handles the server, the stack, the proxy, SSL, backups, and patching. Your job code, your queue logic, and your data stay yours. Running an always-on server removes the platform timeout. It doesn't magically make the underlying work faster, that's still your worker doing the real job. And to be clear, automatic autoscaling of your workers isn't a standard-plan feature (it's an Enterprise or custom capability); on a standard plan you size the server and set the worker concurrency yourself. What you get is a place where the job can actually run to completion, without a proxy pulling the plug at 30 seconds.</p>
+
+  <!-- ADD IMAGE: src -> images/dashboard-worker-cron.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Kloudbean dashboard showing an app, a background worker process, and a scheduled cron job side by side.</em><small>Optional: real console screenshot.</small></span></figure>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Run long jobs on a server that won't quit on them.</p>
+    <p style="margin:0 0 .6em">Run the slow work on an always-on server with a real background worker, a managed queue, and somewhere durable to keep job state. Launch the server (no function timeout), add a background worker and cron jobs from the dashboard, back the queue with managed Redis, keep job state in managed Postgres, and deploy from Git with free SSL. One dashboard for the whole thing.</p>
+    <p style="margin:0">Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">Always-on server (no function timeout) · Background workers + cron · Managed Redis queue · Managed Postgres · Git deploy · Free SSL</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Why does my long AI request time out?</h3>
+    <p>Because a layer in front of your app gave up waiting. A reverse proxy, gateway, or serverless function each enforce a request timeout, often around 30 to 60 seconds, and if your model call or agent run takes longer, that layer cuts the connection first. The work might have finished fine, but the user already got an error. The fix is to stop running slow work inside the request.</p>
+    <h3>How do I run a task longer than 30 seconds?</h3>
+    <p>Don't run it inside the web request at all. Accept the request, create a job, put it on a queue, and return 202 Accepted with a job id right away. A background worker runs the slow task off the request path, and the client polls a status endpoint (or waits for a stream or webhook) until the result is ready. Nothing stays open long enough to time out.</p>
+    <h3>What is the 202 Accepted pattern?</h3>
+    <p>202 Accepted is the HTTP status for "I have taken your request but haven't finished it." In this pattern your API validates the input, enqueues the work, and returns 202 with a job id and a URL to check. A worker does the actual task in the background, and the client uses the job id to poll for the result. It's the standard way to handle work that outlives a single request.</p>
+    <h3>Should I increase my proxy timeout?</h3>
+    <p>It's a stopgap, not a fix. Raising the proxy or gateway timeout buys a little room, but it only moves the ceiling, and a longer job will hit it again. Worse, every long request pins a web worker for its whole duration, so a few of them at once can starve everyone else. Use the background job pattern instead and keep proxy timeouts sane.</p>
+    <h3>What causes a 504 Gateway Timeout on an AI request?</h3>
+    <p>A 504 means an upstream proxy or gateway waited for your app to respond and ran out of patience. On an AI request that usually means the model call or agent run took longer than the proxy's timeout. The status code points at the layer that quit, not at your code. Move the slow work to a background job and the request returns instantly.</p>
+    <h3>How does the client find out when a background job is done?</h3>
+    <p>Three ways. It can poll a status endpoint every few seconds until the job reports done, which is the simplest and works well in a browser. It can hold a streaming connection and receive progress or the result as it's produced. Or you can fire a webhook to a URL when the job finishes, which suits server-to-server flows. Polling is the sensible default for most UIs.</p>
+    <h3>Do I still need the job pattern if I stream tokens?</h3>
+    <p>Not for the streamed part. Streaming keeps the connection active and shows output as it's generated, so it sidesteps the silent-wait timeout for things like chat replies. But streaming only helps when there's incremental output to show. For a batch embedding run, a document index, or a multi-step agent that only has an answer at the end, the background job pattern is still the right tool. Plenty of apps use both.</p>
+    <h3>Where do I run the background worker and queue?</h3>
+    <p>On an always-on server, not a serverless function that can be cut off mid-run. You need a long-running worker process to drain the queue, a Redis instance to back the queue, and a database to hold job state. On Kloudbean you run the always-on server, add a worker and cron jobs from the dashboard, and attach a managed Redis and managed Postgres, all in one place.</p>
+    <h3>Can serverless functions run long AI tasks?</h3>
+    <p>Often not directly. Many serverless platforms cap a single invocation, sometimes around 30 to 60 seconds, sometimes a few minutes, and you can't raise it past the hard limit. That makes them a poor fit for a long model call or agent run held open inside one request. Either offload the work to a background worker on an always-on server, or move the app off serverless for that workload.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Accept the work, answer 202, let the worker finish the job.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Run a Long AI Task Without Hitting a Timeout","description":"Why a long running task times out, and the 202 Accepted pattern that fixes it: return a job id, run the work on a background worker, and poll, stream, or webhook for the result.","image":"https://www.kloudbean.com/blog/deploy-long-running-ai-task-without-timeout/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/deploy-long-running-ai-task-without-timeout/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Why does my long AI request time out?","acceptedAnswer":{"@type":"Answer","text":"Because a layer in front of your app gave up waiting. A reverse proxy, gateway, or serverless function each enforce a request timeout, often around 30 to 60 seconds, and if your model call or agent run takes longer, that layer cuts the connection first. The work might have finished fine, but the user already got an error. The fix is to stop running slow work inside the request."}},
+{"@type":"Question","name":"How do I run a task longer than 30 seconds?","acceptedAnswer":{"@type":"Answer","text":"Do not run it inside the web request at all. Accept the request, create a job, put it on a queue, and return 202 Accepted with a job id right away. A background worker runs the slow task off the request path, and the client polls a status endpoint (or waits for a stream or webhook) until the result is ready. Nothing stays open long enough to time out."}},
+{"@type":"Question","name":"What is the 202 Accepted pattern?","acceptedAnswer":{"@type":"Answer","text":"202 Accepted is the HTTP status meaning I have taken your request but have not finished it. In this pattern your API validates the input, enqueues the work, and returns 202 with a job id and a URL to check. A worker does the actual task in the background, and the client uses the job id to poll for the result. It is the standard way to handle work that outlives a single request."}},
+{"@type":"Question","name":"Should I increase my proxy timeout?","acceptedAnswer":{"@type":"Answer","text":"It is a stopgap, not a fix. Raising the proxy or gateway timeout buys a little room, but it only moves the ceiling, and a longer job will hit it again. Worse, every long request pins a web worker for its whole duration, so a few of them at once can starve everyone else. Use the background job pattern instead and keep proxy timeouts sane."}},
+{"@type":"Question","name":"What causes a 504 Gateway Timeout on an AI request?","acceptedAnswer":{"@type":"Answer","text":"A 504 means an upstream proxy or gateway waited for your app to respond and ran out of patience. On an AI request that usually means the model call or agent run took longer than the proxy timeout. The status code points at the layer that quit, not at your code. Move the slow work to a background job and the request returns instantly."}},
+{"@type":"Question","name":"How does the client find out when a background job is done?","acceptedAnswer":{"@type":"Answer","text":"Three ways. It can poll a status endpoint every few seconds until the job reports done, which is the simplest and works well in a browser. It can hold a streaming connection and receive progress or the result as it is produced. Or you can fire a webhook to a URL when the job finishes, which suits server-to-server flows. Polling is the sensible default for most UIs."}},
+{"@type":"Question","name":"Do I still need the job pattern if I stream tokens?","acceptedAnswer":{"@type":"Answer","text":"Not for the streamed part. Streaming keeps the connection active and shows output as it is generated, so it sidesteps the silent-wait timeout for things like chat replies. But streaming only helps when there is incremental output to show. For a batch embedding run, a document index, or a multi-step agent that only has an answer at the end, the background job pattern is still the right tool. Plenty of apps use both."}},
+{"@type":"Question","name":"Where do I run the background worker and queue?","acceptedAnswer":{"@type":"Answer","text":"On an always-on server, not a serverless function that can be cut off mid-run. You need a long-running worker process to drain the queue, a Redis instance to back the queue, and a database to hold job state. On Kloudbean you run the always-on server, add a worker and cron jobs from the dashboard, and attach a managed Redis and managed Postgres, all in one place."}},
+{"@type":"Question","name":"Can serverless functions run long AI tasks?","acceptedAnswer":{"@type":"Answer","text":"Often not directly. Many serverless platforms cap a single invocation, sometimes around 30 to 60 seconds, sometimes a few minutes, and you cannot raise it past the hard limit. That makes them a poor fit for a long model call or agent run held open inside one request. Either offload the work to a background worker on an always-on server, or move the app off serverless for that workload."}}
+]}
+]}
+</script>
+</body>
+</html>
