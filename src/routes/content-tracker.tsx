@@ -137,9 +137,9 @@ function ContentTracker() {
 
   const publishMut = useMutation({
     mutationFn: (articleId: string) => publishFn({ data: { articleId, status: "publish" } }),
-    onSuccess: (r: { link?: string; images?: number }) => {
+    onSuccess: (r: { link?: string; images?: number; updated?: boolean }) => {
       toast.success(
-        `Published to WordPress${r.images ? ` (${r.images} images uploaded)` : ""}` +
+        `${r.updated ? "Updated on" : "Published to"} WordPress${r.images ? ` (${r.images} images uploaded)` : ""}` +
           (r.link ? `: ${r.link}` : ""),
       );
       qc.invalidateQueries({ queryKey: ["articles"] });
@@ -305,14 +305,31 @@ function ContentTracker() {
                                   <BookOpen className="h-3 w-3" /> Read
                                 </button>
                                 {published && a.published_url ? (
-                                  <a
-                                    href={a.published_url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="inline-flex items-center gap-1 text-[11px] text-emerald-500 hover:underline"
-                                  >
-                                    View live <ExternalLink className="h-3 w-3" />
-                                  </a>
+                                  <>
+                                    <a
+                                      href={a.published_url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="inline-flex items-center gap-1 text-[11px] text-emerald-500 hover:underline"
+                                    >
+                                      View live <ExternalLink className="h-3 w-3" />
+                                    </a>
+                                    {wpConnected && (
+                                      <button
+                                        onClick={() => publishMut.mutate(a.id)}
+                                        disabled={publishMut.isPending && publishMut.variables === a.id}
+                                        className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-foreground/5 disabled:opacity-60"
+                                        title="Push this article to WordPress again. If you deleted the post on the site, this recreates it as a new post."
+                                      >
+                                        {publishMut.isPending && publishMut.variables === a.id ? (
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                        ) : (
+                                          <RefreshCw className="h-3 w-3" />
+                                        )}
+                                        Republish
+                                      </button>
+                                    )}
+                                  </>
                                 ) : wpConnected ? (
                                   <button
                                     onClick={() => publishMut.mutate(a.id)}

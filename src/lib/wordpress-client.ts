@@ -305,7 +305,7 @@ export async function createOrUpdateWpPost(
     ...cats,
   };
 
-  const attempt = async (includeMeta: boolean) => {
+  const attempt = async (includeMeta: boolean, targetId: number | null) => {
     const body = includeMeta
       ? bodyWithMeta
       : {
@@ -317,16 +317,12 @@ export async function createOrUpdateWpPost(
           ...featured,
           ...cats,
         };
-    if (existingPostId) {
-      return wpRequest<{ id: number; link: string; status: string }>(
-        config,
-        `/posts/${existingPostId}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        },
-      );
+    if (targetId) {
+      return wpRequest<{ id: number; link: string; status: string }>(config, `/posts/${targetId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
     }
     return wpRequest<{ id: number; link: string; status: string }>(config, "/posts", {
       method: "POST",
@@ -335,9 +331,18 @@ export async function createOrUpdateWpPost(
     });
   };
 
-  let res = await attempt(true);
+  let res = await attempt(true, existingPostId ?? null);
+  // The stored post was deleted on WordPress (e.g. removed by hand): the update
+  // 404s, so republish by creating a fresh post instead of failing.
+  if (!res.ok && (res.status === 404 || res.status === 410) && existingPostId) {
+    res = await attempt(true, null);
+  }
+  // Some sites reject custom SEO meta with a 400 — retry without it (same delete-fallback).
   if (!res.ok && res.status === 400 && payload.meta) {
-    res = await attempt(false);
+    res = await attempt(false, existingPostId ?? null);
+    if (!res.ok && (res.status === 404 || res.status === 410) && existingPostId) {
+      res = await attempt(false, null);
+    }
   }
   if (!res.ok) {
     throw new Error(
