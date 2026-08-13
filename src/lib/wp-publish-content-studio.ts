@@ -333,9 +333,22 @@ export async function publishContentStudioArticle(
   const article = await articlesRepo.getArticleById(articleId);
   if (!article) return { ok: false, error: "Article not found" };
 
-  const fullHtml = article.content_html ?? "";
-  if (!fullHtml.trim()) return { ok: false, error: "This article has no stored HTML to publish." };
   const slug = article.url_slug ?? "";
+  // Prefer the CURRENT file on disk (exactly what the "Read" view shows) over the
+  // engine DB copy, so publish/republish always ships your latest edits even when
+  // the DB has not been re-synced. Fall back to the stored HTML if the file is gone.
+  const diskFile = slug ? path.join(contentStudioDir(), slug, `${slug}.html`) : "";
+  const diskHtml = diskFile && fs.existsSync(diskFile) ? fs.readFileSync(diskFile, "utf8") : "";
+  const fullHtml = diskHtml.trim() ? diskHtml : (article.content_html ?? "");
+  if (!fullHtml.trim()) return { ok: false, error: "This article has no HTML to publish." };
+
+  // Title + meta come from the same current file (DB fields can be stale).
+  const fileTitle = fullHtml
+    .match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1]
+    ?.replace(/<[^>]+>/g, "")
+    .trim();
+  const fileMetaTitle = fullHtml.match(/<title>([\s\S]*?)<\/title>/i)?.[1]?.trim();
+  const fileDesc = fullHtml.match(/<meta\s+name="description"\s+content="([^"]*)"/i)?.[1]?.trim();
 
   let body = extractArticleBody(fullHtml);
 
@@ -347,16 +360,23 @@ export async function publishContentStudioArticle(
 
   let imagesUploaded = 0;
   let featuredId: number | null = null;
-  for (const src of srcs) {
-    const abs = resolveLocalImage(slug, src);
-    if (!abs) continue;
-    const up = await uploadImageToWp(config, abs);
-    if (!up) continue;
-    body = body.split(`src="${src}"`).join(`src="${up.url}"`);
+  // Upload images in parallel (the slow part of publishing). The srcs within one
+  // article are distinct, so there is no duplicate-upload race here; shared console
+  // screenshots are still de-duped across articles by the module-level uploadCache.
+  const uploads = await Promise.all(
+    [...srcs].map(async (src) => {
+      const abs = resolveLocalImage(slug, src);
+      if (!abs) return null;
+      const up = await uploadImageToWp(config, abs);
+      if (!up) return null;
+      return { src, url: up.url, id: up.id, hero: /hero\.(png|jpe?g|webp)$/i.test(path.basename(abs)) };
+    }),
+  );
+  for (const u of uploads) {
+    if (!u) continue;
+    body = body.split(`src="${u.src}"`).join(`src="${u.url}"`);
     imagesUploaded++;
-    if (featuredId == null && /hero\.(png|jpe?g|webp)$/i.test(path.basename(abs))) {
-      featuredId = up.id;
-    }
+    if (featuredId == null && u.hero) featuredId = u.id;
   }
 
   // Convert the article's own body into native Gutenberg blocks so the post
@@ -365,7 +385,19 @@ export async function publishContentStudioArticle(
   // generated hero. Text, headings, lists, tables, images and code become real
   // blocks; the SVG diagrams and styled callouts stay as editable HTML blocks.
   const blocks = htmlToGutenbergBlocks(body);
-  const payload = buildPostPayload({ ...article, content_html: blocks }, status);
+  const payload = buildPostPayload(
+    {
+      title: fileTitle || article.title,
+      url_slug: slug,
+      meta_title: fileMetaTitle || article.meta_title,
+      meta_description: fileDesc || article.meta_description,
+      // Ignore the (possibly stale) stored brief so the current file always wins.
+      brief: null,
+      content_html: blocks,
+      cluster_name: article.cluster_name,
+    },
+    status,
+  );
   if (featuredId != null) payload.featured_media = featuredId;
 
   // File the post under the category the article already has (its cluster).
