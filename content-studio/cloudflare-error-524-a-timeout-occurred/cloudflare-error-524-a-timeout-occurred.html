@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Error 524 A Timeout Occurred: Why Your Origin Went Quiet</title>
+<meta name="description" content="Fix Cloudflare error 524, a timeout occurred. The connection to your origin worked, but your app answered slower than Cloudflare's 100-second read timeout. Find the slow path and fix it right.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/cloudflare-error-524-a-timeout-occurred/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Error 524 A Timeout Occurred: Why Your Origin Went Quiet">
+<meta property="og:description" content="A 524 is not a site outage. Cloudflare reached your server fine, then your app took longer than 100 seconds to answer. Here is how to find the slow path.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Cloudflare errors · 5xx · Field guide</span>
+  <h1>Error 524, A Timeout Occurred: Why Your Origin Went Quiet</h1>
+  <p class="byline">By Kloudbean Engineering · The handshake worked, then your app went quiet.</p>
+
+  <figure><img src="images/hero.png" alt="A Cloudflare error 524 a timeout occurred page beside a terminal showing a request that never returned in time"></figure>
+
+  <p class="lead">Error 524 says a timeout occurred, and that wording sends most people off to check whether their site is down. It isn't. A 524 is proof that Cloudflare reached your server just fine. The TCP connection opened, the handshake completed, and then your application sat there without sending a response back in time. So this is not a connectivity problem. It's a speed problem, on one specific path through your own app. Find that path and the 524 goes with it.</p>
+
+  <div class="tldr">
+    <strong>What does a timeout occurred error code 524 mean?</strong>
+    <p>Cloudflare opened a TCP connection to your origin, sent its request, and your application did not return a response before Cloudflare's read timeout expired. Cloudflare's documentation puts that default at 100 seconds on the standard proxy, and only Enterprise plans can raise it. A 524 error is not about reachability the way a 522 is. The connection worked. Your app was too slow on that one request. The usual culprit is a slow database query or a long synchronous task sitting on the request path, and the real fix is to move that work into a background job so the request can answer immediately.</p>
+  </div>
+
+  <h2>What a 524 is actually telling you</h2>
+  <p>Read the sequence and the diagnosis falls out of it. Cloudflare accepted a visitor, opened a connection to your origin, and sent the HTTP request. All of that worked. Then it started a clock and waited for the first byte of your response. When that clock hit 100 seconds with nothing coming back, Cloudflare stopped waiting and returned a 524 to the visitor instead.</p>
+  <p>That's the whole story. The connection is healthy. Your app is not answering. So a cloudflare error 524 never points at DNS, at your firewall, or at a dropped packet. It points at one thing: something on that request took too long. Usually you can even name the endpoint, because 524s tend to cluster on the exact paths that do heavy work.</p>
+  <p>The number itself tells you the layer. A code in the 52x range is Cloudflare talking about the leg between its edge and your origin. And 524 specifically is the one that means "I connected, I asked, you never replied." Keep that framing and you skip every dead end below.</p>
+
+  <h2>Error 524 versus 522, 504, and 523: which timeout is yours</h2>
+  <p>These four get mixed up constantly because they all feel like "the site is broken" to a visitor. They are not the same failure, and the fix for one does nothing for the others. Here is the split.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Code</th><th>What Cloudflare saw</th><th>What it means</th><th>First place to look</th></tr></thead>
+    <tbody>
+      <tr><td><a href="https://www.kloudbean.com/blog/cloudflare-error-522-connection-timed-out/">522</a></td><td>The connection never completed</td><td>Packets dropped, handshake failed</td><td>Firewall, security group, listen backlog</td></tr>
+      <tr><td><a href="https://www.kloudbean.com/blog/cloudflare-error-523-origin-is-unreachable/">523</a></td><td>The origin address could not be routed</td><td>Cloudflare had nowhere to send the packets</td><td>Wrong or dead origin IP, DNS record</td></tr>
+      <tr><td>524</td><td>Connected fine, no response in time</td><td>Your app answered too slowly</td><td>Slow queries, long synchronous work</td></tr>
+      <tr><td><a href="https://www.kloudbean.com/blog/fix-504-gateway-timeout/">504</a></td><td>A proxy in the chain gave up waiting</td><td>A different clock, often your own nginx</td><td>Upstream and proxy read timeouts</td></tr>
+    </tbody>
+  </table>
+
+  <p>The 522 versus 524 line is the one worth memorising, because it's the most common confusion. 522 means the connection failed, so nothing ever answered. 524 means the connection succeeded and then the response was too slow. If you fix a slow query on a 522, you've wasted an afternoon, because the request never reached your code. The <a href="https://www.kloudbean.com/blog/cloudflare-error-522-connection-timed-out/">522 guide</a> covers the handshake side in detail.</p>
+  <p>And 504 catches people out because it can come from a proxy you own, not from Cloudflare at all. If nginx sits in front of your app and the app is slow, nginx returns 504 on its own <code>proxy_read_timeout</code>, well before Cloudflare's 100-second clock ever runs out. Same slow app, different messenger. The <a href="https://www.kloudbean.com/blog/fix-504-gateway-timeout/">504 guide</a> untangles which proxy fired.</p>
+
+  <h2>Prove it in one command</h2>
+  <p>Before you change anything, confirm where the slowness lives. The test is to ask your origin directly, bypassing Cloudflare entirely, with a timer running. This single command settles the argument:</p>
+  <pre><code>curl -o /dev/null -s -w "%{time_total}s -&gt; %{http_code}\n" \
+  --resolve example.com:443:ORIGIN_IP https://example.com/slow-path</code></pre>
+  <p>Swap <code>ORIGIN_IP</code> for your server's real address and <code>/slow-path</code> for the URL that throws the 524. The <code>--resolve</code> flag sends the request straight to your origin with the correct Host header and SNI, so you're testing the same thing Cloudflare tests, minus the edge. The output is the total time and the status code. Now read it.</p>
+
+  <!-- ADD IMAGE: src -> images/curl-timer.png · Terminal running the curl timer against the origin, with time_total climbing toward and past several seconds on the slow path. -->
+  <figure class="img-slot"><span><b>Add image</b><em>Terminal running the curl timer against the origin, with time_total climbing past several seconds on the slow path.</em><small>Your own screenshot.</small></span></figure>
+
+  <table class="cmp">
+    <thead><tr><th>Direct curl result</th><th>What it means</th><th>Next step</th></tr></thead>
+    <tbody>
+      <tr><td>Slow direct, near or over 100s</td><td>It's your app, not Cloudflare</td><td>Profile that path, check the database</td></tr>
+      <tr><td>Fast direct, slow through Cloudflare</td><td>Something differs at the edge on that path</td><td>Check a WAF rule, a redirect loop, or a large uncached body</td></tr>
+      <tr><td>Hangs and never returns</td><td>The path never completes at all</td><td>A code bug or a stuck dependency, not a tuning issue</td></tr>
+    </tbody>
+  </table>
+
+  <p>Nine times out of ten it's slow direct, which is good news: the problem is entirely in your hands, and you already know which endpoint. If it's fast direct and slow through Cloudflare, the difference is something the edge adds on that specific path, so look there rather than at your app.</p>
+
+  <h2>What makes an origin go quiet</h2>
+  <p>Once you know it's the app, the cause is almost always one of these, roughly in the order I see them. They share a shape: something on the request path takes longer than it should, and everything behind it waits.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Cause</th><th>What it looks like</th><th>The fix</th></tr></thead>
+    <tbody>
+      <tr><td>A slow query on the request path</td><td>One endpoint times out, others are fine; database CPU spikes</td><td>Add an index, cache the result, or move it off the path</td></tr>
+      <tr><td>A long synchronous task</td><td>Predictable 524 on a report, export, or PDF action</td><td>Return a job id, build it in a worker</td></tr>
+      <tr><td>An external API call with no timeout</td><td>Your 524s track a third party's bad days</td><td>Set a client timeout, make the call async</td></tr>
+      <tr><td>Worker or thread pool exhausted</td><td>524s cluster under load, fine when quiet</td><td>More workers, faster handlers, or a queue</td></tr>
+      <tr><td>An upstream your app calls hangs</td><td>The whole app stalls behind one dependency</td><td>Timeouts and circuit breakers on every call</td></tr>
+    </tbody>
+  </table>
+
+  <p>The slow query is the classic. A page that runs a report over a table that grew past a million rows was fast in staging and is now sitting at 40 seconds in production, and nobody noticed until it crossed 100. Find what's actually running:</p>
+  <pre><code># Postgres: what is running right now, and for how long?
+SELECT pid, now() - query_start AS runtime, state, query
+FROM pg_stat_activity
+WHERE state = 'active'
+ORDER BY runtime DESC;</code></pre>
+  <p>If a query has been active for tens of seconds, that's your 524. Index it, or cache the result, or, if it's genuinely heavy work, take it off the request path entirely. That last option is the one that actually fixes this class of bug for good.</p>
+
+  <!-- ADD IMAGE: src -> images/slow-query.png · A slow query in the database slow-query log, or the endpoint's query shown with EXPLAIN and a large row estimate. -->
+  <figure class="img-slot"><span><b>Add image</b><em>A slow query in the slow-query log, or the endpoint's query run through EXPLAIN with a large row estimate.</em><small>Your own screenshot.</small></span></figure>
+
+  <p>The worker-exhaustion case is sneakier, because there's nothing wrong with any single request. You have, say, four workers, and four slow requests arrive. Now request five has to wait for a worker to free up, and if that wait plus its own runtime crosses 100 seconds, it 524s while doing nothing at all. That's why 524s often appear only under load and vanish when traffic drops. It looks intermittent. It's really a capacity ceiling.</p>
+
+  <h2>The real fix: get the slow work off the request path</h2>
+  <p>Here's my honest opinion, and it's the one thing I'd want you to take from this page. That 100-second limit is not a knob to crank. On standard plans you can't raise it anyway, and even on Enterprise, where you can, a request that needs more than 100 seconds is a design smell, not a configuration gap. HTTP requests are meant to be short. If real work takes minutes, it shouldn't be happening inside a request at all.</p>
+  <p>The pattern that retires this whole bug class: accept the work, answer immediately, and do the slow part somewhere else. The request returns a 202 with a job id in milliseconds. A background worker picks the job up and runs it. The client polls that job id, or you fire a webhook when it's done.</p>
+
+  <pre><code>// Before: the request does the slow work and holds the connection open
+app.post('/reports', async (req, res) =&gt; {
+  const report = await buildHugeReport(req.body); // 3 minutes
+  res.json(report);                               // Cloudflare gave up at 100s
+});
+
+// After: accept the job, answer now, run the work elsewhere
+app.post('/reports', async (req, res) =&gt; {
+  const job = await queue.add('build-report', req.body);
+  res.status(202).json({ jobId: job.id });        // returns in milliseconds
+});</code></pre>
+
+  <figure>
+    <svg viewBox="0 0 880 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="cf524-title cf524-desc">
+      <title id="cf524-title">A 524 timeline versus a background-job design</title>
+      <desc id="cf524-desc">In the blocking design the origin holds the request open until Cloudflare's 100-second read timeout expires and returns 524. In the background-job design the origin answers immediately with a job id and does the slow work separately, so no timeout is reached.</desc>
+      <rect x="0" y="0" width="880" height="360" fill="#ffffff"/>
+      <g font-family="Poppins, sans-serif" fill="#000f27">
+        <text x="24" y="40" font-weight="600" font-size="14">Blocking request: the slow work runs on the request path</text>
+        <line x1="60" y1="72" x2="806" y2="72" stroke="#d9d9e6" stroke-width="2"/>
+        <circle cx="60" cy="72" r="7" fill="#40b75f"/>
+        <text x="60" y="100" text-anchor="middle" font-size="11.5">t=0 handshake OK</text>
+        <rect x="68" y="65" width="640" height="14" rx="7" fill="#4F1AF3" opacity="0.22"/>
+        <text x="388" y="57" text-anchor="middle" font-size="12" fill="#4F1AF3" font-weight="600">Cloudflare waits while your app runs a slow query</text>
+        <circle cx="712" cy="72" r="7" fill="#000f27"/>
+        <text x="712" y="100" text-anchor="middle" font-size="11.5" font-weight="600">100s: read timeout expires</text>
+        <rect x="742" y="60" width="118" height="26" rx="6" fill="#000f27"/>
+        <text x="801" y="77" text-anchor="middle" fill="#ffffff" font-size="12.5" font-weight="600">524 returned</text>
+
+        <line x1="24" y1="152" x2="856" y2="152" stroke="#eeeef4" stroke-width="1"/>
+
+        <text x="24" y="190" font-weight="600" font-size="14">Background job: answer now, do the slow work off the path</text>
+        <line x1="60" y1="222" x2="806" y2="222" stroke="#d9d9e6" stroke-width="2"/>
+        <circle cx="60" cy="222" r="7" fill="#40b75f"/>
+        <text x="60" y="250" text-anchor="middle" font-size="11.5">t=0 handshake OK</text>
+        <rect x="92" y="209" width="150" height="26" rx="6" fill="#40b75f"/>
+        <text x="167" y="226" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="600">202 + job id</text>
+        <text x="167" y="266" text-anchor="middle" font-size="11.5">visitor gets an answer in well under a second</text>
+        <rect x="330" y="209" width="476" height="14" rx="7" fill="#4F1AF3" opacity="0.22"/>
+        <text x="568" y="201" text-anchor="middle" font-size="12" fill="#4F1AF3" font-weight="600">a worker runs the slow job separately</text>
+        <text x="568" y="250" text-anchor="middle" font-size="11.5">client polls the job id, or a webhook fires when it's done</text>
+
+        <rect x="24" y="304" width="832" height="34" rx="8" fill="#f4f2ff"/>
+        <text x="40" y="326" font-size="12.5"><tspan font-weight="600">Same work, different shape.</tspan> The timeout only existed because the request stayed open. Remove the wait and you remove the 524.</text>
+      </g>
+    </svg>
+    <figcaption>The 524 only happens because the request holds the connection open. A background job answers first and works after.</figcaption>
+  </figure>
+
+  <p>This is a bigger change than flipping a setting, and it's worth it. For the mechanics, <a href="https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/">background jobs with BullMQ</a> walks through a real queue and worker, <a href="https://www.kloudbean.com/blog/deploy-long-running-ai-task-without-timeout/">running a long task without hitting a timeout</a> covers the return-immediately pattern end to end, and <a href="https://www.kloudbean.com/blog/run-ai-app-api-worker-database/">splitting an app into API, worker, and database</a> shows the architecture it leads to. The shape is the same whether the slow thing is a report, a video encode, or an AI call.</p>
+
+  <!-- ADD IMAGE: src -> ../assets/console/cron-jobs.png · Scheduling recurring off-request work from the Cron Jobs screen. -->
+  <figure class="img-slot"><span><b>Add image</b><em>Scheduling recurring off-request work from the Cron Jobs screen, no SSH needed.</em><small>Kloudbean console: cron-jobs.png.</small></span></figure>
+
+  <h2>Fixes that cannot work (skip these)</h2>
+  <p>The 524 error attracts bad advice, mostly because the fixes are quick to try and satisfying to click. None of them touch a slow origin response.</p>
+  <p><strong>Purging the cache, Development Mode, Rocket Loader.</strong> These change how Cloudflare handles content it already has, or how it delivers assets to the browser. Your problem is that Cloudflare never got a response to cache or deliver. Toggling any of them is motion, not progress. Development Mode in particular just bypasses the cache, which makes a slow origin slower, not faster.</p>
+  <p><strong>Raising the timeout.</strong> On standard plans it isn't yours to raise. And where it can be raised, you're hiding the symptom, not fixing it. A request that needed 110 seconds today will need 130 next quarter as your data grows, and you'll be back here having bought a few months. Worse, every one of those slow requests is holding a worker hostage the whole time, so you've made your capacity ceiling lower while feeling like you solved something.</p>
+  <p><strong>Rebooting and hoping.</strong> A restart clears a stuck worker pool and buys quiet for an hour, which is exactly enough to convince you it's fixed. Then load returns and so does the 524. If a reboot helps even briefly, that's a strong hint you have a capacity or a slow-path problem, so go and measure it rather than scheduling a nightly restart.</p>
+
+  <h2>Where hosting fits, honestly</h2>
+  <p>Let me be straight about the boundary here, because a 524 is mostly your code's problem and no host can pretend otherwise. Managed hosting covers the server, the stack, TLS, backups, and patching. Your application code, your queries, your DNS, and your Cloudflare configuration stay yours. A 524 is almost always a slow path inside your own app. What a good platform gives you is the ability to find and fix it faster.</p>
+  <p>That's mostly about visibility. On Kloudbean, application and server logs sit next to server health metrics, CPU, memory, and load, in one dashboard, which matters here because the intermittent 524 is a capacity story you can only read with load history. You line up the spike in 524s with the spike in load and the picture is obvious. Managed databases (MySQL, MariaDB, PostgreSQL, Redis, and more) give you a place to tune the slow query instead of guessing, and cron jobs run from the UI without SSH, which is handy for the scheduled side of moving work off the request path.</p>
+  <p>One thing to be clear about: the background-job fix is your application design. You write the worker and the queue. Kloudbean runs the servers, the managed database, and the cron, and it won't magically move your work into the background or autoscale a standard app for you. What it removes is the server and stack maintenance around all of it, so you spend your time on the slow query rather than on the box it runs on. Seven cloud providers, one dashboard, free SSL, staging for WordPress and Laravel, automatic backups, and free migration assistance if you're moving something already running.</p>
+
+  <!-- ADD IMAGE: src -> ../assets/console/server-health.png · Server health metrics (CPU, memory, load) beside the app so a 524 spike lines up with a load spike. -->
+  <figure class="img-slot"><span><b>Add image</b><em>Server health metrics (CPU, memory, load) beside the app, so a spike in 524s lines up with a spike in load.</em><small>Kloudbean console: server-health.png.</small></span></figure>
+
+  <h2>Related reading</h2>
+  <p>If you're not sure which number you actually have, start at the <a href="https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/">Cloudflare 5xx error codes</a> overview. The nearest neighbours are <a href="https://www.kloudbean.com/blog/cloudflare-error-522-connection-timed-out/">522 connection timed out</a> for the handshake that never completes, <a href="https://www.kloudbean.com/blog/cloudflare-error-523-origin-is-unreachable/">523 origin is unreachable</a> when Cloudflare can't route to your address, and <a href="https://www.kloudbean.com/blog/cloudflare-error-525-ssl-handshake-failed/">525 SSL handshake failed</a> when the connection works and TLS does not. For the same slow-response family from a different angle, <a href="https://www.kloudbean.com/blog/fix-504-gateway-timeout/">504 Gateway Timeout</a>. And for the fix itself, <a href="https://www.kloudbean.com/blog/deploy-long-running-ai-task-without-timeout/">running a long task without a timeout</a> and <a href="https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/">background jobs with BullMQ</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">See the slow request and the load in one place.</p>
+    <p style="margin:0 0 .6em">Managed servers across seven clouds, with application and server logs beside CPU, memory, and load metrics, so a 524 is something you can watch rather than guess at. Managed databases to tune the slow query, cron jobs from the UI, free SSL, and free migration assistance if you're moving something already running. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Logs and metrics together · Managed databases · Cron from the UI · Free SSL · One dashboard</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does Cloudflare error 524 mean?</h3>
+    <p>It means Cloudflare opened a TCP connection to your origin server and sent its request, but your application did not return a response before Cloudflare's read timeout expired. The connection itself worked, so a 524 is never a firewall or routing problem. It's a speed problem: something on that request took too long, usually a slow query or a long synchronous task on the request path.</p>
+
+    <h3>What is the difference between error 524 and error 522?</h3>
+    <p>522 means the connection never completed, so nothing on your server ever answered, which points at packet filtering, a security group, or a full listen backlog. 524 means the connection completed fine and then the response was too slow. If you chase a slow query on a 522 you'll waste your time, because the request never reached your code in the first place.</p>
+
+    <h3>How long does Cloudflare wait before returning a 524?</h3>
+    <p>Cloudflare's documentation puts the default read timeout at 100 seconds on the standard proxy. If your origin sends no response within that window, Cloudflare stops waiting and returns a 524 to the visitor. Only Enterprise plans can raise the limit, and raising it is rarely the right move, since a request that needs more than 100 seconds usually should not be a single HTTP request.</p>
+
+    <h3>Can I increase the Cloudflare 524 timeout?</h3>
+    <p>On standard plans, no. The 100-second proxy read timeout is fixed. Enterprise plans can raise it, but that hides the symptom rather than fixing it, because slow requests keep holding workers open and the underlying work only gets slower as your data grows. The durable fix is to move long work into a background job and return a response immediately.</p>
+
+    <h3>Why do I get a 524 on one page but the rest of the site is fine?</h3>
+    <p>Because that page does heavy work the others don't. A report, an export, a big search, or an external API call with no timeout will sit on the request path far longer than a normal page render. 524s cluster on exactly those endpoints. Run the slow endpoint directly with a curl timer and you'll usually see it crawl past several seconds while the rest of the site answers instantly.</p>
+
+    <h3>How do I test whether my origin is the slow part?</h3>
+    <p>Ask your origin directly, bypassing Cloudflare, with a timer. Use curl with the --resolve flag so the request goes straight to your server IP with the correct Host header, and print the total time and status code. If it's slow direct, the problem is your app and you already know the endpoint. If it's fast direct but slow through Cloudflare, look at what the edge adds on that path.</p>
+
+    <h3>Does purging the cache or turning on Development Mode fix a 524?</h3>
+    <p>No. Those settings change how Cloudflare handles content it already has or how it delivers assets to the browser. A 524 happens because Cloudflare never received a response to cache or deliver. Development Mode actually bypasses the cache, which makes a slow origin slower. None of these touch the real cause, which is a slow response from your application.</p>
+
+    <h3>Is a 524 error a problem with Cloudflare or my server?</h3>
+    <p>It's your server, almost always. Cloudflare is only reporting that it connected and waited and got nothing back in time. The slow path lives in your application code, your database, or a dependency your app calls. Cloudflare configuration can occasionally add latency on a specific path, which is why the direct curl test is worth running, but the usual answer is a slow origin.</p>
+
+    <h3>How do I stop long requests from causing 524?</h3>
+    <p>Take the long work off the request path. Return a 202 with a job id straight away, run the actual work in a background worker or queue, and let the client poll the job id or receive a webhook when it finishes. This keeps every HTTP request short, which is what they're meant to be, and the 524 disappears because Cloudflare is never left waiting.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · If a request needs 100 seconds, it shouldn't be a request.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Error 524, A Timeout Occurred: Why Your Origin Went Quiet","description":"Fix Cloudflare error 524, a timeout occurred. The connection to your origin worked, but your app answered slower than Cloudflare's 100-second read timeout. Find the slow path and fix it right.","image":"https://www.kloudbean.com/blog/cloudflare-error-524-a-timeout-occurred/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/cloudflare-error-524-a-timeout-occurred/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does Cloudflare error 524 mean?","acceptedAnswer":{"@type":"Answer","text":"It means Cloudflare opened a TCP connection to your origin server and sent its request, but your application did not return a response before Cloudflare's read timeout expired. The connection itself worked, so a 524 is never a firewall or routing problem. It's a speed problem: something on that request took too long, usually a slow query or a long synchronous task on the request path."}},
+{"@type":"Question","name":"What is the difference between error 524 and error 522?","acceptedAnswer":{"@type":"Answer","text":"522 means the connection never completed, so nothing on your server ever answered, which points at packet filtering, a security group, or a full listen backlog. 524 means the connection completed fine and then the response was too slow. If you chase a slow query on a 522 you'll waste your time, because the request never reached your code in the first place."}},
+{"@type":"Question","name":"How long does Cloudflare wait before returning a 524?","acceptedAnswer":{"@type":"Answer","text":"Cloudflare's documentation puts the default read timeout at 100 seconds on the standard proxy. If your origin sends no response within that window, Cloudflare stops waiting and returns a 524 to the visitor. Only Enterprise plans can raise the limit, and raising it is rarely the right move, since a request that needs more than 100 seconds usually should not be a single HTTP request."}},
+{"@type":"Question","name":"Can I increase the Cloudflare 524 timeout?","acceptedAnswer":{"@type":"Answer","text":"On standard plans, no. The 100-second proxy read timeout is fixed. Enterprise plans can raise it, but that hides the symptom rather than fixing it, because slow requests keep holding workers open and the underlying work only gets slower as your data grows. The durable fix is to move long work into a background job and return a response immediately."}},
+{"@type":"Question","name":"Why do I get a 524 on one page but the rest of the site is fine?","acceptedAnswer":{"@type":"Answer","text":"Because that page does heavy work the others don't. A report, an export, a big search, or an external API call with no timeout will sit on the request path far longer than a normal page render. 524s cluster on exactly those endpoints. Run the slow endpoint directly with a curl timer and you'll usually see it crawl past several seconds while the rest of the site answers instantly."}},
+{"@type":"Question","name":"How do I test whether my origin is the slow part?","acceptedAnswer":{"@type":"Answer","text":"Ask your origin directly, bypassing Cloudflare, with a timer. Use curl with the resolve flag so the request goes straight to your server IP with the correct Host header, and print the total time and status code. If it's slow direct, the problem is your app and you already know the endpoint. If it's fast direct but slow through Cloudflare, look at what the edge adds on that path."}},
+{"@type":"Question","name":"Does purging the cache or turning on Development Mode fix a 524?","acceptedAnswer":{"@type":"Answer","text":"No. Those settings change how Cloudflare handles content it already has or how it delivers assets to the browser. A 524 happens because Cloudflare never received a response to cache or deliver. Development Mode actually bypasses the cache, which makes a slow origin slower. None of these touch the real cause, which is a slow response from your application."}},
+{"@type":"Question","name":"Is a 524 error a problem with Cloudflare or my server?","acceptedAnswer":{"@type":"Answer","text":"It's your server, almost always. Cloudflare is only reporting that it connected and waited and got nothing back in time. The slow path lives in your application code, your database, or a dependency your app calls. Cloudflare configuration can occasionally add latency on a specific path, which is why the direct curl test is worth running, but the usual answer is a slow origin."}},
+{"@type":"Question","name":"How do I stop long requests from causing 524?","acceptedAnswer":{"@type":"Answer","text":"Take the long work off the request path. Return a 202 with a job id straight away, run the actual work in a background worker or queue, and let the client poll the job id or receive a webhook when it finishes. This keeps every HTTP request short, which is what they're meant to be, and the 524 disappears because Cloudflare is never left waiting."}}
+]}
+]}
+</script>
+</body>
+</html>

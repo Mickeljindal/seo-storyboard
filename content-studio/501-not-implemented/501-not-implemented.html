@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>501 Error: Not Implemented Means the Server Can't, Not Won't</title>
+<meta name="description" content="A 501 error (501 Not Implemented) means the server does not implement your request method at all, unlike a 405. How to tell error 501 from 405 and 500, and which layer to fix.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/501-not-implemented/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="501 Error: Not Implemented Means the Server Can't, Not Won't">
+<meta property="og:description" content="An HTTP 501 usually means a proxy, gateway, or minimal server in front of your app never learned the method you sent. Classify it against 405 and 500, then curl each hop to find the layer.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">HTTP status codes · 5xx · Field guide</span>
+  <h1>501 Error: Not Implemented Means the Server Can't, Not Won't</h1>
+  <p class="byline">By Kloudbean Engineering · The one 5xx that is usually not your code.</p>
+
+  <figure><img src="images/hero.png" alt="A terminal showing curl sending a PATCH request that returns 501 Not Implemented at the edge but 200 against the origin"></figure>
+
+  <p class="lead">A 501 error is the server telling you it does not implement what you asked for, at all. Not for this URL, not for any URL. That one fact makes error 501 one of the more honest status codes, and it separates it cleanly from its neighbours: a 405 knows your method and refuses it here, a 500 ran your code and crashed. So before you change anything, classify. An HTTP 501 almost always points at a layer in front of your application, some proxy or gateway that was never taught the method you sent, rather than a bug in your framework. Get the classification right and you have done most of the fixing.</p>
+
+  <div class="tldr">
+    <strong>What does a 501 error mean?</strong>
+    <p>Per RFC 9110, a 501 Not Implemented means the server does not support the functionality needed to fulfil the request, usually because it does not recognise the request method and cannot support it for any resource. Servers are required to support GET and HEAD, so those never return 501. That points you at the method (a PUT, PATCH, DELETE, or a WebDAV verb like PROPFIND) and at whichever layer sits in front: an edge, a proxy, or a minimal server that only speaks GET and HEAD. Reproduce it with curl against each hop, find the layer that says no, and fix that layer.</p>
+  </div>
+
+  <h2>A 501 error next to 405, 500, 502, and 404</h2>
+  <p>This is the whole game. A 501 gets misread as a generic server crash, and then people go hunting through application code that never even saw the request. Line it up against the codes it gets confused with, and the search space collapses fast.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Code</th><th>What it proves</th><th>Where to look</th></tr></thead>
+    <tbody>
+      <tr><td><strong>501</strong> Not Implemented</td><td>The server does not implement this method or feature, for any resource</td><td>The layer in front: edge, proxy, gateway, or a minimal server</td></tr>
+      <tr><td><strong>405</strong> Method Not Allowed</td><td>The method is understood, just not allowed on this resource</td><td><a href="https://www.kloudbean.com/blog/405-method-not-allowed/">Your route config and its Allow header</a></td></tr>
+      <tr><td><strong>500</strong> Internal Server Error</td><td>Your app ran and threw</td><td><a href="https://www.kloudbean.com/blog/http-error-500-internal-server-error/">Your application error log</a></td></tr>
+      <tr><td><strong>502</strong> Bad Gateway</td><td>The proxy reached your app but got no usable answer, often a dead process</td><td><a href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/">502 Bad Gateway</a></td></tr>
+      <tr><td><strong>404</strong> Not Found</td><td>The path does not exist</td><td><a href="https://www.kloudbean.com/blog/http-error-404-not-found/">Your routing and the URL</a></td></tr>
+    </tbody>
+  </table>
+
+  <p>The 501 against 405 line is the one worth memorising, because it is where most of the confusion lives. A 405 means the server knows the verb and is capable of it, it just will not run it on that path. A 501 means the server does not know the verb at all and could not run it anywhere. Capable but refusing versus incapable. Won't here versus can't, full stop. Once you feel that difference, you already know which layer to interrogate first.</p>
+
+  <h2>Why a 501 is usually not your app</h2>
+  <p>Here is an opinion, and it holds up in practice. If a plain REST verb like PUT or PATCH comes back 501, your application framework is almost never the culprit. Express, Laravel, Django, Rails, FastAPI: they all implement those methods perfectly well. What returns 501 is something in front that was never configured to pass the verb through, or a barebones server that only ever learned GET and HEAD.</p>
+
+  <p>The spec backs the instinct. Servers must support GET and HEAD, so those two can never legitimately produce a 501. Which means a GET returning 501 is a strong signal of a badly broken or fake front-end, and a PATCH returning 501 while GET works fine tells you the front door is filtering by method. Neither points at your route handlers.</p>
+
+  <figure>
+    <svg viewBox="0 0 880 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="e501-title e501-desc">
+      <title id="e501-title">Which layer returns a 501</title>
+      <desc id="e501-desc">A PATCH request travels from the client through an edge or CDN and a reverse proxy to the origin application. The origin implements PATCH and would answer 200, or 405 if the route forbids it. A 501 is usually emitted by a front layer that was never configured to pass the method, not by the application.</desc>
+      <rect x="0" y="0" width="880" height="320" fill="#ffffff"/>
+      <g font-family="Poppins, sans-serif" fill="#000f27">
+        <rect x="16" y="52" width="150" height="66" rx="9" fill="#000f27"/>
+        <text x="91" y="80" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="600">Client</text>
+        <text x="91" y="100" text-anchor="middle" fill="#ffffff" font-size="10.5">sends PATCH /thing</text>
+
+        <rect x="222" y="52" width="150" height="66" rx="9" fill="#4F1AF3"/>
+        <text x="297" y="80" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="600">Edge / CDN</text>
+        <text x="297" y="100" text-anchor="middle" fill="#ffffff" font-size="10.5">passes methods on</text>
+
+        <rect x="428" y="52" width="160" height="66" rx="9" fill="#4F1AF3"/>
+        <text x="508" y="80" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="600">Reverse proxy</text>
+        <text x="508" y="100" text-anchor="middle" fill="#ffffff" font-size="10.5">nginx or Apache</text>
+
+        <rect x="644" y="52" width="180" height="66" rx="9" fill="#40b75f"/>
+        <text x="734" y="80" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="600">Origin app</text>
+        <text x="734" y="100" text-anchor="middle" fill="#ffffff" font-size="10.5">implements PATCH</text>
+
+        <g stroke="#98a2b3" stroke-width="2" fill="none" marker-end="url(#a501)">
+          <path d="M166 85 H218"/><path d="M372 85 H424"/><path d="M588 85 H640"/>
+        </g>
+
+        <text x="20" y="160" font-size="13" font-weight="600">What each layer can answer</text>
+
+        <rect x="222" y="172" width="366" height="60" rx="8" fill="#fdeceb" stroke="#c0392b" stroke-width="1.5"/>
+        <text x="405" y="196" text-anchor="middle" font-size="11.5" font-weight="600" fill="#c0392b">A 501 usually fires here</text>
+        <text x="405" y="214" text-anchor="middle" font-size="11">a front layer that never learned the verb you sent</text>
+
+        <rect x="644" y="172" width="180" height="60" rx="8" fill="#e8f7ed" stroke="#40b75f" stroke-width="1.5"/>
+        <text x="734" y="196" text-anchor="middle" font-size="11.5" font-weight="600">200, or 405</text>
+        <text x="734" y="214" text-anchor="middle" font-size="11">known verb, not here</text>
+
+        <rect x="16" y="256" width="808" height="30" rx="7" fill="#000f27"/>
+        <text x="30" y="276" font-size="12" fill="#ffffff">GET and HEAD never return 501. A normal REST verb that does means a layer in front, not your framework.</text>
+      </g>
+      <defs>
+        <marker id="a501" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#98a2b3"/></marker>
+      </defs>
+    </svg>
+    <figcaption>The verb travels the whole path. A 501 is usually stamped by the first layer that does not recognise it.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: terminal running a quick method sweep (GET HEAD POST PUT PATCH DELETE) with the status code beside each, one of them showing 501 -->
+
+  <h2>The decisive test: curl each method at each hop</h2>
+  <p>Do not theorise about which layer is responsible. Ask each one directly. The trick is to send the failing method to the origin on its own, then through the public front door, and compare. Where the answer changes is where the 501 is born.</p>
+
+  <pre><code># Ask the origin directly, bypassing any edge or CDN.
+curl -i -X PATCH https://origin.example.com/thing
+
+# Now the same request through the public hostname.
+curl -i -X PATCH https://example.com/thing</code></pre>
+
+  <p>If the origin answers 200 or 405 and the public hostname answers 501, you have found it: a front layer is rejecting the verb before it ever reaches the app. If both answer 501, the server actually running your app is the one that does not implement the method, which is the minimal-server case below.</p>
+
+  <p>A fast way to see the whole shape at once is to sweep every common method and read the status codes side by side:</p>
+
+  <pre><code>for m in GET HEAD POST PUT PATCH DELETE OPTIONS; do
+  printf '%s\t' "$m"
+  curl -s -o /dev/null -w '%{http_code}\n' -X "$m" https://example.com/thing
+done</code></pre>
+
+  <p>GET and HEAD returning 200 while PUT, PATCH, and DELETE return 501 is the classic method-filtering signature. Now confirm it in the logs, because the log tells you whether the request reached your application at all:</p>
+
+  <pre><code># Did the request even land on the app, or did the front door answer?
+sudo tail -50 /var/log/nginx/access.log | grep ' 501 '
+sudo tail -50 /var/log/nginx/error.log</code></pre>
+
+  <p>If the 501 shows up in the proxy log but there is nothing in your application log for that request, the app never saw it. That single observation ends a lot of wasted debugging. If you have not made your app logs searchable yet, <a href="https://www.kloudbean.com/blog/structured-logging-nodejs/">structured logging</a> turns this into one query instead of a scroll.</p>
+
+  <!-- ADD IMAGE: split terminal, left pane curl against the origin returns 200, right pane curl against the public host returns 501, proving the front layer is the source -->
+
+  <h2>What actually triggers a 501</h2>
+  <p>A handful of real causes cover almost everything. Find your row, then read the note under the table for the ones with a giveaway string.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Cause</th><th>Where it lives</th><th>The tell</th></tr></thead>
+    <tbody>
+      <tr><td>A proxy or gateway not configured to pass the method</td><td>Edge, reverse proxy, or API gateway</td><td>Origin accepts the verb, the front door returns 501</td></tr>
+      <tr><td>A minimal server that only implements GET and HEAD</td><td>The server process itself</td><td>Real string: <code>code 501, message Unsupported method ('POST')</code></td></tr>
+      <tr><td>An unrecognised or non-standard method</td><td>Almost any server</td><td>Garbage verbs from a scanner, a fuzzer, or a broken client</td></tr>
+      <tr><td>A Transfer-Encoding the server cannot decode</td><td>The receiving server</td><td>Rare, but a hand-built client or odd proxy chain can trigger it</td></tr>
+      <tr><td>A WebDAV method with no WebDAV module loaded</td><td>Apache or nginx without the module</td><td>PROPFIND, MKCOL, and friends against a plain web server</td></tr>
+      <tr><td>A route that was never built</td><td>Your application</td><td>A deliberate 501 stub for a planned endpoint</td></tr>
+    </tbody>
+  </table>
+
+  <p><strong>The minimal server.</strong> Reach for a quick static server, say Python's <code>http.server</code> for local previews, then POST to it, and you get a textbook 501: <code>code 501, message Unsupported method ('POST')</code>. That handler implements GET and HEAD and nothing else. It is doing exactly what the spec says, telling you it does not implement POST anywhere. The same thing happens with plenty of embedded and single-purpose servers. If a static host is answering your writes, a 501 is the polite version of no.</p>
+
+  <p><strong>Unknown verbs.</strong> Apache answers a request method it does not recognise with a blunt <code>501 Method Not Implemented</code>. Most of the time this is not a real user. It is a bot spraying junk verbs, a security scanner, or a client library that mangled the request line. If your logs show 501s on methods you have never heard of, that is background internet noise finding your front door, not a bug you introduced.</p>
+
+  <p><strong>The one legitimate 501 from your own code</strong> is the deliberate stub. Returning 501 for an endpoint you have scaffolded but not finished is correct and honest, arguably better than a fake 200. Just be deliberate about it, and do not leave a stub in front of code you actually shipped.</p>
+
+  <!-- ADD IMAGE: a small terminal showing python3 -m http.server, then a POST attempt logging code 501, message Unsupported method POST -->
+
+  <h2>Fixes that cannot work, and one that hides the problem</h2>
+  <p>Because a 501 comes from the server, the usual browser-side rituals do nothing. Clearing your cache, switching browsers, toggling extensions: none of them touch a decision made on a machine you are not sitting at. The request has to leave your device and be refused elsewhere before a 501 exists.</p>
+
+  <p>There is one twist here that genuinely trips people, and it is worth knowing. A 501 response is cacheable by default. So an intermediary, or even the browser, can hold on to a 501 and keep serving it after you have already fixed the origin. You push the proxy change, you test in the browser, you still see 501, and you conclude the fix failed. It did not. You are looking at a cached copy. This is exactly why the curl tests above matter: curl skips the browser cache and asks the server fresh. Confirm with curl first, then purge the edge cache or wait it out before you trust what the browser shows you.</p>
+
+  <p>And a quick anti-pattern to avoid. When the front door rejects a verb, do not paper over it by making the proxy return 200 for unknown methods, and do not go editing your application, which never received the request. Both aim at the wrong layer. Fix the proxy or gateway to pass the method it is supposed to pass, or accept the 501 as the correct answer for a verb you genuinely do not support.</p>
+
+  <!-- ADD IMAGE: browser devtools network panel showing a 501 response served from cache after the origin was already fixed -->
+
+  <h2>When a 501 is the right answer</h2>
+  <p>Not every 501 is a bug to squash. If a client sends a method your service was never meant to implement, 501 is the honest reply. If you are building an API and an endpoint is planned but unbuilt, a 501 stub communicates that clearly. The mistakes are at the edges: returning 501 when you mean 405 (you know the verb, you just do not allow it there), or returning 501 when you mean 400 (the request itself was malformed). And the hard rule stays the hard rule. GET and HEAD must work, so never answer those with 501. Whether nginx or Apache is the better fit for how you route methods is its own topic, covered in <a href="https://www.kloudbean.com/blog/nginx-vs-apache/">nginx versus Apache</a>.</p>
+
+  <div class="note">
+    <strong>Behind Cloudflare or another CDN?</strong> The edge is a front layer too, and it can be the thing returning 501 on a method it was not set to forward. Test the origin directly with curl to split the edge from your server, and if the failure is clearly at the edge, <a href="https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/">the Cloudflare 5xx codes</a> covers how that layer reports its own faults.
+  </div>
+
+  <h2>Where hosting fits, honestly</h2>
+  <p>The honest boundary first. If your own application deliberately returns 501, or genuinely does not implement a feature, that is your code and no host changes it. What a managed platform can retire is the other, more common kind of 501: the one that comes from a reverse proxy or gateway in front of your app that was never configured to pass the method you send.</p>
+
+  <p>On Kloudbean the reverse proxy, nginx or Apache, is managed and patched, so it is set up to hand your application's requests to your application rather than left as an exercise in method filtering and location-block ordering. Application and server logs sit in the same dashboard as the server, so the log check above does not start with an SSH session and a hunt for the right path. You get a Shorewall and Fail2ban baseline, free SSL issued and renewed, staging for WordPress and Laravel so a routing change can be tried somewhere harmless, and automatic backups behind it all. Seven cloud providers to run on, from $8 a month on standard plans (check the pricing page for current numbers), and free migration assistance if you are moving something that already works. There is a built-in Flexible Load Balancer you can switch on when you actually need it.</p>
+
+  <p>The line stays where it always is. Managed covers the server, the stack, TLS, backups, and patching. Your application code and your data remain yours. What a host removes is the proxy and method-routing guesswork, plus the friction of reaching the logs that tell you which layer said no.</p>
+
+  <figure>
+    <img src="../assets/console/add-application.png" alt="Adding an application in the Kloudbean console with the managed web server configured to route requests to the app">
+    <figcaption>The managed proxy is set to pass your application's requests to your application, methods and all.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>The twin you will confuse it with, <a href="https://www.kloudbean.com/blog/405-method-not-allowed/">405 Method Not Allowed</a>, where the verb is known and simply not allowed on that route. The generic crash it gets mistaken for, <a href="https://www.kloudbean.com/blog/http-error-500-internal-server-error/">500 Internal Server Error</a>, and the dead-upstream case, <a href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/">502 Bad Gateway</a>. For a wrong path rather than a wrong verb, <a href="https://www.kloudbean.com/blog/http-error-404-not-found/">404 Not Found</a>. On the layer that usually emits a 501, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">nginx as a reverse proxy for Node</a> and <a href="https://www.kloudbean.com/blog/nginx-vs-apache/">nginx versus Apache</a>. Its 5xx sibling that refuses the HTTP version rather than the method, <a href="https://www.kloudbean.com/blog/505-http-version-not-supported/">505 HTTP Version Not Supported</a>. At the edge, <a href="https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/">Cloudflare's 5xx codes</a>. And to make the logs worth reading, <a href="https://www.kloudbean.com/blog/structured-logging-nodejs/">structured logging in Node</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">A proxy that passes your methods through.</p>
+    <p style="margin:0 0 .6em">Managed servers across seven clouds with a managed, patched reverse proxy, plus application and server logs in the same dashboard as the server. Staging for WordPress and Laravel, automatic backups, free SSL issued and renewed. Free migration assistance included, standard plans from $8/mo. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed proxy · App and server logs · Staging · Automatic backups · Free SSL · One dashboard</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does a 501 error mean?</h3>
+    <p>Per RFC 9110, a 501 Not Implemented means the server does not support the functionality needed to fulfil the request, usually because it does not recognise the request method and cannot support it for any resource. It is more specific than a 500. A 500 means the app ran and threw, while a 501 means the server never knew how to handle what you sent in the first place.</p>
+
+    <h3>What is the difference between a 501 and a 405 error?</h3>
+    <p>A 405 means the method is known and understood by the server but is not allowed on that particular resource, so it should include an Allow header listing what is permitted. A 501 means the method is not implemented anywhere on the server. The short version: 405 is won't do it here, 501 is can't do it at all.</p>
+
+    <h3>What is the difference between a 501 and a 500 error?</h3>
+    <p>A 500 Internal Server Error means your application received the request, executed, and raised an exception it could not handle, so the fix lives in your code and its error log. A 501 usually means the request was refused by a layer in front of your app because that layer does not implement the method. One is a crash in your code, the other is a capability gap in the path.</p>
+
+    <h3>What causes an HTTP 501 error?</h3>
+    <p>Most often a proxy, gateway, or CDN that was never configured to pass the method you sent, such as PUT, PATCH, DELETE, or a WebDAV verb. Other causes are a minimal server that only implements GET and HEAD, an unrecognised or non-standard method from a scanner or broken client, a Transfer-Encoding the server cannot decode, or a deliberate stub for an endpoint that is not built yet.</p>
+
+    <h3>How do I fix a 501 Not Implemented error?</h3>
+    <p>Reproduce it with curl using the failing method, first against the origin directly and then through the public hostname, to find which layer returns the 501. If the front layer is the source, configure your proxy or gateway to pass that method through. If the server itself does not implement it, use a server that does or a different method. Then read the access log to confirm whether the request ever reached your application.</p>
+
+    <h3>Does clearing my browser cache fix a 501 error?</h3>
+    <p>No. The 501 is decided on the server, so nothing in your browser participated in it. There is one catch worth knowing: a 501 is cacheable by default, so an intermediary or the browser can keep serving an old 501 after you have fixed the origin. Test with curl, which skips the browser cache, and purge the edge cache before you trust what the browser shows.</p>
+
+    <h3>Is a 501 error my fault or the server's?</h3>
+    <p>It is server side, so as a visitor there is essentially nothing to fix on your end beyond trying again later or telling the site owner. If you run the site, it is usually a configuration gap in a proxy or gateway rather than a bug in your application code, because most frameworks implement the common verbs fine. GET and HEAD returning 501 is a sign of a badly broken or fake front-end.</p>
+
+    <h3>Why does my POST request return a 501 error?</h3>
+    <p>Because something in the path only implements GET and HEAD and treats POST as unsupported. A minimal static server is the classic case, for example Python's http.server, which logs code 501, message Unsupported method for a POST. Send that POST to a server or route that actually handles writes, or fix the front layer so the request reaches an app that does.</p>
+
+    <h3>Can a reverse proxy or CDN cause a 501 error?</h3>
+    <p>Yes, and it is the most common cause of a surprising one. A proxy, gateway, or CDN can be set to forward only certain methods and answer 501 for the rest before your app is ever reached. The way to prove it is to curl the origin directly and compare with the public hostname. If the origin accepts the verb and the public host returns 501, the front layer is the source.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Classify the layer, then fix the layer.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"501 Error: Not Implemented Means the Server Can't, Not Won't","description":"A 501 error (501 Not Implemented) means the server does not implement your request method at all, unlike a 405. How to tell error 501 from 405 and 500, and which layer to fix.","image":"https://www.kloudbean.com/blog/501-not-implemented/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/501-not-implemented/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does a 501 error mean?","acceptedAnswer":{"@type":"Answer","text":"Per RFC 9110, a 501 Not Implemented means the server does not support the functionality needed to fulfil the request, usually because it does not recognise the request method and cannot support it for any resource. It is more specific than a 500. A 500 means the app ran and threw, while a 501 means the server never knew how to handle what you sent in the first place."}},
+{"@type":"Question","name":"What is the difference between a 501 and a 405 error?","acceptedAnswer":{"@type":"Answer","text":"A 405 means the method is known and understood by the server but is not allowed on that particular resource, so it should include an Allow header listing what is permitted. A 501 means the method is not implemented anywhere on the server. The short version: 405 is won't do it here, 501 is can't do it at all."}},
+{"@type":"Question","name":"What is the difference between a 501 and a 500 error?","acceptedAnswer":{"@type":"Answer","text":"A 500 Internal Server Error means your application received the request, executed, and raised an exception it could not handle, so the fix lives in your code and its error log. A 501 usually means the request was refused by a layer in front of your app because that layer does not implement the method. One is a crash in your code, the other is a capability gap in the path."}},
+{"@type":"Question","name":"What causes an HTTP 501 error?","acceptedAnswer":{"@type":"Answer","text":"Most often a proxy, gateway, or CDN that was never configured to pass the method you sent, such as PUT, PATCH, DELETE, or a WebDAV verb. Other causes are a minimal server that only implements GET and HEAD, an unrecognised or non-standard method from a scanner or broken client, a Transfer-Encoding the server cannot decode, or a deliberate stub for an endpoint that is not built yet."}},
+{"@type":"Question","name":"How do I fix a 501 Not Implemented error?","acceptedAnswer":{"@type":"Answer","text":"Reproduce it with curl using the failing method, first against the origin directly and then through the public hostname, to find which layer returns the 501. If the front layer is the source, configure your proxy or gateway to pass that method through. If the server itself does not implement it, use a server that does or a different method. Then read the access log to confirm whether the request ever reached your application."}},
+{"@type":"Question","name":"Does clearing my browser cache fix a 501 error?","acceptedAnswer":{"@type":"Answer","text":"No. The 501 is decided on the server, so nothing in your browser participated in it. There is one catch worth knowing: a 501 is cacheable by default, so an intermediary or the browser can keep serving an old 501 after you have fixed the origin. Test with curl, which skips the browser cache, and purge the edge cache before you trust what the browser shows."}},
+{"@type":"Question","name":"Is a 501 error my fault or the server's?","acceptedAnswer":{"@type":"Answer","text":"It is server side, so as a visitor there is essentially nothing to fix on your end beyond trying again later or telling the site owner. If you run the site, it is usually a configuration gap in a proxy or gateway rather than a bug in your application code, because most frameworks implement the common verbs fine. GET and HEAD returning 501 is a sign of a badly broken or fake front-end."}},
+{"@type":"Question","name":"Why does my POST request return a 501 error?","acceptedAnswer":{"@type":"Answer","text":"Because something in the path only implements GET and HEAD and treats POST as unsupported. A minimal static server is the classic case, for example Python's http.server, which logs code 501, message Unsupported method for a POST. Send that POST to a server or route that actually handles writes, or fix the front layer so the request reaches an app that does."}},
+{"@type":"Question","name":"Can a reverse proxy or CDN cause a 501 error?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it is the most common cause of a surprising one. A proxy, gateway, or CDN can be set to forward only certain methods and answer 501 for the rest before your app is ever reached. The way to prove it is to curl the origin directly and compare with the public hostname. If the origin accepts the verb and the public host returns 501, the front layer is the source."}}
+]}
+]}
+</script>
+</body>
+</html>

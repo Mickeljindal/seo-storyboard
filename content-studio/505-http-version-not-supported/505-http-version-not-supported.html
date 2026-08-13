@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>505 Error: HTTP Version Not Supported, and Which Layer Sent It</title>
+<meta name="description" content="A 505 error (HTTP 505 HTTP Version Not Supported) almost never comes from your app. It is usually a proxy, WAF, CDN, or load balancer rejecting the HTTP version. How to classify the layer, then fix it.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/505-http-version-not-supported/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="505 Error: HTTP Version Not Supported, and Which Layer Sent It">
+<meta property="og:description" content="A genuine 505 is rare. The 505 error code you see usually comes from a layer in front, and this is how you find which one and fix it.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">HTTP status codes · 5xx · Field guide</span>
+  <h1>505 Error: HTTP Version Not Supported, and Which Layer Sent It</h1>
+  <p class="byline">By Kloudbean Engineering · A real 505 is rare. The one you are seeing came from a box in front of your app.</p>
+
+  <figure><img src="images/hero.png" alt="A terminal where curl forcing HTTP/1.1 returns 200 while forcing HTTP/2 returns a 505, next to a proxy access log recording the same status"></figure>
+
+  <p class="lead">A 505 error, HTTP 505 HTTP Version Not Supported, is one of the rarest status codes you will meet in the wild, and that rarity is exactly why it trips people up. The literal meaning is narrow: a server refusing the HTTP protocol version in your request. But the 505 error code you are actually staring at almost never comes from your application deciding it dislikes HTTP/1.1. It comes from a proxy, a WAF, a CDN, or a load balancer sitting in front, rejecting the request before your app is ever consulted. So the first move is not a fix. It is working out which box in the chain answered.</p>
+
+  <div class="tldr">
+    <strong>What is a 505 error?</strong>
+    <p>HTTP 505 means a server in the request path refuses the HTTP version it was handed. A genuine 505 from an origin application is uncommon, because real servers negotiate versions and fall back to HTTP/1.1 rather than refusing outright. In practice a 505 error is emitted by a reverse proxy, a WAF rule, a CDN, or a load balancer reacting to a protocol version or a malformed request line. Reproduce it with curl while forcing a version, then again while bypassing the edge, and you will see which layer sent it. Fix that layer, not your app.</p>
+  </div>
+
+  <h2>What a real 505 error means, and why you rarely see one</h2>
+  <p>Start with the definition, because it is the thing you are about to rule out.</p>
+
+  <p>Per RFC 9110, a 505 means the server does not support, or refuses to support, the major HTTP version used in the request message. That is it. Not the method, not the headers, not the body. The major version number in the request line, the <code>HTTP/1.1</code> part of <code>GET / HTTP/1.1</code>.</p>
+
+  <p>Now the reason you almost never see a legitimate one. HTTP/1.1 is universal. A server that only speaks 1.0 still understands a 1.1 request and answers it. HTTP/2 is not requested in the request line at all; over TLS it is negotiated during the handshake through ALPN, so a server that does not do HTTP/2 simply keeps serving HTTP/1.1 and nobody notices. Graceful fallback is the normal path everywhere. For a server to actually raise a 505, something has to hand it a version it is configured to reject, and that is not how well behaved clients behave.</p>
+
+  <p>So here is the opinion this whole guide rests on. If you did not deliberately build an exotic protocol setup, the literal reading is almost certainly not your situation. Treat the 505 as a signal that a layer in front rejected the request, and go find that layer.</p>
+
+  <h2>Which layer actually sent it</h2>
+  <p>A modern request rarely touches one server. It passes through several, and each one can, in principle, answer with a 505. Classifying which box did it is the whole job.</p>
+
+  <figure>
+    <svg viewBox="0 0 900 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="e505-title e505-desc">
+      <title id="e505-title">Where a 505 can be emitted along the request path</title>
+      <desc id="e505-desc">A request travels from the client through a CDN or WAF, then a reverse proxy or load balancer, and finally to the origin application. Each layer can reject an HTTP version. The two middle layers emit most real 505s. The origin can emit a genuine 505 but rarely does.</desc>
+      <rect x="0" y="0" width="900" height="340" fill="#ffffff"/>
+      <g font-family="Poppins, sans-serif" font-size="12.5" fill="#000f27">
+        <rect x="16" y="54" width="160" height="66" rx="9" fill="#000f27"/>
+        <text x="96" y="82" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="600">Client</text>
+        <text x="96" y="101" text-anchor="middle" fill="#ffffff" font-size="10.5">curl or browser</text>
+
+        <rect x="240" y="54" width="160" height="66" rx="9" fill="#4F1AF3"/>
+        <text x="320" y="82" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="600">CDN or WAF</text>
+        <text x="320" y="101" text-anchor="middle" fill="#ffffff" font-size="10.5">edge rules</text>
+
+        <rect x="464" y="54" width="160" height="66" rx="9" fill="#4F1AF3"/>
+        <text x="544" y="82" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="600">Proxy or LB</text>
+        <text x="544" y="101" text-anchor="middle" fill="#ffffff" font-size="10.5">nginx, Apache</text>
+
+        <rect x="688" y="54" width="160" height="66" rx="9" fill="#40b75f"/>
+        <text x="768" y="82" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="600">Origin app</text>
+        <text x="768" y="101" text-anchor="middle" fill="#ffffff" font-size="10.5">your code</text>
+
+        <g stroke="#98a2b3" stroke-width="2" fill="none" marker-end="url(#a505)">
+          <path d="M176 87 H236"/><path d="M400 87 H460"/><path d="M624 87 H684"/>
+        </g>
+
+        <text x="18" y="152" font-size="13" font-weight="600">Where can a 505 come from?</text>
+
+        <rect x="16" y="164" width="160" height="96" rx="8" fill="#f4f2ff"/>
+        <text x="96" y="187" text-anchor="middle" font-size="10.5">The request line</text>
+        <text x="96" y="204" text-anchor="middle" font-size="10.5">names the version.</text>
+        <text x="96" y="221" text-anchor="middle" font-size="10.5">A fuzzer or odd</text>
+        <text x="96" y="238" text-anchor="middle" font-size="10.5">client can send</text>
+        <text x="96" y="255" text-anchor="middle" font-size="10.5">a bad one.</text>
+
+        <rect x="240" y="164" width="160" height="96" rx="8" fill="#f4f2ff" stroke="#4F1AF3" stroke-width="1.5"/>
+        <text x="320" y="190" text-anchor="middle" font-size="10.5" font-weight="600">Emits 505 on an</text>
+        <text x="320" y="207" text-anchor="middle" font-size="10.5">allowed-versions</text>
+        <text x="320" y="224" text-anchor="middle" font-size="10.5">rule or a malformed</text>
+        <text x="320" y="241" text-anchor="middle" font-size="10.5">request line.</text>
+        <text x="320" y="256" text-anchor="middle" font-size="10" fill="#4F1AF3">common</text>
+
+        <rect x="464" y="164" width="160" height="96" rx="8" fill="#f4f2ff" stroke="#4F1AF3" stroke-width="1.5"/>
+        <text x="544" y="190" text-anchor="middle" font-size="10.5" font-weight="600">Emits 505 if it</text>
+        <text x="544" y="207" text-anchor="middle" font-size="10.5">speaks a version</text>
+        <text x="544" y="224" text-anchor="middle" font-size="10.5">the origin refuses</text>
+        <text x="544" y="241" text-anchor="middle" font-size="10.5">upstream.</text>
+        <text x="544" y="256" text-anchor="middle" font-size="10" fill="#4F1AF3">common</text>
+
+        <rect x="688" y="164" width="160" height="96" rx="8" fill="#e8f7ed" stroke="#40b75f" stroke-width="1.5"/>
+        <text x="768" y="190" text-anchor="middle" font-size="10.5" font-weight="600">A genuine 505</text>
+        <text x="768" y="207" text-anchor="middle" font-size="10.5">lives here. Rare,</text>
+        <text x="768" y="224" text-anchor="middle" font-size="10.5">and only if you</text>
+        <text x="768" y="241" text-anchor="middle" font-size="10.5">configured it</text>
+        <text x="768" y="255" text-anchor="middle" font-size="10.5">that way.</text>
+
+        <rect x="16" y="298" width="832" height="28" rx="7" fill="#000f27"/>
+        <text x="30" y="316" font-size="12" fill="#ffffff">Test through each hop, then around it. The box that stops answering when you skip it is the one that sent the 505.</text>
+      </g>
+      <defs>
+        <marker id="a505" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#98a2b3"/></marker>
+      </defs>
+    </svg>
+    <figcaption>Four servers can answer one request. The middle two send most real 505s.</figcaption>
+  </figure>
+
+  <p>The pattern to internalise: the closer a layer is to the client, the more likely it is the one that rejected you, because it gets first look at the raw request line and it is where security policy usually lives. Your origin app is last in line and the least likely culprit.</p>
+
+  <!-- ADD IMAGE: a labelled version of the request-path diagram with a real customer topology (browser, Cloudflare, nginx, app) and the 505 highlighted at the edge -->
+
+  <h2>The decisive test: force the version and split the layers</h2>
+  <p>You do not guess which layer answered. You reproduce the 505 on purpose while changing one variable at a time, and curl is the right tool because it lets you dictate the protocol version and the route.</p>
+
+  <p>First, pin the version. If the error follows one version and not the other, you have found a handshake or policy problem rather than anything about your content:</p>
+  <pre><code># Force each HTTP version and print only the status code
+curl -sS -o /dev/null -w "%{http_code}\n" --http1.1 https://example.com/
+curl -sS -o /dev/null -w "%{http_code}\n" --http2   https://example.com/
+
+# Ask curl which protocol actually got negotiated
+curl -sS -o /dev/null -w "%{http_version}\n" https://example.com/</code></pre>
+
+  <p>A 200 on <code>--http1.1</code> and a 505 on <code>--http2</code> is a loud, specific result. It says something in the chain accepts 1.1 and refuses the 2 handshake, which points at ALPN or a proxy that is not configured for HTTP/2. If both return 505, the version is not the variable and you should be looking at a policy rule or a malformed request line instead.</p>
+
+  <p>Second, split the layers. Hit the site the normal way, then resolve the hostname straight to the origin IP so the CDN and edge are skipped entirely:</p>
+  <pre><code># Through the edge (normal DNS)
+curl -sS -o /dev/null -w "%{http_code}\n" https://example.com/
+
+# Around the edge: resolve the hostname straight to the origin IP
+curl -sS -o /dev/null -w "%{http_code}\n" \
+  --resolve example.com:443:203.0.113.10 https://example.com/</code></pre>
+
+  <p>If it is 505 through the edge and 200 straight to the origin, the edge emitted it and your app is fine. If it is 505 both ways, the edge is innocent and the proxy or the origin owns it. Two commands, and you have narrowed four suspects to one.</p>
+
+  <div class="note">
+    <strong>Behind a CDN or Cloudflare?</strong> Then at least two servers could have answered, the edge and your origin. Cloudflare keeps its own failures in a dedicated range, 520 to 527, which is what <a href="https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/">the Cloudflare 5xx codes</a> covers. A plain 505 is more often your proxy or WAF than the edge itself, but the way to be sure is the same as above: resolve straight to the origin and compare.
+  </div>
+
+  <h2>505 versus its neighbours</h2>
+  <p>Half the confusion around this code is that three other status codes look like it from a distance. Here is what separates them, so you can confirm you are even on the right page:</p>
+
+  <table class="cmp">
+    <thead><tr><th>Code</th><th>What it actually says</th><th>Trigger</th></tr></thead>
+    <tbody>
+      <tr><td><strong>505</strong> HTTP Version Not Supported</td><td>The HTTP version is refused</td><td>A version the server will not serve</td></tr>
+      <tr><td><strong>400</strong> Bad Request</td><td>The request is malformed</td><td><a href="https://www.kloudbean.com/blog/400-bad-request/">A syntactically broken request line or headers</a></td></tr>
+      <tr><td><strong>426</strong> Upgrade Required</td><td>The server wants a different protocol</td><td>Server refuses the current one and names the wanted one in an Upgrade header</td></tr>
+      <tr><td><strong>431</strong> Request Header Fields Too Large</td><td>The headers are too big</td><td><a href="https://www.kloudbean.com/blog/http-error-431-request-header-fields-too-large/">Header size, not version</a></td></tr>
+      <tr><td><strong>501</strong> Not Implemented</td><td>The feature or method is unsupported</td><td><a href="https://www.kloudbean.com/blog/501-not-implemented/">An unimplemented method, not a version</a></td></tr>
+    </tbody>
+  </table>
+
+  <p>The one that overlaps most is 400. A badly formed request line can be read as either a version problem or a syntax problem, and plenty of servers answer a broken line with 400 rather than 505. If the request is well formed and the version is the sticking point, 505 is the accurate code. If the line itself is garbled, expect 400. And 426 is worth a second look because it is nearly the opposite of a 505: instead of refusing your version, the server is asking you to switch to one it prefers and telling you which.</p>
+
+  <h2>What is really emitting your 505</h2>
+  <p>Now the practical list. These are the situations that actually produce the 505 error code people search for, roughly in the order they turn out to be the answer, each with the layer that owns it.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Situation</th><th>Layer</th><th>First move</th></tr></thead>
+    <tbody>
+      <tr><td>Error only on <code>--http2</code>, fine on <code>--http1.1</code></td><td>Edge or proxy TLS termination</td><td>Check ALPN and the proxy HTTP/2 setup</td></tr>
+      <tr><td>Error only through the CDN, fine direct to origin</td><td>CDN or WAF</td><td>Read the edge rules and firewall log</td></tr>
+      <tr><td>Error appeared after a proxy or load balancer change</td><td>Reverse proxy or LB</td><td>Align the upstream HTTP version</td></tr>
+      <tr><td>Error from a scripted client or an old HTTP library</td><td>Client</td><td>Let the client negotiate normally</td></tr>
+      <tr><td>Error only on certain odd requests</td><td>WAF allowed-versions policy</td><td>Inspect the rule that matched</td></tr>
+    </tbody>
+  </table>
+
+  <p><strong>A WAF enforcing an allowed-versions policy.</strong> The OWASP Core Rule Set, which sits behind a lot of ModSecurity deployments, ships a check that only permits a defined set of HTTP versions and blocks anything outside it. That is a sensible anomaly defence, because fuzzers and scanners love sending malformed protocol strings. But it also means a legitimate client using an unexpected version, or a request rewritten oddly by something upstream, can get bounced with a 505. Read the WAF log, find the rule that fired, and decide whether the request was actually hostile or just unusual.</p>
+
+  <p><strong>A proxy speaking the wrong version upstream.</strong> This one is concrete and catches people. By default, nginx talks to upstream servers over HTTP/1.0, not 1.1, unless you tell it otherwise. Most apps tolerate that, but a backend that insists on 1.1 can refuse the older version. The fix is one directive:</p>
+  <pre><code># nginx talks HTTP/1.0 to upstreams unless you tell it otherwise
+location / {
+    proxy_pass http://app_upstream;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+}</code></pre>
+
+  <p>If the proxy layer is unfamiliar ground, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">nginx as a reverse proxy for Node</a> walks through a correct configuration, and the version knob above is part of it.</p>
+
+  <p><strong>An ALPN mismatch on HTTP/2.</strong> When a proxy terminates TLS and re-originates the connection to your app, it negotiates HTTP/2 separately on each side. Get that wrong, and a client that connected over HTTP/2 can end up talking to something that refuses it. This is the case your <code>--http2</code> curl test lights up immediately.</p>
+
+  <p><strong>A client library forcing an odd version.</strong> Some HTTP clients, especially older or hand-rolled ones, pin a version explicitly, sometimes HTTP/1.0, sometimes a string that is not a real version at all. A server with a strict policy refuses it. If the 505 only comes from one client and every browser is fine, this is where to look.</p>
+
+  <!-- ADD IMAGE: a WAF or ModSecurity log line showing an allowed-HTTP-versions rule blocking a request, with the offending version highlighted -->
+
+  <h2>Fixes that cannot work, and why</h2>
+  <p>These sit near the top of most search results for this error. Knowing why they are useless saves you from working through them one by one.</p>
+
+  <p><strong>Clearing your browser cache.</strong> The version is decided as the connection is set up and the request line is read, before any cached asset is even consulted, and usually at a layer in front of your app. Nothing your browser has stored took part in the decision. The myth survives because a transient edge blip sometimes clears on its own, and the cache clear gets the credit it did not earn.</p>
+
+  <p><strong>Reloading and waiting.</strong> Worth exactly one try in case it was a momentary edge issue. If the cause is a WAF rule, a proxy setting, or a load balancer talking the wrong version, the condition is deterministic and reloading is just a slower way of not fixing it.</p>
+
+  <p><strong>Changing or redeploying your app.</strong> This is the expensive mistake. If the edge or the proxy emitted the 505, your application never received the request, so editing code, restarting the process, or shipping a new build changes nothing. You proved which layer answered with two curl commands earlier. Spend your effort there.</p>
+
+  <h2>The anti-pattern worth avoiding</h2>
+  <p>When a 505 is blocking you and a deadline is close, the tempting move is to make it disappear rather than understand it. Three versions of that, and why each one costs you later.</p>
+
+  <p>Forcing every client to HTTP/1.0, or switching HTTP/2 off across the board, does silence a version-negotiation 505. It also throws away the performance you turned HTTP/2 on for, and it leaves the real misconfiguration in place for the next protocol that trips it. Opening a WAF allowed-versions rule to accept anything is worse, because that rule exists to swat the exact malformed protocol strings that scanners and fuzzers throw at you, and disabling it to fix one legitimate client quietly widens your attack surface. Silencing a signal is not the same as fixing the thing it was pointing at. Localise the layer, correct the handshake or the policy, and leave the defence doing its job.</p>
+
+  <h2>Where hosting fits, honestly</h2>
+  <p>The boundary first, because it is the honest part. A 505 that comes from your own application config, an intentional version restriction you wrote, is yours to fix, and no platform can make that decision for you. What a managed platform removes is the guesswork about the proxy and edge layer, and the friction of reaching the logs that tell you which box answered.</p>
+
+  <p>On Kloudbean the reverse proxy, nginx or Apache, is managed and patched, and configured to talk a sane HTTP version to your application rather than left as a directive you have to remember. Application and server logs sit in the same dashboard as the server, so confirming whether the proxy or your app emitted the status does not start with an SSH session and a hunt for the right path. Free SSL is issued and renewed, which keeps the TLS and ALPN side of version negotiation working without hand-tuning. There is a built-in Flexible Load Balancer you enable when you actually need it, staging for WordPress and Laravel so a config change proves itself somewhere harmless, and automatic backups behind it all. Seven cloud providers to run on, from AWS and Google Cloud to Linode, Vultr, DigitalOcean, UpCloud, and AWS Lightsail. Standard plans start at $8 a month, and it is worth checking the pricing page for current numbers. Free migration assistance is included if you are moving something that already works.</p>
+
+  <figure>
+    <img src="../assets/console/server-health.png" alt="The Kloudbean console showing server metrics and log access in one dashboard">
+    <figcaption>Application and server logs in one place, so you can see which layer answered without an SSH hunt.</figcaption>
+  </figure>
+
+  <p>The line stays where it always is. Managed covers the server, the stack, TLS, backups, and patching. Your application code and your data remain yours, and a 505 you set on purpose lives in that half.</p>
+
+  <!-- ADD IMAGE: Kloudbean dashboard with application logs and server access logs open side by side, a 505 status visible in the access log -->
+
+  <h2>Related reading</h2>
+  <p>The rest of the 5xx family starts with <a href="https://www.kloudbean.com/blog/http-error-500-internal-server-error/">500 Internal Server Error</a> when your app runs and throws, and <a href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/">502 Bad Gateway</a> when the proxy cannot get an answer at all. At the edge, <a href="https://www.kloudbean.com/blog/cloudflare-5xx-error-codes/">Cloudflare's 5xx codes</a>. The closest neighbours to a 505 are <a href="https://www.kloudbean.com/blog/400-bad-request/">400 Bad Request</a> for a malformed request and <a href="https://www.kloudbean.com/blog/http-error-431-request-header-fields-too-large/">431 Request Header Fields Too Large</a> when the headers, not the version, are the problem. For the layer that usually emits a 505, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">nginx as a reverse proxy</a> and <a href="https://www.kloudbean.com/blog/nginx-vs-apache/">nginx versus Apache</a>. And when nothing connects at all, <a href="https://www.kloudbean.com/blog/this-site-cant-be-reached/">this site can't be reached</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Stop debugging the wrong box.</p>
+    <p style="margin:0 0 .6em">Managed servers across seven clouds with a patched reverse proxy configured to talk the right HTTP version upstream, application and server logs in one dashboard so you can see which layer answered, free SSL issued and renewed, staging for WordPress and Laravel, and automatic backups. Standard plans from $8/mo, and free migration assistance if you are moving something that already works. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or check current <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed proxy · App and server logs · Free SSL · Staging · Automatic backups · Seven clouds</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does a 505 error mean?</h3>
+    <p>A 505 error, or HTTP 505 HTTP Version Not Supported, means a server in the request path refuses the major HTTP version it was handed. Per RFC 9110 the server is unwilling or unable to answer using that version. In practice the code rarely comes from your own application, because real servers negotiate versions and fall back to HTTP/1.1 rather than refusing.</p>
+
+    <h3>What causes HTTP 505 HTTP Version Not Supported?</h3>
+    <p>Usually a layer in front of your app. A reverse proxy or load balancer speaking a version the origin refuses upstream, a WAF enforcing an allowed-versions policy, a CDN rejecting a malformed request line, or a scripted client sending a version no server accepts. A genuine refusal from the origin application itself is uncommon and normally deliberate.</p>
+
+    <h3>Is a 505 error a client problem or a server problem?</h3>
+    <p>It is generated by a server, but the trigger is often the client or an intermediary rather than your origin app. If a fuzzer or an unusual HTTP library sends an odd request line, the edge answers 505. If the proxy negotiates the wrong version upstream, the server side owns it. Classify the layer before you assign blame.</p>
+
+    <h3>How do I fix a 505 error?</h3>
+    <p>Find which layer answered first, then fix that layer. Reproduce with curl while forcing HTTP/1.1 and HTTP/2, and again while bypassing the CDN or proxy so you hit the origin directly. If the error only appears through the edge, fix the edge or WAF rule. If it appears when the proxy talks to the origin, align the upstream HTTP version. Changing your application code does nothing when the app never saw the request.</p>
+
+    <h3>How do I tell which layer sent the 505?</h3>
+    <p>Test through each hop and then around it. A 505 that appears through your CDN but not when you resolve straight to the origin IP was emitted at the edge. A 505 that only shows up on one forced version points at a handshake or policy mismatch. curl with the http1.1 and http2 flags, plus the resolve flag, splits the chain in a couple of commands.</p>
+
+    <h3>Does clearing my browser cache fix a 505 error?</h3>
+    <p>No. The version refusal happens as the connection is set up and the request line is read, before any cached asset matters, and usually at a layer in front of your app. Clearing the cache or reloading changes nothing when the cause is a proxy, WAF, or load balancer policy. It looks like it helps only when the problem was transient.</p>
+
+    <h3>What is the difference between a 505 error and a 400 Bad Request?</h3>
+    <p>A 505 says the HTTP version is refused. A 400 says the request itself is malformed. The two overlap because a badly formed request line can be read either way, and many servers answer a broken request line with 400 rather than 505. If the request is syntactically fine but the version is the sticking point, 505 is the accurate code.</p>
+
+    <h3>Is 505 the same as 426 Upgrade Required?</h3>
+    <p>No, they are near opposites. A 505 refuses the version you sent. A 426 tells you the server wants you to switch to a different protocol and names it in an Upgrade header, so the client is expected to retry on the new protocol. One is a refusal, the other is an instruction to upgrade.</p>
+
+    <h3>Can disabling HTTP/2 fix a 505 error?</h3>
+    <p>Sometimes it silences the symptom, which is not the same as fixing it. If forcing HTTP/1.1 clears the error, you have found the layer, not the cause. The real fix is usually correcting an ALPN or upstream-protocol mismatch, or a WAF policy, so that HTTP/2 works as intended. Turning HTTP/2 off everywhere gives up performance and hides a misconfiguration that will resurface.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Localise the layer, then fix the version handshake.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"505 Error: HTTP Version Not Supported, and Which Layer Sent It","description":"A 505 error (HTTP 505 HTTP Version Not Supported) almost never comes from your app. It is usually a proxy, WAF, CDN, or load balancer rejecting the HTTP version. How to classify the layer, then fix it.","image":"https://www.kloudbean.com/blog/505-http-version-not-supported/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/505-http-version-not-supported/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does a 505 error mean?","acceptedAnswer":{"@type":"Answer","text":"A 505 error, or HTTP 505 HTTP Version Not Supported, means a server in the request path refuses the major HTTP version it was handed. Per RFC 9110 the server is unwilling or unable to answer using that version. In practice the code rarely comes from your own application, because real servers negotiate versions and fall back to HTTP/1.1 rather than refusing."}},
+{"@type":"Question","name":"What causes HTTP 505 HTTP Version Not Supported?","acceptedAnswer":{"@type":"Answer","text":"Usually a layer in front of your app. A reverse proxy or load balancer speaking a version the origin refuses upstream, a WAF enforcing an allowed-versions policy, a CDN rejecting a malformed request line, or a scripted client sending a version no server accepts. A genuine refusal from the origin application itself is uncommon and normally deliberate."}},
+{"@type":"Question","name":"Is a 505 error a client problem or a server problem?","acceptedAnswer":{"@type":"Answer","text":"It is generated by a server, but the trigger is often the client or an intermediary rather than your origin app. If a fuzzer or an unusual HTTP library sends an odd request line, the edge answers 505. If the proxy negotiates the wrong version upstream, the server side owns it. Classify the layer before you assign blame."}},
+{"@type":"Question","name":"How do I fix a 505 error?","acceptedAnswer":{"@type":"Answer","text":"Find which layer answered first, then fix that layer. Reproduce with curl while forcing HTTP/1.1 and HTTP/2, and again while bypassing the CDN or proxy so you hit the origin directly. If the error only appears through the edge, fix the edge or WAF rule. If it appears when the proxy talks to the origin, align the upstream HTTP version. Changing your application code does nothing when the app never saw the request."}},
+{"@type":"Question","name":"How do I tell which layer sent the 505?","acceptedAnswer":{"@type":"Answer","text":"Test through each hop and then around it. A 505 that appears through your CDN but not when you resolve straight to the origin IP was emitted at the edge. A 505 that only shows up on one forced version points at a handshake or policy mismatch. curl with the http1.1 and http2 flags, plus the resolve flag, splits the chain in a couple of commands."}},
+{"@type":"Question","name":"Does clearing my browser cache fix a 505 error?","acceptedAnswer":{"@type":"Answer","text":"No. The version refusal happens as the connection is set up and the request line is read, before any cached asset matters, and usually at a layer in front of your app. Clearing the cache or reloading changes nothing when the cause is a proxy, WAF, or load balancer policy. It looks like it helps only when the problem was transient."}},
+{"@type":"Question","name":"What is the difference between a 505 error and a 400 Bad Request?","acceptedAnswer":{"@type":"Answer","text":"A 505 says the HTTP version is refused. A 400 says the request itself is malformed. The two overlap because a badly formed request line can be read either way, and many servers answer a broken request line with 400 rather than 505. If the request is syntactically fine but the version is the sticking point, 505 is the accurate code."}},
+{"@type":"Question","name":"Is 505 the same as 426 Upgrade Required?","acceptedAnswer":{"@type":"Answer","text":"No, they are near opposites. A 505 refuses the version you sent. A 426 tells you the server wants you to switch to a different protocol and names it in an Upgrade header, so the client is expected to retry on the new protocol. One is a refusal, the other is an instruction to upgrade."}},
+{"@type":"Question","name":"Can disabling HTTP/2 fix a 505 error?","acceptedAnswer":{"@type":"Answer","text":"Sometimes it silences the symptom, which is not the same as fixing it. If forcing HTTP/1.1 clears the error, you have found the layer, not the cause. The real fix is usually correcting an ALPN or upstream-protocol mismatch, or a WAF policy, so that HTTP/2 works as intended. Turning HTTP/2 off everywhere gives up performance and hides a misconfiguration that will resurface."}}
+]}
+]}
+</script>
+</body>
+</html>
