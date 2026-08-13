@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Generate social posts on new article file",
+      "trigger": "PostFileCreate",
+      "description": "When a new markdown article is created under content-studio, auto-generate its social.md + social.json. Runs the idempotent --missing pass so only the new article is processed.",
+      "matcher": "content-studio/.*\\.md$",
+      "action": {
+        "type": "command",
+        "command": "node social-studio/blog-social.mjs --missing",
+        "timeout": 120
+      }
+    }
+  ]
+}

@@ -48,3 +48,36 @@ npm run render                 # render the new ones (add --skip-existing to onl
 ## Making it part of the app (later)
 
 `content.mjs` is plain data and `card.mjs`/`render.mjs` are a tiny HTML→PNG pipeline — the same shape as `video-studio`. To wire an in-app **Social** page with a live "Generate more" button: have a server function produce posts (curated + AI-generated, reusing this content shape), render cards with `buildPostHtml`, screenshot with a Playwright worker, and store the PNG + caption. The gallery here is the local stand-in for that dashboard.
+
+
+---
+
+## Per-blog social posts (automatic)
+
+Every article in `content-studio/` gets its own ready-to-post social copy, generated
+**automatically** from the article's own title, meta description, and short-version box
+(so it invents no new claims and is safe to run unattended).
+
+```bash
+node social-studio/blog-social.mjs --all        # (re)generate for every article
+node social-studio/blog-social.mjs --missing     # only articles without social copy (fast)
+node social-studio/blog-social.mjs <slug>        # one article
+```
+
+Each article folder gets:
+
+```
+content-studio/<slug>/
+  social.md     # copy-paste: an X/Twitter post, a LinkedIn post, and a short X thread
+  social.json   # same content, machine-readable (for a scheduler / API)
+```
+
+An aggregate index is written to `social-studio/output/blog-social/blog-posts.json`.
+
+**Automatic:** two Kiro hooks keep this in sync without anyone remembering to run it:
+- `blog-social-on-create` (PostFileCreate on `content-studio/**.md`) generates copy the moment a new article file appears.
+- `blog-social-on-stop` (Stop) runs the idempotent `--missing` pass at the end of each agent turn, so any new blog leaves the session already having its social copy.
+
+**Posting:** the copy is generated, not auto-posted. To actually publish, paste from `social.md`,
+feed `social.json` into a scheduler, or use the self-hosted Postiz app on Kloudbean. Wiring a live
+X/LinkedIn API poster needs your own API credentials and is deliberately left as an opt-in step.
