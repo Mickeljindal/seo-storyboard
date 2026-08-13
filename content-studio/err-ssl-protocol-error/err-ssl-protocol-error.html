@@ -90,6 +90,13 @@ echo | openssl s_client -connect example.com:443 -servername example.com 2>/dev/
   <p>Every restriction excludes some client. Older Android devices, some corporate proxies and inspection appliances, payment terminals, embedded devices, and older API consumers all sit at various points on that curve. A configuration that scores perfectly and cannot be reached by eight percent of your customers has optimised the wrong number.</p>
   <p>So decide deliberately rather than by grade. If you serve modern browsers only, harden freely. If you have an API with industrial clients, or customers on older devices, check your own logs for negotiated versions before you cut anything off. The scan grade is a proxy for security, not a measure of whether your audience can reach you.</p>
 
+  <h2>The close cousin: ERR_SSL_VERSION_OR_CIPHER_MISMATCH</h2>
+  <p>Chrome shows ERR_SSL_VERSION_OR_CIPHER_MISMATCH for the same two root causes this page already covers, so if you arrived on that string you are in the right place.</p>
+  <p>The first is no protocol version in common. Usually the server is stuck on TLS 1.0 or 1.1, which current browsers dropped, so the two sides have nothing to agree on. It runs the other way too: a client too old for a server that now requires TLS 1.2 as its minimum hits the same wall.</p>
+  <p>The second is no shared cipher suite, the case in "Cause two" above. One side's list and the other's do not overlap.</p>
+  <p>There is a third trigger specific to this string. It also appears when HTTPS is served with a broken or mismatched certificate and key, a keypair that does not line up.</p>
+  <p>The fix does not change. Enable TLS 1.2 and 1.3 on the origin with a modern cipher list, and if a certificate is involved, make sure the certificate and its private key actually match. Then confirm it the way this guide already shows: ask the server which versions it accepts with the <code>openssl</code> loop, and test the port with <code>curl</code>.</p>
+
   <h2>Cause three: HTTPS against a plain HTTP port</h2>
   <p>This one has a specific error message and a specific, slightly embarrassing cause, and recognising it saves real time.</p>
   <p>SSL_ERROR_RX_RECORD_TOO_LONG, which Firefox shows, means the client began a TLS handshake and the server replied with something that was not a TLS record. Usually plain HTTP. The client tries to interpret an HTTP response as a TLS record, concludes the record is absurdly long, and gives up.</p>
@@ -185,6 +192,9 @@ awk '{for(i=1;i&lt;=NF;i++) if($i ~ /^proto=/) print $i}' /var/log/nginx/access.
 
     <h3>Does ERR_SSL_PROTOCOL_ERROR mean my site is insecure?</h3>
     <p>Visitors are not getting an insecure connection, they are getting no connection, since the browser refuses to proceed when it cannot negotiate one it trusts. The risk arrives if you resolve it by weakening your configuration, for example re-enabling obsolete protocol versions. Enabling TLS 1.2 and 1.3 is the correct direction; reaching backwards is not.</p>
+
+    <h3>What is ERR_SSL_VERSION_OR_CIPHER_MISMATCH?</h3>
+    <p>It is Chrome's message for the same handshake failure this page covers, shown when the browser and server share no TLS protocol version or no cipher suite. A server stuck on old TLS 1.0 or 1.1 is the usual trigger, though a broken or mismatched certificate and key can cause it too. Enable TLS 1.2 and 1.3 with a modern cipher list on the origin, then confirm with the <code>openssl</code> version check this guide describes.</p>
   </div>
 
   <p class="byline">Kloudbean Engineering · If the code says CERT, you are reading the wrong article. That is useful to know.</p>
@@ -201,7 +211,8 @@ awk '{for(i=1;i&lt;=NF;i++) if($i ~ /^proto=/) print $i}' /var/log/nginx/access.
 {"@type":"Question","name":"Why does the site work in curl but fail in Chrome?","acceptedAnswer":{"@type":"Answer","text":"Something between the browser and the network is interfering. The two usual causes are antivirus software inspecting HTTPS, which terminates your connection and opens its own, and Chrome attempting QUIC on a network that handles it badly. Disable HTTPS scanning specifically rather than the whole security product, then try disabling Experimental QUIC protocol in Chrome flags."}},
 {"@type":"Question","name":"Can hardening my TLS configuration break my site?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it is a common cause of this error appearing right after security work. Every version and cipher you remove excludes some client, which can include older Android devices, corporate inspection appliances, payment terminals, and older API consumers. Log the negotiated protocol and cipher first so you know what disabling something would actually cost before you do it."}},
 {"@type":"Question","name":"Why did HTTPS stop working when I changed nothing?","acceptedAnswer":{"@type":"Answer","text":"Because the change happened in browsers rather than on your server. TLS 1.0 and 1.1 have been removed from current browsers, so a server still offering only those stops working for everyone at roughly the same time while continuing to succeed in older tools. Enable TLS 1.2 and 1.3."}},
-{"@type":"Question","name":"Does ERR_SSL_PROTOCOL_ERROR mean my site is insecure?","acceptedAnswer":{"@type":"Answer","text":"Visitors are not getting an insecure connection, they are getting no connection, since the browser refuses to proceed when it cannot negotiate one it trusts. The risk arrives if you resolve it by weakening your configuration, for example re-enabling obsolete protocol versions. Enabling TLS 1.2 and 1.3 is the correct direction; reaching backwards is not."}}
+{"@type":"Question","name":"Does ERR_SSL_PROTOCOL_ERROR mean my site is insecure?","acceptedAnswer":{"@type":"Answer","text":"Visitors are not getting an insecure connection, they are getting no connection, since the browser refuses to proceed when it cannot negotiate one it trusts. The risk arrives if you resolve it by weakening your configuration, for example re-enabling obsolete protocol versions. Enabling TLS 1.2 and 1.3 is the correct direction; reaching backwards is not."}},
+{"@type":"Question","name":"What is ERR_SSL_VERSION_OR_CIPHER_MISMATCH?","acceptedAnswer":{"@type":"Answer","text":"It is Chrome's message for the same handshake failure this page covers, shown when the browser and server share no TLS protocol version or no cipher suite. A server stuck on old TLS 1.0 or 1.1 is the usual trigger, though a broken or mismatched certificate and key can cause it too. Enable TLS 1.2 and 1.3 with a modern cipher list on the origin, then confirm with the openssl version check this guide describes."}}
 ]}
 ]}
 </script>

@@ -45,6 +45,20 @@ That last row catches people out. A domain can exist perfectly well, with MX rec
 
 The SERVFAIL case is worth separating too, because a DNSSEC misconfiguration produces SERVFAIL rather than NXDOMAIN, and it has a distinctive signature: the domain fails on validating resolvers and works fine on non-validating ones. So it looks intermittent and user-dependent when it is actually deterministic.
 
+## The DNS_PROBE_FINISHED family, mapped
+
+Chrome wraps most DNS failures in a DNS_PROBE_FINISHED_ string, and the suffix tells you which of the diagnoses above you are actually looking at. Read the suffix, not the heading.
+
+DNS_PROBE_FINISHED_NXDOMAIN is the common one. It is a real NXDOMAIN, the authoritative "no such name" from the table above, so it points at the same short list: the domain expired, the record was never created or has a typo, or you added the record just now and a resolver is still holding the cached negative answer. That last case is the negative caching section below, and it catches people constantly.
+
+DNS_PROBE_FINISHED_NO_INTERNET is not about your domain at all. It says the machine has no working network, so check the connection before you touch anything in DNS.
+
+DNS_PROBE_FINISHED_BAD_CONFIG points at the resolver or the local DNS setup, the router or the machine, rather than the public record. It lives in the "clearing the caches that are genuinely yours" territory below.
+
+DNS_PROBE_STARTED is not an error. It just means Chrome is retrying the lookup, so give it a second before diagnosing anything.
+
+For a genuine NXDOMAIN, work the ranked causes below in order. That is where the real answer almost always sits.
+
 ## Is it just you, or is it everyone?
 
 Answer this before changing anything, because the two answers send you to completely different places. It takes one command.
@@ -210,5 +224,13 @@ They are two separate names and each needs its own DNS record. Creating one does
 **Can my hosting provider fix this?**
 
 Not directly, since the failure occurs before anything reaches a server, so it sits with your registrar and DNS provider. Where it does intersect hosting is launch order: a domain must resolve to your server before a certificate can be issued for it, so a new site failing at the SSL step is often this problem rather than a certificate problem.
+
+**How do I fix DNS_PROBE_FINISHED_NXDOMAIN?**
+
+Treat it as a real NXDOMAIN and start with public DNS, not your server. Run `dig +short example.com @1.1.1.1`: if nothing comes back, check that the record exists, that the registrar points at the right nameservers, and that the domain has not expired. If you only just created the record, you are probably hitting negative caching, so verify it against your authoritative nameserver and wait for the cached answer to age out.
+
+**What does DNS_PROBE_FINISHED_NO_INTERNET mean?**
+
+It points at your own connection rather than the domain you are trying to reach. Chrome is saying it could not run the DNS probe because the machine has no working network, so the fix is on your side: check Wi-Fi or ethernet, your router, and whether other sites load at all. If everything else is online and only one domain fails, the code you actually want is DNS_PROBE_FINISHED_NXDOMAIN instead.
 
 *Kloudbean Engineering · Create the record before you announce the name.*

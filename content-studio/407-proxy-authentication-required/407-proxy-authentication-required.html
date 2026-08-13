@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTTP Error 407 Proxy Authentication Required: The Proxy Wants Credentials</title>
+<meta name="description" content="Fix an HTTP error 407 Proxy Authentication Required. Why a 407 comes from a proxy and a 401 comes from the origin, the exact curl test that proves it, and how to set proxy credentials for curl, npm, git, pip, and apt without leaking them.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/407-proxy-authentication-required/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HTTP Error 407 Proxy Authentication Required: The Proxy Wants Credentials">
+<meta property="og:description" content="A 407 error is a proxy asking for credentials, not your server. Learn the 407 versus 401 distinction, the decisive curl test, and how to pass proxy credentials safely.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">HTTP status codes · 4xx · Field guide</span>
+  <h1>HTTP Error 407 Proxy Authentication Required: The Proxy Wants Credentials</h1>
+  <p class="byline">By Kloudbean Engineering · The 407 is the middleman talking, not your server.</p>
+
+  <figure><img src="images/hero.png" alt="A terminal showing a 407 Proxy Authentication Required response with a Proxy-Authenticate header, next to a 401 from the origin"></figure>
+
+  <p class="lead">An HTTP error 407, or 407 Proxy Authentication Required, is the one status code where the thing refusing you is not your server at all. It's a proxy sitting between your client and the origin, and it wants credentials before it will pass your request along. That single fact clears up most of the confusion around a 407 error. The 401 you might expect comes from the origin server. The 407 comes from a middleman. So before you touch your app, work out which box in the chain is doing the asking, because the fix for error 407 lives somewhere completely different from the fix for a 401.</p>
+
+  <div class="tldr">
+    <strong>How do you fix an HTTP 407 error?</strong>
+    <p>Give the proxy the credentials it's asking for. A 407 means a proxy between you and the site wants a username and password, answered in a <code>Proxy-Authorization</code> header, so the fix is to configure your client or environment with the proxy's credentials, not to change your app. Confirm it first with <code>curl -v</code> through the proxy: you'll see the 407 status and a <code>Proxy-Authenticate</code> header naming the scheme. For command-line tools, set <code>http_proxy</code> and <code>https_proxy</code> (or the npm, git, pip, and apt proxy settings) with credentials, and keep those credentials out of shell history and logs.</p>
+  </div>
+
+  <h2>HTTP error 407: is it the proxy or the server asking?</h2>
+  <p>This is the whole game, so start here. A 407 is the proxy's version of a 401. Same handshake, one layer closer to you. When the origin server wants to know who you are, it sends a 401 with a <code>WWW-Authenticate</code> header, and you answer with <code>Authorization</code>. When a proxy in the middle wants to know who you are, it sends a 407 with a <code>Proxy-Authenticate</code> header, and you answer with <code>Proxy-Authorization</code>. Different header, different link in the chain, different place to put the fix.</p>
+  <table class="cmp">
+    <thead><tr><th></th><th>401 Unauthorized</th><th>407 Proxy Authentication Required</th></tr></thead>
+    <tbody>
+      <tr><td>Who is asking?</td><td>The origin server</td><td>A proxy between you and the origin</td></tr>
+      <tr><td>Challenge header</td><td><code>WWW-Authenticate</code></td><td><code>Proxy-Authenticate</code></td></tr>
+      <tr><td>You answer with</td><td><code>Authorization</code></td><td><code>Proxy-Authorization</code></td></tr>
+      <tr><td>Whose network, usually</td><td>The server's</td><td>The client's</td></tr>
+      <tr><td>Where the fix lives</td><td>Your app credentials or token</td><td>Your client or network proxy settings</td></tr>
+    </tbody>
+  </table>
+  <p>If you've read our note on <a href="https://www.kloudbean.com/blog/http-error-401-unauthorized/">HTTP 401 Unauthorized</a>, this will feel familiar, because the two codes are the same idea aimed at different boxes. The trap is treating a 407 like a 401 and going to fix your application's login. Your application never saw the request. The proxy stopped it at the door.</p>
+
+  <figure>
+    <svg viewBox="0 0 820 300" role="img" aria-labelledby="svg407t svg407d" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;font-family:Poppins,system-ui,sans-serif">
+      <title id="svg407t">A 407 comes from the proxy, a 401 comes from the origin</title>
+      <desc id="svg407d">A client talks to an origin server through a forward proxy. The link between the client and the proxy is where a 407 lives: the proxy sends Proxy-Authenticate and the client answers with Proxy-Authorization. The link between the proxy and the origin is where a 401 lives: the origin sends WWW-Authenticate and the client answers with Authorization.</desc>
+      <defs>
+        <marker id="ah407" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="#000f27"></path>
+        </marker>
+      </defs>
+      <rect x="20" y="115" width="170" height="80" rx="10" fill="#ffffff" stroke="#000f27" stroke-width="2"></rect>
+      <text x="105" y="150" text-anchor="middle" font-size="16" font-weight="600" fill="#000f27">Client</text>
+      <text x="105" y="173" text-anchor="middle" font-size="12.5" fill="#000f27">curl · npm · git · app</text>
+
+      <rect x="325" y="115" width="180" height="80" rx="10" fill="#f4f1ff" stroke="#4F1AF3" stroke-width="2.5"></rect>
+      <text x="415" y="150" text-anchor="middle" font-size="16" font-weight="600" fill="#4F1AF3">Forward proxy</text>
+      <text x="415" y="173" text-anchor="middle" font-size="12.5" fill="#4F1AF3">wants credentials</text>
+
+      <rect x="640" y="115" width="160" height="80" rx="10" fill="#ffffff" stroke="#000f27" stroke-width="2"></rect>
+      <text x="720" y="150" text-anchor="middle" font-size="16" font-weight="600" fill="#000f27">Origin server</text>
+      <text x="720" y="173" text-anchor="middle" font-size="12.5" fill="#000f27">your app or API</text>
+
+      <line x1="192" y1="155" x2="320" y2="155" stroke="#000f27" stroke-width="2" marker-end="url(#ah407)"></line>
+      <line x1="507" y1="155" x2="636" y2="155" stroke="#000f27" stroke-width="2" marker-end="url(#ah407)"></line>
+
+      <rect x="228" y="58" width="56" height="26" rx="13" fill="#4F1AF3"></rect>
+      <text x="256" y="76" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">407</text>
+      <text x="256" y="102" text-anchor="middle" font-size="11.5" fill="#4F1AF3">Proxy-Authenticate</text>
+
+      <rect x="544" y="58" width="56" height="26" rx="13" fill="#000f27"></rect>
+      <text x="572" y="76" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">401</text>
+      <text x="572" y="102" text-anchor="middle" font-size="11.5" fill="#000f27">WWW-Authenticate</text>
+
+      <text x="256" y="222" text-anchor="middle" font-size="11.5" fill="#40b75f">answer: Proxy-Authorization</text>
+      <text x="572" y="222" text-anchor="middle" font-size="11.5" fill="#40b75f">answer: Authorization</text>
+
+      <text x="410" y="262" text-anchor="middle" font-size="13" font-weight="600" fill="#000f27">Different link, different login. A 407 is the middle box talking.</text>
+    </svg>
+    <figcaption>A 407 is raised on the client-to-proxy hop and answered with <code>Proxy-Authorization</code>. A 401 is raised by the origin and answered with <code>Authorization</code>. Same idea, one layer apart.</figcaption>
+  </figure>
+
+  <h2>Who actually gets a 407 error</h2>
+  <p>A 407 is not a random event. It shows up in a handful of very specific situations, and recognising yours saves the guesswork.</p>
+  <p><strong>A client behind a corporate or forward proxy.</strong> This is the big one. Your office, your VPN, or a locked-down cloud network routes all outbound traffic through a proxy that requires a login. Browsers usually handle this with a popup. Everything else, your scripts, your build agents, your package managers, does not, unless you tell it the credentials.</p>
+  <p><strong>A developer whose HTTP client was never told about the proxy.</strong> <code>curl</code>, <code>npm</code>, <code>pip</code>, <code>apt</code>, and <code>git</code> all speak to the network directly. Behind an authenticating proxy they get a 407 and stop. The classic symptom is <code>npm install</code> hanging or failing the moment you're on the office network, and working fine from home.</p>
+  <p><strong>A scripted client that got the challenge and never answered.</strong> A proxy replies 407 with <code>Proxy-Authenticate</code> to invite a second, authenticated attempt. A browser or a well-behaved library retries with <code>Proxy-Authorization</code>. A bare script that fires one request and reads the status just sees a 407 and gives up, because nothing in it knows how to answer the challenge.</p>
+  <p><strong>Occasionally, something in the path you didn't expect.</strong> A transparent proxy at an ISP, an endpoint-security agent that installs a local filtering proxy, or a misconfigured reverse proxy that itself forwards to an upstream proxy needing auth. These are rarer, but they explain the 407 that appears with no corporate network in sight.</p>
+
+  <div class="note">
+    <strong>Works interactively, fails in cron or CI?</strong>
+    <p>Proxy credentials living in your interactive shell don't travel to a cron job, a systemd service, or a CI runner. Those run with a clean environment. If a script pulls dependencies fine by hand and returns 407 when scheduled, the proxy variables simply aren't set in the job's environment. Export them inside the job, or put them in the service definition.</p>
+  </div>
+
+  <h2>The decisive test: curl through the proxy</h2>
+  <p>Two commands settle where the 407 is coming from. First, go through the proxy in verbose mode and read the response headers. You want to see the 407 and the challenge:</p>
+  <pre><code># Through the proxy, verbose, so you can see the challenge
+curl -v -x http://proxy.example.com:8080 https://api.example.com/ 2&gt;&amp;1 \
+  | grep -iE '^&lt; HTTP|proxy-authenticate'
+
+# Expect something like:
+# &lt; HTTP/1.1 407 Proxy Authentication Required
+# &lt; Proxy-Authenticate: Basic realm="corp-proxy"</code></pre>
+  <p>That <code>Proxy-Authenticate</code> line is the proof. It's the proxy identifying itself and naming the scheme it wants, usually <code>Basic</code>, sometimes <code>Digest</code>, <code>NTLM</code>, or <code>Negotiate</code> on Windows networks. If you see it, the 407 is the proxy, full stop.</p>
+  <p>Second, reach the same origin from a network with no proxy in front of it, or without the <code>-x</code> flag if you can, to confirm the site itself is healthy:</p>
+  <pre><code># Same site, no proxy in the path
+curl -sI https://api.example.com/ | head -1
+
+# HTTP/2 200  -&gt;  the origin is fine, so the 407 is purely the proxy talking</code></pre>
+  <p>A 200 direct and a 407 through the proxy localises the problem in one step. Nothing about the origin needs fixing. Read the headers, don't guess: the difference between the two responses tells you which layer to work on.</p>
+
+  <!-- ADD IMAGE: terminal showing curl -v through a proxy returning 407 with the Proxy-Authenticate header highlighted. src -> images/curl-407.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Terminal: <code>curl -v</code> through the proxy showing the 407 status line and the <code>Proxy-Authenticate</code> header.</em><small>Highlight the Proxy-Authenticate line so the reader sees the proof.</small></span></figure>
+
+  <h2>How to fix a 407 Proxy Authentication Required error</h2>
+  <p>Once you know a proxy is asking, you answer it. The mechanism is the same everywhere: tell the tool the proxy address plus a username and password. The spelling differs per tool.</p>
+  <p>Most command-line tools read proxy settings from environment variables, so setting these once fixes a whole class of them at once:</p>
+  <pre><code># Point command-line tools at the proxy, with credentials
+export http_proxy="http://USER:PASS@proxy.example.com:8080"
+export https_proxy="http://USER:PASS@proxy.example.com:8080"
+
+# Some tools only read the uppercase spellings, so set both
+export HTTP_PROXY="$http_proxy" HTTPS_PROXY="$https_proxy"
+
+# Keep internal hosts off the proxy
+export no_proxy="localhost,127.0.0.1,.internal"</code></pre>
+  <p>For <code>curl</code> specifically, you can pass the proxy inline, but prefer letting it prompt for the password so it never lands in your history:</p>
+  <pre><code># Let curl ask for the password instead of baking it into the command
+curl -x http://proxy.example.com:8080 --proxy-user 'USER' https://api.example.com/</code></pre>
+  <p>Package managers and git each keep their own config, and they don't all read the environment the same way:</p>
+  <pre><code># npm
+npm config set proxy http://USER:PASS@proxy.example.com:8080
+npm config set https-proxy http://USER:PASS@proxy.example.com:8080
+
+# git
+git config --global http.proxy http://USER:PASS@proxy.example.com:8080
+
+# pip (or just rely on the https_proxy variable above)
+pip install --proxy http://USER:PASS@proxy.example.com:8080 requests</code></pre>
+  <p>For system package installs, apt keeps proxy settings in its own config file:</p>
+  <pre><code># /etc/apt/apt.conf.d/95proxy
+Acquire::http::Proxy  "http://USER:PASS@proxy.example.com:8080";
+Acquire::https::Proxy "http://USER:PASS@proxy.example.com:8080";</code></pre>
+  <p>One honest warning before you paste any of that into a real terminal, because it matters.</p>
+
+  <h2>Fixes that cannot work (and why)</h2>
+  <p>A 407 is a live authentication handshake, negotiated fresh on the connection. That rules out a lot of the usual reflexes.</p>
+  <p><strong>Clearing your browser cache does nothing.</strong> The 407 isn't cached content, it's the proxy challenging this connection right now. Same for a hard refresh or clearing cookies. You can empty every cache you own and the proxy will still ask.</p>
+  <p><strong>Reinstalling the app or the package won't help.</strong> If <code>npm install</code> returns 407, the package is irrelevant. The request never reached the registry. Running it ten more times just fails ten more times.</p>
+  <p><strong>Fixing your server is aiming at the wrong box.</strong> This is the expensive mistake. You SSH into production, tail the logs, and find nothing, because your server never received the request. The proxy answered on its behalf. Time spent in your application here is time you won't get back.</p>
+  <p>Here's the opinion, stated plainly: a 407 in production almost always means a forward proxy inside the client's network, not a bug in your app. If you did not deliberately put an authenticating proxy in the path, the fix is on the client or network side. Look there first, every time.</p>
+
+  <!-- ADD IMAGE: a diagram or screenshot of corporate proxy settings, or an OS network-proxy dialog with an authentication prompt. src -> images/proxy-settings.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Screenshot: an operating-system network-proxy dialog, or a corporate proxy settings panel asking for a username and password.</em><small>Optional. Helps readers who hit this on a managed laptop.</small></span></figure>
+
+  <h2>The anti-pattern: proxy credentials in a URL</h2>
+  <p>Setting <code>https_proxy=http://user:pass@proxy:8080</code> is the fastest way to get a 407 to go away, and the fastest way to leak a password. That string does not stay put. It lands in your shell history file. It shows up in <code>ps aux</code>, where any user on the box can read the full command line. It gets printed verbatim in build logs and error traces. And <code>npm config set</code> writes it in plaintext to <code>~/.npmrc</code>, while git writes it to <code>~/.gitconfig</code>, both of which get committed by accident more often than anyone admits.</p>
+  <p>Treat proxy credentials like any other secret. A few safer habits:</p>
+  <ul>
+    <li>Let the tool prompt, as with <code>curl --proxy-user 'USER'</code> above, so the password is never on a command line.</li>
+    <li>Use a <code>.netrc</code> file with <code>chmod 600</code> permissions rather than an inline URL.</li>
+    <li>On Windows-style networks, an SSO proxy helper (for example an NTLM or Kerberos forwarder running locally) lets tools point at a local address with no password embedded at all.</li>
+    <li>Never commit <code>.npmrc</code>, <code>.gitconfig</code>, or an <code>.env</code> that carries a proxy password.</li>
+  </ul>
+
+  <h2>407 versus 401, 403, 429, and 502</h2>
+  <p>A 407 is easy to mix up with its neighbours, because several 4xx and 5xx codes all feel like "the request didn't work". They point at different layers, though, and the layer is the fix.</p>
+  <table class="cmp">
+    <thead><tr><th>Code</th><th>What it means</th><th>Who returned it</th><th>First move</th></tr></thead>
+    <tbody>
+      <tr><td>401</td><td>You are not authenticated to the origin</td><td>The origin server</td><td>Fix your app credentials or token</td></tr>
+      <tr><td>403</td><td>Authenticated, still not allowed</td><td>The origin server</td><td>Check roles, scopes, permissions</td></tr>
+      <tr><td><strong>407</strong></td><td><strong>A proxy in the path needs credentials</strong></td><td><strong>A proxy between you and the origin</strong></td><td><strong>Give the proxy credentials</strong></td></tr>
+      <tr><td>429</td><td>Too many requests, slow down</td><td>Origin or proxy</td><td>Back off and honour <code>Retry-After</code></td></tr>
+      <tr><td>502</td><td>A gateway could not get a valid answer upstream</td><td>A proxy or gateway</td><td>Check the upstream or origin</td></tr>
+    </tbody>
+  </table>
+  <p>The one worth internalising: 401 and 403 come from the destination, so you look at your credentials and permissions. See <a href="https://www.kloudbean.com/blog/403-forbidden-error/">403 Forbidden</a> when you're authenticated but blocked, and <a href="https://www.kloudbean.com/blog/429-too-many-requests/">429 Too Many Requests</a> when you're being rate limited. A 407 comes from a box in the middle. And a <a href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/">502 Bad Gateway</a> is that same middle box telling you it couldn't get an answer from upstream, which is a different failure from it demanding a login. If your verb is being rejected rather than your identity, that's a <a href="https://www.kloudbean.com/blog/405-method-not-allowed/">405 Method Not Allowed</a> instead.</p>
+
+  <h2>A quick symptom-to-cause map</h2>
+  <table class="cmp">
+    <thead><tr><th>Symptom</th><th>Likely cause</th><th>First check</th></tr></thead>
+    <tbody>
+      <tr><td>Direct request works, through the proxy it's 407</td><td>Proxy wants auth, none was sent</td><td>The <code>Proxy-Authenticate</code> header</td></tr>
+      <tr><td><code>npm</code>, <code>pip</code>, or <code>apt</code> fail only on the office network</td><td>Tool never told the proxy credentials</td><td>The tool's proxy config</td></tr>
+      <tr><td>Works by hand, 407 in cron or CI</td><td>Proxy variables absent in that environment</td><td>Export them in the job</td></tr>
+      <tr><td>Only some machines hit it</td><td>Those sit behind the authenticating proxy</td><td>Where the machine is on the network</td></tr>
+      <tr><td>A reverse proxy you run returns 407</td><td>It forwards to an upstream proxy needing auth</td><td>Your <code>proxy_pass</code> chain</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Where hosting fits, honestly</h2>
+  <p>Most 407 errors have nothing to do with your host, and it's worth being straight about that. The proxy asking for a login usually lives in the client's network: an office, a VPN, a locked-down corporate laptop. No hosting provider can reach into that network and change it. If a 407 is stopping your users, the fix is on their side.</p>
+  <p>What a managed host controls is the other half: making sure the reverse proxy in front of <em>your</em> application is configured correctly, so a 407 is never coming from your side of the wire. On Kloudbean, the reverse proxy (nginx or Apache) is set up and kept patched for you, and your application and server logs sit in the same dashboard, so you can confirm your side answered with a normal response rather than a 407. If a reverse proxy config is the culprit, our guides on <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">nginx as a reverse proxy for Node</a> and <a href="https://www.kloudbean.com/blog/nginx-vs-apache/">nginx versus Apache</a> cover the setup.</p>
+  <p>When you actually want to restrict who reaches an app, the honest tools are the ones that fit the job: IP Access Control with allow and deny rules by CIDR, and a Basic Auth gate in front of an app for staging or internal use. A Basic Auth gate returns a 401, not a 407, because it's the destination asking, not a forward proxy. That distinction is the whole article, and it's worth getting right when you set up access control too.</p>
+  <p>The boundary, once: managed covers the server, the stack, TLS, backups, and patching. Your application code, your client machines, and any corporate proxy in front of your users stay yours. A 407 is usually that client-network proxy, which no host controls. What managed hosting gives you is a correctly configured reverse proxy, plus baseline hardening with Shorewall and Fail2ban and free SSL, so the 407 is not coming from your side.</p>
+
+  <figure>
+    <img src="../assets/console/server-health.png" alt="Server and application logs in the Kloudbean console">
+    <figcaption>Server and application logs in one place, so you can confirm your reverse proxy answered the request rather than a 407.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: optional close-up of the access-control or firewall settings in the dashboard. src -> images/access-control.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Optional: IP Access Control or the Basic Auth gate in the dashboard, showing intentional access restriction.</em><small>Reinforces that a deliberate gate is a 401, not a 407.</small></span></figure>
+
+  <h2>Related reading</h2>
+  <p>Its origin-side twin, <a href="https://www.kloudbean.com/blog/http-error-401-unauthorized/">HTTP 401 Unauthorized</a>, and the permission version, <a href="https://www.kloudbean.com/blog/403-forbidden-error/">403 Forbidden</a>. When the verb is the problem rather than your identity, <a href="https://www.kloudbean.com/blog/405-method-not-allowed/">405 Method Not Allowed</a>, and when you're rate limited, <a href="https://www.kloudbean.com/blog/429-too-many-requests/">429 Too Many Requests</a>. For the gateway that couldn't reach upstream, <a href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/">502 Bad Gateway</a>. On the proxy layer itself, <a href="https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/">the nginx reverse proxy guide</a> and <a href="https://www.kloudbean.com/blog/nginx-vs-apache/">nginx versus Apache</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">A reverse proxy that answers, not one that interrogates your users.</p>
+    <p style="margin:0 0 .6em">Managed nginx or Apache kept patched, application and server logs in one dashboard so you can see exactly where a response came from, plus IP access control and a Basic Auth gate when you want to gate access on purpose. Free SSL and free migration assistance included. Standard plans from $8/mo, and you can check current pricing on the <a href="https://www.kloudbean.com/pricing/">pricing page</a>. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed reverse proxy · App + server logs · IP access control · Basic auth gate · Free SSL · From $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does HTTP error 407 Proxy Authentication Required mean?</h3>
+    <p>It means a proxy sitting between your client and the destination wants credentials before it will forward your request. It is the proxy's version of a 401: the proxy sends a <code>Proxy-Authenticate</code> header, and your client is expected to answer with a <code>Proxy-Authorization</code> header. Your origin server never saw the request, so the fix is in your client or network, not your app.</p>
+
+    <h3>What is the difference between a 407 and a 401 error?</h3>
+    <p>A 401 comes from the origin server, which sends <code>WWW-Authenticate</code> and expects an <code>Authorization</code> header in reply. A 407 comes from a proxy in the middle, which sends <code>Proxy-Authenticate</code> and expects <code>Proxy-Authorization</code>. Same handshake, different box asking. That tells you whether to fix your application credentials or your proxy settings.</p>
+
+    <h3>How do I fix a 407 error in curl?</h3>
+    <p>Pass the proxy with <code>-x http://proxy:port</code> and supply the login. Prefer <code>--proxy-user 'USER'</code> and let curl prompt for the password so it never lands in your shell history. Confirm it worked by running <code>curl -v</code> and checking that the response is no longer a 407 with a <code>Proxy-Authenticate</code> header.</p>
+
+    <h3>How do I fix a 407 error in npm, pip, or apt?</h3>
+    <p>Each tool needs the proxy and credentials. For npm, set the <code>proxy</code> and <code>https-proxy</code> config values. For pip, use the <code>--proxy</code> flag or the <code>https_proxy</code> environment variable. For apt, add <code>Acquire</code> proxy lines in a file under <code>/etc/apt/apt.conf.d/</code>. Setting the <code>http_proxy</code> and <code>https_proxy</code> environment variables often covers several tools at once.</p>
+
+    <h3>Is a 407 error a problem with my server or my network?</h3>
+    <p>Almost always your network. A 407 is raised by a proxy between you and the site, which usually lives in a corporate network, a VPN, or a locked-down laptop. If you did not put an authenticating proxy in front of your own application, the problem is on the client side, and no change to your server will resolve it.</p>
+
+    <h3>Why does clearing my browser cache not fix a 407?</h3>
+    <p>Because a 407 is a live authentication handshake on the connection, not cached content. The proxy is challenging this request right now, so emptying the cache, clearing cookies, or hard-refreshing changes nothing. The only thing that satisfies a 407 is sending valid proxy credentials.</p>
+
+    <h3>How do I send proxy credentials without leaking them?</h3>
+    <p>Avoid putting the password in a URL like <code>http://user:pass@proxy:port</code>, because that string ends up in shell history, process listings, and logs. Let the tool prompt for the password, use a <code>.netrc</code> file locked to your user, or run a local SSO proxy helper so no password is embedded. Never commit config files that contain proxy credentials.</p>
+
+    <h3>Can a reverse proxy or a website return a 407?</h3>
+    <p>A public website normally returns 401 for authentication, not 407, because it is the origin rather than a forward proxy. You can see a 407 from your own infrastructure if a reverse proxy you run forwards to an upstream proxy that requires a login. In that case, the fix is the upstream proxy configuration in your own stack.</p>
+
+    <h3>What is the difference between a 407 and a 502 error?</h3>
+    <p>A 407 means a proxy wants credentials before it will forward your request. A 502 means a gateway or proxy accepted your request but could not get a valid response from the server upstream. One is an authentication problem at the proxy, the other is a connectivity or health problem behind it, so they point at completely different fixes.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · A 401 is the destination asking. A 407 is the doorway asking.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"HTTP Error 407 Proxy Authentication Required: The Proxy Wants Credentials","description":"Fix an HTTP error 407 Proxy Authentication Required. Why a 407 comes from a proxy and a 401 comes from the origin, the exact curl test that proves it, and how to set proxy credentials for curl, npm, git, pip, and apt without leaking them.","image":"https://www.kloudbean.com/blog/407-proxy-authentication-required/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/407-proxy-authentication-required/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does HTTP error 407 Proxy Authentication Required mean?","acceptedAnswer":{"@type":"Answer","text":"It means a proxy sitting between your client and the destination wants credentials before it will forward your request. It is the proxy version of a 401: the proxy sends a Proxy-Authenticate header, and your client is expected to answer with a Proxy-Authorization header. Your origin server never saw the request, so the fix is in your client or network, not your app."}},
+{"@type":"Question","name":"What is the difference between a 407 and a 401 error?","acceptedAnswer":{"@type":"Answer","text":"A 401 comes from the origin server, which sends WWW-Authenticate and expects an Authorization header in reply. A 407 comes from a proxy in the middle, which sends Proxy-Authenticate and expects Proxy-Authorization. Same handshake, different box asking. That tells you whether to fix your application credentials or your proxy settings."}},
+{"@type":"Question","name":"How do I fix a 407 error in curl?","acceptedAnswer":{"@type":"Answer","text":"Pass the proxy with -x http://proxy:port and supply the login. Prefer the proxy-user option and let curl prompt for the password so it never lands in your shell history. Confirm it worked by running curl in verbose mode and checking that the response is no longer a 407 with a Proxy-Authenticate header."}},
+{"@type":"Question","name":"How do I fix a 407 error in npm, pip, or apt?","acceptedAnswer":{"@type":"Answer","text":"Each tool needs the proxy and credentials. For npm, set the proxy and https-proxy config values. For pip, use the proxy flag or the https_proxy environment variable. For apt, add Acquire proxy lines in a file under the apt.conf.d directory. Setting the http_proxy and https_proxy environment variables often covers several tools at once."}},
+{"@type":"Question","name":"Is a 407 error a problem with my server or my network?","acceptedAnswer":{"@type":"Answer","text":"Almost always your network. A 407 is raised by a proxy between you and the site, which usually lives in a corporate network, a VPN, or a locked-down laptop. If you did not put an authenticating proxy in front of your own application, the problem is on the client side, and no change to your server will resolve it."}},
+{"@type":"Question","name":"Why does clearing my browser cache not fix a 407?","acceptedAnswer":{"@type":"Answer","text":"Because a 407 is a live authentication handshake on the connection, not cached content. The proxy is challenging this request right now, so emptying the cache, clearing cookies, or hard-refreshing changes nothing. The only thing that satisfies a 407 is sending valid proxy credentials."}},
+{"@type":"Question","name":"How do I send proxy credentials without leaking them?","acceptedAnswer":{"@type":"Answer","text":"Avoid putting the password in a URL like the user-and-password-at-host form, because that string ends up in shell history, process listings, and logs. Let the tool prompt for the password, use a netrc file locked to your user, or run a local SSO proxy helper so no password is embedded. Never commit config files that contain proxy credentials."}},
+{"@type":"Question","name":"Can a reverse proxy or a website return a 407?","acceptedAnswer":{"@type":"Answer","text":"A public website normally returns 401 for authentication, not 407, because it is the origin rather than a forward proxy. You can see a 407 from your own infrastructure if a reverse proxy you run forwards to an upstream proxy that requires a login. In that case, the fix is the upstream proxy configuration in your own stack."}},
+{"@type":"Question","name":"What is the difference between a 407 and a 502 error?","acceptedAnswer":{"@type":"Answer","text":"A 407 means a proxy wants credentials before it will forward your request. A 502 means a gateway or proxy accepted your request but could not get a valid response from the server upstream. One is an authentication problem at the proxy, the other is a connectivity or health problem behind it, so they point at completely different fixes."}}
+]}
+]}
+</script>
+</body>
+</html>

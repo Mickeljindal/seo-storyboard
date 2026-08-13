@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MySQL Port 3306, SHOW DATABASES and SHOW TABLES: A Field Guide</title>
+<meta name="description" content="The MySQL port is 3306 by default, with 33060 for the X Protocol. How to list databases with SHOW DATABASES, list tables, connect with mysql -h, and why port 3306 should stay off the public internet.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/mysql-default-port-and-show-databases/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MySQL Port 3306, SHOW DATABASES and SHOW TABLES: A Field Guide">
+<meta property="og:description" content="MySQL and MariaDB listen on port 3306 by default. Listing databases and tables, the socket vs TCP gotcha, the missing-database GRANT trap, and why 3306 should stay off the public internet.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">MySQL · Command reference</span>
+  <h1>MySQL Port 3306, and How to List Databases and Tables</h1>
+  <p class="byline">By Kloudbean Engineering · The port is 3306. Keeping it private is the whole job.</p>
+
+  <figure><img src="images/hero.png" alt="A terminal showing SHOW DATABASES output beside a diagram of MySQL listening on port 3306 bound to a private address"></figure>
+
+  <p class="lead">Two questions bring most people to this page, and they're close cousins. What port does MySQL use, and how do I see what's inside it. The short answers: the MySQL port is 3306, and you list databases with SHOW DATABASES. But the version of this page worth reading is the part most guides skip, which is why 3306 should almost never face the public internet, and why a database can be sitting right there and still not show up in your list.</p>
+
+  <div class="tldr">
+    <strong>MySQL port and the quick commands, up front.</strong>
+    <p>MySQL and MariaDB listen on TCP port 3306 by default. The classic X Protocol, used by MySQL Shell and some newer clients, listens on 33060. List databases with <code>SHOW DATABASES;</code>, pick one with <code>USE dbname;</code>, then list tables with <code>SHOW TABLES;</code>. Connect from the shell with <code>mysql -h host -P 3306 -u user -p</code>. And bind 3306 to localhost or a private address, because an open 3306 gets found by scanners fast.</p>
+  </div>
+
+  <h2>The MySQL port: 3306, 33060, and the socket you might use instead</h2>
+  <p>MySQL's default port is 3306. That's the TCP port the server listens on, and it's the one your app's driver connects to unless you tell it otherwise. MariaDB uses the same 3306, because it grew out of MySQL and kept the wire protocol compatible.</p>
+
+  <p>There's a second port worth knowing about: 33060. That's the MySQL X Protocol, used by the X DevAPI and the document-store features in MySQL Shell. Most classic apps never touch it. If you spotted 33060 in a listening-ports list and wondered what it was, that's your answer, and it's normal for a default MySQL 8 install to have both open locally.</p>
+
+  <p>Now the part that trips people up. On the same machine as the server, MySQL often doesn't use TCP at all. It uses a Unix domain socket, a special file such as <code>/var/run/mysqld/mysqld.sock</code>. This matters because of one quiet rule in the client: <code>-h localhost</code> tells the mysql client to use the socket, while <code>-h 127.0.0.1</code> tells it to use TCP on 3306. They look identical. They are not. I've watched people swear the port is broken because connecting to <code>localhost</code> works and <code>127.0.0.1</code> gets refused, when the real story was that the socket was fine and TCP simply wasn't listening.</p>
+
+  <div class="note"><strong>On MariaDB?</strong> All of this applies unchanged. MariaDB kept the same default port 3306, the same <code>SHOW DATABASES</code> and <code>SHOW TABLES</code>, and the same client flags. If you run it as a service, <a href="https://www.kloudbean.com/blog/managed-mariadb-hosting/">managed MariaDB hosting</a> covers the operational side.</div>
+
+  <h2>Is MySQL actually listening on 3306? Check, don't guess</h2>
+  <p>Before you debug a connection, confirm what the server is actually doing. On Linux, one line answers it:</p>
+
+  <pre><code># List listening TCP sockets and filter for the MySQL port
+ss -ltnp | grep 3306</code></pre>
+
+  <p>If MySQL is listening on TCP, you'll see a line with an address and port, something like <code>127.0.0.1:3306</code> or <code>0.0.0.0:3306</code>. That address matters as much as the port, and I'll come back to why in a second. If the command prints nothing, MySQL isn't listening on TCP at all, which usually means it's socket-only or not running.</p>
+
+  <p>Two settings decide this, and they live in <code>my.cnf</code> (often <code>/etc/mysql/my.cnf</code>, or a file under <code>/etc/mysql/mysql.conf.d/</code>):</p>
+
+  <pre><code>[mysqld]
+port = 3306
+bind-address = 127.0.0.1</code></pre>
+
+  <p><code>port</code> is the obvious one, and you rarely change it. <code>bind-address</code> is the one that matters for safety. Bound to <code>127.0.0.1</code>, MySQL accepts connections only from the same machine. Bound to <code>0.0.0.0</code>, it accepts them from anywhere the firewall lets through. Read the next section before you touch that, because flipping it to <code>0.0.0.0</code> is the single most common way a database ends up exposed.</p>
+
+  <!-- Author: add an image here. src -> images/ss-listening-3306.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal running ss -ltnp with the 3306 line highlighted, showing 127.0.0.1:3306 versus 0.0.0.0:3306.</em><small>Optional: annotate the bind address.</small></span></figure>
+
+  <h2>Never put 3306 on the public internet</h2>
+  <p>The opinion this whole page is built around: port 3306 should almost never be reachable from the open internet. Not secured-with-a-strong-password-and-then-exposed. Just not exposed.</p>
+
+  <p>Databases get scanned around the clock. Automated bots sweep huge ranges of addresses looking for an open 3306, throw a list of common credentials at whatever answers, and if they get in, they exfiltrate or ransom what they find. This isn't rare, and it isn't targeted. Leave 3306 open on a public IP and it will be probed within hours, sometimes minutes.</p>
+
+  <p>So here is the anti-pattern to burn into memory: setting <code>bind-address = 0.0.0.0</code> and then opening 3306 in the firewall so your app server, or your laptop, can reach it. It works, which is exactly why people do it. It also hands your data to the internet.</p>
+
+  <p>The fix is structural, not a longer password. Keep MySQL bound to localhost or a private address, and let only your application tier reach it. If the app and database share a server, bind to <code>127.0.0.1</code> and you're done. If they sit on separate machines, put the database on a private address and allow only the app server's IP through the firewall. You reach the database from your app, never from a browser or a public client.</p>
+
+  <figure>
+    <svg viewBox="0 0 880 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="port-title port-desc">
+      <title id="port-title">Two ways to expose MySQL on port 3306</title>
+      <desc id="port-desc">On the left, MySQL bound to 0.0.0.0 with port 3306 open in the firewall is reachable by internet scanners directly, which is unsafe. On the right, MySQL bound to a private address with the firewall allowing only the application server IP is reachable only from the app tier, which is safe.</desc>
+      <rect x="0" y="0" width="880" height="360" fill="#ffffff"/>
+      <g font-family="Poppins, sans-serif" fill="#000f27">
+        <text x="30" y="38" font-size="14" font-weight="600" fill="#c0392b">Exposed: 3306 open to the world</text>
+        <rect x="30" y="60" width="150" height="60" rx="9" fill="#c0392b"/>
+        <text x="105" y="86" text-anchor="middle" fill="#ffffff" font-size="12.5" font-weight="600">Internet</text>
+        <text x="105" y="104" text-anchor="middle" fill="#ffffff" font-size="10.5">bots and scanners</text>
+        <rect x="250" y="60" width="160" height="60" rx="9" fill="#000f27"/>
+        <text x="330" y="86" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="600">MySQL 3306</text>
+        <text x="330" y="104" text-anchor="middle" fill="#ffffff" font-size="10">bind 0.0.0.0</text>
+        <g stroke="#c0392b" stroke-width="2.5" fill="none" marker-end="url(#ar)"><path d="M182 90 H246"/></g>
+        <text x="30" y="150" font-size="11.5" fill="#c0392b">Anyone can knock. Probed within hours.</text>
+
+        <line x1="440" y1="26" x2="440" y2="332" stroke="#e5e7eb" stroke-width="1.5"/>
+
+        <text x="470" y="38" font-size="14" font-weight="600" fill="#40b75f">Private: only the app tier reaches 3306</text>
+        <rect x="470" y="60" width="120" height="58" rx="9" fill="#98a2b3"/>
+        <text x="530" y="85" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="600">Internet</text>
+        <text x="530" y="103" text-anchor="middle" fill="#ffffff" font-size="10.5">blocked</text>
+        <rect x="470" y="152" width="120" height="58" rx="9" fill="#4F1AF3"/>
+        <text x="530" y="177" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="600">App server</text>
+        <text x="530" y="195" text-anchor="middle" fill="#ffffff" font-size="10.5">whitelisted IP</text>
+        <rect x="680" y="152" width="170" height="58" rx="9" fill="#40b75f"/>
+        <text x="765" y="177" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="600">MySQL 3306</text>
+        <text x="765" y="195" text-anchor="middle" fill="#ffffff" font-size="10">private address</text>
+        <g stroke="#c0392b" stroke-width="2.5" fill="none"><path d="M530 118 V150" stroke-dasharray="5 4"/></g>
+        <text x="536" y="140" font-size="17" fill="#c0392b" font-weight="700">x</text>
+        <g stroke="#40b75f" stroke-width="2.5" fill="none" marker-end="url(#arg)"><path d="M592 181 H676"/></g>
+        <text x="470" y="238" font-size="11.5" fill="#40b75f">Firewall allows only the app server IP.</text>
+
+        <rect x="30" y="304" width="820" height="30" rx="7" fill="#000f27"/>
+        <text x="44" y="323" font-size="12" fill="#ffffff">Rule of thumb: reach the database from your app, never from the open internet.</text>
+      </g>
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#c0392b"/></marker>
+        <marker id="arg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#40b75f"/></marker>
+      </defs>
+    </svg>
+    <figcaption>The same port 3306, two very different exposures. Bind it private, allow only the app server, and the scanners never get a knock.</figcaption>
+  </figure>
+
+  <p>Need to reach a private database from your own machine now and then? Tunnel over SSH instead of opening the port. This forwards your local 3306 through an encrypted SSH session to the server, so the database port never touches the public internet:</p>
+
+  <pre><code>ssh -L 3306:localhost:3306 user@your-server
+# then point your client at 127.0.0.1:3306 as usual</code></pre>
+
+  <p>The deeper version of this, locking a managed database to a single app server with IP allow-listing, is in <a href="https://www.kloudbean.com/blog/database-private-access-control/">database private access control</a>.</p>
+
+  <!-- Author: add an image here. src -> images/firewall-3306-rule.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A firewall rule list showing 3306 allowed only from the app server IP, not from 0.0.0.0/0.</em><small>Reinforces the anti-pattern.</small></span></figure>
+
+  <h2>List databases: SHOW DATABASES and the information_schema way</h2>
+  <p>With a connection open, listing databases is one command:</p>
+
+  <pre><code>SHOW DATABASES;</code></pre>
+
+  <p>You'll get your own databases plus a few that ship with the server: <code>information_schema</code>, <code>mysql</code>, <code>performance_schema</code>, and usually <code>sys</code>. Those last ones are the server's own metadata and internals. Leave them be unless you know why you're in there.</p>
+
+  <p>There's a second way that's handy in scripts and application code, because it returns a normal result set you can filter, sort, and join:</p>
+
+  <pre><code>SELECT schema_name FROM information_schema.schemata;</code></pre>
+
+  <p><code>information_schema</code> is a virtual database that describes every other database: their schemas, tables, columns, indexes, and sizes. <code>SHOW DATABASES</code> is the quick interactive answer; <code>information_schema</code> is the programmable one. Same information, two front doors.</p>
+
+  <!-- Author: add an image here. src -> images/show-databases-output.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A mysql client session showing SHOW DATABASES output, including information_schema, mysql, and performance_schema.</em><small>Optional.</small></span></figure>
+
+  <h2>List tables, describe them, and check their size</h2>
+  <p>Pick a database, then list its tables:</p>
+
+  <pre><code>USE appdb;
+SHOW TABLES;</code></pre>
+
+  <p><code>SHOW TABLES</code> gives you bare names. <code>SHOW FULL TABLES</code> adds a column that tells you whether each entry is a real table or a view, which matters the moment someone hands you a schema full of views and you can't work out why a table won't take an insert:</p>
+
+  <pre><code>SHOW FULL TABLES;</code></pre>
+
+  <p>To see a table's structure, any of these work, from terse to complete:</p>
+
+  <pre><code>DESCRIBE orders;
+SHOW COLUMNS FROM orders;
+SHOW CREATE TABLE orders;</code></pre>
+
+  <p><code>DESCRIBE</code> (or <code>DESC</code>) and <code>SHOW COLUMNS</code> give you the column list, types, and keys. <code>SHOW CREATE TABLE</code> gives you the exact DDL, the full statement that would recreate the table. That's the one I reach for before a migration, or when I need to copy a table's shape somewhere else.</p>
+
+  <p>For sizes, <code>SHOW TABLE STATUS</code> reports per-table row counts and lengths, and <code>information_schema</code> turns that into something readable. This ranks a database's tables by how much space they take on disk:</p>
+
+  <pre><code>SELECT table_name,
+       ROUND((data_length + index_length) / 1024 / 1024, 2) AS size_mb
+FROM information_schema.tables
+WHERE table_schema = 'appdb'
+ORDER BY size_mb DESC;</code></pre>
+
+  <p>One caveat that saves an argument later: for InnoDB tables, the row counts from these sources are estimates, not exact figures. Close enough to find the bloated table. Not something to bill a customer on. If your tables are big enough that size is a live concern, <a href="https://www.kloudbean.com/blog/mysql-performance-tuning/">MySQL performance tuning</a> covers indexing and the buffer pool.</p>
+
+  <h2>Why a database is missing from SHOW DATABASES</h2>
+  <p>This one burns hours, so it gets its own section. <code>SHOW DATABASES</code> does not list every database on the server. It lists the databases your user holds some privilege on. So a database can be alive and well and simply invisible to you.</p>
+
+  <p>If a database you know exists isn't in the list, it's almost always a permissions problem, not a missing database. Check what your user can actually do:</p>
+
+  <pre><code>SHOW GRANTS;
+SELECT CURRENT_USER();</code></pre>
+
+  <p><code>CURRENT_USER()</code> is worth a look on its own, because MySQL can authenticate you as a different account than the username you typed, thanks to how it matches host patterns. If you connected as <code>root</code> and still can't see a database, you're probably not the root you think you are, or you're on the wrong server entirely.</p>
+
+  <p>The fix is a <code>GRANT</code> from an account that has the rights, followed by <code>FLUSH PRIVILEGES</code> if you edited the grant tables directly. If you're hitting this because an app can't connect at all rather than because a database is hidden, the connection itself is the thing to chase, and <a href="https://www.kloudbean.com/blog/fix-error-establishing-database-connection-wordpress/">error establishing a database connection</a> walks that path.</p>
+
+  <h2>Quick reference: task to command</h2>
+  <p>The whole page in one table. Keep it near your terminal.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Task</th><th>Command</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>See the listening port</td><td><code>ss -ltnp</code>, then look for 3306</td><td>Or <code>SHOW VARIABLES LIKE 'port';</code> from inside MySQL</td></tr>
+      <tr><td>List all databases</td><td><code>SHOW DATABASES;</code></td><td>Only shows what your user can see</td></tr>
+      <tr><td>List databases as a result set</td><td><code>SELECT schema_name FROM information_schema.schemata;</code></td><td>Good for scripts and joins</td></tr>
+      <tr><td>Switch database</td><td><code>USE dbname;</code></td><td>Sets the default for later commands</td></tr>
+      <tr><td>List tables</td><td><code>SHOW TABLES;</code></td><td>Bare names</td></tr>
+      <tr><td>Tables and views</td><td><code>SHOW FULL TABLES;</code></td><td>Adds base table versus view</td></tr>
+      <tr><td>Describe a table</td><td><code>DESCRIBE tablename;</code></td><td>Columns, types, keys</td></tr>
+      <tr><td>Full table definition</td><td><code>SHOW CREATE TABLE tablename;</code></td><td>The exact DDL</td></tr>
+      <tr><td>Table sizes</td><td><code>information_schema.tables</code> query</td><td>Row counts are estimates on InnoDB</td></tr>
+      <tr><td>Who am I, what can I see</td><td><code>SHOW GRANTS;</code> and <code>SELECT CURRENT_USER();</code></td><td>Explains a missing database</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Connecting to a remote or managed MySQL</h2>
+  <p>Connecting to a database on another host is the same client, with the host and port spelled out:</p>
+
+  <pre><code>mysql -h db.example.com -P 3306 -u appuser -p appdb</code></pre>
+
+  <p>Note the capital <code>-P</code> for port. Lowercase <code>-p</code> is the password flag, and mixing the two up is a rite of passage. Leave the value off <code>-p</code> so the client prompts you, rather than typing the password on the command line, where it lands in your shell history and process list for anyone on the box to read.</p>
+
+  <p>For anything crossing a network, require TLS so the connection is encrypted in transit:</p>
+
+  <pre><code>mysql -h db.example.com -P 3306 -u appuser -p --ssl-mode=REQUIRED appdb</code></pre>
+
+  <p>A few habits that save you later. Give the app its own least-privileged user rather than <code>root</code>. Keep the credentials in an environment variable in your app, never committed to Git. And if a lot of connections are in play, put a pool in front so MySQL isn't drowning in them, which is covered in <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>. The full app-side wiring, env vars and all, is in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">how to add a managed database to your app</a>.</p>
+
+  <!-- Author: real console screenshot, launch-database. -->
+  <figure><img src="../assets/console/launch-database.png" alt="Launching a managed MySQL database in the Kloudbean console with automatic backups and access controls"></figure>
+
+  <h2>Where hosting fits, honestly</h2>
+  <p>Everything above is plain MySQL and works on any server you run. What a managed platform changes is who handles the parts that fail quietly, and the security default this page keeps hammering on.</p>
+
+  <p>On Kloudbean, MySQL and MariaDB are two of seven managed engines (the others being PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB), provisioned in a few clicks with automatic backups on from the start. Access is locked down rather than open to the world: you whitelist your app server's IP so only that server can reach the database, which is the keep-3306-off-the-public-internet rule handled for you instead of left as a firewall chore you might forget. It runs across seven clouds (AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud) from one dashboard, with free SSL, and free migration assistance if you're moving an existing database in. Standard plans start at $8 a month, and it's worth checking the current numbers on the <a href="https://www.kloudbean.com/pricing/">pricing page</a>. More on the service itself is in <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">managed MySQL hosting</a>.</p>
+
+  <p>The honest boundary, said once. Managed covers the server, the engine, backups, and patching. Your schema, your data, and the queries you run stay yours, and a plain <code>mysqldump</code> export walks out the door with you whenever you want.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Run MySQL on a database you don't have to babysit.</p>
+    <p style="margin:0 0 .6em">Managed MySQL and MariaDB across seven clouds, provisioned in a few clicks, with automatic backups on from minute one and access locked to your app server's IP instead of the open internet. Free SSL. Free migration assistance. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">One-click MySQL and MariaDB · Automatic backups · IP allow-listing · Free SSL · Free migration · One dashboard</p>
+  </div>
+
+  <h2>Related reading</h2>
+  <p>More on the database side of things: <a href="https://www.kloudbean.com/blog/managed-mysql-hosting/">managed MySQL hosting</a> for what running it as a service actually covers, and <a href="https://www.kloudbean.com/blog/managed-mariadb-hosting/">managed MariaDB hosting</a> if you're on the fork. Still choosing an engine? <a href="https://www.kloudbean.com/blog/mysql-vs-postgresql/">MySQL vs PostgreSQL</a> is the honest head to head. When queries get slow, <a href="https://www.kloudbean.com/blog/mysql-performance-tuning/">MySQL performance tuning</a> takes it from the slow query log onward. On the connection side, <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a> and <a href="https://www.kloudbean.com/blog/database-private-access-control/">database private access control</a>. Working in Postgres instead? The psql equivalent is <a href="https://www.kloudbean.com/blog/psql-list-databases-and-tables/">Postgres list tables and databases in psql</a>.</p>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What port does MySQL use by default?</h3>
+    <p>By default MySQL and MariaDB listen on TCP port 3306. That is the port your driver or the mysql client connects to unless you set a different one. A second port, 33060, is used by the MySQL X Protocol and is separate from the classic 3306 connection.</p>
+
+    <h3>What is port 33060 in MySQL?</h3>
+    <p>Port 33060 is the MySQL X Protocol port, used by the X DevAPI and the document-store features in MySQL Shell. Most traditional apps only ever use 3306 and never touch 33060. Seeing both open locally on a default MySQL 8 install is normal.</p>
+
+    <h3>How do I list all databases in MySQL?</h3>
+    <p>Run SHOW DATABASES; from the mysql client. For a result set you can filter or use in scripts, query the catalog instead with SELECT schema_name FROM information_schema.schemata. Both return the same databases, though SHOW DATABASES only lists the ones your user has privileges to see.</p>
+
+    <h3>How do I show all tables in a MySQL database?</h3>
+    <p>Select the database with USE dbname; then run SHOW TABLES; to list its tables. SHOW FULL TABLES; adds a column that tells you whether each entry is a base table or a view. To inspect one table, use DESCRIBE tablename or SHOW CREATE TABLE tablename.</p>
+
+    <h3>Why is my database missing from SHOW DATABASES?</h3>
+    <p>SHOW DATABASES only lists databases your user holds some privilege on, so a missing database is usually a permissions problem rather than a deleted one. Check SHOW GRANTS and SELECT CURRENT_USER() to see who you actually connected as and what you can reach. Granting the right privileges makes it appear.</p>
+
+    <h3>Should I open port 3306 to the internet?</h3>
+    <p>No. An open 3306 on a public IP gets scanned and brute-forced within hours, and a strong password alone is not enough. Keep MySQL bound to localhost or a private address and let only your application server reach it. To connect from your own machine, tunnel over SSH instead of opening the port.</p>
+
+    <h3>How do I connect to MySQL on a different port?</h3>
+    <p>Pass the port with a capital -P, for example mysql -h host -P 3307 -u user -p. Lowercase -p is the password flag, which is a common mix-up. For a network connection, add --ssl-mode=REQUIRED and leave the password off the command line so it prompts you.</p>
+
+    <h3>What is the difference between localhost and 127.0.0.1 in MySQL?</h3>
+    <p>With the mysql client, -h localhost tells it to use a local Unix socket file, while -h 127.0.0.1 tells it to use TCP on port 3306. They look the same but take different paths, which is why one can work while the other refuses. If TCP is not listening, localhost may connect while 127.0.0.1 fails.</p>
+
+    <h3>How do I see the columns in a MySQL table?</h3>
+    <p>Use DESCRIBE tablename or its alias DESC, or SHOW COLUMNS FROM tablename, to list columns, types, and keys. For the full definition, including indexes and options, run SHOW CREATE TABLE tablename. That last one is handy right before a migration or when copying a table structure.</p>
+
+    <h3>How do I check what port MySQL is listening on?</h3>
+    <p>On Linux, run ss -ltnp and look for the line with 3306, which also shows the bind address such as 127.0.0.1 or 0.0.0.0. From inside MySQL, SHOW VARIABLES LIKE 'port'; reports the configured port. The my.cnf settings port and bind-address are where both are defined.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Know the port, list the tables, and never expose 3306.</p>
+</article>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"MySQL Port 3306, and How to List Databases and Tables","description":"The MySQL port is 3306 by default, with 33060 for the X Protocol. How to list databases with SHOW DATABASES, list tables, connect with mysql -h, and why port 3306 should stay off the public internet.","image":"https://www.kloudbean.com/blog/mysql-default-port-and-show-databases/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/mysql-default-port-and-show-databases/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What port does MySQL use by default?","acceptedAnswer":{"@type":"Answer","text":"By default MySQL and MariaDB listen on TCP port 3306. That is the port your driver or the mysql client connects to unless you set a different one. A second port, 33060, is used by the MySQL X Protocol and is separate from the classic 3306 connection."}},
+{"@type":"Question","name":"What is port 33060 in MySQL?","acceptedAnswer":{"@type":"Answer","text":"Port 33060 is the MySQL X Protocol port, used by the X DevAPI and the document-store features in MySQL Shell. Most traditional apps only ever use 3306 and never touch 33060. Seeing both open locally on a default MySQL 8 install is normal."}},
+{"@type":"Question","name":"How do I list all databases in MySQL?","acceptedAnswer":{"@type":"Answer","text":"Run SHOW DATABASES; from the mysql client. For a result set you can filter or use in scripts, query the catalog instead with SELECT schema_name FROM information_schema.schemata. Both return the same databases, though SHOW DATABASES only lists the ones your user has privileges to see."}},
+{"@type":"Question","name":"How do I show all tables in a MySQL database?","acceptedAnswer":{"@type":"Answer","text":"Select the database with USE dbname; then run SHOW TABLES; to list its tables. SHOW FULL TABLES; adds a column that tells you whether each entry is a base table or a view. To inspect one table, use DESCRIBE tablename or SHOW CREATE TABLE tablename."}},
+{"@type":"Question","name":"Why is my database missing from SHOW DATABASES?","acceptedAnswer":{"@type":"Answer","text":"SHOW DATABASES only lists databases your user holds some privilege on, so a missing database is usually a permissions problem rather than a deleted one. Check SHOW GRANTS and SELECT CURRENT_USER() to see who you actually connected as and what you can reach. Granting the right privileges makes it appear."}},
+{"@type":"Question","name":"Should I open port 3306 to the internet?","acceptedAnswer":{"@type":"Answer","text":"No. An open 3306 on a public IP gets scanned and brute-forced within hours, and a strong password alone is not enough. Keep MySQL bound to localhost or a private address and let only your application server reach it. To connect from your own machine, tunnel over SSH instead of opening the port."}},
+{"@type":"Question","name":"How do I connect to MySQL on a different port?","acceptedAnswer":{"@type":"Answer","text":"Pass the port with a capital -P, for example mysql -h host -P 3307 -u user -p. Lowercase -p is the password flag, which is a common mix-up. For a network connection, add --ssl-mode=REQUIRED and leave the password off the command line so it prompts you."}},
+{"@type":"Question","name":"What is the difference between localhost and 127.0.0.1 in MySQL?","acceptedAnswer":{"@type":"Answer","text":"With the mysql client, -h localhost tells it to use a local Unix socket file, while -h 127.0.0.1 tells it to use TCP on port 3306. They look the same but take different paths, which is why one can work while the other refuses. If TCP is not listening, localhost may connect while 127.0.0.1 fails."}},
+{"@type":"Question","name":"How do I see the columns in a MySQL table?","acceptedAnswer":{"@type":"Answer","text":"Use DESCRIBE tablename or its alias DESC, or SHOW COLUMNS FROM tablename, to list columns, types, and keys. For the full definition, including indexes and options, run SHOW CREATE TABLE tablename. That last one is handy right before a migration or when copying a table structure."}},
+{"@type":"Question","name":"How do I check what port MySQL is listening on?","acceptedAnswer":{"@type":"Answer","text":"On Linux, run ss -ltnp and look for the line with 3306, which also shows the bind address such as 127.0.0.1 or 0.0.0.0. From inside MySQL, SHOW VARIABLES LIKE 'port'; reports the configured port. The my.cnf settings port and bind-address are where both are defined."}}
+]}
+]}
+</script>
+</body>
+</html>

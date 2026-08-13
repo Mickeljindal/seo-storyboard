@@ -92,6 +92,18 @@ Every restriction excludes some client. Older Android devices, some corporate pr
 
 So decide deliberately rather than by grade. If you serve modern browsers only, harden freely. If you have an API with industrial clients, or customers on older devices, check your own logs for negotiated versions before you cut anything off. The scan grade is a proxy for security, not a measure of whether your audience can reach you.
 
+## The close cousin: ERR_SSL_VERSION_OR_CIPHER_MISMATCH
+
+Chrome shows ERR_SSL_VERSION_OR_CIPHER_MISMATCH for the same two root causes this page already covers, so if you arrived on that string you are in the right place.
+
+The first is no protocol version in common. Usually the server is stuck on TLS 1.0 or 1.1, which current browsers dropped, so the two sides have nothing to agree on. It runs the other way too: a client too old for a server that now requires TLS 1.2 as its minimum hits the same wall.
+
+The second is no shared cipher suite, the case in "Cause two" above. One side's list and the other's do not overlap.
+
+There is a third trigger specific to this string. It also appears when HTTPS is served with a broken or mismatched certificate and key, a keypair that does not line up.
+
+The fix does not change. Enable TLS 1.2 and 1.3 on the origin with a modern cipher list, and if a certificate is involved, make sure the certificate and its private key actually match. Then confirm it the way this guide already shows: ask the server which versions it accepts with the `openssl` loop, and test the port with `curl`.
+
 ## Cause three: HTTPS against a plain HTTP port
 
 This one has a specific error message and a specific, slightly embarrassing cause, and recognising it saves real time.
@@ -210,5 +222,8 @@ Because the change happened in browsers rather than on your server. TLS 1.0 and 
 
 **Does ERR_SSL_PROTOCOL_ERROR mean my site is insecure?**
 Visitors are not getting an insecure connection, they are getting no connection, since the browser refuses to proceed when it cannot negotiate one it trusts. The risk arrives if you resolve it by weakening your configuration, for example re-enabling obsolete protocol versions. Enabling TLS 1.2 and 1.3 is the correct direction; reaching backwards is not.
+
+**What is ERR_SSL_VERSION_OR_CIPHER_MISMATCH?**
+It is Chrome's message for the same handshake failure this page covers, shown when the browser and server share no TLS protocol version or no cipher suite. A server stuck on old TLS 1.0 or 1.1 is the usual trigger, though a broken or mismatched certificate and key can cause it too. Enable TLS 1.2 and 1.3 with a modern cipher list on the origin, then confirm with the `openssl` version check this guide describes.
 
 *Kloudbean Engineering · If the code says CERT, you are reading the wrong article. That is useful to know.*
