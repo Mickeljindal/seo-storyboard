@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PDPL for AI Apps: The App-Level Obligations a Host Can't Handle for You</title>
+<meta name="description" content="PDPL for AI apps is mostly application work a host can't do for you: honouring a deletion request across your vector store and chat logs, retention, consent, and lawful basis. The engineering of it, and not legal advice.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/saudi-pdpl-for-ai-apps/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="PDPL for AI Apps: The App-Level Obligations a Host Can't Handle for You">
+<meta property="og:description" content="A host can keep your data in-Kingdom. It can't run the deletion request that has to reach your vector store, chat logs, cache, and backups. The engineering of PDPL for AI apps, and not legal advice.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">AI apps in production</span>
+  <h1>PDPL for AI Apps: The App-Level Obligations a Host Can't Handle for You</h1>
+
+  <figure><img src="images/hero.png" alt="A single delete request for one user fanning out to every store that holds their personal data in an AI app: primary database, chat logs, vector store, cache, and backups"></figure>
+
+  <p class="lead">You built an AI app. It answers questions, remembers conversations, maybe searches your own documents. It also handles personal data about people in Saudi Arabia, which means PDPL applies to it. Most guides to PDPL for AI apps stop at "host it in the Kingdom" and wave at the rest. But the rest is where the real work lives, and almost all of it sits in your code. This page is about that half: the app-level obligations a host genuinely can't handle for you, written as engineering rather than law. It's general orientation, not legal advice.</p>
+  <p>If you're still bridging "works on localhost" to "runs in production", <a href="https://www.kloudbean.com/blog/last-mile-of-vibe-coding/">the last mile of vibe coding</a> maps the whole gap. This page zooms into the PDPL-shaped part of it, and specifically the parts that get harder because your app is an AI app.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>Most of PDPL for AI apps is application work, not hosting. A host can keep your data in-Kingdom and lock it down. It can't honour a deletion request that has to reach your primary database, your chat logs, your vector store, your cache, and your backups. So design for that on day one: tag every record and every embedding with a user id, set retention windows, and record consent and lawful basis as data you can produce later. This is orientation, not legal advice. For anything high-stakes, talk to a qualified Saudi data-protection advisor.</p>
+  </div>
+
+  <h2>PDPL for AI apps, in one paragraph (then we build)</h2>
+  <p>PDPL is Saudi Arabia's Personal Data Protection Law, overseen by SDAIA. If it helps, treat it as the Kingdom's cousin to GDPR: you need a lawful reason to process personal data, you collect the minimum, you keep it only as long as you need it, and the people that data describes have rights over it. The full primer, plus the honest line on what a host can and can't do, lives in <a href="https://www.kloudbean.com/blog/pdpl-compliance-hosting/">PDPL compliance hosting</a>, and the residency question has its own guide in <a href="https://www.kloudbean.com/blog/data-residency-saudi-arabia/">data residency in Saudi Arabia</a>. I won't re-explain all of that here.</p>
+  <p>One structural fact is what matters for us. Most of what PDPL asks for is about behaviour, not servers, and behaviour is code. A host can settle where the data sits and lock it down. Whether you had a basis to collect something, how long you keep it, and whether you can actually delete a person when they ask: that's your application. So say it plainly, because vendors blur it. Hosting in Dammam does not make an AI app PDPL compliant. It settles residency and hands you infrastructure controls. Everything else is on your desk.</p>
+  <p>And once more, up front: this is orientation from an engineering angle, not legal advice. For a real compliance program or a government tender, get a qualified Saudi data-protection advisor and check SDAIA's current guidance. I'll flag the legal calls as we hit them.</p>
+
+  <h2>Where an AI app hides personal data a normal CRUD app doesn't</h2>
+  <p>A plain CRUD app keeps personal data in tidy places: a users table, maybe an orders table. You know where everyone is. An AI app scatters it. The same personal detail can end up in five systems, and four of them didn't exist in your last project. Before you can honour a single PDPL obligation, you have to know where personal data actually lands.</p>
+  <ul>
+    <li><strong>Prompts and model outputs.</strong> What a user types can be anything: a full name, a national ID, a pasted email thread. And the model's reply can contain personal data too, especially if you fed it a record. Both are personal data the moment they describe a real person.</li>
+    <li><strong>Conversation and chat logs.</strong> Every message, stored so the bot has a memory. That's a growing archive of personal data, and often the largest one you hold.</li>
+    <li><strong>Embeddings in a vector store.</strong> This is the sneaky one. When you index a document for retrieval, you chunk it and store vectors. If the document mentioned a person, that person is now encoded across a pile of embeddings. It looks like a list of floats, not personal data, but it was derived from personal data and can surface it again.</li>
+    <li><strong>Training or fine-tuning datasets.</strong> Fine-tune on real user data and their personal data is now baked into a dataset, arguably into the weights. That's very hard to unpick later, which is a good reason to think twice before you do it.</li>
+    <li><strong>Observability and logs.</strong> Traces, error logs, request bodies captured "for debugging". These quietly accumulate prompts and replies, so your logging stack becomes yet another copy of everything. The discipline for keeping that clean is in <a href="https://www.kloudbean.com/blog/ai-app-observability/">AI app observability</a>.</li>
+  </ul>
+
+  <!-- ADD IMAGE: the five places personal data lands in an AI app. Swap for a real screenshot: src -> images/where-data-hides.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The five places personal data lands in an AI app (primary DB, chat logs, vector store, fine-tune set, logs), each labelled as in scope for a deletion request.</em><small>A simple map beats a wall of text here.</small></span></figure>
+
+  <p>Notice the pattern. Personal data in an AI app is derived, copied, and scattered by default. Every one of those copies is in scope when someone asks to be deleted. Which is exactly the problem the next section is about.</p>
+
+  <h2>The hard part: honouring data-subject rights over AI-held data</h2>
+  <p>PDPL, like every modern privacy law, gives people rights over their own data. They can ask what you hold about them, ask you to correct it, and ask you to delete it. PDPL sets conditions and timelines for responding to those requests. I'm not going to quote a number of days, because that's exactly the kind of specific you confirm with an advisor and against current guidance, not a blog. What I can help with is the engineering, because this is where AI apps fall down hard.</p>
+  <p>Picture a real erasure request. User 8842 emails and asks you to delete their data. In a CRUD app that's a <code>DELETE FROM users WHERE id = 8842</code> and a couple of foreign-keyed rows. Done before lunch. In an AI app, that same person is scattered across five stores, and the request has to reach every one.</p>
+
+  <figure>
+    <svg viewBox="0 0 780 440" role="img" aria-label="An erasure request for user 8842 fanning out from one hub to every store that holds their personal data. The hub reads delete user 8842, one query, every store. Five arrows point to the primary database, the conversation and chat logs, the vector store of embedded chunks, the cache, and the backups within retention. Each store is tagged with the same user id so the deletion query can reach it." xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arp" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4F1AF3"/></marker>
+      </defs>
+
+      <text x="486" y="30" font-family="Poppins,sans-serif" font-size="11" font-weight="700" letter-spacing="1" fill="#4F1AF3">WHERE THEIR PERSONAL DATA LIVES</text>
+
+      <rect x="36" y="176" width="196" height="92" rx="12" fill="#000f27"/>
+      <text x="134" y="208" text-anchor="middle" font-family="Poppins,sans-serif" font-size="14" font-weight="700" fill="#fff">Erasure request</text>
+      <text x="134" y="230" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="12" fill="#9fb0cc">delete user 8842</text>
+      <text x="134" y="252" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#40b75f">one query, every store</text>
+
+      <rect x="486" y="48" width="258" height="54" rx="10" fill="#f6f7fb" stroke="#40b75f" stroke-width="1.4"/>
+      <text x="502" y="72" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">Primary database</text>
+      <text x="502" y="90" font-family="Poppins,sans-serif" font-size="10" fill="#40b75f">tagged user_id 8842</text>
+
+      <rect x="486" y="120" width="258" height="54" rx="10" fill="#f6f7fb" stroke="#40b75f" stroke-width="1.4"/>
+      <text x="502" y="144" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">Conversation / chat logs</text>
+      <text x="502" y="162" font-family="Poppins,sans-serif" font-size="10" fill="#40b75f">tagged user_id 8842</text>
+
+      <rect x="486" y="192" width="258" height="54" rx="10" fill="#f6f7fb" stroke="#40b75f" stroke-width="1.4"/>
+      <text x="502" y="216" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">Vector store (embedded chunks)</text>
+      <text x="502" y="234" font-family="Poppins,sans-serif" font-size="10" fill="#40b75f">user_id in vector metadata</text>
+
+      <rect x="486" y="264" width="258" height="54" rx="10" fill="#f6f7fb" stroke="#40b75f" stroke-width="1.4"/>
+      <text x="502" y="288" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">Cache (Redis)</text>
+      <text x="502" y="306" font-family="Poppins,sans-serif" font-size="10" fill="#40b75f">keys namespaced by user id</text>
+
+      <rect x="486" y="336" width="258" height="54" rx="10" fill="#f6f7fb" stroke="#40b75f" stroke-width="1.4"/>
+      <text x="502" y="360" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">Backups (within retention)</text>
+      <text x="502" y="378" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">age out on the retention cycle</text>
+
+      <line x1="232" y1="214" x2="482" y2="75" stroke="#4F1AF3" stroke-width="2" marker-end="url(#arp)"/>
+      <line x1="232" y1="218" x2="482" y2="147" stroke="#4F1AF3" stroke-width="2" marker-end="url(#arp)"/>
+      <line x1="232" y1="222" x2="482" y2="219" stroke="#4F1AF3" stroke-width="2" marker-end="url(#arp)"/>
+      <line x1="232" y1="226" x2="482" y2="291" stroke="#4F1AF3" stroke-width="2" marker-end="url(#arp)"/>
+      <line x1="232" y1="230" x2="482" y2="363" stroke="#4F1AF3" stroke-width="2" marker-end="url(#arp)"/>
+    </svg>
+    <figcaption>One erasure request, five destinations. Because every row and every embedding is tagged with the user id, the request is a query that reaches each store. Skip the tags and the vector store and chat logs quietly keep the person you thought you deleted.</figcaption>
+  </figure>
+
+  <p>The primary database is the easy hop. The hard hops are the ones an AI app added. Their messages are sitting in months of chat logs. Their embedded chunks are in the vector store, still being retrieved. There may be cached answers keyed to their data. And there are backups. Here's how the request reaches each, and how to design so it's a query instead of an excavation.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Where the data lives</th><th>How the deletion request reaches it</th><th>Design so it's a query, not archaeology</th></tr></thead>
+    <tbody>
+      <tr><td>Primary database (users, orders)</td><td>Delete or anonymise the rows keyed to the user id</td><td>The easy one. Foreign keys already point home</td></tr>
+      <tr><td>Conversation / chat logs</td><td>Delete or redact every message tagged with that user id</td><td>Store <code>user_id</code> on every message row from day one</td></tr>
+      <tr><td>Vector store (embedded chunks)</td><td>Delete every embedding whose metadata carries that user id</td><td>Tag each vector's metadata with the owning <code>user_id</code> at index time</td></tr>
+      <tr><td>Cache (Redis and similar)</td><td>Evict the keys derived from that user's data</td><td>Namespace cache keys by user id so eviction is a pattern delete</td></tr>
+      <tr><td>Backups (within retention)</td><td>Let the affected backups age out on your retention cycle</td><td>Document that backups fall off within a stated window</td></tr>
+    </tbody>
+  </table>
+
+  <p>A word on that last row, because it trips people up. Most privacy regimes accept that you can't surgically excise one person from every historical backup, and instead expect the affected backups to age out on a documented retention cycle. Confirm the exact expectation with your advisor. Don't invent a rule, and don't restore an old backup and quietly bring deleted people back to life.</p>
+
+  <p>Here's my one firm opinion for this whole page. Design deletion on day one, and tag every row and every embedding with a user id. It sounds obvious. Almost nobody does it, because the AI builder that scaffolded the app never thought about erasure, and the vector store went in during a hackathon. Retrofitting right-to-erasure into a RAG system that never recorded who owned which chunk is one of the worst jobs in the building. You end up trying to reverse-engineer identity out of a pile of floats. Tag first and deletion stays a <code>WHERE user_id = ?</code>. Skip it and deletion becomes an archaeology project you run under a legal deadline.</p>
+
+  <p>The anti-pattern to watch for hides behind a green checkmark. A user asks to be deleted. Your code runs <code>DELETE FROM users WHERE id = 8842</code>, the row vanishes, the ticket gets closed, everyone feels compliant. But their name is still in six months of conversation logs. Their embedded chunks are still in the vector store, still getting retrieved and fed into other people's answers. So "deleted" is a comfortable illusion. The person is gone from the one table you looked at and present in the four you didn't. That gap is the whole reason to tag by user id up front.</p>
+
+  <!-- ADD IMAGE: a deletion runbook or checklist. Swap for a real screenshot: src -> images/deletion-runbook.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A deletion runbook or checklist showing the same user id being removed from each store in turn, with the vector store and chat logs called out as the ones people forget.</em><small>Turns the table above into something a team can actually follow.</small></span></figure>
+
+  <h2>Retention: AI apps hoard, and PDPL says stop</h2>
+  <p>Left alone, an AI app is a hoarding machine. Every conversation saved. Every trace logged. Every embedding kept. Storage is cheap, so nothing gets deleted, and a year later you're holding a mountain of personal data you have no active reason to keep. PDPL expects the opposite. Keep personal data only as long as you actually need it for the purpose you collected it.</p>
+  <p>So set retention windows, and enforce them with a job, not good intentions.</p>
+  <ul>
+    <li><strong>Conversation logs.</strong> Decide how long a chat is genuinely useful, for support context or product work, then delete or anonymise past that point.</li>
+    <li><strong>Derived data.</strong> Embeddings and summaries inherit the sensitivity of what they came from. If the source ages out, the derivative should too.</li>
+    <li><strong>Observability.</strong> This is where teams accidentally keep everything forever. Log metadata, not raw prompts, and put a short retention on traces. Why you log the shape of a request instead of its contents is covered in <a href="https://www.kloudbean.com/blog/ai-app-observability/">AI app observability</a>.</li>
+  </ul>
+  <p>A retention window you don't automate is a wish. Write the job that actually deletes, and let it run.</p>
+
+  <!-- ADD IMAGE: a retention policy or scheduled deletion job. Swap for a real screenshot: src -> images/retention-job.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A retention schedule or a scheduled deletion job that ages out old conversation logs and their derived embeddings automatically.</em><small>Shows retention as code, not a promise.</small></span></figure>
+
+  <h2>Consent and lawful basis, as an engineering problem</h2>
+  <p>Lawful basis and consent sound like lawyer words, and the legal side genuinely belongs with a lawyer. But there's an engineering half, and it's the half that fails audits. You need to be able to show, later, what a given user agreed to and when. That's a data-modelling problem, and it's yours.</p>
+  <ul>
+    <li><strong>Record consent as data, not a checkbox that vanishes.</strong> When someone agrees to something, store what they agreed to, the version of the notice they saw, and the timestamp. A boolean <code>consented = true</code> tells you nothing useful a year later.</li>
+    <li><strong>Don't quietly repurpose data.</strong> This is the big one for AI. You collected chat logs to run the product. Deciding to fine-tune a model on those same chats is a new purpose, and it may need its own basis. Reusing user conversations as training data without checking is one of the easiest ways an AI team drifts offside. If you wouldn't be comfortable telling the user you're doing it, treat that as a signal.</li>
+    <li><strong>Make the basis legible.</strong> Different data, different reasons. Some processing rests on your contract with the user, some on consent, some on another lawful basis. Your advisor decides which. Your job is to build so you can honour whichever it is. If it's consent, you need a real off switch, not a decorative one.</li>
+  </ul>
+
+  <h2>Cross-border and automated decisions, briefly</h2>
+  <p>Two more obligations belong on your radar. I'll keep them short, because each has a better home.</p>
+  <p>The moment your app calls a hosted model like OpenAI, Claude, or Gemini, the prompt leaves the Kingdom. PDPL regulates the cross-border transfer of personal data. It does not ban it. So this isn't forbidden, it's an obligation to manage: know what's in the payload, send less, and understand the provider's terms. The full data-flow map, and how to shrink what crosses, is the sibling piece on <a href="https://www.kloudbean.com/blog/openai-claude-gemini-saudi-data/">what happens when you call OpenAI, Claude, or Gemini from Saudi Arabia</a>. The hosting and residency half is in <a href="https://www.kloudbean.com/blog/pdpl-compliance-hosting/">PDPL compliance hosting</a>. I won't rebuild either here.</p>
+  <p>Then automated decisions. If your AI makes or heavily shapes decisions about people, say approving an application, scoring a candidate, or flagging an account, privacy regimes tend to pay special attention. The legal test is for an advisor. The engineering hooks are simple, and worth building whether or not they're strictly required for your case: keep a human-review path so a person can check and override the model, and keep an audit record of what the model decided and on what input. If you can't reconstruct why user 8842 was rejected, you can't defend it and you can't fix it.</p>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>Everything above is your code. What a platform can genuinely do is the infrastructure half, and that half is real. Kloudbean runs your app and its data on Google Cloud's Dammam region, <code>me-central2</code>, physically inside the Kingdom, so the data that should stay home has a home. You get seven managed database engines (MySQL, MariaDB, PostgreSQL, Redis, Memcached, Elasticsearch, and MongoDB), and Postgres carries your embeddings through the <code>pgvector</code> extension where your plan enables it, so the vector store you'll be deleting from lives in-Kingdom too. Add S3-compatible object storage, automatic backups kept in-region, free SSL, and Git deploy, all from one dashboard. The database is locked down by whitelisting your app server's IP, so only your app can reach it and everything else is refused. Full network isolation in a private VPC is an Enterprise capability, not a default. On Enterprise there's also an immutable, searchable, account-wide audit trail with CSV export, which is useful evidence when you need to show who did what. Among managed-cloud platforms, few pair fully managed databases with true in-Kingdom data sovereignty, and Kloudbean is one of them. The wider in-Kingdom architecture is the pillar, <a href="https://www.kloudbean.com/blog/hosting-ai-apps-saudi-arabia/">hosting AI apps in Saudi Arabia</a>, and the database-residency story is in <a href="https://www.kloudbean.com/blog/managed-databases-saudi-data-sovereignty/">managed databases with Saudi data sovereignty</a>.</p>
+  <p>Now the honest boundary, because it's the whole point of this page. Managed means the platform handles the server, the stack, SSL, backups, and patching. It keeps your data in the Kingdom and off the open internet. It does not write your deletion logic, record your consent, set your retention windows, or decide your lawful basis. That code is yours, and Kloudbean can't do it for you. On compliance the honest word is "aligned": the platform is built to support PDPL and NCA expectations, it isn't a certificate, and it can't make your organisation compliant on its own. Compliance is shared. And Kloudbean doesn't sell model inference or GPUs, so if you decide to self-host an open model, that's a separate compute project, not a feature here.</p>
+
+  <!-- ADD IMAGE: launching a managed Postgres in Dammam. Swap for a real screenshot: src -> images/launch-db-dammam.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Kloudbean console launching a managed Postgres (with pgvector) into the Dammam (me-central2) region, in the same account as the app server.</em><small>Shows the in-Kingdom home for the vector store you'll be deleting from.</small></span></figure>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Keep the data home, then build the app-level half on top.</p>
+    <p style="margin:0 0 .6em">Give the personal data that should stay in the Kingdom a home in the Kingdom, and keep the deletion logic, consent, and retention in your own code where PDPL actually lives. Kloudbean handles the infrastructure half so you can spend your effort on the half only you can own.</p>
+    <p style="margin:0">Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>, and always verify current details there.</p>
+    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">In-Kingdom GCP Dammam hosting · 7 managed databases · pgvector embeddings · Automatic backups · Free SSL · Git deploy · One dashboard for the infrastructure half of PDPL</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Is my AI app PDPL compliant?</h3>
+    <p>Hosting alone doesn't answer that. If your app handles personal data about people in Saudi Arabia, PDPL applies, and most of it is app-level work: a lawful basis, honest consent where you rely on it, sensible retention, and the ability to fulfil access and deletion requests across every store that holds the data. Hosting in the Kingdom settles residency and infrastructure controls. The rest is your code and your policies. This is general orientation, not legal advice, so confirm your specific position with a qualified Saudi data-protection advisor.</p>
+    <h3>How do I delete a user's data from a vector database?</h3>
+    <p>You delete every embedding that belongs to that user, which only works cleanly if each vector carries the owning user id in its metadata. Tag embeddings with a user_id at index time, and erasure becomes a metadata filter delete. If you didn't tag them, you're stuck trying to work out which anonymous vectors came from that person's documents, which is slow and error-prone. That's why the advice is to design deletion in on day one rather than retrofit it later.</p>
+    <h3>Does PDPL ban sending data to OpenAI?</h3>
+    <p>No. PDPL regulates the cross-border transfer of personal data, it does not outright ban it. Calling a hosted model abroad is a transfer, so it carries conditions and responsibilities you own, but it isn't automatically off-limits. Many teams reduce the risk by de-identifying the prompt or keeping personal data in-Kingdom and sending only what the task needs. Whether a specific transfer is lawful depends on your data and safeguards, which is a question for an advisor, not a blog.</p>
+    <h3>Does hosting in Saudi Arabia make my AI app PDPL compliant?</h3>
+    <p>No, not on its own. Hosting in-Kingdom on a region like GCP Dammam settles data residency and gives you infrastructure controls like encryption in transit, access limits, and in-region backups. But PDPL also covers lawful basis, consent, minimization, retention, and data-subject rights, and those live in your application and your processes. Treat in-Kingdom hosting as a strong foundation, not a finished compliance program.</p>
+    <h3>Where does personal data hide in an AI app?</h3>
+    <p>In more places than a normal app. Beyond the primary database, it lands in prompts and model replies, conversation logs, embeddings in your vector store, any fine-tuning datasets built from real data, and observability logs that capture request bodies. Each of those is a copy of personal data and each is in scope for a deletion request. Knowing every location is the first step, because you can't erase or retain what you haven't mapped.</p>
+    <h3>Can I use customer chat logs to fine-tune my model under PDPL?</h3>
+    <p>Be careful here. You collected those logs to operate the product, and using them to train a model is a new purpose that may need its own lawful basis. Don't quietly repurpose the data. Check whether your basis covers it, be transparent with users, and remember that once personal data is baked into a fine-tuned model it's very hard to remove. Whether it's permitted in your case is a legal question for a qualified advisor.</p>
+    <h3>How long can I keep AI conversation logs?</h3>
+    <p>Only as long as you have a genuine reason tied to why you collected them. PDPL expects you not to keep personal data longer than needed, so set an explicit retention window for chat logs and derived data, then enforce it with an automated job. AI apps accrete data fast, so this matters more than for a typical app. The exact period depends on your purpose and any sector rules, which an advisor can help you pin down.</p>
+    <h3>Does PDPL apply to automated decisions my AI makes?</h3>
+    <p>If your AI makes or strongly influences decisions about people, such as approvals, scoring, or flagging, privacy regimes tend to give that extra scrutiny. The legal specifics are for an advisor. On the engineering side, build a human-review path so a person can check and override the model, and keep an audit record of what was decided and on what input, so a decision can be explained and corrected later.</p>
+    <h3>Is this article legal advice?</h3>
+    <p>No. It's an engineering-focused map of how the app-level parts of PDPL land in the way you build an AI app, meant to help you plan and design. It isn't a substitute for advice from someone qualified in Saudi data protection law, and it deliberately avoids quoting specific article numbers, deadlines, or penalties. For a real compliance program or a high-stakes tender, confirm the specifics with a professional and check SDAIA's current guidance before you rely on anything here.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Keep the data home. Build the deletion in on day one.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"PDPL for AI Apps: The App-Level Obligations a Host Can't Handle for You","description":"PDPL for AI apps is mostly application work a host cannot do for you: honouring a deletion request across your vector store and chat logs, retention, consent, and lawful basis. The engineering of it, and not legal advice.","image":"https://www.kloudbean.com/blog/saudi-pdpl-for-ai-apps/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/saudi-pdpl-for-ai-apps/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Is my AI app PDPL compliant?","acceptedAnswer":{"@type":"Answer","text":"Hosting alone does not answer that. If your app handles personal data about people in Saudi Arabia, PDPL applies, and most of it is app-level work: a lawful basis, honest consent where you rely on it, sensible retention, and the ability to fulfil access and deletion requests across every store that holds the data. Hosting in the Kingdom settles residency and infrastructure controls. The rest is your code and your policies. This is general orientation, not legal advice, so confirm your specific position with a qualified Saudi data-protection advisor."}},
+{"@type":"Question","name":"How do I delete a user's data from a vector database?","acceptedAnswer":{"@type":"Answer","text":"You delete every embedding that belongs to that user, which only works cleanly if each vector carries the owning user id in its metadata. Tag embeddings with a user_id at index time, and erasure becomes a metadata filter delete. If you did not tag them, you are stuck trying to work out which anonymous vectors came from that person's documents, which is slow and error-prone. That is why the advice is to design deletion in on day one rather than retrofit it later."}},
+{"@type":"Question","name":"Does PDPL ban sending data to OpenAI?","acceptedAnswer":{"@type":"Answer","text":"No. PDPL regulates the cross-border transfer of personal data, it does not outright ban it. Calling a hosted model abroad is a transfer, so it carries conditions and responsibilities you own, but it is not automatically off-limits. Many teams reduce the risk by de-identifying the prompt or keeping personal data in-Kingdom and sending only what the task needs. Whether a specific transfer is lawful depends on your data and safeguards, which is a question for an advisor, not a blog."}},
+{"@type":"Question","name":"Does hosting in Saudi Arabia make my AI app PDPL compliant?","acceptedAnswer":{"@type":"Answer","text":"No, not on its own. Hosting in-Kingdom on a region like GCP Dammam settles data residency and gives you infrastructure controls like encryption in transit, access limits, and in-region backups. But PDPL also covers lawful basis, consent, minimization, retention, and data-subject rights, and those live in your application and your processes. Treat in-Kingdom hosting as a strong foundation, not a finished compliance program."}},
+{"@type":"Question","name":"Where does personal data hide in an AI app?","acceptedAnswer":{"@type":"Answer","text":"In more places than a normal app. Beyond the primary database, it lands in prompts and model replies, conversation logs, embeddings in your vector store, any fine-tuning datasets built from real data, and observability logs that capture request bodies. Each of those is a copy of personal data and each is in scope for a deletion request. Knowing every location is the first step, because you cannot erase or retain what you have not mapped."}},
+{"@type":"Question","name":"Can I use customer chat logs to fine-tune my model under PDPL?","acceptedAnswer":{"@type":"Answer","text":"Be careful here. You collected those logs to operate the product, and using them to train a model is a new purpose that may need its own lawful basis. Do not quietly repurpose the data. Check whether your basis covers it, be transparent with users, and remember that once personal data is baked into a fine-tuned model it is very hard to remove. Whether it is permitted in your case is a legal question for a qualified advisor."}},
+{"@type":"Question","name":"How long can I keep AI conversation logs?","acceptedAnswer":{"@type":"Answer","text":"Only as long as you have a genuine reason tied to why you collected them. PDPL expects you not to keep personal data longer than needed, so set an explicit retention window for chat logs and derived data, then enforce it with an automated job. AI apps accrete data fast, so this matters more than for a typical app. The exact period depends on your purpose and any sector rules, which an advisor can help you pin down."}},
+{"@type":"Question","name":"Does PDPL apply to automated decisions my AI makes?","acceptedAnswer":{"@type":"Answer","text":"If your AI makes or strongly influences decisions about people, such as approvals, scoring, or flagging, privacy regimes tend to give that extra scrutiny. The legal specifics are for an advisor. On the engineering side, build a human-review path so a person can check and override the model, and keep an audit record of what was decided and on what input, so a decision can be explained and corrected later."}},
+{"@type":"Question","name":"Is this article legal advice?","acceptedAnswer":{"@type":"Answer","text":"No. It is an engineering-focused map of how the app-level parts of PDPL land in the way you build an AI app, meant to help you plan and design. It is not a substitute for advice from someone qualified in Saudi data protection law, and it deliberately avoids quoting specific article numbers, deadlines, or penalties. For a real compliance program or a high-stakes tender, confirm the specifics with a professional and check SDAIA's current guidance before you rely on anything here."}}
+]}
+]}
+</script>
+</body>
+</html>
