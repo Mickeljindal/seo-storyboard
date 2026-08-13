@@ -263,3 +263,40 @@ writing.** That check has changed real decisions and it is not optional.
 | 248 | 35.6 | 1,300 | 29 | sentry error tracking | none found |
 | 249 | 35.5 | 5,800 | 29 | wp-admin/login | none found |
 | 250 | 35.5 | 800 | 20 | mysql list all databases | none found |
+
+
+---
+
+## Mined 2026-08 from competitor Organic Positions (not just the 9 gap files)
+
+Source: the 18 `*organic.Positions*.csv` exports (~60k competitor-ranking rows), filtered to
+volume >= 500, KD <= 45, competitor ranks top-15, on-topic, NOISE + already-covered clusters
+(DNS / HTTP codes / cache / SNI / apache) removed, then cannibalisation-checked vs the 351 live
+slugs. Keyword variants are merged into ONE article each (per "one article, not ten").
+Read the nearest existing neighbour's H2 set before writing.
+
+### Dev reference / command guides (top-of-funnel; competitors rank, we do not)
+- `psql-commands-guide` — psql list tables / list databases / create database (merges 6+ variants, ~1,300+ ea, KD 27-41; Kinsta). Link up to managed-postgresql-hosting. STRONG.
+- `docker-commands-cheatsheet` — "docker commands" (1,600, KD44; Kinsta). Link to docker-container-hosting.
+- `install-docker-on-ubuntu` — "ubuntu docker install" (1,300, KD44/45; Kinsta) + existing-queue "install docker in ubuntu" (11,840).
+- `remove-docker-images` — "docker image delete / deleting images" (1,300, KD30; Kinsta).
+- `npm-commands-cheatsheet` — "npm commands" (1,000, KD39; Kinsta).
+- `git-delete-branch` / `git-rename-branch` — (17,420 / 17,700, KD22-29; from existing queue, very high volume, verify still unwritten).
+
+### WordPress references + fixes (Silo 5; we lack these specific refs)
+- `wp-config-php-guide` — "wp-config.php" (2,400, KD43; Kinsta).
+- `wordpress-robots-txt-guide` — "wordpress robots.txt" (merges 3 variants, ~1,900+1,300+1,000; wpvip).
+- `how-to-install-wordpress` — (12,100, KD43; Cloudways). Distinct from managed-wordpress-hosting (install how-to vs hosting).
+- `fix-upload-max-filesize-php-ini` — "the uploaded file exceeds the upload_max_filesize directive in php.ini" (1,900, KD13, VERY winnable; Kinsta).
+- `wordpress-critical-error-fix` — "there has been a critical error on this website" (1,000, KD21; Kinsta).
+- `wordpress-plugin-not-working-fix` — "plugin not working in wordpress" (1,000, KD20; Pressable).
+- `phpinfo-guide` — "phpinfo" (1,000, KD31; Kinsta). `php-error-reporting-guide` — (1,000, KD40; wpvip).
+
+### Errors (Node/Python; check the fix-* neighbours' H2 sets first)
+- `fix-no-module-named-flask` — "modulenotfounderror: no module named 'flask'" (1,900, KD18; Render). Write as the Python "no module named X" family (flask/psycopg2/yaml) in ONE article. Verify vs pip-externally-managed + fix-cannot-find-module-node.
+
+### Comparisons (Silo 4)
+- `webflow-vs-wordpress` — (1,000, KD29; Cloudways). WordPress-silo comparison, ladders to managed-wordpress-hosting.
+
+NOTE: this is ~20-30 genuinely-distinct articles from ONE mining pass on data already on disk.
+Broader exports (below) will surface more. We are NOT out of topics.
