@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Host an AI Chatbot in Production: Architecture, Cost, and Reliability</title>
+<meta name="description" content="How to host an AI chatbot in production: the request path from browser to model, streaming replies, conversation history in Postgres, a Redis fast layer, auth and rate limits so nobody runs up your bill, safe logging, SSL, and staying always-on.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/host-ai-chatbot-in-production/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Host an AI Chatbot in Production">
+<meta property="og:description" content="The real architecture behind a chatbot that streams fast, remembers conversations, and won't hand a stranger your model bill. Request path, cost drivers, and reliability, in plain English.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">AI apps in production</span>
+  <h1>How to Host an AI Chatbot in Production: Architecture, Cost, and Reliability</h1>
+
+  <figure><img src="images/hero.png" alt="How to host an AI chatbot in production: the request path from browser to your API to the model provider, with Postgres and Redis behind it"></figure>
+
+  <p class="lead">You built a chatbot. Maybe in Lovable or Cursor, maybe by hand with the OpenAI or Anthropic SDK, and on localhost it feels like magic. Then you try to host an AI chatbot in production, in front of real people, and the questions change. Why is the first message slow? Where do conversations go when I redeploy? What stops a stranger from scripting my endpoint and spending my whole model budget overnight?</p>
+  <p>None of that is model magic. It's architecture. A production chatbot is a small, well-behaved system: a browser, your backend, a model provider, a database, a cache, and a few rules about who's allowed to talk to what. This page walks the whole request path and the three things that decide whether it survives real users: how it's built, what it costs, and whether it stays up.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>To host an AI chatbot in production you need an always-on backend that holds your model key, streams replies token by token, saves conversation history in Postgres, and leans on Redis for sessions and rate limits. Put it behind a domain with SSL, require auth on every call, and cap spend so nobody runs up your bill.</p>
+  </div>
+
+  <h2>What it takes to host an AI chatbot in production</h2>
+  <p>A production chatbot is a system, not a single script. A browser sends a message to your backend over HTTPS. Your backend checks who's asking, pulls the recent history, and calls the model provider with your secret key. Tokens stream back through your server to the user. History lands in Postgres, and Redis handles the fast, short-lived work.</p>
+  <p>The important rule hides in that description: the browser never talks to the model directly. Your server sits in the middle on purpose. It's the only place that holds the API key, the only place that can check auth and enforce rate limits, and the only place that decides how much history to send. Skip that middle layer and you've basically published your model key to the internet. More on why that ends badly in a moment.</p>
+  <p>So the boxes are: a frontend, an always-on backend (Node or Python, usually), a managed database for the record of truth, Redis for the fast layer, and the model API it calls. A domain and SSL wrap the whole thing. Here's how one message moves through it.</p>
+
+  <figure>
+    <svg viewBox="0 0 780 440" role="img" aria-label="The request path of a production chatbot. A browser sends a message over HTTPS to your always-on backend, which holds the model key and checks auth and rate limits. The backend calls the model provider, and tokens stream back through the backend to the browser. The backend saves and loads conversation history in Postgres and uses Redis for sessions, limits, and caching. A domain and SSL wrap the backend and its data stores." xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4F1AF3"/></marker>
+        <marker id="arg" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#40b75f"/></marker>
+      </defs>
+
+      <rect x="250" y="138" width="292" height="262" rx="16" fill="none" stroke="#4F1AF3" stroke-width="1.4" stroke-dasharray="7 6"/>
+      <text x="266" y="162" font-family="Poppins,sans-serif" font-size="11" font-weight="700" letter-spacing="1" fill="#4F1AF3">YOUR ALWAYS-ON SERVER (DOMAIN + SSL)</text>
+
+      <rect x="40" y="210" width="118" height="68" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="99" y="240" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">Browser</text>
+      <text x="99" y="258" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">the user</text>
+
+      <rect x="300" y="196" width="170" height="92" rx="10" fill="#000f27"/>
+      <text x="385" y="228" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13.5" font-weight="600" fill="#fff">Your API</text>
+      <text x="385" y="246" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#9fb0cc">Node / Python</text>
+      <text x="385" y="264" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#40b75f">holds the key + limits</text>
+
+      <rect x="618" y="204" width="140" height="80" rx="10" fill="#f6f7fb" stroke="#7C5CFF" stroke-width="1.5"/>
+      <text x="688" y="238" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">Model API</text>
+      <text x="688" y="256" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">provider you call</text>
+
+      <rect x="286" y="316" width="104" height="58" rx="10" fill="#f6f7fb" stroke="#40b75f" stroke-width="1.4"/>
+      <text x="338" y="342" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">Postgres</text>
+      <text x="338" y="359" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">history</text>
+
+      <rect x="406" y="316" width="110" height="58" rx="10" fill="#f6f7fb" stroke="#40b75f" stroke-width="1.4"/>
+      <text x="461" y="342" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">Redis</text>
+      <text x="461" y="359" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">limits, cache</text>
+
+      <line x1="158" y1="232" x2="296" y2="232" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ar)"/>
+      <text x="227" y="224" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#4F1AF3">1 message</text>
+      <line x1="296" y1="256" x2="158" y2="256" stroke="#40b75f" stroke-width="2" marker-end="url(#arg)"/>
+      <text x="227" y="272" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#40b75f">4 streamed reply</text>
+
+      <line x1="470" y1="232" x2="614" y2="232" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ar)"/>
+      <text x="542" y="224" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#4F1AF3">2 prompt + history</text>
+      <line x1="614" y1="256" x2="470" y2="256" stroke="#40b75f" stroke-width="2" marker-end="url(#arg)"/>
+      <text x="542" y="272" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#40b75f">3 tokens stream</text>
+
+      <line x1="352" y1="288" x2="340" y2="312" stroke="#4F1AF3" stroke-width="1.8" marker-end="url(#ar)"/>
+      <line x1="424" y1="288" x2="452" y2="312" stroke="#4F1AF3" stroke-width="1.8" marker-end="url(#ar)"/>
+    </svg>
+    <figcaption>One message, four hops. The browser talks only to your server. Your server holds the key and talks to the model, and the reply streams back token by token. Postgres keeps the history, Redis keeps it fast.</figcaption>
+  </figure>
+
+  <h2>Streaming the answer back, so it doesn't feel frozen</h2>
+  <p>Streaming matters because a model can take several seconds to write a long reply. If you wait for the whole thing before showing anything, the screen sits frozen and the user assumes it broke. Stream tokens as they arrive so words appear as they're generated. Most chat UIs use Server-Sent Events for this; reach for WebSockets only when you genuinely need two-way traffic.</p>
+  <p>The model provider already streams tokens to your server. Your job is to pass that stream through to the browser instead of buffering it. Server-Sent Events (SSE) are the simplest fit: a one-way stream over plain HTTP, which is exactly what a chat reply is. WebSockets give you a full two-way channel, which you want for things like live typing indicators or collaborative multi-user rooms, but they're more to run and to scale.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Approach</th><th>How it works</th><th>Good for</th><th>Watch out for</th></tr></thead>
+    <tbody>
+      <tr><td>Server-Sent Events</td><td>One-way stream, server to browser, over HTTP</td><td>Token-by-token chat replies</td><td>One direction only; a buffering proxy kills it</td></tr>
+      <tr><td>WebSocket</td><td>Persistent two-way connection</td><td>Live chat, typing, multi-user rooms</td><td>More moving parts; needs care to scale</td></tr>
+      <tr><td>Wait for the full reply</td><td>Request blocks until the model finishes</td><td>Simple internal tools, short answers</td><td>Feels frozen on long answers; risks timeouts</td></tr>
+    </tbody>
+  </table>
+
+  <p>One real gotcha trips up almost everyone the first time: a reverse proxy or CDN that buffers responses will happily collect your whole stream and deliver it in one lump, so streaming silently stops working in production while it looked fine locally. The fix is to turn buffering off for the streaming route (on nginx that's the <code>X-Accel-Buffering: no</code> header, plus disabling proxy buffering). If you're going the WebSocket route at any real size, the scaling patterns in <a href="https://www.kloudbean.com/blog/scale-websockets-nodejs/">scaling WebSockets in Node.js</a> are worth reading before you launch, not after.</p>
+
+  <h2>Giving the bot a memory: Postgres for history, Redis for speed</h2>
+  <p>A chatbot with no memory forgets the last message, which feels broken to a user mid-conversation. Store each message in Postgres so history survives a redeploy: the role, the content, a timestamp, a user id, and a conversation id. Use Redis for the fast, short-lived layer. And send the model only the recent, relevant slice of history, never the entire transcript.</p>
+  <p>The single most common data-loss mistake here is starting on SQLite or an in-memory array because the AI builder scaffolded it that way. It works right up until your first redeploy wipes the file, and every conversation goes with it. A managed database lives outside the app process, so shipping new code never touches your data. If that pattern is new to you, the <a href="https://www.kloudbean.com/blog/last-mile-of-vibe-coding/">last mile of vibe coding</a> covers why AI builders leave this gap, and <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a> covers the fix.</p>
+  <p>A minimal history table is not complicated:</p>
+  <pre><code>create table messages (
+  id           bigserial primary key,
+  conversation_id  uuid not null,
+  user_id      uuid not null,
+  role         text not null,   -- user | assistant | system
+  content      text not null,
+  tokens       int,
+  created_at   timestamptz not null default now()
+);
+create index on messages (conversation_id, created_at);</code></pre>
+  <p>Redis earns its place separately. It's where sessions live, where rate-limit counters tick, and where you cache repeated answers so an identical question doesn't pay for a fresh model call. Set sensible TTLs so it stays small. See <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis hosting</a> for the setup. And because every chat request opens a database connection, put a pool in front of Postgres or you'll exhaust connections under load. <a href="https://www.kloudbean.com/blog/database-connection-pooling/">Database connection pooling</a> explains why that limit bites sooner than people expect.</p>
+  <p>If your bot answers from your own documents (support articles, a knowledge base, product docs), that's retrieval, and you'll want vector search. You probably don't need a separate vector product on day one: the <code>pgvector</code> extension stores embeddings right alongside your normal Postgres data, which keeps the stack to one database. <a href="https://www.kloudbean.com/blog/pgvector-for-ai-apps/">pgvector for AI apps</a> walks through it.</p>
+
+  <h2>Auth and rate limits, before a stranger runs up your model bill</h2>
+  <p>Your chat endpoint calls a paid API using your key. If anyone can hit that endpoint, anyone can spend your money. Require auth on every request, put per-user and global rate limits in front of the model, set a hard spend cap at the provider, and keep the key on the server. This is the difference between a demo and something you can leave running.</p>
+  <p>Here's the anti-pattern to burn into memory: the open proxy. You ship a chatbot where the browser calls <code>/api/chat</code> with no login and no limit, and your backend faithfully relays every call to the model on your key. Anyone who opens dev tools sees that endpoint. A bored person with a script can fire thousands of requests at it while you sleep, and you wake up to a bill that looks like a typo. This isn't rare. It's one of the most common ways a launched AI app gets expensive fast.</p>
+  <p>The fixes stack, and none are exotic:</p>
+  <ul>
+    <li><strong>Auth on every model-touching route.</strong> No anonymous access to the endpoint that costs money.</li>
+    <li><strong>Rate limits per user and globally.</strong> A Redis-backed counter (a simple token bucket) caps how often one user, and everyone together, can call the model.</li>
+    <li><strong>A hard spend cap at the provider.</strong> Set the monthly limit in the provider dashboard so the worst case is a stopped service, not an unbounded invoice.</li>
+    <li><strong>Keep the key server-side.</strong> Load it from an environment variable, never inline it in client code. <a href="https://www.kloudbean.com/blog/secrets-management/">Secrets management</a> and <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a> cover the how.</li>
+  </ul>
+  <p>Chatbots take untrusted text and hand it to a model, so prompt injection and abuse are live concerns too. The <a href="https://www.kloudbean.com/blog/ai-built-app-security-checklist/">AI-built app security checklist</a> is a good pass to run before you open the doors.</p>
+
+  <h2>Logging you can trust, without storing people's prompts</h2>
+  <p>You need logs to debug and to watch spend, but chat prompts routinely contain personal or sensitive information. So log the metadata, not the message. Keep request timing, token counts, the model used, the user id, status codes, and errors. Skip or redact the raw prompt and reply by default. Store what helps you operate, not what turns into a liability later.</p>
+  <p>This is the reliability layer people skip until an incident. When a user reports a bad answer or costs spike, you want to see which route was slow, how many tokens went out, and where errors clustered. You almost never need the actual words to answer those questions. If you truly must keep some content for quality work, make it opt-in, redact obvious identifiers, and set a short retention window so old data ages out on its own.</p>
+  <p>Honestly, storing every raw prompt "just in case" is a habit that ages badly. It grows your database, widens your blast radius if anything leaks, and creates data-handling obligations you didn't plan for. Log the shape of the conversation, not its contents, and you keep the debugging power without the risk.</p>
+
+  <h2>A domain, SSL, and staying always-on so the first message isn't slow</h2>
+  <p>A chatbot that scales to zero pays a cold-start tax: the first message after an idle period waits for the process to wake up, which is exactly when a brand-new user is deciding whether your product is any good. Run the backend as an always-on process behind your own domain with SSL. A warm process also keeps its database connection pool ready instead of rebuilding it on every cold start.</p>
+  <p>Serverless is genuinely good for spiky, occasional work. A chat backend is usually the opposite: steady, connection-heavy, and sensitive to that first-response delay. Cold starts hurt chat more than most workloads because the very first interaction is the one being judged, and because a streaming connection wants a stable process on the other end rather than one that might spin down mid-conversation.</p>
+  <p>The domain and SSL part is table stakes now. Users type into a box and expect a padlock; browsers increasingly demand HTTPS anyway. Free automated certificates make this a solved problem, so there's no reason to run a chatbot on a raw preview URL that can sleep, reset, or expire. Give it a real address and a process that's always listening.</p>
+
+  <h2>What hosting a chatbot actually costs, and where the money goes</h2>
+  <p>Most of the bill is the model, not the host. Providers charge per token, so your cost scales with how many people chat and how long each conversation runs. The always-on server, the managed database, and Redis are smaller, predictable monthly line items. The lever that actually controls spend is sending less to the model and caching more, not cheaping out on the infrastructure underneath.</p>
+  <table class="cmp">
+    <thead><tr><th>Cost driver</th><th>What pushes it up</th><th>How to keep it sane</th></tr></thead>
+    <tbody>
+      <tr><td>Model API tokens</td><td>Every prompt and reply, times your users, times conversation length</td><td>Trim the history you send, cap max tokens, cache repeat answers</td></tr>
+      <tr><td>Always-on server</td><td>A process that never sleeps</td><td>Right-size it, scale up only when traffic proves you need to</td></tr>
+      <tr><td>Managed database</td><td>Storage and size as history grows</td><td>Archive or prune old conversations</td></tr>
+      <tr><td>Redis</td><td>Memory for sessions, counters, and cache</td><td>Set TTLs; size for the working set, not everything</td></tr>
+      <tr><td>Bandwidth</td><td>Data out to users</td><td>Usually small for text; watch it for image or file features</td></tr>
+    </tbody>
+  </table>
+  <p>Here's my one firm opinion for this whole page: don't self-host the language model to save money on day one. Running your own inference means GPUs, drivers, memory management, and a scaling problem that is a real ops project on its own. A provider API is cheaper, simpler, and faster to ship until your volume is large enough, or your privacy requirements strict enough, that the math genuinely flips. Start on an API. Revisit self-hosting when you have the traffic to justify it, not before.</p>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>The reason this gets painful is that the pieces usually live in different places: one host for the app, another for the database, a third for the cache, a separate console to learn for each. Kloudbean puts them in one dashboard. You launch an always-on server running Node or Python, add a managed Postgres (with <code>pgvector</code> when you need retrieval) and a managed Redis, get object storage, automatic backups, and free SSL, and deploy from Git on every push. Because apps run always-on, there are no cold starts, so that first message stays quick. You lock the database down by whitelisting your app server's IP, so only your app can connect and everything else is refused. We run our own tools this way, so it's the setup we actually use.</p>
+  <p>The honest boundary, because it builds trust: managed means the platform handles the server, the stack, SSL, backups, and patching. Your chatbot's code, your prompts, and your data stay yours. Kloudbean makes the running easy. It doesn't make a leaky endpoint safe or a bad prompt smart. Full network isolation in a private VPC is an Enterprise capability; on a standard plan, the IP allow-list is how you keep the database off the open internet.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Give your chatbot a home that streams, remembers, and stays up.</p>
+    <p style="margin:0 0 .6em">Run your AI chatbot on an always-on server with managed Postgres and Redis, object storage, automatic backups, and free SSL, all in one dashboard and deployed straight from Git. No cold starts, so the first message is fast.</p>
+    <p style="margin:0">Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">Always-on (no cold starts) · Managed Postgres + Redis · pgvector · Object storage · Automatic backups · Free SSL · Git deploy · IP allow-listing</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I host an AI chatbot in production?</h3>
+    <p>Run an always-on backend (Node or Python) that holds your model key, checks auth, and streams replies. Save conversation history in a managed Postgres database, use Redis for sessions and rate limits, and put it behind your own domain with SSL. The browser talks only to your backend, never to the model directly.</p>
+    <h3>Should I use WebSockets or SSE for a chatbot?</h3>
+    <p>For a normal chat reply, Server-Sent Events are simpler and enough: they stream tokens one way, server to browser, over plain HTTP. Reach for WebSockets when you need real two-way traffic like live typing indicators or multi-user rooms. WebSockets are more to run and to scale, so don't add them without a reason.</p>
+    <h3>Where should I store chatbot conversation history?</h3>
+    <p>In a managed database that lives outside your app, so a redeploy never wipes it. Postgres is a solid default: store the role, content, timestamp, user id, and conversation id per message. Avoid SQLite or in-memory storage in production, since both vanish on redeploy and take your conversations with them.</p>
+    <h3>How do I stop people from running up my AI API bill?</h3>
+    <p>Require auth on every route that calls the model, add per-user and global rate limits backed by Redis, and set a hard spend cap in your provider dashboard. Keep the API key on the server, never in the browser. An open, unauthenticated chat endpoint is the most common way an AI app gets expensive overnight.</p>
+    <h3>Do I need a vector database for my chatbot?</h3>
+    <p>Only if the bot answers from your own documents or does semantic search. Even then you usually don't need a separate product. The pgvector extension stores embeddings inside Postgres alongside your normal data, which keeps the stack to one database. Add a dedicated vector store later only if scale demands it.</p>
+    <h3>Should I self-host the language model or call an API?</h3>
+    <p>Call a provider API to start. Self-hosting a model means GPUs, drivers, memory, and a real scaling problem, which is an ops project on its own. An API is cheaper and faster to ship until your volume is large or your privacy needs are strict enough to justify the switch. Revisit it then, not on day one.</p>
+    <h3>Why is the first message from my chatbot so slow?</h3>
+    <p>Usually a cold start. If your host scales to zero, the first request after idle waits for the process to wake up and rebuild its database connections. That delay lands right when a new user is judging you. An always-on process keeps the app warm and the connection pool ready, so the first message is quick.</p>
+    <h3>Should I log chatbot prompts and replies?</h3>
+    <p>Log the metadata, not the message. Timing, token counts, model, user id, status, and errors are enough to debug and watch spend. Raw prompts often hold personal data, so redact or skip them by default. If you must keep some content, make it opt-in and set a short retention window.</p>
+    <h3>Do I need Redis for a chatbot?</h3>
+    <p>You don't strictly need it, but it earns its place fast. Redis is where sessions live, where rate-limit counters tick, and where you cache repeated answers so identical questions don't pay for a fresh model call. Set TTLs so it stays small. Postgres remains the durable record; Redis is the fast layer in front.</p>
+    <h3>How much does it cost to host an AI chatbot?</h3>
+    <p>Most of the cost is the model, priced per token, so it scales with users and conversation length. The always-on server, database, and Redis are smaller, predictable monthly costs. Control spend by trimming the history you send, capping max tokens, and caching, rather than by under-provisioning the infrastructure.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Stream the reply, keep the history, hold the key.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Host an AI Chatbot in Production: Architecture, Cost, and Reliability","description":"How to host an AI chatbot in production: the request path from browser to model, streaming replies, conversation history in Postgres, a Redis fast layer, auth and rate limits, safe logging, SSL, and staying always-on.","image":"https://www.kloudbean.com/blog/host-ai-chatbot-in-production/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/host-ai-chatbot-in-production/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I host an AI chatbot in production?","acceptedAnswer":{"@type":"Answer","text":"Run an always-on backend (Node or Python) that holds your model key, checks auth, and streams replies. Save conversation history in a managed Postgres database, use Redis for sessions and rate limits, and put it behind your own domain with SSL. The browser talks only to your backend, never to the model directly."}},
+{"@type":"Question","name":"Should I use WebSockets or SSE for a chatbot?","acceptedAnswer":{"@type":"Answer","text":"For a normal chat reply, Server-Sent Events are simpler and enough: they stream tokens one way, server to browser, over plain HTTP. Reach for WebSockets when you need real two-way traffic like live typing indicators or multi-user rooms. WebSockets are more to run and to scale, so do not add them without a reason."}},
+{"@type":"Question","name":"Where should I store chatbot conversation history?","acceptedAnswer":{"@type":"Answer","text":"In a managed database that lives outside your app, so a redeploy never wipes it. Postgres is a solid default: store the role, content, timestamp, user id, and conversation id per message. Avoid SQLite or in-memory storage in production, since both vanish on redeploy and take your conversations with them."}},
+{"@type":"Question","name":"How do I stop people from running up my AI API bill?","acceptedAnswer":{"@type":"Answer","text":"Require auth on every route that calls the model, add per-user and global rate limits backed by Redis, and set a hard spend cap in your provider dashboard. Keep the API key on the server, never in the browser. An open, unauthenticated chat endpoint is the most common way an AI app gets expensive overnight."}},
+{"@type":"Question","name":"Do I need a vector database for my chatbot?","acceptedAnswer":{"@type":"Answer","text":"Only if the bot answers from your own documents or does semantic search. Even then you usually do not need a separate product. The pgvector extension stores embeddings inside Postgres alongside your normal data, which keeps the stack to one database. Add a dedicated vector store later only if scale demands it."}},
+{"@type":"Question","name":"Should I self-host the language model or call an API?","acceptedAnswer":{"@type":"Answer","text":"Call a provider API to start. Self-hosting a model means GPUs, drivers, memory, and a real scaling problem, which is an ops project on its own. An API is cheaper and faster to ship until your volume is large or your privacy needs are strict enough to justify the switch. Revisit it then, not on day one."}},
+{"@type":"Question","name":"Why is the first message from my chatbot so slow?","acceptedAnswer":{"@type":"Answer","text":"Usually a cold start. If your host scales to zero, the first request after idle waits for the process to wake up and rebuild its database connections. That delay lands right when a new user is judging you. An always-on process keeps the app warm and the connection pool ready, so the first message is quick."}},
+{"@type":"Question","name":"Should I log chatbot prompts and replies?","acceptedAnswer":{"@type":"Answer","text":"Log the metadata, not the message. Timing, token counts, model, user id, status, and errors are enough to debug and watch spend. Raw prompts often hold personal data, so redact or skip them by default. If you must keep some content, make it opt-in and set a short retention window."}},
+{"@type":"Question","name":"Do I need Redis for a chatbot?","acceptedAnswer":{"@type":"Answer","text":"You do not strictly need it, but it earns its place fast. Redis is where sessions live, where rate-limit counters tick, and where you cache repeated answers so identical questions do not pay for a fresh model call. Set TTLs so it stays small. Postgres remains the durable record; Redis is the fast layer in front."}},
+{"@type":"Question","name":"How much does it cost to host an AI chatbot?","acceptedAnswer":{"@type":"Answer","text":"Most of the cost is the model, priced per token, so it scales with users and conversation length. The always-on server, database, and Redis are smaller, predictable monthly costs. Control spend by trimming the history you send, capping max tokens, and caching, rather than by under-provisioning the infrastructure."}}
+]}
+]}
+</script>
+</body>
+</html>

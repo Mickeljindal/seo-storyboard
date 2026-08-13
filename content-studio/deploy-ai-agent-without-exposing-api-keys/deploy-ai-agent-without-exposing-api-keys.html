@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Deploy an AI Agent Without Exposing Your API Keys</title>
+<meta name="description" content="Deploy an AI agent without exposing your API keys: why a key in the browser always leaks, how to proxy the model call through your own backend, keep the key in an environment variable, rotate it on leak, and add auth, quotas, rate limits, and a spend cap.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/deploy-ai-agent-without-exposing-api-keys/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Deploy an AI Agent Without Exposing Your API Keys">
+<meta property="og:description" content="The number one mistake AI builders make is shipping the model key to the browser or committing it to Git. Here is how to keep it on the server, and how to stop a leaked path from being abused.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">AI app security</span>
+  <h1>How to Deploy an AI Agent Without Exposing Your API Keys</h1>
+
+  <figure><img src="images/hero.png" alt="Deploy an AI agent without exposing your API keys: keep the provider key on your backend, not in the browser"></figure>
+
+  <p class="lead">You built an AI agent over a weekend, wired it to OpenAI or Anthropic, shipped it, and it worked. Then the bill arrived, or the provider emailed to say your key was disabled. Someone found it. This is the most common way a new AI app gets burned, and it's almost always the same two mistakes: the key went to the browser, or it got committed to Git. Both are avoidable. This page is how to deploy an AI agent without exposing your API keys, and how to make sure a leak that does happen can't be turned into a bill.</p>
+  <p>None of this is exotic. It's the plumbing your AI builder skipped, the same last mile that trips up every <a href="https://www.kloudbean.com/blog/last-mile-of-vibe-coding/">vibe-coded app heading to production</a>. Get the key placement right and you close the door most attackers walk through.</p>
+
+  <div class="tldr">
+    <strong>Short answer</strong>
+    <p>Never let your provider API key reach the browser or your Git repo. Put the model call behind your own backend: the browser talks to your server, your server holds the key in an environment variable and calls the provider. Then assume a key can still leak, so add per-user auth, quotas, rate limits, and a spend cap, rotate any exposed key immediately, and log who called what.</p>
+  </div>
+
+  <h2>The one rule that stops most key leaks</h2>
+  <p>Here it is, and it's the whole article in a sentence: the API key lives on the server, and nowhere a user can reach it. If your frontend code can read the key, so can anyone who opens your app. That's not a small risk you can manage with obfuscation. It's a certainty.</p>
+  <p>So the model provider is never called from the browser. The browser calls <em>your</em> backend, and your backend, running on a server you control, adds the key and calls the provider. The key sits in an environment variable on that server, not in the code, not in the repo, not in the shipped JavaScript. Everything else below is about doing that cleanly and surviving the day a key gets out anyway.</p>
+
+  <h2>Why a key in the browser is always leaked</h2>
+  <p>People hear "don't put the key in the frontend" and assume it means "hide it well." It doesn't. There is no hiding it. Anything the browser can send, a user can read, because the browser runs on their machine, not yours.</p>
+  <p>Open any site's developer tools, click the Network tab, and you see every request the page makes, headers and all. If your agent calls the provider directly, that request carries <code>Authorization: Bearer sk-...</code> in plain sight. No exploit needed. Right-click, copy, done. And even if the key never appears in a live request, build tools bake it into the JavaScript bundle they ship, so it's sitting in a file anyone can download and search. Minifying or base64-encoding it changes nothing; the running code has to decode it, so the browser has to hold the real value.</p>
+  <p>This is the one opinion I'll plant a flag on: a key in the browser is not a smaller risk than a key in Git. It's the same risk. Treat any client-side key as already public, because within hours of going live, it usually is.</p>
+
+  <h2>A real leaked-key path, and how to close it</h2>
+  <p>Here's the exact shape I see most, in a Next.js or Vite app. A developer stores the key as <code>NEXT_PUBLIC_OPENAI_API_KEY</code> (or <code>VITE_OPENAI_API_KEY</code>) and calls the provider straight from a React component. It works in development, so it ships.</p>
+  <p>The trap is the prefix. Next.js deliberately exposes any variable starting with <code>NEXT_PUBLIC_</code> to the browser, and Vite does the same with <code>VITE_</code>. That's by design, for values that are safe to be public. An API key is not one of those. The build inlines the real key into the client bundle, and now it's public property.</p>
+  <pre><code>// LEAKS: this runs in the browser, key and all
+const res = await fetch("https://api.openai.com/v1/chat/completions", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ model: "gpt-4o-mini", messages }),
+});</code></pre>
+  <p>To close it: drop the <code>NEXT_PUBLIC_</code> / <code>VITE_</code> prefix so the key stops shipping to the client, move the provider call to a server route, and have the browser call that route instead. The frontend now sends a plain request to <code>/api/chat</code> and never sees a key at all. That's the fix, and it's the next section.</p>
+
+  <!-- ADD IMAGE: swap this slot for a real screenshot. src -> images/devtools-network-key.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Browser DevTools Network tab showing an Authorization: Bearer header exposed on a client-side request.</em><small>Makes the leak concrete: this is what an attacker sees.</small></span></figure>
+
+  <h2>The fix: put the model behind your own backend</h2>
+  <p>The pattern is a thin proxy. Your backend exposes one endpoint, holds the key, forwards the request to the provider, and returns the answer. The browser only ever talks to your server. This is why you want a real server-side runtime for your agent, Node or Python running as an always-on process, not a static frontend calling a third party.</p>
+  <figure>
+    <svg viewBox="0 0 760 430" role="img" aria-label="Two ways to call a model provider. The blocked path sends the API key from the browser straight to the provider, where anyone who opens developer tools can read it. The safe path sends the browser request to your own backend, which holds the key in a server-side environment variable, adds authentication and rate limits, and calls the provider, so the key never reaches the browser." xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="kg" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#40b75f"/></marker>
+        <marker id="kp" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4F1AF3"/></marker>
+        <marker id="kr" markerWidth="10" markerHeight="10" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#e5484d"/></marker>
+      </defs>
+
+      <text x="40" y="42" font-family="Poppins,sans-serif" font-size="12" font-weight="700" letter-spacing="1.4" fill="#e5484d">BLOCKED &middot; LEAKS THE KEY</text>
+      <rect x="40" y="58" width="160" height="66" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="120" y="88" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13.5" font-weight="600" fill="#000f27">Browser</text>
+      <text x="120" y="107" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#e5484d">carries the sk-... key</text>
+      <rect x="560" y="58" width="160" height="66" rx="10" fill="#000f27"/>
+      <text x="640" y="88" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#fff">Model provider</text>
+      <text x="640" y="107" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#9fb0cc">OpenAI, Anthropic...</text>
+      <line x1="200" y1="91" x2="556" y2="91" stroke="#e5484d" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#kr)"/>
+      <line x1="365" y1="74" x2="395" y2="108" stroke="#e5484d" stroke-width="3.2"/>
+      <line x1="395" y1="74" x2="365" y2="108" stroke="#e5484d" stroke-width="3.2"/>
+      <text x="380" y="140" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" fill="#e5484d">anyone opens DevTools and copies the key</text>
+
+      <line x1="40" y1="176" x2="720" y2="176" stroke="#e6e8ef" stroke-width="1.2"/>
+
+      <text x="40" y="214" font-family="Poppins,sans-serif" font-size="12" font-weight="700" letter-spacing="1.4" fill="#40b75f">SAFE &middot; KEEPS THE KEY ON THE SERVER</text>
+      <rect x="40" y="238" width="150" height="72" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="115" y="270" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13.5" font-weight="600" fill="#000f27">Browser</text>
+      <text x="115" y="289" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">no key</text>
+      <rect x="298" y="230" width="172" height="88" rx="10" fill="#000f27"/>
+      <text x="384" y="260" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13.5" font-weight="600" fill="#fff">Your backend</text>
+      <text x="384" y="279" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#9fb0cc">Node / Python, always on</text>
+      <text x="384" y="297" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#40b75f">holds the key (env var)</text>
+      <rect x="560" y="238" width="160" height="72" rx="10" fill="#f6f7fb" stroke="#40b75f" stroke-width="1.4"/>
+      <text x="640" y="270" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">Model provider</text>
+      <text x="640" y="289" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">key added here</text>
+      <line x1="190" y1="274" x2="294" y2="274" stroke="#4F1AF3" stroke-width="2" marker-end="url(#kp)"/>
+      <line x1="470" y1="274" x2="556" y2="274" stroke="#40b75f" stroke-width="2" marker-end="url(#kg)"/>
+      <text x="242" y="262" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#4F1AF3">request</text>
+      <text x="513" y="262" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#40b75f">+ key</text>
+      <text x="384" y="344" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">checks auth, quota, and rate limit before it forwards</text>
+    </svg>
+    <figcaption>Same call, two very different exposures. Direct from the browser, the key rides along where anyone can grab it. Through your backend, the browser never holds a key, and your server decides who gets to spend your tokens.</figcaption>
+  </figure>
+  <p>In Node with Express, the whole proxy is a few lines. The key comes from <code>process.env</code>, so it never appears in the code you commit:</p>
+  <pre><code>// server.js runs on your server, never shipped to the browser
+import express from "express";
+const app = express();
+app.use(express.json());
+
+app.post("/api/chat", requireAuth, rateLimit, async (req, res) =&gt; {
+  const r = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`, // server-side only
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ model: "gpt-4o-mini", messages: req.body.messages }),
+  });
+  res.json(await r.json());
+});
+
+app.listen(3000, "0.0.0.0");</code></pre>
+  <p>Python is the same idea with FastAPI. Read the key from the environment, forward the call, return the result:</p>
+  <pre><code># main.py
+import os, httpx
+from fastapi import FastAPI, Depends
+
+app = FastAPI()
+
+@app.post("/api/chat")
+async def chat(body: dict, user = Depends(require_auth)):
+    async with httpx.AsyncClient() as client:
+        r = await client.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {os.environ['OPENAI_API_KEY']}"},
+            json={"model": "gpt-4o-mini", "messages": body["messages"]},
+        )
+    return r.json()</code></pre>
+  <p>Notice both endpoints already have an auth check and a rate limit wrapped around them. That's on purpose, and it's the part people skip. More on that below, because a proxy without those is its own kind of trouble.</p>
+
+  <h2>Keep the key in an environment variable, not in your code</h2>
+  <p>Once the call is server-side, the key belongs in an environment variable, loaded at runtime. Not typed into a source file. Not sitting in a config that gets committed. The reason is simple: code goes into Git, and Git remembers. A key pasted into a file and pushed once is in the history even after you delete it, and bots scan public commits for exactly that. Providers now watch for it too, and can auto-revoke a key they spot in a public repo, which is a mercy but not a plan.</p>
+  <p>So <code>.env</code> goes in <code>.gitignore</code>, and the real values live wherever you run the app. Locally that's a <code>.env</code> file you never commit. In production you set them on the server, outside the codebase entirely. If you want the full treatment, our guides on <a href="https://www.kloudbean.com/blog/secrets-management/">secrets management</a> and <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a> go deeper than I can here.</p>
+  <figure>
+    <img src="../assets/console/env-vars.png" alt="Setting an API key as an environment variable in the Kloudbean dashboard so it stays on the server and out of the codebase">
+    <figcaption>Set the key as an environment variable where the app runs, so it never touches your repo. This is the Kloudbean dashboard doing it, but any server-side runtime works the same way.</figcaption>
+  </figure>
+
+  <h2>When a key leaks anyway, rotate it fast</h2>
+  <p>Assume it will happen. A key ends up in a screenshot, a log file, a Slack message, an old commit. Rotation is the muscle that turns a scary leak into a shrug. In your provider's dashboard you create a new key, deploy it to your server's environment variables, confirm the app is using it, then revoke the old one. The exposed key becomes worthless.</p>
+  <p>Two habits make this painless. Give each app or environment its own key, so rotating one doesn't take down the others. And never hard-code a key anywhere, so rotation is only ever an environment change and a redeploy, not a code hunt. If rotating a key means grepping your codebase, the key was in the wrong place to begin with.</p>
+
+  <h2>A proxy with no auth is just a slower leak</h2>
+  <p>Here's the mistake that catches people who did everything else right. They move the key to the backend, feel safe, and leave the <code>/api/chat</code> endpoint wide open. Now anyone who finds that URL can call your model on your dime. You didn't leak the key. You built a public relay to it, which for your bill is the same outcome.</p>
+  <p>An unauthenticated model proxy is an open invitation. So the endpoint needs gates, and there are four worth having:</p>
+  <ul>
+    <li><strong>Authentication.</strong> The caller has to be a logged-in user of your app. No valid session, no model call. This alone stops the drive-by abuse.</li>
+    <li><strong>Per-user quotas.</strong> Even real users shouldn't be able to burn unlimited tokens. Cap requests per user per day, and one compromised account can't drain your budget.</li>
+    <li><strong>Rate limits.</strong> Limit requests per minute per user and per IP. This blunts both accidental loops and deliberate hammering.</li>
+    <li><strong>A spend cap at the provider.</strong> Set a hard monthly usage limit in your provider's billing settings. It's the backstop for when everything else fails, and the difference between a bad day and a bankrupt weekend.</li>
+  </ul>
+  <p>Think of it as defence in layers. The proxy hides the key, auth decides who's allowed in, quotas and rate limits shape how much any one caller can do, and the spend cap catches whatever slips through.</p>
+
+  <table class="cmp">
+    <thead><tr><th>&nbsp;</th><th>Key exposed in the client</th><th>Key behind a locked-down backend</th></tr></thead>
+    <tbody>
+      <tr><td>Where the key lives</td><td>In the browser or the Git history</td><td>In a server-side environment variable</td></tr>
+      <tr><td>Who can call the model</td><td>Anyone who reads the page or repo</td><td>Only authenticated users of your app</td></tr>
+      <tr><td>Cost of a single leak</td><td>Unlimited spend until you notice</td><td>Capped by quotas and a spend limit</td></tr>
+      <tr><td>Fixing a leak</td><td>Rotate, then hunt down every copy</td><td>Rotate one env var and redeploy</td></tr>
+      <tr><td>Who did what</td><td>No idea, it wasn't your server</td><td>In your logs, tied to a user</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Log who called the model, and why it matters</h2>
+  <p>When something does go wrong, the first question is always "who, and how much?" You can only answer it if your backend wrote it down. Because every request now flows through your server, you're in a position to log the useful things: which user made the call, which endpoint, when, roughly how many tokens, and the outcome. Keep it to metadata, not the raw prompts and replies, unless you have a real reason and have told your users.</p>
+  <p>That log is what lets you spot one account suddenly making a thousand calls, trace a spend spike to its source, and cut off a single abuser instead of pulling the whole key. It's plain application logging, and it's yours to build into the agent. Kloudbean's account-level Audit Trail (an Enterprise feature) records who changed what in your infrastructure, which is a different and complementary record; the "who called the model" log lives in your app code, where it belongs.</p>
+
+  <h2>Where teams get this wrong</h2>
+  <p>If I had to name the pattern that burns people, it's treating "the key isn't in the frontend anymore" as the finish line. It's the start. The full picture is small but you have to do all of it: key on the server, key in an env var and out of Git, auth on the endpoint, quotas and rate limits per user, a provider spend cap, and a log of who called what. Skip any one and you've left a gap that shows up as a bill.</p>
+  <p>Work through the broader <a href="https://www.kloudbean.com/blog/ai-built-app-security-checklist/">AI app security checklist</a> before you call it done, especially if your agent takes user input and hands it to a model with real permissions. Key exposure is the most common way to get hurt, not the only one.</p>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>You can run this pattern anywhere that gives you a real server-side process. The reason it's worth mentioning Kloudbean here is that the safe setup wants a few boring things in one place, and that's the whole idea of the platform. You deploy your Node or Python backend as an always-on app, set <code>OPENAI_API_KEY</code> and the rest as environment variables in the dashboard so they stay off your repo and off the client, and get free SSL so the browser-to-backend hop is encrypted by default.</p>
+  <p>On the lock-down side, every server ships with a <strong>Shorewall firewall and Fail2ban</strong> running from the start, so brute-force attempts get throttled without setup. If your agent uses a managed database, you close it off with <strong>IP Access Control</strong>, whitelisting your app server's IP so only that server can connect. For teams that need full network isolation, a private network (VPC) is available on Enterprise; it isn't the default, and you don't need it to keep an API key safe.</p>
+  <p>The honest boundary: managed means the platform handles the server, the stack, SSL, backups, and patching. Your agent's code, your auth logic, your quotas, and your data stay yours. Kloudbean gives the key a safe place to live and the endpoint a hardened server to run on. It can't write your rate limiter for you. If your agent also needs somewhere durable for chat history or user data, see <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Give your agent's key a server to live on.</p>
+    <p style="margin:0 0 .6em">Run your Node or Python backend always-on, set your provider keys as environment variables in the dashboard so they never reach the browser or your repo, and get free SSL, a Shorewall firewall, and IP Access Control from the start. One dashboard for the app, the keys, and the database behind it.</p>
+    <p style="margin:0">Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> &middot; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">Server-side env vars &middot; Server-side Node &amp; Python &middot; Free SSL &middot; Shorewall + Fail2ban &middot; IP allow-listing &middot; Automatic backups &middot; Free migration</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I deploy an AI agent without exposing my API keys?</h3>
+    <p>Keep the provider key on your server and never in the browser or your Git repo. Put the model call behind your own backend endpoint, load the key from a server-side environment variable, and have the frontend call your endpoint instead of the provider. Then add authentication, per-user quotas, rate limits, and a provider spend cap so a leaked path can't be abused.</p>
+    <h3>Is it ever safe to call OpenAI or Anthropic directly from the browser?</h3>
+    <p>No. Anything the browser sends, a user can read in the Network tab of developer tools, and build tools bake the key into the shipped JavaScript. There is no way to hide a key that runs on someone else's machine. Always call the provider from a backend you control.</p>
+    <h3>Why does the NEXT_PUBLIC or VITE prefix leak my key?</h3>
+    <p>Those prefixes exist to expose a variable to the browser on purpose, for values that are safe to be public. Next.js ships any NEXT_PUBLIC variable and Vite ships any VITE variable into the client bundle. If you prefix an API key that way, the build inlines the real key into code anyone can download. Drop the prefix and read the key only in server-side code.</p>
+    <h3>Where should I store my AI provider API key in production?</h3>
+    <p>In an environment variable on the server that runs your backend, set outside your codebase. Keep the local .env file in .gitignore so it never gets committed, and set the real production values on your host. On Kloudbean you set them in the dashboard, so the key stays on the server and out of the repo.</p>
+    <h3>What do I do if my API key has already leaked?</h3>
+    <p>Rotate it right away. Create a new key in your provider's dashboard, deploy it to your server's environment variables, confirm the app is using it, then revoke the old one. If each app has its own key and nothing is hard-coded, rotation is just an environment change and a redeploy.</p>
+    <h3>A backend proxy hides the key, so am I done?</h3>
+    <p>Not quite. A proxy with no authentication is a public relay to your key, and anyone who finds the URL can spend your budget. Require a logged-in user on the endpoint, cap requests per user, rate-limit per user and IP, and set a spend cap at the provider. The proxy hides the key; those gates stop abuse.</p>
+    <h3>How do I stop someone from running up my AI bill?</h3>
+    <p>Put limits in front of the model. Authentication keeps strangers out, per-user quotas keep any one account from burning unlimited tokens, rate limits blunt loops and hammering, and a hard monthly spend cap in your provider's billing settings is the final backstop. Layer them; each one catches what the others miss.</p>
+    <h3>Should I log the prompts and responses my agent handles?</h3>
+    <p>Log metadata by default: the user, the endpoint, the time, rough token counts, and the outcome. That is enough to trace a spend spike or cut off one abuser. Storing raw prompts and replies is sensitive, so only do it with a real reason and clear notice to your users.</p>
+    <h3>Do I need a private network or VPC to keep my API key safe?</h3>
+    <p>No. Keeping the key on the server, in an environment variable, behind an authenticated endpoint is what protects it, and that works on a standard setup. A private network (VPC) is an Enterprise-level isolation feature for locking internal services off the public internet, not a requirement for API key safety.</p>
+    <h3>What runtime do I need to proxy the model call?</h3>
+    <p>Any server-side runtime that runs as a persistent process. Node with Express or Python with FastAPI or Flask both do the job in a few lines. The point is that the code holding the key runs on your server, not as a static frontend that ships to the browser.</p>
+  </div>
+
+  <p class="byline">Kloudbean &middot; Keep the key on the server.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Deploy an AI Agent Without Exposing Your API Keys","description":"Why a key in the browser always leaks, how to proxy the model call through your own backend, keep the key in an environment variable, rotate it on leak, and add auth, quotas, rate limits, and a spend cap so a leaked path cannot be abused.","image":"https://www.kloudbean.com/blog/deploy-ai-agent-without-exposing-api-keys/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/deploy-ai-agent-without-exposing-api-keys/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I deploy an AI agent without exposing my API keys?","acceptedAnswer":{"@type":"Answer","text":"Keep the provider key on your server and never in the browser or your Git repo. Put the model call behind your own backend endpoint, load the key from a server-side environment variable, and have the frontend call your endpoint instead of the provider. Then add authentication, per-user quotas, rate limits, and a provider spend cap so a leaked path cannot be abused."}},
+{"@type":"Question","name":"Is it ever safe to call OpenAI or Anthropic directly from the browser?","acceptedAnswer":{"@type":"Answer","text":"No. Anything the browser sends, a user can read in the Network tab of developer tools, and build tools bake the key into the shipped JavaScript. There is no way to hide a key that runs on someone else's machine. Always call the provider from a backend you control."}},
+{"@type":"Question","name":"Why does the NEXT_PUBLIC or VITE prefix leak my key?","acceptedAnswer":{"@type":"Answer","text":"Those prefixes exist to expose a variable to the browser on purpose, for values that are safe to be public. Next.js ships any NEXT_PUBLIC variable and Vite ships any VITE variable into the client bundle. If you prefix an API key that way, the build inlines the real key into code anyone can download. Drop the prefix and read the key only in server-side code."}},
+{"@type":"Question","name":"Where should I store my AI provider API key in production?","acceptedAnswer":{"@type":"Answer","text":"In an environment variable on the server that runs your backend, set outside your codebase. Keep the local .env file in .gitignore so it never gets committed, and set the real production values on your host. On Kloudbean you set them in the dashboard, so the key stays on the server and out of the repo."}},
+{"@type":"Question","name":"What do I do if my API key has already leaked?","acceptedAnswer":{"@type":"Answer","text":"Rotate it right away. Create a new key in your provider's dashboard, deploy it to your server's environment variables, confirm the app is using it, then revoke the old one. If each app has its own key and nothing is hard-coded, rotation is just an environment change and a redeploy."}},
+{"@type":"Question","name":"A backend proxy hides the key, so am I done?","acceptedAnswer":{"@type":"Answer","text":"Not quite. A proxy with no authentication is a public relay to your key, and anyone who finds the URL can spend your budget. Require a logged-in user on the endpoint, cap requests per user, rate-limit per user and IP, and set a spend cap at the provider. The proxy hides the key; those gates stop abuse."}},
+{"@type":"Question","name":"How do I stop someone from running up my AI bill?","acceptedAnswer":{"@type":"Answer","text":"Put limits in front of the model. Authentication keeps strangers out, per-user quotas keep any one account from burning unlimited tokens, rate limits blunt loops and hammering, and a hard monthly spend cap in your provider's billing settings is the final backstop. Layer them; each one catches what the others miss."}},
+{"@type":"Question","name":"Should I log the prompts and responses my agent handles?","acceptedAnswer":{"@type":"Answer","text":"Log metadata by default: the user, the endpoint, the time, rough token counts, and the outcome. That is enough to trace a spend spike or cut off one abuser. Storing raw prompts and replies is sensitive, so only do it with a real reason and clear notice to your users."}},
+{"@type":"Question","name":"Do I need a private network or VPC to keep my API key safe?","acceptedAnswer":{"@type":"Answer","text":"No. Keeping the key on the server, in an environment variable, behind an authenticated endpoint is what protects it, and that works on a standard setup. A private network (VPC) is an Enterprise-level isolation feature for locking internal services off the public internet, not a requirement for API key safety."}},
+{"@type":"Question","name":"What runtime do I need to proxy the model call?","acceptedAnswer":{"@type":"Answer","text":"Any server-side runtime that runs as a persistent process. Node with Express or Python with FastAPI or Flask both do the job in a few lines. The point is that the code holding the key runs on your server, not as a static frontend that ships to the browser."}}
+]}
+]}
+</script>
+</body>
+</html>

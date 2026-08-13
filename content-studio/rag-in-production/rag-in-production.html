@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAG in Production: What You Need Beyond a Vector Database</title>
+<meta name="description" content="RAG in production needs far more than a vector database: document chunking, an embeddings pipeline that runs as a background job, index sync, per-user permission filters, retries, observability, and cost control. Here is the architecture that holds up.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/rag-in-production/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RAG in Production: What You Need Beyond a Vector Database">
+<meta property="og:description" content="A vector database is one box of seven. Production RAG also needs ingestion and chunking, a background embeddings pipeline, index sync, permissions, retries, and cost control.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">AI apps in production</span>
+  <h1>RAG in Production: What You Need Beyond a Vector Database</h1>
+
+  <figure><img src="images/hero.png" alt="RAG in production: the pipeline from documents to a grounded answer, beyond just a vector database"></figure>
+
+  <p class="lead">Almost every RAG project starts the same way. Someone reads a tutorial, picks a vector database, embeds a folder of PDFs, and by lunchtime the demo answers questions about the docs. It feels done. Then it meets real users, real documents, and real permissions, and the cracks show up fast.</p>
+  <p>Taking RAG in production seriously means accepting that the vector database was the easy part. Retrieval augmented generation is a small idea with a long tail of plumbing: how documents get in, how they're chunked, how embeddings are built without blocking a web request, how the index stays honest when a document changes, and how you stop one user's data from surfacing in another user's answer. This page is that tail, worked through piece by piece.</p>
+
+  <div class="tldr">
+    <strong>Short answer</strong>
+    <p>A vector database is one piece of production RAG, not the whole thing. You also need document ingestion and chunking, an embeddings pipeline that runs as a background job, a way to keep the index fresh when documents change, per-user permission filters on retrieval, retries on flaky provider calls, plus observability and cost control on embeddings and queries.</p>
+  </div>
+
+  <div class="note">
+    <strong>This isn't a "what is pgvector" post.</strong> The vector store itself, the SQL, the indexes, the distance operators, all of that lives in <a href="https://www.kloudbean.com/blog/pgvector-for-ai-apps/">pgvector for AI apps</a>. This page is about everything wrapped around it. If you're still choosing where to keep your vectors, read that first, then come back for the production wiring.
+  </div>
+
+  <h2>What RAG in production actually needs</h2>
+  <p>The whiteboard version of RAG is three boxes: documents go into a vector database, a question comes in, the closest chunks get stuffed into a prompt, the model answers. That drawing is correct and almost useless, because it hides every part that gets hard at scale.</p>
+  <p>Here's the fuller list, the stuff that separates a weekend demo from something you'd let paying customers touch:</p>
+  <ul>
+    <li><strong>Ingestion and chunking.</strong> Turning messy PDFs, HTML, and docs into clean, right-sized chunks with useful metadata attached.</li>
+    <li><strong>An embeddings pipeline.</strong> Generating vectors as a background job, not inside the request that uploaded the file.</li>
+    <li><strong>Index sync.</strong> Re-embedding and deleting vectors when the source document changes, so the index never lies.</li>
+    <li><strong>Permissions.</strong> Filtering retrieval so a user only ever gets chunks they're allowed to see.</li>
+    <li><strong>Reliability.</strong> Retries, timeouts, and idempotency on embedding and model calls that fail more often than you'd like.</li>
+    <li><strong>Observability.</strong> Logging what got retrieved for each answer, so you can debug a bad reply instead of guessing.</li>
+    <li><strong>Cost control.</strong> Not re-embedding unchanged text, caching repeat queries, and keeping an eye on token spend per tenant.</li>
+  </ul>
+  <p>Notice the vector database is one bullet. Choosing it is a genuine decision, and for most apps Postgres with pgvector is enough, but it's maybe ten percent of the work. The other ninety percent is what this guide is about.</p>
+
+  <h2>The RAG pipeline, from document to answer</h2>
+  <p>The single most useful mental model for production RAG is that it's two pipelines, not one. There's an <strong>offline path</strong> that turns documents into searchable vectors, and an <strong>online path</strong> that answers a question in real time. They meet at the vector store, and they have completely different performance rules.</p>
+  <p>The offline path can be slow. It runs in the background, it can retry, and nobody's staring at a spinner while it works. The online path has to be fast, because a person is waiting. Confuse the two, put the slow work on the fast path, and you get the classic RAG timeout. Here's the shape:</p>
+
+  <figure>
+    <svg viewBox="0 0 800 430" role="img" aria-label="A production RAG pipeline in two parts. The top row is an offline indexing pipeline that runs as a background worker: documents are split into chunks, each chunk is embedded by an embedding model, and the vectors are stored in a vector store such as Postgres with pgvector. The bottom row is the online query path that runs inside a web request: a user question is embedded with the same model, the retrieve step searches the vector store for the top matching chunks and filters them by permission, and the language model uses those chunks as context to produce a grounded answer." xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="rp" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4F1AF3"/></marker>
+        <marker id="rg" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#40b75f"/></marker>
+      </defs>
+
+      <text x="30" y="32" font-family="Poppins,sans-serif" font-size="11.5" font-weight="700" letter-spacing="1" fill="#40b75f">INDEXING &#183; runs as a background worker</text>
+
+      <rect x="30" y="54" width="140" height="58" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="100" y="80" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">Documents</text>
+      <text x="100" y="98" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">PDFs, pages, docs</text>
+
+      <rect x="200" y="54" width="120" height="58" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="260" y="80" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">Chunk</text>
+      <text x="260" y="98" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">split + overlap</text>
+
+      <rect x="350" y="54" width="120" height="58" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="410" y="80" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">Embed</text>
+      <text x="410" y="98" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">embedding model</text>
+
+      <rect x="500" y="54" width="180" height="58" rx="10" fill="#f6f7fb" stroke="#40b75f" stroke-width="1.6"/>
+      <text x="590" y="80" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">Vector store</text>
+      <text x="590" y="98" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">Postgres + pgvector</text>
+
+      <line x1="170" y1="83" x2="196" y2="83" stroke="#4F1AF3" stroke-width="2" marker-end="url(#rp)"/>
+      <line x1="320" y1="83" x2="346" y2="83" stroke="#4F1AF3" stroke-width="2" marker-end="url(#rp)"/>
+      <line x1="470" y1="83" x2="496" y2="83" stroke="#4F1AF3" stroke-width="2" marker-end="url(#rp)"/>
+
+      <line x1="590" y1="112" x2="440" y2="282" stroke="#40b75f" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#rg)"/>
+      <text x="548" y="200" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600" fill="#40b75f">search: top-k</text>
+
+      <text x="30" y="256" font-family="Poppins,sans-serif" font-size="11.5" font-weight="700" letter-spacing="1" fill="#4F1AF3">QUERY &#183; inside the web request</text>
+
+      <rect x="30" y="286" width="140" height="58" rx="10" fill="#000f27"/>
+      <text x="100" y="312" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#fff">Question</text>
+      <text x="100" y="330" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#9fb0cc">user asks</text>
+
+      <rect x="205" y="286" width="125" height="58" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="267" y="312" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">Embed query</text>
+      <text x="267" y="330" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">same model</text>
+
+      <rect x="365" y="286" width="120" height="58" rx="10" fill="#fff" stroke="#40b75f" stroke-width="1.6"/>
+      <text x="425" y="312" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">Retrieve</text>
+      <text x="425" y="330" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">top-k + filter</text>
+
+      <rect x="520" y="286" width="110" height="58" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="575" y="312" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">LLM</text>
+      <text x="575" y="330" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">answer w/ context</text>
+
+      <rect x="665" y="286" width="115" height="58" rx="10" fill="#fff" stroke="#4F1AF3" stroke-width="1.6"/>
+      <text x="722" y="312" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">Answer</text>
+      <text x="722" y="330" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">grounded reply</text>
+
+      <line x1="170" y1="315" x2="201" y2="315" stroke="#4F1AF3" stroke-width="2" marker-end="url(#rp)"/>
+      <line x1="330" y1="315" x2="361" y2="315" stroke="#4F1AF3" stroke-width="2" marker-end="url(#rp)"/>
+      <line x1="485" y1="315" x2="516" y2="315" stroke="#4F1AF3" stroke-width="2" marker-end="url(#rp)"/>
+      <line x1="630" y1="315" x2="661" y2="315" stroke="#4F1AF3" stroke-width="2" marker-end="url(#rp)"/>
+    </svg>
+    <figcaption>Two pipelines that meet at the vector store. Indexing is slow, offline, and retryable. Querying is fast and happens while a user waits. Most RAG timeouts come from doing indexing work on the query path.</figcaption>
+  </figure>
+
+  <h2>Prototype RAG vs production RAG</h2>
+  <p>If you want the difference in one glance, it's this. The prototype takes shortcuts that are invisible with ten documents and one user, and expensive with ten thousand documents and real tenants.</p>
+  <table class="cmp">
+    <thead><tr><th>Concern</th><th>Prototype RAG</th><th>Production RAG</th></tr></thead>
+    <tbody>
+      <tr><td>Ingestion</td><td>A script you run by hand</td><td>An upload path plus a queue that ingests on its own</td></tr>
+      <tr><td>Chunking</td><td>Fixed character count, no overlap</td><td>Structure-aware chunks with overlap and metadata</td></tr>
+      <tr><td>Embedding</td><td>Done in the upload request</td><td>A background worker, retried and idempotent</td></tr>
+      <tr><td>Index freshness</td><td>Rebuild everything, sometimes</td><td>Re-embed and delete per document on change</td></tr>
+      <tr><td>Permissions</td><td>Everyone searches everything</td><td>Retrieval filtered by tenant and user</td></tr>
+      <tr><td>Failures</td><td>The request just errors</td><td>Backoff, timeouts, partial-progress checkpoints</td></tr>
+      <tr><td>Cost</td><td>Whatever it costs, unmeasured</td><td>Cached, batched, and tracked per tenant</td></tr>
+      <tr><td>Debugging</td><td>Read the answer and shrug</td><td>Logged chunk IDs and scores per answer</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Chunking quietly decides your answer quality</h2>
+  <p>Chunking gets the least attention and causes the most pain. It's the step where you cut a document into the pieces you'll embed and retrieve, and the size of those pieces sets a ceiling on how good your answers can ever be.</p>
+  <p>Two failure modes, opposite directions:</p>
+  <ul>
+    <li><strong>Chunks too big.</strong> You embed a whole page, so its vector is a blurry average of five different topics. Retrieval returns something vaguely on-topic, you burn context tokens on filler, and the model has to hunt for the one relevant sentence buried in the chunk.</li>
+    <li><strong>Chunks too small.</strong> You split every sentence, so each vector loses the context around it. A chunk that reads "It was discontinued in that release" is useless when you don't know what "it" is. Retrieval gets fragments that don't stand on their own.</li>
+  </ul>
+  <p>The fix isn't a magic number, it's a few habits. Split on structure first (headings, paragraphs, list items) rather than blind character counts, so a chunk is a coherent thought. Add a little overlap between neighbours so a sentence on a boundary isn't orphaned. A sane starting point for prose is roughly 200 to 500 tokens per chunk with 10 to 15 percent overlap, then you measure and adjust for your content. Code, tables, and transcripts all want different treatment.</p>
+  <p>And attach metadata to every chunk while you're here: the source document, the section, the tenant, a version or content hash. You'll need all of it later for filtering, freshness, and debugging. Metadata you skip at ingest is metadata you can't filter on at query time.</p>
+  <p><strong>One opinion, since fence-sitting helps nobody:</strong> most bad RAG answers are a retrieval problem, not a model problem. When the output is wrong, the reflex is to reach for a bigger, pricier model. Look at what got retrieved first. Nine times out of ten the chunks were wrong, stale, or too coarse, and no model can answer well from bad context.</p>
+
+  <h2>Embeddings belong in a background job, not a web request</h2>
+  <p>Here's the anti-pattern I see most, and it's worth calling out plainly: <strong>generating embeddings inside the HTTP request that uploaded the document.</strong> It looks fine in the demo. Upload one small file, embed it right there, return. Ship it.</p>
+  <p>Then a user uploads a 200-page PDF. That's hundreds of chunks, hundreds of embedding API calls, each with network latency, some getting rate-limited. The request hangs for a minute, the load balancer or browser times out, and you're left with a half-indexed document and a user staring at a dead spinner. Worse, they hit retry and now you're double-indexing.</p>
+  <p>The fix is the shape from the diagram. The upload does almost nothing: write the raw file to object storage, insert a job row, return a 202 immediately. A separate <strong>worker process</strong> picks the job off a queue and does the slow work: fetch the file, chunk it, embed the chunks (in batches), write the vectors, mark the job done. Because it's a queue, you get retries, controlled concurrency so you don't slam the embedding provider's rate limit, and backpressure when a big batch lands.</p>
+  <p>In Node this is usually a queue like <a href="https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/">BullMQ backed by Redis</a>; the same pattern exists in every language. The documents themselves go in <a href="https://www.kloudbean.com/blog/store-user-uploads-in-object-storage/">object storage</a>, never on the app's local disk, which vanishes on the next deploy. And the worker runs as its own long-lived process next to your app, not as a function that has to finish inside a request window. Redis, if you use it, is worth running as <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis</a> so the queue survives a restart.</p>
+
+  <!-- ADD IMAGE: swap this slot for a real screenshot. src -> images/embedding-queue.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your ingest queue: jobs waiting, in-progress, completed, failed with retry counts.</em><small>Shows embeddings running off the request path.</small></span></figure>
+
+  <h2>Keeping the index in sync when documents change</h2>
+  <p>This is the failure mode almost nobody plans for, and it's a quiet one because nothing errors. Your index doesn't crash when it goes stale. It just starts lying.</p>
+  <p>Picture it: someone edits a policy doc, or deletes an old contract, or a product page changes its pricing. The source is updated. But the vectors you embedded last month still hold the old text, so retrieval happily hands the model deleted or outdated content, and the model quotes it back to a user with total confidence. That's how a RAG system ends up citing a price you don't charge anymore.</p>
+  <p>Keeping the index honest takes a few deliberate moves:</p>
+  <ul>
+    <li><strong>Re-embed on change.</strong> When a document is updated, re-run it through ingest and replace its chunks. Use a content hash per chunk so you only re-embed the parts that actually changed, which saves real money on large docs.</li>
+    <li><strong>Delete when the source is deleted.</strong> Removing a document has to remove its vectors too. Orphaned vectors are the most dangerous kind, because they represent content that no longer exists anywhere you can audit.</li>
+    <li><strong>Version and reconcile.</strong> Tag chunks with a document version, and run a periodic reconcile job that compares the index against the source of truth and cleans up drift. A scheduled task (a cron job beside the app) is the usual home for that sweep.</li>
+  </ul>
+  <p>Tie ingest to your document lifecycle, so create, update, and delete each trigger the right index action. If your app can change a document without touching the index, the index will drift, and drift always shows up at the worst moment.</p>
+
+  <h2>Permissions: never hand back another user's data</h2>
+  <p>If there's one bug in this whole article that should scare you, it's this one. Vector similarity has no idea who owns what. It matches on meaning, full stop. So if you store every tenant's chunks in one index and search across all of them, a question from user A can retrieve a chunk from user B's private document, and your model will cheerfully summarize it into the answer. That's a data breach with a friendly tone.</p>
+  <p>The rule is simple to say and easy to get wrong: <strong>filter by permission at retrieval time, in the query, not after.</strong> Store the owning tenant and any access scope as metadata on every chunk, then constrain the search to what the current user is allowed to see. With Postgres and pgvector that's a plain WHERE clause riding alongside the similarity sort:</p>
+  <pre><code>SELECT chunk_text, source_id
+FROM   doc_chunks
+WHERE  tenant_id = $1            -- filter FIRST, always
+ORDER  BY embedding &lt;=&gt; $2       -- then similarity
+LIMIT  5;</code></pre>
+  <p>The <code>WHERE tenant_id = $1</code> is doing the security work. Never fetch the nearest chunks and then try to filter them in application code afterwards, and never rely on the prompt to "only use the user's own data." By the time text reaches the model, the leak has already happened. Filter before the model ever sees a byte.</p>
+  <p>A related trap: don't even index documents a user shouldn't be able to search. If a file is restricted, its chunks either stay out of the shared index or carry an access scope you enforce on every single query. Keeping tenants apart is retrieval logic you own, and it's worth a test that actually asserts user A can't retrieve user B's chunk.</p>
+
+  <h2>Provider calls will fail, so plan for it</h2>
+  <p>Embedding APIs and model APIs are network calls to someone else's busy service. They rate-limit you (hello, 429), they time out, and they have the occasional outage. In a demo you never notice. In production, at volume, you hit these constantly, and code that assumes the call always succeeds will lose data and half-index documents.</p>
+  <p>The defensive kit is standard, it just has to actually be there:</p>
+  <ul>
+    <li><strong>Retry with exponential backoff and jitter.</strong> On a 429 or a timeout, wait and try again, spacing attempts out so you don't stampede the provider the moment it recovers.</li>
+    <li><strong>Set explicit timeouts.</strong> A hung provider call shouldn't hang your worker forever. Bound it, then retry.</li>
+    <li><strong>Make ingest idempotent.</strong> A retried job must not create duplicate vectors. Key chunks by document ID and chunk index so a re-run overwrites cleanly instead of piling up.</li>
+    <li><strong>Checkpoint partial progress.</strong> If a 500-chunk document fails at chunk 300, resume from 300. Don't re-embed the first 300 and pay for them twice.</li>
+    <li><strong>Have a fallback on the query path.</strong> If the model is down mid-answer, fail gracefully: a cached response, a smaller backup model, or an honest "try again in a moment" beats a stack trace.</li>
+  </ul>
+  <p>None of this is exotic. It's the difference between a pipeline that shrugs off a rough afternoon at your provider and one that silently corrupts your index during it.</p>
+
+  <h2>Watch retrieval quality and the bill</h2>
+  <p>Two things you can't manage if you can't see them: whether retrieval is any good, and what it's costing you.</p>
+  <p>For quality, log what got retrieved for every answer. The chunk IDs, their similarity scores, the query. When a user reports a wrong answer, you want to open the trace and see exactly which chunks the model was handed, so you can tell a retrieval miss from a generation miss in seconds instead of guessing. Without that log you're debugging blind, and RAG gives you plenty to debug.</p>
+  <p>For cost, embeddings and model calls are metered, and a naive pipeline wastes money in obvious ways. Cache embeddings for repeated or near-identical queries. Batch embedding calls during ingest instead of one HTTP round trip per chunk. Skip re-embedding chunks whose content hash hasn't changed. Cap your top-k so you're not shoving twenty chunks into a prompt when five would answer better and cheaper. And track spend per tenant, because the one customer who uploads their entire document management system will show up in the bill before they show up in a meeting.</p>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>Everything above is engineering you own. The reason it usually hurts is logistics: the vectors live on one service, the queue on another, the documents somewhere else, and each has its own console, its own bill, its own way to lock down access. Kloudbean's angle is putting the whole stack in one dashboard.</p>
+  <p>The pieces a RAG app leans on map cleanly onto what's there: a <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a> database to keep your vectors beside your application data (pgvector is the standard Postgres extension for that, though enabling it depends on your Postgres version and setup, so check availability); <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis</a> to back the ingest queue and cache repeat queries; S3-compatible <a href="https://www.kloudbean.com/blog/store-user-uploads-in-object-storage/">object storage</a> for the source documents; and your embedding worker running as its own long-lived process right next to the app on the managed Node or Python runtime. You deploy from Git on every push, backups run automatically, SSL is free, and you lock the database down by whitelisting your app server's IP so only it can connect. No public database, no separate networking product to wrangle.</p>
+  <p>The honest boundary, because it's the part that builds trust: managed means the platform runs the server, the stack, SSL, backups, and patching. Your application code, your data, and your retrieval logic stay yours. Kloudbean can keep Postgres, Redis, and your worker healthy and reachable. It can't make your chunking smart or your tenant filter correct. That's the work in this article, and it belongs to you. For the wider map of what changes when an AI app meets real users, see <a href="https://www.kloudbean.com/blog/last-mile-of-vibe-coding/">the last mile of vibe coding</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Give your RAG stack one home.</p>
+    <p style="margin:0 0 .6em">Run the vector store, the queue, the documents, and the worker in a single dashboard. Managed PostgreSQL and Redis, S3-compatible object storage, a background process beside your app, automatic backups, and free SSL, deployed straight from Git.</p>
+    <p style="margin:0">Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">Managed PostgreSQL · Managed Redis · Object storage · Background workers · IP allow-listing · Automatic backups · Free SSL · Git deploy · Free migration</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is RAG in production?</h3>
+    <p>RAG in production is retrieval augmented generation running as a real service with real users, which needs far more than a vector database. It adds document ingestion and chunking, a background embeddings pipeline, index synchronisation when documents change, per-user permission filtering on retrieval, retries on provider calls, and observability plus cost control. The vector store is one component among several.</p>
+    <h3>Do I need a vector database for RAG?</h3>
+    <p>You need somewhere to store and search embeddings, but that rarely means a separate product. For most apps, Postgres with the pgvector extension keeps vectors next to your application data and is plenty. See <a href="https://www.kloudbean.com/blog/pgvector-for-ai-apps/">pgvector for AI apps</a> for the how-to. The bigger effort is everything around the store: chunking, sync, permissions, and reliability.</p>
+    <h3>Why should embeddings run as a background job?</h3>
+    <p>Because embedding a large document is hundreds of slow API calls, and doing that inside the upload request makes the request time out and leaves the document half-indexed. Move it to a queue and a worker: the upload returns immediately, the worker chunks and embeds in the background with retries and controlled concurrency. It also lets you respect the provider's rate limits instead of hammering them.</p>
+    <h3>What is the best chunk size for RAG?</h3>
+    <p>There's no universal number, but a reasonable starting point for prose is roughly 200 to 500 tokens per chunk with 10 to 15 percent overlap, then measure and adjust. Split on structure like headings and paragraphs rather than blind character counts. Chunks that are too big blur meaning and waste tokens; chunks that are too small lose the context that makes them answerable.</p>
+    <h3>How do I keep my RAG index in sync when documents change?</h3>
+    <p>Tie indexing to your document lifecycle. When a document is updated, re-embed it and replace its chunks, using a content hash so you only redo what changed. When a document is deleted, delete its vectors too, or you leave dangerous orphans. Version your chunks and run a periodic reconcile job to catch drift between the index and the source of truth.</p>
+    <h3>How do I stop RAG from leaking one user's data to another?</h3>
+    <p>Filter by permission at retrieval time, inside the query, not afterward. Store the owning tenant and access scope as metadata on every chunk, then constrain the search with a WHERE clause so it only considers chunks the current user may see. Never filter after retrieval or rely on the prompt to behave, because once restricted text reaches the model the leak has already happened.</p>
+    <h3>Why are my RAG answers wrong even with a good model?</h3>
+    <p>Usually because retrieval handed the model the wrong context, not because the model is weak. Stale vectors, chunks that are too coarse, or a missing filter all produce bad answers no model can fix. Log the chunks retrieved for each answer and inspect them first. Reach for better chunking, fresher indexing, and tighter filters before you reach for a bigger model.</p>
+    <h3>How do I control RAG costs in production?</h3>
+    <p>Stop paying for work you already did. Cache embeddings for repeated queries, batch embedding calls during ingest, and skip re-embedding chunks whose content hash is unchanged. Cap your top-k so prompts stay lean, and track token spend per tenant so a single heavy user is visible in the numbers before they surprise you in the bill.</p>
+    <h3>Can I run production RAG on Postgres with pgvector?</h3>
+    <p>Yes, and for most applications it's a solid default. You keep vectors beside your relational data, filter by similarity and by column in one query, and back everything up as a single system. See <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a>. Very high query volumes or huge vector counts may eventually justify a dedicated engine, but that's a later problem, not a starting one.</p>
+    <h3>What is the difference between RAG and fine-tuning?</h3>
+    <p>RAG fetches relevant text at query time and gives it to the model as context, so answers can cite current, private documents and update the moment the source does. Fine-tuning bakes patterns into the model's weights and is better for style or format than for fresh facts. Most teams that want a model to answer from their own changing documents want RAG, not fine-tuning.</p>
+  </div>
+
+  <p class="byline">Kloudbean · The vector database was the easy part.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"RAG in Production: What You Need Beyond a Vector Database","description":"RAG in production needs far more than a vector database: document chunking, a background embeddings pipeline, index sync, per-user permission filters, retries, observability, and cost control. Here is the architecture that holds up.","image":"https://www.kloudbean.com/blog/rag-in-production/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/rag-in-production/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is RAG in production?","acceptedAnswer":{"@type":"Answer","text":"RAG in production is retrieval augmented generation running as a real service with real users, which needs far more than a vector database. It adds document ingestion and chunking, a background embeddings pipeline, index synchronisation when documents change, per-user permission filtering on retrieval, retries on provider calls, and observability plus cost control. The vector store is one component among several."}},
+{"@type":"Question","name":"Do I need a vector database for RAG?","acceptedAnswer":{"@type":"Answer","text":"You need somewhere to store and search embeddings, but that rarely means a separate product. For most apps, Postgres with the pgvector extension keeps vectors next to your application data and is plenty. The bigger effort is everything around the store: chunking, sync, permissions, and reliability."}},
+{"@type":"Question","name":"Why should embeddings run as a background job?","acceptedAnswer":{"@type":"Answer","text":"Because embedding a large document is hundreds of slow API calls, and doing that inside the upload request makes the request time out and leaves the document half-indexed. Move it to a queue and a worker: the upload returns immediately, the worker chunks and embeds in the background with retries and controlled concurrency. It also lets you respect the provider rate limits instead of hammering them."}},
+{"@type":"Question","name":"What is the best chunk size for RAG?","acceptedAnswer":{"@type":"Answer","text":"There is no universal number, but a reasonable starting point for prose is roughly 200 to 500 tokens per chunk with 10 to 15 percent overlap, then measure and adjust. Split on structure like headings and paragraphs rather than blind character counts. Chunks that are too big blur meaning and waste tokens; chunks that are too small lose the context that makes them answerable."}},
+{"@type":"Question","name":"How do I keep my RAG index in sync when documents change?","acceptedAnswer":{"@type":"Answer","text":"Tie indexing to your document lifecycle. When a document is updated, re-embed it and replace its chunks, using a content hash so you only redo what changed. When a document is deleted, delete its vectors too, or you leave dangerous orphans. Version your chunks and run a periodic reconcile job to catch drift between the index and the source of truth."}},
+{"@type":"Question","name":"How do I stop RAG from leaking one user's data to another?","acceptedAnswer":{"@type":"Answer","text":"Filter by permission at retrieval time, inside the query, not afterward. Store the owning tenant and access scope as metadata on every chunk, then constrain the search so it only considers chunks the current user may see. Never filter after retrieval or rely on the prompt to behave, because once restricted text reaches the model the leak has already happened."}},
+{"@type":"Question","name":"Why are my RAG answers wrong even with a good model?","acceptedAnswer":{"@type":"Answer","text":"Usually because retrieval handed the model the wrong context, not because the model is weak. Stale vectors, chunks that are too coarse, or a missing filter all produce bad answers no model can fix. Log the chunks retrieved for each answer and inspect them first. Reach for better chunking, fresher indexing, and tighter filters before you reach for a bigger model."}},
+{"@type":"Question","name":"How do I control RAG costs in production?","acceptedAnswer":{"@type":"Answer","text":"Stop paying for work you already did. Cache embeddings for repeated queries, batch embedding calls during ingest, and skip re-embedding chunks whose content hash is unchanged. Cap your top-k so prompts stay lean, and track token spend per tenant so a single heavy user is visible in the numbers before they surprise you in the bill."}},
+{"@type":"Question","name":"Can I run production RAG on Postgres with pgvector?","acceptedAnswer":{"@type":"Answer","text":"Yes, and for most applications it is a solid default. You keep vectors beside your relational data, filter by similarity and by column in one query, and back everything up as a single system. Very high query volumes or huge vector counts may eventually justify a dedicated engine, but that is a later problem, not a starting one."}},
+{"@type":"Question","name":"What is the difference between RAG and fine-tuning?","acceptedAnswer":{"@type":"Answer","text":"RAG fetches relevant text at query time and gives it to the model as context, so answers can cite current, private documents and update the moment the source does. Fine-tuning bakes patterns into the model weights and is better for style or format than for fresh facts. Most teams that want a model to answer from their own changing documents want RAG, not fine-tuning."}}
+]}
+]}
+</script>
+</body>
+</html>
