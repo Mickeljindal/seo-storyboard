@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why AI Apps Fail in Production: Timeouts, Streaming, Retries, Queues, and Provider Outages</title>
+<meta name="description" content="Why AI apps fail in production is almost never the model. It is timeouts on long model calls, streaming killed by a buffering proxy, no retries on 429s, heavy work stuck in the request, provider outages with no fallback, cold starts, and connection exhaustion. A field guide with the fix for each.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/why-ai-apps-fail-in-production/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Why AI Apps Fail in Production">
+<meta property="og:description" content="A troubleshooting field guide to the real reasons AI apps break in production: timeouts, streaming, retries, queues, provider outages, cold starts, and connection limits. Symptom, cause, and fix for each.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">AI apps in production</span>
+  <h1>Why AI Apps Fail in Production: Timeouts, Streaming, Retries, Queues, and Provider Outages</h1>
+
+  <figure><img src="images/hero.png" alt="Why AI apps fail in production: a request dying at a proxy timeout, a buffered stream, and a failed provider call with no retry"></figure>
+
+  <p class="lead">Your AI app runs beautifully on localhost. Then you ship it, real people show up, and it starts throwing 504s, freezing mid-answer, or falling over the moment a second user arrives. Here's the thing worth saying up front: why AI apps fail in production is almost never the model. It's the plumbing around the model. Timeouts, streaming, retries, queues, and the provider having a bad day. This is a field guide to each failure mode, organised so you can match your symptom to a cause and a concrete fix.</p>
+  <p>If you built the app with Lovable, Cursor, Bolt, or the OpenAI and Anthropic SDKs by hand, the code is probably fine. What's missing is the operational layer no prompt writes for you, the same gap the <a href="https://www.kloudbean.com/blog/last-mile-of-vibe-coding/">last mile of vibe coding</a> maps in full. We'll walk the eight ways these apps break once they leave your laptop, and exactly what to change.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>AI apps fail in production because a long model call outlives a proxy timeout, a buffering proxy swallows your stream, provider 429s and timeouts aren't retried, heavy work runs inside the web request, an outage has no fallback, cold starts stall the first request, and the database runs out of connections under load. Almost all of it is config and architecture, not the model. Fix the request path and the failures mostly disappear.</p>
+  </div>
+
+  <h2>Most AI-app outages are config and architecture, not the model</h2>
+  <p>This is the one opinion I'll plant a flag on. When an AI app goes down, the instinct is to blame the model: it's slow, it's flaky, it rate-limited me. Sometimes true. But in practice the model is the one part someone else keeps running for you. What actually breaks is the stuff you own: a gateway that cuts long requests, a proxy that buffers, a missing retry, a job that should've been a queue, an environment variable that exists on your laptop and nowhere else.</p>
+  <p>That's good news, honestly. It means these failures are predictable and fixable without touching model quality at all. You don't need a better model. You need a request path that survives slow calls, transient errors, and a crowd. So let's map where requests actually die.</p>
+
+  <h2>Why AI apps fail in production, at a glance</h2>
+  <p>Find your symptom on the left, then jump to the section that explains the cause and the fix. This is the triage table. Keep it handy the next time something breaks at 2am.</p>
+  <table class="cmp">
+    <thead><tr><th>What you see</th><th>Likely cause</th><th>The fix</th></tr></thead>
+    <tbody>
+      <tr><td>504 after ~30 to 60 seconds on long answers</td><td>Model call outlives the proxy or gateway timeout</td><td>Move long work to a queue; stream partial output; raise the route timeout only as a stopgap</td></tr>
+      <tr><td>Reply arrives all at once, or not at all</td><td>A reverse proxy or CDN is buffering the stream</td><td>Disable buffering on the streaming route (nginx <code>X-Accel-Buffering: no</code>)</td></tr>
+      <tr><td>Random 429 and 5xx errors shown to users</td><td>No retry on provider rate limits or timeouts</td><td>Retry with exponential backoff and jitter, respect <code>Retry-After</code></td></tr>
+      <tr><td>Requests hang, then time out on big tasks</td><td>Heavy work running inside the web request</td><td>Push it to a background queue with a worker</td></tr>
+      <tr><td>Everything errors when the provider is down</td><td>A single provider with no fallback</td><td>Fail over to a second model or degrade gracefully</td></tr>
+      <tr><td>The first request after idle is slow or fails</td><td>Serverless cold start</td><td>Run an always-on process; keep it warm</td></tr>
+      <tr><td>Fine at 1 user, dies at 50</td><td>Database connection exhaustion</td><td>Add a connection pool; cap concurrency</td></tr>
+      <tr><td>Works locally, 502 or 503 in production</td><td>Config gaps: bind address, env vars, ports</td><td>Bind <code>0.0.0.0</code>, set env in the host, read <code>PORT</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>Where a request actually dies</h2>
+  <p>Before the individual fixes, picture the path. A request leaves the browser, passes through a reverse proxy or gateway, hits your app, and your app calls the model provider. Three of the most common failures live on this one line: the gateway cuts the connection when a call runs long, the proxy buffers the streamed reply so the user sees a frozen screen, and a provider 429 or timeout bubbles straight back as an error because nothing retried it.</p>
+  <figure>
+    <svg viewBox="0 0 820 430" role="img" aria-label="The request path of an AI app, showing three common death points. A browser sends a request through a reverse proxy or gateway to your app, which calls the model provider. Failure one: the gateway times out at roughly 30 to 60 seconds on a long model call and returns a 504. Failure two: on the reply path the proxy buffers the streamed tokens, so the user sees a frozen screen. Failure three: the model provider returns a 429 or a timeout and, with no retry in place, the error bubbles straight back to the user." xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4F1AF3"/></marker>
+        <marker id="arg" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#40b75f"/></marker>
+      </defs>
+
+      <rect x="28" y="182" width="120" height="72" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="88" y="212" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">Browser</text>
+      <text x="88" y="230" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">the user</text>
+
+      <rect x="208" y="170" width="164" height="96" rx="10" fill="#000f27"/>
+      <text x="290" y="204" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#fff">Reverse proxy</text>
+      <text x="290" y="222" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#fff">/ gateway</text>
+      <text x="290" y="242" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#9fb0cc">timeout + buffering live here</text>
+
+      <rect x="432" y="170" width="164" height="96" rx="10" fill="#000f27"/>
+      <text x="514" y="210" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13.5" font-weight="600" fill="#fff">Your app</text>
+      <text x="514" y="230" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#9fb0cc">Node / Python</text>
+
+      <rect x="656" y="182" width="140" height="72" rx="10" fill="#f6f7fb" stroke="#7C5CFF" stroke-width="1.5"/>
+      <text x="726" y="212" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">Model API</text>
+      <text x="726" y="230" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">provider you call</text>
+
+      <line x1="148" y1="210" x2="204" y2="210" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ar)"/>
+      <line x1="372" y1="210" x2="428" y2="210" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ar)"/>
+      <line x1="596" y1="210" x2="652" y2="210" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ar)"/>
+
+      <line x1="652" y1="238" x2="596" y2="238" stroke="#40b75f" stroke-width="2" marker-end="url(#arg)"/>
+      <line x1="428" y1="238" x2="372" y2="238" stroke="#40b75f" stroke-width="2" marker-end="url(#arg)"/>
+      <line x1="204" y1="238" x2="148" y2="238" stroke="#40b75f" stroke-width="2" marker-end="url(#arg)"/>
+      <text x="400" y="262" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#40b75f">streamed reply travels back</text>
+
+      <circle cx="290" cy="96" r="12" fill="#d63849"/>
+      <text x="290" y="100" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="700" fill="#fff">1</text>
+      <text x="312" y="92" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600" fill="#d63849">Timeout at ~30 to 60s</text>
+      <text x="312" y="108" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">long model call cut off, returns 504</text>
+      <line x1="290" y1="112" x2="290" y2="168" stroke="#d63849" stroke-width="1.4" stroke-dasharray="4 4"/>
+
+      <circle cx="290" cy="330" r="12" fill="#d63849"/>
+      <text x="290" y="334" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="700" fill="#fff">2</text>
+      <text x="312" y="326" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600" fill="#d63849">Buffered stream</text>
+      <text x="312" y="342" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">proxy holds tokens, user sees a frozen screen</text>
+      <line x1="290" y1="268" x2="290" y2="318" stroke="#d63849" stroke-width="1.4" stroke-dasharray="4 4"/>
+
+      <circle cx="624" cy="330" r="12" fill="#d63849"/>
+      <text x="624" y="334" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="700" fill="#fff">3</text>
+      <text x="500" y="360" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600" fill="#d63849">429 or timeout, no retry</text>
+      <text x="500" y="376" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">one provider blip becomes a user-facing error</text>
+      <line x1="624" y1="248" x2="624" y2="318" stroke="#d63849" stroke-width="1.4" stroke-dasharray="4 4"/>
+    </svg>
+    <figcaption>Three of the most common production failures sit on one line. The gateway cuts long calls, the proxy buffers the reply, and an un-retried provider error reaches the user. None of them are the model being wrong.</figcaption>
+  </figure>
+
+  <h2>The request times out on long model calls</h2>
+  <p><strong>What you see.</strong> A big generation (a long completion, a document summary, an agent doing several steps) hangs for a while, then dies with a 504 Gateway Timeout. Short prompts are fine. Long ones fail, and they fail at roughly the same duration every time.</p>
+  <p>Why it happens: there's a reverse proxy or load balancer in front of your app with an idle or read timeout, and it's often 30 or 60 seconds by default. Your model call takes longer than that, so the proxy gives up on the connection before your app ever gets its answer. Locally you had no proxy, so nothing enforced a ceiling and it "worked."</p>
+  <p>The fix, in order of how much I'd trust it: don't do multi-minute work in a web request at all, hand it to a queue and let the client poll or subscribe for the result (that's the next section). If the call is genuinely interactive, stream partial output so bytes flow before the timeout window closes, which keeps the connection alive and the user informed. Raising the proxy timeout is the weakest option, a stopgap that hides the design problem and still falls over on the one request that runs even longer.</p>
+
+  <h2>Streaming works locally but breaks in production</h2>
+  <p><strong>What you see.</strong> On your machine, tokens appear one by one. In production the whole reply lands at once after a long pause, or the connection just hangs and never delivers anything. The code didn't change. The environment did.</p>
+  <p>Why it happens: something between your app and the browser is buffering the response. A reverse proxy (nginx is the usual suspect) or a CDN collects the streamed chunks and waits, either for the response to finish or for its buffer to fill, before passing anything along. Server-Sent Events and chunked responses need to flow through untouched, and a buffering hop quietly defeats them.</p>
+  <p>The fix: turn buffering off on the streaming route specifically. On nginx that's <code>proxy_buffering off;</code> plus sending the <code>X-Accel-Buffering: no</code> response header from your app for that endpoint. Make sure you're not gzipping the stream in a way that forces buffering, and confirm the whole chain (any CDN in front included) is set to pass event streams through. Test it in production, not just locally, because this is the exact bug that only shows up once a proxy is in the path. If it's a chatbot you're shipping, <a href="https://www.kloudbean.com/blog/host-ai-chatbot-in-production/">how to host an AI chatbot in production</a> walks the streaming path end to end.</p>
+
+  <h2>Provider 429s and timeouts reach your users because nothing retries</h2>
+  <p><strong>What you see.</strong> Intermittent errors with no obvious pattern. A user hits send, gets a red error, hits send again, and it works. Your logs show 429 Too Many Requests or the odd 500 and 503 from the model provider, sprinkled through otherwise normal traffic.</p>
+  <p>Why it happens: model APIs rate-limit and occasionally blip. That's normal and expected. The mistake is treating every provider response as final. With no retry layer, a single transient 429 or timeout goes straight to the user as a failure, even though the very next attempt would've succeeded.</p>
+  <p>The fix: wrap provider calls in a retry with exponential backoff and jitter. Retry on 429, 500, 502, 503, 504, and network timeouts. When the provider sends a <code>Retry-After</code> header, honour it instead of guessing. Cap the number of attempts and set a sane per-request budget so a retry doesn't itself outlive the timeout from two sections ago.</p>
+  <div class="note">
+    <strong>The anti-pattern: retry storms.</strong>
+    <p>The wrong version of a retry is retrying instantly, with no backoff and no cap. When a provider slows down, every one of your requests retries at once, then again, then again. You've turned one provider hiccup into a self-inflicted flood that hammers the API and burns your rate limit faster. Backoff plus jitter plus a hard attempt cap is the whole point. A retry loop with no ceiling is worse than no retry at all.</p>
+  </div>
+
+  <h2>Heavy work runs inside the web request</h2>
+  <p><strong>What you see.</strong> Anything substantial (embedding a big document, a multi-step agent run, generating a batch of images, sending a mailout) either times out or leaves the user staring at a spinner for a minute. Under any concurrency, the app gets sluggish for everyone, not just the person who kicked off the big job.</p>
+  <p>Why it happens: a web request is meant to be short. When you do minutes of work inside it, you're holding a worker process (and often a database connection) hostage for the whole duration. A handful of those at once and your app has no capacity left to serve anyone. It's the same root cause as the timeout, seen from the resource side.</p>
+  <p>The fix: move long or bursty work to a background queue with a worker running beside the app. The request enqueues a job and returns immediately with an id; the worker does the slow part; the client polls or gets notified when it's done. In Node, BullMQ on Redis is the standard shape, and <a href="https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/">background jobs with BullMQ</a> walks through it. This one change fixes timeouts, keeps the app responsive under load, and lets you retry a failed job without the user resubmitting.</p>
+
+  <h2>The provider has an outage and you have no fallback</h2>
+  <p><strong>What you see.</strong> Your app is down, but your servers are healthy. Every request errors at the same moment because the model provider is having an incident, and your app has exactly one place to get an answer.</p>
+  <p>Why it happens: single points of failure are easy to build by accident. One provider, one model, one region, hard-wired. When it's up you never notice. When it's down, so are you, and there's nothing you can do but wait and watch the status page.</p>
+  <p>The fix depends on how critical the feature is. At minimum, fail gracefully: catch the outage, show a calm message, and queue the work to run when the provider returns rather than dropping it. For anything important, wire a fallback to a second provider or a smaller model so a failed primary call retries against a backup. Add a short-lived cache so identical recent prompts don't all depend on a live call. You don't need every layer on day one, but pick the one that matches how much an outage would actually hurt you.</p>
+
+  <h2>Cold starts make the first request slow or failing</h2>
+  <p><strong>What you see.</strong> The first request after a quiet period is painfully slow or times out, then everything's fine for a while, then it's slow again after the app's been idle. It correlates with traffic gaps, not with load.</p>
+  <p>Why it happens: serverless platforms scale to zero when idle. The first request afterward has to cold-start the runtime, which for an AI app can mean loading a chunky SDK and re-establishing database connections before it even calls the model. That startup tax lands on a real user, and it's often the first impression a new visitor gets.</p>
+  <p>The fix: for a steady, connection-heavy AI backend, run an always-on process instead of scaling to zero. A warm process keeps its connection pool ready and pays no startup cost per request. Serverless genuinely shines for spiky, occasional work, but a chat or agent backend is usually the opposite of that, and the cold-start penalty hits exactly where it hurts most.</p>
+
+  <h2>Connection exhaustion under load</h2>
+  <p><strong>What you see.</strong> Fine with one user, fine in your demo, then it falls apart the moment real traffic arrives. The database throws errors like <code>FATAL: sorry, too many clients already</code>, or your app logs timeouts waiting for a connection.</p>
+  <p>Why it happens: databases cap how many connections they'll accept (Postgres often ships with a ceiling around 100). If every request opens its own connection and holds it, especially while waiting on a slow model call, you exhaust that pool fast. Serverless makes it worse by spinning up many isolated instances that each open connections. The math catches up with you the first busy day.</p>
+  <p>The fix: put a connection pool in front of the database so connections are reused instead of created per request, and set the pool size to respect the database limit. Cap concurrency so a burst queues instead of opening a thousand connections at once. Don't hold a database connection open across a long model call. Our <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a> guide covers why the limit bites sooner than people expect and how to size the pool.</p>
+
+  <h2>It works locally but fails in production</h2>
+  <p><strong>What you see.</strong> The classic. Perfect on your machine, then a 502 or 503 the moment it's deployed, sometimes before a single line of your logic runs. If you built with an AI tool, this is probably the first wall you hit.</p>
+  <p>Why it happens: it's almost always configuration, not code. The app binds to <code>127.0.0.1</code> instead of <code>0.0.0.0</code>, so nothing outside the container can reach it. Or it hard-codes a port instead of reading <code>PORT</code> from the environment. Or an environment variable that exists in your local <code>.env</code> simply isn't set on the host, so an API key or database URL is undefined and the app crashes on boot.</p>
+  <p>The fix: bind to <code>0.0.0.0</code>, read the port from the environment, and set every secret and config value in the host rather than assuming a local file came along for the ride. If you're staring at a 503 right now, <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fix a 503 after deploying your app</a> is the focused walkthrough, and <a href="https://www.kloudbean.com/blog/why-my-ai-app-works-locally-but-not-in-production/">why your AI app works locally but not in production</a> covers the wider pattern of environment gaps.</p>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>Most of these failures come from an architecture that scales to zero, hides behind a proxy you can't see, and scatters the database somewhere else. Kloudbean's shape removes a chunk of that by default. Apps run as always-on processes, so there are no cold starts and the first request isn't the slow one. You get managed Redis to back a job queue, so heavy work moves out of the web request, and a managed Postgres or MySQL that lives outside the app with room to add a connection pool for the load problem. Node and Python runtimes, the reverse proxy and stack handled for you, free SSL, backups, and deploys from Git on every push. You lock the database down by whitelisting your app server's IP so only it can connect, rather than leaving it open. We run our own tools this way, so it's the setup we actually use.</p>
+  <p>The honest boundary, because it's what earns trust: managed hosting removes a whole class of infrastructure failures, the cold starts, the vanished environment, the database with nowhere to pool. It does not remove your bugs. A missing retry, a job you left in the request, a hard-coded provider with no fallback: those live in your code, and they stay yours to fix. Full network isolation in a private VPC is an Enterprise capability; on a standard plan, the IP allow-list is how you keep the database off the open internet. Kloudbean makes the running reliable. It can't make an un-retried API call resilient for you.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Run your AI app where the request path doesn't fight you.</p>
+    <p style="margin:0 0 .6em">Always-on processes with no cold starts, managed Redis for your job queue, managed Postgres and MySQL for the data, free SSL, and Git deploys, all in one dashboard. Move the slow work off the request and let the platform handle the boring reliability layer.</p>
+    <p style="margin:0">Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">Always-on (no cold starts) · Managed Redis + Postgres · Automatic backups · Free SSL · Git deploy · Free migration · IP allow-listing</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Why do AI apps fail in production when they work locally?</h3>
+    <p>Because production adds things localhost never had: a reverse proxy with a timeout, real concurrency, a database connection limit, and secrets that must be set on the host instead of in a local file. The model is usually fine. The failures live in the request path and the config around it, which is why the same code behaves differently once it's deployed.</p>
+    <h3>Why does my AI app time out on long model calls?</h3>
+    <p>A reverse proxy or load balancer in front of your app has an idle or read timeout, often 30 or 60 seconds, and a long generation outruns it, so you get a 504. The durable fix is to move long work to a background queue and stream partial output for interactive calls. Raising the proxy timeout only delays the same failure.</p>
+    <h3>Why did my streaming responses stop working in production?</h3>
+    <p>Almost always a buffering reverse proxy or CDN. It collects your streamed tokens and releases them in one lump, so the reply lands all at once or hangs. Disable buffering on the streaming route (on nginx, <code>proxy_buffering off;</code> and the <code>X-Accel-Buffering: no</code> header) and confirm nothing else in the chain re-buffers the event stream.</p>
+    <h3>How should I handle 429 rate limit errors from an AI provider?</h3>
+    <p>Retry them, but carefully. Use exponential backoff with jitter, honour the <code>Retry-After</code> header when the provider sends it, and cap the number of attempts. Retrying instantly with no backoff creates a retry storm that makes rate limiting worse. A bounded, backed-off retry turns most transient 429s and timeouts into a small delay the user never notices.</p>
+    <h3>Should I run long AI tasks inside the web request?</h3>
+    <p>No. A web request should be short. Long tasks like embedding documents, multi-step agents, or batch generation hold a worker and often a database connection for the whole duration, which starves the app under any concurrency. Push them to a background queue with a worker, return a job id immediately, and let the client poll or subscribe for the result.</p>
+    <h3>What happens when my AI provider has an outage?</h3>
+    <p>If you have a single hard-wired provider, your app goes down with it even though your servers are healthy. At minimum, catch the outage and fail gracefully, queuing work to run when the provider returns. For critical features, add a fallback to a second provider or a smaller model, and cache recent identical prompts so not every request depends on a live call.</p>
+    <h3>Why is the first request to my AI app slow or failing?</h3>
+    <p>Cold starts. Serverless platforms scale to zero when idle, so the first request afterward pays to boot the runtime, load the SDK, and reopen database connections before it even reaches the model. For a steady, connection-heavy AI backend, run an always-on process so it stays warm and the first request is as fast as the rest.</p>
+    <h3>What causes too many connections errors under load?</h3>
+    <p>Connection exhaustion. Databases cap connections (Postgres often around 100), and if every request opens its own and holds it across a slow model call, you run out fast. Serverless makes it worse with many isolated instances. Add a connection pool so connections are reused, size it to the database limit, and cap concurrency so bursts queue instead of piling on.</p>
+    <h3>Is it the model or my infrastructure when my AI app fails?</h3>
+    <p>Far more often the infrastructure and configuration than the model. Timeouts, buffered streams, missing retries, work stuck in the request, and connection limits account for the bulk of production outages. The model is the piece a provider keeps running for you. Fix the request path first, and most of the failures you were blaming on the model disappear.</p>
+  </div>
+
+  <p class="byline">Kloudbean · The model rarely breaks. The request path does.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Why AI Apps Fail in Production: Timeouts, Streaming, Retries, Queues, and Provider Outages","description":"Why AI apps fail in production is almost never the model. It is timeouts on long model calls, streaming killed by a buffering proxy, no retries on 429s, heavy work stuck in the request, provider outages with no fallback, cold starts, and connection exhaustion. A field guide with the fix for each.","image":"https://www.kloudbean.com/blog/why-ai-apps-fail-in-production/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/why-ai-apps-fail-in-production/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Why do AI apps fail in production when they work locally?","acceptedAnswer":{"@type":"Answer","text":"Because production adds things localhost never had: a reverse proxy with a timeout, real concurrency, a database connection limit, and secrets that must be set on the host instead of in a local file. The model is usually fine. The failures live in the request path and the config around it, which is why the same code behaves differently once it is deployed."}},
+{"@type":"Question","name":"Why does my AI app time out on long model calls?","acceptedAnswer":{"@type":"Answer","text":"A reverse proxy or load balancer in front of your app has an idle or read timeout, often 30 or 60 seconds, and a long generation outruns it, so you get a 504. The durable fix is to move long work to a background queue and stream partial output for interactive calls. Raising the proxy timeout only delays the same failure."}},
+{"@type":"Question","name":"Why did my streaming responses stop working in production?","acceptedAnswer":{"@type":"Answer","text":"Almost always a buffering reverse proxy or CDN. It collects your streamed tokens and releases them in one lump, so the reply lands all at once or hangs. Disable buffering on the streaming route (on nginx, proxy_buffering off and the X-Accel-Buffering no header) and confirm nothing else in the chain re-buffers the event stream."}},
+{"@type":"Question","name":"How should I handle 429 rate limit errors from an AI provider?","acceptedAnswer":{"@type":"Answer","text":"Retry them, but carefully. Use exponential backoff with jitter, honour the Retry-After header when the provider sends it, and cap the number of attempts. Retrying instantly with no backoff creates a retry storm that makes rate limiting worse. A bounded, backed-off retry turns most transient 429s and timeouts into a small delay the user never notices."}},
+{"@type":"Question","name":"Should I run long AI tasks inside the web request?","acceptedAnswer":{"@type":"Answer","text":"No. A web request should be short. Long tasks like embedding documents, multi-step agents, or batch generation hold a worker and often a database connection for the whole duration, which starves the app under any concurrency. Push them to a background queue with a worker, return a job id immediately, and let the client poll or subscribe for the result."}},
+{"@type":"Question","name":"What happens when my AI provider has an outage?","acceptedAnswer":{"@type":"Answer","text":"If you have a single hard-wired provider, your app goes down with it even though your servers are healthy. At minimum, catch the outage and fail gracefully, queuing work to run when the provider returns. For critical features, add a fallback to a second provider or a smaller model, and cache recent identical prompts so not every request depends on a live call."}},
+{"@type":"Question","name":"Why is the first request to my AI app slow or failing?","acceptedAnswer":{"@type":"Answer","text":"Cold starts. Serverless platforms scale to zero when idle, so the first request afterward pays to boot the runtime, load the SDK, and reopen database connections before it even reaches the model. For a steady, connection-heavy AI backend, run an always-on process so it stays warm and the first request is as fast as the rest."}},
+{"@type":"Question","name":"What causes too many connections errors under load?","acceptedAnswer":{"@type":"Answer","text":"Connection exhaustion. Databases cap connections (Postgres often around 100), and if every request opens its own and holds it across a slow model call, you run out fast. Serverless makes it worse with many isolated instances. Add a connection pool so connections are reused, size it to the database limit, and cap concurrency so bursts queue instead of piling on."}},
+{"@type":"Question","name":"Is it the model or my infrastructure when my AI app fails?","acceptedAnswer":{"@type":"Answer","text":"Far more often the infrastructure and configuration than the model. Timeouts, buffered streams, missing retries, work stuck in the request, and connection limits account for the bulk of production outages. The model is the piece a provider keeps running for you. Fix the request path first, and most of the failures you were blaming on the model disappear."}}
+]}
+]}
+</script>
+</body>
+</html>

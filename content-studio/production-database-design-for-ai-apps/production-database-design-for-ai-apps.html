@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Production Database Design for AI Apps: The Schema a Real SaaS Needs</title>
+<meta name="description" content="Database design for AI apps, worked through as a real SaaS schema: users, conversations, messages, documents, embeddings with pgvector, usage and token metering, billing, audit, plus a deletion path that makes erasing a user one transaction instead of manual surgery.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/production-database-design-for-ai-apps/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Production Database Design for AI Apps">
+<meta property="og:description" content="A practical, opinionated schema for a real AI SaaS: the core tables, why each exists, how they relate, what to index, and the deletion path most teams forget until a user asks to be erased.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">AI apps in production</span>
+  <h1>Production Database Design for AI Apps: The Schema a Real SaaS Needs</h1>
+
+  <figure><img src="images/hero.png" alt="An entity-relationship sketch of a production AI SaaS schema: users, conversations, messages, documents, embeddings, usage, billing, and audit tables"></figure>
+
+  <p class="lead">Good database design for AI apps is the part nobody prompts their way through. The model gets all the attention, but the thing that outlives your code, survives every redeploy, and decides whether you can bill a customer or honour a deletion request is the schema underneath. Get it roughly right early and the app grows calmly. Get it wrong and you're doing surgery on live data at the worst possible time.</p>
+  <p>This is a walk through the tables a real AI SaaS actually needs, in copy-paste SQL, with the reason each one exists. Not a normalization lecture. A working starting schema: who the user is, what they said, what documents they gave you, the embeddings for search, what they used (so you can bill and rate-limit), what you charged, who did what, and, the piece most schemas skip, how to erase all of it cleanly when someone asks.</p>
+
+  <div class="tldr">
+    <strong>Short answer</strong>
+    <p>A production AI app needs a handful of related tables: users, conversations, and messages for the chat spine; documents and doc_chunks (with a pgvector column) for knowledge and search; usage_events and billing_records for metering and money; and an audit_log for accountability. Design foreign keys with ON DELETE CASCADE and a soft-delete column from the start, so a delete-my-account request is one transaction, not manual surgery. Keep the durable record in Postgres and the fast, throwaway state in Redis.</p>
+  </div>
+
+  <div class="note">
+    <strong>This isn't a pgvector tutorial.</strong> The vector column shows up here as one table in a bigger schema, to show why embeddings can live beside your relational data. For the deep end (choosing a vector store, HNSW vs IVFFlat, distance operators, tuning the index) read <a href="https://www.kloudbean.com/blog/pgvector-for-ai-apps/">pgvector for AI apps</a>. This page is about the whole data model around it.
+  </div>
+
+  <h2>What database design for AI apps really comes down to</h2>
+  <p>Most of an AI SaaS schema is just a SaaS schema. Users, a subscription, some content. What makes database design for AI apps its own thing is three pressures that show up early and hurt if you ignore them.</p>
+  <p>First, conversational data grows fast and unevenly. One user sends three messages, another pastes a novel. You're storing every turn, sometimes with token counts, and that table gets big quickly. Second, you have embeddings: vectors you search by similarity, not by exact match, and they want to sit close to the relational data you filter on. Third, the model costs real money per call, so metering isn't a nice-to-have you bolt on before launch. It's a column you should be writing from request one.</p>
+  <p>The rest is ordinary discipline. Sensible keys, foreign keys that mean something, indexes on the columns you actually query, and a deletion story you designed on purpose. Let's build it.</p>
+
+  <h2>The shape of the schema, in one picture</h2>
+  <p>Before the SQL, here's how the tables relate. A user is the hub. Everything hangs off them, and almost every "who owns this row" question is answered by a <code>user_id</code> foreign key. Three branches matter: the conversation branch, the knowledge branch, and the money branch. An audit log sits to the side, recording actions across all of them.</p>
+  <figure>
+    <svg viewBox="0 0 820 500" role="img" aria-label="An entity-relationship diagram for a production AI SaaS. A central users table is the hub. From it, three branches fan out. The conversation branch: users has many conversations, and conversations has many messages. The knowledge branch: users has many documents, and each document has many doc_chunks, where each chunk row holds an embedding vector. The money branch: users has many usage_events, and usage_events roll up into billing_records. Separately, an audit_log table records actions, with users and system actors writing rows to it." xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4F1AF3"/></marker>
+      </defs>
+
+      <!-- hub -->
+      <rect x="34" y="188" width="152" height="86" rx="12" fill="#000f27"/>
+      <text x="110" y="222" text-anchor="middle" font-family="Poppins,sans-serif" font-size="15" font-weight="700" fill="#fff">users</text>
+      <text x="110" y="242" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#9fb0cc">id &#183; email</text>
+      <text x="110" y="257" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#40b75f">deleted_at (soft delete)</text>
+
+      <!-- conversation branch -->
+      <rect x="272" y="42" width="168" height="58" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="356" y="66" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">conversations</text>
+      <text x="356" y="84" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#5b6a86">id &#183; user_id &#183; title</text>
+
+      <rect x="524" y="42" width="176" height="58" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="612" y="66" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">messages</text>
+      <text x="612" y="84" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#5b6a86">conversation_id &#183; role &#183; content</text>
+
+      <!-- knowledge branch -->
+      <rect x="272" y="211" width="168" height="58" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="356" y="235" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">documents</text>
+      <text x="356" y="253" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#5b6a86">id &#183; user_id &#183; source_uri</text>
+
+      <rect x="524" y="211" width="176" height="58" rx="10" fill="#f6f7fb" stroke="#40b75f" stroke-width="1.7"/>
+      <text x="612" y="235" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">doc_chunks</text>
+      <text x="612" y="253" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#5b6a86">chunk_text &#183; embedding vector</text>
+
+      <!-- money branch -->
+      <rect x="272" y="342" width="168" height="58" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="356" y="366" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">usage_events</text>
+      <text x="356" y="384" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#5b6a86">user_id &#183; tokens &#183; model</text>
+
+      <rect x="524" y="342" width="176" height="58" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="612" y="366" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">billing_records</text>
+      <text x="612" y="384" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#5b6a86">user_id &#183; period &#183; amount</text>
+
+      <!-- audit -->
+      <rect x="272" y="432" width="428" height="46" rx="10" fill="#fff" stroke="#4F1AF3" stroke-width="1.4" stroke-dasharray="6 5"/>
+      <text x="486" y="460" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">audit_log &#183; actor_id &#183; action &#183; metadata (append-only)</text>
+
+      <!-- lines from hub -->
+      <line x1="186" y1="210" x2="268" y2="72" stroke="#4F1AF3" stroke-width="1.8" marker-end="url(#ar)"/>
+      <line x1="186" y1="231" x2="268" y2="240" stroke="#4F1AF3" stroke-width="1.8" marker-end="url(#ar)"/>
+      <line x1="186" y1="252" x2="268" y2="371" stroke="#4F1AF3" stroke-width="1.8" marker-end="url(#ar)"/>
+      <line x1="150" y1="274" x2="268" y2="452" stroke="#4F1AF3" stroke-width="1.4" stroke-dasharray="5 5" marker-end="url(#ar)"/>
+
+      <!-- branch continuations -->
+      <line x1="440" y1="71" x2="520" y2="71" stroke="#4F1AF3" stroke-width="1.8" marker-end="url(#ar)"/>
+      <line x1="440" y1="240" x2="520" y2="240" stroke="#4F1AF3" stroke-width="1.8" marker-end="url(#ar)"/>
+      <line x1="440" y1="371" x2="520" y2="371" stroke="#4F1AF3" stroke-width="1.8" stroke-dasharray="6 5" marker-end="url(#ar)"/>
+
+      <!-- relationship labels -->
+      <text x="214" y="150" font-family="Poppins,sans-serif" font-size="9.5" font-weight="600" fill="#40b75f">has many</text>
+      <text x="470" y="60" font-family="Poppins,sans-serif" font-size="9.5" font-weight="600" fill="#40b75f">has many</text>
+      <text x="470" y="229" font-family="Poppins,sans-serif" font-size="9.5" font-weight="600" fill="#40b75f">has many</text>
+      <text x="452" y="360" font-family="Poppins,sans-serif" font-size="9.5" font-weight="600" fill="#5b6a86">rolls up</text>
+    </svg>
+    <figcaption>The user is the hub; nearly every table carries a user_id. Read each arrow as one-to-many: a user has many conversations, a conversation has many messages, a document has many chunks. Design these relationships once and deletion, billing, and permission checks all get easier.</figcaption>
+  </figure>
+
+  <h2>Users, conversations, and messages: the conversational spine</h2>
+  <p>Start with the three tables almost every AI app shares. A user has many conversations, and a conversation has many messages. Notice two deliberate choices in here: a <code>deleted_at</code> column on users for soft delete, and <code>ON DELETE CASCADE</code> so removing a parent row cleans up its children automatically.</p>
+  <pre><code>CREATE TABLE users (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  email       text UNIQUE NOT NULL,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  deleted_at  timestamptz                     -- NULL = active, set = soft-deleted
+);
+
+CREATE TABLE conversations (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title       text,
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE messages (
+  id               bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  conversation_id  uuid NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  role             text NOT NULL,             -- 'user' | 'assistant' | 'system'
+  content          text NOT NULL,
+  token_count      int,                       -- handy later for cost + context limits
+  created_at       timestamptz NOT NULL DEFAULT now()
+);</code></pre>
+  <p>A couple of choices worth defending. Messages use a <code>bigint</code> identity key, not a uuid, because they're the highest-volume table and a compact, sequential key keeps the index tight and inserts cheap. The <code>role</code> column mirrors the shape the model APIs already speak, so you're not translating on every write. And storing <code>token_count</code> per message costs you nothing now and saves you later, both for trimming context windows and for the usage math we're about to get to.</p>
+  <p>Use <code>timestamptz</code>, not <code>timestamp</code>. Your users are in other time zones, your server might not be where you think, and a naive timestamp is a bug waiting for a support ticket. Store an instant, format it for humans at the edge.</p>
+
+  <h2>Documents and embeddings: why vectors can live in Postgres</h2>
+  <p>If your app does retrieval, search, or any "answer from my documents" feature, you need somewhere for the source files and somewhere for their embeddings. The files themselves belong in object storage, not the database; the row just points at them. The embeddings, though, can sit right in Postgres next to everything else.</p>
+  <pre><code>CREATE EXTENSION IF NOT EXISTS vector;        -- pgvector, if your Postgres has it
+
+CREATE TABLE documents (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title       text,
+  source_uri  text,                            -- path to the file in object storage
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE doc_chunks (
+  id           bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  document_id  uuid NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+  user_id      uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  chunk_text   text NOT NULL,
+  embedding    vector(1536),                   -- one vector per chunk
+  created_at   timestamptz NOT NULL DEFAULT now()
+);</code></pre>
+  <p>The <code>vector(1536)</code> type comes from the pgvector extension (1536 is just a common embedding size; use whatever your model outputs). The reason this matters for design is simple: your embeddings can join and filter against your relational data in a single query. No second database to keep in sync, no copying user IDs into a separate vector store and praying they stay consistent, one backup that captures everything.</p>
+  <p>See the <code>user_id</code> on <code>doc_chunks</code>, even though you could reach it through <code>document_id</code>? That's a deliberate denormalization. Your retrieval query filters by user on every single call, and you want that filter to be one indexed column on the table you're actually searching, not a join away. It makes the security-critical query both simpler and faster:</p>
+  <pre><code>SELECT chunk_text
+FROM   doc_chunks
+WHERE  user_id = $1              -- the permission filter, always first
+ORDER  BY embedding &lt;=&gt; $2       -- then similarity (pgvector distance operator)
+LIMIT  5;</code></pre>
+  <p>The <code>WHERE user_id = $1</code> is doing the security work: a user can only ever retrieve their own chunks. Everything about tuning that vector index, and whether Postgres is the right home for your vector volume at all, lives in the <a href="https://www.kloudbean.com/blog/pgvector-for-ai-apps/">pgvector guide</a>. For most apps, the answer is yes, keep it in Postgres and keep your stack small.</p>
+
+  <h2>Usage and tokens: build the meter on day one</h2>
+  <p>Here's the one opinion I'll push hardest in this whole piece: <strong>model the usage table before you write a single billing feature.</strong> Not after you have customers. Not when you decide to charge. Now, on day one, when it's a single empty table nobody's using yet.</p>
+  <p>The reason is brutal and simple. You cannot bill for, rate-limit, or analyse usage you never recorded. If you launch without a usage table and add billing three months later, you've got three months of history that doesn't exist. You can't reconstruct who spent what, you can't honour a "you charged me wrong" dispute, and you can't set a fair free-tier cap because you have no idea what normal looks like. Retrofitting metering is the migration everyone dreads, and it's entirely avoidable.</p>
+  <pre><code>CREATE TABLE usage_events (
+  id             bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  user_id        uuid NOT NULL REFERENCES users(id),   -- note: no CASCADE here, on purpose
+  kind           text NOT NULL,             -- 'chat' | 'embed' | 'completion'
+  model          text,                      -- which model served it
+  prompt_tokens  int NOT NULL DEFAULT 0,
+  output_tokens  int NOT NULL DEFAULT 0,
+  created_at     timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE billing_records (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id       uuid REFERENCES users(id),   -- nullable so it survives anonymisation
+  period_start  date NOT NULL,
+  period_end    date NOT NULL,
+  amount_cents  bigint NOT NULL,
+  created_at    timestamptz NOT NULL DEFAULT now()
+);</code></pre>
+  <p>Write one <code>usage_events</code> row per model call, with the token split and the model name. That raw log is the truth. Your billing job reads a period, sums the tokens per user, applies your pricing, and writes a <code>billing_records</code> row: a summary you can show on an invoice without re-summing millions of events every time someone opens the billing page.</p>
+  <p>Notice <code>usage_events</code> deliberately does not cascade on user delete, and <code>billing_records.user_id</code> is nullable. That's not sloppiness. Financial records usually need to outlive the account for accounting and tax reasons, so when a user leaves you anonymise these rows rather than deleting them. Which brings us to the part most schemas get wrong.</p>
+
+  <h2>Audit records: a durable log of who did what</h2>
+  <p>An audit log is a plain table that answers "who did that, and when." You don't need it on day one the way you need usage, but you'll want it the first time something looks wrong and you're staring at data with no idea how it got that way.</p>
+  <pre><code>CREATE TABLE audit_log (
+  id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  actor_id    uuid,                     -- who acted (NULL for system actions)
+  action      text NOT NULL,            -- 'user.login', 'document.delete', 'plan.upgrade'
+  target      text,                     -- what it touched, e.g. 'document:42'
+  metadata    jsonb,                    -- extra context, structured
+  created_at  timestamptz NOT NULL DEFAULT now()
+);</code></pre>
+  <p>Two rules keep an audit log honest. It's append-only: your app inserts, it never updates or deletes a row. And it records the actor even for things users can't see, like a background job or an admin action, so the trail is complete. The <code>jsonb</code> metadata column is the pressure valve: you can attach whatever context an event needs without a schema change every time you log something new.</p>
+  <p>This is your application's audit table, and it's separate from any platform-level activity log your host might offer. Don't confuse the two. The app-level log knows about <em>your</em> domain events; keep it in your schema where you can query it alongside everything else.</p>
+
+  <h2>Deletion is a feature, not an afterthought</h2>
+  <p>Now the section most tutorials skip, and the one that turns into a fire drill. Picture the anti-pattern: an app with no <code>deleted_at</code> columns and no foreign-key cascades. A user emails "please delete my account and all my data." Suddenly you're writing one-off DELETE statements by hand, table by table, in production, trying to remember every place a <code>user_id</code> got scattered. Miss one and you've kept data you swore you erased. That's not a workflow. That's surgery, and you're operating without a map.</p>
+  <p>Design gives you the map. There are two kinds of delete, and a real app uses both deliberately.</p>
+  <table class="cmp">
+    <thead><tr><th>Aspect</th><th>Soft delete (deleted_at)</th><th>Hard delete (row is gone)</th></tr></thead>
+    <tbody>
+      <tr><td>What happens</td><td>Row stays, flagged with a timestamp</td><td>Row is physically removed</td></tr>
+      <tr><td>Reversible</td><td>Yes, just clear the flag</td><td>No, only a restore from backup</td></tr>
+      <tr><td>Query cost</td><td>Every read must filter out deleted rows</td><td>Nothing to filter, table stays lean</td></tr>
+      <tr><td>Right for</td><td>Undo, trash bins, accidental deletes, short grace periods</td><td>Genuine erase-my-data requests, legal removal</td></tr>
+      <tr><td>The trap</td><td>Forget the filter once and deleted data reappears</td><td>Cascade set up wrong and you orphan rows or over-delete</td></tr>
+    </tbody>
+  </table>
+  <p>Soft delete is your everyday default. A user "deletes" a conversation, you set <code>deleted_at = now()</code>, your queries carry a <code>WHERE deleted_at IS NULL</code>, and you can offer an undo. Good for accidents, good for support ("I didn't mean to delete that").</p>
+  <p>Hard delete is for when someone genuinely wants to be forgotten, which in a lot of places is a legal right, not a favour. This is where the design work from earlier pays off. Because you set up <code>ON DELETE CASCADE</code> on the child tables, erasing a user is close to one statement, and the anonymise-don't-delete rule handles the financial records that must stay:</p>
+  <pre><code>-- Erase a user for real. Cascades clear the children; billing is anonymised.
+BEGIN;
+  -- keep financial history, but detach it from the person
+  UPDATE billing_records SET user_id = NULL WHERE user_id = $1;
+  UPDATE usage_events    SET user_id = NULL WHERE user_id = $1;
+  UPDATE audit_log       SET actor_id = NULL WHERE actor_id = $1;
+
+  -- this one line cascades: conversations, messages, documents, doc_chunks
+  DELETE FROM users WHERE id = $1;
+COMMIT;</code></pre>
+  <p>One transaction. It either all happens or none of it does. Compare that to hunting through a dozen tables by hand, and you can see why the cascades and the nullable billing key were worth setting up on day one. The erase path is a feature you build once and test, not a panic you improvise later. And do test it: a throwaway user, a real erase, then a check that nothing of theirs is left where it shouldn't be.</p>
+
+  <h2>Index the columns you actually query</h2>
+  <p>Indexes are where good intentions go sideways. The reflex is to index everything, which slows every write and bloats the database for lookups you never run. The better rule: index the columns you filter on, join on, and sort by. In this schema, that's a short, predictable list.</p>
+  <pre><code>-- Foreign keys you filter and join on constantly
+CREATE INDEX ON conversations (user_id);
+CREATE INDEX ON messages (conversation_id, created_at);   -- list a chat in order
+CREATE INDEX ON doc_chunks (user_id);                      -- the permission filter
+CREATE INDEX ON usage_events (user_id, created_at);        -- sum a billing period
+
+-- The vector index for similarity search (pgvector). Tune for your setup.
+CREATE INDEX ON doc_chunks USING hnsw (embedding vector_cosine_ops);</code></pre>
+  <p>A few of these are doing specific work. The composite <code>(conversation_id, created_at)</code> index means loading a conversation in order is a single efficient range scan, not a sort of the whole table. The <code>(user_id, created_at)</code> on usage is what makes a billing job for last month fast instead of a full scan. And the HNSW index is what turns vector search from a slow linear comparison into something usable, though the how and the trade-offs belong in the <a href="https://www.kloudbean.com/blog/pgvector-for-ai-apps/">pgvector guide</a>.</p>
+  <p>Don't add these blind, either. Index because a real query is slow or clearly will be, watch the ones that matter, and drop any that stop earning their keep. An index nobody's query uses is pure overhead.</p>
+
+  <h2>Postgres for the durable record, Redis for the fast layer</h2>
+  <p>One more design decision separates apps that scale calmly from ones that fall over: knowing what belongs in your database and what belongs in a fast, throwaway layer beside it. Postgres is your system of record. Redis is for the hot, ephemeral stuff you'd happily lose.</p>
+  <table class="cmp">
+    <thead><tr><th>Data</th><th>Postgres (system of record)</th><th>Redis (fast, ephemeral)</th></tr></thead>
+    <tbody>
+      <tr><td>Users, conversations, messages</td><td>Yes, the source of truth</td><td>No</td></tr>
+      <tr><td>Documents and embeddings</td><td>Yes (pgvector)</td><td>No</td></tr>
+      <tr><td>Usage events and billing</td><td>Yes, must be durable</td><td>No</td></tr>
+      <tr><td>Session tokens</td><td>Optional</td><td>Yes, with a TTL</td></tr>
+      <tr><td>Rate-limit counters</td><td>No, too write-heavy</td><td>Yes, this is its sweet spot</td></tr>
+      <tr><td>Response or prompt cache</td><td>No</td><td>Yes, with a TTL</td></tr>
+      <tr><td>If it gets wiped</td><td>You've lost customer data</td><td>You recompute or re-login, nothing lost</td></tr>
+    </tbody>
+  </table>
+  <p>The rule fits on a sticky note. If losing it is a disaster, it's Postgres. If losing it is a minor inconvenience, it can be Redis. Rate-limit counters are the clearest case: they change on every request, they don't matter tomorrow, and hammering your primary database with those writes is a waste. That's exactly what Redis is good at. Just don't let Redis quietly become your database, because it isn't one, and a restart will teach you that the hard way.</p>
+  <p>Worth flagging: whichever database you use, an app under load talks to it through a connection pool, not a fresh connection per request. That's its own topic, covered in <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>.</p>
+
+  <!-- ADD IMAGE: swap this slot for a real screenshot. src -> images/schema-diagram.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your schema in a diagramming tool (dbdiagram, DrawSQL, or your ORM's generated ER view), showing the same tables and foreign keys.</em><small>Optional: helps readers map the SQL above to a picture.</small></span></figure>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>The schema is yours to design; the honest truth is that any competent Postgres will run it. Where a managed platform earns its place is in not making you babysit that Postgres. This is the plumbing under the design work above.</p>
+  <p>On Kloudbean you launch a <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a> (or MySQL, or MariaDB) in a few clicks, and it runs beside your app instead of in a separate console with a separate bill. Because it's Postgres, your embeddings can live right next to your relational tables using the pgvector extension, though whether you can enable it depends on your Postgres version and setup, so check availability rather than assuming it's pre-loaded. Add <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">a managed database to your app</a> and a <a href="https://www.kloudbean.com/blog/pgvector-for-ai-apps/">pgvector</a> workflow, back it with managed Redis for the fast layer, and you've got the whole shape from this article in one dashboard. Backups run automatically, SSL is free, you deploy from Git on every push, and you lock the database down by whitelisting your app server's IP so only it can connect. No public database sitting open, no extra networking product to configure.</p>
+  <p>The honest boundary, because it's the part that builds trust: managed means the platform runs the server, the engine, SSL, backups, and patching. Your schema, your data, and your deletion logic stay yours. Kloudbean can keep Postgres healthy, reachable, and backed up. It can't design your tables or write your erase path, and it doesn't make your app compliant with anyone's data law. That work is the subject of this article, and it belongs to you. For the wider view of what changes when an AI app meets real users, see <a href="https://www.kloudbean.com/blog/last-mile-of-vibe-coding/">the last mile of vibe coding</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Give your schema a home that runs itself.</p>
+    <p style="margin:0 0 .6em">Design the tables; let the platform run them. Launch managed PostgreSQL or MySQL and managed Redis in one dashboard, keep embeddings beside your relational data, and deploy straight from Git with automatic backups and free SSL.</p>
+    <p style="margin:0">Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">Managed PostgreSQL · Managed Redis · Automatic backups · IP allow-listing · Free SSL · Git deploy · Free migration</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is database design for AI apps?</h3>
+    <p>It's deciding the tables, relationships, and constraints that store an AI application's data: users, conversations and messages, documents and their embeddings, usage and billing, and audit records. It's mostly ordinary SaaS schema design plus three AI-specific pressures: fast-growing conversational data, vector embeddings you search by similarity, and per-call model costs that make usage metering load-bearing from day one.</p>
+    <h3>What tables does an AI SaaS need?</h3>
+    <p>A sensible starting set is users, conversations, messages, documents, doc_chunks (for embeddings), usage_events, billing_records, and audit_log. The user table is the hub and almost everything carries a user_id foreign key. You'll add more as features arrive, but that core covers identity, chat, knowledge, money, and accountability.</p>
+    <h3>Can I store embeddings in the same Postgres database as my app data?</h3>
+    <p>Yes, and for most apps you should. With the pgvector extension, a vector column lives in a normal table, so you can filter by user and sort by similarity in one query and back everything up as a single system. A separate vector database only starts to make sense at very high vector volumes. Enabling pgvector depends on your Postgres version and setup, so confirm availability.</p>
+    <h3>Should I use soft delete or hard delete?</h3>
+    <p>Use both, on purpose. Soft delete (a deleted_at timestamp you filter out) is the everyday default because it gives you undo and a grace period. Hard delete is for genuine erase-my-data requests and legal removal, where the row must actually be gone. Financial records are the exception: anonymise them by nulling the user reference rather than deleting, so accounting history survives.</p>
+    <h3>How do I let a user delete all their data?</h3>
+    <p>Design foreign keys with ON DELETE CASCADE from the start, so deleting the user row automatically clears conversations, messages, documents, and chunks. Wrap it in one transaction, and first null out the user reference on any records you must keep for accounting, like billing and usage. Done right it's a single tested operation, not manual surgery across a dozen tables.</p>
+    <h3>Why should I build the usage and token table on day one?</h3>
+    <p>Because you cannot bill for, rate-limit, or analyse usage you never recorded. If you add billing months after launch, the earlier history simply doesn't exist, so you can't settle disputes or set a fair free tier. Writing one usage row per model call from the first request is cheap, and it turns billing later into a query instead of a painful reconstruction.</p>
+    <h3>Which columns should I index in an AI app database?</h3>
+    <p>Index the columns you filter on, join on, and sort by, not everything. In this schema that means the user_id and conversation_id foreign keys, the created_at columns you sort or range over, and the vector column for similarity search. Composite indexes like (conversation_id, created_at) make common reads a single efficient scan. Skip indexes no query uses, since they only slow writes.</p>
+    <h3>What belongs in Redis instead of Postgres?</h3>
+    <p>Fast, throwaway state: session tokens with a TTL, rate-limit counters, and caches for repeated responses or prompts. The test is simple: if losing the data on a restart is a disaster, it belongs in Postgres; if it's a minor inconvenience you can recompute, Redis is a good home. Just don't treat Redis as your system of record, because it isn't one.</p>
+    <h3>Do I need a separate vector database for an AI app?</h3>
+    <p>Usually not. Postgres with pgvector keeps your embeddings beside your relational data, which keeps the stack small and the backups unified, and it's plenty for most applications. A dedicated vector engine earns its cost at very large scale or extreme query volumes. Start in Postgres, and move only when real numbers tell you to.</p>
+  </div>
+
+  <p class="byline">Kloudbean · The schema outlives the code.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Production Database Design for AI Apps: The Schema a Real SaaS Needs","description":"Database design for AI apps worked through as a real SaaS schema: users, conversations, messages, documents, embeddings with pgvector, usage and token metering, billing, audit, and a deletion path that makes erasing a user one transaction instead of manual surgery.","image":"https://www.kloudbean.com/blog/production-database-design-for-ai-apps/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/production-database-design-for-ai-apps/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is database design for AI apps?","acceptedAnswer":{"@type":"Answer","text":"It is deciding the tables, relationships, and constraints that store an AI application data: users, conversations and messages, documents and their embeddings, usage and billing, and audit records. It is mostly ordinary SaaS schema design plus three AI-specific pressures: fast-growing conversational data, vector embeddings you search by similarity, and per-call model costs that make usage metering load-bearing from day one."}},
+{"@type":"Question","name":"What tables does an AI SaaS need?","acceptedAnswer":{"@type":"Answer","text":"A sensible starting set is users, conversations, messages, documents, doc_chunks for embeddings, usage_events, billing_records, and audit_log. The user table is the hub and almost everything carries a user_id foreign key. You will add more as features arrive, but that core covers identity, chat, knowledge, money, and accountability."}},
+{"@type":"Question","name":"Can I store embeddings in the same Postgres database as my app data?","acceptedAnswer":{"@type":"Answer","text":"Yes, and for most apps you should. With the pgvector extension, a vector column lives in a normal table, so you can filter by user and sort by similarity in one query and back everything up as a single system. A separate vector database only starts to make sense at very high vector volumes. Enabling pgvector depends on your Postgres version and setup, so confirm availability."}},
+{"@type":"Question","name":"Should I use soft delete or hard delete?","acceptedAnswer":{"@type":"Answer","text":"Use both, on purpose. Soft delete, a deleted_at timestamp you filter out, is the everyday default because it gives you undo and a grace period. Hard delete is for genuine erase-my-data requests and legal removal, where the row must actually be gone. Financial records are the exception: anonymise them by nulling the user reference rather than deleting, so accounting history survives."}},
+{"@type":"Question","name":"How do I let a user delete all their data?","acceptedAnswer":{"@type":"Answer","text":"Design foreign keys with ON DELETE CASCADE from the start, so deleting the user row automatically clears conversations, messages, documents, and chunks. Wrap it in one transaction, and first null out the user reference on any records you must keep for accounting, like billing and usage. Done right it is a single tested operation, not manual surgery across a dozen tables."}},
+{"@type":"Question","name":"Why should I build the usage and token table on day one?","acceptedAnswer":{"@type":"Answer","text":"Because you cannot bill for, rate-limit, or analyse usage you never recorded. If you add billing months after launch, the earlier history simply does not exist, so you cannot settle disputes or set a fair free tier. Writing one usage row per model call from the first request is cheap, and it turns billing later into a query instead of a painful reconstruction."}},
+{"@type":"Question","name":"Which columns should I index in an AI app database?","acceptedAnswer":{"@type":"Answer","text":"Index the columns you filter on, join on, and sort by, not everything. In this schema that means the user_id and conversation_id foreign keys, the created_at columns you sort or range over, and the vector column for similarity search. Composite indexes like conversation_id plus created_at make common reads a single efficient scan. Skip indexes no query uses, since they only slow writes."}},
+{"@type":"Question","name":"What belongs in Redis instead of Postgres?","acceptedAnswer":{"@type":"Answer","text":"Fast, throwaway state: session tokens with a TTL, rate-limit counters, and caches for repeated responses or prompts. The test is simple: if losing the data on a restart is a disaster, it belongs in Postgres; if it is a minor inconvenience you can recompute, Redis is a good home. Just do not treat Redis as your system of record, because it is not one."}},
+{"@type":"Question","name":"Do I need a separate vector database for an AI app?","acceptedAnswer":{"@type":"Answer","text":"Usually not. Postgres with pgvector keeps your embeddings beside your relational data, which keeps the stack small and the backups unified, and it is plenty for most applications. A dedicated vector engine earns its cost at very large scale or extreme query volumes. Start in Postgres, and move only when real numbers tell you to."}}
+]}
+]}
+</script>
+</body>
+</html>

@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Agent Memory in Production: Postgres, Redis, Vector Search, or All Three?</title>
+<meta name="description" content="AI agent memory is not one thing. Short-term context caches in Redis, durable history and preferences live in Postgres, and long-term recall uses vector search with pgvector. A decision guide to which your agent needs, plus retention, deletion requests, and the cost of over-stuffing every prompt.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/ai-agent-memory-production/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="AI Agent Memory in Production: Postgres, Redis, Vector Search, or All Three?">
+<meta property="og:description" content="Short-term context, durable history, long-term recall: the three kinds of AI agent memory, the store each one wants, and how to decide which you actually need.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">AI apps in production</span>
+  <h1>AI Agent Memory in Production: Postgres, Redis, Vector Search, or All Three?</h1>
+
+  <figure><img src="images/hero.png" alt="AI agent memory in production: short-term context in Redis, durable history and preferences in Postgres, and long-term semantic recall with pgvector, all feeding one agent"></figure>
+
+  <p class="lead">You gave your AI agent "memory" and moved on. Maybe Cursor or Lovable scaffolded it, maybe you wired the OpenAI or Anthropic SDK yourself, and in testing it remembers things just fine. Then real users show up and the questions pile up: why does it forget who someone is between sessions, why is every reply getting slower and more expensive, and how do you delete a person's history when they ask you to? AI agent memory is the part builders wave at and rarely finish.</p>
+  <p>Here's the thing most tutorials skip. "Memory" isn't one feature you bolt on. It's three different jobs, and they want three different homes. Cache the current conversation somewhere fast. Keep the durable record somewhere safe. Search old chats and documents by meaning somewhere built for that. Pick one store and force it to do all three and you get an agent that's slow, forgetful, or eye-wateringly expensive. This page is the decision guide: what each kind of memory is, where it belongs, and how to work out which ones you actually need.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>AI agent memory splits into three jobs. Short-term context (the last few turns) fits in the prompt window and caches nicely in Redis. Durable history and user preferences are your record of truth and belong in Postgres. Long-term recall across past chats and documents needs embeddings and vector search, which pgvector handles right inside Postgres. Most real agents end up using all three, each doing one job. The classic mistake is picking a single store and making it do everything.</p>
+  </div>
+
+  <h2>What AI agent memory actually means</h2>
+  <p>An agent has no memory of its own. The model is stateless: it only knows what's in the prompt you send this turn. So "memory" is really you, the developer, deciding what to put back into the prompt each time, and where you keep that information between requests. That's the whole trick. Everything else is detail.</p>
+  <p>Once you see memory as "what do I feed the model, and where do I store it in the meantime," the three kinds fall out naturally. There's what happened seconds ago in this conversation. There's what you know about this user across every conversation. And there's the pile of past text you might need to pull a relevant fact from later. Different lifespans, different access patterns, different stores. Trying to serve all three from one place is where agents go wrong, and it's why the honest answer for a real app is usually "all three, each doing its job."</p>
+
+  <h2>The three kinds of memory, and the store each one wants</h2>
+  <p>Short answer first, then the detail. Short-term memory is the working context of the current chat, and it lives in Redis (or just in the prompt you assemble). Durable memory is the full history plus user preferences, and it lives in Postgres. Long-term memory is semantic recall over lots of old text, and it lives in a vector index like pgvector. Here they are side by side.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Kind of memory</th><th>What it holds</th><th>Where it lives</th><th>Lifespan</th><th>You need it when</th></tr></thead>
+    <tbody>
+      <tr><td>Short-term (working context)</td><td>The last few turns of this conversation</td><td>Redis, or the prompt window itself</td><td>Minutes to hours (TTL)</td><td>Always. It's the current chat.</td></tr>
+      <tr><td>Durable history and preferences</td><td>Every message, account settings, facts the user told you</td><td>Postgres (record of truth)</td><td>Until the user deletes it</td><td>The moment you have logins and sessions.</td></tr>
+      <tr><td>Long-term semantic recall</td><td>Embeddings of past chats and documents</td><td>pgvector, inside Postgres</td><td>Kept, re-embedded as needed</td><td>The agent must recall by meaning across lots of text.</td></tr>
+    </tbody>
+  </table>
+
+  <p>The picture below is the mental model worth keeping. One agent, three stores, each feeding a different slice of the prompt before the model ever gets called.</p>
+
+  <figure>
+    <svg viewBox="0 0 800 470" role="img" aria-label="Three kinds of AI agent memory feeding one agent. On the left, three stores: Redis holds short-term working context for this session and expires on a TTL; Postgres holds durable full history and user preferences and is the record of truth; pgvector holds embeddings of past chats and documents for semantic recall by meaning. Each store feeds the agent in the centre, which assembles the context window and holds the model key. The agent sends the assembled prompt to the model API on the right, and the reply streams back to the agent." xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4F1AF3"/></marker>
+        <marker id="arg" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#40b75f"/></marker>
+      </defs>
+
+      <text x="40" y="30" font-family="Poppins,sans-serif" font-size="11" font-weight="700" letter-spacing="1" fill="#4F1AF3">THREE KINDS OF MEMORY</text>
+
+      <rect x="40" y="44" width="252" height="96" rx="10" fill="#f6f7fb" stroke="#40b75f" stroke-width="1.5"/>
+      <text x="60" y="74" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">Redis · short-term</text>
+      <text x="60" y="94" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">working context, this session</text>
+      <text x="60" y="112" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">expires on a TTL (minutes)</text>
+
+      <rect x="40" y="186" width="252" height="96" rx="10" fill="#f6f7fb" stroke="#40b75f" stroke-width="1.5"/>
+      <text x="60" y="216" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">Postgres · durable</text>
+      <text x="60" y="236" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">full history + preferences</text>
+      <text x="60" y="254" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">the record of truth</text>
+
+      <rect x="40" y="328" width="252" height="96" rx="10" fill="#f6f7fb" stroke="#40b75f" stroke-width="1.5"/>
+      <text x="60" y="358" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">pgvector · long-term</text>
+      <text x="60" y="378" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">embeddings of chats + docs</text>
+      <text x="60" y="396" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">recall by meaning</text>
+
+      <rect x="366" y="174" width="172" height="120" rx="12" fill="#000f27"/>
+      <text x="452" y="222" text-anchor="middle" font-family="Poppins,sans-serif" font-size="14" font-weight="600" fill="#fff">Your agent</text>
+      <text x="452" y="242" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#9fb0cc">builds the context window</text>
+      <text x="452" y="262" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#40b75f">holds the key</text>
+
+      <rect x="612" y="200" width="150" height="68" rx="10" fill="#f6f7fb" stroke="#7C5CFF" stroke-width="1.5"/>
+      <text x="687" y="230" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">Model API</text>
+      <text x="687" y="248" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">the LLM you call</text>
+
+      <line x1="292" y1="92" x2="362" y2="196" stroke="#4F1AF3" stroke-width="1.8" marker-end="url(#ar)"/>
+      <text x="300" y="140" font-family="Poppins,sans-serif" font-size="9.5" fill="#4F1AF3">recent turns</text>
+      <line x1="292" y1="234" x2="362" y2="234" stroke="#4F1AF3" stroke-width="1.8" marker-end="url(#ar)"/>
+      <text x="300" y="226" font-family="Poppins,sans-serif" font-size="9.5" fill="#4F1AF3">history + prefs</text>
+      <line x1="292" y1="376" x2="362" y2="272" stroke="#4F1AF3" stroke-width="1.8" marker-end="url(#ar)"/>
+      <text x="300" y="330" font-family="Poppins,sans-serif" font-size="9.5" fill="#4F1AF3">relevant memories</text>
+
+      <line x1="538" y1="224" x2="608" y2="224" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ar)"/>
+      <text x="573" y="216" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#4F1AF3">assembled prompt</text>
+      <line x1="608" y1="248" x2="538" y2="248" stroke="#40b75f" stroke-width="2" marker-end="url(#arg)"/>
+      <text x="573" y="264" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#40b75f">reply</text>
+    </svg>
+    <figcaption>One agent, three stores. Redis feeds the recent turns, Postgres feeds durable facts and preferences, pgvector feeds the memories that match by meaning. The agent stitches them into one prompt, then calls the model.</figcaption>
+  </figure>
+
+  <h2>Short-term memory: the working set you cache in Redis</h2>
+  <p>Short-term memory is the easy one, and it's the only kind every agent needs on day one. It's the recent back-and-forth of the conversation you're in right now, the stuff the model needs to answer coherently this turn. For a short chat you can hold it in the prompt itself. Once conversations run long or a user has several open at once, you want it in Redis: fast to read, fast to write, and easy to expire.</p>
+  <p>Why Redis and not Postgres for this? Because it's hot, small, and disposable. You read it on every single turn, you don't need it to survive forever, and a TTL is exactly the right tool. Set a key per conversation, push each turn onto it, and let it age out after a few hours or days of silence. If the user comes back next week, you don't rebuild the working set from Redis, you rebuild it from the durable copy in Postgres. Redis is the fast layer in front, never the source of truth. <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">Managed Redis hosting</a> covers the setup and why TTLs keep it cheap.</p>
+  <p>One caution: don't treat Redis as your only home for chat. It's memory-resident and it's meant to be evictable. If a node restarts or a key expires and that was the only copy, the conversation is gone. Keep the durable record in Postgres and let Redis be the accelerator. That split is the whole point.</p>
+
+  <h2>Durable memory: history and preferences live in Postgres</h2>
+  <p>Durable memory is your record of truth, and it belongs in a real database that outlives every deploy. This is the full message history, plus the things you actually know about a user: their name, their plan, the preferences they set, the facts they've told the agent to remember. When someone returns after a week, this is what makes the agent feel like it knows them. Postgres is the sensible default.</p>
+  <p>The most common data-loss mistake here is the one AI builders scaffold by accident: starting on a local SQLite file or an in-memory array. It works right up until your first redeploy wipes the file, and every conversation and preference goes with it. A managed database lives outside the app process, so shipping new code never touches your data. If that pattern is new to you, the <a href="https://www.kloudbean.com/blog/last-mile-of-vibe-coding/">last mile of vibe coding</a> explains why builders leave this gap, and <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a> is the fix.</p>
+  <p>A workable schema is not complicated. One table for messages, one for the durable facts you want the agent to always have on hand:</p>
+  <pre><code>create table messages (
+  id               bigserial primary key,
+  user_id          uuid not null,
+  conversation_id  uuid not null,
+  role             text not null,   -- user | assistant | system
+  content          text not null,
+  created_at       timestamptz not null default now()
+);
+create index on messages (conversation_id, created_at);
+
+-- durable facts the agent should always know about a user
+create table user_memory (
+  user_id     uuid primary key,
+  preferences jsonb not null default '{}',
+  updated_at  timestamptz not null default now()
+);</code></pre>
+  <p>Two things this buys you. First, when you assemble a prompt you can load the last N turns from here if Redis is cold, so nothing is ever truly lost. Second, and this matters more than people expect, it gives you one place to delete everything about a user when they ask. More on that below, because it's a section, not a footnote.</p>
+
+  <h2>Long-term recall: embeddings and vector search with pgvector</h2>
+  <p>Long-term memory is the one people reach for too early and then over-build. It answers a specific question: "somewhere in this user's hundreds of past messages, or in my pile of documents, is there something relevant to what they just asked?" You can't stuff all of that into the prompt, and keyword search misses anything phrased differently. So you embed the text into vectors and search by meaning. That's semantic recall, and it's what vector search is for.</p>
+  <p>You probably don't need a separate vector database to do it. The <code>pgvector</code> extension stores embeddings right alongside your normal Postgres rows, so your memories, your history, and your app data share one database and one backup. You add a vector column, index it, and query for the nearest matches to the new message:</p>
+  <pre><code>create extension if not exists vector;
+
+create table memory_chunks (
+  id         bigserial primary key,
+  user_id    uuid not null,
+  content    text not null,
+  embedding  vector(1536),          -- dimension depends on your embedding model
+  created_at timestamptz not null default now()
+);
+
+-- pull the 5 memories closest in meaning to the new message
+select content
+from memory_chunks
+where user_id = $1
+order by embedding &lt;=&gt; $2         -- $2 is the query embedding
+limit 5;</code></pre>
+  <p>That <code>&lt;=&gt;</code> is pgvector's distance operator, and the <code>vector(1536)</code> dimension is just an example (match it to whatever model produces your embeddings). The deeper walkthrough, including indexing and when to reach for a dedicated vector store instead, is in <a href="https://www.kloudbean.com/blog/pgvector-for-ai-apps/">pgvector for AI apps</a>. One practical note: enabling the extension depends on your Postgres version and setup, so check it's available before you design around it.</p>
+  <p>Here's my one firm opinion for this whole page. Most agents do not need a dedicated vector database on day one. pgvector inside the Postgres you already run is enough for a very long time, and one database is far less to operate, back up, and reason about than three. Add a specialised vector product when your scale genuinely demands it, which is later than the hype suggests, not on launch day.</p>
+
+  <h2>So which of the three do you actually need?</h2>
+  <p>Be honest about the app in front of you rather than copying a reference architecture. Short-term context is non-negotiable, every agent needs it. Durable history and preferences arrive the moment you have accounts and want the agent to remember people between sessions. Long-term semantic recall only earns its place when the agent has to search across a lot of past text or your own documents. Plenty of good agents run happily on the first two.</p>
+  <ul>
+    <li><strong>A single-session tool with no login</strong> (a one-off assistant, a form filler): short-term context is often all you need. Keep it in the prompt window and move on.</li>
+    <li><strong>An agent with user accounts</strong> that should recognise returning users and honour their settings: add durable Postgres memory. This is the big one for most products.</li>
+    <li><strong>A support bot or research assistant</strong> answering from your knowledge base or a long history: now you need long-term recall with vector search on top of the other two.</li>
+  </ul>
+  <p>If you're building a conversational product specifically, the request path, streaming, and cost pieces live in <a href="https://www.kloudbean.com/blog/host-ai-chatbot-in-production/">how to host an AI chatbot in production</a>. Memory is one layer of that larger picture, and it's the layer that decides whether the thing feels smart or feels like it has amnesia.</p>
+
+  <h2>Expiry, retention, and the right to be forgotten</h2>
+  <p>Memory you never delete isn't a feature, it's a liability that grows every day. So decide up front how long each kind lives. Short-term context should expire on a TTL, that's automatic in Redis. Durable history and embeddings should have a retention policy: how long do you keep old conversations, and do you prune or archive them? And you must be able to delete a specific user's memory entirely when they ask, because in many places that's a legal right, not a nice-to-have.</p>
+  <p>This is where keeping memory in three stores becomes a design task, not just a diagram. A deletion request has to reach all of them. Miss one and you've told a user their data is gone while a copy quietly remains, which is exactly the kind of gap that turns into a real problem. Build the "forget this user" path early and test it:</p>
+  <pre><code>-- Postgres: durable history, preferences, and embeddings
+delete from messages      where user_id = $1;
+delete from user_memory   where user_id = $1;
+delete from memory_chunks where user_id = $1;
+
+-- Redis: drop the short-term working set for that user
+--   DEL agent:ctx:{user_id}</code></pre>
+  <p>Two more things people forget. Backups hold copies too, so your retention story should say how deletions age out of backups (usually as old backups roll off, which is fine if you document it). And if you send user text to a model provider, check what they retain on their side, because that's memory you don't directly control. Write the retention rules down. Future you, and your users, will be glad you did.</p>
+
+  <h2>The anti-pattern that quietly runs up your bill</h2>
+  <p>Here's the one to burn into memory: sending the entire conversation transcript to the model on every single turn. It's the default an AI builder scaffolds, it works in a demo, and it gets more expensive with every message. Models charge per token, so a chat that started cheap costs more each turn as the transcript grows, because you're re-sending the whole thing every time. Latency climbs with it, and eventually you slam into the model's context limit and the request just fails.</p>
+  <p>The fix is to assemble a smart context instead of dumping everything. Send the recent turns verbatim, a short rolling summary of the older conversation, and only the handful of long-term memories that are actually relevant to the new message. That's the three stores doing their jobs together:</p>
+  <pre><code>context = [
+  system_prompt,
+  *durable_facts(user_id),          # Postgres: name, plan, saved preferences
+  *semantic_recall(user_id, msg),   # pgvector: top-k memories that match by meaning
+  *recent_turns(user_id, n=10),     # Redis: the last few messages, verbatim
+  new_message,
+]</code></pre>
+  <p>Notice what this does to cost and quality at the same time. You send a roughly constant number of tokens per turn instead of an ever-growing pile, so spend stays predictable no matter how long the conversation runs. And the model gets a tighter, more relevant prompt, which usually improves the answer rather than hurting it. More history is not more intelligence. The right history is.</p>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>The reason memory gets fiddly is that the three stores usually live in three different places: one provider for Postgres, another for Redis, a separate thing for vectors, and a console to learn for each. Kloudbean puts them in one dashboard. You run an always-on Node or Python app (no cold starts, so the agent is always warm), add a managed Postgres and a managed Redis, get automatic backups and free SSL, and deploy from Git on every push. Postgres can carry your durable history and, where <code>pgvector</code> is available for your setup, your embeddings too, which keeps memory in one database instead of three. You lock the database down by whitelisting your app server's IP, so only your app can reach it and everything else is refused.</p>
+  <p>The honest boundary, because it builds trust: managed means the platform handles the server, the stack, SSL, backups, and patching. The memory logic is yours: what you store, how long you keep it, and honouring a deletion request when a user asks. Kloudbean makes the stores easy to run. It can't decide your retention policy or delete a record you never wired up. Full network isolation in a private VPC is an Enterprise capability; on a standard plan, the IP allow-list is how you keep the database off the open internet.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Give your agent's memory a home that stays put.</p>
+    <p style="margin:0 0 .6em">Run your agent on an always-on server with managed Postgres and Redis, automatic backups, and free SSL, all in one dashboard and deployed straight from Git. Keep short-term context, durable history, and (where available) pgvector embeddings without juggling three providers.</p>
+    <p style="margin:0">Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">Managed Postgres + pgvector · Managed Redis · Always-on Node and Python · Automatic backups · Free SSL · Git deploy · IP allow-listing</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is AI agent memory?</h3>
+    <p>It's how a stateless model appears to remember things. The model only knows what's in the prompt you send this turn, so memory is really you deciding what to put back into the prompt each time and where you store that information between requests. In practice it splits into short-term context, durable history and preferences, and long-term semantic recall.</p>
+    <h3>What are the different types of AI agent memory?</h3>
+    <p>Three. Short-term (working context) is the recent turns of the current chat, cached in Redis or held in the prompt. Durable memory is the full history plus user preferences, stored in Postgres as your record of truth. Long-term memory is semantic recall over old chats and documents, done with embeddings and vector search like pgvector.</p>
+    <h3>Do I need a vector database for my AI agent?</h3>
+    <p>Only if the agent has to recall by meaning across a lot of past text or your own documents. Even then you usually don't need a separate product. The pgvector extension keeps embeddings inside Postgres alongside your normal data, so it's one database to run. Add a dedicated vector store later only if your scale demands it.</p>
+    <h3>Should I use Redis or Postgres for chat history?</h3>
+    <p>Both, for different jobs. Postgres is the durable record of truth that survives deploys and holds the full history. Redis is the fast, expiring layer that caches the current conversation so you're not hitting the database on every turn. Keep the source of truth in Postgres and treat Redis as the accelerator in front of it.</p>
+    <h3>How do I delete a user's AI memory when they ask?</h3>
+    <p>Build a single deletion path that reaches every store: remove their rows from Postgres (messages, preferences, and embeddings), and drop their working-set keys from Redis. Miss one store and a copy of their data quietly survives. Also decide how deletions age out of backups, and check what your model provider retains on their side.</p>
+    <h3>Why is my AI agent getting slower and more expensive over time?</h3>
+    <p>Almost always because you're sending the whole conversation transcript to the model on every turn. Models charge per token, so cost and latency grow as the transcript grows, and eventually you hit the context limit. Send recent turns, a short summary, and only the relevant retrieved memories instead of everything.</p>
+    <h3>How much conversation history should I send to the model?</h3>
+    <p>A roughly constant amount, not the full transcript. A good shape is the last several turns verbatim, a rolling summary of older messages, and a handful of long-term memories that actually match the new message. This keeps token spend predictable and usually improves answers, because the model gets a tighter, more relevant prompt.</p>
+    <h3>Where should I store AI agent conversation history?</h3>
+    <p>In a managed database that lives outside your app, so a redeploy never wipes it. Postgres is a solid default: store the role, content, timestamp, user id, and conversation id per message. Avoid SQLite or in-memory storage in production, since both vanish on redeploy and take the history with them.</p>
+    <h3>Is pgvector good enough for AI agent memory?</h3>
+    <p>For most agents, yes, and for a long time. pgvector adds vector search to the Postgres you already run, so your embeddings, history, and app data share one database and one backup. Enabling it depends on your Postgres version and setup, so check availability. Reach for a specialised vector store only when scale genuinely forces it.</p>
+    <h3>Do I need all three memory stores to launch?</h3>
+    <p>No. Every agent needs short-term context. Durable Postgres memory arrives when you have accounts and want to remember users between sessions. Long-term vector recall only matters when the agent searches across lots of past text or documents. Plenty of solid agents ship on just the first two and add the third when the need is real.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Three kinds of memory. Three jobs. One place to run them.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"AI Agent Memory in Production: Postgres, Redis, Vector Search, or All Three?","description":"AI agent memory is not one thing. Short-term context caches in Redis, durable history and preferences live in Postgres, and long-term recall uses vector search with pgvector. A decision guide to which your agent needs, plus retention, deletion requests, and the cost of over-stuffing every prompt.","image":"https://www.kloudbean.com/blog/ai-agent-memory-production/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/ai-agent-memory-production/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is AI agent memory?","acceptedAnswer":{"@type":"Answer","text":"It is how a stateless model appears to remember things. The model only knows what is in the prompt you send this turn, so memory is really you deciding what to put back into the prompt each time and where you store that information between requests. In practice it splits into short-term context, durable history and preferences, and long-term semantic recall."}},
+{"@type":"Question","name":"What are the different types of AI agent memory?","acceptedAnswer":{"@type":"Answer","text":"Three. Short-term (working context) is the recent turns of the current chat, cached in Redis or held in the prompt. Durable memory is the full history plus user preferences, stored in Postgres as your record of truth. Long-term memory is semantic recall over old chats and documents, done with embeddings and vector search like pgvector."}},
+{"@type":"Question","name":"Do I need a vector database for my AI agent?","acceptedAnswer":{"@type":"Answer","text":"Only if the agent has to recall by meaning across a lot of past text or your own documents. Even then you usually do not need a separate product. The pgvector extension keeps embeddings inside Postgres alongside your normal data, so it is one database to run. Add a dedicated vector store later only if your scale demands it."}},
+{"@type":"Question","name":"Should I use Redis or Postgres for chat history?","acceptedAnswer":{"@type":"Answer","text":"Both, for different jobs. Postgres is the durable record of truth that survives deploys and holds the full history. Redis is the fast, expiring layer that caches the current conversation so you are not hitting the database on every turn. Keep the source of truth in Postgres and treat Redis as the accelerator in front of it."}},
+{"@type":"Question","name":"How do I delete a user's AI memory when they ask?","acceptedAnswer":{"@type":"Answer","text":"Build a single deletion path that reaches every store: remove their rows from Postgres (messages, preferences, and embeddings), and drop their working-set keys from Redis. Miss one store and a copy of their data quietly survives. Also decide how deletions age out of backups, and check what your model provider retains on their side."}},
+{"@type":"Question","name":"Why is my AI agent getting slower and more expensive over time?","acceptedAnswer":{"@type":"Answer","text":"Almost always because you are sending the whole conversation transcript to the model on every turn. Models charge per token, so cost and latency grow as the transcript grows, and eventually you hit the context limit. Send recent turns, a short summary, and only the relevant retrieved memories instead of everything."}},
+{"@type":"Question","name":"How much conversation history should I send to the model?","acceptedAnswer":{"@type":"Answer","text":"A roughly constant amount, not the full transcript. A good shape is the last several turns verbatim, a rolling summary of older messages, and a handful of long-term memories that actually match the new message. This keeps token spend predictable and usually improves answers, because the model gets a tighter, more relevant prompt."}},
+{"@type":"Question","name":"Where should I store AI agent conversation history?","acceptedAnswer":{"@type":"Answer","text":"In a managed database that lives outside your app, so a redeploy never wipes it. Postgres is a solid default: store the role, content, timestamp, user id, and conversation id per message. Avoid SQLite or in-memory storage in production, since both vanish on redeploy and take the history with them."}},
+{"@type":"Question","name":"Is pgvector good enough for AI agent memory?","acceptedAnswer":{"@type":"Answer","text":"For most agents, yes, and for a long time. pgvector adds vector search to the Postgres you already run, so your embeddings, history, and app data share one database and one backup. Enabling it depends on your Postgres version and setup, so check availability. Reach for a specialised vector store only when scale genuinely forces it."}},
+{"@type":"Question","name":"Do I need all three memory stores to launch?","acceptedAnswer":{"@type":"Answer","text":"No. Every agent needs short-term context. Durable Postgres memory arrives when you have accounts and want to remember users between sessions. Long-term vector recall only matters when the agent searches across lots of past text or documents. Plenty of solid agents ship on just the first two and add the third when the need is real."}}
+]}
+]}
+</script>
+</body>
+</html>
