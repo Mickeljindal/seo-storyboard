@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Saudi-Hosted RAG: Keep Your Documents and Embeddings Inside the Kingdom</title>
+<meta name="description" content="Saudi-hosted RAG keeps your knowledge base and embeddings in-Kingdom. A RAG pipeline is mostly an in-Kingdom workload with one optional border crossing, plus a second one at the embedding step that most people miss. Map every stop on GCP Dammam.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/saudi-hosted-rag/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Saudi-Hosted RAG: Keep Your Documents and Embeddings Inside the Kingdom">
+<meta property="og:description" content="Most of a RAG pipeline can stay in-Kingdom. The documents, the embeddings, and the retrieval all live in Dammam, and only the final model call has to cross. Watch the embedding step, it leaks at indexing time.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">AI apps in production</span>
+  <h1>Saudi-Hosted RAG: Keep Your Documents and Embeddings Inside the Kingdom</h1>
+
+  <figure><img src="images/hero.png" alt="Saudi-hosted RAG: documents, chunker, embeddings, and a pgvector store inside a dashed Dammam boundary, with one minimized arrow crossing out to a hosted model"></figure>
+
+  <p class="lead">You built a RAG system. A chatbot over your own policies, a search box across a pile of internal PDFs, an assistant that answers from your company's own documents. Now it has to serve people in Saudi Arabia, or a regulated Saudi organisation, and the question shifts from "does it work" to "where does the data actually go." A Saudi-hosted RAG keeps your knowledge base and your embeddings inside the Kingdom, and most of a RAG pipeline already wants to live there anyway.</p>
+  <p>Retrieval augmented generation looks like it leaks everywhere, because it touches your documents, a database, an embeddings model, and a language model. It doesn't. Walk the pipeline one stop at a time and you find a workload that's almost entirely in-Kingdom, with a single optional crossing at the very end. The catch is a second crossing, hiding at the start, that almost nobody looks at. This page maps both.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>A Saudi-hosted RAG keeps the source documents, the chunks, the embeddings, and the retrieval step inside the Kingdom, on Google Cloud's Dammam region (me-central2). The only stop that has to cross the border is the final generation call to a hosted model, and you can shrink what rides on it. Watch the embedding step too. A hosted embeddings API ships your documents out at indexing time, so keep that in-Kingdom or the leak happens before a user ever asks a question.</p>
+  </div>
+
+  <h2>The Saudi-hosted RAG map: where each stop can live</h2>
+  <p>Think of a RAG system as a short assembly line with two shifts. An offline shift turns your documents into searchable vectors: it loads a file, splits it into chunks, embeds each chunk, and stores the result. An online shift answers a question in real time: it embeds the question, finds the closest chunks, and hands them to a model to write the reply. The general mechanics of both shifts, chunking, retrieval quality, index freshness, all of it, live in <a href="https://www.kloudbean.com/blog/rag-in-production/">RAG in production</a>, so I won't rebuild them here. The residency question is narrower. For a Saudi-hosted RAG, which of those stops can sit inside the Kingdom?</p>
+  <p>Almost all of them. Your documents are just files, so they live in in-Kingdom object storage. The chunks and their embeddings are just rows, so they live in an in-Kingdom database. The similarity search that finds the right chunks is a database query, so it runs in-Kingdom too. Retrieval never has to leave. The one stop that reaches outside is the final generation call, when you send the user's question plus the chunks you retrieved to a hosted model that runs wherever the provider runs. Everything before that arrow is yours to keep home. This is the RAG-shaped slice of a bigger picture, by the way. The overall in-Kingdom data-flow boundary for any AI app lives in <a href="https://www.kloudbean.com/blog/hosting-ai-apps-saudi-arabia/">hosting AI apps in Saudi Arabia</a>; this page zooms in on the retrieval case.</p>
+
+  <figure>
+    <svg viewBox="0 0 780 460" role="img" aria-label="A Saudi-hosted RAG pipeline drawn inside a dashed box labelled Kingdom, GCP Dammam. In the indexing lane, documents pass through a chunker to an in-Kingdom embeddings model and into a pgvector store holding chunks and vectors. In the query lane, a user question is embedded and a retriever runs a similarity search against the same pgvector store, all inside the Kingdom. Only one arrow leaves, carrying the question plus retrieved context through a minimize and redact gate on the border, out to a hosted model abroad, with the reply streaming back. A note says the embedding step stays in-Kingdom too, because a hosted embeddings API would ship every document out at indexing time." xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4F1AF3"/></marker>
+        <marker id="arg" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#40b75f"/></marker>
+        <marker id="arn" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#000f27"/></marker>
+      </defs>
+
+      <rect x="26" y="56" width="540" height="380" rx="16" fill="none" stroke="#4F1AF3" stroke-width="1.4" stroke-dasharray="7 6"/>
+      <text x="44" y="82" font-family="Poppins,sans-serif" font-size="11" font-weight="700" letter-spacing="1" fill="#4F1AF3">KINGDOM · GCP DAMMAM (me-central2)</text>
+
+      <text x="44" y="108" font-family="Poppins,sans-serif" font-size="10.5" font-weight="700" letter-spacing="0.5" fill="#5b6a86">INDEXING (offline)</text>
+
+      <rect x="44" y="118" width="96" height="58" rx="9" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="92" y="143" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="600" fill="#000f27">Documents</text>
+      <text x="92" y="160" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">your KB</text>
+
+      <rect x="162" y="118" width="86" height="58" rx="9" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="205" y="151" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="600" fill="#000f27">Chunker</text>
+
+      <rect x="270" y="118" width="120" height="58" rx="9" fill="#f0fbf4" stroke="#40b75f" stroke-width="1.6"/>
+      <text x="330" y="143" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="600" fill="#000f27">Embeddings</text>
+      <text x="330" y="160" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#2f8f4e">in-Kingdom model</text>
+
+      <line x1="140" y1="147" x2="158" y2="147" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ar)"/>
+      <line x1="248" y1="147" x2="266" y2="147" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ar)"/>
+
+      <rect x="212" y="236" width="150" height="62" rx="10" fill="#000f27"/>
+      <text x="287" y="264" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#fff">pgvector store</text>
+      <text x="287" y="281" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#9fb0cc">chunks + vectors</text>
+
+      <line x1="332" y1="176" x2="306" y2="232" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ar)"/>
+      <text x="356" y="210" font-family="Poppins,sans-serif" font-size="9.5" fill="#5b6a86">store</text>
+
+      <text x="44" y="324" font-family="Poppins,sans-serif" font-size="10.5" font-weight="700" letter-spacing="0.5" fill="#5b6a86">QUERY (online)</text>
+
+      <rect x="44" y="334" width="104" height="58" rx="9" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="96" y="359" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="600" fill="#000f27">Question</text>
+      <text x="96" y="376" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">embedded in-Kingdom</text>
+
+      <rect x="168" y="334" width="112" height="58" rx="9" fill="#f0fbf4" stroke="#40b75f" stroke-width="1.6"/>
+      <text x="224" y="359" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="600" fill="#000f27">Retriever</text>
+      <text x="224" y="376" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#2f8f4e">similarity search</text>
+
+      <line x1="148" y1="363" x2="166" y2="363" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ar)"/>
+      <line x1="238" y1="334" x2="266" y2="300" stroke="#000f27" stroke-width="1.8" marker-end="url(#arn)"/>
+      <text x="250" y="322" font-family="Poppins,sans-serif" font-size="9.5" fill="#5b6a86">top-k</text>
+
+      <line x1="280" y1="363" x2="506" y2="363" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ar)"/>
+      <text x="393" y="353" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#4F1AF3">question + retrieved context</text>
+
+      <rect x="512" y="336" width="92" height="54" rx="10" fill="#f6f7fb" stroke="#4F1AF3" stroke-width="1.6"/>
+      <text x="558" y="359" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600" fill="#000f27">Minimize</text>
+      <text x="558" y="375" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">+ redact</text>
+
+      <rect x="636" y="332" width="118" height="62" rx="10" fill="#f6f7fb" stroke="#7C5CFF" stroke-width="1.6"/>
+      <text x="695" y="358" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="600" fill="#000f27">Hosted model</text>
+      <text x="695" y="375" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">abroad</text>
+
+      <line x1="604" y1="356" x2="632" y2="356" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ar)"/>
+      <text x="618" y="346" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9" fill="#4F1AF3">leaves</text>
+      <line x1="632" y1="374" x2="606" y2="374" stroke="#40b75f" stroke-width="2" marker-end="url(#arg)"/>
+      <text x="618" y="388" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9" fill="#40b75f">reply</text>
+
+      <text x="44" y="416" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">The embedding step stays in-Kingdom too.</text>
+      <text x="44" y="430" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">A hosted embeddings API would ship every document out at indexing time.</text>
+    </svg>
+    <figcaption>Almost every stop lives in Dammam: documents, chunker, embeddings, the pgvector store, and the retriever. Only one arrow leaves, and it goes through a minimize gate. Keep the embeddings model in-Kingdom, or indexing leaks the documents before anyone asks a thing.</figcaption>
+  </figure>
+
+  <p>Laid out as a checklist, the map looks like this.</p>
+  <table class="cmp">
+    <thead><tr><th>RAG pipeline stage</th><th>Can it run in-Kingdom?</th><th>What leaves if you get it wrong</th></tr></thead>
+    <tbody>
+      <tr><td>Source documents (your knowledge base)</td><td>Yes, in in-Kingdom object storage</td><td>The raw files, if you park them with a service abroad</td></tr>
+      <tr><td>Chunking</td><td>Yes, in your app in Dammam</td><td>Nothing. It's local text processing</td></tr>
+      <tr><td>Embedding the chunks (indexing)</td><td>Yes, with an in-Kingdom embeddings model</td><td>Every document's text, if you call a hosted embeddings API</td></tr>
+      <tr><td>Chunks and vectors (the store)</td><td>Yes, pgvector in in-Kingdom Postgres</td><td>The stored text and vectors, if the database sits abroad</td></tr>
+      <tr><td>Retrieval (the similarity search)</td><td>Yes, a query inside your in-Kingdom database</td><td>Nothing. It never leaves the database</td></tr>
+      <tr><td>Embedding the question</td><td>Yes, same in-Kingdom model</td><td>The user's question, if the embed call is hosted abroad</td></tr>
+      <tr><td>Generation (writing the answer)</td><td>Only if you self-host the model</td><td>The question plus the retrieved context, on every hosted call</td></tr>
+    </tbody>
+  </table>
+  <p>Read down the "what leaves" column and a pattern jumps out. The embedding row shows up twice, once for documents and once for the question, and both point at the same culprit: a hosted embeddings API. That's the crossing people miss.</p>
+
+  <h2>The two border crossings most people miss</h2>
+  <p>Everyone guards the generation call. It's the obvious one. You send a prompt to OpenAI or Anthropic or Google, the prompt travels to their servers, done. But a RAG system has two places where data can leave, and the first one runs long before any user shows up.</p>
+  <p><strong>Crossing one: the embedding step, at indexing time.</strong> To store a document as vectors, you first run its text through an embeddings model. If that model is a hosted API, then indexing your knowledge base means sending every document, in full, to that provider to be embedded. So a RAG system with a database locked inside Dammam, but wired to a hosted embeddings API, has already shipped the entire knowledge base across the border to build the index. No user asked a question. The leak happened during setup, quietly, and it happens again every time you re-index a changed document. This is the non-obvious one, and it's the whole reason this article exists.</p>
+  <p><strong>Crossing two: the generation step, at query time.</strong> This is the familiar one. Your app retrieves the relevant chunks and sends them, along with the user's question, to a hosted model to compose the answer. Whatever's in those chunks crosses the border on that call. For what the provider does with that payload and how to audit it, see <a href="https://www.kloudbean.com/blog/openai-claude-gemini-saudi-data/">where your data goes when you call OpenAI, Claude, or Gemini</a>.</p>
+  <p>There's a subtle third edge that folds into crossing one. At query time you also embed the user's question, using the same embeddings model, so it can be compared against your vectors. If that model is hosted abroad, the question itself leaves before generation even starts. Guard only the generation call and you've still leaked the documents at indexing and the question at retrieval. To actually keep a Saudi-hosted RAG in-Kingdom, the embeddings model has to be in-Kingdom too, either an open model you run on suitable compute, or you accept and document that indexing sends text out. Check the current terms of any hosted embeddings provider before you assume where that text goes or how long it's kept.</p>
+
+  <!-- ADD IMAGE: a before and after of indexing, one path sending documents to a hosted embeddings API abroad, the other keeping the embeddings model in-Kingdom. Swap for a real screenshot: src -> images/embedding-crossing.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A before and after of indexing: one path ships documents to a hosted embeddings API abroad, the other keeps the embeddings model in-Kingdom.</em><small>The leak that happens before any user asks a question.</small></span></figure>
+
+  <h2>Put the vector store in-Kingdom, and you probably don't need a new database</h2>
+  <p>Here's the good news about the biggest stop on the map. You almost certainly don't need to go buy a dedicated vector database to keep your vectors in the Kingdom. If your app already uses Postgres, the <code>pgvector</code> extension stores embeddings in a column right next to your normal rows, so your chunks and their vectors live in one in-Kingdom database instead of two. One system to keep resident, one to back up, one to lock down.</p>
+  <p>The shape is small. An embeddings table and a similarity query:</p>
+  <pre><code>-- chunks and their vectors, in the same in-Kingdom Postgres
+create table doc_chunks (
+  id           bigserial primary key,
+  document_id  bigint not null,
+  content      text   not null,
+  embedding    vector(1536)      -- match your embedding model's dimensions
+);
+
+-- retrieval: the 5 nearest chunks to the question's embedding
+select id, content
+from   doc_chunks
+order  by embedding &lt;=&gt; $1        -- $1 is the query vector
+limit  5;</code></pre>
+  <p>That <code>ORDER BY embedding &lt;=&gt; $1</code> is the whole retrieval step, and it runs entirely inside your database in Dammam. Nothing about it crosses a border. The deep mechanics, indexes like HNSW and IVFFlat, distance operators, tuning for scale, all live in <a href="https://www.kloudbean.com/blog/pgvector-for-ai-apps/">pgvector for AI apps</a>, so I'll point you there rather than repeat them. What matters for residency is simpler: the store is a database, and a database can sit in the Kingdom. Postgres is one of the <a href="https://www.kloudbean.com/blog/managed-databases-saudi-data-sovereignty/">seven managed engines you can run in-Kingdom</a>, and the setup is ordinary <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a> with the region set to Dammam. One honest caveat: whether the <code>pgvector</code> extension can be enabled depends on your Postgres version and setup, so check availability for your instance rather than assuming it's on.</p>
+
+  <!-- ADD IMAGE: the Kloudbean console launching a managed PostgreSQL into the Dammam region, the database that will hold the pgvector embeddings. Swap for a real screenshot: src -> images/launch-db-dammam.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Kloudbean console launching a managed PostgreSQL into the Dammam region, the database that will hold the pgvector embeddings.</em><small>One in-Kingdom database for app data and vectors.</small></span></figure>
+
+  <h2>Retrieved context is a bigger, more sensitive payload than a plain chat</h2>
+  <p>RAG changes the shape of what crosses the border, and not in your favour. A plain chatbot sends a short message. A RAG system stuffs the prompt with documents, so the payload heading to a hosted model is larger and often carries more sensitive material. And the part that surprises people: what crosses isn't only the user's typed question. It's chunks pulled straight from your own documents, which may contain other people's names, account numbers, or case details that the user never typed and may not even be allowed to see in full.</p>
+  <p>So if generation runs on a hosted model, treat the retrieved context as the thing to control, not just the question. A few habits help, and they cost almost nothing:</p>
+  <ul>
+    <li><strong>Send fewer chunks.</strong> Cap your top-k. If five chunks answer the question, don't send twenty. Less context out, lower bill, often a sharper answer.</li>
+    <li><strong>Trim each chunk.</strong> Retrieve enough to be useful, then pass the model only the passages it needs, not whole pages of surrounding text.</li>
+    <li><strong>Redact before you send.</strong> Strip identifiers the task doesn't need, names, national IDs, phone numbers, out of the retrieved context before it goes to the model. Pass a reference where you can, not the raw record.</li>
+  </ul>
+  <p>None of this is exotic. It's the difference between shipping a whole filing cabinet abroad on every question and shipping the one sentence that answers it.</p>
+
+  <h2>Two honest ways to build a Saudi-hosted RAG</h2>
+  <p>There are two clean designs, and neither is wrong. They cost different things.</p>
+  <p><strong>Option A: keep storage, embeddings, and retrieval in-Kingdom, and call a hosted model for generation with minimized context.</strong> The documents, the vector store, the embeddings model, and the similarity search all run in Dammam. Only the final answer step reaches out, carrying the trimmed, redacted context you chose to send. This is the practical middle ground for most teams.</p>
+  <p><strong>Option B: go fully in-Kingdom by self-hosting both models.</strong> Run an open embeddings model and an open generation model on compute inside the Kingdom, so nothing ever leaves. Be honest with yourself about this one. It's a real operations project, not a toggle: you need suitable GPU-class compute, and you own the model updates, the scaling, and the memory. The strongest open models tend to sit a step behind the top frontier ones, so you may trade some answer quality for full residency. It's the right call when the documents genuinely cannot leave the Kingdom, and an expensive detour when they can.</p>
+  <table class="cmp">
+    <thead><tr><th>Factor</th><th>Option A: hosted generation, in-Kingdom index</th><th>Option B: self-host both models</th></tr></thead>
+    <tbody>
+      <tr><td>Documents and embeddings</td><td>In-Kingdom</td><td>In-Kingdom</td></tr>
+      <tr><td>Retrieval</td><td>In-Kingdom</td><td>In-Kingdom</td></tr>
+      <tr><td>What crosses the border</td><td>The question plus trimmed context, per query</td><td>Nothing</td></tr>
+      <tr><td>Ops effort</td><td>Low. It's an API call</td><td>High. Compute, drivers, scaling, updates</td></tr>
+      <tr><td>Model quality</td><td>Access to the strongest frontier models</td><td>Strong open models, usually a step behind</td></tr>
+      <tr><td>Best when</td><td>Context can be minimized and a transfer is acceptable</td><td>The documents truly cannot leave</td></tr>
+    </tbody>
+  </table>
+  <p>My firm opinion, since fence-sitting helps nobody: for most Saudi RAG projects, put the index and retrieval in-Kingdom and minimize what you send to generation. That's the cheap, high-value move, a region choice and a managed database. Self-hosting both models is the expensive move, and it's worth it only when the documents genuinely can't cross. Reach for it because the data demands it, not because it sounds more sovereign.</p>
+
+  <h2>The anti-pattern: an in-Kingdom index built by a foreign embedding call</h2>
+  <p>Watch for this one, because it looks like diligence. A team provisions Postgres in Dammam, puts the source documents in in-Kingdom object storage, writes "in-Kingdom" on the architecture diagram, and then wires indexing to a hosted embeddings API because it was the fastest way to get vectors. The store is resident. The vectors are resident. But every document was sent abroad to be embedded in the first place, and it happens again on every re-index.</p>
+  <p>It's residency you can point at, wrapped around a data flow nobody checked. The vector store being in the Kingdom is doing no residency work at all if the text had to leave to fill it. The fix isn't to tear down the in-Kingdom database, which is correct and worth keeping. The fix is to move the embeddings model in-Kingdom, or to decide, on purpose and in writing, that indexing sends text out and that's acceptable for your data. What you can't do is set the region, wire a foreign embed call, and call the whole thing sovereign.</p>
+
+  <!-- ADD IMAGE: a checklist contrasting Dammam theatre, region set but a foreign embed call, against a genuinely in-Kingdom index. Swap for a real screenshot: src -> images/anti-pattern.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A short checklist contrasting region-set-but-foreign-embed against a genuinely in-Kingdom index.</em><small>Residency is about where the text goes, not where the store sits.</small></span></figure>
+
+  <h2>RAG, PDPL, and what actually crosses</h2>
+  <p>Quick and important: this is orientation, not legal advice. Get a qualified advisor for anything high-stakes, and see <a href="https://www.kloudbean.com/blog/data-residency-saudi-arabia/">data residency in Saudi Arabia</a> for the general version.</p>
+  <p>With that said, one point clears up a lot of confusion. Saudi Arabia's Personal Data Protection Law regulates the cross-border transfer of personal data. It doesn't flatly ban it. So a RAG system that sends context to a model abroad isn't automatically against the rules. It's a transfer, and transfers carry conditions and responsibilities that you, as the party handling the data, own. The RAG-specific wrinkle is worth saying plainly: the thing crossing the border is retrieved context from your own documents, which is frequently more personal than the question the user typed. A transfer assessment for RAG has to look at what retrieval pulls, not just what the user asks. Keeping the personal data in-Kingdom, documents, embeddings, and retrieval, is a practical, lower-risk path a lot of teams choose, precisely because it shrinks that assessment down to one small, minimized payload.</p>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>Everything above is engineering you own. The reason it usually hurts is logistics: the documents live on one service, the vectors on another, each with its own console and its own way to lock down access, and getting all of them into the same country is a chore. Kloudbean's angle is putting the resident half of a RAG stack in one dashboard, in the Kingdom.</p>
+  <p>The pieces map cleanly. You launch an always-on server (Node or Python, no cold starts) on Google Cloud's Dammam region, me-central2, which sits physically inside Saudi Arabia. Beside it runs a managed Postgres that holds your chunks and their embeddings through the <code>pgvector</code> extension where your plan and version enable it. Your source documents go in S3-compatible object storage, with no egress fees on the data you pull back out for indexing. Automatic backups, free SSL, and Git deploy come with it, and you lock the database down by whitelisting your app server's IP so only your app can reach it. The region specifics are in <a href="https://www.kloudbean.com/blog/gcp-dammam-region-guide/">the GCP Dammam region guide</a>. That's the in-Kingdom home for the documents, the embeddings, and the retrieval, which is most of a RAG system.</p>
+  <p>The generation model is your choice, and here's the honest boundary. Kloudbean does not sell GPUs or model inference, so if you go with Option B and self-host an open model, that's a separate compute undertaking, not something you toggle on here. What Kloudbean gives you is the resident foundation: the store, the files, the retrieval, all in Dammam. Among managed-cloud platforms, very few pair fully managed databases with true in-Kingdom data sovereignty, and Kloudbean is one of them. On compliance the honest word is "aligned": the platform is built to support PDPL and NCA expectations, it doesn't hand you a certificate, and it can't make your organisation compliant on its own. Compliance is shared. Managed means the server, the stack, SSL, backups, and patching are handled; your code, your documents, and your retrieval logic stay yours. Full network isolation in a private VPC is an Enterprise capability; on a standard plan, the IP allow-list is how you keep the database off the open internet. For the wider map of what changes when an AI app meets real users, see <a href="https://www.kloudbean.com/blog/last-mile-of-vibe-coding/">the last mile of vibe coding</a>.</p>
+
+  <!-- ADD IMAGE: the Kloudbean console showing object storage for source documents and a managed Postgres, both set to the Dammam region, in one account. Swap for a real screenshot: src -> images/dammam-stack.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Kloudbean console showing object storage for source documents and a managed Postgres, both set to the Dammam region, in one account.</em><small>The resident half of a RAG stack, in one place.</small></span></figure>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Keep your knowledge base and embeddings in the Kingdom.</p>
+    <p style="margin:0 0 .6em">Run the resident half of your RAG stack in Dammam: source documents in object storage, chunks and embeddings in a managed Postgres with pgvector, and retrieval that never leaves the country, all from one dashboard. The one call to a model is yours to shrink or close.</p>
+    <p style="margin:0">Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">In-Kingdom GCP Dammam region · Managed Postgres with pgvector · Object storage with no egress fees · Automatic backups · Free SSL · Git deploy · IP allow-listing</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is a Saudi-hosted RAG?</h3>
+    <p>It's a retrieval augmented generation system whose resident parts, the source documents, the chunks, the embeddings, and the retrieval step, all run inside Saudi Arabia, typically on Google Cloud's Dammam region. The only part that may cross the border is the final call to a hosted model for generation. The goal is to keep your knowledge base and its vectors on Saudi soil while still using a capable model to write answers.</p>
+    <h3>Can I keep my RAG embeddings in Saudi Arabia?</h3>
+    <p>Yes. Embeddings are just vectors in a database, so they live wherever your database lives. Put them in a managed Postgres in the Dammam region through the pgvector extension, and they stay in-Kingdom alongside your normal data. The one thing to watch is how the vectors get created: the embeddings model that produces them also needs to be in-Kingdom, or the text leaves during indexing even though the stored vectors stay home.</p>
+    <h3>Does the embedding step send my documents out of the country?</h3>
+    <p>It does if you use a hosted embeddings API. To turn a document into vectors, its text is run through an embeddings model, and if that model is a hosted service abroad, indexing sends the full document across the border. This happens at setup and again on every re-index, before any user asks a question. To avoid it, run an open embeddings model in-Kingdom, or accept and document that indexing sends text out.</p>
+    <h3>Do I need a separate vector database for a Saudi-hosted RAG?</h3>
+    <p>Usually not. If you already run Postgres, the pgvector extension stores embeddings in the same database as your normal rows, so you keep one in-Kingdom system instead of two. A dedicated vector database is a second store to run, secure, and keep resident, and most apps under a few million vectors don't need one. Start with pgvector in an in-Kingdom Postgres and move only if you genuinely outgrow it.</p>
+    <h3>Where does a RAG pipeline actually cross the border?</h3>
+    <p>At the model calls, not the storage. Documents, chunks, embeddings, and the similarity search can all stay in-Kingdom. The crossings are the embedding step, if the embeddings model is a hosted API, and the generation step, when you send the question plus retrieved context to a hosted model. Storage and retrieval never leave on their own. If you guard only generation, you can still leak documents at indexing time.</p>
+    <h3>Can I self-host the embeddings model in-Kingdom?</h3>
+    <p>Yes, and it's the way to close the indexing crossing. You run an open embeddings model on compute inside the Kingdom, so document text is turned into vectors without leaving. It's more work than calling an API, since you own the compute and the updates, but the embeddings model is lighter to run than a full generation model. It's a common middle step: self-host embeddings for indexing, and decide separately what to do about generation.</p>
+    <h3>Is a Saudi-hosted RAG required by PDPL?</h3>
+    <p>Not as a blanket rule. Saudi Arabia's PDPL regulates cross-border transfer of personal data; it does not outright ban it. Keeping your documents, embeddings, and retrieval in-Kingdom is a practical, lower-risk option many teams choose, not a legal mandate for every case. This is general orientation and not legal advice, so confirm your specifics with a qualified advisor who can look at your data and sector.</p>
+    <h3>Does hosting my RAG in Dammam make it PDPL compliant?</h3>
+    <p>No. Running the store and retrieval in-Kingdom solves the residency and infrastructure part, which is genuinely hard to retrofit, but compliance is broader and shared. You still own consent, lawful basis, retention, data-subject rights, and how your app handles the retrieved context. A host can support and align with PDPL and NCA expectations; it cannot certify you or make your organisation compliant on its own.</p>
+    <h3>Can I run the vector store with pgvector in Saudi Arabia?</h3>
+    <p>Yes. pgvector is a standard PostgreSQL extension, so the real question is where your Postgres runs. On a managed PostgreSQL in the Dammam region, your embeddings sit beside your application data on Saudi soil, backed up in-Kingdom and locked down with IP allow-listing. Whether the extension can be enabled depends on your Postgres version and setup, so check availability for your instance rather than assuming it's on.</p>
+    <h3>Does Kloudbean provide the language model for a Saudi-hosted RAG?</h3>
+    <p>No. Kloudbean gives you the in-Kingdom home for the documents, the embeddings, and the retrieval: object storage, a managed Postgres with pgvector, and always-on compute in the Dammam region. It does not sell GPUs or model inference, so the generation model is your choice, a hosted API with minimized context, or an open model you self-host on suitable compute. The resident half of the stack is what Kloudbean runs for you.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Keep the index home. Mind the call that leaves.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Saudi-Hosted RAG: Keep Your Documents and Embeddings Inside the Kingdom","description":"Saudi-hosted RAG keeps your knowledge base and embeddings in-Kingdom. A RAG pipeline is mostly an in-Kingdom workload with one optional border crossing, plus a second one at the embedding step that most people miss. Map every stop on GCP Dammam.","image":"https://www.kloudbean.com/blog/saudi-hosted-rag/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/saudi-hosted-rag/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is a Saudi-hosted RAG?","acceptedAnswer":{"@type":"Answer","text":"It is a retrieval augmented generation system whose resident parts, the source documents, the chunks, the embeddings, and the retrieval step, all run inside Saudi Arabia, typically on Google Cloud's Dammam region. The only part that may cross the border is the final call to a hosted model for generation. The goal is to keep your knowledge base and its vectors on Saudi soil while still using a capable model to write answers."}},
+{"@type":"Question","name":"Can I keep my RAG embeddings in Saudi Arabia?","acceptedAnswer":{"@type":"Answer","text":"Yes. Embeddings are just vectors in a database, so they live wherever your database lives. Put them in a managed Postgres in the Dammam region through the pgvector extension, and they stay in-Kingdom alongside your normal data. The one thing to watch is how the vectors get created: the embeddings model that produces them also needs to be in-Kingdom, or the text leaves during indexing even though the stored vectors stay home."}},
+{"@type":"Question","name":"Does the embedding step send my documents out of the country?","acceptedAnswer":{"@type":"Answer","text":"It does if you use a hosted embeddings API. To turn a document into vectors, its text is run through an embeddings model, and if that model is a hosted service abroad, indexing sends the full document across the border. This happens at setup and again on every re-index, before any user asks a question. To avoid it, run an open embeddings model in-Kingdom, or accept and document that indexing sends text out."}},
+{"@type":"Question","name":"Do I need a separate vector database for a Saudi-hosted RAG?","acceptedAnswer":{"@type":"Answer","text":"Usually not. If you already run Postgres, the pgvector extension stores embeddings in the same database as your normal rows, so you keep one in-Kingdom system instead of two. A dedicated vector database is a second store to run, secure, and keep resident, and most apps under a few million vectors do not need one. Start with pgvector in an in-Kingdom Postgres and move only if you genuinely outgrow it."}},
+{"@type":"Question","name":"Where does a RAG pipeline actually cross the border?","acceptedAnswer":{"@type":"Answer","text":"At the model calls, not the storage. Documents, chunks, embeddings, and the similarity search can all stay in-Kingdom. The crossings are the embedding step, if the embeddings model is a hosted API, and the generation step, when you send the question plus retrieved context to a hosted model. Storage and retrieval never leave on their own. If you guard only generation, you can still leak documents at indexing time."}},
+{"@type":"Question","name":"Can I self-host the embeddings model in-Kingdom?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it is the way to close the indexing crossing. You run an open embeddings model on compute inside the Kingdom, so document text is turned into vectors without leaving. It is more work than calling an API, since you own the compute and the updates, but the embeddings model is lighter to run than a full generation model. It is a common middle step: self-host embeddings for indexing, and decide separately what to do about generation."}},
+{"@type":"Question","name":"Is a Saudi-hosted RAG required by PDPL?","acceptedAnswer":{"@type":"Answer","text":"Not as a blanket rule. Saudi Arabia's PDPL regulates cross-border transfer of personal data; it does not outright ban it. Keeping your documents, embeddings, and retrieval in-Kingdom is a practical, lower-risk option many teams choose, not a legal mandate for every case. This is general orientation and not legal advice, so confirm your specifics with a qualified advisor who can look at your data and sector."}},
+{"@type":"Question","name":"Does hosting my RAG in Dammam make it PDPL compliant?","acceptedAnswer":{"@type":"Answer","text":"No. Running the store and retrieval in-Kingdom solves the residency and infrastructure part, which is genuinely hard to retrofit, but compliance is broader and shared. You still own consent, lawful basis, retention, data-subject rights, and how your app handles the retrieved context. A host can support and align with PDPL and NCA expectations; it cannot certify you or make your organisation compliant on its own."}},
+{"@type":"Question","name":"Can I run the vector store with pgvector in Saudi Arabia?","acceptedAnswer":{"@type":"Answer","text":"Yes. pgvector is a standard PostgreSQL extension, so the real question is where your Postgres runs. On a managed PostgreSQL in the Dammam region, your embeddings sit beside your application data on Saudi soil, backed up in-Kingdom and locked down with IP allow-listing. Whether the extension can be enabled depends on your Postgres version and setup, so check availability for your instance rather than assuming it is on."}},
+{"@type":"Question","name":"Does Kloudbean provide the language model for a Saudi-hosted RAG?","acceptedAnswer":{"@type":"Answer","text":"No. Kloudbean gives you the in-Kingdom home for the documents, the embeddings, and the retrieval: object storage, a managed Postgres with pgvector, and always-on compute in the Dammam region. It does not sell GPUs or model inference, so the generation model is your choice, a hosted API with minimized context, or an open model you self-host on suitable compute. The resident half of the stack is what Kloudbean runs for you."}}
+]}
+]}
+</script>
+</body>
+</html>
