@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why Your SQLite Data Disappears After a Redeploy (and How to Stop It)</title>
+<meta name="description" content="Your SQLite data disappears after redeploy because the app's filesystem is ephemeral, not because your code broke. The real mechanism, the permanent fix, and when SQLite is still fine.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/why-sqlite-data-disappears-on-redeploy/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Why Your SQLite Data Disappears After a Redeploy">
+<meta property="og:description" content="The deploy went green and your data vanished. It is not your code, it is the disk. How the ephemeral filesystem wipes your SQLite file, and how to stop losing data on redeploy for good.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">AI apps in production</span>
+  <h1>Why Your SQLite Data Disappears After a Redeploy (and How to Stop It)</h1>
+
+  <figure><img src="images/hero.png" alt="Two deploy timelines: a SQLite file on the app's ephemeral disk is wiped at the redeploy line, while a managed database living outside the app survives untouched"></figure>
+
+  <p class="lead">You shipped a small fix. The deploy went green. And now every account from yesterday is gone, the tables are empty, and the logs show a blunt <code>SQLITE_ERROR: no such table</code> where a table clearly existed. The good news: your code is fine. Your SQLite data disappears after redeploy because of where the data lived, not because your app broke.</p>
+  <p>So before you rewrite a single query, rule the code out. The redeploy didn't corrupt your logic. It threw away the disk your database file was sitting on. That one fact explains the whole thing, and once you see it, the fix is obvious and it's permanent.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>On most modern hosts your app's filesystem is ephemeral. A redeploy throws away the running instance and builds a fresh one from your code, so anything written to local disk since the last build, including your SQLite .db file, is wiped. The code comes back. The data doesn't, because the data was never in the code. Move whatever you write to a managed database that lives outside the app, and redeploys stop touching your data.</p>
+  </div>
+
+  <h2>First, rule out your code</h2>
+  <p>The instinct is to blame a migration, an ORM setting, a query that ran in the wrong order. Almost always, none of that is it. Run one test in your head: does the data survive normal use, and only vanish right after a deploy (or a restart, or a crash that restarts the process)? If the loss lines up with a deploy, your code is not the suspect.</p>
+  <p>This is the tell that separates a database resets on deploy problem from an actual bug. A logic bug loses data when a specific action runs. This loses everything, all at once, at the moment new code ships. Different signature, different cause. You're not looking for a bad line. You're looking at where the file lived.</p>
+
+  <h2>Why your SQLite data disappears after redeploy: the filesystem is ephemeral</h2>
+  <p>Here is the mechanism, made concrete. Your app runs as a process on a server somewhere. When you deploy, the platform doesn't patch the running copy in place. It builds a fresh instance straight from your code and swaps it in, then discards the old one. That fresh instance comes with a fresh disk. Anything written to local disk since the last build is not copied over. It's simply gone.</p>
+  <p>Your SQLite database is a file on that local disk, usually something like <code>app.db</code> or <code>data.sqlite</code>. Every row your users created since the last deploy lives in that file and nowhere else. So when the SQLite file wiped on redeploy scenario hits, the new instance boots with the version of <code>app.db</code> that was baked into your code at build time, which is either empty or whatever test rows you committed. The rows real users made never existed in the code, so they don't come back with it.</p>
+  <p>That's what an ephemeral filesystem means: scratch space that's fine to write to while the instance lives, and certain to vanish when the instance is replaced. Redeploys replace it. So do scale events and, on many platforms, ordinary restarts. Below, the same redeploy on two setups: one where the data sits on that scratch disk, one where it lives outside the app.</p>
+
+  <figure>
+    <svg viewBox="0 0 780 420" role="img" aria-label="Two deploy timelines compared. In the top timeline the SQLite database file lives on the app's ephemeral disk: App v1 holds three users, and after the redeploy line App v2 is a fresh build with an empty database, so the data is gone. In the bottom timeline the state lives in a managed database outside the app: App v1 and App v2 both connect to the same managed database, and the same redeploy leaves it untouched with its three users intact." xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ap" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4F1AF3"/></marker>
+        <marker id="apg" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#40b75f"/></marker>
+      </defs>
+
+      <line x1="390" y1="40" x2="390" y2="392" stroke="#4F1AF3" stroke-width="1.4" stroke-dasharray="6 6"/>
+      <text x="390" y="30" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="700" letter-spacing="1" fill="#4F1AF3">REDEPLOY</text>
+
+      <text x="24" y="70" font-family="Poppins,sans-serif" font-size="12" font-weight="700" fill="#000f27">1 · SQLite on the app's ephemeral disk</text>
+
+      <rect x="60" y="84" width="150" height="98" rx="10" fill="#000f27"/>
+      <text x="135" y="110" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#fff">App v1</text>
+      <rect x="80" y="122" width="110" height="46" rx="6" fill="none" stroke="#40b75f" stroke-width="1.4"/>
+      <text x="135" y="141" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#40b75f">app.db</text>
+      <text x="135" y="158" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#9fb0cc">3 users</text>
+
+      <line x1="210" y1="133" x2="576" y2="133" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ap)"/>
+      <text x="300" y="124" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#4F1AF3">you push new code</text>
+
+      <rect x="580" y="84" width="150" height="98" rx="10" fill="#000f27"/>
+      <text x="655" y="110" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#fff">App v2 (fresh)</text>
+      <rect x="600" y="122" width="110" height="46" rx="6" fill="none" stroke="#6b7a99" stroke-width="1.4" stroke-dasharray="4 4"/>
+      <text x="655" y="141" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#9fb0cc">app.db</text>
+      <text x="655" y="158" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#9fb0cc">empty · data gone</text>
+
+      <text x="24" y="238" font-family="Poppins,sans-serif" font-size="12" font-weight="700" fill="#000f27">2 · State in a managed database (outside the app)</text>
+
+      <rect x="60" y="252" width="150" height="64" rx="10" fill="#000f27"/>
+      <text x="135" y="290" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#fff">App v1</text>
+
+      <line x1="210" y1="284" x2="576" y2="284" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ap)"/>
+      <text x="300" y="275" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#4F1AF3">you push new code</text>
+
+      <rect x="580" y="252" width="150" height="64" rx="10" fill="#000f27"/>
+      <text x="655" y="290" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#fff">App v2 (fresh)</text>
+
+      <rect x="320" y="344" width="140" height="42" fill="#f6f7fb"/>
+      <ellipse cx="390" cy="386" rx="70" ry="12" fill="#f6f7fb" stroke="#40b75f" stroke-width="1.5"/>
+      <line x1="320" y1="344" x2="320" y2="386" stroke="#40b75f" stroke-width="1.5"/>
+      <line x1="460" y1="344" x2="460" y2="386" stroke="#40b75f" stroke-width="1.5"/>
+      <ellipse cx="390" cy="344" rx="70" ry="12" fill="#eef8f1" stroke="#40b75f" stroke-width="1.5"/>
+      <text x="390" y="343" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="600" fill="#000f27">Managed DB</text>
+      <text x="390" y="372" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#40b75f">untouched · still 3 users</text>
+
+      <line x1="150" y1="316" x2="335" y2="344" stroke="#40b75f" stroke-width="1.8" marker-end="url(#apg)"/>
+      <line x1="640" y1="316" x2="445" y2="344" stroke="#40b75f" stroke-width="1.8" marker-end="url(#apg)"/>
+    </svg>
+    <figcaption>Same redeploy, two outcomes. On top, the data sits inside the app on scratch disk, so the fresh build lands with an empty file. On the bottom, both app versions talk to a managed database that lives outside the app, so shipping new code never touches the rows.</figcaption>
+  </figure>
+
+  <!-- swap this slot for a real screenshot: src -> images/deploy-log-reset.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your host's deploy log at the moment a new build swaps in, next to the timestamp your data went empty.</em><small>Ties the loss to the deploy, not a query.</small></span></figure>
+
+  <h2>It worked locally, so the timing throws you off</h2>
+  <p>This bug is sneaky because it hides during the exact phase where you'd catch most problems. On your laptop, SQLite is flawless. Your disk persists between runs, restarts, and rebuilds, so data written on Monday is still there on Friday. Every local test passes. You ship with real confidence.</p>
+  <p>Then it works in production too, right up until the first redeploy. That might be days later, when you push an unrelated tweak. So the data loss looks disconnected from the deploy that caused it. People go hunting for a phantom bug in a feature they touched, when the real trigger was the deploy itself resetting the disk. If you've ever asked why my data resets after deployment and found nothing wrong in the diff, this is why. The broader pattern of local-perfect, production-broken is worth a read in <a href="https://www.kloudbean.com/blog/why-my-ai-app-works-locally-but-not-in-production/">why your AI app works locally but not in production</a>.</p>
+
+  <h2>Why your AI builder reached for SQLite in the first place</h2>
+  <p>None of this is a knock on the tool that scaffolded your app. SQLite is the zero-config default that just works. There's no server to run, no connection string to configure, no credentials to manage. You call it and it writes a file. For a builder like Lovable, Cursor, Bolt, or Replit trying to get you a working app in one shot, that's exactly the right first move. It's the quickest thing that works.</p>
+  <p>The trap is that "works" and "survives a deploy" are two different claims, and the second one never comes up while you're building. So the default quietly ships to production with you. This is one item on a longer list of things AI builders leave for you to finish, mapped out in <a href="https://www.kloudbean.com/blog/last-mile-of-vibe-coding/">the last mile of vibe coding</a>, and it sits alongside the other usual suspects in <a href="https://www.kloudbean.com/blog/why-ai-apps-fail-in-production/">why AI apps fail in production</a>. The SQLite-on-redeploy one just happens to be the most heartbreaking, because the app looks perfect until the day it eats your users.</p>
+
+  <h2>Local disk vs a managed database</h2>
+  <p>The difference isn't SQLite versus Postgres as engines. It's where the data physically lives: on the app's throwaway disk, or in a service that outlives the app. That single distinction decides almost everything that matters in production.</p>
+  <table class="cmp">
+    <thead><tr><th>&nbsp;</th><th>SQLite on local disk</th><th>Managed database (Postgres / MySQL)</th></tr></thead>
+    <tbody>
+      <tr><td>Survives a redeploy</td><td>No, the disk is replaced</td><td>Yes, it lives outside the app</td></tr>
+      <tr><td>Survives scale-out</td><td>No, each instance has its own file</td><td>Yes, every instance shares one database</td></tr>
+      <tr><td>Automatic backups</td><td>You build and test them yourself</td><td>Built in, run on a schedule</td></tr>
+      <tr><td>Concurrent writers</td><td>Locks up under real write load</td><td>Built for many connections at once</td></tr>
+      <tr><td>Access control</td><td>Whatever the file permissions are</td><td>Credentials plus IP allow-listing</td></tr>
+    </tbody>
+  </table>
+  <p>The scale-out row is the quiet killer people forget. Even if a host somehow kept your disk between deploys, the moment you run a second copy of the app to handle traffic, each copy gets its own SQLite file. Half your users write to one, half to the other, and neither has the whole picture. Local files just don't have a story for more than one instance.</p>
+
+  <h2>The fix: move state out of the app process</h2>
+  <p>The permanent fix is one idea: state that has to survive a deploy must not live inside the thing you redeploy. Move your data to a managed Postgres or MySQL database that runs as its own service, and now deploying only ever ships code. The database sits still while versions come and go, exactly like the bottom timeline in the diagram.</p>
+  <p>In practice this is smaller than it sounds. You provision a managed database, you get a connection string, and you point your app at it through a <code>DATABASE_URL</code> environment variable instead of a file path. Most ORMs (Prisma, Drizzle, Sequelize, Django's ORM, ActiveRecord) change one line of config and a dialect setting. Your queries barely move. The full walkthrough is in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">how to add a managed database to your app</a>, and if you're weighing the engine, <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a> covers why Postgres is the safe default for most apps. Once you're on it, spend ten minutes on <a href="https://www.kloudbean.com/blog/production-database-design-for-ai-apps/">production database design for AI apps</a> so the schema you carry over is one you'll want to keep.</p>
+  <p>Here's my one firm opinion on this: SQLite is great in dev and wrong for anything you write to in production. It's a brilliant embedded database, genuinely, but the moment real users depend on data persisting, it belongs behind you. Switch to a managed database the day you have your first real user, not the day after you lose them.</p>
+
+  <h2>When SQLite is actually the right tool</h2>
+  <p>Let me be fair to SQLite, because the internet loves to dunk on it and that's not the point. The problem is never SQLite itself. It's writable SQLite on an ephemeral disk. There are real production uses where SQLite is a fine, even excellent, choice:</p>
+  <ul>
+    <li><strong>Local development and tests.</strong> Fast, disposable, zero setup. Perfect for it.</li>
+    <li><strong>A read-only database you bundle with the build.</strong> Ship a <code>.db</code> of reference data (say a list of postcodes or product specs), read from it at runtime, never write to it. A redeploy just brings the same file back. Nothing to lose.</li>
+    <li><strong>Single-user desktop and mobile apps.</strong> The file lives on the user's own device, which isn't ephemeral. That's SQLite's home turf.</li>
+  </ul>
+  <p>Notice the common thread: nothing important is being written to that file at runtime on a server. The instant your app writes user data to SQLite on a host that can replace the disk, you've re-created the whole problem. So the rule isn't "never SQLite." It's "never write runtime data to a file on an ephemeral disk."</p>
+
+  <h2>The same bug wears other disguises</h2>
+  <p>Once you see the ephemeral-disk pattern, you start spotting it everywhere, and that's the real value here. User uploads are the classic sibling. Someone uploads a profile photo, your app saves it to <code>/uploads</code> on local disk, and it works great until the next deploy makes every image 404 with an <code>ENOENT</code>. Exact same mechanism, different file. The fix is the same shape too: put uploads in object storage that lives outside the app, which is covered in <a href="https://www.kloudbean.com/blog/store-user-uploads-in-object-storage/">how to store user uploads in object storage</a>.</p>
+  <p>So generalise the rule and you'll never get bitten by this class of bug again: nothing that must survive a deploy lives on the app's local disk. Databases go to a managed database. Files go to object storage. Sessions and caches go to Redis. Which kind of data belongs in which store is laid out in <a href="https://www.kloudbean.com/blog/persistent-storage-for-ai-apps/">persistent storage for AI apps</a>. The app process itself stays disposable, which is the whole point of being able to redeploy it fearlessly.</p>
+
+  <!-- swap this slot for a real screenshot: src -> images/uploads-404.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A broken profile image or a 404 in the network tab after a deploy, showing local-disk uploads vanishing the same way.</em><small>Reinforces that it is one pattern, not one bug.</small></span></figure>
+
+  <h2>Two 'fixes' that quietly make it worse</h2>
+  <p>When the panic sets in, two workarounds show up a lot. Both feel like fixes. Both dig the hole deeper.</p>
+  <p><strong>Committing the .db file into git.</strong> The logic goes: if the file is in the repo, every deploy will have it. True, and that's the trap. Every deploy restores the version of the database from your last commit, silently rolling every user back to that snapshot and wiping everything since. Now you're not losing data at random, you're losing it on a schedule, and overwriting it with stale rows on purpose. It also turns a binary file into a merge-conflict nightmare. Don't put a live database in version control.</p>
+  <p><strong>Writing the SQLite file to a different path.</strong> People move <code>app.db</code> to <code>/data</code> or <code>/var/db</code> hoping some folder is magically persistent. Usually it isn't. Unless the platform gives you an explicitly mounted persistent volume (and most app platforms don't, by design), every path is on the same ephemeral disk. You've moved the deck chair. The disk still resets. Chasing the "right" folder wastes an afternoon and ends where it started.</p>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>This is squarely the problem Kloudbean is built to make boring. You run your app on an always-on server, and you add a managed database (Postgres, MySQL, and more) that runs as its own service, outside the app. So a redeploy only ever changes code, and your data sits right where it was. You deploy from Git on every push, automatic backups run on a schedule, and SSL is free. The database is locked down by IP allow-listing: you whitelist your app server's address so only your app can connect, and everything else is refused. Plans start at $8/mo, and it's all in one dashboard rather than three separate consoles.</p>
+  <p>The honest boundary, because it builds trust: managed means Kloudbean handles the server, the stack, SSL, backups, and patching. Your app code and your data stay yours. Moving off SQLite is a change you make in your app; the platform's job is to give the managed database a stable home so the move actually sticks. Full network isolation in a private VPC is an Enterprise capability; on a standard plan, the IP allow-list is how you keep the database off the open internet.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Stop losing data on every deploy. Give it a home outside the app.</p>
+    <p style="margin:0 0 .6em">Run your app on an always-on server and add a managed Postgres or MySQL that survives every redeploy, with automatic backups, free SSL, IP allow-listing, and Git deploys, all in one dashboard.</p>
+    <p style="margin:0">Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a> from $8/mo; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">Managed Postgres + MySQL · Survives redeploys · Automatic backups · Free SSL · IP allow-listing · Git deploy · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Why does my database reset every deploy?</h3>
+    <p>Because your database is a file on the app's local disk, and that disk is ephemeral. Each deploy builds a fresh instance from your code and throws the old disk away, so any data written since the last build goes with it. The fix is to move your data into a managed database that runs outside the app, so deploying only changes code.</p>
+    <h3>Why does my SQLite data disappear after a redeploy?</h3>
+    <p>Your SQLite database is a single file (like app.db) on scratch disk. A redeploy replaces the running instance with a new build that comes with a clean disk, and the file with your users in it is not carried over. Your code returns, your data does not, because the data was never part of the code.</p>
+    <h3>What is an ephemeral filesystem?</h3>
+    <p>It is disk space that exists only for the life of a running instance. You can read and write it while the app runs, but when the instance is replaced by a redeploy, restart, or scale event, that disk is discarded and a fresh one takes its place. Anything you saved there is gone. It is the default on most modern app platforms.</p>
+    <h3>Is SQLite ok for production?</h3>
+    <p>For anything you write to at runtime on a server, no, not on an ephemeral disk. SQLite is excellent for local development, tests, single-user desktop or mobile apps, and read-only reference data you bundle with the build. The problem is never SQLite itself, it is writing live user data to a file that a deploy can wipe.</p>
+    <h3>How do I stop losing data on redeploy?</h3>
+    <p>Move every piece of state that must survive a deploy off the app's local disk. Put your database in a managed Postgres or MySQL, put uploaded files in object storage, and put sessions or caches in Redis. Point your app at the database through a DATABASE_URL environment variable instead of a file path, and redeploys stop touching your data.</p>
+    <h3>Does this happen to user uploads too?</h3>
+    <p>Yes, and it is the exact same mechanism. Files saved to a local folder like /uploads live on the same ephemeral disk as your SQLite file, so a redeploy makes them vanish and requests for them return a 404 or ENOENT. The fix is the same shape: store uploads in object storage that lives outside the app.</p>
+    <h3>Can I just commit my SQLite .db file to git?</h3>
+    <p>Please do not. Committing the database means every deploy restores the snapshot from your last commit, silently rolling all users back and overwriting everything created since with stale rows. It also turns a binary file into a source of merge conflicts. A live database does not belong in version control.</p>
+    <h3>Will switching to Postgres or MySQL fix it for good?</h3>
+    <p>Yes, as long as it is a managed database running as its own service outside the app, which is the normal setup. Because the database no longer lives on the app's disk, redeploys, restarts, and scaling never touch it. You also gain real concurrent writes, scheduled backups, and the ability to run more than one app instance against one database.</p>
+    <h3>Does a restart or a crash wipe SQLite too, or only a redeploy?</h3>
+    <p>On many platforms a plain restart or a crash-and-restart also lands you on a fresh disk, so yes, it can happen without a deploy. That is part of why the loss feels random. The safe assumption is that the local disk can reset at any time, so nothing you need to keep should live there.</p>
+  </div>
+
+  <p class="byline">Kloudbean · The code comes back, so keep the data somewhere the code can't take it.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Why Your SQLite Data Disappears After a Redeploy (and How to Stop It)","description":"Your SQLite data disappears after redeploy because the app's filesystem is ephemeral, not because your code broke. The real mechanism, the permanent fix, and when SQLite is still fine.","image":"https://www.kloudbean.com/blog/why-sqlite-data-disappears-on-redeploy/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/why-sqlite-data-disappears-on-redeploy/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Why does my database reset every deploy?","acceptedAnswer":{"@type":"Answer","text":"Because your database is a file on the app's local disk, and that disk is ephemeral. Each deploy builds a fresh instance from your code and throws the old disk away, so any data written since the last build goes with it. The fix is to move your data into a managed database that runs outside the app, so deploying only changes code."}},
+{"@type":"Question","name":"Why does my SQLite data disappear after a redeploy?","acceptedAnswer":{"@type":"Answer","text":"Your SQLite database is a single file (like app.db) on scratch disk. A redeploy replaces the running instance with a new build that comes with a clean disk, and the file with your users in it is not carried over. Your code returns, your data does not, because the data was never part of the code."}},
+{"@type":"Question","name":"What is an ephemeral filesystem?","acceptedAnswer":{"@type":"Answer","text":"It is disk space that exists only for the life of a running instance. You can read and write it while the app runs, but when the instance is replaced by a redeploy, restart, or scale event, that disk is discarded and a fresh one takes its place. Anything you saved there is gone. It is the default on most modern app platforms."}},
+{"@type":"Question","name":"Is SQLite ok for production?","acceptedAnswer":{"@type":"Answer","text":"For anything you write to at runtime on a server, no, not on an ephemeral disk. SQLite is excellent for local development, tests, single-user desktop or mobile apps, and read-only reference data you bundle with the build. The problem is never SQLite itself, it is writing live user data to a file that a deploy can wipe."}},
+{"@type":"Question","name":"How do I stop losing data on redeploy?","acceptedAnswer":{"@type":"Answer","text":"Move every piece of state that must survive a deploy off the app's local disk. Put your database in a managed Postgres or MySQL, put uploaded files in object storage, and put sessions or caches in Redis. Point your app at the database through a DATABASE_URL environment variable instead of a file path, and redeploys stop touching your data."}},
+{"@type":"Question","name":"Does this happen to user uploads too?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it is the exact same mechanism. Files saved to a local folder like /uploads live on the same ephemeral disk as your SQLite file, so a redeploy makes them vanish and requests for them return a 404 or ENOENT. The fix is the same shape: store uploads in object storage that lives outside the app."}},
+{"@type":"Question","name":"Can I just commit my SQLite .db file to git?","acceptedAnswer":{"@type":"Answer","text":"Please do not. Committing the database means every deploy restores the snapshot from your last commit, silently rolling all users back and overwriting everything created since with stale rows. It also turns a binary file into a source of merge conflicts. A live database does not belong in version control."}},
+{"@type":"Question","name":"Will switching to Postgres or MySQL fix it for good?","acceptedAnswer":{"@type":"Answer","text":"Yes, as long as it is a managed database running as its own service outside the app, which is the normal setup. Because the database no longer lives on the app's disk, redeploys, restarts, and scaling never touch it. You also gain real concurrent writes, scheduled backups, and the ability to run more than one app instance against one database."}},
+{"@type":"Question","name":"Does a restart or a crash wipe SQLite too, or only a redeploy?","acceptedAnswer":{"@type":"Answer","text":"On many platforms a plain restart or a crash-and-restart also lands you on a fresh disk, so yes, it can happen without a deploy. That is part of why the loss feels random. The safe assumption is that the local disk can reset at any time, so nothing you need to keep should live there."}}
+]}
+]}
+</script>
+</body>
+</html>
