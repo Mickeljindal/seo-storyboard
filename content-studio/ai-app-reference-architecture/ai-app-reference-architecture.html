@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A Reference Architecture for Production AI Apps</title>
+<meta name="description" content="An AI app reference architecture you can map your own app onto: client, reverse proxy and TLS, an always-on API that holds the model key, a managed database with pgvector, Redis, a job queue and worker, object storage, and observability. One diagram, every box explained.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/ai-app-reference-architecture/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="A Reference Architecture for Production AI Apps">
+<meta property="og:description" content="One generalized architecture behind every production AI app, chatbot, agent, RAG tool or SaaS. A big teaching diagram, then every box explained: what it is, why it's there, and what breaks without it.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">AI apps in production</span>
+  <h1>A Reference Architecture for Production AI Apps</h1>
+
+  <figure><img src="images/hero.png" alt="A reference architecture for production AI apps: client, reverse proxy, an always-on API holding the model key, a managed database, vector store, Redis, a worker, object storage, and observability"></figure>
+
+  <p class="lead">Every production AI app ends up needing the same handful of parts, whether it's a chatbot, an autonomous agent, a RAG tool, or a full AI SaaS. Most teams discover those parts one outage at a time. This is an AI app reference architecture: a single generalized shape you can hold in your head and map your own project onto, no matter how you built it. One diagram, then every box explained. What it is, why it's there, and what breaks the day you leave it out.</p>
+  <p>There's nothing exotic in here. A production AI app is a small distributed system with one unusual hop, a call to a model you don't run, and a few rules about who's allowed to talk to what. Get the shape right and the thing scales, survives redeploys, and won't hand a stranger your model bill. Get it wrong and you're up at 2am debugging cold starts and data that vanished on the last deploy.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>A production AI app is a client that talks only to your always-on API. That API holds the model key and the security gate, makes one server-side call to a model provider, and reads and writes a managed database (with pgvector for retrieval), Redis for the fast layer, a job queue for slow work, and object storage for files. Everything you own sits behind your domain and SSL, with observability watching all of it.</p>
+  </div>
+
+  <h2>The AI app reference architecture, in one diagram</h2>
+  <p>Here's the whole thing on one canvas. Read it once before the details, because every section below is just a zoom into one box.</p>
+
+  <figure>
+    <svg viewBox="0 0 820 560" role="img" aria-label="A production AI app reference architecture. Outside your infrastructure sit two boxes: the client, a browser or app, on the left, and the model provider on the right, which is the one external hop. Everything else sits inside a boundary that represents what you own and run in one dashboard behind your domain and SSL: a reverse proxy with TLS, an always-on API that holds the model key and enforces auth, rate limits and a spend cap, a job queue with a worker for slow work, a managed Postgres database with pgvector as the system of record, Redis for cache and rate limits, object storage for files, and an observability sink that collects logs, metrics and traces. The client talks only to the API, the API makes one server-side call to the model provider and streams the reply back, and the API reads and writes the data stores." xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4F1AF3"/></marker>
+        <marker id="arg" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#40b75f"/></marker>
+        <marker id="arh" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#5b6a86"/></marker>
+      </defs>
+
+      <rect x="168" y="64" width="498" height="474" rx="16" fill="none" stroke="#4F1AF3" stroke-width="1.4" stroke-dasharray="7 6"/>
+      <text x="186" y="90" font-family="Poppins,sans-serif" font-size="11" font-weight="700" letter-spacing="0.5" fill="#4F1AF3">WHAT YOU OWN AND RUN (ONE DASHBOARD, DOMAIN + SSL)</text>
+
+      <rect x="24" y="250" width="122" height="74" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="85" y="282" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">Client</text>
+      <text x="85" y="300" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">browser or app</text>
+      <text x="85" y="315" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9" fill="#5b6a86">talks only to your API</text>
+
+      <rect x="196" y="250" width="118" height="74" rx="10" fill="#f6f7fb" stroke="#000f27" stroke-width="1.4"/>
+      <text x="255" y="282" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="600" fill="#000f27">Reverse proxy</text>
+      <text x="255" y="300" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#5b6a86">+ TLS, routing</text>
+
+      <rect x="356" y="108" width="180" height="64" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.4"/>
+      <text x="446" y="136" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">Queue + worker</text>
+      <text x="446" y="155" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">slow and async work</text>
+
+      <rect x="356" y="232" width="180" height="112" rx="12" fill="#000f27"/>
+      <text x="446" y="266" text-anchor="middle" font-family="Poppins,sans-serif" font-size="14.5" font-weight="700" fill="#fff">Always-on API</text>
+      <text x="446" y="285" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#9fb0cc">Node / Python</text>
+      <text x="446" y="303" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#40b75f">holds the model key</text>
+      <text x="446" y="321" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#40b75f">auth, limits, spend cap</text>
+
+      <rect x="700" y="250" width="104" height="76" rx="10" fill="#f6f7fb" stroke="#7C5CFF" stroke-width="1.5"/>
+      <text x="752" y="284" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="600" fill="#000f27">Model provider</text>
+      <text x="752" y="302" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9" fill="#5b6a86">one external hop</text>
+
+      <rect x="250" y="398" width="132" height="64" rx="10" fill="#f6f7fb" stroke="#40b75f" stroke-width="1.4"/>
+      <text x="316" y="424" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" font-weight="600" fill="#000f27">Postgres + pgvector</text>
+      <text x="316" y="441" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#5b6a86">system of record</text>
+
+      <rect x="398" y="398" width="96" height="64" rx="10" fill="#f6f7fb" stroke="#40b75f" stroke-width="1.4"/>
+      <text x="446" y="424" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12" font-weight="600" fill="#000f27">Redis</text>
+      <text x="446" y="441" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#5b6a86">cache, limits</text>
+
+      <rect x="510" y="398" width="120" height="64" rx="10" fill="#f6f7fb" stroke="#40b75f" stroke-width="1.4"/>
+      <text x="570" y="424" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11.5" font-weight="600" fill="#000f27">Object storage</text>
+      <text x="570" y="441" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9.5" fill="#5b6a86">uploads, files</text>
+
+      <rect x="250" y="488" width="380" height="42" rx="10" fill="#f6f7fb" stroke="#5b6a86" stroke-width="1.3" stroke-dasharray="5 5"/>
+      <text x="440" y="514" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#000f27">Observability: logs, metrics, traces (metadata, not raw prompts)</text>
+
+      <line x1="146" y1="288" x2="192" y2="288" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ar)"/>
+      <text x="169" y="279" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9" fill="#4F1AF3">1 request</text>
+      <line x1="314" y1="288" x2="352" y2="288" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ar)"/>
+
+      <line x1="536" y1="270" x2="696" y2="270" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ar)"/>
+      <text x="616" y="262" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9" fill="#4F1AF3">2 server-side call</text>
+      <line x1="696" y1="306" x2="536" y2="306" stroke="#40b75f" stroke-width="2" marker-end="url(#arg)"/>
+      <text x="616" y="320" text-anchor="middle" font-family="Poppins,sans-serif" font-size="9" fill="#40b75f">3 streamed back</text>
+
+      <line x1="446" y1="232" x2="446" y2="176" stroke="#4F1AF3" stroke-width="1.8" marker-end="url(#ar)"/>
+      <text x="456" y="206" text-anchor="start" font-family="Poppins,sans-serif" font-size="8.5" fill="#4F1AF3">enqueue</text>
+
+      <line x1="404" y1="344" x2="342" y2="395" stroke="#4F1AF3" stroke-width="1.8" marker-end="url(#ar)"/>
+      <line x1="446" y1="344" x2="446" y2="395" stroke="#4F1AF3" stroke-width="1.8" marker-end="url(#ar)"/>
+      <line x1="488" y1="344" x2="554" y2="395" stroke="#4F1AF3" stroke-width="1.8" marker-end="url(#ar)"/>
+      <text x="470" y="374" text-anchor="start" font-family="Poppins,sans-serif" font-size="8.5" fill="#4F1AF3">read / write</text>
+
+      <polyline points="362,344 214,344 214,509 246,509" fill="none" stroke="#5b6a86" stroke-width="1.3" stroke-dasharray="5 5" marker-end="url(#arh)"/>
+      <text x="222" y="472" text-anchor="start" font-family="Poppins,sans-serif" font-size="9" fill="#5b6a86">telemetry</text>
+    </svg>
+    <figcaption>The whole shape on one canvas. The client and the model provider are the only parts you don't run. Everything inside the box is yours, ideally in one place, behind your domain and SSL. The API is the heart: it holds the key, guards the gate, and orchestrates every other box.</figcaption>
+  </figure>
+
+  <p>Two boxes sit outside your control: the client (a browser or app) and the model provider. Everything else is yours, and the point of drawing a boundary around it is that it can, and probably should, live in one place. The client only ever talks to your API. Your API makes exactly one call out to the model, server-side, and streams the answer back. That single external hop is the whole reason the rest of the architecture exists. You need somewhere trusted to hold the key, count the requests, and remember what happened.</p>
+  <p>This is the generalized version. A chatbot is one instance of it (see the <a href="https://www.kloudbean.com/blog/host-ai-chatbot-in-production/">chatbot version of this</a> for that request path in detail). An agent, a RAG search tool, and an AI SaaS backend are others. The boxes are the same. What changes is which ones you lean on. If you want the argument behind all of it, the <a href="https://www.kloudbean.com/blog/last-mile-of-vibe-coding/">last mile of vibe coding</a> is the bigger picture, and this page is the architecture it points at.</p>
+
+  <!-- ADD IMAGE: swap in a real console shot of an always-on Node or Python app running, showing its domain and status. src -> images/always-on-app.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>An always-on Node or Python app running in one dashboard, with its domain and running status visible.</em><small>A real console screenshot works better than a stock diagram here.</small></span></figure>
+
+  <h2>Every box, and what breaks without it</h2>
+  <p>Before we zoom in, the whole reference in one table. This is the part worth bookmarking. Each row is a component, its job, the failure you invite by skipping it, and where to go deeper.</p>
+  <table class="cmp">
+    <thead><tr><th>Component</th><th>Its role</th><th>What breaks without it</th><th>Go deeper</th></tr></thead>
+    <tbody>
+      <tr><td>Client / frontend</td><td>The UI the user touches; sends requests to your API</td><td>If it calls the model directly, your key is public and anyone can spend it</td><td><a href="https://www.kloudbean.com/blog/deploy-ai-agent-without-exposing-api-keys/">Hide your API keys</a></td></tr>
+      <tr><td>Reverse proxy + TLS</td><td>Terminates HTTPS, routes traffic, one public front door</td><td>No SSL, no clean routing, streams stall behind buffering</td><td><a href="https://www.kloudbean.com/blog/reverse-proxy-explained/">Reverse proxy explained</a></td></tr>
+      <tr><td>Always-on API</td><td>Holds the key, enforces auth and limits, orchestrates every call</td><td>Cold starts, dropped streams, no safe home for the key</td><td><a href="https://www.kloudbean.com/blog/move-ai-app-off-serverless/">Off serverless</a></td></tr>
+      <tr><td>Model provider</td><td>The one external hop; generates the output</td><td>No timeout or fallback means one slow provider hangs your app</td><td><a href="https://www.kloudbean.com/blog/llm-streaming-in-production/">Stream LLM output</a></td></tr>
+      <tr><td>Managed relational DB</td><td>System of record: users, conversations, app state</td><td>Redeploys wipe in-app storage and you lose everything</td><td><a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">Managed Postgres</a></td></tr>
+      <tr><td>Vector store</td><td>Stores embeddings for retrieval, usually inside Postgres</td><td>No grounded answers; RAG has nowhere to search</td><td><a href="https://www.kloudbean.com/blog/pgvector-for-ai-apps/">pgvector for AI apps</a></td></tr>
+      <tr><td>Cache / fast layer</td><td>Sessions, rate-limit counters, cached answers</td><td>Every request hits Postgres or the model; limits can't count</td><td><a href="https://www.kloudbean.com/blog/managed-redis-hosting/">Managed Redis</a></td></tr>
+      <tr><td>Background jobs + worker</td><td>Runs slow or async work off the request path</td><td>Long jobs block requests and time out; indexing stalls the app</td><td><a href="https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/">Background jobs</a></td></tr>
+      <tr><td>Object storage</td><td>User uploads, source documents, generated files</td><td>Files on local disk vanish on redeploy and don't scale</td><td><a href="https://www.kloudbean.com/blog/store-user-uploads-in-object-storage/">Object storage</a></td></tr>
+      <tr><td>Observability</td><td>Logs, metrics, traces (metadata, not raw prompts)</td><td>You're blind when the app is slow, failing, or expensive</td><td><a href="https://www.kloudbean.com/blog/ai-app-observability/">AI app observability</a></td></tr>
+      <tr><td>Security + cost gate</td><td>Auth, rate limits, and a spend cap around the model</td><td>One script runs up an unbounded bill overnight</td><td><a href="https://www.kloudbean.com/blog/rate-limit-and-cost-control-for-ai-apis/">Rate limits + cost</a></td></tr>
+      <tr><td>Residency boundary (optional)</td><td>Keeps regulated data in-region, minds the one crossing</td><td>Data leaves the jurisdiction you promised it wouldn't</td><td><a href="https://www.kloudbean.com/blog/hosting-ai-apps-saudi-arabia/">In-region hosting</a></td></tr>
+    </tbody>
+  </table>
+  <p>Notice how many rows are storage and safety, not model cleverness. That's the real lesson of running these in production. The model is one hop. The other boxes are what make it survive contact with actual users.</p>
+
+  <h2>The client and the edge</h2>
+  <p>The client is whatever the user touches: a web page, a mobile app, a browser extension. It has exactly one rule in this architecture, and it's the rule people break first. The client never calls the model directly. Not once. The moment your frontend holds the model key, that key is public, because anyone can open dev tools and read it. Everything the client needs, it asks your API for. Keeping the key server-side is the entire game, and <a href="https://www.kloudbean.com/blog/deploy-ai-agent-without-exposing-api-keys/">deploying an AI agent without exposing API keys</a> is the deep dive.</p>
+  <p>In front of your app sits a reverse proxy that terminates TLS, so users get HTTPS and a real domain instead of a raw preview URL. It routes traffic to your app, and it's where you'd bolt on a CDN later. Skip it and you've got no clean front door, no SSL, and streaming responses that stall the first time a buffering layer gets in the way. If the term is fuzzy, <a href="https://www.kloudbean.com/blog/reverse-proxy-explained/">reverse proxy explained</a> covers it. Can you skip this on day one? Not really. But you rarely build it yourself; you just want SSL and a domain from the first deploy, and most hosts hand you that.</p>
+
+  <h2>The heart: an always-on API that holds the key</h2>
+  <p>This is the box everything else plugs into, and it's the one people get wrong by trying to make it clever infrastructure when it should just be a normal, boring, always-on server. It holds the model key. It checks who's asking. It counts requests. It decides how much context to send, calls the model, streams the reply back, and writes down what happened. If a request touches money or data, it goes through here.</p>
+  <p>The word that matters is always-on. Your API must not scale to zero, because an AI app is sensitive to cold starts in a way a static site isn't. The first request after an idle period waits for the process to wake and rebuild its database connections, and that delay lands exactly when a new user is deciding whether you're worth their time. A warm process also keeps its connection pool ready and can hold a streaming connection open without the platform trying to freeze it mid-answer. That's why the reference puts a real server at the center, not a function. If you're on serverless today, <a href="https://www.kloudbean.com/blog/move-ai-app-off-serverless/">moving your AI app off serverless</a> walks the migration.</p>
+  <p>The model provider is the one external dependency, so you treat it like one. Every call gets a timeout, so one slow response can't hang a request forever. Add a retry for the odd blip, and a fallback (a cheaper or secondary model) so a provider outage degrades your app instead of taking it down. Stream the tokens through your server to the client rather than buffering the whole answer. The mechanics of that live in <a href="https://www.kloudbean.com/blog/llm-streaming-in-production/">LLM streaming in production</a>, and a slow or flaky provider (timeouts, rate limits, malformed output) is one of the most common reasons these apps fall over once real traffic arrives.</p>
+  <pre><code>// every model call, wrapped
+const reply = await withTimeout(
+  () =&gt; model.stream(prompt),
+  15_000,                        // don't let one slow call hang a request
+).catch(() =&gt; fallbackModel.stream(prompt));  // degrade, don't 500</code></pre>
+  <p>Wrapped around that call is the gate, and it isn't optional. Auth on every route that can reach the model. Per-user and global rate limits so one client can't flood you. A hard spend cap at the provider so the worst case is a paused service, not a five-figure surprise. The classic horror story is the open, unauthenticated endpoint that relays every request to the model on your key. Someone finds it, scripts it overnight, and you wake up to a bill shaped like a typo. <a href="https://www.kloudbean.com/blog/rate-limit-and-cost-control-for-ai-apis/">Rate limiting and cost control for AI APIs</a> is the whole playbook.</p>
+
+  <h2>State: the data that has to survive a redeploy</h2>
+  <p>Everything the app needs to remember lives outside the app process, in managed data services. This is the single biggest thing AI builders scaffold wrong. They reach for SQLite or an in-memory array, it works beautifully in dev, and the first production redeploy wipes it. State that matters can't live inside the thing you redeploy ten times a day.</p>
+  <p>The relational database is your system of record: users, sessions, conversations, jobs, whatever your app's truth is. Postgres is the sane default. It survives redeploys because it lives outside the app, and it's boring in the best way. Design the schema for how AI apps actually read and write, and put a connection pool in front of it, because every request that opens a fresh connection exhausts the limit faster than you'd guess.</p>
+  <p>If your app answers from your own documents, you need vector search, and here's my firm opinion: you almost certainly don't need a separate vector database to start. The pgvector extension stores embeddings right inside the Postgres you already run, which keeps your whole retrieval story in one database instead of two. Add a dedicated vector product later, if scale ever truly demands it. Most teams never do. See <a href="https://www.kloudbean.com/blog/pgvector-for-ai-apps/">pgvector for AI apps</a> for how to turn it on and index your documents.</p>
+  <p>Redis is the fast, short-lived layer. Sessions, rate-limit counters, cached answers so an identical question doesn't pay for a fresh model call. It's not your system of record; it's the scratchpad in front of it. Set TTLs so it stays small. <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">Managed Redis hosting</a> covers the setup.</p>
+  <p>Object storage is for files: user uploads, the source documents your RAG pipeline indexes, generated images or exports. Files don't belong on the app server's local disk, because that disk is ephemeral, vanishes on redeploy, and doesn't scale past one machine. Push them to S3-style object storage instead, which <a href="https://www.kloudbean.com/blog/store-user-uploads-in-object-storage/">storing user uploads in object storage</a> walks through.</p>
+
+  <!-- ADD IMAGE: swap in a real console shot of the managed database list with Postgres and Redis, and the IP allow-list field. src -> images/managed-databases.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The managed database list showing PostgreSQL and Redis side by side, with the IP allow-list field in view.</em><small>Shows the state layer living outside the app, locked down by IP.</small></span></figure>
+
+  <h2>Getting slow work off the request path</h2>
+  <p>Some work is too slow to do while a user waits. Indexing a big document for retrieval, a long multi-step generation, a batch export, sending email. If you do it inside the request, the request either times out or holds a connection hostage for 40 seconds. So you don't. You push the job onto a queue, return right away, and let a separate worker process drain the queue in the background.</p>
+  <p>The queue is usually Redis-backed (BullMQ in Node, for instance), and the worker is just another always-on process sitting next to your API. The user gets an instant acknowledgement, the heavy work happens off to the side, and one slow job never blocks the fast path. <a href="https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/">Background jobs in Node.js with BullMQ</a> shows the pattern. This is also the one box I'd happily skip on day one. Add the queue the moment real work starts blocking requests, not before.</p>
+
+  <!-- ADD IMAGE: swap in a real console shot of a worker process next to the web app, plus a scheduled cron entry. src -> images/worker-and-cron.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A background worker process running next to the web app, plus a scheduled cron entry.</em><small>The queue drains here, off the request path.</small></span></figure>
+
+  <h2>Seeing what's actually happening</h2>
+  <p>When the app is slow, failing, or expensive, you need to see why, and you can't debug what you don't measure. Observability is the sink that collects logs, metrics, and traces from your API and its stores. Which routes are slow, how many tokens went out, where errors cluster, what a request did on its way through.</p>
+  <p>One rule is specific to AI apps: log the metadata, not the message. Timing, token counts, the model used, user id, status codes, errors. Skip or redact the raw prompts and replies by default, because they routinely carry personal data, and hoarding all of it just grows your database and your risk. <a href="https://www.kloudbean.com/blog/ai-app-observability/">AI app observability</a> goes deeper on what to capture and what to leave alone.</p>
+
+  <h2>Start smaller than the full diagram</h2>
+  <p>Don't build all twelve boxes for a launch. That's over-engineering, and it's its own kind of failure. The minimum viable version of this architecture is four boxes: a client, an always-on API that holds the key, a managed database, and the model call. That's a real, shippable AI app. It has a safe place for the key, it survives redeploys, and it won't cold-start on your first user.</p>
+  <p>Then you add pieces as the app earns them. Need retrieval? Turn on pgvector in the Postgres you already have. Repeated questions, or limits to enforce? Add Redis. Uploads? Object storage. Work that blocks requests? The queue and a worker. Regulated data? The residency boundary below. My honest take: most AI apps need this whole shape eventually, except the job queue, which you should add the moment slow work starts blocking the request and not a day sooner. And you very rarely need a separate vector database. pgvector is enough until you're genuinely big. When the shape is in place and you're ready to ship, run the <a href="https://www.kloudbean.com/blog/ai-app-production-readiness-checklist/">AI app production readiness checklist</a> before you open the doors.</p>
+
+  <h2>The anti-pattern that fights this shape</h2>
+  <p>The architecture that fights every one of these needs is the one a lot of AI apps ship by accident: a serverless function for the API, plus a scattering of separate cloud services glued together across three dashboards. It looks modern. It fights you at every turn.</p>
+  <p>Cold starts hit the first user, right when it matters. Functions can't hold a connection pool, so your database chokes under load. There's nowhere for a long stream to live, and nowhere for a background worker to run, because the function is gone the moment it returns. Each service bills and breaks separately, and you're the integration layer holding it together. Serverless is genuinely good for spiky, stateless, occasional work. A stateful, connection-heavy, streaming AI backend is close to its worst case, which is why <a href="https://www.kloudbean.com/blog/move-ai-app-off-serverless/">moving off serverless</a> is one of the most common production fixes for AI apps that outgrew the demo.</p>
+
+  <h2>When your data has to stay in one country</h2>
+  <p>One optional overlay matters if you're in a regulated market: data residency. Some sectors and countries require that user data stays inside a specific jurisdiction. On this diagram, that means the entire boundary box, the API and every store, runs in-region, and you think hard about the one arrow that leaves: the call to the model provider. Either use a model hosted in-region, or send only what's necessary across that boundary, or keep sensitive fields out of the prompt entirely.</p>
+  <p>This is a real architectural decision, not a checkbox. It shapes where you host and which model you can call. If you're serving Saudi Arabia specifically, <a href="https://www.kloudbean.com/blog/hosting-ai-apps-saudi-arabia/">hosting AI apps in Saudi Arabia</a> covers the in-Kingdom residency angle and what being aligned with local rules actually means in practice.</p>
+
+  <!-- ADD IMAGE: swap in a real console shot of a region picker with an in-region data centre option. src -> images/region-picker.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A region picker showing an in-region data centre option for data that must stay in-country.</em><small>Residency is a hosting decision, made before you deploy.</small></span></figure>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>The reason this architecture is painful to run is rarely any single box. It's that they usually live in different places: one host for the app, another for the database, a third for the cache and queue, object storage somewhere else, and a separate console to learn for each. The whole appeal of drawing that boundary is being able to run everything inside it in one place. That's the shape Kloudbean is built around. One dashboard for the always-on server (Node or Python, no cold starts), managed databases including PostgreSQL with the pgvector extension where your plan supports it, managed Redis, object storage with no egress fees on the built-in buckets, automatic backups, free SSL, Git deploy on every push, cron jobs and a background worker, staging, and your environment variables managed right there in the console.</p>
+  <p>You lock a managed database down by whitelisting your app server's IP, so only your app can reach it and everything else is refused. If you need data in a specific region, Kloudbean can provision there, including in-Kingdom on Google Cloud's Dammam region, aligned with (not certified for) local data-protection expectations. The one box it doesn't run is the model provider itself. That stays an external API you call; Kloudbean isn't in the business of GPU inference hosting.</p>
+  <p>The honest line, because it's what builds trust: managed means the platform handles the server, the stack, SSL, backups, and patching. Your app's code, your prompts, and your data stay yours. Full network isolation in a private VPC is an Enterprise capability, not a default; on a standard plan, the IP allow-list is how you keep a database off the open internet. Kloudbean makes the running easy. It doesn't make a leaky endpoint safe or a bad prompt smart.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Run the whole architecture in one place, not five.</p>
+    <p style="margin:0 0 .6em">Launch an always-on Node or Python API, add managed PostgreSQL with pgvector and managed Redis, object storage, a background worker, automatic backups, and free SSL, all in one dashboard and deployed straight from Git. No cold starts, so your first user never waits.</p>
+    <p style="margin:0">Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">Always-on (no cold starts) · Managed Postgres + pgvector · Managed Redis · Object storage · Background workers + cron · Automatic backups · Free SSL · Git deploy · IP allow-listing</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is the architecture of an AI app?</h3>
+    <p>A production AI app is a client that talks only to your always-on API. That API holds the model key, enforces auth and rate limits, calls the model provider once server-side, and streams the reply back. Behind it sit a managed database for state, pgvector for retrieval, Redis for the fast layer, a queue and worker for slow work, object storage for files, and observability across all of it.</p>
+    <h3>What are the main components of a production AI app?</h3>
+    <p>Client, reverse proxy with TLS, an always-on API, the model provider, a managed relational database, a vector store (usually pgvector inside Postgres), Redis, a background job queue with a worker, object storage, observability, and a security and cost gate. A regulated app adds a data-residency boundary. Not every app needs all of them on day one.</p>
+    <h3>Do I need a separate vector database for my AI app?</h3>
+    <p>Usually not. The pgvector extension stores embeddings inside the Postgres you already run, which keeps retrieval in one database instead of two. That is enough for most apps well past launch. Add a dedicated vector product only if your scale genuinely outgrows Postgres, which is rarer than the hype suggests.</p>
+    <h3>Do I need a message queue for my AI app?</h3>
+    <p>Only once real work starts blocking requests. Indexing large documents, long multi-step generations, batch jobs, and email are all better pushed onto a queue so a worker handles them in the background. If your app just calls a model and returns quickly, you can skip the queue at launch and add it the moment a slow task starts holding up requests.</p>
+    <h3>Can I run an AI app on serverless?</h3>
+    <p>You can, but it fights the shape an AI app wants. Serverless functions cold-start on the first request, cannot hold a database connection pool, and have nowhere to keep a long stream or a background worker. For a stateful, streaming, connection-heavy AI backend, an always-on server is the better fit. Serverless suits spiky, stateless, occasional work.</p>
+    <h3>Where should an AI app store its data?</h3>
+    <p>In managed services that live outside the app process, so redeploys never wipe them. Use a managed relational database like Postgres for your system of record, Redis for sessions and rate limits, and object storage for files and uploads. Avoid SQLite or in-memory storage in production, since both disappear on the next deploy.</p>
+    <h3>Does the frontend ever call the model directly?</h3>
+    <p>No. If the browser calls the model, your API key is exposed to anyone who opens developer tools, and they can spend your budget freely. The client always talks to your backend, and only your backend holds the key and calls the model. That single rule prevents the most common and most expensive AI app mistake.</p>
+    <h3>What is the minimum architecture to launch an AI app?</h3>
+    <p>Four boxes: a client, an always-on API that holds the key, a managed database, and the model call. That is a real, shippable app with a safe place for the key and state that survives redeploys. You add retrieval, Redis, object storage, and a queue later, as the app actually needs them.</p>
+    <h3>How is a RAG app different from this architecture?</h3>
+    <p>It is the same architecture with the retrieval path switched on. A RAG app adds a vector store (pgvector in Postgres is usually enough) and an indexing step, often run as a background job, that turns your documents into embeddings. The model call then includes retrieved context. Everything else, the always-on API, the gate, the database, stays the same.</p>
+    <h3>Do I need Redis for an AI app?</h3>
+    <p>Not strictly, but it earns its place quickly. Redis holds sessions, rate-limit counters, and cached answers so repeated questions do not pay for a fresh model call, and it is the natural backing for a job queue. Your relational database stays the durable record; Redis is the fast layer in front of it. Add it when you need limits or caching.</p>
+  </div>
+
+  <p class="byline">Kloudbean · One boundary, one dashboard, one hop out to the model.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"A Reference Architecture for Production AI Apps","description":"An AI app reference architecture you can map your own app onto: client, reverse proxy and TLS, an always-on API that holds the model key, a managed database with pgvector, Redis, a job queue and worker, object storage, and observability.","image":"https://www.kloudbean.com/blog/ai-app-reference-architecture/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/ai-app-reference-architecture/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is the architecture of an AI app?","acceptedAnswer":{"@type":"Answer","text":"A production AI app is a client that talks only to your always-on API. That API holds the model key, enforces auth and rate limits, calls the model provider once server-side, and streams the reply back. Behind it sit a managed database for state, pgvector for retrieval, Redis for the fast layer, a queue and worker for slow work, object storage for files, and observability across all of it."}},
+{"@type":"Question","name":"What are the main components of a production AI app?","acceptedAnswer":{"@type":"Answer","text":"Client, reverse proxy with TLS, an always-on API, the model provider, a managed relational database, a vector store (usually pgvector inside Postgres), Redis, a background job queue with a worker, object storage, observability, and a security and cost gate. A regulated app adds a data-residency boundary. Not every app needs all of them on day one."}},
+{"@type":"Question","name":"Do I need a separate vector database for my AI app?","acceptedAnswer":{"@type":"Answer","text":"Usually not. The pgvector extension stores embeddings inside the Postgres you already run, which keeps retrieval in one database instead of two. That is enough for most apps well past launch. Add a dedicated vector product only if your scale genuinely outgrows Postgres, which is rarer than the hype suggests."}},
+{"@type":"Question","name":"Do I need a message queue for my AI app?","acceptedAnswer":{"@type":"Answer","text":"Only once real work starts blocking requests. Indexing large documents, long multi-step generations, batch jobs, and email are all better pushed onto a queue so a worker handles them in the background. If your app just calls a model and returns quickly, you can skip the queue at launch and add it the moment a slow task starts holding up requests."}},
+{"@type":"Question","name":"Can I run an AI app on serverless?","acceptedAnswer":{"@type":"Answer","text":"You can, but it fights the shape an AI app wants. Serverless functions cold-start on the first request, cannot hold a database connection pool, and have nowhere to keep a long stream or a background worker. For a stateful, streaming, connection-heavy AI backend, an always-on server is the better fit. Serverless suits spiky, stateless, occasional work."}},
+{"@type":"Question","name":"Where should an AI app store its data?","acceptedAnswer":{"@type":"Answer","text":"In managed services that live outside the app process, so redeploys never wipe them. Use a managed relational database like Postgres for your system of record, Redis for sessions and rate limits, and object storage for files and uploads. Avoid SQLite or in-memory storage in production, since both disappear on the next deploy."}},
+{"@type":"Question","name":"Does the frontend ever call the model directly?","acceptedAnswer":{"@type":"Answer","text":"No. If the browser calls the model, your API key is exposed to anyone who opens developer tools, and they can spend your budget freely. The client always talks to your backend, and only your backend holds the key and calls the model. That single rule prevents the most common and most expensive AI app mistake."}},
+{"@type":"Question","name":"What is the minimum architecture to launch an AI app?","acceptedAnswer":{"@type":"Answer","text":"Four boxes: a client, an always-on API that holds the key, a managed database, and the model call. That is a real, shippable app with a safe place for the key and state that survives redeploys. You add retrieval, Redis, object storage, and a queue later, as the app actually needs them."}},
+{"@type":"Question","name":"How is a RAG app different from this architecture?","acceptedAnswer":{"@type":"Answer","text":"It is the same architecture with the retrieval path switched on. A RAG app adds a vector store (pgvector in Postgres is usually enough) and an indexing step, often run as a background job, that turns your documents into embeddings. The model call then includes retrieved context. Everything else, the always-on API, the gate, the database, stays the same."}},
+{"@type":"Question","name":"Do I need Redis for an AI app?","acceptedAnswer":{"@type":"Answer","text":"Not strictly, but it earns its place quickly. Redis holds sessions, rate-limit counters, and cached answers so repeated questions do not pay for a fresh model call, and it is the natural backing for a job queue. Your relational database stays the durable record; Redis is the fast layer in front of it. Add it when you need limits or caching."}}
+]}
+]}
+</script>
+</body>
+</html>

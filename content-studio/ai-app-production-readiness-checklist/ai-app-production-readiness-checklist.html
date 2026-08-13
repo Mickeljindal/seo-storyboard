@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The AI App Production Readiness Checklist: What to Verify Before Real Users Arrive</title>
+<meta name="description" content="The AI app production readiness checklist: verify data survives redeploy, the model key sits behind your backend, every route has auth and a spend cap, memory is in a database, secrets are in env vars, you log metadata not prompts, and the app is always-on with backups. Scaled to your stakes.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/ai-app-production-readiness-checklist/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="The AI App Production Readiness Checklist">
+<meta property="og:description" content="The checklist to run before real users arrive: data that survives redeploy, the model key behind your backend, auth and a spend cap on every route, memory in a database, safe logging, and always-on hosting. Scaled to your stakes.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">AI apps in production</span>
+  <h1>The AI App Production Readiness Checklist: What to Verify Before Real Users Arrive</h1>
+
+  <figure><img src="images/hero.png" alt="The AI app production readiness checklist: eight groups to verify, from data and the model call to cost control, secrets, and reliability, before real users arrive"></figure>
+
+  <p class="lead">You shipped something built in Lovable, Cursor, or straight from the OpenAI SDK. It answers on localhost. Now you want real people using it. This AI app production readiness checklist is the list to run before you open the doors. It isn't another essay on why production is hard (that's the <a href="https://www.kloudbean.com/blog/last-mile-of-vibe-coding/">flagship on the last mile of vibe coding</a>). It's the specific things to verify so your first real user doesn't become your first incident.</p>
+  <p>Most of it has nothing to do with your app's features. Those you already finished. It's the plumbing an AI app needs that a demo quietly skips: a key that isn't sitting in the browser, a store that survives a redeploy, and a spend cap so one script can't drain your budget while you sleep.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>Run this checklist across eight areas: data and persistence, the model call, cost and abuse control, memory, secrets, observability, reliability, and (only if you're regulated) data residency. The three that prevent the worst disasters are the key behind your backend, a hard spend cap, and a real database instead of SQLite. Everything else lowers risk. Scale how far you go to the stakes.</p>
+  </div>
+
+  <h2>How to use this AI app production readiness checklist</h2>
+  <p>Work through the groups below, but know they aren't equal. This is the do-this companion to <a href="https://www.kloudbean.com/blog/last-mile-of-vibe-coding/">the last mile of vibe coding</a>, the longer read on why an AI app in production behaves nothing like the same app on your laptop. Read that for the why. Use this for the what. And for the full architecture these checks map onto, see <a href="https://www.kloudbean.com/blog/ai-app-reference-architecture/">the AI app reference architecture</a>.</p>
+  <p>Two things this page deliberately does not cover, so it stays a checklist and not a book. The general app baseline (a real domain, TLS, error pages, the boring but vital things any web app needs) lives in <a href="https://www.kloudbean.com/blog/from-prototype-to-production-checklist/">the prototype to production checklist</a>. Go there for the general list. This page is what's <em>different</em> about an AI app. And for a security-only deep pass, run <a href="https://www.kloudbean.com/blog/ai-built-app-security-checklist/">the AI-built app security checklist</a> alongside it.</p>
+  <p>Tick top to bottom. The early groups (data, the model call, cost control) are the ones that lose data or money on day one. Short on time? Do those first, then come back for the rest.</p>
+
+  <h2>The checklist at a glance</h2>
+  <p>Here's the whole thing in one view. Each group has a deep guide that teaches the how, linked in its section below. This table is the scan; the sections are the detail.</p>
+  <table class="cmp">
+    <thead><tr><th>Group</th><th>The check, in one line</th><th>Where the depth lives</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Data and persistence</strong></td><td>State and vectors survive a redeploy; connections are pooled</td><td>Managed database, pgvector, pooling</td></tr>
+      <tr><td><strong>The model call</strong></td><td>Key on the server, stream the reply, handle 429s</td><td>API-key safety, LLM streaming</td></tr>
+      <tr><td><strong>Cost and abuse control</strong></td><td>Auth plus rate limits plus a hard spend cap</td><td>Rate limiting and cost control</td></tr>
+      <tr><td><strong>Memory and history</strong></td><td>History in the database, Redis for the fast layer</td><td>Agent memory, managed Redis</td></tr>
+      <tr><td><strong>Secrets and config</strong></td><td>Env vars in the dashboard, nothing in the repo</td><td>Secrets, environment variables</td></tr>
+      <tr><td><strong>Observability and privacy</strong></td><td>Log metadata not prompts; watch tokens, cost, 429s</td><td>AI app observability</td></tr>
+      <tr><td><strong>Reliability and ops</strong></td><td>Always-on, health check, backups, staging, Git deploy</td><td>Off serverless, 503 recovery</td></tr>
+      <tr><td><strong>Data residency</strong> (if regulated)</td><td>Data in-region; deletion reaches every store</td><td>Saudi hosting, PDPL for AI</td></tr>
+    </tbody>
+  </table>
+
+  <!-- To add an image here, replace this whole figure with a real one: <figure><img src -> images/checklist-one-pager.png alt="one-page checklist"></figure> -->
+  <figure class="img-slot"><span><b>Add image</b><em>A printable one-page version of this at-a-glance table, the eight groups as ticked checkboxes on a single sheet.</em><small>A clean one-pager people can pin above a desk works best.</small></span></figure>
+
+  <h2>Data and persistence: does it survive a redeploy?</h2>
+  <p>If one thing on this page loses you a week of users, it's this one. Start here.</p>
+  <ul>
+    <li>&#9744; <strong>Your data lives in a managed database, not SQLite or an in-memory array.</strong> On most hosts the app's disk is wiped on redeploy, and a SQLite file goes with it. This is the single most common way an AI app loses its first signups. The fix, with framework examples, is in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">add a managed database to your app</a> and <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a>.</li>
+    <li>&#9744; <strong>Your vector store is persisted, not rebuilt in memory on boot.</strong> If you do retrieval, those embeddings need a durable home. The <code>pgvector</code> extension keeps them in Postgres next to your normal data, so it's one database instead of two systems to run. See <a href="https://www.kloudbean.com/blog/pgvector-for-ai-apps/">pgvector for AI apps</a>, and for schema choices, <a href="https://www.kloudbean.com/blog/production-database-design-for-ai-apps/">production database design for AI apps</a>.</li>
+    <li>&#9744; <strong>Connection pooling sits in front of the database.</strong> Every request opens a connection, and an AI app under load hits the connection ceiling sooner than people expect. <a href="https://www.kloudbean.com/blog/database-connection-pooling/">Database connection pooling</a> explains why that limit bites early.</li>
+  </ul>
+
+  <!-- To add an image here, replace this whole figure with a real one: <figure><img src -> images/launch-database.png alt="launch a managed Postgres"></figure> -->
+  <figure class="img-slot"><span><b>Add image</b><em>Launching a managed Postgres from the dashboard: DBS then Launch Database, choosing Postgres with pgvector.</em><small>A real console screenshot fits well here.</small></span></figure>
+
+  <h2>The model call: the key, the stream, the failure path</h2>
+  <p>This is the part that's genuinely new versus a normal web app. Get it right and most AI-specific pain disappears.</p>
+  <ul>
+    <li>&#9744; <strong>The API key sits on the server, behind your own backend.</strong> The browser calls your endpoint; your endpoint calls the provider. A key that ships to the client is public the moment you deploy. The pattern to copy is in <a href="https://www.kloudbean.com/blog/deploy-ai-agent-without-exposing-api-keys/">deploy an AI agent without exposing your API keys</a>.</li>
+    <li>&#9744; <strong>You stream the response.</strong> A model can take several seconds to write a long answer, and a frozen screen reads as broken. Stream tokens as they arrive, and watch for a buffering proxy that silently breaks streaming in production while it looked fine locally. See <a href="https://www.kloudbean.com/blog/llm-streaming-in-production/">LLM streaming in production</a>.</li>
+    <li>&#9744; <strong>Timeouts, retries with backoff, and a fallback for provider 429s and outages.</strong> Providers rate-limit you, and they have bad days. Decide now what your app does when the model returns a 429 or times out (retry, queue, degrade gracefully, or show a clear message), not mid-incident. More on the ways these apps fall over: <a href="https://www.kloudbean.com/blog/why-ai-apps-fail-in-production/">why AI apps fail in production</a>.</li>
+  </ul>
+
+  <h2>Cost and abuse control: so one script can't drain your budget</h2>
+  <p>Your model endpoint spends real money on every call. Treat it like a payment route, because that's effectively what it is.</p>
+  <ul>
+    <li>&#9744; <strong>Auth on every route that calls the model.</strong> No anonymous access to the endpoint that costs you money. This is the big one.</li>
+    <li>&#9744; <strong>Per-user and global rate limits.</strong> A Redis-backed counter caps how fast one user, and everyone together, can hit the model.</li>
+    <li>&#9744; <strong>A hard spend cap at the provider, and a kill switch.</strong> Set the monthly limit so the worst case is a stopped feature, not a four-figure surprise. Keep a switch you can flip fast. The full pattern is in <a href="https://www.kloudbean.com/blog/rate-limit-and-cost-control-for-ai-apis/">rate limiting and cost control for AI APIs</a>.</li>
+  </ul>
+
+  <!-- To add an image here, replace this whole figure with a real one: <figure><img src -> images/spend-cap.png alt="provider spend cap"></figure> -->
+  <figure class="img-slot"><span><b>Add image</b><em>A provider usage-limits screen with a monthly hard spend cap set, next to a rate-limit config.</em><small>Show the cap value and the alert threshold clearly.</small></span></figure>
+
+  <h2>Memory and history: it remembers after a restart</h2>
+  <p>An agent that forgets everything on restart feels broken to the person mid-conversation with it.</p>
+  <ul>
+    <li>&#9744; <strong>Conversation history and agent memory live in the database.</strong> In-memory state vanishes the moment the process restarts, which in production is often (a deploy, a crash, a scale event). Durable patterns are in <a href="https://www.kloudbean.com/blog/ai-agent-memory-production/">AI agent memory in production</a>.</li>
+    <li>&#9744; <strong>Redis handles the fast, short-lived layer.</strong> Sessions, recent context, rate-limit counters, cached answers. Postgres stays the durable record; Redis is the speed in front of it. See <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis hosting</a>. Set TTLs so it stays small.</li>
+  </ul>
+
+  <h2>Secrets and config: nothing sensitive in the repo</h2>
+  <ul>
+    <li>&#9744; <strong>Secrets live in environment variables set in the dashboard, not in code.</strong> Per-environment values, what belongs in an env var and what doesn't, all covered in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>.</li>
+    <li>&#9744; <strong>Nothing sensitive is committed. Check git history too, since a deleted file still lives in old commits.</strong> A key that was ever committed is compromised, even after you delete it. Bots scan public repos for exactly this within minutes.</li>
+    <li>&#9744; <strong>You have a rotation plan.</strong> You can swap a key without a code change and a redeploy. If rotating a secret means editing code, that's backwards. <a href="https://www.kloudbean.com/blog/secrets-management/">Secrets management</a> covers the how.</li>
+  </ul>
+
+  <!-- To add an image here, replace this whole figure with a real one: <figure><img src -> images/env-vars.png alt="environment variables in the dashboard"></figure> -->
+  <figure class="img-slot"><span><b>Add image</b><em>Secrets set as environment variables in the dashboard: Runtime Configuration then Environment Variables, values masked.</em><small>Mask the actual values in the shot.</small></span></figure>
+
+  <h2>Observability and privacy: you can see what it's doing</h2>
+  <p>You need to debug and watch spend without turning your logs into a liability.</p>
+  <ul>
+    <li>&#9744; <strong>You log metadata, not raw prompts.</strong> Timing, token counts, the model, the user id, status codes. Prompts routinely carry personal data, and storing them by default creates data-handling obligations you didn't plan for.</li>
+    <li>&#9744; <strong>You watch the signals that actually matter for an AI app:</strong> time-to-first-token, tokens in and out, cost per request, and error and 429 rates. Those tell you slow versus broken versus expensive. Full setup in <a href="https://www.kloudbean.com/blog/ai-app-observability/">AI app observability</a>.</li>
+    <li>&#9744; <strong>You set a retention window</strong> so logs and any stored content age out on their own instead of piling up forever.</li>
+  </ul>
+
+  <h2>Reliability and ops: it stays up and ships cleanly</h2>
+  <ul>
+    <li>&#9744; <strong>The app is always-on, so there's no cold start on the first request.</strong> A model call is slow enough without also waiting for the process to wake up. Why serverless hurts a steady, connection-heavy AI backend: <a href="https://www.kloudbean.com/blog/move-ai-app-off-serverless/">move your AI app off serverless</a>.</li>
+    <li>&#9744; <strong>A health check endpoint</strong> that a monitor or load balancer can poll to ask are you alive and get a straight answer.</li>
+    <li>&#9744; <strong>Automatic backups, and you've tested a restore.</strong> A backup you've never restored is a hope, not a backup.</li>
+    <li>&#9744; <strong>A staging environment</strong> where you test a change before it touches real users.</li>
+    <li>&#9744; <strong>You deploy from Git, repeatably</strong>, and you know your 503 playbook for when a deploy goes sideways: <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fix a 503 after deploying your app</a>.</li>
+  </ul>
+
+  <!-- To add an image here, replace this whole figure with a real one: <figure><img src -> images/git-deployment.png alt="git deploy with build logs"></figure> -->
+  <figure class="img-slot"><span><b>Add image</b><em>Connecting a Git repo for automatic deploys: Code Delivery then Git Deployment, with live build logs streaming.</em><small>Catch the moment a push triggers a build.</small></span></figure>
+
+  <h2>Data residency and compliance: only if you serve a regulated market</h2>
+  <p>Skip this group if you're a hobby project or your users genuinely don't care where the data sits. But if you serve a regulated market (Saudi Arabia, healthcare, finance, government), it jumps to the top of the list, above almost everything else.</p>
+  <ul>
+    <li>&#9744; <strong>Data is stored in-region.</strong> For a Saudi audience that means in-Kingdom. The residency and latency case is in <a href="https://www.kloudbean.com/blog/hosting-ai-apps-saudi-arabia/">hosting AI apps in Saudi Arabia</a>.</li>
+    <li>&#9744; <strong>Deletion reaches every store.</strong> A delete request has to clear the database, the vector store, object storage, logs, caches, and backups. Clearing the main table alone leaves copies behind, which is a real compliance gap. Background in <a href="https://www.kloudbean.com/blog/saudi-pdpl-for-ai-apps/">Saudi PDPL for AI apps</a>.</li>
+  </ul>
+
+  <h2>How far down do you need to go?</h2>
+  <p>Not every app needs every item, and pretending otherwise just makes you ignore the whole list. So scale the depth to the stakes.</p>
+
+  <figure>
+    <svg viewBox="0 0 780 320" role="img" aria-label="A readiness staircase scaled to the stakes. The top and narrowest step is a weekend or solo demo, which needs only the model key on the server, a hard spend cap, and a real database. The middle step is an internal tool or early launch, which adds auth on model routes, rate limits, secrets in environment variables, tested backups, and always-on hosting. The bottom and widest step is a funded SaaS, a public launch, or a regulated app, which adds observability you watch, a staging environment, data residency, and a full security pass. The further down you go, the higher the stakes and the more of the checklist applies." xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="dn" markerWidth="11" markerHeight="11" refX="4" refY="9" orient="auto"><path d="M0,0 L8,0 L4,9 Z" fill="#000f27"/></marker>
+      </defs>
+      <line x1="34" y1="34" x2="34" y2="286" stroke="#000f27" stroke-width="1.6" marker-end="url(#dn)"/>
+      <text transform="rotate(-90 20 172)" x="20" y="172" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600" fill="#5b6a86">higher stakes, further down</text>
+
+      <rect x="252" y="26" width="288" height="66" rx="12" fill="#000f27"/>
+      <text x="396" y="54" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13.5" font-weight="600" fill="#fff">Weekend or solo demo</text>
+      <text x="396" y="74" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#9fb0cc">Key on the server · Spend cap · Real database</text>
+
+      <rect x="162" y="116" width="468" height="66" rx="12" fill="#4F1AF3"/>
+      <text x="396" y="144" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13.5" font-weight="600" fill="#fff">Internal tool or early launch</text>
+      <text x="396" y="164" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#e4dcff">Add auth · Rate limits · Secrets · Tested backups · Always-on</text>
+
+      <rect x="72" y="206" width="648" height="76" rx="12" fill="#40b75f"/>
+      <text x="396" y="236" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13.5" font-weight="600" fill="#fff">Funded SaaS, public launch, or regulated</text>
+      <text x="396" y="257" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#eafaf0">Add observability you watch · Staging · Data residency · Full security pass</text>
+    </svg>
+    <figcaption>Scale the checklist to the stakes. A demo needs the top step. A funded or regulated app goes all the way down.</figcaption>
+  </figure>
+
+  <p><strong>A weekend project or a solo demo</strong> with a handful of friendly users: do the three that prevent disasters and stop there. Key behind your backend, a hard spend cap, and a real database instead of SQLite. You don't need staging and full observability for something ten people touch.</p>
+  <p><strong>An internal tool or an early launch</strong> with real, if few, users: add auth on model routes, rate limits, secrets in env vars, always-on hosting, and backups you've tested. Now you're protecting data and money, which is a bigger job than uptime alone.</p>
+  <p><strong>A funded SaaS, a public launch, or anything regulated:</strong> the whole list, plus observability you actually watch, a staging environment, and the residency and compliance group. This is the tier where an outage or a leak has a real bill attached.</p>
+  <p>If you only do three things before launch, do these: put the model key behind your backend, set a hard spend cap, and move off SQLite. Those three prevent the most common and most expensive AI-app disasters. That's the firm opinion of this whole page.</p>
+  <p>And the anti-pattern to avoid at all costs: treating a demo as production because it "works." It works in the sense that it responds when you type. It also has the key in the frontend, an in-memory store that resets on the next restart, and no cap on spend. "It responds" and "it's ready for strangers" are different claims. The gap between them is this checklist.</p>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>The reason this list feels like a chore is that the pieces usually live in different places: one host for the app, another for the database, a third for Redis, a separate console to learn for each. Kloudbean puts them in one dashboard. You run an always-on server (Node or Python, so no cold starts), add a managed Postgres (with <code>pgvector</code> where your plan enables it) and a managed Redis, get built-in S3-compatible object storage with no egress fees, automatic backups, and free SSL, set your secrets as environment variables right in the dashboard, and deploy from Git on every push. You lock the database down by whitelisting your app server's IP, so only your app can reach it and everything else is refused. Staging environments are available for WordPress and Laravel. Plans start from $8/mo. We run our own tools this way, so it's the setup we actually use.</p>
+  <p>If you serve a regulated market, Kloudbean can run in-region, including in-Kingdom on Google Cloud's Dammam region, which makes it one of the few managed-cloud platforms delivering managed databases with in-Kingdom data sovereignty. It's aligned with frameworks like GDPR and the NCA controls and supports your compliance work. It does not make your organisation compliant on its own; that part is yours.</p>
+  <p>The honest boundary: managed means the platform handles the server, the stack, SSL, backups, and patching. Your app's code, your prompts, and your data stay yours. Kloudbean won't run model inference for you (call a provider API for that), and full network isolation in a private VPC is an Enterprise capability, not a default. On a standard plan, IP allow-listing is how the database stays off the open internet.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Tick the whole list in one dashboard.</p>
+    <p style="margin:0 0 .6em">Run your AI app on an always-on server with managed Postgres and Redis, built-in object storage, automatic backups, free SSL, and secrets set right in the dashboard, deployed from Git. No cold starts, so the first request is quick.</p>
+    <p style="margin:0">Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">Always-on (no cold starts) · Managed Postgres + Redis · pgvector · Object storage · Automatic backups · Free SSL · Env vars in the dashboard · Git deploy · IP allow-listing</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Is my AI app production ready?</h3>
+    <p>It's ready when the AI-specific basics hold: your data and vector store survive a redeploy, the model key sits behind your backend, every model route has auth and a spend cap, memory is in a database, secrets are in env vars, and the app is always-on with tested backups. If any of those is missing, you have a demo that happens to respond, not a production app.</p>
+    <h3>What's the minimum before launching an AI app?</h3>
+    <p>Three things prevent the worst outcomes: put the model key behind your own backend (never in the browser), set a hard spend cap at the provider, and store data in a managed database instead of SQLite. Those stop a leaked key, a runaway bill, and data loss on redeploy. Add auth on model routes and tested backups next.</p>
+    <h3>Do I need all of this for a side project?</h3>
+    <p>No. Scale the checklist to the stakes. A weekend project with a few friendly users needs the three essentials (key on the server, spend cap, real database) and little else. Save observability, staging, and the compliance group for when real users and real money are involved.</p>
+    <h3>What's different about an AI app checklist versus a normal web app?</h3>
+    <p>The general baseline (database, secrets, HTTPS, backups, deploys) is the same, and it lives in the prototype to production checklist. What's specific to AI: a model key that must stay server-side, streaming the response, provider 429s and timeouts, a hard spend cap because every call costs money, a persisted vector store, and logging that avoids storing raw prompts.</p>
+    <h3>Where should my AI app's API key live?</h3>
+    <p>On the server, behind your own backend, loaded from an environment variable. The browser calls your endpoint, and your endpoint calls the provider. A key shipped to the client is visible to anyone who opens dev tools, and it's effectively public the moment you deploy.</p>
+    <h3>How do I stop my AI app's costs from spiraling?</h3>
+    <p>Require auth on every route that calls the model, add per-user and global rate limits, and set a hard spend cap in the provider dashboard with a kill switch you can hit fast. An open, unauthenticated model endpoint is the most common way an AI app runs up a surprise bill overnight.</p>
+    <h3>Does my vector store need to survive a restart?</h3>
+    <p>Yes, if you rely on it. Embeddings rebuilt in memory on boot disappear on the next restart and cost time and money to regenerate. Persist them, for example with pgvector inside Postgres, so retrieval keeps working across deploys without a rebuild.</p>
+    <h3>Do I need Redis for an AI app?</h3>
+    <p>Not strictly, but it earns its place fast. Redis holds sessions, rate-limit counters, recent context, and cached answers so identical questions don't pay for a fresh model call. Keep the durable record in Postgres and use Redis as the fast layer in front, with TTLs so it stays small.</p>
+    <h3>How do I handle data residency for an AI app?</h3>
+    <p>Store data in the region your users or regulator require, and make sure a deletion request reaches every store: the database, the vector store, object storage, logs, caches, and backups. For a Saudi audience that means in-Kingdom hosting aligned with the PDPL. Data left behind in one or two stores is a common gap.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Tick the list, then open the doors.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"The AI App Production Readiness Checklist: What to Verify Before Real Users Arrive","description":"The AI app production readiness checklist: verify data survives redeploy, the model key sits behind your backend, every route has auth and a spend cap, memory is in a database, secrets are in env vars, you log metadata not prompts, and the app is always-on with backups. Scaled to your stakes.","image":"https://www.kloudbean.com/blog/ai-app-production-readiness-checklist/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/ai-app-production-readiness-checklist/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Is my AI app production ready?","acceptedAnswer":{"@type":"Answer","text":"It is ready when the AI-specific basics hold: your data and vector store survive a redeploy, the model key sits behind your backend, every model route has auth and a spend cap, memory is in a database, secrets are in env vars, and the app is always-on with tested backups. If any of those is missing, you have a demo that happens to respond, not a production app."}},
+{"@type":"Question","name":"What's the minimum before launching an AI app?","acceptedAnswer":{"@type":"Answer","text":"Three things prevent the worst outcomes: put the model key behind your own backend (never in the browser), set a hard spend cap at the provider, and store data in a managed database instead of SQLite. Those stop a leaked key, a runaway bill, and data loss on redeploy. Add auth on model routes and tested backups next."}},
+{"@type":"Question","name":"Do I need all of this for a side project?","acceptedAnswer":{"@type":"Answer","text":"No. Scale the checklist to the stakes. A weekend project with a few friendly users needs the three essentials (key on the server, spend cap, real database) and little else. Save observability, staging, and the compliance group for when real users and real money are involved."}},
+{"@type":"Question","name":"What's different about an AI app checklist versus a normal web app?","acceptedAnswer":{"@type":"Answer","text":"The general baseline (database, secrets, HTTPS, backups, deploys) is the same, and it lives in the prototype to production checklist. What is specific to AI: a model key that must stay server-side, streaming the response, provider 429s and timeouts, a hard spend cap because every call costs money, a persisted vector store, and logging that avoids storing raw prompts."}},
+{"@type":"Question","name":"Where should my AI app's API key live?","acceptedAnswer":{"@type":"Answer","text":"On the server, behind your own backend, loaded from an environment variable. The browser calls your endpoint, and your endpoint calls the provider. A key shipped to the client is visible to anyone who opens dev tools, and it is effectively public the moment you deploy."}},
+{"@type":"Question","name":"How do I stop my AI app's costs from spiraling?","acceptedAnswer":{"@type":"Answer","text":"Require auth on every route that calls the model, add per-user and global rate limits, and set a hard spend cap in the provider dashboard with a kill switch you can hit fast. An open, unauthenticated model endpoint is the most common way an AI app runs up a surprise bill overnight."}},
+{"@type":"Question","name":"Does my vector store need to survive a restart?","acceptedAnswer":{"@type":"Answer","text":"Yes, if you rely on it. Embeddings rebuilt in memory on boot disappear on the next restart and cost time and money to regenerate. Persist them, for example with pgvector inside Postgres, so retrieval keeps working across deploys without a rebuild."}},
+{"@type":"Question","name":"Do I need Redis for an AI app?","acceptedAnswer":{"@type":"Answer","text":"Not strictly, but it earns its place fast. Redis holds sessions, rate-limit counters, recent context, and cached answers so identical questions do not pay for a fresh model call. Keep the durable record in Postgres and use Redis as the fast layer in front, with TTLs so it stays small."}},
+{"@type":"Question","name":"How do I handle data residency for an AI app?","acceptedAnswer":{"@type":"Answer","text":"Store data in the region your users or regulator require, and make sure a deletion request reaches every store: the database, the vector store, object storage, logs, caches, and backups. For a Saudi audience that means in-Kingdom hosting aligned with the PDPL. Data left behind in one or two stores is a common gap."}}
+]}
+]}
+</script>
+</body>
+</html>
