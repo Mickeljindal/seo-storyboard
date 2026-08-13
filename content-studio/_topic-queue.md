@@ -300,3 +300,127 @@ Read the nearest existing neighbour's H2 set before writing.
 
 NOTE: this is ~20-30 genuinely-distinct articles from ONE mining pass on data already on disk.
 Broader exports (below) will surface more. We are NOT out of topics.
+
+
+---
+
+## AI-BUILT APP PRODUCTION HOSTING: the semantic content network (audited 2026-08)
+
+Owner-provided topical map, audited against the 378 live slugs and turned into a real
+semantic network rather than a pile of broad AI posts. Core entity + sub-entities below,
+then all 60 mapped topics with status. Legend: **[LIVE]** already published (slug given) ·
+**[COVERED]** answered well by an existing neighbour (link to it, do not duplicate) ·
+**[NEW 2026-08]** written this session · **[QUEUE]** genuine gap with a spec below.
+
+### Core entity
+**AI-built app production hosting.**
+
+### Sub-entities every page should reinforce (owner's list, kept verbatim)
+AI-generated application · preview vs production · full-stack app deployment · persistent
+database · environment variables and secrets · custom domain and SSL · background worker
+and cron job · file storage and uploads · logs, monitoring, and debugging · backups and
+recovery · always-on Node/Python hosting · Vercel/serverless limits for stateful workloads ·
+managed cloud hosting · deployment support · hosting migration.
+
+### Pillars
+1. The Last Mile of Vibe Coding Is Production. **[LIVE]** `last-mile-of-vibe-coding`
+2. AI App Hosting: From AI-Generated Code to a Real Production App. **[COVERED]** by the
+   flagship + `deploy-ai-built-app-to-production` + `best-hosting-for-ai-saas`. A separate
+   entity-pillar risks cannibalising the flagship; DEFER unless a distinct intent appears.
+3. How to Deploy an AI-Built App to Production. **[LIVE]** `deploy-ai-built-app-to-production`
+4. Production Readiness Checklist for AI-Built Apps. **[LIVE]** `ai-app-production-readiness-checklist`
+5. Where Should You Host an AI-Built App? **[COVERED]** by `best-hosting-for-ai-saas` +
+   `nodejs-hosting-decision-tool` + `where-to-deploy-nodejs-app`. QUEUE only if reframed as a
+   pure decision guide distinct from the buyer's guide.
+6. Vercel, Railway, Render, or Managed Cloud: Where Should an AI App Run? **[COVERED]** by
+   `render-vs-railway-vs-kloudbean` + `vercel-vs-kloudbean-for-apis` + the alternative pages.
+
+### Deployment and runtime
+7. Deploy an AI-built Node.js app. **[COVERED]** `deploy-node-app-to-managed-cloud`, `deploy-express-app`, `deploy-ai-built-app-to-production`
+8. Deploy an AI-built Python app. **[COVERED]** `deploy-flask-app`, `deploy-django-app`, `deploy-fastapi-app`
+9. Deploy an AI-built full-stack React app. **[LIVE]** `deploy-fullstack-react-app-to-production`
+10. Deploy an AI-built Next.js app with a backend. **[LIVE]** `deploy-nextjs-app-to-your-own-server`
+11. Deploy an AI-built app from GitHub. **[LIVE]** `ci-cd-auto-deploy-from-github`
+12+13. Production build command / correct start command for an AI-generated app. **[QUEUE]** (merge into one)
+14. Configure Node.js versions for AI-generated apps. **[LIVE]** `node-version-management`
+15. Docker for an AI-built app, and when not to. **[COVERED]** `docker-container-hosting` (QUEUE-optional AI angle)
+16. Deploy a multi-service AI application. **[NEW 2026-08]** folded into `run-ai-app-api-worker-database`
+17. Run an AI app with an API, a worker, and a database. **[NEW 2026-08]** `run-ai-app-api-worker-database`
+18. Deploy a long-running AI task without timing out. **[NEW 2026-08]** `deploy-long-running-ai-task-without-timeout`
+
+### The production gap
+19. Why AI-generated apps work in preview but fail in production. **[COVERED]** `why-my-ai-app-works-locally-but-not-in-production` (QUEUE-optional: hosted-preview-specific angle)
+20. Why AI-generated apps work locally but fail after deployment. **[LIVE]** `why-my-ai-app-works-locally-but-not-in-production`
+21. Fix missing environment variables in an AI-built app. **[COVERED]** `environment-variables-done-right`
+22. Handle secrets in an AI-generated app. **[COVERED]** `secrets-management`
+23. Fix CORS in an AI-generated full-stack app. **[LIVE]** `fix-cors-error-node-production`
+24. Fix a 502 or 503 after deploying an AI-built app. **[LIVE]** `fix-503-after-deploying-your-app` (+ `fix-504-gateway-timeout`)
+25. Why a deployed AI app cannot connect to its database. **[NEW 2026-08]** `why-ai-app-cant-connect-to-database`
+26. Why an AI-built app keeps restarting after deployment. **[COVERED]** `pm2-app-keeps-restarting` (QUEUE-optional: AI crash-loop angle)
+27. Why an AI app fails after connecting a custom domain. **[QUEUE]**
+28. Debug an AI-generated app with production logs. **[COVERED]** `structured-logging-nodejs` + `ai-app-observability`
+29. Test an AI-generated app before launch. **[QUEUE]**
+30. Roll back an AI app deployment safely. **[QUEUE]**
+
+### Data and persistence
+31. Why SQLite data disappears after a redeploy. **[NEW 2026-08]** `why-sqlite-data-disappears-on-redeploy`
+32. Persistent storage for AI-built apps: database, disk, or object storage? **[NEW 2026-08]** `persistent-storage-for-ai-apps`
+33. Connect PostgreSQL to an AI-generated app. **[COVERED]** `add-managed-database-to-your-app`, `managed-postgresql-hosting`, `connect-drizzle-to-postgres`
+34. Connect MySQL to an AI-generated app. **[COVERED]** `managed-mysql-hosting`
+35. Connect Supabase to a self-hosted AI-built app. **[COVERED]** `self-host-supabase`, `supabase-alternative` (QUEUE-optional)
+36. Migrate an AI app from SQLite to PostgreSQL. **[NEW 2026-08]** `migrate-ai-app-sqlite-to-postgres`
+37. Store user uploads in an AI-built app. **[LIVE]** `store-user-uploads-in-object-storage`
+38. Back up an AI-generated SaaS. **[COVERED]** `server-backups-guide`
+39. Restore an AI app after database loss. **[COVERED]** `server-backups-guide` (QUEUE-optional dedicated restore drill)
+40. Database connection pooling for AI-built apps. **[LIVE]** `database-connection-pooling`
+
+### Domains, security, and reliability
+41. Add a custom domain to an AI-built app. **[LIVE]** `custom-domain-and-ssl-for-your-app`
+42. Configure SSL for an AI-generated app. **[LIVE]** `custom-domain-and-ssl-for-your-app` (+ `fix-ssl-certificate-errors`, `ssl-tls-explained`)
+43. Safely store API keys in an AI-built app. **[LIVE]** `deploy-ai-agent-without-exposing-api-keys`
+44. AI-built app security checklist before launch. **[LIVE]** `ai-built-app-security-checklist`
+45. Prevent users from accessing server-side secrets. **[COVERED]** `deploy-ai-agent-without-exposing-api-keys` + `ai-built-app-security-checklist`
+46. Add rate limiting to an AI-built app. **[LIVE]** `rate-limit-and-cost-control-for-ai-apis`
+47. Add health checks to an AI app. **[LIVE]** `nodejs-health-checks`
+48. Monitor an AI-built SaaS. **[LIVE]** `ai-app-observability`, `uptime-monitoring`
+49. Set up backups that actually restore. **[COVERED]** `server-backups-guide` (same lane as #39)
+50. Keep an AI-built app online after deployment. **[COVERED]** `uptime-monitoring` + `move-ai-app-off-serverless` (always-on)
+
+### Tool-specific commercial spokes
+51. Turn a Lovable app into a production SaaS. **[COVERED]** `deploy-lovable-app-to-your-own-server`, `connect-a-database-to-your-lovable-app` (QUEUE-optional hub)
+52. Host a Bolt.new app with a real backend. **[LIVE]** `deploy-bolt-new-app`
+53. Deploy a Cursor-built app with a managed database. **[LIVE]** `deploy-cursor-app`
+54. Deploy a Claude Code app with custom domain and SSL. **[LIVE]** `deploy-claude-code-app`
+55. Move a Replit app to managed cloud hosting. **[LIVE]** `deploy-replit-app`
+56. Host a v0 app with server-side APIs. **[LIVE]** `deploy-v0-app`
+57. Deploy a Windsurf-built app beyond localhost. **[LIVE]** `deploy-windsurf-app`
+58. Move a Lovable app off Vercel. **[LIVE]** `move-lovable-app-off-vercel`
+59. Vercel alternative for full-stack AI-built apps. **[LIVE]** `vercel-alternative-for-full-stack-apps`
+60. Railway alternative for AI-built SaaS applications. **[LIVE]** `railway-alternative-for-vibe-coded-apps`
+
+### AUDIT RESULT
+Of the 60, roughly 48 were already LIVE or well-COVERED (all 7 builder pages, the platform
+alternatives/migrations, custom-domain+SSL, CORS, health checks, node-version, cron, backups,
+MySQL/Postgres connect, security checklist). 6 genuine high-value gaps were WRITTEN this
+session (why-sqlite, why-cant-connect, persistent-storage, migrate-sqlite-pg,
+run-api-worker-db, long-running-task), plus the grounded dogfooding case study
+`how-we-host-our-own-ai-content-engine`. The map is now a network, not a list.
+
+### REMAINING QUEUED GAPS (extremely-good specs, ready to write)
+
+Priority order. Each: distinct intent, cannibalisation-checked, with the ownable angle.
+
+- **`configure-build-and-start-command-ai-app`** (P1). Primary kw: "build and start command for a Node app". Intent: how-to. Owns: the exact build vs start command distinction an AI builder never explains (build = `npm run build` produces `dist`; start = `node dist/server/server.js` runs it), why "npm run dev" in production is the #1 misconfig, framework-by-framework build/start table (Next, Vite/React, Express, Nest, Django, FastAPI), and reading the build log when it fails. Cannibalisation: `deploy-ai-built-app-to-production` mentions commands in passing; this owns the build/start command itself. Links: deploy-ai-built-app-to-production, ci-cd-auto-deploy-from-github, node-version-management, why-my-ai-app-works-locally.
+- **`why-ai-app-breaks-after-custom-domain`** (P1). Primary kw: "app broke after adding custom domain". Intent: troubleshooting. Owns the distinct failure the general custom-domain page does not: what breaks the moment you point a domain at a working preview URL, i.e. mixed-content/HTTPS-redirect loops, CORS now that the origin changed, hardcoded preview URLs in the frontend/env, cookie domain/SameSite, and the OAuth callback URL that still points at the old preview. Cannibalisation: `custom-domain-and-ssl-for-your-app` owns the setup; this owns the after-it-breaks diagnosis. Links: custom-domain-and-ssl-for-your-app, fix-cors-error-node-production, environment-variables-done-right, fix-ssl-certificate-errors.
+- **`roll-back-a-deployment-safely`** (P2). Primary kw: "roll back a deployment". Intent: how-to/ops. Owns: what a safe rollback actually means (code rolls back easily, a run migration does not), the migration-rollback trap, keeping the last good build, blue-green/redeploy-previous, and why database changes need forward-compatible migrations. Cannibalisation: none direct; ties to migrate-ai-app-sqlite-to-postgres and ci-cd-auto-deploy-from-github. Links: ci-cd-auto-deploy-from-github, migrate-ai-app-sqlite-to-postgres, production-database-design-for-ai-apps, why-ai-apps-fail-in-production.
+- **`test-ai-generated-app-before-launch`** (P2). Primary kw: "test AI-generated code before deploying". Intent: how-to. Owns: how to gain confidence in code you did not write, a smoke-test checklist for AI-scaffolded apps (does auth actually check, are the endpoints that should be protected protected, does it run without the dev env), a minimal test harness, and the "AI wrote a passing test for buggy code" anti-pattern. Cannibalisation: distinct; complements ai-built-app-security-checklist and from-prototype-to-production-checklist. Links: ai-built-app-security-checklist, from-prototype-to-production-checklist, ai-app-production-readiness-checklist, why-my-ai-app-works-locally.
+
+QUEUE-OPTIONAL (lower priority, build only if data/demand supports; each risks thin overlap):
+- `ai-app-docker-when-not-to` (vs docker-container-hosting: the AI-specific "you probably don't need Docker yet" angle).
+- `restore-after-database-loss` (a dedicated restore-drill, if server-backups-guide is judged too general).
+- `connect-supabase-to-your-ai-app` (using Supabase as a DB from a Kloudbean-hosted app; vs self-host-supabase).
+- `lovable-to-production-saas` (a commercial hub tying the Lovable pages together, if Lovable demand justifies a hub).
+- `where-should-you-host-an-ai-built-app` (a pure decision tree, only if kept distinct from best-hosting-for-ai-saas).
+
+Rule for all queued items: read the named neighbour's H2 set before writing, keep the AI-app-specific
+angle, link up to `last-mile-of-vibe-coding` and across to the data/architecture spokes, and validate [OK].
