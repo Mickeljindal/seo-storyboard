@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Test an AI-Generated App Before You Launch It</title>
+<meta name="description" content="How to test an AI-generated app before you launch it: a pre-launch smoke test for code you did not write, the security paths AI builders leave open, a five-test harness for non-testers, and why letting the AI grade its own code is a trap.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/test-ai-generated-app-before-launch/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Test an AI-Generated App Before You Launch It">
+<meta property="og:description" content="A working demo only proves the happy path. Test the parts nobody clicked, auth, bad input, error handling, and your data after a redeploy, before you launch.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">AI apps in production</span>
+  <h1>How to Test an AI-Generated App Before You Launch It</h1>
+
+  <figure><img src="images/hero.png" alt="The happy path a demo exercises, in green, next to the untested paths launch will hit: auth bypass, bad input, error handling, and post-redeploy state"></figure>
+
+  <p class="lead">You described what you wanted, an AI builder wrote the code, and the preview works. You clicked around, it did the thing, and it feels finished. So you can launch, right? Not yet. To test an AI-generated app properly you have to check the parts the demo never touched, because a builder like Lovable, Bolt, or Cursor optimises for "it looks done", not "it's correct and safe".</p>
+  <p>That gap is the whole problem. The code compiles, the screen renders, the button works when you click it the way you always click it. That feels like proof. It isn't. It's proof of one path, the one you walked. Everything you didn't click is still an open question, and launch is the moment thousands of strangers start clicking the paths you never did.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>A working demo only proves the happy path runs. To test an AI-generated app before launch, check the paths nobody clicked: log out and try to reach a protected route, feed a form bad input, cut the network mid-request, and redeploy to see if your data survives. Write five real tests that cover auth, money, and data instead of chasing full coverage, and never let the same AI grade the code it just wrote.</p>
+  </div>
+
+  <h2>Why a passing demo doesn't prove your app works</h2>
+  <p>A demo is a guided tour. You know where the furniture is, so you walk the clean route: sign up with a real email, click the main button, see the happy result. The AI built exactly that route, because that's what you asked it to show you. The code runs, so your brain files it under "works".</p>
+  <p>But "does my AI app work" is the wrong question. The honest question is "does it still work when someone does the thing I didn't test?" Real users log out and bookmark a URL. They paste emoji into the name field. They submit the form twice. They lose signal halfway through a save. The demo exercised none of that, and AI-written code is especially prone to skipping it, because a language model writes the code that satisfies the prompt, not the defensive code that survives a hostile internet.</p>
+  <p>So the job before launch isn't to admire the happy path again. It's to go find the paths nobody clicked and see what happens when they get clicked. That's what testing an AI-generated app actually means.</p>
+
+  <figure>
+    <svg viewBox="0 0 800 420" role="img" aria-label="Two rows. The top row, labelled what the demo ran, is a green happy path: open app, sign up, click the button, see result, connected left to right and marked proven. A dashed divider notes that launch sends every user to the paths you did not click. The bottom row, labelled what launch will actually hit and marked untested, has four boxes: auth bypass (log out and hit a protected route), bad input (empty fields or a giant string), error handling (a downstream call fails), and after redeploy (is your data still there). Dashed arrows point from the divider down into the four untested boxes." xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ag" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#40b75f"/></marker>
+        <marker id="ap" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4F1AF3"/></marker>
+      </defs>
+
+      <text x="30" y="34" font-family="Poppins,sans-serif" font-size="12" font-weight="700" letter-spacing="1.5" fill="#40b75f">WHAT THE DEMO RAN</text>
+
+      <rect x="30" y="52" width="150" height="56" rx="10" fill="#eafaf1" stroke="#40b75f" stroke-width="1.6"/>
+      <text x="105" y="78" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">Open app</text>
+      <text x="105" y="95" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">it loads</text>
+
+      <rect x="220" y="52" width="150" height="56" rx="10" fill="#eafaf1" stroke="#40b75f" stroke-width="1.6"/>
+      <text x="295" y="78" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">Sign up</text>
+      <text x="295" y="95" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">valid email</text>
+
+      <rect x="410" y="52" width="150" height="56" rx="10" fill="#eafaf1" stroke="#40b75f" stroke-width="1.6"/>
+      <text x="485" y="78" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">Click the button</text>
+      <text x="485" y="95" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">the main action</text>
+
+      <rect x="600" y="52" width="150" height="56" rx="10" fill="#eafaf1" stroke="#40b75f" stroke-width="1.6"/>
+      <text x="675" y="78" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">See result</text>
+      <text x="675" y="95" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">looks done</text>
+
+      <line x1="182" y1="80" x2="216" y2="80" stroke="#40b75f" stroke-width="2" marker-end="url(#ag)"/>
+      <line x1="372" y1="80" x2="406" y2="80" stroke="#40b75f" stroke-width="2" marker-end="url(#ag)"/>
+      <line x1="562" y1="80" x2="596" y2="80" stroke="#40b75f" stroke-width="2" marker-end="url(#ag)"/>
+
+      <text x="30" y="132" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">The one path you clicked. Green is the only thing a passing demo actually proves.</text>
+
+      <line x1="30" y1="156" x2="770" y2="156" stroke="#c9d0e3" stroke-width="1.4" stroke-dasharray="6 6"/>
+      <text x="400" y="150" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" font-style="italic" fill="#5b6a86">launch sends every user to the paths you did not click</text>
+
+      <text x="30" y="188" font-family="Poppins,sans-serif" font-size="12" font-weight="700" letter-spacing="1.5" fill="#4F1AF3">WHAT LAUNCH WILL HIT (UNTESTED)</text>
+
+      <line x1="117" y1="166" x2="117" y2="201" stroke="#4F1AF3" stroke-width="1.6" stroke-dasharray="4 4" marker-end="url(#ap)"/>
+      <line x1="305" y1="166" x2="305" y2="201" stroke="#4F1AF3" stroke-width="1.6" stroke-dasharray="4 4" marker-end="url(#ap)"/>
+      <line x1="493" y1="166" x2="493" y2="201" stroke="#4F1AF3" stroke-width="1.6" stroke-dasharray="4 4" marker-end="url(#ap)"/>
+      <line x1="681" y1="166" x2="681" y2="201" stroke="#4F1AF3" stroke-width="1.6" stroke-dasharray="4 4" marker-end="url(#ap)"/>
+
+      <rect x="30" y="205" width="175" height="188" rx="12" fill="#fff" stroke="#000f27" stroke-width="1.4"/>
+      <rect x="46" y="224" width="34" height="5" rx="2" fill="#4F1AF3"/>
+      <text x="46" y="252" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">Auth bypass</text>
+      <text x="46" y="278" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">Log out, then open a</text>
+      <text x="46" y="294" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">protected route directly.</text>
+      <text x="46" y="352" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600" fill="#40b75f">Test: it must refuse you</text>
+
+      <rect x="218" y="205" width="175" height="188" rx="12" fill="#fff" stroke="#000f27" stroke-width="1.4"/>
+      <rect x="234" y="224" width="34" height="5" rx="2" fill="#4F1AF3"/>
+      <text x="234" y="252" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">Bad input</text>
+      <text x="234" y="278" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">Empty fields, a giant</text>
+      <text x="234" y="294" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">string, an email, no @.</text>
+      <text x="234" y="352" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600" fill="#40b75f">Test: reject, do not crash</text>
+
+      <rect x="406" y="205" width="175" height="188" rx="12" fill="#fff" stroke="#000f27" stroke-width="1.4"/>
+      <rect x="422" y="224" width="34" height="5" rx="2" fill="#4F1AF3"/>
+      <text x="422" y="252" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">Error handling</text>
+      <text x="422" y="278" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">A downstream API or DB</text>
+      <text x="422" y="294" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">call fails mid-request.</text>
+      <text x="422" y="352" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600" fill="#40b75f">Test: clear error, no</text>
+      <text x="422" y="368" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600" fill="#40b75f">blank page</text>
+
+      <rect x="595" y="205" width="175" height="188" rx="12" fill="#fff" stroke="#000f27" stroke-width="1.4"/>
+      <rect x="611" y="224" width="34" height="5" rx="2" fill="#4F1AF3"/>
+      <text x="611" y="252" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">After redeploy</text>
+      <text x="611" y="278" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">Push a change and</text>
+      <text x="611" y="294" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">redeploy the app.</text>
+      <text x="611" y="352" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600" fill="#40b75f">Test: data still there</text>
+    </svg>
+    <figcaption>Green is everything a passing demo proved: one clean path. The four boxes are what real users hit the day you launch, and none of them ran in the demo. Those are the tests.</figcaption>
+  </figure>
+
+  <h2>What the demo proved, and what you still have to test</h2>
+  <p>Before you write a single test, it helps to separate what you already know from what you're only assuming. The demo genuinely proved some things. It also quietly left a much longer list unproven, and that second list is your pre-launch testing checklist.</p>
+  <table class="cmp">
+    <thead><tr><th>The demo proved this</th><th>You still have to test this</th></tr></thead>
+    <tbody>
+      <tr><td>The app boots and the main page loads</td><td>It boots with no dev environment, real env vars set, no local shortcuts</td></tr>
+      <tr><td>The happy-path click produces the right result</td><td>A logged-out user cannot reach a route or API that should require login</td></tr>
+      <tr><td>A valid form submission is accepted</td><td>A bad or empty submission is rejected with a sane error, not a crash</td></tr>
+      <tr><td>It reads and writes on your local database file</td><td>It works against a real managed database, not a local file that gets wiped</td></tr>
+      <tr><td>It looked fine while you were watching</td><td>It still works after a redeploy, with your data still there</td></tr>
+      <tr><td>One request at a time, from you</td><td>An API call that fails returns a real error instead of a white screen</td></tr>
+    </tbody>
+  </table>
+  <p>None of the right column is exotic. It's just the stuff a demo never has a reason to exercise. Walk down that column and you have your test plan.</p>
+
+  <h2>How to test an AI-generated app before launch (the smoke test)</h2>
+  <p>Start with a manual smoke test. A smoke test is the quick, shallow pass that answers "is this thing fundamentally alive and safe", before you invest in anything deeper. You can do this by hand in twenty minutes, and it catches the scary stuff first. This is the pre-launch pass I'd run on any AI-generated app, roughly in order of how much it'll hurt if it's broken.</p>
+  <ul>
+    <li><strong>Log out and try to reach a protected page directly.</strong> Paste the URL of something that should require login into a fresh private window. If you can see it logged out, your auth is decorative.</li>
+    <li><strong>Hit the protected API directly.</strong> Open the endpoint (or <code>curl</code> it) with no session. It should refuse you, not hand back data. AI builders love to guard the button in the UI and leave the endpoint wide open.</li>
+    <li><strong>Run it with your dev environment gone.</strong> Set the real environment variables, unset anything local, and boot it clean. If it only runs on your laptop, it isn't ready. This is the number one reason an AI app works locally but not in production.</li>
+    <li><strong>Point it at a real managed database.</strong> The local SQLite file or in-memory store that the builder scaffolded will not survive production. Verify reads and writes work against the database you'll actually run on.</li>
+    <li><strong>Feed a form garbage.</strong> Empty fields, a 5,000-character name, an email with no <code>@</code>, a negative quantity. It should reject bad input cleanly, not save a broken row or throw a 500.</li>
+    <li><strong>Break a downstream call on purpose.</strong> Kill your network, or point an API key at nothing, then use the feature that depends on it. You want a clear error message, not a spinner forever or a white screen.</li>
+    <li><strong>Redeploy, then look for your data.</strong> Push a trivial change, let it redeploy, and check that the record you created five minutes ago is still there. If it vanished, your data was living somewhere that gets wiped.</li>
+  </ul>
+  <p>If several of those fail, that's normal for an AI-generated app, and it's exactly why you tested before launch instead of after. For the broader "is this ready at all" pass, the <a href="https://www.kloudbean.com/blog/ai-app-production-readiness-checklist/">AI app production readiness checklist</a> is the companion piece, and <a href="https://www.kloudbean.com/blog/from-prototype-to-production-checklist/">from prototype to production checklist</a> covers the general prototype-to-prod list.</p>
+
+  <!-- To add an image here, replace this whole figure with a real one: <figure><img src -> images/logged-out-test.png alt="logged out request to a protected route"></figure> -->
+  <figure class="img-slot"><span><b>Add image</b><em>A browser private window showing a protected page still reachable while logged out, next to a terminal curl of the same endpoint returning data with no auth.</em><small>Show the bug: a route that should refuse you, answering anyway.</small></span></figure>
+
+  <h2>Test the security paths, because that's where AI builders cut corners</h2>
+  <p>Two smoke-test items above are really the same lesson, and it's worth saying plainly: the security-critical paths are the ones AI builders get wrong most often. They'll protect a page in the frontend and forget the API behind it. They'll leave a model key or a database reachable from the open internet. They'll write an "admin only" check that never actually runs on the server.</p>
+  <p>So test those paths on purpose. A logged-out request (from a private window, or a raw <code>curl</code>) should be refused by every route that touches sensitive data or spends money. If a stranger with no account can read another user's records or hit the endpoint that calls a paid API, you don't have a bug, you have an incident waiting for a launch date.</p>
+  <p>I'm not going to rebuild the full list here, because the <a href="https://www.kloudbean.com/blog/ai-built-app-security-checklist/">AI-built app security checklist</a> already owns it, item by item. Run that as your security pass. This section is just the reminder that security is the part of an AI-generated app you have to verify by hand, not trust on faith.</p>
+
+  <h2>A five-test harness for people who don't write tests</h2>
+  <p>Manual smoke testing is great once. The problem is you'll change one line next week and have to remember to do the whole dance again. That's what a few automated tests are for. And you don't need a test-engineering background to write the ones that matter.</p>
+  <p>Skip the big suite. A handful of high-value automated checks beats a hundred you'll never write. Boot the app and hit the critical routes, confirm auth blocks what it should, confirm one bad input gets rejected. Three tests like that, running on every push, catch the regressions that actually hurt. Here's the shape, using Node's built-in test runner and <code>fetch</code> against a running app:</p>
+  <pre><code>import { test } from 'node:test';
+import assert from 'node:assert';
+
+const base = process.env.TEST_URL || 'http://localhost:3000';
+
+// Smoke: the app boots and the home route answers
+test('home route responds', async () =&gt; {
+  const res = await fetch(base + '/');
+  assert.equal(res.status, 200);
+});
+
+// Auth: a protected route refuses an anonymous request
+test('protected route blocks logged-out access', async () =&gt; {
+  const res = await fetch(base + '/api/account');
+  assert.equal(res.status, 401);
+});
+
+// Bad input: the signup endpoint rejects garbage instead of crashing
+test('signup rejects invalid email', async () =&gt; {
+  const res = await fetch(base + '/api/signup', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: 'not-an-email' }),
+  });
+  assert.equal(res.status, 400);
+});</code></pre>
+  <p>That's the whole idea. The auth test is the one I'd never launch without. My firm opinion: you do not need 90% coverage before launch. You need five tests that cover auth, money, and data. Write those five, wire them to run on every deploy, and you've bought yourself more safety than a giant suite of tests on the parts that don't matter.</p>
+  <p>Same pattern works in any stack. Python has <code>pytest</code> and <code>httpx</code>, Laravel has feature tests, Rails has request specs. The tool doesn't matter. Hitting the real routes and asserting the boring, critical behaviour does.</p>
+
+  <!-- To add an image here, replace this whole figure with a real one: <figure><img src -> images/test-run-fail.png alt="test run with a failing auth test"></figure> -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal running the test file with the auth test failing, a protected route returning 200 instead of 401, so the reader sees a real caught bug.</em><small>A red failing test is more convincing than a green one here.</small></span></figure>
+
+  <h2>Don't let the AI grade its own homework</h2>
+  <p>Now the trap that catches almost everyone the moment they discover the AI can write tests too. You ask the same model that wrote the code to also write the tests. It happily generates a green suite, everything passes, and you feel safe. You are not safe.</p>
+  <p>An AI writing tests for its own code tends to write tests that assert what the code <em>does</em>, not what it <em>should do</em>. If the code has a bug, the generated test often locks that bug in as the expected answer, then passes. A green suite that was reverse-engineered from the implementation is not evidence the code is correct. It's evidence the code agrees with itself. Those are very different things, and "AI wrote a passing test" reassures a lot of people who then ship the bug.</p>
+  <div class="note"><b>The tell:</b> a brand-new test suite that's 100% green on the first run. Real tests you write against real requirements almost always catch something. If nothing failed, the tests probably just described the code back to itself.</div>
+  <p>So if you use AI to help write tests, and it's a reasonable way to save time, do two things. Write the test's intent yourself first ("a logged-out user must get 401 from /api/account"), then let the AI fill in the mechanics. And actually read the assertions. If a test asserts a 200 on a route that should reject anonymous users, the test is wrong, no matter how green it is. Test the requirement, not the code's current behaviour.</p>
+
+  <h2>Test where it will actually run</h2>
+  <p>The last gap is environmental. "Works on my machine" and "works in production" are different claims, and the difference has ended more launches than any logic bug. Your laptop has your env vars, your local database, your installed tools, and a network that never fails. Production has none of those unless you set them up, which is exactly why an <a href="https://www.kloudbean.com/blog/why-my-ai-app-works-locally-but-not-in-production/">AI app works locally but not in production</a>.</p>
+  <p>The fix is to test somewhere production-like before you point real traffic at it. A staging environment with a real managed database turns "works locally" into "works where it's going to run". You catch the missing env var, the local-only shortcut, and the database that behaves differently under a real connection, all before a user ever sees them. For the wider list of what tends to break at this boundary, <a href="https://www.kloudbean.com/blog/why-ai-apps-fail-in-production/">why AI apps fail in production</a> is a useful read, and the whole topic sits under the <a href="https://www.kloudbean.com/blog/last-mile-of-vibe-coding/">last mile of vibe coding</a>.</p>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>Testing on something production-like is a lot easier when your host gives you the pieces. On Kloudbean you can spin up a staging environment (available for WordPress and Laravel) backed by a real managed database, so you're testing against the same kind of Postgres or MySQL you'll run in production, not a throwaway local file. You deploy from Git, so the loop of "found a bug, fixed it, re-test" is a single push and a fresh deploy, not a manual redeploy dance. Everything (server, database, staging, SSL) lives in one dashboard, which means fewer moving parts to reason about while you're hunting a bug.</p>
+  <p>The honest boundary: Kloudbean hosts your app and gives you a realistic place to run these tests. The tests themselves are your code. A managed platform can hand you a staging environment and a real database, but it can't know that your auth check is decorative or that your form accepts garbage. That part is on you, and this whole page is about doing it before launch instead of learning it from your first angry user.</p>
+
+  <!-- To add an image here, replace this whole figure with a real one: <figure><img src -> images/launch-database.png alt="launch a managed database for staging"></figure> -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Kloudbean dashboard launching a managed database (DBS then Launch Database) to back a staging environment.</em><small>A real console screenshot fits well here.</small></span></figure>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Test on a real staging environment, then launch with confidence.</p>
+    <p style="margin:0 0 .6em">Spin up staging backed by a real managed database, deploy from Git so every fix re-tests in one push, and keep the whole stack (server, database, SSL) in one dashboard.</p>
+    <p style="margin:0">Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">Staging environment · Real managed database · Git deploy · Automatic backups · Free SSL · Free migration · Free trial</p>
+  </div>
+
+  <!-- To add an image here, replace this whole figure with a real one: <figure><img src -> images/git-deployment.png alt="git deploy view"></figure> -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Git deployment view showing a push building and deploying, so a fix and a re-test is one commit.</em><small>Show the build log or deploy history if you have it.</small></span></figure>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I test an AI-generated app?</h3>
+    <p>Start with a manual smoke test that hits the paths the demo never did: log out and try to reach a protected route, submit a form with bad input, break a downstream API call on purpose, and redeploy to confirm your data survives. Then automate the few that matter most, one smoke test that boots the app, one auth test, one bad-input test, and run them on every deploy.</p>
+    <h3>Can I trust AI-written code?</h3>
+    <p>Trust it about as far as you'd trust code from a fast junior developer who never tested it. It's often structurally fine and gets the happy path right, but it tends to skip auth on the server, error handling, and input validation. So verify the AI-generated code rather than trusting it, especially anything touching login, payments, or data.</p>
+    <h3>Should I let AI write my tests?</h3>
+    <p>You can use it to save time, but don't let it grade its own work. If the same model writes both the code and the tests, it often writes tests that assert the buggy behaviour and pass. Write the intent of each test yourself, let the AI fill in the mechanics, and read the assertions before you trust a green result.</p>
+    <h3>What should I test before launching?</h3>
+    <p>Auth, money, and data, in that order. Confirm that protected routes refuse logged-out requests, that anything spending money can't be triggered anonymously, and that your data survives a redeploy on a real database. Add a bad-input test and a broken-dependency test. Those five areas catch the failures that actually hurt at launch.</p>
+    <h3>How many tests do I actually need before launch?</h3>
+    <p>Fewer than you think. You do not need high coverage to launch safely. Five well-chosen tests covering auth, money, and data give you more real protection than a hundred tests on trivial code. Start with a smoke test, an auth test, and a bad-input test, then add more only where a real bug taught you to.</p>
+    <h3>What is a smoke test?</h3>
+    <p>A smoke test is a quick, shallow check that the app is fundamentally alive and safe before you test anything deeply. It boots the app and hits the most critical routes to confirm nothing is obviously on fire. The name comes from hardware: power it on and see if smoke comes out. It's the first thing to run, not the last.</p>
+    <h3>My AI-generated tests all pass. Does that mean the code works?</h3>
+    <p>Not necessarily. If the tests were generated from the same code they're testing, a green result only proves the code agrees with itself. A bug can be baked into both the code and the test as the expected behaviour. Read the assertions and check they match the real requirement rather than the current behaviour.</p>
+    <h3>Do I need a staging environment to test my app before launch?</h3>
+    <p>It's the single best way to catch the works-locally-breaks-in-production class of bug. A staging environment with a real managed database lets you test against production-like conditions, real env vars, a real database, no local shortcuts, before any user is affected. On Kloudbean, staging is available for WordPress and Laravel.</p>
+    <h3>Why does my app work in the demo but break for real users?</h3>
+    <p>Because the demo only ran the happy path, and real users run everything else. They log out, paste bad input, lose their connection mid-request, and hit the app after a redeploy. The demo also ran on your machine, with your env vars and local database. Testing the untested paths on a production-like environment closes that gap before launch.</p>
+  </div>
+
+  <p class="byline">Kloudbean. Test the paths nobody clicked, then launch.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Test an AI-Generated App Before You Launch It","description":"How to test an AI-generated app before you launch it: a pre-launch smoke test for code you did not write, the security paths AI builders leave open, a five-test harness for non-testers, and why letting the AI grade its own code is a trap.","image":"https://www.kloudbean.com/blog/test-ai-generated-app-before-launch/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/test-ai-generated-app-before-launch/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I test an AI-generated app?","acceptedAnswer":{"@type":"Answer","text":"Start with a manual smoke test that hits the paths the demo never did: log out and try to reach a protected route, submit a form with bad input, break a downstream API call on purpose, and redeploy to confirm your data survives. Then automate the few that matter most, one smoke test that boots the app, one auth test, one bad-input test, and run them on every deploy."}},
+{"@type":"Question","name":"Can I trust AI-written code?","acceptedAnswer":{"@type":"Answer","text":"Trust it about as far as you would trust code from a fast junior developer who never tested it. It is often structurally fine and gets the happy path right, but it tends to skip auth on the server, error handling, and input validation. So verify the AI-generated code rather than trusting it, especially anything touching login, payments, or data."}},
+{"@type":"Question","name":"Should I let AI write my tests?","acceptedAnswer":{"@type":"Answer","text":"You can use it to save time, but do not let it grade its own work. If the same model writes both the code and the tests, it often writes tests that assert the buggy behaviour and pass. Write the intent of each test yourself, let the AI fill in the mechanics, and read the assertions before you trust a green result."}},
+{"@type":"Question","name":"What should I test before launching?","acceptedAnswer":{"@type":"Answer","text":"Auth, money, and data, in that order. Confirm that protected routes refuse logged-out requests, that anything spending money cannot be triggered anonymously, and that your data survives a redeploy on a real database. Add a bad-input test and a broken-dependency test. Those five areas catch the failures that actually hurt at launch."}},
+{"@type":"Question","name":"How many tests do I actually need before launch?","acceptedAnswer":{"@type":"Answer","text":"Fewer than you think. You do not need high coverage to launch safely. Five well-chosen tests covering auth, money, and data give you more real protection than a hundred tests on trivial code. Start with a smoke test, an auth test, and a bad-input test, then add more only where a real bug taught you to."}},
+{"@type":"Question","name":"What is a smoke test?","acceptedAnswer":{"@type":"Answer","text":"A smoke test is a quick, shallow check that the app is fundamentally alive and safe before you test anything deeply. It boots the app and hits the most critical routes to confirm nothing is obviously on fire. The name comes from hardware: power it on and see if smoke comes out. It is the first thing to run, not the last."}},
+{"@type":"Question","name":"My AI-generated tests all pass. Does that mean the code works?","acceptedAnswer":{"@type":"Answer","text":"Not necessarily. If the tests were generated from the same code they are testing, a green result only proves the code agrees with itself. A bug can be baked into both the code and the test as the expected behaviour. Read the assertions and check they match the real requirement rather than the current behaviour."}},
+{"@type":"Question","name":"Do I need a staging environment to test my app before launch?","acceptedAnswer":{"@type":"Answer","text":"It is the single best way to catch the works-locally-breaks-in-production class of bug. A staging environment with a real managed database lets you test against production-like conditions, real env vars, a real database, no local shortcuts, before any user is affected. On Kloudbean, staging is available for WordPress and Laravel."}},
+{"@type":"Question","name":"Why does my app work in the demo but break for real users?","acceptedAnswer":{"@type":"Answer","text":"Because the demo only ran the happy path, and real users run everything else. They log out, paste bad input, lose their connection mid-request, and hit the app after a redeploy. The demo also ran on your machine, with your env vars and local database. Testing the untested paths on a production-like environment closes that gap before launch."}}
+]}
+]}
+</script>
+</body>
+</html>

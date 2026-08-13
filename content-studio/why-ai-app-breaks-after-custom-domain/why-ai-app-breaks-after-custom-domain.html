@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why Your AI App Breaks After You Add a Custom Domain</title>
+<meta name="description" content="Your app breaks after adding a custom domain because everything was pinned to the old preview URL: a hardcoded API base, a CORS allow-list, cookies, and OAuth redirect URIs. A field guide to what breaks and the exact fix for each.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/why-ai-app-breaks-after-custom-domain/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Why Your AI App Breaks After You Add a Custom Domain">
+<meta property="og:description" content="Nothing about your app changed except its address. So everything that breaks is something that was pinned to the old preview URL. Match the symptom, find what is still pointing at the old address, fix it.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">AI apps in production</span>
+  <h1>Why Your AI App Breaks After You Add a Custom Domain</h1>
+
+  <figure><img src="images/hero.png" alt="Why an app breaks after adding a custom domain: the same app at a new address, with its API URL, CORS rule, cookie, and OAuth callback still pointing at the old preview URL"></figure>
+
+  <p class="lead">Your app ran fine on its preview URL. The one your AI builder handed you, something like <code>your-app.builder.app</code>. Then you added your own custom domain, pointed the DNS, and something broke. A login that won't stick. An API call that fails. A blank panel where data used to sit. When an app breaks after adding a custom domain, it feels like the whole deploy fell apart. It didn't. Not one line of your code changed. Only its address did.</p>
+  <p>And that's the entire trick to debugging this. Everything that breaks is something that was quietly pinned to the old address: an API URL baked into the build, a CORS rule that only trusts the preview origin, a cookie scoped to the old host, an OAuth callback registered on a provider's dashboard. Find what's still pointing at the old URL and you've found the bug. This is a field guide to the usual suspects, worst offenders first.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>When your app breaks after adding a custom domain, the code is fine. Something got pinned to the old preview address and didn't move with you. Check five things: the frontend's API URL (change it and rebuild), the API's CORS allow-list, your cookie domain and SameSite, your OAuth and webhook URLs at each provider, and whether HTTPS is fully forced. Fix the one that matches your symptom.</p>
+  </div>
+
+  <h2>Why your app breaks after adding a custom domain</h2>
+  <p>Think about what actually happened. You didn't rewrite anything. You gave the same running app a new name and pointed traffic at it. So any part of the system that memorized the old name is now wrong, and only those parts. That's why the failures feel so random. A bit works, a bit doesn't, depending entirely on what got hard-coded where.</p>
+  <p>It helps to see it. The app answers on the new domain, but four things in and around it still hold the old preview URL, and each one is its own separate break.</p>
+
+  <figure>
+    <svg viewBox="0 0 800 420" role="img" aria-label="The same app now lives at a new custom domain, app.yourdomain.com, and it loads fine. But four parts of the system still point at the old preview URL, old-preview.app: the frontend API base still calls it, the CORS allow-list still trusts it, the session cookie is still scoped to it, and the OAuth redirect URI is still registered as it. Each part is drawn with a dashed purple arrow back to the old address, marking it as the break point." xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="wire" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#000f27"/></marker>
+        <marker id="brk" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4F1AF3"/></marker>
+      </defs>
+
+      <line x1="560" y1="40" x2="592" y2="40" stroke="#40b75f" stroke-width="3"/>
+      <text x="598" y="44" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">works on the new domain</text>
+      <line x1="560" y1="60" x2="592" y2="60" stroke="#4F1AF3" stroke-width="2" stroke-dasharray="6 5"/>
+      <text x="598" y="64" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">still pinned to the old URL</text>
+
+      <rect x="290" y="22" width="220" height="58" rx="12" fill="#fff" stroke="#40b75f" stroke-width="2"/>
+      <text x="400" y="47" text-anchor="middle" font-family="Poppins,sans-serif" font-size="14" font-weight="700" fill="#000f27">app.yourdomain.com</text>
+      <text x="400" y="66" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#40b75f">your new custom domain (it loads fine)</text>
+
+      <line x1="400" y1="80" x2="112" y2="148" stroke="#000f27" stroke-width="1.4" marker-end="url(#wire)"/>
+      <line x1="400" y1="80" x2="300" y2="148" stroke="#000f27" stroke-width="1.4" marker-end="url(#wire)"/>
+      <line x1="400" y1="80" x2="490" y2="148" stroke="#000f27" stroke-width="1.4" marker-end="url(#wire)"/>
+      <line x1="400" y1="80" x2="678" y2="148" stroke="#000f27" stroke-width="1.4" marker-end="url(#wire)"/>
+
+      <rect x="24" y="150" width="172" height="94" rx="10" fill="#000f27"/>
+      <text x="110" y="182" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#fff">Frontend API base</text>
+      <text x="110" y="202" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#9fb0cc">points at the old URL</text>
+      <text x="110" y="222" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#9fb0cc">so calls 404</text>
+
+      <rect x="214" y="150" width="172" height="94" rx="10" fill="#000f27"/>
+      <text x="300" y="182" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#fff">CORS allow-list</text>
+      <text x="300" y="202" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#9fb0cc">trusts the old origin</text>
+      <text x="300" y="222" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#9fb0cc">so the browser blocks it</text>
+
+      <rect x="404" y="150" width="172" height="94" rx="10" fill="#000f27"/>
+      <text x="490" y="182" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#fff">Cookie domain</text>
+      <text x="490" y="202" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#9fb0cc">scoped to the old host</text>
+      <text x="490" y="222" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#9fb0cc">so login drops</text>
+
+      <rect x="594" y="150" width="172" height="94" rx="10" fill="#000f27"/>
+      <text x="680" y="182" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#fff">OAuth redirect URI</text>
+      <text x="680" y="202" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#9fb0cc">registered as old URL</text>
+      <text x="680" y="222" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#9fb0cc">so sign-in fails</text>
+
+      <text x="400" y="292" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" font-weight="600" fill="#4F1AF3">each one still points here</text>
+      <line x1="110" y1="244" x2="326" y2="328" stroke="#4F1AF3" stroke-width="1.8" stroke-dasharray="6 5" marker-end="url(#brk)"/>
+      <line x1="300" y1="244" x2="372" y2="328" stroke="#4F1AF3" stroke-width="1.8" stroke-dasharray="6 5" marker-end="url(#brk)"/>
+      <line x1="490" y1="244" x2="428" y2="328" stroke="#4F1AF3" stroke-width="1.8" stroke-dasharray="6 5" marker-end="url(#brk)"/>
+      <line x1="680" y1="244" x2="474" y2="328" stroke="#4F1AF3" stroke-width="1.8" stroke-dasharray="6 5" marker-end="url(#brk)"/>
+
+      <rect x="300" y="330" width="200" height="60" rx="12" fill="#f6f7fb" stroke="#000f27" stroke-width="1.4" stroke-dasharray="6 5"/>
+      <text x="400" y="357" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">old-preview.app</text>
+      <text x="400" y="375" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">the address it used to live at</text>
+    </svg>
+    <figcaption>Same app, new address, old wiring. The domain change is done, but four parts still hold the old preview URL. Every one you miss is a silent, separate failure.</figcaption>
+  </figure>
+
+  <p>Vibe-coded apps hit this harder than most, because the builder wires everything to the preview URL to get you a working demo fast. It's one more item on the <a href="https://www.kloudbean.com/blog/last-mile-of-vibe-coding/">last mile of vibe coding</a>, the gap those tools leave for you to finish. If your app never worked in production at all, that's a different problem, covered in <a href="https://www.kloudbean.com/blog/why-my-ai-app-works-locally-but-not-in-production/">why your AI app works locally but not in production</a>.</p>
+
+  <h2>Match the symptom to what is still pinned to the old address</h2>
+  <p>Start here. Find the thing on your screen in the left column, and the middle column tells you what got left behind. Then jump to the section that fixes it.</p>
+  <table class="cmp">
+    <thead><tr><th>Symptom after the switch</th><th>What was pinned to the old address</th><th>The fix</th></tr></thead>
+    <tbody>
+      <tr><td>API calls fail; the network tab shows requests to the old URL</td><td>Frontend API base baked into the build</td><td>Point it at the new domain or a relative path, then rebuild</td></tr>
+      <tr><td>CORS error in the console</td><td>API allow-list only trusts the old origin</td><td>Allow the new origin, or serve the API same-origin</td></tr>
+      <tr><td>Login works, then drops on the next click</td><td>Session cookie scoped to the old host</td><td>Set the cookie domain, Secure, and SameSite for the new host</td></tr>
+      <tr><td>Sign-in fails with redirect_uri_mismatch</td><td>OAuth redirect URI registered as the preview URL</td><td>Add the new callback URL at the provider</td></tr>
+      <tr><td>Broken images, blocked scripts, a padlock warning</td><td>Assets loaded over http on an https page</td><td>Load everything over https</td></tr>
+      <tr><td>ERR_TOO_MANY_REDIRECTS</td><td>Conflicting http/https or www/apex redirect rules</td><td>Force one canonical https host</td></tr>
+      <tr><td>An https error right after pointing DNS</td><td>The certificate is still provisioning</td><td>Wait a few minutes, then check the config</td></tr>
+    </tbody>
+  </table>
+
+  <!-- To add an image here, replace this whole figure with a real one: <figure><img src -> images/network-old-url.png alt="network tab still hitting the old preview URL"></figure> -->
+  <figure class="img-slot"><span><b>Add image</b><em>The browser Network tab after the domain switch, showing requests still going to the old preview URL instead of the new domain.</em><small>A real screenshot of the failing calls makes the diagnosis obvious.</small></span></figure>
+
+  <h2>CORS: your API still only trusts the old origin</h2>
+  <p>This is the most common one, and it looks alarming. Your frontend now loads from <code>https://app.yourdomain.com</code>, so every request to your API carries that new origin. But your API's CORS allow-list still names only the old preview origin. The browser asks the API "is app.yourdomain.com allowed?", the API doesn't say yes, and the browser blocks the response before your code ever sees it.</p>
+  <p>The console message is the giveaway. Something like <code>Access to fetch at 'https://api.old-preview.app' from origin 'https://app.yourdomain.com' has been blocked by CORS policy</code>. Note that the request often reaches the server fine. It's the reply that gets thrown away, which is why it's confusing.</p>
+  <p>The fix is to allow the new origin. If you use credentials (cookies), you have to name the exact origin, because a wildcard is not allowed with credentials.</p>
+  <pre><code>// Before: only the old preview origin was allowed
+app.use(cors({ origin: 'https://your-app.builder.app' }))
+
+// After: allow your real domain (a list is fine)
+app.use(cors({ origin: ['https://app.yourdomain.com'], credentials: true }))</code></pre>
+  <p>Cleaner still: put the API on the same domain as the frontend (say under <code>/api</code>) so the call is same-origin and CORS never enters the picture. For the full set of causes, including preflight requests and the credentials rule, the <a href="https://www.kloudbean.com/blog/fix-cors-error-node-production/">production CORS error fix</a> walks through every branch.</p>
+
+  <!-- To add an image here, replace this whole figure with a real one: <figure><img src -> images/cors-console.png alt="blocked CORS error in the browser console"></figure> -->
+  <figure class="img-slot"><span><b>Add image</b><em>The browser console showing a blocked CORS error that names the old origin and the new domain side by side.</em><small>Highlight the origin line so readers can spot their own version.</small></span></figure>
+
+  <h2>Hardcoded preview URLs: the app is still calling its old address</h2>
+  <p>Open your browser's network tab. If the app loads but the calls go to the old preview URL, the address was baked into the frontend. AI builders love doing this. They drop the preview URL straight into the code or a build variable so the demo works instantly, and now that string is fossilized in your bundle.</p>
+  <p>Here's the part that trips people up: a frontend build variable is compiled in when the app is built, not read fresh at runtime. So changing the env var and restarting does nothing. You have to change it and rebuild. A baked-in URL needs a rebuild, not a restart.</p>
+  <pre><code># A frontend build var is read at build time, so you must rebuild after changing it
+VITE_API_URL=https://app.yourdomain.com
+
+# Better: call a relative path, and there is nothing to change on a domain switch
+fetch('/api/users')</code></pre>
+  <p>And now the honest anti-pattern, because it's the reason this drags on. The builder rarely hardcodes the URL once. It hardcodes it in a dozen places: the API base, the redirect after login, share links, the sitemap, Open Graph tags, the reset-password email. So the app half-works on the new domain, and every spot you miss is a silent failure that only shows up when a specific user hits that specific path. Don't fix them one bug report at a time. Grep the whole codebase for the old hostname and replace every hit in one pass. If you're unsure how build-time versus runtime variables behave, <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a> sorts it out.</p>
+
+  <!-- To add an image here, replace this whole figure with a real one: <figure><img src -> images/env-var-new-domain.png alt="app URL set to the new domain in the dashboard"></figure> -->
+  <figure class="img-slot"><span><b>Add image</b><em>The dashboard environment variables screen with the app URL variable set to the new custom domain, ready for a rebuild.</em><small>Mask any real secret values in the shot.</small></span></figure>
+
+  <h2>HTTPS: mixed content and redirect loops</h2>
+  <p>Two different HTTPS problems show up right after a domain change, and people mix them up.</p>
+  <p>The first is mixed content. Your page now loads over <code>https://</code>, but somewhere it still asks for an asset or an API over plain <code>http://</code>. Browsers block that on sight, so an image vanishes, a script won't run, or the padlock turns into a warning. The console spells it out: the page was loaded over HTTPS but requested an insecure resource. Fix it by loading everything over https, which usually means finding the hard-coded <code>http://</code> reference and dropping the protocol or switching it to https.</p>
+  <p>The second is the redirect loop, <code>ERR_TOO_MANY_REDIRECTS</code>. It happens when two rules fight: something forces http to https while something else sends https back to http, or one rule wants <code>www</code> and another wants the bare apex. A classic trigger is a CDN or proxy set to talk to your origin over http while your server force-redirects to https, so the request bounces forever. Pick one canonical host (either <code>www</code> or the apex, and either way commit to https), redirect everything else to it exactly once, and make sure any proxy in front validates your real certificate rather than downgrading the hop.</p>
+
+  <h2>Cookies and sessions: logins that quietly stop working</h2>
+  <p>This one is sneaky because it looks like it works. You log in, the request succeeds, and then the very next page acts like you were never authenticated. No error, just a silent logout. The cause is almost always a cookie pinned to the old address.</p>
+  <p>A session cookie carries a <code>Domain</code> attribute. If it was set for <code>old-preview.app</code>, the browser simply won't send it to <code>yourdomain.com</code>, so every request after login arrives anonymous. The other trap is the <code>Secure</code> and <code>SameSite</code> flags. On the new https site a cookie needs <code>Secure</code>, and if your frontend and API sit on different sites you'll need <code>SameSite=None; Secure</code> for the browser to attach it at all.</p>
+  <pre><code>// Before: this cookie will never reach yourdomain.com
+Set-Cookie: session=...; Domain=old-preview.app; SameSite=Lax
+
+// After: scope it to the new host (or omit Domain to bind to the current host)
+Set-Cookie: session=...; Domain=yourdomain.com; Secure; SameSite=Lax</code></pre>
+  <p>If your app and API live on subdomains of the same site (like <code>app.yourdomain.com</code> and <code>api.yourdomain.com</code>), set the cookie <code>Domain</code> to the parent, <code>.yourdomain.com</code>, so both share it. And when the frontend and API are truly cross-site, remember the CORS fix above needs <code>credentials: true</code> or the cookie won't ride along even when it's scoped correctly.</p>
+
+  <h2>OAuth and webhooks: callbacks still pointed at the preview URL</h2>
+  <p>Sign in with Google or GitHub, and you get bounced back with an ugly <code>redirect_uri_mismatch</code>. Or a Stripe webhook just stops arriving and payments go into limbo. Same root cause: the URL lives at the provider, not in your code, and it still says the old preview address.</p>
+  <p>OAuth providers only redirect to redirect URIs you registered ahead of time, exactly. Webhook senders only POST to the endpoint you gave them. Neither one knows you moved. So you have to go update each provider by hand: add <code>https://app.yourdomain.com/auth/callback</code> to the allowed redirect URIs in the Google Cloud console, in your GitHub OAuth app, in every provider you use, and point webhook endpoints (Stripe and friends) at the new domain. Keep the old URL in the list until you're fully cut over, then remove it. And don't forget the callback URL your own app config passes to the provider, that's easy to leave stale.</p>
+
+  <!-- To add an image here, replace this whole figure with a real one: <figure><img src -> images/oauth-redirect-uris.png alt="OAuth provider allowed redirect URIs with the new domain added"></figure> -->
+  <figure class="img-slot"><span><b>Add image</b><em>A provider OAuth settings screen with both the old preview URL and the new domain listed in the allowed redirect URIs.</em><small>Show the exact field where the callback URL is registered.</small></span></figure>
+
+  <h2>First, rule out a certificate that is still provisioning</h2>
+  <p>Before you go hunting for a config bug, check the clock. The moment you point DNS at your app and ask for HTTPS, the certificate has to be issued, and that takes a little time. So an https error in the first few minutes can mean nothing more than "not ready yet". The trick is telling a transient state apart from a real misconfiguration.</p>
+  <p>A "not ready yet" error clears on its own within minutes as DNS resolves and the certificate issues. A misconfiguration doesn't clear no matter how long you wait: the name still resolves nowhere, or a stray record blocks issuance. Give it a reasonable wait first. If a certificate warning is still there well after that, it's config, and <a href="https://www.kloudbean.com/blog/fix-ssl-certificate-errors/">fixing SSL certificate errors</a> walks the causes. For the ordering of the whole DNS-then-certificate setup in the first place, see <a href="https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/">adding a custom domain and free SSL to your app</a>.</p>
+
+  <h2>Set things up so the next domain change is boring</h2>
+  <p>Here's my one firm opinion, and it's cheap insurance. Use relative API paths and env-var-driven URLs from the very first commit, and decide on one canonical host early. If the frontend calls <code>/api</code> and every absolute URL reads from a single config value, then changing domains is a DNS record plus a rebuild. Nothing more. No scavenger hunt through a dozen hardcoded strings, no bug reports trickling in for a week as users find the spots you missed.</p>
+  <p>That's the difference between a five-minute change and a lost afternoon, and it costs you five minutes of discipline up front. Most of these breaks aren't clever, they're just addresses that got written down in the wrong place. That's the same lesson behind most deploy failures, which lean on config far more than code, as <a href="https://www.kloudbean.com/blog/why-ai-apps-fail-in-production/">why AI apps fail in production</a> lays out.</p>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>A lot of this pain comes from the address and the certificate being fiddly to change. On Kloudbean you add a custom domain and get free SSL provisioned automatically, so the HTTPS half is handled for you. You set environment variables in the dashboard, which is exactly where the app learns its own domain, and you deploy from Git, so the rebuild you need after changing a URL is a single push rather than a manual redeploy. That turns "change the domain" back into the small task it should be.</p>
+  <p>The honest boundary, because it's what makes this trustworthy: managed means the platform handles the server, the stack, SSL, backups, and patching. Your app's code, its CORS rules, its cookie settings, and the URLs registered at Google or Stripe stay yours. Kloudbean makes the new address and its certificate easy. It can't reach into a third-party dashboard and know which of them still holds your old preview URL. That part is the checklist above.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Give your app a real address without the day of whack-a-mole.</p>
+    <p style="margin:0 0 .6em">Add a custom domain with free SSL provisioned automatically, set the app's URLs as environment variables in the dashboard, and rebuild in one Git push when something needs to change. One dashboard, one account.</p>
+    <p style="margin:0">Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">Custom domain + free SSL · Environment variables in the dashboard · Git deploy (rebuild in one push) · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Why did my app break after adding a custom domain?</h3>
+    <p>Because nothing about your app changed except its address, and some parts were pinned to the old preview URL. A hardcoded API base, a CORS allow-list, a cookie domain, or an OAuth callback still points at the old address, so those specific pieces fail while the rest works. Find what still names the old URL and fix that.</p>
+    <h3>Why do I get a CORS error after changing domains?</h3>
+    <p>Your frontend now loads from the new domain, so requests carry that new origin, but your API's allow-list still trusts only the old preview origin. The browser blocks the response. Add the new origin to the API's CORS config, or serve the API on the same domain so the call is same-origin. With cookies you must name the exact origin, not a wildcard.</p>
+    <h3>Why did login stop working after adding a domain?</h3>
+    <p>Almost always a cookie scoped to the old host. A session cookie set for the old preview address is never sent to your new domain, so every request after login arrives logged out. Set the cookie domain to the new host (or omit it to bind to the current host), and make sure Secure and SameSite match your new https setup.</p>
+    <h3>Why does OAuth fail after adding a custom domain?</h3>
+    <p>The redirect URI lives at the provider, and it still lists the old preview URL. Providers only redirect to URIs you registered exactly, so a mismatch throws redirect_uri_mismatch. Add your new callback URL, like https://app.yourdomain.com/auth/callback, to the allowed list in each provider such as Google or GitHub, and update any webhook endpoint URLs too.</p>
+    <h3>Why does my app still call the old preview URL after switching domains?</h3>
+    <p>The old URL was baked into the frontend build. A build-time variable is compiled into the bundle, so changing it and only restarting does nothing. Point the API base at the new domain or a relative path, then rebuild. Search the whole codebase for the old hostname, because AI builders tend to hardcode it in several places.</p>
+    <h3>Why do I get a redirect loop on my custom domain?</h3>
+    <p>Two rules are fighting. One forces http to https while another sends it back, or one wants www and another wants the bare apex. A proxy talking to your origin over http while the server forces https is a common trigger. Pick one canonical https host, redirect everything else to it once, and make the proxy validate your real certificate.</p>
+    <h3>Why is my custom domain showing a not-secure or certificate warning?</h3>
+    <p>Right after pointing DNS, the certificate may still be provisioning, so an early warning can just mean wait a few minutes. If it clears on its own, it was transient. If it persists well past that, it is a misconfiguration: the name resolves nowhere, an asset loads over http (mixed content), or a record is blocking issuance. Then it is time to check the config.</p>
+    <h3>Do I need to rebuild my app after changing its domain?</h3>
+    <p>If any URL is baked into the frontend at build time, yes. Frontend build variables are frozen into the bundle when it compiles, so a new value only takes effect after a rebuild, not a restart. Backend-only changes like a CORS origin or a cookie domain usually just need a restart. When in doubt, rebuild and redeploy.</p>
+    <h3>Should my API be on the same domain as my frontend?</h3>
+    <p>It is the simplest option. Serving the API under the same domain, for example at /api, makes requests same-origin, so CORS never applies and cookies attach without cross-site flags. If you keep them on separate domains or subdomains, you take on the CORS allow-list and the cookie domain settings by hand, which is exactly what tends to break on a move.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Same app, new address. Move everything that remembered the old one.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Why Your AI App Breaks After You Add a Custom Domain","description":"Your app breaks after adding a custom domain because everything was pinned to the old preview URL: a hardcoded API base, a CORS allow-list, cookies, and OAuth redirect URIs. A field guide to what breaks and the exact fix for each.","image":"https://www.kloudbean.com/blog/why-ai-app-breaks-after-custom-domain/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/why-ai-app-breaks-after-custom-domain/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Why did my app break after adding a custom domain?","acceptedAnswer":{"@type":"Answer","text":"Because nothing about your app changed except its address, and some parts were pinned to the old preview URL. A hardcoded API base, a CORS allow-list, a cookie domain, or an OAuth callback still points at the old address, so those specific pieces fail while the rest works. Find what still names the old URL and fix that."}},
+{"@type":"Question","name":"Why do I get a CORS error after changing domains?","acceptedAnswer":{"@type":"Answer","text":"Your frontend now loads from the new domain, so requests carry that new origin, but your API allow-list still trusts only the old preview origin. The browser blocks the response. Add the new origin to the API CORS config, or serve the API on the same domain so the call is same-origin. With cookies you must name the exact origin, not a wildcard."}},
+{"@type":"Question","name":"Why did login stop working after adding a domain?","acceptedAnswer":{"@type":"Answer","text":"Almost always a cookie scoped to the old host. A session cookie set for the old preview address is never sent to your new domain, so every request after login arrives logged out. Set the cookie domain to the new host (or omit it to bind to the current host), and make sure Secure and SameSite match your new https setup."}},
+{"@type":"Question","name":"Why does OAuth fail after adding a custom domain?","acceptedAnswer":{"@type":"Answer","text":"The redirect URI lives at the provider, and it still lists the old preview URL. Providers only redirect to URIs you registered exactly, so a mismatch throws redirect_uri_mismatch. Add your new callback URL, like https://app.yourdomain.com/auth/callback, to the allowed list in each provider such as Google or GitHub, and update any webhook endpoint URLs too."}},
+{"@type":"Question","name":"Why does my app still call the old preview URL after switching domains?","acceptedAnswer":{"@type":"Answer","text":"The old URL was baked into the frontend build. A build-time variable is compiled into the bundle, so changing it and only restarting does nothing. Point the API base at the new domain or a relative path, then rebuild. Search the whole codebase for the old hostname, because AI builders tend to hardcode it in several places."}},
+{"@type":"Question","name":"Why do I get a redirect loop on my custom domain?","acceptedAnswer":{"@type":"Answer","text":"Two rules are fighting. One forces http to https while another sends it back, or one wants www and another wants the bare apex. A proxy talking to your origin over http while the server forces https is a common trigger. Pick one canonical https host, redirect everything else to it once, and make the proxy validate your real certificate."}},
+{"@type":"Question","name":"Why is my custom domain showing a not-secure or certificate warning?","acceptedAnswer":{"@type":"Answer","text":"Right after pointing DNS, the certificate may still be provisioning, so an early warning can just mean wait a few minutes. If it clears on its own, it was transient. If it persists well past that, it is a misconfiguration: the name resolves nowhere, an asset loads over http (mixed content), or a record is blocking issuance. Then it is time to check the config."}},
+{"@type":"Question","name":"Do I need to rebuild my app after changing its domain?","acceptedAnswer":{"@type":"Answer","text":"If any URL is baked into the frontend at build time, yes. Frontend build variables are frozen into the bundle when it compiles, so a new value only takes effect after a rebuild, not a restart. Backend-only changes like a CORS origin or a cookie domain usually just need a restart. When in doubt, rebuild and redeploy."}},
+{"@type":"Question","name":"Should my API be on the same domain as my frontend?","acceptedAnswer":{"@type":"Answer","text":"It is the simplest option. Serving the API under the same domain, for example at /api, makes requests same-origin, so CORS never applies and cookies attach without cross-site flags. If you keep them on separate domains or subdomains, you take on the CORS allow-list and the cookie domain settings by hand, which is exactly what tends to break on a move."}}
+]}
+]}
+</script>
+</body>
+</html>

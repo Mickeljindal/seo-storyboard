@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build Command vs Start Command: Getting an AI-Generated App to Run</title>
+<meta name="description" content="The build command and start command are two different jobs: build runs once to compile and bundle your app, start runs every boot to serve it. Most AI-generated apps fail to deploy because one is wrong. What each field means, the start command for a Node app, a framework table, and the PORT gotcha.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/configure-build-and-start-command-ai-app/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Build Command vs Start Command for AI Apps">
+<meta property="og:description" content="Build runs once to compile and bundle your app. Start runs every boot to serve it. Most AI-generated apps fail to deploy because one of these two fields is wrong. Here is what goes in each.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">AI apps in production</span>
+  <h1>Build Command vs Start Command: Getting an AI-Generated App to Run</h1>
+
+  <figure><img src="images/hero.png" alt="Build command vs start command: build runs once at deploy to produce a dist folder, start runs every boot to serve traffic on a port"></figure>
+
+  <p class="lead">You built something with Lovable, Bolt, Cursor, or v0, and it runs fine on your laptop. Now you're staring at a host's add-application screen, and there are two fields you've never had to think about: a build command and a start command. Guess wrong and the deploy fails. Or worse, it looks like it worked, then falls over the moment a real user shows up.</p>
+  <p>The mental model that fixes most of this is short. Build and start are two different jobs. The build command runs once, when you deploy. The start command runs every time your app boots. Almost every failed deploy of an AI-generated app is one of those two set wrong. Sort out which job each field is doing and the rest gets easy.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>The build command runs once at deploy time and turns your source into something runnable (installs packages, compiles TypeScript, bundles the frontend into a <code>dist/</code> or <code>build/</code> folder). The start command runs every time the app boots and launches the server that answers requests. Build produces, start runs. Most AI-app deploy failures are one of these two: a dev command left in the start field, or no build step, so start has nothing to run.</p>
+  </div>
+
+  <h2>Build command and start command: two jobs, not one</h2>
+  <p>Think of a deploy as two phases that happen at different times, for different reasons.</p>
+  <p>The <strong>build command</strong> runs once, at deploy time. Its job is to turn your source code into something a server can actually run. Usually that means installing your packages, compiling TypeScript down to JavaScript, and bundling your frontend into a folder of static files, often called <code>dist/</code> or <code>build/</code>. When the build finishes you have an artifact: a ready-to-run version of your app. Then the build machine's work is done.</p>
+  <p>The <strong>start command</strong> runs every single time your app boots. Not just on deploy. On every restart, every crash-and-recover, every time the platform moves your app to a new machine. Its job is to launch the long-running process that listens for requests and serves traffic. For a Node app that's usually something like <code>node dist/server.js</code>. For Python it might be <code>gunicorn</code> or <code>uvicorn</code>.</p>
+  <p>So build produces, start runs. Build is a one-time setup step. Start is the thing that stays alive. If you remember nothing else, remember this: a build command that installs and compiles is not interchangeable with a start command that runs a server. They're different fields because they're different jobs.</p>
+
+  <figure>
+    <svg viewBox="0 0 800 380" role="img" aria-label="A deploy has two phases. The build phase runs once, at deploy time: it installs dependencies, compiles TypeScript, and bundles the frontend, which produces a dist or build artifact. The start phase runs every time the app boots, on deploy, restart, crash, or move, and it launches the server that listens on the port the platform provides. Build produces the artifact and start runs it." xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="apu" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4F1AF3"/></marker>
+        <marker id="agr" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#40b75f"/></marker>
+      </defs>
+
+      <rect x="30" y="64" width="446" height="262" rx="16" fill="#f6f7fb" stroke="#4F1AF3" stroke-width="1.5" stroke-dasharray="7 6"/>
+      <text x="48" y="90" font-family="Poppins,sans-serif" font-size="12" font-weight="700" letter-spacing="1.2" fill="#4F1AF3">BUILD · RUNS ONCE, AT DEPLOY</text>
+
+      <rect x="46" y="112" width="128" height="60" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="110" y="140" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">install deps</text>
+      <text x="110" y="157" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">npm install</text>
+
+      <rect x="188" y="112" width="128" height="60" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="252" y="140" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">compile</text>
+      <text x="252" y="157" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">tsc</text>
+
+      <rect x="330" y="112" width="128" height="60" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="394" y="140" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">bundle</text>
+      <text x="394" y="157" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">frontend</text>
+
+      <line x1="174" y1="142" x2="184" y2="142" stroke="#4F1AF3" stroke-width="2" marker-end="url(#apu)"/>
+      <line x1="316" y1="142" x2="326" y2="142" stroke="#4F1AF3" stroke-width="2" marker-end="url(#apu)"/>
+
+      <rect x="150" y="236" width="204" height="66" rx="10" fill="#f6f7fb" stroke="#40b75f" stroke-width="1.6"/>
+      <text x="252" y="264" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="700" fill="#000f27">produces dist/ or build/</text>
+      <text x="252" y="283" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">the runnable artifact</text>
+
+      <line x1="252" y1="172" x2="252" y2="232" stroke="#4F1AF3" stroke-width="2" marker-end="url(#apu)"/>
+
+      <line x1="497" y1="58" x2="497" y2="332" stroke="#c9d0e3" stroke-width="1.4" stroke-dasharray="4 6"/>
+
+      <rect x="520" y="64" width="252" height="262" rx="16" fill="#f6f7fb" stroke="#40b75f" stroke-width="1.5" stroke-dasharray="7 6"/>
+      <text x="536" y="90" font-family="Poppins,sans-serif" font-size="12" font-weight="700" letter-spacing="1.2" fill="#40b75f">START · RUNS EVERY BOOT</text>
+      <text x="536" y="112" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">on deploy, restart, crash, or move</text>
+
+      <rect x="540" y="132" width="212" height="104" rx="10" fill="#000f27"/>
+      <text x="646" y="166" text-anchor="middle" font-family="Poppins,sans-serif" font-size="14" font-weight="600" fill="#fff">launch the server</text>
+      <text x="646" y="188" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" fill="#9fb0cc">node dist/server.js</text>
+      <text x="646" y="210" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" fill="#40b75f">listens on $PORT</text>
+
+      <text x="646" y="284" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">every boot, not just once</text>
+
+      <path d="M354 272 C 440 288, 470 200, 556 200" fill="none" stroke="#40b75f" stroke-width="2" marker-end="url(#agr)"/>
+      <text x="452" y="316" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600" fill="#40b75f">start runs the artifact</text>
+    </svg>
+    <figcaption>One deploy, two phases. Build happens once and produces the artifact. Start happens on every boot and runs that artifact as a live server on the platform's port.</figcaption>
+  </figure>
+
+  <!-- ADD IMAGE: the add-application settings showing the Build Command and Start Command fields filled in. Swap this slot for src -> images/build-start-fields.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The add-application settings with the Build Command and Start Command fields filled in.</em><small>A console screenshot of the two fields side by side works well here.</small></span></figure>
+
+  <h2>What runs when</h2>
+  <p>Here's the split in one table.</p>
+  <table class="cmp">
+    <thead><tr><th>Phase</th><th>When it runs</th><th>What it does</th><th>A typical command</th></tr></thead>
+    <tbody>
+      <tr><td>Build</td><td>Once, at deploy time</td><td>Installs packages, compiles, bundles the frontend into <code>dist/</code> or <code>build/</code></td><td><code>npm run build</code></td></tr>
+      <tr><td>Start</td><td>Every time the app boots</td><td>Launches the server that listens on a port and answers requests</td><td><code>node dist/server.js</code></td></tr>
+    </tbody>
+  </table>
+  <p>Two things fall out of this that trip people up. First, anything slow or heavy (installing hundreds of packages, compiling a big TypeScript project) belongs in the build, so it happens once instead of on every boot. Second, your start command can only run what the build produced. If the build didn't create <code>dist/</code>, then <code>node dist/server.js</code> has nothing to point at, and the app dies on boot.</p>
+
+  <h2>The mistake almost every AI-generated app makes: a dev server in production</h2>
+  <p>This is the single most common misconfiguration, and it's worth spelling out, because it fools people while they watch it work.</p>
+  <p>AI builders scaffold your project with a dev command. Open <code>package.json</code> and you'll see a <code>dev</code> script: <code>next dev</code>, <code>vite</code>, or <code>nodemon</code>. Python projects get <code>flask run --debug</code> or <code>uvicorn main:app --reload</code>. That command is great for your laptop. It watches your files, reloads on every save, prints friendly errors. So when you deploy and the start field is empty, the natural move is to paste in the command you know works: <code>npm run dev</code>. And it runs. The app comes up. Looks done.</p>
+  <p>It isn't. A dev server and a production server are built for opposite goals. The dev server optimizes for your feedback loop: it watches the filesystem for changes, runs a single process, skips production caching, and leaves debug output on. A production server optimizes for serving lots of real requests fast and staying up. Run the dev server in production and it's slow, single-process, and busy watching files that will never change. Some frameworks print a warning telling you not to. It'll handle you clicking around. It will not handle real traffic.</p>
+  <p>My firm opinion, said plainly: never use a dev server as your production start command, even though it appears to work. <code>npm run dev</code> in production is borrowed time. It survives the demo and falls over under the first real load, usually at the worst possible moment. Use the production start command instead. For most Node apps that's <code>npm start</code> wired to <code>node dist/server.js</code>, or <code>next start</code> for Next.js. The <code>npm start vs npm run build</code> confusion is really this same split: <code>build</code> prepares, <code>start</code> serves.</p>
+
+  <!-- ADD IMAGE: a side-by-side of a dev script versus a production start command in package.json, dev flagged as wrong for the start field. Swap this slot for src -> images/dev-vs-start.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A dev script next to a production start command, showing which one belongs in the start field.</em><small>Author supplies: a package.json scripts crop, dev marked as the wrong choice for production.</small></span></figure>
+
+  <h2>When the build never happened, start has nothing to run</h2>
+  <p>The second big failure is the mirror image. Your start command is correct, but there's no build, or the wrong one, so start points at files that don't exist yet.</p>
+  <p>You've seen the symptoms. <code>Error: Cannot find module '/app/dist/server.js'</code>, because the TypeScript was never compiled and <code>dist/</code> is empty. Or the site loads to a blank white page because the frontend was never bundled, so there's no <code>index.html</code> to serve. The start command did exactly what you asked. You told it to run something the build should have created and didn't.</p>
+  <p>So <code>what build command should I use</code> is the right question to ask early, not after three failed deploys. If your project has a <code>build</code> script in <code>package.json</code>, that's almost always your answer. A TypeScript backend needs <code>tsc</code> (or <code>npm run build</code>) so <code>node dist/server.js</code> has a <code>dist/</code> to run. A React or Vue frontend needs <code>vite build</code> or <code>npm run build</code> so there are static files to serve. Skip the build and you've handed start an empty folder. This is one flavour of the wider <a href="https://www.kloudbean.com/blog/why-my-ai-app-works-locally-but-not-in-production/">local versus production gap</a>, where things your laptop did quietly just stop happening on the server.</p>
+
+  <h2>Build and start commands, framework by framework</h2>
+  <p>There's no universal pair, because the right commands depend on your framework and whether you're using TypeScript. But the common shapes are predictable. Treat this as a starting point, then check the <code>scripts</code> block in your own <code>package.json</code>, because AI builders and starter templates sometimes rename things.</p>
+  <table class="cmp">
+    <thead><tr><th>Framework</th><th>Typical build command</th><th>Typical production start command</th></tr></thead>
+    <tbody>
+      <tr><td>Next.js</td><td><code>next build</code> (often <code>npm run build</code>)</td><td><code>next start</code> (or <code>npm start</code>)</td></tr>
+      <tr><td>Vite / React SPA</td><td><code>vite build</code> (outputs <code>dist/</code>)</td><td>serve the static <code>dist/</code> folder; there's no Node server of its own</td></tr>
+      <tr><td>Express / Node API</td><td>none, or <code>tsc</code> if using TypeScript</td><td><code>node server.js</code>, or <code>node dist/server.js</code> when compiled</td></tr>
+      <tr><td>NestJS</td><td><code>nest build</code> (outputs <code>dist/</code>)</td><td><code>node dist/main.js</code> (or <code>npm run start:prod</code>)</td></tr>
+      <tr><td>Django</td><td><code>pip install -r requirements.txt</code>, then collectstatic and migrate</td><td><code>gunicorn myproject.wsgi</code></td></tr>
+      <tr><td>FastAPI</td><td><code>pip install -r requirements.txt</code></td><td><code>uvicorn main:app --host 0.0.0.0 --port $PORT</code></td></tr>
+    </tbody>
+  </table>
+  <p>One nuance worth calling out: a pure Vite or React single-page app has no server of its own. The build produces static files, and "start" just means serving that folder. If your host expects a long-running process, you either run a tiny static server or deploy it as a static site instead of a Node app.</p>
+  <p>A typical <code>package.json</code> makes the three roles obvious:</p>
+  <pre><code>{
+  "scripts": {
+    "dev": "nodemon src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js"
+  }
+}</code></pre>
+  <p><code>dev</code> is for your laptop. <code>build</code> compiles once. <code>start</code> runs the compiled server. Your host's build field should call the <code>build</code> script, and your start field should call <code>start</code>. A few correct production start commands, for reference:</p>
+  <pre><code># Node, running compiled TypeScript
+node dist/server.js
+
+# Django, served by gunicorn (not manage.py runserver)
+gunicorn myproject.wsgi --bind 0.0.0.0:$PORT
+
+# FastAPI, served by uvicorn (no --reload in production)
+uvicorn main:app --host 0.0.0.0 --port $PORT</code></pre>
+
+  <!-- ADD IMAGE: the scripts block of a real package.json, with dev, build, and start labelled by which deploy field each one belongs in. Swap this slot for src -> images/scripts-labelled.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A real package.json scripts block, with dev, build, and start labelled by the deploy field each belongs in.</em><small>Author supplies this annotated code shot.</small></span></figure>
+
+  <h2>Read the build log before you change anything</h2>
+  <p>When a deploy fails, don't start randomly editing fields. Read the build log. It's the most useful thing on the screen, and it tells you exactly which phase broke.</p>
+  <p>A build log runs top to bottom through the phases: fetch your code, install dependencies, run the build command, then hand off to start. The line where it stops is the phase that failed. If it dies during install, it's a dependency or a runtime version problem, not your build command. If it dies during the build with a compile error, your code or your build command is the issue. If the build finishes clean and the app dies seconds after start, the build was fine and your problem is the start command or the port.</p>
+  <p>That one read saves you from the classic mistake: editing the start command over and over while the log plainly shows the install step failing. If the failure is a version mismatch during install (modern syntax the server's runtime doesn't recognize), that's a runtime pin, and <a href="https://www.kloudbean.com/blog/node-version-management/">Node version management</a> covers it. Fix the phase that actually broke, not the one you happened to be looking at.</p>
+
+  <!-- ADD IMAGE: a build log with the failing phase highlighted, showing install versus compile versus bundle. Swap this slot for src -> images/build-log-fail.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A build log with the failing phase highlighted, so a reader can see install versus compile versus bundle.</em><small>Author supplies: a real failed-deploy log, one line circled.</small></span></figure>
+
+  <h2>The port gotcha: start has to listen where the platform tells it</h2>
+  <p>Even with a correct build and a real production start command, one more thing quietly breaks deploys: the port.</p>
+  <p>A hosting platform decides which port your app should listen on and passes it in, almost always through a <code>PORT</code> environment variable. Your app has to read that variable and bind to it. If your code hardcodes <code>3000</code> because that's what it used locally, and the platform routes traffic to a different port, the platform's health check knocks and nobody answers. The deploy then looks broken: the build passed, the process is running, but every request returns a 503. If that's what you're seeing, <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fixing a 503 after deploying</a> walks the whole checklist.</p>
+  <p>For a Node app, reading the port is one line:</p>
+  <pre><code>const port = process.env.PORT || 3000;
+app.listen(port, "0.0.0.0", () =&gt; {
+  console.log("listening on " + port);
+});</code></pre>
+  <p>Two details matter. Read <code>process.env.PORT</code> instead of hardcoding, and bind to <code>0.0.0.0</code> rather than <code>localhost</code>, so the app accepts connections from outside its own container. The anti-pattern to avoid is hardcoding a port because it worked on your machine. It's the same trap as leaving <code>npm run dev</code> in the start field: fine locally, broken in production.</p>
+
+  <h2>Setting the build and start command on Kloudbean</h2>
+  <p>On Kloudbean these aren't hidden away. When you add a Node or Python application, the app settings have a field for the build command and a field for the start command, plus the Node version and the port. You fill them in with the values your project actually needs (<code>npm run build</code> and <code>node dist/server.js</code>, say), pick your runtime version, and connect your Git repo. From then on it deploys on every push, streams the build log so you can see which phase ran, and gives you free SSL. The Git flow itself is covered in <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD auto-deploy from GitHub</a>, and the wider path from AI preview to live app is in <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploy an AI-built app to production</a>.</p>
+  <p>The honest boundary: managed means the platform runs the server, the stack, SSL, backups, and patching. Your build command, your start command, and your code stay yours to set and own. Kloudbean makes the deploy repeatable. It can't guess that your start command should be <code>node dist/server.js</code> and not <code>npm run dev</code>. That part is the two fields we just walked through, and now you know what goes in them. For the bigger picture of everything AI builders leave you to wire up, <a href="https://www.kloudbean.com/blog/last-mile-of-vibe-coding/">the last mile of vibe coding</a> is the map, and <a href="https://www.kloudbean.com/blog/why-ai-apps-fail-in-production/">why AI apps fail in production</a> collects the usual suspects.</p>
+
+  <!-- ADD IMAGE: the Git deployment view after a successful push, build log on screen. Swap this slot for src -> images/git-deploy.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Git deployment view after a successful push, with the build log on screen.</em><small>A console screenshot of a green deploy fits here.</small></span></figure>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Get the two commands right, then deploy from Git.</p>
+    <p style="margin:0 0 .6em">Set your build command, start command, and Node version once, connect Git, and let every push deploy itself. Kloudbean puts those fields in plain sight when you add a Node or Python app, streams the build log so you can see which phase ran, and ships free SSL on your domain.</p>
+    <p style="margin:0">Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">Set build + start command · Pick your Node version · Git deploy on every push · Live build logs · Free SSL</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is the difference between a build command and a start command?</h3>
+    <p>The build command runs once, at deploy time, and turns your source into something runnable: it installs packages, compiles TypeScript, and bundles your frontend into a dist/ or build/ folder. The start command runs every time the app boots and launches the server that answers requests. Build produces the artifact, start runs it.</p>
+    <h3>What build command should I use?</h3>
+    <p>Usually the build script already in your package.json, so npm run build is the safe answer for most Node projects. A TypeScript backend needs tsc so dist/ exists. A React or Vue frontend needs vite build or npm run build to produce static files. Python apps often need pip install, plus collectstatic for Django. Check your own scripts before guessing.</p>
+    <h3>What start command should I use for a Node app?</h3>
+    <p>The command that launches your compiled server, not your dev script. For most Node apps that is npm start wired to node dist/server.js, or node server.js if you are not compiling TypeScript. For Next.js it is next start. The start command for a Node app should never be npm run dev in production.</p>
+    <h3>Can I use npm run dev in production?</h3>
+    <p>No. It will appear to work, which is exactly why people leave it there, but a dev server is slow, single-process, watches the filesystem, and is not built to serve real traffic. It survives a demo and falls over under load. Use the production start command such as npm start or next start instead.</p>
+    <h3>Why does my app build but not start?</h3>
+    <p>The build succeeded, so the failure is in the start command or the environment it runs in. Common causes: the start command points at a file the build never created, the app hardcodes a port instead of reading process.env.PORT, or a required environment variable is missing. Read the logs from the moment start ran, not the build phase.</p>
+    <h3>What is the difference between npm start and npm run build?</h3>
+    <p>npm run build prepares your app by compiling and bundling, and it runs once at deploy. npm start launches the finished app and runs on every boot. They are not interchangeable. Running build does not start a server, and running start does not compile your code.</p>
+    <h3>Why does my app say cannot find module dist/server.js?</h3>
+    <p>Because dist/server.js was never created. Your start command expects compiled output, but the build step that produces dist/ either did not run or failed. Set the build command (tsc or npm run build) so the compiled files exist before start goes looking for them.</p>
+    <h3>Do I always need a build command?</h3>
+    <p>No. A plain JavaScript Node app with no compile or bundling step can start straight from source, so its build is just npm install. You need a build when something has to be produced first: TypeScript compiled to JavaScript, or a frontend bundled into static files. If in doubt, check whether your project has a build script.</p>
+    <h3>Why does my app deploy but return a 503?</h3>
+    <p>Often the port. The platform tells your app which port to listen on through a PORT variable, and if your code binds to a hardcoded port instead, the health check gets no answer and every request returns 503. Read process.env.PORT and bind to 0.0.0.0. A missing start process or a crash on boot can cause it too.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Build produces, start runs. Get both fields right and the deploy gets boring.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Build Command vs Start Command: Getting an AI-Generated App to Run","description":"The build command and start command are two different jobs: build runs once to compile and bundle your app, start runs every boot to serve it. Most AI-generated apps fail to deploy because one is wrong. What each field means, the start command for a Node app, a framework table, and the PORT gotcha.","image":"https://www.kloudbean.com/blog/configure-build-and-start-command-ai-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/configure-build-and-start-command-ai-app/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is the difference between a build command and a start command?","acceptedAnswer":{"@type":"Answer","text":"The build command runs once, at deploy time, and turns your source into something runnable: it installs packages, compiles TypeScript, and bundles your frontend into a dist/ or build/ folder. The start command runs every time the app boots and launches the server that answers requests. Build produces the artifact, start runs it."}},
+{"@type":"Question","name":"What build command should I use?","acceptedAnswer":{"@type":"Answer","text":"Usually the build script already in your package.json, so npm run build is the safe answer for most Node projects. A TypeScript backend needs tsc so dist/ exists. A React or Vue frontend needs vite build or npm run build to produce static files. Python apps often need pip install, plus collectstatic for Django. Check your own scripts before guessing."}},
+{"@type":"Question","name":"What start command should I use for a Node app?","acceptedAnswer":{"@type":"Answer","text":"The command that launches your compiled server, not your dev script. For most Node apps that is npm start wired to node dist/server.js, or node server.js if you are not compiling TypeScript. For Next.js it is next start. The start command for a Node app should never be npm run dev in production."}},
+{"@type":"Question","name":"Can I use npm run dev in production?","acceptedAnswer":{"@type":"Answer","text":"No. It will appear to work, which is exactly why people leave it there, but a dev server is slow, single-process, watches the filesystem, and is not built to serve real traffic. It survives a demo and falls over under load. Use the production start command such as npm start or next start instead."}},
+{"@type":"Question","name":"Why does my app build but not start?","acceptedAnswer":{"@type":"Answer","text":"The build succeeded, so the failure is in the start command or the environment it runs in. Common causes: the start command points at a file the build never created, the app hardcodes a port instead of reading process.env.PORT, or a required environment variable is missing. Read the logs from the moment start ran, not the build phase."}},
+{"@type":"Question","name":"What is the difference between npm start and npm run build?","acceptedAnswer":{"@type":"Answer","text":"npm run build prepares your app by compiling and bundling, and it runs once at deploy. npm start launches the finished app and runs on every boot. They are not interchangeable. Running build does not start a server, and running start does not compile your code."}},
+{"@type":"Question","name":"Why does my app say cannot find module dist/server.js?","acceptedAnswer":{"@type":"Answer","text":"Because dist/server.js was never created. Your start command expects compiled output, but the build step that produces dist/ either did not run or failed. Set the build command (tsc or npm run build) so the compiled files exist before start goes looking for them."}},
+{"@type":"Question","name":"Do I always need a build command?","acceptedAnswer":{"@type":"Answer","text":"No. A plain JavaScript Node app with no compile or bundling step can start straight from source, so its build is just npm install. You need a build when something has to be produced first: TypeScript compiled to JavaScript, or a frontend bundled into static files. If in doubt, check whether your project has a build script."}},
+{"@type":"Question","name":"Why does my app deploy but return a 503?","acceptedAnswer":{"@type":"Answer","text":"Often the port. The platform tells your app which port to listen on through a PORT variable, and if your code binds to a hardcoded port instead, the health check gets no answer and every request returns 503. Read process.env.PORT and bind to 0.0.0.0. A missing start process or a crash on boot can cause it too."}}
+]}
+]}
+</script>
+</body>
+</html>

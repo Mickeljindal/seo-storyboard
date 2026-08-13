@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Roll Back a Deployment Safely (Without Losing Data)</title>
+<meta name="description" content="How to roll back a deployment safely without losing data. Roll the code back to the last good build first, understand why a database migration often will not roll back, and ship forward-compatible expand/contract migrations that keep every deploy reversible.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/roll-back-a-deployment-safely/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Roll Back a Deployment Safely (Without Losing Data)">
+<meta property="og:description" content="Rolling back code is easy. Rolling back a database change is the part that bites. The fast path in an incident, why a destructive migration will not roll back, and how expand/contract migrations keep every deploy reversible.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">AI apps in production</span>
+  <h1>How to Roll Back a Deployment Safely (Without Losing Data)</h1>
+
+  <figure><img src="images/hero.png" alt="How to roll back a deployment safely: code rolls back to the last good build, but a destructive schema change does not, while an expand and contract migration stays reversible"></figure>
+
+  <p class="lead">A deploy just went bad. The error rate is climbing, users are hitting a broken page, and your instinct is to open the logs and start fixing forward. Don't, not yet. The fastest way out of a bad release is almost always to roll back a deployment to the last version that worked, then diagnose once the site is healthy. Rolling the code back is the easy part. The part that bites is the database, because a schema change doesn't undo as cleanly as a git revert.</p>
+  <p>So a safe rollback isn't really something you do in the moment. It's something you set up before you ship. This guide walks the fast path in an incident, why code reverts cleanly but a migration often won't, and the way to ship (forward-compatible migrations) that keeps almost every deploy reversible. Plus the one move that quietly loses a day of user data, so you can avoid making it at 2am.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>To roll back a deployment safely, revert the code first. Redeploy the last known-good build to stop the bleeding, then diagnose. The catch is the database. Rolling code back to a version that expects the old schema breaks if the bad deploy already changed that schema. Ship forward-compatible (expand/contract) migrations so the old code still runs against the new database, and treat restoring a backup as a last resort, because it wipes everything written since the snapshot.</p>
+  </div>
+
+  <h2>The fast path: how to roll back a deployment mid-incident</h2>
+  <p>When a deploy is actively breaking things, your job is not to understand why. Not yet. Your job is to get back to a working state, and the quickest route there is to redeploy the last build that worked. Roll back first. Diagnose second. A calm investigation on a healthy site beats a frantic one while users stare at errors.</p>
+  <p>This is the part everyone gets right in theory and fumbles under pressure. The temptation is to spot the bug, push a quick fix, and roll forward. Sometimes that works. Often the "quick fix" is wrong because you're rushing, and now you've shipped a third version that's also broken. Rolling back to a known-good build has one real advantage: you already know it works. There's no guessing.</p>
+  <p>If your deploys come from Git, and they should, rolling back is just redeploying an earlier commit. The flow in <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">auto-deploy from GitHub</a> works in reverse here: point the app at the last good commit and redeploy. A bad release often surfaces as a 503 while the process crashes or restarts, so <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fixing a 503 after deploy</a> covers reading that exact signal. And for the wider catalogue of ways a release goes sideways, <a href="https://www.kloudbean.com/blog/why-ai-apps-fail-in-production/">why AI apps fail in production</a> is the map.</p>
+
+  <!-- ADD IMAGE: src -> images/deploy-history-rollback.png. Show the deployment history screen with the previous build highlighted and a redeploy action, so rolling back reads as redeploying the last good commit. -->
+  <figure class="img-slot"><span><b>Add image</b><em>The deployment history screen with the previous good build highlighted and a redeploy action.</em><small>A real console screenshot from ../assets/console/git-deployment fits here.</small></span></figure>
+
+  <h2>Why code rolls back cleanly but a database migration doesn't</h2>
+  <p>Code is stateless. That's why rolling it back is easy. You swap the running version for the previous one and nothing is lost, because the code was never holding your data in the first place. Your database is the opposite. It holds state, and state remembers.</p>
+  <p>And here's the trap. Say your bad deploy included a migration that dropped a column, or renamed one, or changed a type. You roll the code back to the previous version. But that previous version expects the old schema, the one with the column that no longer exists. So the old code now runs against the new database and throws on every query that touches that column. You rolled back the code and the app is still broken, because the schema moved and didn't move back.</p>
+  <p>That's why "just roll it back" is honest advice for code and dangerous advice for a schema. A dropped column doesn't come back when you redeploy. The values that were in it are already gone. A down-migration might recreate the column's structure, but it can't recreate the data. So the direction of a schema change matters enormously. Adding things is reversible. Removing or rewriting things usually is not.</p>
+
+  <figure>
+    <svg viewBox="0 0 800 400" role="img" aria-label="A deploy timeline comparing two ways to ship a change. Top track, a destructive migration: the last good build has the name column, the bad deploy drops it, and rolling the code back breaks because the old code meets a schema that no longer has the column. Bottom track, an expand and contract migration: the new deploy adds a full_name column and keeps the old name column, so rolling the code back is clean because the old column is still there." xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ap" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4F1AF3"/></marker>
+        <marker id="ag" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#40b75f"/></marker>
+        <marker id="ard" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#d64545"/></marker>
+      </defs>
+
+      <text x="400" y="30" text-anchor="middle" font-family="Poppins,sans-serif" font-size="15" font-weight="700" fill="#000f27">One bad deploy, two outcomes</text>
+
+      <text x="48" y="84" font-family="Poppins,sans-serif" font-size="12" font-weight="700" fill="#000f27">Destructive migration (drops a column)</text>
+      <path d="M470,100 C470,58 224,58 224,100" fill="none" stroke="#d64545" stroke-width="2" marker-end="url(#ard)"/>
+      <text x="347" y="52" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600" fill="#d64545">roll the code back</text>
+
+      <rect x="150" y="100" width="150" height="58" rx="10" fill="#fff" stroke="#40b75f" stroke-width="1.6"/>
+      <text x="225" y="126" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">Last good build</text>
+      <text x="225" y="144" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#5b6a86">schema has name</text>
+
+      <line x1="300" y1="129" x2="374" y2="129" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ap)"/>
+      <text x="337" y="122" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#4F1AF3">deploy</text>
+
+      <rect x="378" y="100" width="170" height="58" rx="10" fill="#000f27"/>
+      <text x="463" y="126" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#fff">Bad deploy</text>
+      <text x="463" y="144" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#9fb0cc">drops the name column</text>
+
+      <text x="368" y="184" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" font-weight="600" fill="#d64545">Rollback breaks: old code hits a schema with no name column.</text>
+
+      <text x="48" y="238" font-family="Poppins,sans-serif" font-size="12" font-weight="700" fill="#000f27">Expand / contract migration (keeps the old column)</text>
+      <path d="M470,254 C470,212 224,212 224,254" fill="none" stroke="#40b75f" stroke-width="2" marker-end="url(#ag)"/>
+      <text x="347" y="206" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600" fill="#40b75f">roll the code back</text>
+
+      <rect x="150" y="254" width="150" height="58" rx="10" fill="#fff" stroke="#40b75f" stroke-width="1.6"/>
+      <text x="225" y="280" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">Last good build</text>
+      <text x="225" y="298" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#5b6a86">reads name</text>
+
+      <line x1="300" y1="283" x2="374" y2="283" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ap)"/>
+      <text x="337" y="276" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#4F1AF3">deploy</text>
+
+      <rect x="378" y="254" width="170" height="58" rx="10" fill="#fff" stroke="#40b75f" stroke-width="1.6"/>
+      <text x="463" y="280" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">New deploy</text>
+      <text x="463" y="298" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#5b6a86">adds full_name, keeps name</text>
+
+      <text x="368" y="338" text-anchor="middle" font-family="Poppins,sans-serif" font-size="11" font-weight="600" fill="#40b75f">Rollback is clean: the old column is still there for the old code.</text>
+    </svg>
+    <figcaption>Same timeline, two ways to ship. A destructive migration (top) breaks the moment you roll the code back, because the old code meets a schema that lost its column. An expand and contract migration (bottom) stays reversible, because the old column never left.</figcaption>
+  </figure>
+
+  <h2>Ship so rollback is always possible: expand and contract</h2>
+  <p>The fix isn't a better rollback tool. It's a better way to ship the change in the first place. The pattern goes by a few names (expand/contract, forward-compatible migrations, parallel change) and it comes down to one rule: never make a destructive schema change in the same deploy as the code that depends on it.</p>
+  <p>Split every risky change into steps that are each safe on their own:</p>
+  <ol>
+    <li><strong>Expand.</strong> Add the new column. Don't touch or remove anything old. This deploy is purely additive, so it can't break the running code, and it rolls back trivially.</li>
+    <li><strong>Write both.</strong> Deploy code that writes the old shape and the new shape at once, while still reading the old one. Now both versions of your app can run happily against this database.</li>
+    <li><strong>Backfill.</strong> Copy existing rows into the new column so old data matches the new shape too.</li>
+    <li><strong>Read new.</strong> Deploy code that reads the new column. Keep writing both for now, so a rollback to the step-2 code still works.</li>
+    <li><strong>Contract.</strong> Only once nothing reads the old column, in a later and separate deploy, drop it.</li>
+  </ol>
+  <p>At every step, the previous deploy's code still runs against the current schema. That's the whole point. You're never one rollback away from a broken app.</p>
+  <pre><code>-- 1. EXPAND: additive only. Safe to deploy, trivial to roll back.
+alter table users add column full_name text;
+
+-- 2. Ship code that writes BOTH columns and still reads the old one:
+--    insert into users (name, full_name) values ($1, $1)
+--    reads still use "name"
+
+-- 3. BACKFILL existing rows into the new shape:
+update users set full_name = name where full_name is null;
+
+-- 4. Ship code that READS full_name (keep writing both for now).
+
+-- 5. CONTRACT: a LATER, separate deploy, once nothing reads "name":
+alter table users drop column name;</code></pre>
+  <p>For the mechanics of designing and running migrations, <a href="https://www.kloudbean.com/blog/production-database-design-for-ai-apps/">production database design for AI apps</a> covers the schema side, and <a href="https://www.kloudbean.com/blog/migrate-ai-app-sqlite-to-postgres/">migrating an app from SQLite to Postgres</a> walks a real migration end to end.</p>
+
+  <h2>Keep the last good build reachable</h2>
+  <p>None of this helps if you can't get the previous version back. A rollback plan assumes the last known-good build still lives somewhere you can redeploy in one action. So don't overwrite it. Don't delete it. Keep it reachable.</p>
+  <p>This is what blue-green deployment buys you. You run two environments, call them blue and green. One serves live traffic while the other holds a release, ready. You deploy to the idle one, shift traffic across, and if it misbehaves you shift traffic straight back. A blue-green rollback is just flipping the switch to the environment that still has the old, working version. No rebuild, no scramble.</p>
+  <p>You don't strictly need full blue-green to get the benefit. The minimum is simpler: your previous build stays deployable. If your platform builds each deploy from a Git commit, the previous commit is your previous build, and rolling back means redeploying it. Keep enough deploy history that "redeploy the last good one" is always one click or one command away.</p>
+
+  <!-- ADD IMAGE: src -> images/blue-green-rollback.png. A simple blue-green diagram or a deploy history list showing several past builds, each redeployable, so the last good build is one action away. -->
+  <figure class="img-slot"><span><b>Add image</b><em>A blue-green switch, or a deploy history list where each past build is one click to redeploy.</em><small>Show that the previous good build is always reachable.</small></span></figure>
+
+  <h2>Roll back the code, roll back the schema, or restore a backup?</h2>
+  <p>These three get lumped together as "undo," and they cost wildly different things. Restoring a database backup is the one that surprises people. A backup is a snapshot from a point in time. Restore it and you don't just undo the bad deploy. You undo every row written since that snapshot. The orders, sign-ups, and messages your users created in the last few hours, gone, and quietly. That's why restoring a backup is a last resort for data loss or corruption, not a routine rollback.</p>
+  <table class="cmp">
+    <thead><tr><th>Action</th><th>What it undoes</th><th>What it costs</th><th>When to reach for it</th></tr></thead>
+    <tbody>
+      <tr><td>Roll back the code</td><td>Swaps the app back to the previous build</td><td>Nothing, if the schema still fits the old code. Fast and safe</td><td>Your first move in almost any bad deploy</td></tr>
+      <tr><td>Roll back the schema</td><td>Reverses the migration (a down-migration)</td><td>Safe if the change was additive; a destructive change already lost its data</td><td>Rarely needed if you ship expand/contract, and only for reversible changes</td></tr>
+      <tr><td>Restore a DB backup</td><td>Resets the whole database to a past snapshot</td><td>Loses every row written since the snapshot</td><td>Last resort, for corruption or data loss, never as routine undo</td></tr>
+    </tbody>
+  </table>
+  <p>Backups are still essential. They're just the wrong tool for a normal rollback. <a href="https://www.kloudbean.com/blog/server-backups-guide/">Server backups that actually restore</a> covers keeping snapshots you can trust when you genuinely need one, which is a separate discipline from a deploy rollback.</p>
+
+  <!-- ADD IMAGE: src -> images/backup-restore-warning.png. The managed database backups or snapshot list, with a note that restoring resets to a point in time and loses newer rows. -->
+  <figure class="img-slot"><span><b>Add image</b><em>The managed database backups or snapshot list, with a caption that a restore resets to a point in time.</em><small>Reinforces that restore is not a routine rollback.</small></span></figure>
+
+  <h2>A rollback runbook for 2am</h2>
+  <p>When it's actually on fire, you don't want to reason from first principles. Follow the order:</p>
+  <ol>
+    <li><strong>Roll the code back first.</strong> Redeploy the last known-good build. Stop the bleeding before you do anything else.</li>
+    <li><strong>Check what the bad deploy changed.</strong> Code only? You're probably already healthy. Did it include a migration?</li>
+    <li><strong>If the migration was additive</strong> (expand/contract), the old code runs fine against the new schema. Breathe. Diagnose calmly.</li>
+    <li><strong>If the migration was destructive,</strong> rolling the code back won't be enough. Prefer rolling forward with a small, targeted fix over restoring a backup, because a restore costs you every row since the snapshot.</li>
+    <li><strong>Restore a backup only as a last resort,</strong> and tell people which window of data they're about to lose before you do it.</li>
+    <li><strong>Once it's stable, write the postmortem.</strong> The real fix is almost always "ship the next schema change as expand/contract so this can't happen again."</li>
+  </ol>
+  <p>Notice that four of those six steps are about the database. The code part is the easy 10%.</p>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>Because Kloudbean deploys from Git, rolling back is redeploying a previous commit. There's no separate rollback product to learn. The last good build is the last good commit, and you point the app back at it. Your managed database gets automatic backups, so the last-resort restore is there when you truly need it (for corruption, not for undoing a deploy). And staging environments (for WordPress and Laravel) let you run a risky migration against a copy first, which is where you catch a destructive change before it ever reaches production.</p>
+  <p>The honest boundary: managed means Kloudbean handles the server, the stack, SSL, backups, and patching. It doesn't write your migrations for you. A rollback is only ever as safe as the way you shipped the change, and expand/contract is a discipline that lives in your own code and migration files. What the platform gives you is the easy 90%, a previous build that's always one redeploy away, and backups you didn't have to wire up yourself. This whole class of production gap, the stuff quick tutorials and AI builders skip, is mapped in <a href="https://www.kloudbean.com/blog/last-mile-of-vibe-coding/">the last mile of vibe coding</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Make every deploy reversible, so a rollback is just a redeploy.</p>
+    <p style="margin:0 0 .6em">Run your app on Kloudbean and deploy straight from Git, so rolling back means redeploying your last good commit. Automatic backups on the managed database, staging for WordPress and Laravel to catch a bad change first, and free SSL, all in one dashboard.</p>
+    <p style="margin:0">Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">Git deploy (redeploy any previous build) · Automatic backups · Staging (WordPress + Laravel) · Managed databases · Free SSL · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I roll back a deployment?</h3>
+    <p>Redeploy the last known-good build. If you deploy from Git, that means pointing the app at the previous commit and deploying it again. Do this first, before you diagnose, so users are back on a working version quickly. Only check the database afterwards, because a schema change in the bad deploy can stop a plain code rollback from being enough.</p>
+    <h3>How do I roll back a database migration?</h3>
+    <p>Run the migration's down step if it has one, but understand the limits. Reversing an additive change (like dropping a column you just added) is fine. Reversing a destructive change is not, because a down-migration can recreate a column's structure but not the data that was in it. The safer answer is to ship migrations as expand/contract so you rarely need to reverse one at all.</p>
+    <h3>Does rolling back a deployment lose data?</h3>
+    <p>Rolling back the code does not lose data on its own, because code doesn't hold your data. Restoring a database backup does, because it resets the database to a past snapshot and discards every row written since. So separate the two in your head: a code rollback is safe, a backup restore is a last resort that costs you the data written since the snapshot.</p>
+    <h3>What is a forward-compatible migration?</h3>
+    <p>It's a schema change the previous version of your code can still run against. You add the new column without removing the old one, deploy code that writes both, backfill, and only drop the old column in a much later deploy once nothing reads it. Because the old schema never disappears, rolling the code back always works. This is the expand/contract pattern.</p>
+    <h3>What is the difference between rolling back and restoring a backup?</h3>
+    <p>Rolling back swaps your application code to a previous build and touches no data. Restoring a backup resets the entire database to a point in time and loses everything created after it. Rolling back is your normal, safe response to a bad deploy. Restoring is for data corruption or loss, and you use it knowing it discards recent rows.</p>
+    <h3>Should I roll back or roll forward?</h3>
+    <p>Roll back to stop an active incident, because the previous build is known to work and rolling forward under pressure often ships another broken version. Roll forward when a plain code rollback can't fix it, usually because the bad deploy made a destructive schema change. In that case a small, targeted fix on top is safer than restoring a backup and losing recent data.</p>
+    <h3>What is blue-green deployment, and how does it help rollback?</h3>
+    <p>Blue-green runs two environments, one live and one idle holding a release. You deploy to the idle one and shift traffic to it. If the new version misbehaves, you shift traffic straight back to the environment that still has the old, working build. That makes a rollback a traffic switch rather than a rebuild, so recovery is close to instant.</p>
+    <h3>Why did my rollback break the app when the code was fine?</h3>
+    <p>Almost always a schema mismatch. The bad deploy changed the database (dropped or renamed a column, changed a type), you rolled the code back, and now the old code is running against the new schema and failing on those columns. The code was fine for the old schema, but the schema moved and didn't move back. Expand/contract migrations prevent exactly this.</p>
+    <h3>Can I roll back a deployment on Kloudbean?</h3>
+    <p>Yes. Because deploys come from Git, rolling back means redeploying a previous commit, so your last good build is always reachable. The managed database has automatic backups for genuine data-loss situations, and staging for WordPress and Laravel lets you test a risky migration on a copy first. Kloudbean manages the server, stack, SSL, and backups; you own how you design the migration.</p>
+  </div>
+
+  <p class="byline">Kloudbean · Roll the code back first, then design the schema so you never have to guess.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Roll Back a Deployment Safely (Without Losing Data)","description":"How to roll back a deployment safely without losing data. Roll the code back to the last good build first, understand why a database migration often will not roll back, and ship forward-compatible expand/contract migrations that keep every deploy reversible.","image":"https://www.kloudbean.com/blog/roll-back-a-deployment-safely/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/roll-back-a-deployment-safely/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I roll back a deployment?","acceptedAnswer":{"@type":"Answer","text":"Redeploy the last known-good build. If you deploy from Git, that means pointing the app at the previous commit and deploying it again. Do this first, before you diagnose, so users are back on a working version quickly. Only check the database afterwards, because a schema change in the bad deploy can stop a plain code rollback from being enough."}},
+{"@type":"Question","name":"How do I roll back a database migration?","acceptedAnswer":{"@type":"Answer","text":"Run the migration down step if it has one, but understand the limits. Reversing an additive change (like dropping a column you just added) is fine. Reversing a destructive change is not, because a down-migration can recreate a column structure but not the data that was in it. The safer answer is to ship migrations as expand/contract so you rarely need to reverse one at all."}},
+{"@type":"Question","name":"Does rolling back a deployment lose data?","acceptedAnswer":{"@type":"Answer","text":"Rolling back the code does not lose data on its own, because code does not hold your data. Restoring a database backup does, because it resets the database to a past snapshot and discards every row written since. So separate the two in your head: a code rollback is safe, a backup restore is a last resort that costs you the data written since the snapshot."}},
+{"@type":"Question","name":"What is a forward-compatible migration?","acceptedAnswer":{"@type":"Answer","text":"It is a schema change the previous version of your code can still run against. You add the new column without removing the old one, deploy code that writes both, backfill, and only drop the old column in a much later deploy once nothing reads it. Because the old schema never disappears, rolling the code back always works. This is the expand and contract pattern."}},
+{"@type":"Question","name":"What is the difference between rolling back and restoring a backup?","acceptedAnswer":{"@type":"Answer","text":"Rolling back swaps your application code to a previous build and touches no data. Restoring a backup resets the entire database to a point in time and loses everything created after it. Rolling back is your normal, safe response to a bad deploy. Restoring is for data corruption or loss, and you use it knowing it discards recent rows."}},
+{"@type":"Question","name":"Should I roll back or roll forward?","acceptedAnswer":{"@type":"Answer","text":"Roll back to stop an active incident, because the previous build is known to work and rolling forward under pressure often ships another broken version. Roll forward when a plain code rollback cannot fix it, usually because the bad deploy made a destructive schema change. In that case a small, targeted fix on top is safer than restoring a backup and losing recent data."}},
+{"@type":"Question","name":"What is blue-green deployment, and how does it help rollback?","acceptedAnswer":{"@type":"Answer","text":"Blue-green runs two environments, one live and one idle holding a release. You deploy to the idle one and shift traffic to it. If the new version misbehaves, you shift traffic straight back to the environment that still has the old, working build. That makes a rollback a traffic switch rather than a rebuild, so recovery is close to instant."}},
+{"@type":"Question","name":"Why did my rollback break the app when the code was fine?","acceptedAnswer":{"@type":"Answer","text":"Almost always a schema mismatch. The bad deploy changed the database (dropped or renamed a column, changed a type), you rolled the code back, and now the old code is running against the new schema and failing on those columns. The code was fine for the old schema, but the schema moved and did not move back. Expand and contract migrations prevent exactly this."}},
+{"@type":"Question","name":"Can I roll back a deployment on Kloudbean?","acceptedAnswer":{"@type":"Answer","text":"Yes. Because deploys come from Git, rolling back means redeploying a previous commit, so your last good build is always reachable. The managed database has automatic backups for genuine data-loss situations, and staging for WordPress and Laravel lets you test a risky migration on a copy first. Kloudbean manages the server, stack, SSL, and backups; you own how you design the migration."}}
+]}
+]}
+</script>
+</body>
+</html>
