@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How We Host Our Own AI Content Engine on Kloudbean: A Real Case Study</title>
+<meta name="description" content="A hosting an AI app case study from the inside: how we run the AI content engine that writes this blog on Kloudbean, an always-on Node app with Postgres, one external model provider, env vars in the dashboard, and Git deploys.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/how-we-host-our-own-ai-content-engine/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How We Host Our Own AI Content Engine on Kloudbean">
+<meta property="og:description" content="A real dogfooding case study: the AI content engine that writes this blog runs on Kloudbean as an always-on Node app, with Postgres, one external model provider, env vars in the dashboard, and Git deploys.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">AI apps in production</span>
+  <h1>How We Host Our Own AI Content Engine on Kloudbean: A Real Case Study</h1>
+
+  <figure><img src="images/hero.png" alt="How we host our own AI content engine on Kloudbean: an always-on Node app that drafts through a model provider, stores state in Postgres, and publishes to WordPress"></figure>
+
+  <p class="lead">Most of the articles on this blog are about running AI apps in production. So it's only fair we show our own. What follows is a hosting an AI app case study told from the inside: the real system that drafts, checks, and ships the guides you're reading. We call it our AI content engine. It's an AI app in the exact sense this blog keeps writing about, and it runs on Kloudbean, so we hit the same problems we keep describing. This is how we host our own AI app, honestly, tradeoffs and all.</p>
+  <p>No invented numbers here. I'm not going to tell you it made us some percentage faster or saved a tidy dollar figure, because that's not the point and I'd be making it up. The point is the shape of the system: what it's built from, where its data lives, why it never sleeps, and how a git push turns into a published article. If you've read our reference architecture, you'll recognise most of it. This is that architecture, running, with our name on the invoice.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>Our AI content engine is an always-on Node app (TanStack Start) that holds the model key, drafts through an external model provider, stores everything in Postgres, and publishes to WordPress. It runs on Kloudbean, auto-deploys from Git, keeps its secrets in dashboard env vars, and stays awake because an autopilot loop runs on a schedule. It's the reference architecture we published, in production.</p>
+  </div>
+
+  <h2>The app: our own AI content engine</h2>
+  <p>So what is it? It's the content and knowledge engine that generates and manages the articles on this blog. Give it a topic and some keyword data and it drafts a piece, runs it through a set of quality gates, and, once it clears the bar, publishes. Hundreds of the guides in this library came through it.</p>
+  <p>Two honest things up front. First, it's an AI app in the plainest sense. It calls an AI model to write drafts, then leans on deterministic checks and human review before anything goes live. It does not publish whatever the model spits out. There's a scored gate in the middle. Second, it was itself built with AI assistance, the same vibe-coded, get-it-working-then-harden-it path this blog keeps writing about in the <a href="https://www.kloudbean.com/blog/last-mile-of-vibe-coding/">last mile of vibe coding</a>. That makes it a fair example rather than a staged one. We didn't build a spotless demo to brag about. We built a tool we needed, shipped it, and have been running it since.</p>
+
+  <h2>The stack we chose, and why</h2>
+  <p>The stack is deliberately boring, which is a compliment.</p>
+  <ul>
+    <li><strong>TanStack Start</strong> for the app itself: a React frontend with server functions running on Node. One codebase, one process, front and back together.</li>
+    <li><strong>PostgreSQL with the Drizzle ORM</strong> for state. Topics, drafts, scores, publish history, all of it.</li>
+    <li><strong>An OpenAI-compatible model reached through OpenRouter</strong> for the actual drafting. That's the one external brain.</li>
+    <li><strong>Keyword and search data from third-party SEO data APIs</strong>, so topics are grounded in real demand rather than a hunch.</li>
+    <li><strong>Publishing to WordPress through the WordPress REST API</strong>, plus a small custom plugin we wrote for the bits the REST API doesn't cover cleanly.</li>
+  </ul>
+  <p>Nothing here is exotic. That's the point. A React-and-Node app, a relational database, one model provider, a couple of outbound API calls. Squint, and it's the same shape as most of the AI apps we help people host.</p>
+
+  <!-- To swap in a real image, replace this whole figure; src -> images/engine-dashboard.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The engine's own dashboard: the topic queue and a draft with its quality score.</em><small>Blur anything sensitive before you export it.</small></span></figure>
+
+  <h2>The architecture, mapped to our reference</h2>
+  <p>We published <a href="https://www.kloudbean.com/blog/ai-app-reference-architecture/">a reference architecture for production AI apps</a> a while back: a client that talks only to your always-on API, that API holding the model key and making one external hop to a model provider, with a managed database as the system of record. Our engine is a real instance of it. Here's the actual topology.</p>
+
+  <figure>
+    <svg viewBox="0 0 800 460" role="img" aria-label="Our AI content engine topology mapped to the reference architecture. A browser dashboard we operate talks to an always-on TanStack and Node engine on Kloudbean that holds the API keys. The engine reads and writes state in Postgres or PGlite beside it, sends a prompt to the OpenRouter model provider and gets a draft back as its one external generation hop, calls a third-party SEO data API for keyword data, and publishes finished articles to WordPress through the REST API and a custom plugin." xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4F1AF3"/></marker>
+        <marker id="arg" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#40b75f"/></marker>
+      </defs>
+
+      <rect x="250" y="112" width="262" height="300" rx="16" fill="none" stroke="#4F1AF3" stroke-width="1.4" stroke-dasharray="7 6"/>
+      <text x="266" y="136" font-family="Poppins,sans-serif" font-size="11" font-weight="700" letter-spacing="1" fill="#4F1AF3">OUR ENGINE ON KLOUDBEAN (DOMAIN + SSL)</text>
+
+      <rect x="36" y="180" width="128" height="74" rx="10" fill="#fff" stroke="#000f27" stroke-width="1.5"/>
+      <text x="100" y="212" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13" font-weight="600" fill="#000f27">Dashboard</text>
+      <text x="100" y="231" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">we operate it</text>
+
+      <rect x="290" y="156" width="182" height="104" rx="10" fill="#000f27"/>
+      <text x="381" y="190" text-anchor="middle" font-family="Poppins,sans-serif" font-size="13.5" font-weight="600" fill="#fff">Content engine</text>
+      <text x="381" y="210" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#9fb0cc">TanStack + Node</text>
+      <text x="381" y="232" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#40b75f">holds the keys</text>
+
+      <rect x="290" y="306" width="182" height="72" rx="10" fill="#f6f7fb" stroke="#40b75f" stroke-width="1.4"/>
+      <text x="381" y="338" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">Postgres / PGlite</text>
+      <text x="381" y="356" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">system of record</text>
+
+      <rect x="600" y="120" width="168" height="82" rx="10" fill="#f6f7fb" stroke="#7C5CFF" stroke-width="1.5"/>
+      <text x="684" y="150" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">OpenRouter</text>
+      <text x="684" y="168" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">model provider</text>
+      <text x="684" y="186" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#4F1AF3">external hop</text>
+
+      <rect x="600" y="222" width="168" height="64" rx="10" fill="#f6f7fb" stroke="#c9d0e3" stroke-width="1.4"/>
+      <text x="684" y="250" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">SEO data API</text>
+      <text x="684" y="268" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#5b6a86">keyword data</text>
+
+      <rect x="600" y="306" width="168" height="82" rx="10" fill="#f6f7fb" stroke="#40b75f" stroke-width="1.5"/>
+      <text x="684" y="336" text-anchor="middle" font-family="Poppins,sans-serif" font-size="12.5" font-weight="600" fill="#000f27">WordPress</text>
+      <text x="684" y="354" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10.5" fill="#5b6a86">REST API + plugin</text>
+      <text x="684" y="372" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#40b75f">publish target</text>
+
+      <line x1="164" y1="209" x2="286" y2="206" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ar)"/>
+      <text x="225" y="197" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#4F1AF3">we operate</text>
+
+      <line x1="381" y1="260" x2="381" y2="302" stroke="#40b75f" stroke-width="2" marker-start="url(#arg)" marker-end="url(#arg)"/>
+      <text x="392" y="288" font-family="Poppins,sans-serif" font-size="10" fill="#40b75f">read / write</text>
+
+      <line x1="472" y1="180" x2="596" y2="152" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ar)"/>
+      <text x="536" y="158" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#4F1AF3">1 prompt</text>
+      <line x1="596" y1="182" x2="472" y2="202" stroke="#40b75f" stroke-width="2" marker-end="url(#arg)"/>
+      <text x="536" y="200" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#40b75f">2 draft</text>
+
+      <line x1="472" y1="228" x2="596" y2="252" stroke="#4F1AF3" stroke-width="2" marker-end="url(#ar)"/>
+      <text x="534" y="243" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#4F1AF3">keyword data</text>
+
+      <line x1="472" y1="250" x2="596" y2="332" stroke="#40b75f" stroke-width="2" marker-end="url(#arg)"/>
+      <text x="512" y="318" text-anchor="middle" font-family="Poppins,sans-serif" font-size="10" fill="#40b75f">3 publish</text>
+    </svg>
+    <figcaption>Our engine as a real instance of the reference architecture. The browser talks only to the engine, the engine holds the keys and makes the external calls, and Postgres or PGlite is the system of record beside it.</figcaption>
+  </figure>
+
+  <p>Read it left to right. We operate the engine through a dashboard in the browser. The engine is the always-on Node process, and it's the only thing that holds the keys. When it drafts, it makes one call out to the model provider (OpenRouter) and gets tokens back. It calls a SEO data API for keyword numbers. When a draft clears the gate, it publishes to WordPress. Beside it sits Postgres, holding the state.</p>
+  <p>The key never touches the browser or the repo. It lives in an environment variable on the server, read at runtime, and that's the only place it exists. If you want the reasoning, we wrote it up in <a href="https://www.kloudbean.com/blog/deploy-ai-agent-without-exposing-api-keys/">deploying an AI agent without exposing your API keys</a>. Short version: the browser is public, your repo history is forever, and a leaked model key is someone else's free compute. So the engine is the trusted middle, and everything secret stays inside it.</p>
+
+  <h2>Where the data lives: PGlite or managed Postgres</h2>
+  <p>This is a decision we actually had to make, and it's the one most AI-app builders trip on.</p>
+  <p>State has to live outside the app process. If it lives inside the process, the next deploy takes it with it. We say this constantly, so we hold ourselves to it.</p>
+  <p>We run it two ways, depending on the setup:</p>
+  <ul>
+    <li>For <strong>local development and light self-hosting</strong>, it uses PGlite, a file-based Postgres that persists to a directory on the server. That directory survives redeploys as long as you don't delete the app, which makes it genuinely convenient. The catch, plainly: it's lightweight, it lives with the app, and you have to back that directory up yourself. Lose the disk, lose the data.</li>
+    <li>For a <strong>sturdier setup</strong>, it connects to a managed Kloudbean PostgreSQL instead. That's the choice we'd point most people to. The database lives on its own, survives anything you do to the app, and gets backups you didn't have to remember to run. See <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a> for what that involves.</li>
+  </ul>
+  <p>The managed database is locked down by IP allow-listing. You whitelist the app server's IP so only the engine can connect, and public access is off by default. Not a private network in the fancy sense, just a firewall that says one address is allowed and the rest are refused. Simple, and it does the job.</p>
+  <p>Because the app opens a connection every time it reaches for the database, we keep a pool in front of Postgres rather than opening a fresh connection per query. <a href="https://www.kloudbean.com/blog/database-connection-pooling/">Connection pooling</a> explains why that limit bites earlier than you'd expect.</p>
+
+  <!-- To swap in a real image, replace this whole figure; src -> images/launch-database.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Kloudbean console launching a managed PostgreSQL database, with the connection details panel.</em><small>A real screenshot beats a mockup here.</small></span></figure>
+
+  <h2>Why the engine has to stay always-on</h2>
+  <p>The engine runs an autopilot loop. On a schedule it wakes up, picks work, drafts, scores, and, if a draft clears a minimum quality threshold, moves it toward publishing. There are caps, a daily one and a weekly one, so it can't run away with itself, and nothing passes the gate unless it beats the score bar.</p>
+  <p>That single design choice, scheduled autonomous work, is why it can't run on something that scales to zero. A function that sleeps when idle would be asleep exactly when the schedule fires. There'd be nothing there to wake itself up. So we need a process that's always running, holding the clock, doing the loop. We made the general argument in <a href="https://www.kloudbean.com/blog/move-ai-app-off-serverless/">move your AI app off serverless</a>, and our own engine is Exhibit A.</p>
+  <p>Before we let autopilot loose, we ran the same checks we'd tell anyone to run. The <a href="https://www.kloudbean.com/blog/ai-app-production-readiness-checklist/">production readiness checklist</a> is the list we actually use, not a theoretical one.</p>
+
+  <h2>Deployment: the boring Git pipeline</h2>
+  <p>Deployment is intentionally dull. We push to the main branch, and Kloudbean builds and redeploys from Git automatically. No manual copy step, no ssh-in-and-pull ritual.</p>
+  <p>The config is small enough to write on a napkin:</p>
+  <ul>
+    <li>Build command: <code>npm ci &amp;&amp; npm run build</code></li>
+    <li>Start command: <code>node dist/server/server.js</code></li>
+    <li>Node version: 22</li>
+    <li>The app listens on a port, and every secret (the model key in an <code>OPENAI_API_KEY</code>-style variable, the database URL, the SEO data credentials, the WordPress token) is set as an environment variable in the Kloudbean console.</li>
+  </ul>
+  <p>That's it. A Docker option exists too, if you'd rather ship an image, but the plain Node app is what we run day to day. The auto-deploy-from-Git flow is written up in <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD auto-deploy from GitHub</a>, and the discipline of keeping secrets in env vars, never in the code, is in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>. We follow both because we got tired of the alternatives.</p>
+
+  <!-- To swap in a real image, replace this whole figure; src -> images/git-deployment.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The Kloudbean Git deployment view with build logs streaming after a push to main.</em><small>Show the deploy succeeding, not a spinner.</small></span></figure>
+
+  <h2>What this hosting an AI app case study taught us</h2>
+  <p>A few things we'd pass on from running our own AI app, rather than just writing about other people's.</p>
+  <p><strong>Back up the file-based database, or use the managed one.</strong> PGlite is lovely for getting going, but a file on a disk is a file on a disk. If the data matters, either automate a backup of that directory or move to the managed Postgres and let the platform handle it. We lean managed for anything we'd be sad to lose.</p>
+  <p><strong>Secrets belong in the dashboard, not the codebase.</strong> Every key the engine holds is an env var set in the console. None of them live in the repo. This isn't paranoia. A repo gets cloned, shared, and kept forever, and a key in git history is a key you've effectively published.</p>
+  <p><strong>Treat the model provider as an external dependency that can be slow or down.</strong> It's one hop out of your control. We wrap those calls in timeouts so a slow provider doesn't hang the whole loop, and we let the gate catch weak output instead of trusting the model blindly.</p>
+  <p>Now the one firm opinion, because a case study without a position is just a brochure. Run the boring always-on server. Most AI apps, ours included, don't need anything more exotic than a process that stays awake and a database that outlives a deploy. It doesn't need an autoscaling fleet or any serverless choreography. A single always-on Node process, a managed database next to it, secrets in env vars, deploys from Git. That's the whole thing, and it's enough to run a system that writes and ships content every day.</p>
+
+  <h2>Where Kloudbean fits, and where it doesn't</h2>
+  <p>Kloudbean hosts the engine and, when we use it, the managed database. It runs the always-on Node process, terminates SSL, handles backups on the managed database, and patches the server underneath. We push code; it runs it.</p>
+  <p>What it doesn't do, and shouldn't: it doesn't run the model. That's an external API we call out to. And it doesn't write the articles or decide they're good enough. Our code does the drafting logic, the scoring gate, and the publishing, and our data stays ours. Managed means the platform takes the server, the stack, SSL, backups, and patching off our plate. The app and everything it thinks are still on us.</p>
+  <p>That boundary is the honest part. Kloudbean makes the running easy. It doesn't make a draft accurate or a gate strict. Those are our job, and they stay our job.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Run your own AI app the boring, reliable way: an always-on process with a database that outlives every deploy.</p>
+    <p style="margin:0 0 .6em">The engine you just read about runs on exactly this setup. Launch an always-on Node or Python app, add a managed Postgres, set your secrets as env vars, and deploy from Git, all in one dashboard.</p>
+    <p style="margin:0">Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.6em 0 0; font-size:15px; opacity:.85">Always-on Node and Python · Managed PostgreSQL · Env vars in the dashboard · Git deploy · Free SSL · Automatic backups · IP allow-listing</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is this AI content engine?</h3>
+    <p>It's the content and knowledge engine that drafts, checks, and manages the articles on this blog. It calls an AI model to write drafts, runs them through deterministic quality gates and human review, and publishes the ones that pass. It's an AI app, and it runs on Kloudbean, so it's a real example rather than a staged one.</p>
+    <h3>What stack does the AI content engine run on?</h3>
+    <p>It's a TanStack Start app: a React frontend with server functions on Node. State lives in PostgreSQL through the Drizzle ORM. Drafting goes through an OpenAI-compatible model reached via OpenRouter, keyword data comes from third-party SEO data APIs, and publishing happens through the WordPress REST API plus a small custom plugin.</p>
+    <h3>Why host it on an always-on server instead of serverless?</h3>
+    <p>Because it runs an autopilot loop on a schedule. A process that scales to zero would be asleep exactly when the schedule needs to fire, so nothing would be there to start the work. An always-on Node process holds the clock and does the loop. Scheduled autonomous work needs a server that never sleeps.</p>
+    <h3>Does the engine use a managed database or a file-based one?</h3>
+    <p>Both, depending on the setup. For local development and light self-hosting it uses PGlite, a file-based Postgres that persists to a directory and survives redeploys, though you have to back that directory up yourself. For a sturdier setup it connects to a managed Kloudbean PostgreSQL, which is the option we'd point most people to.</p>
+    <h3>How is the engine deployed to Kloudbean?</h3>
+    <p>It auto-deploys from Git. We push to the main branch and Kloudbean builds and redeploys. The build command is npm ci and npm run build, the start command is node dist/server/server.js, it runs on Node 22, and every secret is set as an environment variable in the console. A Docker option exists too.</p>
+    <h3>Does the engine publish articles automatically?</h3>
+    <p>Not blindly. It drafts with a model, but nothing goes live unless it clears a minimum quality score, and there are daily and weekly caps on how much it can do. Deterministic gates and human review sit between the model and publishing. Autopilot is gated, not a firehose.</p>
+    <h3>How do you keep the model API key safe?</h3>
+    <p>The key lives in an environment variable set in the Kloudbean console, read at runtime by the server. It never goes in the browser and never gets committed to the repo. The always-on engine is the only place that holds it, which is the whole reason the app sits in the middle instead of letting the client call the model.</p>
+    <h3>Can I self-host something similar?</h3>
+    <p>Yes. It's an ordinary Node app: build with npm, start the server, set Node 22, put your secrets in env vars, and deploy from Git. Use PGlite for a light setup or a managed PostgreSQL for something sturdier. There's a Docker option if you'd rather ship an image. Nothing about it needs a bespoke platform.</p>
+    <h3>Did you measure how much faster or cheaper this made things?</h3>
+    <p>We deliberately didn't publish figures. Any speed or cost number we quoted would be marketing, not measurement, so we left them out. The useful part of this case study is the architecture and the decisions, not a stat we can't stand behind. The system runs, ships content, and survives redeploys, and that's the claim we'll make.</p>
+  </div>
+
+  <p class="byline">Kloudbean · We run our own tools on the same platform we sell.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How We Host Our Own AI Content Engine on Kloudbean: A Real Case Study","description":"A hosting an AI app case study from the inside: how we run the AI content engine that writes this blog on Kloudbean, an always-on Node app with Postgres, one external model provider, env vars in the dashboard, and Git deploys.","image":"https://www.kloudbean.com/blog/how-we-host-our-own-ai-content-engine/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/how-we-host-our-own-ai-content-engine/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is this AI content engine?","acceptedAnswer":{"@type":"Answer","text":"It is the content and knowledge engine that drafts, checks, and manages the articles on this blog. It calls an AI model to write drafts, runs them through deterministic quality gates and human review, and publishes the ones that pass. It is an AI app, and it runs on Kloudbean, so it is a real example rather than a staged one."}},
+{"@type":"Question","name":"What stack does the AI content engine run on?","acceptedAnswer":{"@type":"Answer","text":"It is a TanStack Start app: a React frontend with server functions on Node. State lives in PostgreSQL through the Drizzle ORM. Drafting goes through an OpenAI-compatible model reached via OpenRouter, keyword data comes from third-party SEO data APIs, and publishing happens through the WordPress REST API plus a small custom plugin."}},
+{"@type":"Question","name":"Why host it on an always-on server instead of serverless?","acceptedAnswer":{"@type":"Answer","text":"Because it runs an autopilot loop on a schedule. A process that scales to zero would be asleep exactly when the schedule needs to fire, so nothing would be there to start the work. An always-on Node process holds the clock and does the loop. Scheduled autonomous work needs a server that never sleeps."}},
+{"@type":"Question","name":"Does the engine use a managed database or a file-based one?","acceptedAnswer":{"@type":"Answer","text":"Both, depending on the setup. For local development and light self-hosting it uses PGlite, a file-based Postgres that persists to a directory and survives redeploys, though you have to back that directory up yourself. For a sturdier setup it connects to a managed Kloudbean PostgreSQL, which is the option we would point most people to."}},
+{"@type":"Question","name":"How is the engine deployed to Kloudbean?","acceptedAnswer":{"@type":"Answer","text":"It auto-deploys from Git. We push to the main branch and Kloudbean builds and redeploys. The build command is npm ci and npm run build, the start command is node dist/server/server.js, it runs on Node 22, and every secret is set as an environment variable in the console. A Docker option exists too."}},
+{"@type":"Question","name":"Does the engine publish articles automatically?","acceptedAnswer":{"@type":"Answer","text":"Not blindly. It drafts with a model, but nothing goes live unless it clears a minimum quality score, and there are daily and weekly caps on how much it can do. Deterministic gates and human review sit between the model and publishing. Autopilot is gated, not a firehose."}},
+{"@type":"Question","name":"How do you keep the model API key safe?","acceptedAnswer":{"@type":"Answer","text":"The key lives in an environment variable set in the Kloudbean console, read at runtime by the server. It never goes in the browser and never gets committed to the repo. The always-on engine is the only place that holds it, which is the whole reason the app sits in the middle instead of letting the client call the model."}},
+{"@type":"Question","name":"Can I self-host something similar?","acceptedAnswer":{"@type":"Answer","text":"Yes. It is an ordinary Node app: build with npm, start the server, set Node 22, put your secrets in env vars, and deploy from Git. Use PGlite for a light setup or a managed PostgreSQL for something sturdier. There is a Docker option if you would rather ship an image. Nothing about it needs a bespoke platform."}},
+{"@type":"Question","name":"Did you measure how much faster or cheaper this made things?","acceptedAnswer":{"@type":"Answer","text":"We deliberately did not publish figures. Any speed or cost number we quoted would be marketing, not measurement, so we left them out. The useful part of this case study is the architecture and the decisions, not a stat we cannot stand behind. The system runs, ships content, and survives redeploys, and that is the claim we will make."}}
+]}
+]}
+</script>
+</body>
+</html>
