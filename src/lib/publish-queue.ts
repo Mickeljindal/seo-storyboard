@@ -189,14 +189,8 @@ async function publishOne(
   if (/^\s*(?:<!doctype html|<html)/i.test(storedHtml)) {
     const { publishContentStudioArticle } = await import("./wp-publish-content-studio");
     const r = await publishContentStudioArticle(articleId, "publish");
-    if (r.ok && r.link) {
-      try {
-        const { pingUrlsForIndexing } = await import("./indexing-client");
-        await pingUrlsForIndexing([r.link]);
-      } catch {
-        /* indexing best-effort */
-      }
-    }
+    // publishContentStudioArticle now submits the URL for indexing itself, so we
+    // no longer ping here (avoids a duplicate submission against the daily quota).
     return { ok: r.ok, link: r.link, error: r.error };
   }
 

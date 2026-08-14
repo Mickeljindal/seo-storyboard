@@ -437,6 +437,21 @@ export async function publishContentStudioArticle(
     },
   });
 
+  // Instant indexing: on publish, submit the URL to Google (Indexing API) and
+  // IndexNow so it goes for crawl immediately instead of waiting to be found.
+  // This covers the direct "Publish to WordPress" button; the review-queue path
+  // relies on this too and no longer pings separately. Best-effort, never throws
+  // into the publish path, and no-ops unless indexing is configured
+  // (GOOGLE_INDEXING_ENABLED=1 + GSC_CLIENT_EMAIL/GSC_PRIVATE_KEY for Google).
+  if (status === "publish" && post.link) {
+    try {
+      const { pingUrlsForIndexing } = await import("./indexing-client");
+      await pingUrlsForIndexing([post.link]);
+    } catch {
+      /* indexing is best-effort */
+    }
+  }
+
   return {
     ok: true,
     link: post.link,
