@@ -1,11 +1,11 @@
-# Social posts: Self-Host an LLM: When It Pays Off, and How to Run One on a GPU
+# Social posts: Self-Host an LLM: The GPU Memory Math, Quantization, and Serving It
 
 > Auto-generated from this article's title, meta description, and short-version box. No new claims. Edit freely before posting.
 > Article: https://www.kloudbean.com/blog/self-host-an-llm/
 
 ## X / Twitter
 ```
-Yes, you can self-host an open LLM on your own GPU server.
+A model's GPU memory need is roughly its weights (parameter count times bytes per parameter) plus a KV cache that grows with context length and how many…
 
 https://www.kloudbean.com/blog/self-host-an-llm/
 #Kloudbean #AIapps #VibeCoding #DevOps #LLM #Deployment
@@ -13,9 +13,9 @@ https://www.kloudbean.com/blog/self-host-an-llm/
 
 ## LinkedIn
 ```
-Yes, you can self-host an open LLM on your own GPU server.
+A model's GPU memory need is roughly its weights (parameter count times bytes per parameter) plus a KV cache that grows with context length and how many…
 
-On Kloudbean, DeepSeek installs in one click from the tool picker, and any other or custom model gets installed by the support team when you ask. It runs on a GPU machine you provision. On Enterprise it can sit inside a private VPC pinned to your region, so prompts and data never leave.
+A 7B model is about 14GB in 16-bit and about 4GB once you quantize it to 4-bit, which is usually the difference between fitting a small card and not loading at all. Use Ollama for a simple single-user setup, vLLM when you need real concurrency. Self-host for privacy, data residency, or steady high volume.
 
 Read the full guide: https://www.kloudbean.com/blog/self-host-an-llm/
 
@@ -24,21 +24,21 @@ Read the full guide: https://www.kloudbean.com/blog/self-host-an-llm/
 
 ## X thread
 ```
-1/6  Self-Host an LLM: When It Pays Off, and How to Run One on a GPU
+1/6  Self-Host an LLM: The GPU Memory Math, Quantization, and Serving It
 
 Quick thread 🧵
 ```
 ```
-2/6  Yes, you can self-host an open LLM on your own GPU server.
+2/6  A model's GPU memory need is roughly its weights (parameter count times bytes per parameter) plus a KV cache that grows with context length and how many requests run at once.
 ```
 ```
-3/6  On Kloudbean, DeepSeek installs in one click from the tool picker, and any other or custom model gets installed by the support team when you ask.
+3/6  A 7B model is about 14GB in 16-bit and about 4GB once you quantize it to 4-bit, which is usually the difference between fitting a small card and not loading at all.
 ```
 ```
-4/6  It runs on a GPU machine you provision.
+4/6  Use Ollama for a simple single-user setup, vLLM when you need real concurrency.
 ```
 ```
-5/6  On Enterprise it can sit inside a private VPC pinned to your region, so prompts and data never leave.
+5/6  Self-host for privacy, data residency, or steady high volume.
 ```
 ```
 6/6  Full walkthrough:

@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Self-Host an LLM: When It Pays Off, and How to Run One on a GPU</title>
-<meta name="description" content="Should you self-host an LLM or call a hosted API? An honest decision guide to privacy, data residency, cost at volume, and running your own AI model on a GPU server.">
+<title>Self-Host an LLM: The GPU Memory Math, Quantization, and Serving It</title>
+<meta name="description" content="Self-hosting an LLM is mostly a memory problem. How to size GPU memory (weights plus KV cache), what quantization trades, Ollama versus vLLM, how to serve the model, and the honest cost math.">
 <meta name="author" content="Kloudbean">
 <link rel="canonical" href="https://www.kloudbean.com/blog/self-host-an-llm/">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Self-Host an LLM: When It's Worth It, and How to Run One on a GPU">
-<meta property="og:description" content="When a self-hosted LLM beats a hosted API, what GPU server you need, the ways to run a model, and how to keep prompts and data in your region.">
+<meta property="og:title" content="Self-Host an LLM: The GPU Memory Math, Quantization, and Serving It">
+<meta property="og:description" content="A field guide to self-hosting an open model: the memory arithmetic that decides your GPU, quantization, Ollama vs vLLM, serving to your app, and working out the cost.">
 <meta property="og:image" content="images/hero.png">
 <meta property="og:site_name" content="Kloudbean">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,108 +18,89 @@
 </head>
 <body>
 <article class="wrap">
-  <span class="eyebrow">AI hosting · Self-hosted models</span>
-  <h1>Self-Host an LLM: When It Pays Off, and How to Run One on a GPU</h1>
+  <span class="eyebrow">Self-hosted AI · Field guide</span>
+  <h1>Self-Host an LLM: The GPU Memory Math, Quantization, and Serving It</h1>
+  <p class="byline">By Kloudbean Engineering · The constraint is memory, and memory is arithmetic.</p>
 
-  <figure><img src="images/hero.png" alt="Self-host an LLM: decision flow from privacy and volume to running an open model on your own GPU server"></figure>
+  <figure><img src="images/hero.png" alt="A breakdown of what fills a GPU's memory when you self-host an LLM: model weights plus the KV cache plus overhead"></figure>
 
-  <p class="lead">You can self-host an LLM. The harder question is whether you should, and the answer shifts with what you're protecting and how much you'll actually use it. Open models like Llama, Mistral, and DeepSeek got good enough that running your own AI model on a GPU server you control is a real option now, not a science project. But a hosted API from OpenAI or Anthropic is still the simpler, cheaper path for plenty of apps. So this page is the decision, not a tutorial: when a self-hosted LLM is worth it, what you need, and the ways to run one on Kloudbean.</p>
+  <p class="lead">Self-hosting an LLM is mostly a memory problem wearing a trench coat. Once you can predict how much GPU memory a model needs, and how to shrink it to fit, everything downstream gets easier: which machine, which serving engine, how fast it'll run, and whether it's even worth doing over a hosted API. So this is a field guide to the parts that actually decide the outcome, not a click-here tour. The math and the tradeoffs here apply wherever the model runs, your laptop, a rented GPU box, or a managed host.</p>
 
   <div class="tldr">
-    <strong>Short version</strong>
-    <p>Yes, you can self-host an open LLM on your own GPU server. On Kloudbean, DeepSeek installs in one click from the tool picker, and any other or custom model gets installed by the support team when you ask. It runs on a GPU machine you provision. On Enterprise it can sit inside a private VPC pinned to your region, so prompts and data never leave. Self-host for privacy, data residency, or steady high volume. At low volume a hosted API is cheaper and simpler, so don't self-host just to save a few dollars.</p>
+    <strong>The short, useful version</strong>
+    <p>A model's GPU memory need is roughly its weights (parameter count times bytes per parameter) plus a KV cache that grows with context length and how many requests run at once. A 7B model is about 14GB in 16-bit and about 4GB once you quantize it to 4-bit, which is usually the difference between fitting a small card and not loading at all. Use Ollama for a simple single-user setup, vLLM when you need real concurrency. Self-host for privacy, data residency, or steady high volume. At low volume, a hosted API is cheaper and simpler.</p>
   </div>
 
-  <h2>Should you self-host an LLM at all?</h2>
-  <p>Start with the honest version, because most "self-host your AI" posts skip it. Three reasons to self-host an LLM hold up under pressure: privacy, control, and cost at real volume. Everything else is noise. If your prompts carry customer records, source code, or anything that legally can't leave a region, a self-hosted LLM keeps all of it on hardware you control. That's the strongest reason, and it isn't really about money.</p>
-  <p>Control is next. You pick the model, you pin the version, and nobody deprecates it out from under you or reprices it next quarter. Cost is third, and it's the one people get backwards. A GPU server is a flat monthly bill. A hosted API meters every token. So self-hosting wins on cost only once your volume is high and steady. At a few calls a week, a hosted API is cheaper and far less hassle, full stop.</p>
-  <p>My blunt take: don't self-host to save money on a small app. Do it for privacy, residency, or genuinely heavy, steady usage. And go in clear-eyed about quality. Open models got good, good enough for most real work, but the very top frontier models still lead on the hardest reasoning. Self-hosting usually means trading a little peak quality for control and privacy. For a support bot over your own docs, that trade is easy. For a research assistant chasing the single smartest answer, maybe not.</p>
-  <p>Here's the decision in one table.</p>
+  <h2>Self-hosting an LLM is a memory problem</h2>
+  <p>The first question isn't "which GPU," it's "how much memory does this model need," because that answer picks the GPU for you. Three things share a card's memory (its VRAM), and only the first is obvious.</p>
+  <p><strong>The weights are the floor.</strong> A model's parameters have to sit in memory to run, and the size is just multiplication: parameter count times bytes per parameter. At 16-bit precision, each parameter takes 2 bytes, so a 7-billion-parameter model needs about 14GB before it has done a single useful thing. That one line explains most "why won't it load" confusion.</p>
 
   <table class="cmp">
-    <thead><tr><th>What you care about</th><th>Self-host on a GPU server</th><th>Hosted API (OpenAI, Anthropic)</th></tr></thead>
+    <thead><tr><th>Model</th><th>16-bit (2 bytes/param)</th><th>8-bit (1 byte)</th><th>4-bit (~0.5 byte)</th></tr></thead>
     <tbody>
-      <tr><td>Privacy and data residency</td><td>Prompts and data stay on your box, in your region</td><td>Prompts leave your network to a third party</td></tr>
-      <tr><td>Cost at low volume</td><td>You pay for the GPU whether you use it or not</td><td>Cheap; you pay per token</td></tr>
-      <tr><td>Cost at high steady volume</td><td>Flat monthly, so it wins as usage climbs</td><td>Metered, so the bill grows with every call</td></tr>
-      <tr><td>Top-end answer quality</td><td>Strong, usually a step behind the best frontier model</td><td>Access to the largest, smartest models</td></tr>
-      <tr><td>Setup and ops effort</td><td>You run the server and size the GPU</td><td>Sign up and call it</td></tr>
-      <tr><td>Control over model and versions</td><td>Full; you choose and pin the model</td><td>The vendor's roadmap and pricing</td></tr>
+      <tr><td>7B</td><td>~14 GB</td><td>~7 GB</td><td>~4 GB</td></tr>
+      <tr><td>13B</td><td>~26 GB</td><td>~13 GB</td><td>~7 GB</td></tr>
+      <tr><td>70B</td><td>~140 GB</td><td>~70 GB</td><td>~40 GB</td></tr>
     </tbody>
   </table>
+  <p>These are the weights alone, rounded, and real usage runs a bit higher because of overhead. But the shape is the point: a 70B model is not fitting on one ordinary card at 16-bit, and that is a fact about arithmetic, not about your setup.</p>
+  <p><strong>The KV cache is the part people forget.</strong> As the model generates, it keeps a running cache of every token's keys and values so it doesn't recompute them. That cache grows with two things: how long your prompts and replies are (context length), and how many requests you serve at once (concurrency). A single short chat barely registers. A long-context assistant serving twenty people at once can need as much memory for the cache as for a small model's weights. So size for weights plus cache plus a little headroom, never just the model name.</p>
 
   <figure>
-    <svg viewBox="0 0 780 360" role="img" aria-label="Decision flow: if prompts and data must stay private or in your region, or if you have high steady volume, self-host an open model on a Kloudbean GPU server; otherwise a hosted API is simpler and cheaper" style="width:100%;height:auto;border:1px solid #e6e9f2;border-radius:16px;background:#f6f7fb">
-      <text x="26" y="32" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Self-host, or call a hosted API?</text>
-      <rect x="24" y="60" width="224" height="72" rx="12" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
-      <text x="136" y="90" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Must prompts and data</text>
-      <text x="136" y="108" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="600">stay private or in-region?</text>
-      <rect x="24" y="220" width="224" height="72" rx="12" fill="#ffffff" stroke="#000f27" stroke-width="1.5"/>
-      <text x="136" y="250" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="600">High, steady volume?</text>
-      <text x="136" y="270" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11.5">not a few calls a week</text>
-      <rect x="486" y="46" width="272" height="92" rx="12" fill="#000f27" stroke="#40b75f" stroke-width="2"/>
-      <text x="622" y="78" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13.5" font-weight="600">Self-host on a</text>
-      <text x="622" y="97" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13.5" font-weight="600">Kloudbean GPU server</text>
-      <text x="622" y="119" text-anchor="middle" fill="#7fe0a0" font-family="Poppins,sans-serif" font-size="11">VPC and region pinning on Enterprise</text>
-      <rect x="486" y="220" width="272" height="92" rx="12" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.6"/>
-      <text x="622" y="252" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="13.5" font-weight="600">Call a hosted API</text>
-      <text x="622" y="271" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="13.5" font-weight="600">OpenAI, Anthropic</text>
-      <text x="622" y="293" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">simpler and cheaper at low volume</text>
-      <line x1="248" y1="84" x2="484" y2="84" stroke="#5b6a86" stroke-width="2"/><path d="M486 84 l-10 -4 v8 z" fill="#5b6a86"/>
-      <text x="360" y="76" text-anchor="middle" fill="#0a4d28" font-family="Poppins,sans-serif" font-size="12" font-weight="600">Yes</text>
-      <line x1="136" y1="132" x2="136" y2="218" stroke="#5b6a86" stroke-width="2"/><path d="M136 220 l-4 -10 h8 z" fill="#5b6a86"/>
-      <text x="150" y="182" text-anchor="start" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12" font-weight="600">No</text>
-      <line x1="248" y1="240" x2="484" y2="122" stroke="#5b6a86" stroke-width="2"/><path d="M486 120 l-10 -3 v9 z" fill="#5b6a86"/>
-      <text x="374" y="168" text-anchor="middle" fill="#0a4d28" font-family="Poppins,sans-serif" font-size="12" font-weight="600">Yes</text>
-      <line x1="248" y1="264" x2="484" y2="264" stroke="#5b6a86" stroke-width="2"/><path d="M486 264 l-10 -4 v8 z" fill="#5b6a86"/>
-      <text x="360" y="256" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12" font-weight="600">No</text>
+    <svg viewBox="0 0 820 300" role="img" aria-labelledby="mem-t mem-d" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#f6f7fb;border:1px solid #e6e9f2;border-radius:16px">
+      <title id="mem-t">What fills a GPU's memory</title>
+      <desc id="mem-d">The same 7B model shown two ways. At 16-bit the weights are about 14GB and need a larger card. Quantized to 4-bit the weights are about 4GB and fit a small card, leaving room for the KV cache that grows with context length and concurrency.</desc>
+      <text x="26" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">A 7B model, two ways to fit it</text>
+      <text x="26" y="70" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="600">16-bit</text>
+      <rect x="90" y="54" width="360" height="26" rx="5" fill="#000f27"/>
+      <text x="270" y="72" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">weights ~14 GB</text>
+      <rect x="452" y="54" width="70" height="26" rx="5" fill="#4F1AF3"/>
+      <text x="487" y="72" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="10.5">KV cache</text>
+      <rect x="524" y="54" width="34" height="26" rx="5" fill="#98a2b3"/>
+      <text x="600" y="72" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">needs a larger card</text>
+
+      <text x="26" y="132" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="600">4-bit</text>
+      <rect x="90" y="116" width="104" height="26" rx="5" fill="#40b75f"/>
+      <text x="142" y="134" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="11">weights ~4 GB</text>
+      <rect x="196" y="116" width="70" height="26" rx="5" fill="#4F1AF3"/>
+      <text x="231" y="134" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="10.5">KV cache</text>
+      <rect x="268" y="116" width="34" height="26" rx="5" fill="#98a2b3"/>
+      <text x="340" y="134" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">fits a small card, room to spare</text>
+
+      <line x1="90" y1="170" x2="90" y2="270" stroke="#cbd2e0" stroke-width="1.5"/>
+      <text x="100" y="196" fill="#000f27" font-family="Poppins,sans-serif" font-size="12" font-weight="600">Reading it</text>
+      <text x="100" y="218" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">Weights set the floor. Quantization moves that floor down.</text>
+      <text x="100" y="238" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">The KV cache is the variable part: longer prompts and more</text>
+      <text x="100" y="258" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">concurrent users push it up. Leave headroom for it.</text>
     </svg>
-    <figcaption>Two questions decide it: privacy or data residency, and steady volume. A yes to either points to self-hosting on a GPU server. Two nos point back to a hosted API.</figcaption>
+    <figcaption>Total VRAM needed is weights plus KV cache plus overhead. Quantization shrinks the weights; the cache is what surprises people under real traffic.</figcaption>
   </figure>
 
-  <h2>What you need: a GPU server sized to the model</h2>
-  <p>The thing that makes or breaks a self-hosted LLM is hardware. A model needs memory to load its weights and compute to generate tokens. Undersize the box and it crawls. Size it right and it feels quick. You want a GPU server for AI work here, not a general CPU box, unless you're only kicking the tires. Keep the sizing qualitative, because exact needs shift with the model and how it's quantized:</p>
+  <h2>Quantization: how to make a model fit</h2>
+  <p>Quantization is just storing each weight in fewer bits. Full precision for inference is usually 16-bit, at 2 bytes a weight. Drop to 8-bit and each weight is 1 byte, so the model roughly halves. Drop to 4-bit and it roughly halves again. That is the whole trick behind running a model that looked far too big.</p>
+  <p>You'll meet a few formats. GGUF is the one Ollama and llama.cpp use, and it's the friendliest for mixed CPU and GPU. GPTQ and AWQ are GPU-focused formats you'll see with vLLM and similar servers. They get to a similar place by different roads.</p>
+  <p>What do you trade? Some accuracy, and less than people fear. Eight-bit is close to indistinguishable from full precision for most work. Four-bit is the sweet spot most self-hosters land on: a small, honest quality dip that you won't notice on summarizing, drafting, classification, or answering over your own docs. Go below 4-bit and the loss starts to show. Here's the counterintuitive part worth internalizing: a larger model quantized to 4-bit usually beats a smaller model at full precision that takes the same memory. When in doubt, run the biggest model that fits at 4-bit.</p>
+
+  <h2>Ollama vs vLLM: different tools, different jobs</h2>
+  <p>People treat this like a versus. It isn't. They're built for different situations, and picking the wrong one is a common way to have a bad time.</p>
+  <p><strong>Ollama</strong> wraps llama.cpp. It pulls GGUF models with one command, and its trick is that it can offload some layers to CPU memory when the GPU is tight, so a model that doesn't quite fit still runs, just slower. That makes it forgiving and perfect for a single user, a developer machine, or a small internal tool. It is the easiest way to get a model answering.</p>
+  <p><strong>vLLM</strong> is a serving engine built for throughput. Its PagedAttention manages that KV cache efficiently, and continuous batching lets it interleave many requests so the GPU stays busy instead of handling one chat at a time. That is what you want behind a real app with concurrent users. The cost is that it's heavier to run and it wants the whole model in GPU memory, no gentle CPU offload to save you.</p>
 
   <table class="cmp">
-    <thead><tr><th>Model size</th><th>Roughly wants</th><th>Good for</th></tr></thead>
+    <thead><tr><th></th><th>Ollama</th><th>vLLM</th></tr></thead>
     <tbody>
-      <tr><td>Small (about 7B)</td><td>A modest GPU</td><td>Drafting, summarizing, classification, internal chat</td></tr>
-      <tr><td>Mid (about 13B)</td><td>More GPU memory</td><td>Better reasoning and richer answers</td></tr>
-      <tr><td>Large (30B and up)</td><td>Serious GPU memory</td><td>Highest quality, and a real hardware cost</td></tr>
+      <tr><td>Built for</td><td>Single user, dev, small internal use</td><td>Concurrent requests behind an app</td></tr>
+      <tr><td>Models</td><td>GGUF, one-command pulls</td><td>Hugging Face models, GPTQ/AWQ</td></tr>
+      <tr><td>If it doesn't fit</td><td>Offloads layers to CPU, runs slower</td><td>Wants the whole model in VRAM</td></tr>
+      <tr><td>Concurrency</td><td>Basic</td><td>Continuous batching, high throughput</td></tr>
+      <tr><td>Effort to run</td><td>Low</td><td>Higher</td></tr>
     </tbody>
   </table>
-
-  <p>Pick the model to fit the server, not the other way round. Start smaller than you think, watch how it feels under your real prompts, and resize up if you need more. On Kloudbean you provision the GPU server from the console and size it up front.</p>
-
-  <figure>
-    <img src="../assets/console/add-server.png" alt="The Kloudbean console Add Server screen where you provision and size a GPU server for the model you plan to self-host">
-    <figcaption>Add Server: provision a GPU box and size it to the model, then resize later if you want more room.</figcaption>
-  </figure>
-
-  <p>Here's where people faceplant. They grab a giant model, drop it on a GPU that's too small, watch it swap or crash, and conclude self-hosting is broken. It isn't. The box was wrong for the model. A 70B model on an undersized GPU will disappoint every time. Match them, or run a smaller model that actually fits the hardware you're paying for.</p>
-
-  <!-- To add your own screenshot here, replace this whole figure with a real <figure><img ...><figcaption>...</figcaption></figure>. Image path: src -> images/your-file.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The console tool picker showing the one-click DeepSeek and Open WebUI tiles.</em><small>Shows the easiest path before you touch a terminal.</small></span></figure>
-
-  <h2>The ways to run a model on Kloudbean</h2>
-  <p>There isn't one way to run a model. There are a few, and they trade ease for control. From easiest to most hands-on:</p>
-
-  <table class="cmp">
-    <thead><tr><th>Way to run it</th><th>Best for</th><th>Effort</th></tr></thead>
-    <tbody>
-      <tr><td>One-click: DeepSeek plus Open WebUI</td><td>A working private LLM and a chat UI, fast</td><td>Lowest, no terminal</td></tr>
-      <tr><td>Ollama</td><td>Running open models simply on a server</td><td>Low, a few commands</td></tr>
-      <tr><td>vLLM</td><td>Higher throughput and concurrency in production</td><td>Higher, heavier to run</td></tr>
-      <tr><td>Any other or custom model on request</td><td>A specific model the tiles don't list</td><td>You ask, support installs it</td></tr>
-    </tbody>
-  </table>
-
-  <p>The one-click route is the fastest way in. DeepSeek (listed as the DeepSeek r1-1.5b model) and Open WebUI install straight from the console tool picker, so you get a private LLM and a chat interface without touching a terminal. For running open models simply on a server, Ollama is the friendly default, and the full step-by-step lives in the <a href="https://www.kloudbean.com/blog/self-host-ollama-open-webui/">concrete Ollama and Open WebUI walkthrough</a>, so I won't repeat it here. When you outgrow that and need real throughput, vLLM is the heavier, production-grade server. And for any other or custom model, you don't have to fight it alone. Start a chat and Kloudbean's support team installs it and makes it available on your server.</p>
+  <p>The good news: both expose an OpenAI-compatible API, so your application code barely changes between them, or away from a hosted API. You point your client at a different base URL and carry on.</p>
 
   <h2>Serving the model to your app</h2>
-  <p>Running the model is half the job. Your app has to reach it. The clean pattern is the same one you'd use with a hosted API: the model listens on an endpoint, and your backend calls it. Most open-model servers, Ollama and vLLM included, speak the OpenAI-style API, so your existing code barely changes. You point it at your own base URL instead of the vendor's.</p>
-
-  <pre><code># Your app calls the model on your own server, not a public API
+  <p>Running the model is half of it. Your app has to reach it, and the clean shape is the same one you already use for a hosted API: the model listens on an endpoint, and your backend calls it. The browser never talks to the model directly, so authentication, rate limits, and a spend cap all live in one place you control.</p>
+  <pre><code># Your backend calls the model on your own server, OpenAI-compatible
 curl http://127.0.0.1:8000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
@@ -127,99 +108,82 @@ curl http://127.0.0.1:8000/v1/chat/completions \
     "messages": [{"role": "user", "content": "Summarize this ticket."}],
     "stream": true
   }'</code></pre>
-
-  <p>In your app, that's usually just environment variables. Keep the model on the same box as the app for the simple case, or put it on a separate GPU server locked down so only your app's IP can reach it.</p>
-
-  <pre><code># .env for your app (never commit this)
-LLM_BASE_URL=http://127.0.0.1:8000/v1   # model runs on this box
-LLM_API_KEY=set-your-own-gateway-key    # a key you choose, not a public vendor key
+  <p>In the app itself, this is usually one environment variable pointing at your own URL instead of the vendor's:</p>
+  <pre><code># .env  (never commit this)
+LLM_BASE_URL=http://127.0.0.1:8000/v1
 LLM_MODEL=your-open-model</code></pre>
+  <p>Two things are worth getting right on day one. Stream the tokens back so a long answer doesn't look frozen, which the guide to <a href="https://www.kloudbean.com/blog/llm-streaming-in-production/">streaming LLM responses in production</a> covers, including the proxy buffering trap that silently breaks streaming. And put a limit in front of the endpoint so one client can't run your GPU into the ground, which is the job of <a href="https://www.kloudbean.com/blog/rate-limit-and-cost-control-for-ai-apis/">rate limiting and cost control</a>. If you gate the endpoint with a key, keep it server-side, the same discipline as <a href="https://www.kloudbean.com/blog/deploy-ai-agent-without-exposing-api-keys/">not exposing API keys</a>.</p>
 
-  <div class="note"><b>Keep the browser out of it.</b> The browser should call your backend, and only your backend should call the model. That's how you add auth, rate limits, and a spend cap in one place. Same rule as any AI endpoint: don't hand the model or its key to the public.</div>
+  <h2>Why it's slow, and why it fails</h2>
+  <p>Two surprises catch first-timers, and both have clean explanations.</p>
+  <p><strong>Generation speed is bound by memory bandwidth, not raw compute.</strong> To produce each token, the GPU reads the model's weights out of memory. So the speed you feel, tokens per second, is mostly about how fast the card can stream those weights, and a smaller or more heavily quantized model is faster simply because there's less to read each step. This is why quantization buys speed as well as space, and why "bigger card" often means "faster," not just "fits."</p>
+  <p><strong>Out-of-memory is the classic failure, and it's predictable.</strong> If weights plus KV cache exceed VRAM, you get a CUDA out-of-memory error, or, with Ollama, a crawl as it spills to the CPU. The fixes are all in this article already: quantize harder, shorten the maximum context, serve fewer requests at once, or move to a card with more memory. The trap that catches everyone once is trying to run a 70B model on a 24GB card. At 16-bit it needs about 140GB, at 4-bit still about 40GB, so it simply won't fit one such card. Run a smaller model, quantize more aggressively, or split across multiple GPUs.</p>
 
-  <p>Two things are worth getting right early. Stream the tokens back so long replies don't look frozen; the how is in <a href="https://www.kloudbean.com/blog/llm-streaming-in-production/">streaming LLM responses in production</a>. And put rate limits and a cost cap in front of the endpoint so nobody hammers it, which <a href="https://www.kloudbean.com/blog/rate-limit-and-cost-control-for-ai-apis/">rate limiting and cost control for AI APIs</a> covers. Keep whatever key or gateway you put in front server-side, never in the browser, the same discipline as <a href="https://www.kloudbean.com/blog/deploy-ai-agent-without-exposing-api-keys/">deploying an AI agent without exposing API keys</a>.</p>
+  <h2>The cost question, done honestly</h2>
+  <p>The real question behind "should I self-host" is usually money, so here's how to answer it for your own numbers instead of trusting anyone's headline.</p>
+  <p>A GPU server is a flat cost. You pay for it by the hour or month whether it serves ten prompts or ten million. A hosted API is metered: you pay per token, input and output priced separately, so the bill scales with use. Those are two different shapes, and they cross somewhere.</p>
+  <p>To find your crossover, estimate your monthly tokens, multiply by the API's per-token price to get the API's monthly cost, and compare that to what a GPU box capable of your model would cost for the month. Below the crossover the API wins on price and on hassle. Above it, the flat box wins, and the gap widens fast for heavy, steady jobs like classifying or summarizing at scale. I won't hand you a specific crossover number, because it moves with your model, your traffic, and current GPU prices, and a made-up figure would just mislead you.</p>
+  <p>One honest opinion to save you a detour: don't self-host to save money at low volume. Between the idle GPU and your own time, it usually costs more than a light API bill. Privacy and data residency can justify a self-hosted model on their own. Pure penny-pinching at a few calls a day cannot.</p>
 
-  <h2>Keeping the model and data in your region</h2>
-  <p>This is why a lot of teams self-host in the first place: a private LLM that never phones home. When the model runs on your server, the prompt goes to your box, gets an answer, and stops there. Nothing crosses a border you didn't choose. You can pin the server to a specific region across any of the clouds, including in-Kingdom in Dammam, so both the model and the data stay where your rules say they must. That's the whole data-residency story, and it goes deeper in <a href="https://www.kloudbean.com/blog/hosting-ai-apps-saudi-arabia/">hosting AI apps in Saudi Arabia</a>.</p>
-  <p>Want to wall the model off from the public internet entirely? On Enterprise, the model can run inside a private network, a VPC, so it's reachable only from inside your own network. If the term is new, <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">what a VPC is and why it helps</a> has the explainer. On standard plans the practical lock-down is IP allow-listing: you whitelist your app server's address so only it can reach the model or the database, and everything else is refused. For most setups that's plenty, without needing Enterprise.</p>
+  <h2>So should you self-host at all?</h2>
+  <p>Strip away the hype and three reasons hold up. <strong>Privacy and residency:</strong> when the model runs on your own machine, the prompt goes there and stops, so nothing sensitive leaves your network or your region. That's the strongest reason and it isn't about money. <strong>Control:</strong> you pick the model, pin the version, and nobody deprecates or reprices it on you. <strong>Cost at real, steady volume:</strong> covered above.</p>
+  <p>Against that, be clear-eyed on quality. Open models have gotten genuinely good, good enough for the large majority of real work, but the very best hosted models still lead on the hardest reasoning. Plenty of teams run an open model for the bulk of the traffic and reach for a frontier API only for the rare hard case. If none of the three reasons above is true for you, a hosted API is the simpler call, and that's not a failure, it's just the right tool.</p>
 
-  <!-- To add your own screenshot here, replace this whole figure with a real <figure><img ...><figcaption>...</figcaption></figure>. Image path: src -> images/your-file.png -->
-  <figure class="img-slot"><span><b>Add image</b><em>The region picker with an in-region location selected, for example Dammam.</em><small>Proof the model and data can be pinned to one region.</small></span></figure>
-
-  <h2>Where a self-hosted LLM fits a bigger AI app</h2>
-  <p>A model on its own is just a smart text box. Real AI features need the rest of the stack around it. If the bot should answer from your own documents, that's retrieval, RAG for short, and you'll want a vector store. You usually don't need a separate product for it. The pgvector extension keeps embeddings inside Postgres next to your normal data, which the <a href="https://www.kloudbean.com/blog/pgvector-for-ai-apps/">pgvector for AI apps</a> guide walks through. Managed Postgres sits in the same dashboard as the GPU server, so it's one place, not four.</p>
-
-  <figure>
-    <img src="../assets/console/launch-database.png" alt="The Kloudbean console Launch Database screen for a managed Postgres that stores embeddings with pgvector for RAG">
-    <figcaption>Launch Database: a managed Postgres with pgvector lives in the same dashboard as your GPU server.</figcaption>
-  </figure>
-
-  <p>Layer in conversation history, sessions, and caching, and the model becomes one component in a familiar shape: frontend, backend, database, cache, and the model behind your API. If you want the whole picture drawn out, the <a href="https://www.kloudbean.com/blog/ai-app-reference-architecture/">AI app reference architecture</a> lays out how the pieces fit and where the boundaries go.</p>
-
-  <h2>The cost reality</h2>
-  <p>So is it cheaper? Depends entirely on volume. A GPU server is a fixed monthly cost whether you send it ten prompts or ten million. A hosted API is metered: cheap when quiet, expensive when busy. Draw those two lines on a graph and they cross somewhere. Below the crossover, the API wins. Above it, the flat GPU box wins, and the gap gets wide for heavy, constant jobs like classifying or summarizing at scale.</p>
-  <p>I won't invent numbers, because the crossover moves with your model, your usage, and GPU pricing, and a made-up figure would just mislead you. The honest rule holds anyway: if you're doing trivial volume with no privacy or residency reason, self-hosting to "save money" usually costs more once you count the GPU and your own time. Privacy and residency can justify the server on their own. Pure penny-pinching at low volume usually can't.</p>
-
-  <h2>Where hosting fits, honestly</h2>
-  <p>Time to be precise about what Kloudbean does and doesn't do here, because the boundary is the trust. Managed means we run the box: the server, the OS, the stack, free SSL, patching, and server-level backups. We can also install the model for you, DeepSeek in one click, or any other or custom model when you start a chat and ask support. What stays yours is the model you pick, your prompts, your data, and the ongoing job of sizing and scaling the GPU as your use grows.</p>
-  <p>One thing Kloudbean is not: a per-token model API like OpenAI or Anthropic. We don't hand you a metered endpoint, and we don't fine-tune or build the model for you. You self-host the open model you chose, on hardware you rent from us. Under the hood there are 7 clouds (AWS, AWS Lightsail, Google Cloud, Linode, Vultr, DigitalOcean, and UpCloud). For bigger or enterprise workloads we standardize on AWS or GCP, where there's no fixed product-tier ceiling on GPU or CPU; it scales with your plan and the underlying cloud capacity. Standard plans start from $8/mo, though a GPU box costs more than a small CPU one, so check the pricing page for current numbers. If you're moving in from elsewhere, migration help is on the house.</p>
+  <h2>Where to run it</h2>
+  <p>Three homes, in rough order of how much you manage. Your own workstation is perfect for learning and development. A rented GPU instance gives you full control and means you own the OS, the drivers, and the updates. A managed GPU host runs the box for you so you bring the model and skip the server maintenance. <a href="https://www.kloudbean.com/blog/self-host-ollama-open-webui/">The Ollama and Open WebUI walkthrough</a> is a good first build on any of them, and <a href="https://www.kloudbean.com/blog/pgvector-for-ai-apps/">pgvector for AI apps</a> plus the <a href="https://www.kloudbean.com/blog/ai-app-reference-architecture/">AI app reference architecture</a> cover the rest of the stack once the model is answering.</p>
+  <p>Kloudbean is one managed option in that last bucket: it runs GPU servers across several clouds and regions, so you can keep the model and its data in a region you choose, and DeepSeek is a one-click install if you want the fastest possible start. Useful to know, but secondary to the point of this page, which is that the memory math and the serving choices above decide your setup wherever you run it.</p>
 
   <div class="cta">
-    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Run your own model, on a box you control.</p>
-    <p style="margin:0 0 .6em">Provision a GPU server, install DeepSeek in one click or ask support for any other model, and serve it to your app from one dashboard. Start free at <a href="https://www.kloudbean.com/">kloudbean.com</a>; see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a> and check there for current numbers.</p>
-    <p style="margin:0">GPU servers · One-click DeepSeek and Open WebUI · Any model installed on request · Free SSL · Automatic backups · Free migration · Free trial</p>
+    <p style="margin:0 0 .4em; font-weight:600; font-size:19px">Run the numbers before you rent the card.</p>
+    <p style="margin:0">If you'd rather not manage the server, drivers, and backups yourself, Kloudbean runs managed GPU servers across several clouds and regions. Details at <a href="https://www.kloudbean.com/">kloudbean.com</a> and <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
   </div>
 
   <h2>FAQ</h2>
   <div class="faq">
-    <h3>Can I self-host an LLM on my own server?</h3>
-    <p>Yes. You provision a GPU server, put an open model on it, and your app talks to it over a local endpoint. On Kloudbean, DeepSeek and Open WebUI install in one click, and support installs any other or custom model on request. The model runs on your box, so prompts and data stay there.</p>
+    <h3>How much GPU memory do I need to run a 7B, 13B, or 70B model?</h3>
+    <p>Start from the weights: parameter count times bytes per parameter. At 16-bit that's about 14GB for a 7B model, 26GB for 13B, and 140GB for 70B. Quantized to 4-bit those drop to roughly 4GB, 7GB, and 40GB. Then add headroom for the KV cache, which grows with context length and concurrency, so plan for more than the weights alone.</p>
 
-    <h3>Should I self-host an LLM or just use a hosted API?</h3>
-    <p>Self-host for privacy, data residency, or high steady volume. Use a hosted API when you want the simplest path, the very best model quality, or you're at low volume where per-token pricing is cheap. If none of the self-host reasons apply to you, an API is the easier call.</p>
+    <h3>Does quantization make a model worse?</h3>
+    <p>A little, and usually less than people expect. Eight-bit is close to indistinguishable from full precision. Four-bit has a small quality dip that most tasks won't show, which is why it's the common choice. Below 4-bit the loss becomes noticeable. A useful rule: a bigger model at 4-bit usually beats a smaller model at full precision for the same memory.</p>
 
-    <h3>Do I need a GPU to self-host an LLM?</h3>
-    <p>For anything beyond a quick test, yes. A small model can limp along on CPU, but it answers slowly. A GPU is what makes generation feel quick, so a GPU server is the right home for a self-hosted model you'll actually use.</p>
+    <h3>What is the difference between Ollama and vLLM?</h3>
+    <p>Ollama wraps llama.cpp, pulls GGUF models easily, and can offload layers to CPU when the GPU is tight, which makes it great for a single user or a dev machine. vLLM is a throughput engine with continuous batching, built to serve many concurrent requests behind an app, but it wants the whole model in GPU memory and is heavier to run. Use Ollama for simple, vLLM for concurrency.</p>
 
-    <h3>What size GPU server do I need to run an open model?</h3>
-    <p>It scales with the model. A small model around 7B runs on a modest GPU. A mid model around 13B wants more GPU memory. Large models of 30B and up need serious GPU memory. Pick the model to fit the server you're comfortable paying for, then resize up if you need to.</p>
+    <h3>Do I need a GPU, or can I run an LLM on CPU?</h3>
+    <p>A small model will run on CPU, it just answers slowly because generation speed depends on memory bandwidth, and system RAM is far slower to stream than GPU memory. CPU is fine for trying things out or very light, patient use. For anything interactive or multi-user, a GPU is what makes it feel quick.</p>
 
-    <h3>Which open models can I run on Kloudbean?</h3>
-    <p>Any open model you like. DeepSeek installs one-click from the tool picker alongside Open WebUI, and for any other or custom model you start a chat and the support team installs it and makes it available on your server.</p>
+    <h3>Why is my self-hosted LLM so slow?</h3>
+    <p>Most often the model doesn't fully fit in GPU memory, so it's spilling to the CPU and streaming weights over a slower path. Generation speed is bound by memory bandwidth, so a model that doesn't fit crawls. Quantize it further, shorten the context, or use a card with more memory so the whole model sits in VRAM.</p>
 
-    <h3>Is a self-hosted LLM as good as GPT-4 or Claude?</h3>
-    <p>Not quite at the frontier. The largest hosted models still lead on the hardest reasoning and broadest knowledge. But for drafting, summarizing, classification, coding help, and answering over your own documents, a good open model is more than enough. Many teams run open models for the bulk of the work and a hosted model for the rare heavy lift.</p>
+    <h3>How does my app call a self-hosted model?</h3>
+    <p>Both Ollama and vLLM expose an OpenAI-compatible API, so you point your existing client at your own base URL and keep most of your code. Have your backend call the model, not the browser, so you can add auth, rate limits, and a spend cap in one place. Stream the tokens back for long replies, and keep any gateway key on the server.</p>
 
-    <h3>How do I keep my prompts and data private and in-region?</h3>
-    <p>Run the model on your own server and pin that server to your chosen region, including in-Kingdom in Dammam, so nothing crosses a border. On Enterprise the model can sit inside a private VPC, off the public internet. On standard plans you lock things down with IP allow-listing so only your app server can reach the model or database.</p>
+    <h3>Is self-hosting an LLM cheaper than the OpenAI API?</h3>
+    <p>Only at real, steady volume. A GPU server is a flat monthly cost while an API charges per token, so the two cross at some usage level. Estimate your monthly tokens times the API's price, compare it to a capable GPU box's monthly cost, and see which side of the crossover you're on. At low volume the API is cheaper and simpler.</p>
 
-    <h3>Is self-hosting an LLM cheaper than a per-token API?</h3>
-    <p>Only at real volume. A GPU server is a flat monthly cost, while an API charges per token. So the server wins once usage is high and steady, and the API wins when you're quiet. Don't self-host purely to save money at trivial volume, since the GPU and your time usually cost more than a light API bill.</p>
+    <h3>Should I self-host or use a hosted API?</h3>
+    <p>Self-host for privacy, data residency, control over the model, or genuinely heavy steady volume. Use a hosted API when you want the simplest path, the very best model quality, or you're at low volume where per-token pricing is cheap. Many teams do both: an open model for most traffic, a frontier API for the rare hard case.</p>
 
-    <h3>Can my app call a self-hosted model like it calls OpenAI?</h3>
-    <p>Usually yes. Ollama and vLLM expose an OpenAI-style API, so you change the base URL to your own server and keep most of your code. Put the model behind your backend, stream the tokens, and keep any key you set on the server rather than in the browser.</p>
-
-    <h3>Does Kloudbean fine-tune or build the model for me?</h3>
-    <p>No. Kloudbean runs the server and can install a model for you, one-click or via support, but you choose and own the model, the prompts, and the data. Kloudbean is not a per-token model API and does not train or fine-tune models on your behalf.</p>
+    <h3>Can I run a 70B model on a single GPU?</h3>
+    <p>Not on an ordinary one. A 70B model needs about 140GB at 16-bit and roughly 40GB even at 4-bit, so it exceeds a typical single card. Your options are to quantize aggressively and use a large-memory card, split the model across multiple GPUs, or run a smaller model that fits the hardware you have.</p>
   </div>
 
-  <p class="byline">By Kloudbean Engineering · You own the model, we run the box it lives on.</p>
+  <p class="byline">Kloudbean Engineering · Size for weights plus cache, quantize to fit, then serve it like any API.</p>
 </article>
 
 <script type="application/ld+json">
 {"@context":"https://schema.org","@graph":[
-{"@type":"Article","headline":"Self-Host an LLM: When It Pays Off, and How to Run One on a GPU","description":"An honest decision guide to self-hosting an LLM: when it beats a hosted API on privacy, data residency, and cost at volume, the GPU server you need, the ways to run a model on Kloudbean, and how to keep prompts and data in your region.","image":"https://www.kloudbean.com/blog/self-host-an-llm/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/self-host-an-llm/"},
+{"@type":"Article","headline":"Self-Host an LLM: The GPU Memory Math, Quantization, and Serving It","description":"A field guide to self-hosting an open model: the memory arithmetic that decides your GPU, what quantization trades, Ollama versus vLLM, serving the model to your app, why it runs slow or fails, and how to work out the cost.","image":"https://www.kloudbean.com/blog/self-host-an-llm/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/self-host-an-llm/"},
 {"@type":"FAQPage","mainEntity":[
-{"@type":"Question","name":"Can I self-host an LLM on my own server?","acceptedAnswer":{"@type":"Answer","text":"Yes. You provision a GPU server, put an open model on it, and your app talks to it over a local endpoint. On Kloudbean, DeepSeek and Open WebUI install in one click, and support installs any other or custom model on request. The model runs on your box, so prompts and data stay there."}},
-{"@type":"Question","name":"Should I self-host an LLM or just use a hosted API?","acceptedAnswer":{"@type":"Answer","text":"Self-host for privacy, data residency, or high steady volume. Use a hosted API when you want the simplest path, the very best model quality, or you are at low volume where per-token pricing is cheap. If none of the self-host reasons apply to you, an API is the easier call."}},
-{"@type":"Question","name":"Do I need a GPU to self-host an LLM?","acceptedAnswer":{"@type":"Answer","text":"For anything beyond a quick test, yes. A small model can limp along on CPU, but it answers slowly. A GPU is what makes generation feel quick, so a GPU server is the right home for a self-hosted model you will actually use."}},
-{"@type":"Question","name":"What size GPU server do I need to run an open model?","acceptedAnswer":{"@type":"Answer","text":"It scales with the model. A small model around 7B runs on a modest GPU. A mid model around 13B wants more GPU memory. Large models of 30B and up need serious GPU memory. Pick the model to fit the server you are comfortable paying for, then resize up if you need to."}},
-{"@type":"Question","name":"Which open models can I run on Kloudbean?","acceptedAnswer":{"@type":"Answer","text":"Any open model you like. DeepSeek installs one-click from the tool picker alongside Open WebUI, and for any other or custom model you start a chat and the support team installs it and makes it available on your server."}},
-{"@type":"Question","name":"Is a self-hosted LLM as good as GPT-4 or Claude?","acceptedAnswer":{"@type":"Answer","text":"Not quite at the frontier. The largest hosted models still lead on the hardest reasoning and broadest knowledge. But for drafting, summarizing, classification, coding help, and answering over your own documents, a good open model is more than enough. Many teams run open models for the bulk of the work and a hosted model for the rare heavy lift."}},
-{"@type":"Question","name":"How do I keep my prompts and data private and in-region?","acceptedAnswer":{"@type":"Answer","text":"Run the model on your own server and pin that server to your chosen region, including in-Kingdom in Dammam, so nothing crosses a border. On Enterprise the model can sit inside a private VPC, off the public internet. On standard plans you lock things down with IP allow-listing so only your app server can reach the model or database."}},
-{"@type":"Question","name":"Is self-hosting an LLM cheaper than a per-token API?","acceptedAnswer":{"@type":"Answer","text":"Only at real volume. A GPU server is a flat monthly cost, while an API charges per token. So the server wins once usage is high and steady, and the API wins when you are quiet. Do not self-host purely to save money at trivial volume, since the GPU and your time usually cost more than a light API bill."}},
-{"@type":"Question","name":"Can my app call a self-hosted model like it calls OpenAI?","acceptedAnswer":{"@type":"Answer","text":"Usually yes. Ollama and vLLM expose an OpenAI-style API, so you change the base URL to your own server and keep most of your code. Put the model behind your backend, stream the tokens, and keep any key you set on the server rather than in the browser."}},
-{"@type":"Question","name":"Does Kloudbean fine-tune or build the model for me?","acceptedAnswer":{"@type":"Answer","text":"No. Kloudbean runs the server and can install a model for you, one-click or via support, but you choose and own the model, the prompts, and the data. Kloudbean is not a per-token model API and does not train or fine-tune models on your behalf."}}
+{"@type":"Question","name":"How much GPU memory do I need to run a 7B, 13B, or 70B model?","acceptedAnswer":{"@type":"Answer","text":"Start from the weights: parameter count times bytes per parameter. At 16-bit that is about 14GB for a 7B model, 26GB for 13B, and 140GB for 70B. Quantized to 4-bit those drop to roughly 4GB, 7GB, and 40GB. Then add headroom for the KV cache, which grows with context length and concurrency, so plan for more than the weights alone."}},
+{"@type":"Question","name":"Does quantization make a model worse?","acceptedAnswer":{"@type":"Answer","text":"A little, and usually less than people expect. Eight-bit is close to indistinguishable from full precision. Four-bit has a small quality dip that most tasks will not show, which is why it is the common choice. Below 4-bit the loss becomes noticeable. A useful rule: a bigger model at 4-bit usually beats a smaller model at full precision for the same memory."}},
+{"@type":"Question","name":"What is the difference between Ollama and vLLM?","acceptedAnswer":{"@type":"Answer","text":"Ollama wraps llama.cpp, pulls GGUF models easily, and can offload layers to CPU when the GPU is tight, which makes it great for a single user or a dev machine. vLLM is a throughput engine with continuous batching, built to serve many concurrent requests behind an app, but it wants the whole model in GPU memory and is heavier to run. Use Ollama for simple, vLLM for concurrency."}},
+{"@type":"Question","name":"Do I need a GPU, or can I run an LLM on CPU?","acceptedAnswer":{"@type":"Answer","text":"A small model will run on CPU, it just answers slowly because generation speed depends on memory bandwidth, and system RAM is far slower to stream than GPU memory. CPU is fine for trying things out or very light, patient use. For anything interactive or multi-user, a GPU is what makes it feel quick."}},
+{"@type":"Question","name":"Why is my self-hosted LLM so slow?","acceptedAnswer":{"@type":"Answer","text":"Most often the model does not fully fit in GPU memory, so it is spilling to the CPU and streaming weights over a slower path. Generation speed is bound by memory bandwidth, so a model that does not fit crawls. Quantize it further, shorten the context, or use a card with more memory so the whole model sits in VRAM."}},
+{"@type":"Question","name":"How does my app call a self-hosted model?","acceptedAnswer":{"@type":"Answer","text":"Both Ollama and vLLM expose an OpenAI-compatible API, so you point your existing client at your own base URL and keep most of your code. Have your backend call the model, not the browser, so you can add auth, rate limits, and a spend cap in one place. Stream the tokens back for long replies, and keep any gateway key on the server."}},
+{"@type":"Question","name":"Is self-hosting an LLM cheaper than the OpenAI API?","acceptedAnswer":{"@type":"Answer","text":"Only at real, steady volume. A GPU server is a flat monthly cost while an API charges per token, so the two cross at some usage level. Estimate your monthly tokens times the API price, compare it to a capable GPU box monthly cost, and see which side of the crossover you are on. At low volume the API is cheaper and simpler."}},
+{"@type":"Question","name":"Should I self-host or use a hosted API?","acceptedAnswer":{"@type":"Answer","text":"Self-host for privacy, data residency, control over the model, or genuinely heavy steady volume. Use a hosted API when you want the simplest path, the very best model quality, or you are at low volume where per-token pricing is cheap. Many teams do both: an open model for most traffic, a frontier API for the rare hard case."}},
+{"@type":"Question","name":"Can I run a 70B model on a single GPU?","acceptedAnswer":{"@type":"Answer","text":"Not on an ordinary one. A 70B model needs about 140GB at 16-bit and roughly 40GB even at 4-bit, so it exceeds a typical single card. Your options are to quantize aggressively and use a large-memory card, split the model across multiple GPUs, or run a smaller model that fits the hardware you have."}}
 ]}
 ]}
 </script>
