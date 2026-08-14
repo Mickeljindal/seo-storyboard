@@ -64,7 +64,7 @@ Once you can see the arrow, you have exactly two honest ways to deal with it. Ne
 | Factor | Call a hosted model API (abroad) | Self-host an open model in-Kingdom |
 | --- | --- | --- |
 | Data residency | Prompt leaves the Kingdom on each call | Nothing leaves; inference runs in-Kingdom |
-| Setup and ops effort | Low, it's an API call | High, a real ops project (compute, drivers, scaling) |
+| Setup and ops effort | Low, it's an API call | Moderate: one-click or support installs it, you own sizing and scaling |
 | Cost shape | Pay per token, scales with use | Pay for the compute you run, busy or idle |
 | Latency | Depends on the provider's region | In-region, close to your users |
 | Model quality | Access to the strongest frontier models | Strong open models, usually a step behind the top ones |
@@ -140,7 +140,7 @@ In a managed database in the Dammam region. Conversation history fits in Postgre
 Yes. Embeddings are just vectors in a database, so they can live wherever your database lives. With pgvector in an in-Kingdom Postgres, your embeddings and your normal data sit in the same region on Saudi soil. The embeddings themselves never have to cross the border; only the momentary prompt does.
 
 **Do I have to self-host an LLM to host AI apps in Saudi Arabia?**
-No, not usually. Self-hosting an open model keeps the prompt in-Kingdom, but it's a real ops project that needs suitable GPU-class compute, and you own the scaling and updates. Most teams keep calling a hosted API and just minimize what they send. Self-host only when the data genuinely cannot leave the Kingdom.
+No, not usually. Self-hosting an open model keeps the prompt in-Kingdom, and getting it running is easy enough (DeepSeek is one-click, and support installs any other model on request), though you own the GPU sizing, the scaling, and the cost of always-on compute. Most teams keep calling a hosted API and just minimize what they send. Self-host only when the data genuinely cannot leave the Kingdom.
 
 **What is the GCP Dammam region and can I run an AI app there?**
 Dammam (me-central2) is Google Cloud's region physically located in Saudi Arabia. You can run an AI app's server, database, object storage, and backups there, so the resident parts of your app stay in-Kingdom. The region guide covers the specifics. It's the in-Kingdom option Kloudbean provisions on.

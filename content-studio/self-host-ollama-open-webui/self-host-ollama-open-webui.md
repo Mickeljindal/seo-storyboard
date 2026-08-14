@@ -43,7 +43,7 @@ Four reasons, and I'll rank them by how often they're the real motive:
 - **You pick the models.** Open models improve constantly. Swapping one for another is a download, not a contract. You're not tied to a single vendor's roadmap or pricing.
 - **Control.** No rate limits you didn't set, no model deprecations sprung on you.
 
-My honest position: privacy and control are the reasons that hold up. "It'll be cheaper" is true only at real volume, because the server (especially with a GPU) is not free. More on that below.
+My honest position: privacy and control are the reasons that hold up. "It'll be cheaper" is true only at real volume, because the server (especially with a GPU) is not free. More on that below. If you're still weighing this against a hosted API, the broader decision and the other ways to run a model are in [self-host an LLM](https://www.kloudbean.com/blog/self-host-an-llm/).
 
 ## The one decision that matters: hardware
 
