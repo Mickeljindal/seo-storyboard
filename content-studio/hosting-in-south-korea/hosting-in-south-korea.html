@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hosting in South Korea: Latency, Data Residency, and the PIPA Question</title>
+<meta name="description" content="Hosting in South Korea comes down to two separate things: latency (physics) and PIPA (the law). How Seoul server latency really works, what South Korea data residency and PIPA compliance ask for, and where your data should live.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/hosting-in-south-korea/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Hosting in South Korea: Latency, Data Residency, and the PIPA Question">
+<meta property="og:description" content="A field guide to hosting in South Korea: why Seoul server latency is about distance, what PIPA asks for at a rule level, and how to decide what has to stay in a Korea cloud region.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Geo hosting · South Korea</span>
+  <h1>Hosting in South Korea: Latency, Data Residency, and the PIPA Question</h1>
+  <p class="byline">By Kloudbean Engineering · Two questions hide inside one: how far, and whose law.</p>
+
+  <figure><img src="images/hero.png" alt="Hosting in South Korea shown as two separate decisions: latency from distance, and data residency under PIPA"></figure>
+
+  <p class="lead">Hosting in South Korea usually comes down to two forces that people keep tangling together: physical distance, which sets your latency, and the law, which is PIPA. They're separate problems with separate answers, and mixing them up is how teams end up with a slow app that still isn't compliant, or a compliant setup that feels sluggish. This is the practical, decision-first version. Why Seoul server latency is really about distance, what PIPA actually asks for at a rule level, and a clear way to decide what has to live inside Korea and what doesn't. The reasoning holds wherever you run your servers.</p>
+
+  <div class="tldr">
+    <strong>The short, useful version</strong>
+    <p>Two independent things decide where to host for Korean users. Latency is distance: Seoul to a Seoul region is a short hop, while Seoul to a US region crosses the Pacific and back, so it's far slower and that cost repeats on every round trip. PIPA, South Korea's Personal Information Protection Act, is the legal side: it's consent-centric and puts conditions on moving Koreans' personal data abroad. Host Korean users' personal data in a Korea cloud region for both speed and a cleaner South Korea data residency story. But know that region choice is necessary, not sufficient, for PIPA compliance. The app-level obligations stay yours.</p>
+  </div>
+
+  <h2>Hosting in South Korea is two questions, not one</h2>
+  <p>Before you pick a region, separate the two reasons you might care where a server sits. They're genuinely independent, and the confusion between them causes most bad calls.</p>
+  <p><strong>One is speed.</strong> How far the machine is from your users sets a floor on how fast every request can be. That's latency, and it's pure physics. <strong>The other is law.</strong> South Korea's data protection rules care about where personal data lives and how it moves, and that has nothing to do with milliseconds. You can nail one and miss the other. A US-hosted app serving Seoul users is slow, and it may also be mishandling Korean personal data. A Seoul-hosted app can feel instant and still break the law if it quietly ships user records to an overseas tool without a proper basis.</p>
+  <p>So treat them as two axes: fast or slow on one, in-region or not on the other. The rest of this guide takes them one at a time, because "where should I host in Korea" is really two questions that happen to share a page.</p>
+
+  <h2>Latency is just distance, and it repeats</h2>
+  <p>Latency has a reputation as a mysterious tuning problem. It mostly isn't. A request from a browser to a server and back is a round trip, and the speed of light through fiber puts a hard floor under how quick that trip can be. Nothing you configure beats the distance. You can only shorten it by moving the server closer.</p>
+  <p>The part people underestimate is that the round trip doesn't happen once. Loading a single page can mean a DNS lookup, a TLS handshake that's a couple of round trips on its own, the actual request, then several more as the page fetches data, calls an API, or runs a few queries. Every one pays the distance again. So a page that feels instant Seoul-hosted for Seoul users can feel draggy from a US region, not because any single hop is unbearable, but because you're paying the long trip ten times over.</p>
+  <p>Rough, typical numbers make it concrete, and the table further down lays them out. Within a region you're usually in single digits to low tens of milliseconds. Seoul across the Pacific to a US region lands well over 100 ms, often 120 to 180 depending on which US coast you hit. Approximate physics floors, not benchmarks, and real networks add a bit on top.</p>
+
+  <figure>
+    <svg viewBox="0 0 820 430" role="img" aria-labelledby="lat-t lat-d" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#f6f7fb;border:1px solid #e6e9f2;border-radius:16px">
+      <title id="lat-t">Latency is distance, and every round trip pays it</title>
+      <desc id="lat-d">Two paths from a user in Seoul. To a Seoul region the hop is short, a typical round trip of single digits to low tens of milliseconds. To a US region the request crosses the Pacific and back, a typical round trip well over 100 milliseconds, and that cost repeats for the DNS lookup, the TLS handshake, every database query, and every API call.</desc>
+      <text x="28" y="36" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Same user, two distances</text>
+
+      <text x="28" y="76" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600" letter-spacing="1.5">IN-REGION</text>
+      <circle cx="56" cy="108" r="15" fill="#000f27"/>
+      <text x="56" y="138" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="11">User in Seoul</text>
+      <line x1="78" y1="108" x2="238" y2="108" stroke="#40b75f" stroke-width="3"/>
+      <path d="M238 108 l-9 -5 v10 z" fill="#40b75f"/>
+      <rect x="252" y="90" width="140" height="36" rx="8" fill="#000f27"/>
+      <text x="322" y="113" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">Seoul region</text>
+      <rect x="410" y="92" width="180" height="32" rx="16" fill="#e7f7ed" stroke="#40b75f"/>
+      <text x="500" y="113" text-anchor="middle" fill="#1d7a3e" font-family="Poppins,sans-serif" font-size="12" font-weight="600">~5 to 30 ms round trip</text>
+      <text x="606" y="113" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">feels instant</text>
+
+      <text x="28" y="192" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="10.5" font-weight="600" letter-spacing="1.5">CROSS-PACIFIC</text>
+      <text x="360" y="214" text-anchor="middle" fill="#8a97b2" font-family="Poppins,sans-serif" font-size="11">the Pacific Ocean, roughly 10,000 km each way</text>
+      <circle cx="56" cy="226" r="15" fill="#000f27"/>
+      <text x="56" y="256" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="11">User in Seoul</text>
+      <line x1="78" y1="226" x2="648" y2="226" stroke="#4F1AF3" stroke-width="3"/>
+      <path d="M648 226 l-9 -5 v10 z" fill="#4F1AF3"/>
+      <rect x="662" y="208" width="132" height="36" rx="8" fill="#4F1AF3"/>
+      <text x="728" y="231" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">US region</text>
+      <rect x="78" y="274" width="204" height="30" rx="15" fill="#ffffff" stroke="#000f27"/>
+      <text x="180" y="294" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12" font-weight="600">~120 to 180 ms round trip</text>
+      <text x="296" y="294" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">feels sluggish under load</text>
+
+      <line x1="30" y1="330" x2="30" y2="412" stroke="#cbd2e0" stroke-width="1.5"/>
+      <text x="44" y="348" fill="#000f27" font-family="Poppins,sans-serif" font-size="12" font-weight="600">Reading it</text>
+      <text x="44" y="370" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">Every round trip pays the distance again: the DNS lookup, the TLS handshake,</text>
+      <text x="44" y="390" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">each database query, and each API call. A page built from ten round trips pays it ten times.</text>
+    </svg>
+    <figcaption>Latency is set by distance, and a real page makes many round trips, so the gap between a Seoul region and a US region multiplies under normal use.</figcaption>
+  </figure>
+
+  <p>You can measure this yourself in a minute. From a machine in Korea, compare the round-trip time to a server in a Seoul region against one in the US:</p>
+  <pre><code># Round-trip time from a Korean machine to two regions
+ping -c 5 seoul-app.example.com     # Seoul region:  single digits to low tens of ms
+ping -c 5 us-app.example.com        # US region:     well over 100 ms</code></pre>
+  <p>One honest note on where latency actually starts: the very first thing a browser does is a DNS lookup, and a slow resolver adds delay before any of this even begins. If pages feel laggy and the region looks right, rule the name lookup out early, which the guide to <a href="https://www.kloudbean.com/blog/fix-slow-dns-lookup/">fixing slow DNS lookups</a> walks through. Distance sets the floor; DNS can quietly raise it.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Route for a Seoul user</th><th>Typical round trip</th><th>How it feels</th></tr></thead>
+    <tbody>
+      <tr><td>Seoul region (same country)</td><td>Single digits to low tens of ms</td><td>Instant</td></tr>
+      <tr><td>Nearby Asia (Tokyo, Osaka)</td><td>A few tens of ms</td><td>Snappy</td></tr>
+      <tr><td>Singapore or India</td><td>Tens of ms, higher</td><td>Usable, not local</td></tr>
+      <tr><td>US region (across the Pacific)</td><td>Well over 100 ms, often 120 to 180</td><td>Sluggish once a page makes many calls</td></tr>
+    </tbody>
+  </table>
+  <p>These are approximate and vary with routing, but the ranking almost never changes: closer is faster, and the Pacific is wide.</p>
+
+  <h2>PIPA, South Korea's data protection law, in plain terms</h2>
+  <p>Now the other axis, which has nothing to do with speed. PIPA is the Personal Information Protection Act, South Korea's comprehensive data protection law. If your product handles the personal data of people in Korea, PIPA is the framework you're operating under, and it's worth knowing its shape even if the legal detail is a lawyer's job.</p>
+  <p>At a rule level, a few things define it. It's consent-centric: you generally need a lawful basis, often consent, to collect and use someone's personal information, and consent is expected to be informed and specific rather than buried. It grants data subjects rights over their own data, things like access, correction, and deletion. It sets duties around security and around notifying people and the regulator when a breach exposes personal data. And it places conditions on cross-border transfer, meaning moving Koreans' personal data out of the country is something you have to do on a proper basis, not by default. The body that enforces all this is the Personal Information Protection Commission, the PIPC.</p>
+  <p>The practical translation for hosting is short. If you hold the personal data of Korean users, there's a strong case to keep that data in a Korea cloud region, and you also need to get consent and any overseas transfer right inside your application. Those are two different jobs. The region handles the location question. Your code and your policies handle the rest.</p>
+
+  <div class="note"><b>Location is not compliance:</b> Putting Korean users' data in a Seoul region is a real, strong step for the residency and location parts of PIPA. It does not settle consent, lawful basis, retention, or data-subject rights. Those live in your application and your processes, and they stay your responsibility. This is the same shared-responsibility shape you'll find under <a href="https://www.kloudbean.com/blog/data-residency-explained/">any data residency law</a>.</div>
+
+  <h2>What actually needs to stay in South Korea</h2>
+  <p>Not everything has to sit in-country, and treating it as all-or-nothing either slows you down or costs you more than it should. The useful move is to sort your stack by whether it holds personal data of Korean users. That single question decides most of it.</p>
+
+  <table class="cmp">
+    <thead><tr><th>What it is</th><th>Stay in a Korea region?</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Personal data of Korean users (accounts, orders, messages, profiles)</td><td>Strong case, yes</td><td>This is the data PIPA is about; residency and latency both point in-region</td></tr>
+      <tr><td>The database and app that handle that data</td><td>Yes</td><td>Keep the data and the code that touches it together, and fast</td></tr>
+      <tr><td>Backups of that personal data</td><td>Yes</td><td>A backup in another country quietly undoes your residency</td></tr>
+      <tr><td>Static assets (images, CSS, JavaScript)</td><td>No, use a CDN or edge</td><td>No personal data, and edge delivery is faster worldwide anyway</td></tr>
+      <tr><td>Your own analytics and logs</td><td>Your call</td><td>Treat as personal data if it's identifiable; otherwise more freedom</td></tr>
+      <tr><td>Public marketing pages</td><td>No</td><td>No personal data to protect, so host wherever is convenient</td></tr>
+    </tbody>
+  </table>
+
+  <p>Two subtleties are worth internalizing. First, backups count. People carefully place a server in a Seoul region and let the console default backups to somewhere overseas, which reopens the exact door they meant to close. Keep copies in-region with the primary. Second, the network around the data matters as much as the data's location. Locking a database so only your application server can reach it, using <a href="https://www.kloudbean.com/blog/database-private-access-control/">IP allow-listing on the database</a> and strong credentials, is what keeps in-region data from being reachable by the wider internet. If you want the deeper networking picture, <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">what a VPC is</a> covers isolating workloads properly.</p>
+
+  <h2>How to decide where to host for Korean users</h2>
+  <p>Put the two axes together and the decision falls out of three questions.</p>
+  <p><strong>Who are your users?</strong> If they're mostly in Korea, a Seoul region is the obvious home for the app and its data: fastest for them, cleanest for residency. If they're split across Asia or the world, you might keep the personal-data core in Korea and push static, non-personal parts to the edge so distant users still get quick page loads.</p>
+  <p><strong>What data do you hold?</strong> If you store identifiable personal data of Korean users, that's the strongest single reason to host in Korea, and it's a legal reason, not just a performance one. If you hold no personal data of Koreans at all, PIPA's residency pressure eases and the decision becomes mostly about latency.</p>
+  <p><strong>How latency-sensitive is the experience?</strong> A chatty, interactive app (dashboards, editors, anything with lots of small requests) feels every millisecond, so distance hurts most there. A batch job or a background API that nobody waits on can tolerate a farther region. If you're running the app across more than one machine for resilience, the region also has isolated zones you can spread across, which is the practical side of <a href="https://www.kloudbean.com/blog/high-availability-explained/">high availability</a>.</p>
+  <p>My honest default: if a meaningful share of your users or your personal data is Korean, host the core in a Seoul region and stop overthinking it. The cases where staying out of Korea wins are real but narrow, and they're usually about an existing system you can't easily move, not about a fresh choice.</p>
+
+  <!-- ADD IMAGE: a simple data-inventory sketch. Two columns, "holds Korean personal data -> Korea region" and "no personal data -> edge or anywhere", with a few example rows. src -> images/data-inventory.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A data-inventory sketch: each part of your stack sorted into "personal data, keep in Korea" versus "no personal data, put on the edge."</em><small>This one sort decides most of the residency question.</small></span></figure>
+
+  <h2>The mistakes that quietly erase the win</h2>
+  <p>Most Korea-hosting regret isn't exotic. It's a small default that cancels the thing you moved for.</p>
+  <p><strong>App in Seoul, but a US API on every request.</strong> This is the big one. You put the app in a Seoul region, feel good about it, then the app calls a payment service, an auth provider, or an analytics endpoint in the US on each page load. Now every request still crosses the Pacific, and the latency win you paid for evaporates. A fast region wrapped around a chatty overseas dependency is not fast. Audit your outbound calls, and cache or co-locate the ones on the hot path.</p>
+  <p><strong>Assuming region equals compliance.</strong> Picking a Seoul region settles where the bytes sit. It doesn't hand you consent flows, a lawful basis, retention rules, or data-subject rights. Those are app-level work under PIPA, and no region setting does them for you. Residency is the foundation, not the whole building.</p>
+  <p><strong>Letting backups drift.</strong> It earns a repeat because it's so common. A backup written to a default overseas bucket breaks residency silently, with no error to warn you, so check where your backups actually land.</p>
+
+  <h2>Where to run it</h2>
+  <p>The hard part, a data center physically in Korea, already exists on the major clouds. The two best-known Seoul regions are AWS <code>ap-northeast-2</code> and Google Cloud <code>asia-northeast3</code>, and other providers run Korean regions too. So "host in Korea" is a real, available choice, not a special request. What differs is how much of the surrounding work you want to do yourself.</p>
+  <p>You can stand up a raw cloud instance in a Seoul region and own the OS, the database, the patching, the SSL, and the backups. Or you can use a managed platform that provisions the region and runs that layer for you, so you pick where the server lives and get on with your app. Either way, the principles above decide the outcome: put Korean personal data in a Korea region, keep backups there too, and don't let an overseas dependency undo your latency. The same region-choice logic shows up in adjacent problems, from <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">pinning a managed database to a region</a> to keeping an AI workload's data in-country when you <a href="https://www.kloudbean.com/blog/self-host-an-llm/">self-host a model</a>.</p>
+  <p>Kloudbean is one managed option here: it can provision servers across major clouds' regions, Seoul included, and run the server, stack, free SSL, backups, and patching for you, with managed databases you can pin to a region and lock to your app server's IP. Handy to know, but secondary to the point of this page, which is that the latency and residency reasoning above is what should drive your region choice wherever you land.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:19px">Pick the region for the physics and the law, then build.</p>
+    <p style="margin:0">If you'd rather not run the server, SSL, and backups yourself, Kloudbean can provision a managed server and database in a Seoul region across major clouds, with free migration assistance and plans from $8/mo (check current pricing on the pricing page). It's aligned with data-residency needs; the app-level PIPA work stays yours. Details at <a href="https://www.kloudbean.com/">kloudbean.com</a> and <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Is my data required to stay in South Korea?</h3>
+    <p>It depends on the data and your basis for handling it. PIPA doesn't impose a blanket rule that every byte must physically stay in South Korea, but it does put conditions on transferring Koreans' personal data abroad, and keeping that data in a Korea cloud region is the simplest way to satisfy the location questions. Non-personal data and static assets have far more freedom. When in doubt, treat identifiable personal data of Korean users as the thing to keep in-region.</p>
+
+    <h3>What is PIPA?</h3>
+    <p>PIPA is South Korea's Personal Information Protection Act, its comprehensive data protection law. It's consent-centric, grants people rights over their data such as access and deletion, requires a lawful basis to collect and use personal information, sets breach-notification duties, and places conditions on moving Koreans' personal data out of the country. The regulator that enforces it is the Personal Information Protection Commission, the PIPC.</p>
+
+    <h3>How much faster is a Seoul server for Korean users?</h3>
+    <p>Enough to feel it. Serving a Seoul user from a Seoul region is usually a single-digit to low-tens-of-milliseconds round trip, while serving them from a US region crosses the Pacific and back, often 120 to 180 ms per round trip. Because a page makes many round trips (DNS, TLS, each query, each API call), that gap multiplies. These are typical physics floors, not promises.</p>
+
+    <h3>Does hosting in Korea make me PIPA compliant?</h3>
+    <p>No, not on its own. Hosting Korean users' personal data in a Korea region is a strong step for the residency and location parts of PIPA, but compliance is shared. Consent, lawful basis, retention, data-subject rights, and a proper basis for any cross-border transfer live in your application and your processes. Region choice is necessary for many cases, not sufficient by itself.</p>
+
+    <h3>Which cloud regions are in Seoul?</h3>
+    <p>The major clouds run regions in or around Seoul. The two best known are AWS ap-northeast-2 (Seoul) and Google Cloud asia-northeast3 (Seoul), and other providers operate Korean regions too. The practical point is that you can pin a server to a Seoul region on major clouds, which is what puts your workload physically in the country.</p>
+
+    <h3>Do I need consent to move Korean personal data abroad?</h3>
+    <p>Often yes. PIPA places conditions on transferring Koreans' personal data outside the country, and consent after proper notice is a common basis, though not the only mechanism. The details depend on the data, the recipient, and the purpose, so treat any cross-border transfer as something to design deliberately rather than by accident. When it's genuinely unclear, get local legal advice.</p>
+
+    <h3>What is the difference between latency and data residency?</h3>
+    <p>Latency is about speed: how long a round trip takes, which is set by physical distance. Data residency is about location: which country your data physically sits in, which is driven by law and policy. They often point to the same answer for Korean users, which is host in Korea, but they're separate reasons, and you should be able to state each one on its own.</p>
+
+    <h3>Can I put static assets on a global CDN and still host in Korea?</h3>
+    <p>Yes, and you usually should. Static assets like images, CSS, and JavaScript carry no personal data, so serving them from a global CDN or edge network is fine and often faster worldwide. Keep the personal data and the app that handles it in a Korea region, and let the static, non-personal parts live on the edge. Residency is about the personal data, not the logo.</p>
+
+    <h3>Does hosting in Japan or Singapore work for Korean users?</h3>
+    <p>For latency, a nearby Asian region like Tokyo or Osaka is much better than the US, though still not as fast as a Seoul region. For the law, hosting Korean users' personal data outside the country is a cross-border transfer under PIPA, with its own conditions, so nearby is not the same as in-country. If residency matters, in-Korea beats nearby; if only latency matters, nearby Asia is a reasonable compromise.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Choose the region for physics and the law, then get consent right in the app.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Hosting in South Korea: Latency, Data Residency, and the PIPA Question","description":"A field guide to hosting in South Korea: why Seoul server latency is set by distance, what PIPA asks for at a rule level, what personal data should stay in a Korea cloud region, and how to decide where to host for Korean users.","image":"https://www.kloudbean.com/blog/hosting-in-south-korea/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/hosting-in-south-korea/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Is my data required to stay in South Korea?","acceptedAnswer":{"@type":"Answer","text":"It depends on the data and your basis for handling it. PIPA does not impose a blanket rule that every byte must physically stay in South Korea, but it does put conditions on transferring Koreans' personal data abroad, and keeping that data in a Korea cloud region is the simplest way to satisfy the location questions. Non-personal data and static assets have far more freedom. When in doubt, treat identifiable personal data of Korean users as the thing to keep in-region."}},
+{"@type":"Question","name":"What is PIPA?","acceptedAnswer":{"@type":"Answer","text":"PIPA is South Korea's Personal Information Protection Act, its comprehensive data protection law. It is consent-centric, grants people rights over their data such as access and deletion, requires a lawful basis to collect and use personal information, sets breach-notification duties, and places conditions on moving Koreans' personal data out of the country. The regulator that enforces it is the Personal Information Protection Commission, the PIPC."}},
+{"@type":"Question","name":"How much faster is a Seoul server for Korean users?","acceptedAnswer":{"@type":"Answer","text":"Enough to feel it. Serving a Seoul user from a Seoul region is usually a single-digit to low-tens-of-milliseconds round trip, while serving them from a US region crosses the Pacific and back, often 120 to 180 ms per round trip. Because a page makes many round trips (DNS, TLS, each query, each API call), that gap multiplies. These are typical physics floors, not promises."}},
+{"@type":"Question","name":"Does hosting in Korea make me PIPA compliant?","acceptedAnswer":{"@type":"Answer","text":"No, not on its own. Hosting Korean users' personal data in a Korea region is a strong step for the residency and location parts of PIPA, but compliance is shared. Consent, lawful basis, retention, data-subject rights, and a proper basis for any cross-border transfer live in your application and your processes. Region choice is necessary for many cases, not sufficient by itself."}},
+{"@type":"Question","name":"Which cloud regions are in Seoul?","acceptedAnswer":{"@type":"Answer","text":"The major clouds run regions in or around Seoul. The two best known are AWS ap-northeast-2 (Seoul) and Google Cloud asia-northeast3 (Seoul), and other providers operate Korean regions too. The practical point is that you can pin a server to a Seoul region on major clouds, which is what puts your workload physically in the country."}},
+{"@type":"Question","name":"Do I need consent to move Korean personal data abroad?","acceptedAnswer":{"@type":"Answer","text":"Often yes. PIPA places conditions on transferring Koreans' personal data outside the country, and consent after proper notice is a common basis, though not the only mechanism. The details depend on the data, the recipient, and the purpose, so treat any cross-border transfer as something to design deliberately rather than by accident. When it is genuinely unclear, get local legal advice."}},
+{"@type":"Question","name":"What is the difference between latency and data residency?","acceptedAnswer":{"@type":"Answer","text":"Latency is about speed: how long a round trip takes, which is set by physical distance. Data residency is about location: which country your data physically sits in, which is driven by law and policy. They often point to the same answer for Korean users, which is host in Korea, but they are separate reasons, and you should be able to state each one on its own."}},
+{"@type":"Question","name":"Can I put static assets on a global CDN and still host in Korea?","acceptedAnswer":{"@type":"Answer","text":"Yes, and you usually should. Static assets like images, CSS, and JavaScript carry no personal data, so serving them from a global CDN or edge network is fine and often faster worldwide. Keep the personal data and the app that handles it in a Korea region, and let the static, non-personal parts live on the edge. Residency is about the personal data, not the logo."}},
+{"@type":"Question","name":"Does hosting in Japan or Singapore work for Korean users?","acceptedAnswer":{"@type":"Answer","text":"For latency, a nearby Asian region like Tokyo or Osaka is much better than the US, though still not as fast as a Seoul region. For the law, hosting Korean users' personal data outside the country is a cross-border transfer under PIPA, with its own conditions, so nearby is not the same as in-country. If residency matters, in-Korea beats nearby; if only latency matters, nearby Asia is a reasonable compromise."}}
+]}
+]}
+</script>
+</body>
+</html>

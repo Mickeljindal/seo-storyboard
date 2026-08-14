@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Understand the Code AI Wrote: A Non-Coder's Guide to Reading Your Own App</title>
+<meta name="description" content="Learn to understand the code AI wrote, even if you're not a developer. Find the entry point, follow a request, tell frontend from backend, spot where secrets and API calls live, and get the AI to explain its own code while you verify it.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/understand-the-code-ai-wrote/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Understand the Code AI Wrote: A Non-Coder's Guide to Reading Your Own App">
+<meta property="og:description" content="A plain-English guide to reading AI-generated code without becoming a developer: the folder map, the entry point, frontend vs backend, where the money and risk hide, and how to read an error.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Vibe coding &middot; Reading your code</span>
+  <h1>Understand the Code AI Wrote: A Non-Coder's Guide to Reading Your Own App</h1>
+  <p class="byline">By Kloudbean Engineering &middot; Owning your app instead of being hostage to the tool.</p>
+
+  <figure><img src="images/hero.png" alt="A simplified map of an AI-built codebase: the folders, the entry point, and how a request flows from the browser to the database and back"></figure>
+
+  <p class="lead">You built something real with Lovable, Cursor, Bolt, or Replit, and it works. Then one day it breaks, or a bill spikes, or a security scare lands in your inbox, or you need to change one small thing the AI keeps getting wrong. And you're staring at a folder full of files you have never opened. So let's fix that. This guide teaches you to understand the code AI wrote, even if you have never written a line yourself. Not to become a developer. Just to stop being locked out of your own app.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>You don't need to learn to code. You need to learn to navigate. Find the entry point where the app starts, follow one request from the browser to the database and back, learn to tell frontend from backend (that one decides where secrets are safe), and locate where the API calls and the secrets live. Then let the AI explain its own code in plain English, and verify what it says against what you now understand. Reading code is far easier than writing it.</p>
+  </div>
+
+  <h2>How to understand the code AI wrote without becoming a developer</h2>
+  <p>Here is the reassuring truth up front. Reading code is much easier than writing it. You already do the reading kind of thinking every day. You can read a menu without being a chef. You can follow a recipe without inventing one. Code is the same. You are learning to find your way around a building, not to lay the bricks.</p>
+  <p>Why bother, when the whole appeal of these tools is that you don't have to look? Because the moment something goes wrong, the tool's confidence runs out. It will happily rewrite a file and swear it fixed the bug, then break two other things. It will leave a secret sitting somewhere it should not. It will hit a wall on a change and loop. When that happens, the difference between owning your app and being stuck is small: it is knowing where to look and roughly what you are looking at. That is the skill. It is learnable in an afternoon, and it pays off every time the AI gets confused.</p>
+  <p>One expectation to set. You are not going to read the whole codebase, and you should not try. Even the developers who write these things don't read every line. They navigate to the part that matters and ignore the rest. That is exactly what you'll learn to do here.</p>
+
+  <h2>Step one: get your bearings in the folders</h2>
+  <p>Open your project and resist the urge to click into a file and start reading. First, just look at the top-level folders and files, the way you'd glance at a map before walking into a new city. Most AI-built apps follow the same rough layout, so once you learn it, you can read a codebase as a non-developer without much trouble. Here's what the usual pieces mean and, more useful, why you'd care.</p>
+
+  <table class="cmp">
+    <thead><tr><th>File or folder</th><th>What it is</th><th>Why you care</th></tr></thead>
+    <tbody>
+      <tr><td><code>README.md</code></td><td>The note the tool or a developer left behind</td><td>Read it first. It usually says how to run the app and what the parts are.</td></tr>
+      <tr><td><code>package.json</code> / <code>requirements.txt</code> / <code>Gemfile</code></td><td>The app's identity card and its shopping list of dependencies</td><td>Tells you the name, how to start it, and every outside library it leans on.</td></tr>
+      <tr><td><code>src/</code> or <code>app/</code></td><td>The actual code that was generated for you</td><td>This is where you'll spend nearly all your time.</td></tr>
+      <tr><td><code>routes/</code>, <code>pages/</code>, or <code>api/</code></td><td>The URLs of your app</td><td>Each file here tends to map to a page you see or an endpoint the app calls.</td></tr>
+      <tr><td><code>components/</code></td><td>The UI building blocks</td><td>Buttons, forms, cards. The visible stuff on screen.</td></tr>
+      <tr><td><code>.env</code> and config files</td><td>Settings and secrets</td><td>Where API keys and connection strings should live. This file should never be committed to Git.</td></tr>
+      <tr><td><code>migrations/</code>, <code>schema</code>, or <code>db/</code></td><td>The shape of your data</td><td>Your tables and columns. What the app actually stores and how it's organized.</td></tr>
+      <tr><td><code>public/</code> or <code>static/</code></td><td>Files served exactly as they are</td><td>Images, icons, the favicon. Nothing secret ever goes here.</td></tr>
+      <tr><td><code>node_modules/</code> or <code>venv/</code></td><td>Downloaded dependency code</td><td>Do not edit. It's generated from your dependency list and can be thrown away and rebuilt.</td></tr>
+      <tr><td><code>dist/</code> or <code>build/</code></td><td>The compiled output</td><td>Also generated. If you want to change something, change the source in <code>src/</code>, not this.</td></tr>
+    </tbody>
+  </table>
+
+  <p>Start with the identity card. Open <code>package.json</code> (or <code>requirements.txt</code> for a Python app) and read three things: the name, the scripts, and the dependencies.</p>
+  <pre><code>{
+  "name": "my-ai-app",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.0",
+    "react": "^18.3.0",
+    "pg": "^8.11.0"
+  }
+}</code></pre>
+  <p>That tiny file tells you a lot. The <code>scripts</code> are the buttons for running the app: <code>start</code> is how it runs for real, <code>dev</code> is how you run it while working, <code>build</code> packages it up. The <code>dependencies</code> are the libraries it's built on, and you can look each one up in ten seconds. Here <code>express</code> is the web server, <code>react</code> draws the screen, and <code>pg</code> is how the app talks to a PostgreSQL database. You just learned the app's whole shape without reading a single line of its logic.</p>
+
+  <!-- ADD IMAGE: a screenshot of the reader's own editor (VS Code, Cursor) with the file explorer panel open, showing their real project's top-level folders. src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your editor's file tree with the top-level folders visible, so a reader can match this map to their own project.</em><small>Cursor or VS Code both work.</small></span></figure>
+
+  <h2>Find the entry point, then follow one request</h2>
+  <p>Every app has a starting point, the file that boots everything up. In a Node app it's often <code>server.js</code>, <code>index.js</code>, or <code>app.js</code>, and the <code>start</code> script in <code>package.json</code> points right at it. That's your front door.</p>
+  <p>From there, the trick is to read top-down, not line-by-line. Pick one thing the app does, say loading the orders page, and follow just that path. A request flows in a predictable shape: the browser asks for a URL, a route matches it, a handler function runs, that handler maybe reads or writes the database, and a response travels back to the browser. Follow that one thread and ignore everything it doesn't touch.</p>
+
+  <figure>
+    <svg viewBox="0 0 820 320" role="img" aria-labelledby="flow-t flow-d" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#f6f7fb;border:1px solid #e6e9f2;border-radius:16px">
+      <title id="flow-t">How a request flows through your app</title>
+      <desc id="flow-d">Left to right: the browser (frontend, on the user's device) sends a request across the server boundary to a route, which calls a handler function, which reads or writes the database. The response then travels back to the browser. Secrets are safe only on the server side of the boundary.</desc>
+      <defs>
+        <marker id="flow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#4F1AF3"/></marker>
+      </defs>
+      <text x="26" y="30" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">How a request flows through your app</text>
+      <text x="26" y="52" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12.5">Read it left to right. The dashed line is where the browser stops and your server begins.</text>
+
+      <rect x="26" y="86" width="176" height="94" rx="12" fill="#000f27"/>
+      <text x="114" y="122" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="15" font-weight="700">Browser</text>
+      <text x="114" y="144" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="11">frontend, on the user's device</text>
+      <text x="114" y="162" text-anchor="middle" fill="#aeb6d4" font-family="Poppins,sans-serif" font-size="11">everyone can read this</text>
+
+      <line x1="228" y1="72" x2="228" y2="246" stroke="#98a2b3" stroke-width="1.5" stroke-dasharray="5 5"/>
+      <text x="228" y="66" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">server boundary</text>
+
+      <rect x="252" y="86" width="148" height="94" rx="12" fill="#ffffff" stroke="#4F1AF3" stroke-width="2"/>
+      <text x="326" y="122" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="14" font-weight="700">Route</text>
+      <text x="326" y="144" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">the URL, e.g. /api/orders</text>
+
+      <rect x="422" y="86" width="148" height="94" rx="12" fill="#ffffff" stroke="#4F1AF3" stroke-width="2"/>
+      <text x="496" y="122" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="14" font-weight="700">Handler</text>
+      <text x="496" y="144" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">the function that runs</text>
+
+      <rect x="592" y="86" width="176" height="94" rx="12" fill="#40b75f"/>
+      <text x="680" y="128" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="15" font-weight="700">Database</text>
+      <text x="680" y="150" text-anchor="middle" fill="#eafff0" font-family="Poppins,sans-serif" font-size="11">your data</text>
+
+      <line x1="202" y1="120" x2="250" y2="120" stroke="#4F1AF3" stroke-width="2" marker-end="url(#flow)"/>
+      <line x1="400" y1="120" x2="420" y2="120" stroke="#4F1AF3" stroke-width="2" marker-end="url(#flow)"/>
+      <line x1="570" y1="120" x2="590" y2="120" stroke="#4F1AF3" stroke-width="2" marker-end="url(#flow)"/>
+
+      <path d="M680 180 L680 210 L118 210 L118 184" fill="none" stroke="#4F1AF3" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#flow)"/>
+      <text x="399" y="228" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">the response travels back to the browser</text>
+
+      <text x="510" y="264" text-anchor="middle" fill="#2f7d45" font-family="Poppins,sans-serif" font-size="12" font-weight="600">Secrets are safe only on this side of the line.</text>
+      <text x="114" y="264" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">No secrets here.</text>
+
+      <text x="26" y="298" fill="#000f27" font-family="Poppins,sans-serif" font-size="12" font-weight="700">Reading it:</text>
+      <text x="92" y="298" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">find the route for the feature you care about, open the handler it calls, follow that. Skip the rest.</text>
+    </svg>
+    <figcaption>The path every request takes. To understand a feature, find its route, open the handler, and follow only that thread.</figcaption>
+  </figure>
+
+  <p>So when you want to understand a feature, don't hunt through every file. Search your project for the URL or the button text, find the route, open the handler it points to, and read down from there. One thread at a time. That single habit is most of what "reading a codebase" actually means.</p>
+
+  <h2>Frontend or backend? The one distinction that matters most</h2>
+  <p>If you learn only one thing from this whole guide, make it this. Code lives in one of two worlds, and telling them apart decides where your secrets are safe.</p>
+  <p><strong>Frontend</strong> code runs in the browser, on the user's own device. Anyone can open their browser's developer tools and read it. All of it. <strong>Backend</strong> code runs on the server, at your host, where the public can't see it. That's the whole reason the distinction matters: a secret is only safe on the backend. Put an API key in frontend code and you have effectively published it.</p>
+  <p>How do you tell which is which? A few reliable tells.</p>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>Frontend (browser)</th><th>Backend (server)</th></tr></thead>
+    <tbody>
+      <tr><td>Runs on</td><td>The user's device, in their browser</td><td>Your server, at your host</td></tr>
+      <tr><td>Usually lives in</td><td><code>components/</code>, <code>pages/</code>, files ending <code>.jsx</code> <code>.tsx</code> <code>.vue</code></td><td><code>routes/</code>, <code>api/</code>, <code>server.js</code>, controllers</td></tr>
+      <tr><td>Gives itself away by</td><td>Mentioning the screen, buttons, clicks, or <code>window</code></td><td>Handling a URL, reading <code>process.env</code>, talking to the database</td></tr>
+      <tr><td>Can a stranger read it?</td><td>Yes, right from their browser</td><td>No, it stays on the server</td></tr>
+      <tr><td>Safe to put a secret in?</td><td>No, not ever</td><td>Yes, in an environment variable</td></tr>
+    </tbody>
+  </table>
+
+  <p>One trap worth flagging, because AI tools fall into it constantly. In many setups, any variable whose name starts with <code>VITE_</code> or <code>NEXT_PUBLIC_</code> gets bundled into the frontend and shipped to the browser. So a variable named <code>NEXT_PUBLIC_API_KEY</code> is not a secret at all, no matter how it's labeled. If you see a real key behind one of those prefixes, that's a problem to fix, and the <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables guide</a> walks through doing it right.</p>
+
+  <h2>Where the money and the risk hide</h2>
+  <p>Now that you can navigate, here's where to point that skill first. Three kinds of code are worth finding on purpose, because they're where surprise bills and security scares come from.</p>
+  <p><strong>External API calls.</strong> These are the lines that call out to a paid service: an LLM like OpenAI, a payment provider like Stripe, an email or SMS service. Search your code for things like <code>fetch(</code>, <code>axios</code>, or the service's domain such as <code>api.openai.com</code>. Then check the important part: is any of these calls sitting inside a loop? A call that runs once per page is cheap. The same call inside a loop that runs once per row in your database is how a small feature quietly turns into a large bill. You don't have to fix it to spot it. Spotting it is the win.</p>
+  <p><strong>Secrets.</strong> Find every place a key or password appears. The healthy pattern is that they're read from the environment, something like <code>process.env.STRIPE_SECRET_KEY</code>, and never written out as plain text. The unhealthy pattern is a real key typed directly into a file, or worse, into a frontend file. If you find a hardcoded key, you have found the single most common way AI-built apps get compromised.</p>
+  <p><strong>Database calls.</strong> These are the reads and writes to your data. Same question as the API calls: is a query running inside a loop when one query could do the job? That's the usual cause of a page that gets slower as your data grows. Again, you're auditing, not fixing. You're building a mental list of "here's where this app spends money and takes risk," which is exactly the map you were missing.</p>
+  <p>This is a comprehension pass, not a hardening pass. Once you know where these things live, the companion <a href="https://www.kloudbean.com/blog/ai-built-app-security-checklist/">AI-built app security checklist</a> covers the fix for each risky pattern, and <a href="https://www.kloudbean.com/blog/deploy-ai-agent-without-exposing-api-keys/">deploying an AI agent without exposing API keys</a> goes deep on the secrets one.</p>
+
+  <!-- ADD IMAGE: a screenshot of a search across the project (VS Code Cmd/Ctrl+Shift+F) with results for a term like api.openai.com or process.env, showing how a non-coder can locate API calls and secrets. src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A project-wide search showing results for an API call or a secret, so a reader sees how to locate these without reading every file.</em><small>Blur any real key values.</small></span></figure>
+
+  <h2>Read an error like a detective</h2>
+  <p>When something breaks, the app usually hands you an error, often a scary-looking block called a stack trace. It looks like noise. It isn't. It's a set of directions to exactly where the problem is, and reading it is a two-step skill.</p>
+  <pre><code>TypeError: Cannot read properties of undefined (reading 'email')
+    at sendReceipt (/app/src/handlers/checkout.js:54:22)
+    at processOrder (/app/src/routes/orders.js:31:9)
+    at /app/node_modules/express/lib/router/route.js:149:13</code></pre>
+  <p>Read it in two moves. First, the top line is the <em>what</em>. Here it's saying the code tried to read <code>email</code> from something that didn't exist (it was "undefined"). Second, the lines below are the <em>where</em>, listed from most recent backward. Scan down and find the first line that points into your own code, the part with <code>/app/src/</code>. That's <code>checkout.js</code>, line 54. You can ignore the <code>node_modules</code> line, because that's library code, not yours. So without knowing the language, you already know: something in <code>checkout.js</code> around line 54 expected an email address and got nothing. That's a real, specific lead, and it's often enough to fix it yourself or to hand the AI a much better instruction than "it broke." And if an error only shows up once the app is deployed, never on your own machine, that's its own puzzle, which <a href="https://www.kloudbean.com/blog/why-my-ai-app-works-locally-but-not-in-production/">why your AI app works locally but not in production</a> untangles.</p>
+
+  <h2>Let the AI explain its own code, then verify it</h2>
+  <p>Here's the part that makes all of this dramatically easier. The same AI that wrote the code can explain it back to you, and it's genuinely good at that. The key is asking specific questions instead of vague ones. Paste a file or point at it and ask something like this.</p>
+  <pre><code>Explain this file to me in plain English. I'm not a developer.
+- What is this file's job in the app?
+- What calls it, and what does it call or depend on?
+- Does anything in here run in the browser? If so, are any keys or secrets exposed?
+- If I wanted to change [the thing I care about], which lines would I touch?</code></pre>
+  <p>Good questions to keep in your back pocket: "explain this file in plain English," "what calls this function and what does it call," "where is the database connection configured," and the sharp one, "does this send my API key to the browser." Each gives you a real answer you can act on.</p>
+  <p>Now the caveat, and it matters. The AI can be confidently wrong. It will sometimes describe what the code looks like it should do rather than what it actually does, invent a file that isn't there, or miss a detail that changes everything. So treat its explanation as a knowledgeable friend's guess, not gospel. Verify it against what you now know how to check: does the file it named actually exist, does the frontend/backend split match, does the behavior hold up when you run it. You are no longer taking the AI's word blind, and that's the entire point of learning this. You can now audit AI code instead of trusting it.</p>
+
+  <!-- ADD IMAGE: a screenshot of a chat with Cursor, Lovable, or ChatGPT asking "explain this file in plain English" with the plain-English answer visible. src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The AI answering an explain this file in plain English prompt, so readers see the workflow in action.</em><small>Any AI tool works for the shot.</small></span></figure>
+
+  <h2>Red flags you can actually search for</h2>
+  <p>You don't need judgment to check most of these. You need a search box. Whether you use your editor's project-wide search (<code>Cmd</code> or <code>Ctrl</code> plus <code>Shift</code> plus <code>F</code> in VS Code and Cursor) or the terminal, here are the things worth looking for and what each one usually means.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Search for this</th><th>What it usually means</th><th>What to do</th></tr></thead>
+    <tbody>
+      <tr><td><code>sk-</code>, <code>sk_live_</code>, <code>AIza</code></td><td>A hardcoded API key (OpenAI, Stripe, Google)</td><td>Move it into an environment variable, then rotate the key.</td></tr>
+      <tr><td><code>password =</code> or <code>DATABASE_URL</code> in a frontend file</td><td>A database credential shipped to the browser</td><td>Get it out of the client. Credentials belong server-side only.</td></tr>
+      <tr><td><code>NEXT_PUBLIC_</code> or <code>VITE_</code> on a real secret</td><td>A "secret" that's actually public</td><td>Rename and move it server-side. Those prefixes ship to the browser.</td></tr>
+      <tr><td><code>http://</code> on an API or login call</td><td>Data sent in the clear, not encrypted</td><td>Switch it to <code>https://</code>.</td></tr>
+      <tr><td>SQL built with <code>+</code> and user input</td><td>Input glued straight into a query (injection risk)</td><td>Ask the AI to use parameterized queries instead.</td></tr>
+      <tr><td><code>TODO</code> or <code>FIXME</code> near login or auth</td><td>Security the AI left half-built</td><td>Finish it before you launch.</td></tr>
+    </tbody>
+  </table>
+
+  <p>From the terminal, one command scans your whole project for the most dangerous of these, the hardcoded secrets, while skipping the dependency folder you don't care about:</p>
+  <pre><code># Run this from your project folder
+grep -rniE "sk-[a-z0-9]|api[_-]?key|secret|password|DATABASE_URL" . \
+  --include="*.js" --include="*.ts" --include="*.jsx" --include="*.tsx" \
+  --exclude-dir=node_modules</code></pre>
+  <p>Finding a match isn't a disaster, and it isn't a verdict on your app. It's a signpost that says "look here, or ask the AI to fix exactly this." That's the healthiest way to hold it. You're not grading yourself. You're reading your own app well enough to point at a specific spot, which is worlds better than a vague feeling that something might be wrong.</p>
+
+  <h2>What files to leave alone</h2>
+  <p>A quick note so you don't break things while exploring, because reading is safe but a nervous edit isn't. Two folders are generated, not written: <code>node_modules/</code> (or <code>venv/</code> in Python) and <code>dist/</code> or <code>build/</code>. Editing them does nothing useful, because they get overwritten. There's also usually a lock file (<code>package-lock.json</code> or <code>yarn.lock</code>) that you should leave to the tools. Everything in <code>src/</code> or <code>app/</code> is fair game to read, and safe to change as long as you can undo it. Which brings up the one habit that makes all exploration risk-free: make sure your project is in version control (Git) so any change can be reverted. If your AI tool saves versions or checkpoints, that counts too. Explore freely when you can always get back.</p>
+
+  <h2>Where to read what your app is actually doing</h2>
+  <p>Reading the code tells you what should happen. Logs tell you what did happen. Once your app is live and real people are using it, the errors that matter show up in the logs, the same kind of stack traces you just learned to read, but from actual traffic instead of your own testing. Knowing how to read a log is the live version of everything above, and it's often where a real bug finally reveals itself. It's part of the going-live literacy the <a href="https://www.kloudbean.com/blog/last-mile-of-vibe-coding/">last mile of vibe coding</a> is all about.</p>
+  <p>Where those logs live depends on your host. Kloudbean, for what it's worth here, puts application and server logs in one dashboard and keeps your secrets in environment-variable settings in the UI, so keys stay out of the code where they belong. That's a convenience, not the point of this page. The point is that between reading the code and reading the logs, your app is no longer a black box. You can see what it's built from and what it's doing.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:19px">You can read your own app now. That's the whole game.</p>
+    <p style="margin:0">When you're ready to run it somewhere you can actually see it, Kloudbean gives you application and server logs in one place, managed servers and databases, and environment-variable settings so keys never touch your code. Free migration if you're moving, and standard plans from $8/mo (check current details on <a href="https://www.kloudbean.com/pricing/">pricing</a>). Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Do I need to learn to code to understand my AI app?</h3>
+    <p>No. Reading code is a different, much easier skill than writing it. You're learning to navigate: find the entry point, follow one request, tell frontend from backend, and locate the API calls and secrets. That's enough to understand what your app is built from and where its risks are, without ever writing a line yourself.</p>
+
+    <h3>How do I read AI-generated code as a non-developer?</h3>
+    <p>Start with the map, not the details. Look at the top-level folders, read the README and the package.json to learn the app's shape, then pick one feature and follow its thread from the URL to the handler to the database. Read top-down, one thread at a time, and lean on the AI to explain any file in plain English while you sanity-check its answer.</p>
+
+    <h3>How do I find where my API keys are?</h3>
+    <p>Search your whole project for the key's shape. OpenAI keys start with sk-, Stripe live keys with sk_live_, Google keys often with AIza. Also search for words like secret, password, and api_key. Healthy code reads these from environment variables; a real key typed directly into a file, especially a frontend file, is the thing to fix.</p>
+
+    <h3>What is the difference between frontend and backend code?</h3>
+    <p>Frontend code runs in the user's browser, so anyone can read it with developer tools. Backend code runs on your server, where the public can't see it. This decides everything about secrets: a key is only safe in backend code. Anything shipped to the browser, including variables with NEXT_PUBLIC_ or VITE_ prefixes, is effectively public.</p>
+
+    <h3>How do I read a stack trace?</h3>
+    <p>Read it in two moves. The top line is what went wrong, often a short message. The lines below are where, listed most recent first. Scan down to the first line that points into your own code (usually a path with src in it) and ignore the node_modules lines, which are library code. That first line names the file and line number to look at.</p>
+
+    <h3>Can I trust the AI to explain its own code?</h3>
+    <p>Mostly, but verify. The AI is genuinely good at explaining a file in plain English, and asking it specific questions is the fastest way to understand your app. But it can be confidently wrong, describing what code looks like it does rather than what it does. Treat its answer as a smart guess and check it against what you can see and run.</p>
+
+    <h3>What files should I never edit?</h3>
+    <p>Leave the generated folders alone: node_modules or venv, and dist or build. They're rebuilt automatically and any edit gets overwritten. Lock files like package-lock.json are best left to the tools too. The code you can freely read and change lives in src or app, ideally with Git or your tool's checkpoints on so you can undo anything.</p>
+
+    <h3>How can I tell what my AI app actually does?</h3>
+    <p>Combine two views. The code shows what should happen: follow a request from route to handler to database to see the logic. The logs show what did happen once real people use it. Reading the folder map, following one feature's thread, and then watching the logs together give you a full picture of what the AI actually built.</p>
+
+    <h3>Where do I see the real errors once my app is live?</h3>
+    <p>In your application and server logs. Live errors appear there as stack traces from real traffic, the same format you'd read while testing. Where the logs live depends on your host; some put application and server logs in one dashboard. Knowing how to read a log turns a vague "it's broken" into a specific file and line to investigate.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering &middot; You don't have to write code to read it.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Understand the Code AI Wrote: A Non-Coder's Guide to Reading Your Own App","description":"A plain-English guide to reading AI-generated code without becoming a developer: the folder map, finding the entry point, following a request, telling frontend from backend, where secrets and API calls hide, reading a stack trace, and getting the AI to explain its own code while you verify it.","image":"https://www.kloudbean.com/blog/understand-the-code-ai-wrote/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/understand-the-code-ai-wrote/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Do I need to learn to code to understand my AI app?","acceptedAnswer":{"@type":"Answer","text":"No. Reading code is a different, much easier skill than writing it. You're learning to navigate: find the entry point, follow one request, tell frontend from backend, and locate the API calls and secrets. That's enough to understand what your app is built from and where its risks are, without ever writing a line yourself."}},
+{"@type":"Question","name":"How do I read AI-generated code as a non-developer?","acceptedAnswer":{"@type":"Answer","text":"Start with the map, not the details. Look at the top-level folders, read the README and the package.json to learn the app's shape, then pick one feature and follow its thread from the URL to the handler to the database. Read top-down, one thread at a time, and lean on the AI to explain any file in plain English while you sanity-check its answer."}},
+{"@type":"Question","name":"How do I find where my API keys are?","acceptedAnswer":{"@type":"Answer","text":"Search your whole project for the key's shape. OpenAI keys start with sk-, Stripe live keys with sk_live_, Google keys often with AIza. Also search for words like secret, password, and api_key. Healthy code reads these from environment variables; a real key typed directly into a file, especially a frontend file, is the thing to fix."}},
+{"@type":"Question","name":"What is the difference between frontend and backend code?","acceptedAnswer":{"@type":"Answer","text":"Frontend code runs in the user's browser, so anyone can read it with developer tools. Backend code runs on your server, where the public can't see it. This decides everything about secrets: a key is only safe in backend code. Anything shipped to the browser, including variables with NEXT_PUBLIC_ or VITE_ prefixes, is effectively public."}},
+{"@type":"Question","name":"How do I read a stack trace?","acceptedAnswer":{"@type":"Answer","text":"Read it in two moves. The top line is what went wrong, often a short message. The lines below are where, listed most recent first. Scan down to the first line that points into your own code (usually a path with src in it) and ignore the node_modules lines, which are library code. That first line names the file and line number to look at."}},
+{"@type":"Question","name":"Can I trust the AI to explain its own code?","acceptedAnswer":{"@type":"Answer","text":"Mostly, but verify. The AI is genuinely good at explaining a file in plain English, and asking it specific questions is the fastest way to understand your app. But it can be confidently wrong, describing what code looks like it does rather than what it does. Treat its answer as a smart guess and check it against what you can see and run."}},
+{"@type":"Question","name":"What files should I never edit?","acceptedAnswer":{"@type":"Answer","text":"Leave the generated folders alone: node_modules or venv, and dist or build. They're rebuilt automatically and any edit gets overwritten. Lock files like package-lock.json are best left to the tools too. The code you can freely read and change lives in src or app, ideally with Git or your tool's checkpoints on so you can undo anything."}},
+{"@type":"Question","name":"How can I tell what my AI app actually does?","acceptedAnswer":{"@type":"Answer","text":"Combine two views. The code shows what should happen: follow a request from route to handler to database to see the logic. The logs show what did happen once real people use it. Reading the folder map, following one feature's thread, and then watching the logs together give you a full picture of what the AI actually built."}},
+{"@type":"Question","name":"Where do I see the real errors once my app is live?","acceptedAnswer":{"@type":"Answer","text":"In your application and server logs. Live errors appear there as stack traces from real traffic, the same format you'd read while testing. Where the logs live depends on your host; some put application and server logs in one dashboard. Knowing how to read a log turns a vague it's broken into a specific file and line to investigate."}}
+]}
+]}
+</script>
+</body>
+</html>
