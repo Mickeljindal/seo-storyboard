@@ -58,7 +58,7 @@ Here's the honest, jargon-free version. Treat these as rough guides, not promise
 | A mid model (about 13B) | 16 GB or more, GPU strongly preferred | Better answers, needs the muscle |
 | A large model (30B and up) | Serious GPU memory | Best quality, real hardware cost |
 
-The rule of thumb: CPU-only is fine for trying it out and for light, patient use. A GPU is what makes it feel instant. Pick your model to match your server, not the other way around, and size the memory (and GPU, where available) up front:
+The rule of thumb: CPU-only is fine for trying it out and for light, patient use. A GPU is what makes it feel instant, and Kloudbean offers GPU servers when you want that speed. Pick your model to match your server, not the other way around, and size the memory and GPU up front:
 
 ![The Kloudbean console Add Server screen where you pick memory and resources sized to the AI model you plan to run](../assets/console/add-server.png)
 
@@ -105,7 +105,7 @@ Sometimes, and it's worth being straight about when. A per-token API is cheap wh
 
 The point of all this is privacy, so let's be precise. Prompts, responses, and chat history live on your server. Nothing goes to a third-party AI provider, because the model runs locally. That's genuinely different from calling a hosted API.
 
-What you own is the setup: the server, the models you pull, and the updates. The platform keeps the box itself healthy, meaning the OS, networking, free SSL, and server-level backups, and lets you pick the memory (and GPU, where offered) the models need. You bring the models. You keep the conversations. If you're assembling a wider set of tools you run yourself, the [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) roundup and the [self-host Supabase](https://www.kloudbean.com/blog/self-host-supabase/) guide pair well with this one.
+What you own is the setup: the server, the models you pull, and the updates. The platform keeps the box itself healthy, meaning the OS, networking, free SSL, and server-level backups, and lets you pick the memory and GPU the models need. You bring the models. You keep the conversations. If you're assembling a wider set of tools you run yourself, the [best self-hosted tools](https://www.kloudbean.com/blog/best-self-hosted-tools/) roundup and the [self-host Supabase](https://www.kloudbean.com/blog/self-host-supabase/) guide pair well with this one.
 
 ---
 
