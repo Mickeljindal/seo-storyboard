@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Manage a Fleet of Client AI Apps: The Agency Operating Model</title>
+<meta name="description" content="Managing client apps is an operations discipline, not a maintenance checklist. Isolation, monitoring, dependency updates, an incident runbook, and clean offboarding for agencies running a fleet of AI-built and custom client apps.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/manage-client-ai-apps/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Manage a Fleet of Client AI Apps: The Agency Operating Model">
+<meta property="og:description" content="Isolation, monitoring, dependency updates, an incident runbook, and clean offboarding. The operating model for agencies running a fleet of AI-built and custom client apps.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Agency operations · Field guide</span>
+  <h1>How to Manage a Fleet of Client AI Apps: The Agency Operating Model</h1>
+  <p class="byline">By Kloudbean Engineering · A fleet of apps is not a fleet of websites.</p>
+
+  <figure><img src="images/hero.png" alt="Per-client app isolation versus a shared server: how the blast radius of one failure changes with the operating model"></figure>
+
+  <p class="lead">Agencies got good at running WordPress at scale. Fifty sites, one dashboard, a nightly backup, a weekly update run, an uptime alert if something falls over. It's a solved problem. Then the work changed: clients bring apps now, a Next.js dashboard here, a Python API there, an AI tool a founder vibe-coded and can't keep running. Manage those like WordPress sites and you'll be fine right up until the morning three of them are down for three unrelated reasons. This is the operating model for running a fleet of client apps without it running you.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>Managing a fleet of client apps is an operations discipline, not a maintenance checklist. Give each app its own isolated environment so one failure can't spread to another client, monitor error rate and spend rather than just uptime, update dependencies on staging with a rollback ready, and keep an incident runbook for the day one goes down. The failure modes are new. The discipline is old.</p>
+  </div>
+
+  <h2>Why an app fleet is not a website fleet</h2>
+  <p>A WordPress site is mostly static from the server's point of view. It sits there, serves pages, and the risky moments are scheduled: a plugin update, a core upgrade. You can batch that work and sleep at night. An app is a living process. It runs continuously, holds memory, talks to external services, and can fall over between one request and the next for reasons that have nothing to do with your update schedule.</p>
+  <p>Five differences make app fleets their own discipline. Apps have <strong>running processes</strong> that crash, leak memory, or hang, so "the server is up" doesn't mean "the app is up." They have <strong>dependencies that drift</strong>, npm and pip packages with security patches and breaking changes arriving weekly. They hold <strong>secrets</strong>, external API keys that expire, get revoked, or hit quotas. Many carry <strong>usage-driven cost</strong>, especially AI apps, where a busy day is an expensive day. And they fail in <strong>novel ways</strong>, so pattern-matching from a decade of WordPress support only gets you so far.</p>
+  <p>None of this means apps are harder in some absolute sense. It means the shape of the work is different: less scheduled maintenance, more continuous operation. If your only move is the WordPress playbook, you'll miss the failures it was never designed to catch. The deeper reason shared hosting can't carry these apps at all is covered in <a href="https://www.kloudbean.com/blog/wordpress-agency-ai-app-hosting/">why shared hosting can't run AI-built apps</a>; this piece assumes you've made the move and now have a fleet to run. The contrast with a pure <a href="https://www.kloudbean.com/blog/agency-wordpress-hosting/">WordPress fleet operation</a> is worth keeping in mind throughout.</p>
+
+  <h2>Isolation: the decision that shapes everything else</h2>
+  <p>Before monitoring, before updates, one decision sets the tone for the whole fleet: how isolated is each client's app from the others? Get this right and most incidents stay small. Get it wrong and one client's bad day becomes everyone's.</p>
+  <p>The question is really about blast radius. If ten client apps share one server and one app leaks memory until the box runs out, all ten go down. If one app gets compromised, the attacker is now sitting next to nine other clients' code and data. If one app gets a traffic spike, the others slow to a crawl. That's the noisy-neighbor problem, the security problem, and the availability problem, all from the same root: no boundary.</p>
+  <table class="cmp">
+    <thead><tr><th></th><th>Shared server, soft limits</th><th>One server per client</th></tr></thead>
+    <tbody>
+      <tr><td>Blast radius of a crash</td><td>All apps on the box</td><td>Just that client</td></tr>
+      <tr><td>Security boundary</td><td>Weak, shared OS</td><td>Strong, separate machine</td></tr>
+      <tr><td>Noisy neighbor</td><td>Real risk</td><td>None</td></tr>
+      <tr><td>Cost attribution</td><td>Estimated, blended</td><td>Exact, per client</td></tr>
+      <tr><td>Best for</td><td>A few tiny, low-risk apps</td><td>Anything real or sensitive</td></tr>
+    </tbody>
+  </table>
+  <p>Shared hosting with per-app limits is defensible for a handful of tiny internal tools where nothing sensitive lives and downtime is cheap. For anything a client actually depends on, the answer is a separate environment per app: its own server, its own memory, its own security boundary. It costs a little more and it saves you the incident where one app takes down four clients. It also makes the billing honest, which the companion piece on <a href="https://www.kloudbean.com/blog/pricing-ai-app-hosting-for-clients/">pricing client app hosting</a> leans on heavily, because a dedicated server is a dedicated, readable bill.</p>
+
+  <!-- ADD IMAGE: swap the SVG below for a polished version if desired. src -> images/isolation.png -->
+  <figure>
+    <svg viewBox="0 0 820 330" role="img" aria-labelledby="iso-t iso-d" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#f6f7fb;border:1px solid #e6e9f2;border-radius:16px">
+      <title id="iso-t">Shared server blast radius versus per-client isolation</title>
+      <desc id="iso-d">On a shared server, one failing app takes down every app on the box. With one server per client, the same failure is sealed to a single client while the others keep running.</desc>
+      <text x="30" y="38" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">How far does one app's failure travel?</text>
+
+      <text x="30" y="74" fill="#b42318" font-family="Poppins,sans-serif" font-size="13" font-weight="700">Shared server</text>
+      <rect x="30" y="86" width="330" height="150" rx="10" fill="#fbeceb" stroke="#f2b8b5"/>
+      <rect x="50" y="106" width="130" height="50" rx="6" fill="#000f27"/><text x="115" y="136" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">App A</text>
+      <rect x="210" y="106" width="130" height="50" rx="6" fill="#b42318"/><text x="275" y="130" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">App B</text><text x="275" y="146" text-anchor="middle" fill="#ffe9e7" font-family="Poppins,sans-serif" font-size="10">crashed</text>
+      <rect x="50" y="168" width="130" height="50" rx="6" fill="#000f27"/><text x="115" y="198" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">App C</text>
+      <rect x="210" y="168" width="130" height="50" rx="6" fill="#000f27"/><text x="275" y="198" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">App D</text>
+      <text x="195" y="252" text-anchor="middle" fill="#b42318" font-family="Poppins,sans-serif" font-size="11.5">one crash, all four clients down</text>
+
+      <text x="450" y="74" fill="#0a7d33" font-family="Poppins,sans-serif" font-size="13" font-weight="700">One server per client</text>
+      <rect x="450" y="86" width="70" height="50" rx="6" fill="#ffffff" stroke="#40b75f"/><text x="485" y="116" text-anchor="middle" fill="#0a7d33" font-family="Poppins,sans-serif" font-size="12">A</text>
+      <rect x="530" y="86" width="70" height="50" rx="6" fill="#b42318"/><text x="565" y="110" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">B</text><text x="565" y="126" text-anchor="middle" fill="#ffe9e7" font-family="Poppins,sans-serif" font-size="9.5">down</text>
+      <rect x="610" y="86" width="70" height="50" rx="6" fill="#ffffff" stroke="#40b75f"/><text x="645" y="116" text-anchor="middle" fill="#0a7d33" font-family="Poppins,sans-serif" font-size="12">C</text>
+      <rect x="690" y="86" width="70" height="50" rx="6" fill="#ffffff" stroke="#40b75f"/><text x="725" y="116" text-anchor="middle" fill="#0a7d33" font-family="Poppins,sans-serif" font-size="12">D</text>
+      <text x="605" y="176" text-anchor="middle" fill="#0a7d33" font-family="Poppins,sans-serif" font-size="11.5">B is down, A / C / D untouched</text>
+
+      <text x="30" y="290" fill="#000f27" font-family="Poppins,sans-serif" font-size="12" font-weight="600">Reading it</text>
+      <text x="30" y="312" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">Isolation is the cheapest incident insurance you can buy. It turns a fleet-wide outage into one client's ticket.</text>
+    </svg>
+    <figcaption>The isolation model decides how far a single failure travels. On a shared box, one app's crash is everyone's outage. Separated, it's one client's problem.</figcaption>
+  </figure>
+
+  <h2>What to monitor, and what WordPress never taught you</h2>
+  <p>WordPress monitoring is mostly a heartbeat: is the site responding, yes or no. Apps need more, because an app can respond with a 200 and still be quietly broken, throwing errors on half its requests or burning money on a runaway loop.</p>
+  <p>Watch four things per app. <strong>Uptime</strong> is still the floor, is it responding at all. <strong>Error rate</strong> is the one WordPress didn't teach you: what fraction of requests are failing, and did that fraction just jump after a deploy. <strong>Resource use</strong>, memory and CPU, because a slow memory leak is invisible until the process dies, and a trend line catches it days early. And <strong>spend or quota</strong>, especially for AI apps, so you see a cost spike or an API nearing its limit before it becomes an outage or a surprise invoice. The how-to for all of this lives in <a href="https://www.kloudbean.com/blog/ai-app-observability/">AI app observability</a>, which is worth reading once and setting up per client.</p>
+  <p>The goal is simple and it's the whole reason monitoring exists: know before the client does. An agency that finds out an app is down because the client emailed is an agency that looks reactive. The one that emailed the client first, already fixing it, looks like it's worth the retainer.</p>
+
+  <h2>Updates: the part that quietly breaks things</h2>
+  <p>Here's an honest opinion that will save you grief: dependency updates are riskier than WordPress plugin updates, and you should treat them with more respect, not less. A WordPress plugin update usually just works or visibly doesn't. A dependency update can change behavior subtly, pass your quick glance, and break something a week later under a specific input. Node and Python projects can have hundreds of transitive dependencies, and any of them can ship a breaking change inside a version bump that looks harmless.</p>
+  <p>So the discipline is non-negotiable: never update dependencies straight on production. Update on a staging copy, run the app, click through the real flows, then promote. Keep the ability to roll back to the last known-good state, because you will need it. This is exactly the workflow that <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploying an AI-built app to production</a> sets up, and it's why staging is not a luxury for an app fleet, it's the thing standing between a routine update and a client outage. Pair it with backups you have actually restored at least once, per the <a href="https://www.kloudbean.com/blog/server-backups-guide/">backups guide</a>. A backup you've never tested is a rumor.</p>
+
+  <h2>The incident runbook for client apps</h2>
+  <p>At some point an app goes down and a client is waiting. What separates a calm fix from a scramble is having a runbook, a short list of the usual suspects in the order you should check them. App incidents cluster into a handful of causes, and most of them are not the code.</p>
+  <table class="cmp">
+    <thead><tr><th>Failure mode</th><th>What you see</th><th>The usual fix</th></tr></thead>
+    <tbody>
+      <tr><td>Expired or revoked API key</td><td>Auth errors from an external service</td><td>Rotate the key, update the secret, redeploy</td></tr>
+      <tr><td>Rate limit or quota hit</td><td>429s, sudden failures under load</td><td>Back off, cache, raise the quota, or throttle</td></tr>
+      <tr><td>Out of memory</td><td>Process restarts, slow death, OOM in logs</td><td>Fix the leak, raise memory, or cap concurrency</td></tr>
+      <tr><td>Runaway usage or cost</td><td>Spend spike, quota alarm</td><td>Find the loop or abuse, add a cap</td></tr>
+      <tr><td>Dependency break</td><td>Build fails, or behaves wrong after a bump</td><td>Roll back to the last known-good deploy</td></tr>
+      <tr><td>Model or API deprecation</td><td>A vendor endpoint returns errors</td><td>Move to the current model or version</td></tr>
+    </tbody>
+  </table>
+  <p>Notice how few of these are "the code is wrong." Most incidents in client apps are configuration, credentials, capacity, or an external service moving under you. That single insight makes you faster, because you stop reading application code first and start checking keys, quotas, memory, and recent deploys. The wider catalog of how these apps fall over is in <a href="https://www.kloudbean.com/blog/why-ai-apps-fail-in-production/">why AI apps fail in production</a>, and it rewards a read before your first 2am page, not during it.</p>
+
+  <h2>Access and offboarding: the boring part that bites</h2>
+  <p>Two access failures show up in real agencies, and both are avoidable. The first is credential sprawl: one shared admin login used across every client, so nobody can tell who did what, and offboarding a contractor means changing everything. Use per-person accounts with least privilege instead, so a junior can deploy without holding the keys to every client's data, and revoking one person is one action.</p>
+  <p>The second is messy offboarding. When a client leaves, or when you hand an app back, there should be a clean sequence: transfer or export their data, hand over or rotate the credentials, remove your team's access, and stop the billing. Doing this ad hoc is how you end up still paying for a former client's server, or worse, still holding access you shouldn't. The full checklist is in <a href="https://www.kloudbean.com/blog/agency-client-offboarding/">client offboarding done right</a>. Set it up as a repeatable process now, while you have three clients, not later when you have thirty and can't remember which credentials went where.</p>
+
+  <h2>An operating model that scales with your fleet</h2>
+  <p>The right amount of process depends on how many apps you run, and over-engineering early is its own mistake. Roughly, it goes in three stages.</p>
+  <p>At <strong>one to a few apps</strong>, you can operate by hand. Isolate each app, set up basic uptime and error alerts, update on staging, and keep credentials in a password manager rather than your head. That's enough, and adding heavy tooling here is procrastination dressed as diligence.</p>
+  <p>At <strong>around ten apps</strong>, manual stops scaling. You want one place to see the whole fleet's health, a standard way to spin up a new client environment so they're all consistent, and a written incident runbook so any team member can respond, not just you. Consistency is the theme: apps that are each set up differently are apps you can't operate at speed.</p>
+  <p>At <strong>fifty and beyond</strong>, you're running a platform whether you call it that or not. Templated environments, centralized monitoring and log aggregation, defined on-call, and per-client cost tracking stop being nice-to-haves. The agencies that get here comfortably are the ones that standardized early, so growth was more of the same rather than a new problem each time.</p>
+
+  <h2>Where the platform helps</h2>
+  <p>Most of this operating model is discipline and habit, and you can run it on almost any infrastructure. What a good platform does is remove friction from the parts you'd otherwise cobble together: one place to see every client's app, a fast way to stand up an identical isolated environment per client, staging, tested backups, and per-person access.</p>
+  <p>Kloudbean lines up with this model on the hosting side. Each client app can run on its own managed server, so the blast radius stays small and each bill is clean. One dashboard covers the whole fleet, staging is built in for WordPress and Laravel, backups are automatic, and subusers with User Access Control give your team least-privilege access instead of a shared login. Baseline hardening (Shorewall and Fail2ban) and free SSL come standard. Useful scaffolding for a fleet, but the operating model above is what actually keeps the apps healthy, wherever they run.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:19px">Run the fleet, don't let it run you.</p>
+    <p style="margin:0">If you want one dashboard for every client app, isolated servers, staging, automatic backups, and per-person access built in, that's the shape of Kloudbean. Details at <a href="https://www.kloudbean.com/">kloudbean.com</a> and <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I manage multiple client apps at scale?</h3>
+    <p>Give each app its own isolated environment so one failure can't spread, monitor error rate and spend rather than just uptime, update dependencies on staging with a rollback ready, and keep a written incident runbook. As you grow past ten apps, standardize how you set up and monitor each one so the fleet stays consistent and any team member can respond to an incident.</p>
+
+    <h3>Should each client app run on its own server?</h3>
+    <p>For anything a client genuinely depends on, yes. A separate server per app keeps the blast radius of a crash, a compromise, or a traffic spike contained to one client, and it makes each client's cost exact instead of estimated. Sharing one server across many apps only makes sense for a few tiny, low-risk internal tools where downtime is cheap.</p>
+
+    <h3>How is managing apps different from managing WordPress sites?</h3>
+    <p>WordPress sites are mostly static and fail at scheduled moments like updates, so you can batch the work. Apps run continuously, hold memory, depend on drifting packages and external API keys, and often carry usage-driven cost, so they fail in more varied and less predictable ways. Managing apps is continuous operations rather than scheduled maintenance.</p>
+
+    <h3>What should I monitor for a client app?</h3>
+    <p>Four things per app: uptime, error rate, resource use like memory and CPU, and spend or quota for anything with usage-based cost. Uptime alone is not enough because an app can return a 200 while failing half its requests or burning money on a runaway loop. The aim is to know an app is in trouble before the client emails you.</p>
+
+    <h3>Why do dependency updates break client apps?</h3>
+    <p>Node and Python apps can pull in hundreds of transitive dependencies, and any of them can ship a breaking change inside an innocent-looking version bump. Unlike a WordPress plugin update that visibly works or fails, a dependency change can alter behavior subtly and surface a week later. Always update on staging, test the real flows, then promote, and keep a rollback ready.</p>
+
+    <h3>What usually causes a client app to go down?</h3>
+    <p>Most app incidents are not bad code. They cluster into expired or revoked API keys, hitting a rate limit or quota, running out of memory, runaway usage or cost, a dependency that broke on update, and a vendor deprecating a model or endpoint. Checking keys, quotas, memory, and recent deploys first will resolve incidents faster than reading application code.</p>
+
+    <h3>How do I handle access for a team managing client apps?</h3>
+    <p>Use per-person accounts with least privilege rather than one shared admin login. That way you can see who did what, let a junior deploy without handing them every client's data, and revoke one person's access in a single action. Shared credentials make auditing impossible and turn offboarding anyone into a fleet-wide password change.</p>
+
+    <h3>What is the right way to offboard a client app?</h3>
+    <p>Follow a repeatable sequence: transfer or export the client's data, hand over or rotate credentials, remove your team's access, and stop the billing. Doing this ad hoc leads to paying for servers you forgot or retaining access you shouldn't have. Set the process up while your fleet is small so it's automatic by the time it's large.</p>
+
+    <h3>Do small agencies need heavy tooling to manage a few apps?</h3>
+    <p>No, and reaching for it early is a common mistake. With a handful of apps you can isolate each one, set basic uptime and error alerts, update on staging, and keep credentials in a password manager. Invest in centralized monitoring, templated environments, and a formal on-call only as the fleet grows toward and past ten apps.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Isolate each app, watch error rate and spend, update on staging, keep a runbook.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Manage a Fleet of Client AI Apps: The Agency Operating Model","description":"Managing client apps is an operations discipline, not a maintenance checklist: isolation, monitoring error rate and spend, dependency updates on staging, an incident runbook, and clean offboarding for agencies running a fleet of AI-built and custom client apps.","image":"https://www.kloudbean.com/blog/manage-client-ai-apps/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/manage-client-ai-apps/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I manage multiple client apps at scale?","acceptedAnswer":{"@type":"Answer","text":"Give each app its own isolated environment so one failure cannot spread, monitor error rate and spend rather than just uptime, update dependencies on staging with a rollback ready, and keep a written incident runbook. As you grow past ten apps, standardize how you set up and monitor each one so the fleet stays consistent and any team member can respond to an incident."}},
+{"@type":"Question","name":"Should each client app run on its own server?","acceptedAnswer":{"@type":"Answer","text":"For anything a client genuinely depends on, yes. A separate server per app keeps the blast radius of a crash, a compromise, or a traffic spike contained to one client, and it makes each client cost exact instead of estimated. Sharing one server across many apps only makes sense for a few tiny, low-risk internal tools where downtime is cheap."}},
+{"@type":"Question","name":"How is managing apps different from managing WordPress sites?","acceptedAnswer":{"@type":"Answer","text":"WordPress sites are mostly static and fail at scheduled moments like updates, so you can batch the work. Apps run continuously, hold memory, depend on drifting packages and external API keys, and often carry usage-driven cost, so they fail in more varied and less predictable ways. Managing apps is continuous operations rather than scheduled maintenance."}},
+{"@type":"Question","name":"What should I monitor for a client app?","acceptedAnswer":{"@type":"Answer","text":"Four things per app: uptime, error rate, resource use like memory and CPU, and spend or quota for anything with usage-based cost. Uptime alone is not enough because an app can return a 200 while failing half its requests or burning money on a runaway loop. The aim is to know an app is in trouble before the client emails you."}},
+{"@type":"Question","name":"Why do dependency updates break client apps?","acceptedAnswer":{"@type":"Answer","text":"Node and Python apps can pull in hundreds of transitive dependencies, and any of them can ship a breaking change inside an innocent-looking version bump. Unlike a WordPress plugin update that visibly works or fails, a dependency change can alter behavior subtly and surface a week later. Always update on staging, test the real flows, then promote, and keep a rollback ready."}},
+{"@type":"Question","name":"What usually causes a client app to go down?","acceptedAnswer":{"@type":"Answer","text":"Most app incidents are not bad code. They cluster into expired or revoked API keys, hitting a rate limit or quota, running out of memory, runaway usage or cost, a dependency that broke on update, and a vendor deprecating a model or endpoint. Checking keys, quotas, memory, and recent deploys first will resolve incidents faster than reading application code."}},
+{"@type":"Question","name":"How do I handle access for a team managing client apps?","acceptedAnswer":{"@type":"Answer","text":"Use per-person accounts with least privilege rather than one shared admin login. That way you can see who did what, let a junior deploy without handing them every client data, and revoke one person access in a single action. Shared credentials make auditing impossible and turn offboarding anyone into a fleet-wide password change."}},
+{"@type":"Question","name":"What is the right way to offboard a client app?","acceptedAnswer":{"@type":"Answer","text":"Follow a repeatable sequence: transfer or export the client data, hand over or rotate credentials, remove your team access, and stop the billing. Doing this ad hoc leads to paying for servers you forgot or retaining access you should not have. Set the process up while your fleet is small so it is automatic by the time it is large."}},
+{"@type":"Question","name":"Do small agencies need heavy tooling to manage a few apps?","acceptedAnswer":{"@type":"Answer","text":"No, and reaching for it early is a common mistake. With a handful of apps you can isolate each one, set basic uptime and error alerts, update on staging, and keep credentials in a password manager. Invest in centralized monitoring, templated environments, and a formal on-call only as the fleet grows toward and past ten apps."}}
+]}
+]}
+</script>
+</body>
+</html>

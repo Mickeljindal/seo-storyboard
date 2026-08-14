@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pricing App Hosting for Clients: The Agency Playbook for AI and Custom Apps</title>
+<meta name="description" content="How to price app hosting for clients without losing money. Separate infrastructure from your management fee, compare four pricing models, cap variable AI usage costs, and use a decision framework built for custom and AI-built apps.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/pricing-ai-app-hosting-for-clients/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Pricing App Hosting for Clients: The Agency Playbook for AI and Custom Apps">
+<meta property="og:description" content="Separate infrastructure from your management fee, compare four pricing models, and cap variable AI usage costs. A pricing playbook for agencies hosting custom and AI-built client apps.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Agency operations · Pricing playbook</span>
+  <h1>Pricing App Hosting for Clients: The Agency Playbook for AI and Custom Apps</h1>
+  <p class="byline">By Kloudbean Engineering · Charge for the risk, not just the server.</p>
+
+  <figure><img src="images/hero.png" alt="The two halves of client app hosting pricing: infrastructure passed through, and a management fee for labor and risk"></figure>
+
+  <p class="lead">For a decade, pricing client hosting was easy. You bought a reseller plan, split it into slices, added a care-plan fee for updates, and pocketed a tidy margin. WordPress sites are predictable, so that flat number worked. Then clients started shipping apps: a Next.js dashboard, a Python API, an AI tool a founder built in a weekend and now needs someone to keep alive. Price those the old way and you'll find out, usually during your first incident, that the maths quietly stopped working. This is how to price app hosting so the margin survives contact with reality.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>Price client app hosting as two separate things: the infrastructure (pass it through at cost or a small markup) and your management (a monthly fee for the labor and risk of keeping the app running). Bundling both into one flat number is how agencies lose money the first time an app breaks. For AI apps, pass through or cap usage-driven costs like inference and egress, or one client's traffic eats your whole retainer.</p>
+  </div>
+
+  <h2>Why app hosting breaks the care-plan model</h2>
+  <p>A WordPress care plan prices one thing: predictable labor. Core and plugin updates, a backup you rarely restore, an uptime check, maybe a monthly report. The underlying hosting is cheap and nearly free to operate, so a flat fee like "hosting and maintenance, one price" leaves room for profit because almost nothing varies month to month.</p>
+  <p>Apps break all three of those assumptions. The infrastructure is not free to operate: a real server, a managed database, object storage, and bandwidth all cost actual money that scales with the app. The labor is not predictable: a dependency update can break a build, an API key can expire at midnight, memory can creep until the process dies. And the failure modes are novel, so "I've seen this a hundred times" stops being true. You are no longer maintaining a known quantity. You're operating software.</p>
+  <p>That's the whole reason the pricing has to change. You're not selling a slice of a cheap shared box anymore. You're selling uptime for a system that has real running costs and can fail in ways you can't fully predict. If you don't price the cost and the risk separately, you're absorbing both, and you won't see it until the invoices and the support hours diverge.</p>
+
+  <h2>What actually costs you money</h2>
+  <p>Before you pick a number, know what you're paying for. Client app hosting has six cost drivers, and only the first one is obvious.</p>
+  <ul>
+    <li><strong>The infrastructure bill.</strong> Servers, managed databases, storage, bandwidth. Real, recurring, and it grows with the app.</li>
+    <li><strong>Incident response.</strong> The unplanned hours. An app down at 9am on a launch day is a different cost than a WordPress plugin needing an update, because someone has to drop everything and diagnose a live system.</li>
+    <li><strong>Dependency and runtime updates.</strong> Node and Python move fast. A security patch or a breaking change in a library means a test, a staging deploy, and a rollback plan. WordPress rarely asks this of you. Apps do, routinely.</li>
+    <li><strong>Runtime and usage cost.</strong> For AI apps especially, every request can cost money: model inference, third-party API calls, egress on data transfer. This scales with how much the client's users do, not with anything you control.</li>
+    <li><strong>Monitoring.</strong> Knowing the app is down before the client calls is a service, and it takes tooling and attention. The guide to <a href="https://www.kloudbean.com/blog/ai-app-observability/">AI app observability</a> covers what to actually watch.</li>
+    <li><strong>Backups and recovery.</strong> Not just taking them, but the confidence that a restore works. A backup you've never tested is a liability wearing a helpful costume.</li>
+  </ul>
+  <p>Miss any of these in your price and you don't notice at first. You notice the quarter a client's app has a bad month and your "profitable" retainer turns into unpaid on-call.</p>
+
+  <h2>The four ways agencies price it</h2>
+  <p>There are really only four models, and each has a situation it fits. The mistake isn't picking the wrong one, it's picking one without knowing what it assumes.</p>
+  <table class="cmp">
+    <thead><tr><th>Model</th><th>How it works</th><th>Best for</th><th>The risk</th></tr></thead>
+    <tbody>
+      <tr><td>Cost-plus markup</td><td>Resell infra at a markup (say infra plus 20 to 40%)</td><td>Simple, low-variance apps</td><td>Markup alone doesn't pay for incidents</td></tr>
+      <tr><td>Flat / tiered retainer</td><td>One monthly price, or Bronze/Silver/Gold</td><td>Predictable apps, non-technical clients</td><td>You eat any month that goes sideways</td></tr>
+      <tr><td>Pass-through + management fee</td><td>Infra billed at cost, separate fee for your labor</td><td>Custom and AI apps of any size</td><td>Two line items to explain to the client</td></tr>
+      <tr><td>Value-based</td><td>Price on the app's business value, not cost</td><td>Revenue-critical apps, mature clients</td><td>Needs trust and a clear value story</td></tr>
+    </tbody>
+  </table>
+  <p>Cost-plus is the reseller reflex: mark up the hosting and call it done. It works when operating the app is genuinely near-zero effort. The trap is that a markup on a small infra bill is a small number, and a small number does not pay for the 2am page.</p>
+  <p>Flat and tiered retainers are clean to sell and easy for a client to understand, which is why care plans use them. They're fine when variance is low. The danger is that you've promised a fixed price against an unpredictable cost, so a bad month is your loss, not theirs.</p>
+  <p>Pass-through plus a management fee is the model that fits custom and AI apps, and it's worth understanding why the next section makes it a rule. Value-based pricing is the most profitable when you can pull it off, but it needs a mature client who sees the app as revenue, not an expense line, and a track record that earns the conversation.</p>
+
+  <h2>The rule that protects your margin</h2>
+  <p>Here's the single most useful idea in this article: <strong>separate the infrastructure from the management.</strong> Two line items, always, even if you present one total.</p>
+  <p>Infrastructure is the meter. It's the server, the database, the storage, the bandwidth, the inference. It varies, and it isn't really your cost to absorb. Pass it through at cost, or at a modest markup if you handle procurement and want a small margin there. Either way, it's visible.</p>
+  <p>Management is the mechanic. It's your labor and your risk: the monitoring, the updates, the incident response, the backups you actually test. This is what you're genuinely selling, and it's where your real margin lives. Price it as a monthly fee that reflects the work and the on-call exposure, not as a percentage of a hosting bill that has nothing to do with how hard the app is to keep alive.</p>
+  <p>Why does the split matter so much? Because when the two are fused into one flat number, you can't see your own margin. Infra creeps up, an incident eats a weekend, and the single number still looks fine until you're quietly running the account at a loss. Separating them means the client sees costs rise for a reason they understand, and you can see whether your management fee still covers the actual work. It also makes the honest boundary clean: managed hosting handles the server, stack, SSL, backups, and patching, while the client owns their application code and data. Two costs, two responsibilities, no blur.</p>
+
+  <!-- ADD IMAGE: swap the SVG below for a polished version if desired. src -> images/margin-split.png -->
+  <figure>
+    <svg viewBox="0 0 820 330" role="img" aria-labelledby="split-t split-d" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#f6f7fb;border:1px solid #e6e9f2;border-radius:16px">
+      <title id="split-t">Bundled pricing versus a separated infrastructure and management split</title>
+      <desc id="split-d">On the left, one flat price hides a thin margin that a rising infrastructure bill and an incident spike squeeze from both sides. On the right, infrastructure is a visible pass-through cost and the management fee is a separate, stable margin you can actually read.</desc>
+      <text x="30" y="38" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Two ways to price the same client app</text>
+
+      <text x="30" y="74" fill="#b42318" font-family="Poppins,sans-serif" font-size="13" font-weight="700">Bundled: one flat number</text>
+      <rect x="30" y="86" width="330" height="150" rx="10" fill="#ffffff" stroke="#e6e9f2"/>
+      <rect x="50" y="104" width="290" height="40" rx="5" fill="#98a2b3"/>
+      <text x="195" y="129" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">infrastructure (creeping up)</text>
+      <rect x="50" y="150" width="290" height="30" rx="5" fill="#000f27"/>
+      <text x="195" y="170" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">incident hours (unbilled)</text>
+      <rect x="50" y="186" width="290" height="14" rx="4" fill="#40b75f"/>
+      <text x="195" y="220" text-anchor="middle" fill="#b42318" font-family="Poppins,sans-serif" font-size="11.5">your margin: a thin sliver, and shrinking</text>
+
+      <text x="450" y="74" fill="#0a7d33" font-family="Poppins,sans-serif" font-size="13" font-weight="700">Separated: two line items</text>
+      <rect x="450" y="86" width="330" height="150" rx="10" fill="#ffffff" stroke="#e6e9f2"/>
+      <rect x="470" y="104" width="290" height="46" rx="5" fill="#4F1AF3"/>
+      <text x="615" y="132" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">infrastructure: pass-through, visible</text>
+      <rect x="470" y="158" width="200" height="46" rx="5" fill="#40b75f"/>
+      <text x="570" y="186" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">management fee: your margin</text>
+      <text x="470" y="224" fill="#0a7d33" font-family="Poppins,sans-serif" font-size="11.5">both costs readable, margin holds when infra moves</text>
+
+      <text x="30" y="278" fill="#000f27" font-family="Poppins,sans-serif" font-size="12" font-weight="600">Reading it</text>
+      <text x="30" y="300" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">One flat number hides the squeeze until you're running the account at a loss. Splitting infra from</text>
+      <text x="30" y="318" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">management lets both you and the client see exactly what changed and why.</text>
+    </svg>
+    <figcaption>When infra and management are one number, you can't see the margin being squeezed. Split them and both you and the client can read the bill.</figcaption>
+  </figure>
+
+  <h2>The AI wrinkle: usage costs you don't control</h2>
+  <p>AI apps add a cost that behaves unlike anything in a WordPress world: it moves with the client's users, not with your work. Every model call, every third-party API request, every gigabyte of egress can carry a price, and it scales with usage you have no hand in. A client runs a campaign, traffic triples, and the inference bill triples with it.</p>
+  <p>If your price is a flat retainer that quietly includes those costs, you've written the client a blank cheque against your own margin. There are only two safe options, and you should pick one before signing anything.</p>
+  <p>Pass it through: usage-driven costs land on the client's invoice at cost, itemized, so a heavy month is their heavy month. Or cap it: you include a defined allowance (a number of requests, a spend ceiling) and anything above it is billed or throttled. Both are honest. What isn't honest, to yourself, is an all-you-can-eat flat fee sitting on top of a variable cost you can't predict. That's how a profitable client quietly turns into a loss. Runaway usage is one of the most common ways these apps blow up, which <a href="https://www.kloudbean.com/blog/why-ai-apps-fail-in-production/">why AI apps fail in production</a> gets into, and the broader cost picture is in <a href="https://www.kloudbean.com/blog/cost-of-running-a-side-project/">what it really costs to run an app</a>.</p>
+
+  <h2>A framework for picking your model</h2>
+  <p>You don't need a spreadsheet. You need three questions, answered honestly.</p>
+  <p><strong>How much does operating this app actually vary?</strong> If it's a brochure site or a stable internal tool that barely changes, a flat retainer is fine and simpler for everyone. If it's a live app with real users, dependencies that move, and any AI or third-party usage, you want pass-through plus a management fee.</p>
+  <p><strong>Who absorbs the usage cost?</strong> If the app has variable, usage-driven costs, decide now: the client pays them (pass-through) or you cap them. Never leave this undefined. An undefined usage cost is a future argument you will lose.</p>
+  <p><strong>How sophisticated is the client?</strong> A non-technical client wants one number and a clear promise, so present a total even if you calculate it as two parts. A technical or revenue-focused client can handle itemized infra plus a management fee, and may be the right fit for value-based pricing once you've earned it.</p>
+  <p>The default that fits most custom and AI client apps is pass-through infrastructure plus a monthly management fee, with usage costs either passed through or capped. Start there, and only simplify to a flat retainer when the app is genuinely low-variance.</p>
+
+  <h2>The mistakes that quietly eat margin</h2>
+  <p>Four anti-patterns show up again and again, and all of them are avoidable once named.</p>
+  <p><strong>Invisible bundling.</strong> One flat number with no internal split. You can't tell a healthy account from a bleeding one until it's badly bleeding. Split the line items even if you show a total.</p>
+  <p><strong>The uncapped flat fee on a variable cost.</strong> Promising all-inclusive hosting on an app whose inference or bandwidth bill you don't control. This is the classic AI-era margin killer.</p>
+  <p><strong>"Hosting is basically free."</strong> Pricing the infra at cost and forgetting to charge for management at all, because reselling shared hosting taught you operating a site is free. Apps are not free to operate. Your time is the product.</p>
+  <p><strong>Under-scoping incidents.</strong> Writing a retainer that assumes zero unplanned hours. One real outage a quarter, unbilled, can erase the margin on an account. Price in the on-call, or bill incidents separately and say so up front.</p>
+  <p>If you want the WordPress-specific version of packaging maintenance, <a href="https://www.kloudbean.com/blog/wordpress-maintenance-retainer-plans/">care-plan and retainer pricing</a> covers that side. The models here are for when the thing you're hosting is an app, not a site, and the difference in operating an <a href="https://www.kloudbean.com/blog/agency-wordpress-hosting/">agency's WordPress fleet</a> versus a fleet of custom apps is exactly why the pricing has to differ.</p>
+
+  <h2>Where the tooling makes this easier</h2>
+  <p>Most of this is discipline, not software. But the split gets far easier to run when your hosting has flat, predictable pricing and you can see each client's usage in one place. If every client's app sits on its own server with its own visible bill, pass-through pricing is just reading a number, and your management fee stands on its own instead of hiding inside a hosting markup. That's also cleaner for isolation, which the companion piece on <a href="https://www.kloudbean.com/blog/manage-client-ai-apps/">managing a fleet of client apps</a> gets into, and it's a real reason agencies move off blended reseller plans, covered in <a href="https://www.kloudbean.com/blog/reseller-hosting-vs-managed-cloud/">reseller hosting versus managed cloud</a>.</p>
+  <p>Kloudbean fits this model on the infrastructure side: standard plans start at a flat, predictable rate (from $8 a month), each client app can run on its own managed server, and one dashboard shows the whole fleet, so pass-through costs are easy to read and attribute. Handy for running the split cleanly. Secondary to the point of this page, which is the pricing method itself.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:19px">Price the risk, not just the box.</p>
+    <p style="margin:0">If you want infrastructure with flat, predictable pricing and one dashboard to see every client's app and its cost, that's what Kloudbean is built for. Details at <a href="https://www.kloudbean.com/">kloudbean.com</a> and <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How should an agency price hosting for client apps?</h3>
+    <p>Price it as two parts: infrastructure passed through at cost or a small markup, and a separate monthly management fee for your labor and risk. This keeps your margin visible and stops an unpredictable infra bill or a single incident from quietly turning a profitable account into a loss. Only fall back to a single flat fee when the app is genuinely low-variance.</p>
+
+    <h3>Why can't I price app hosting like a WordPress care plan?</h3>
+    <p>Care plans price predictable labor on cheap, near-free hosting, so a flat fee has room for profit. Apps have real infrastructure costs that scale, unpredictable maintenance, and novel failure modes. A flat number that worked for a static site leaves you absorbing both the variable cost and the incident risk on an app, which you won't notice until the hours and the invoices diverge.</p>
+
+    <h3>Should I mark up hosting or bill it at cost?</h3>
+    <p>Either works if you also charge a management fee. A modest markup on infrastructure is fair if you handle procurement, but a markup alone rarely covers incident response and updates. The safest structure is infrastructure at or near cost, passed through and visible, plus a management fee that reflects the actual work of keeping the app online.</p>
+
+    <h3>How do I handle AI usage costs like inference and API calls?</h3>
+    <p>Pass them through or cap them, and decide before you sign. Pass-through means usage-driven costs appear on the client's invoice at cost. A cap means you include a defined allowance and bill or throttle above it. What you must avoid is an all-inclusive flat fee sitting on top of a usage cost you don't control, because one busy month can erase your margin.</p>
+
+    <h3>What is a fair management fee for an app?</h3>
+    <p>There's no universal number, because it depends on the app's complexity, how often it changes, and your on-call exposure. Price it on the work, not as a percentage of the hosting bill, which has little to do with how hard the app is to run. Estimate the monthly hours for monitoring, updates, and expected incidents, and price that plus a buffer for the unplanned.</p>
+
+    <h3>How do I stop a client's app from eating my profit?</h3>
+    <p>Separate infrastructure from management so you can see your margin, cap or pass through variable usage costs, and scope incident hours into the price or bill them separately. The accounts that lose money are almost always the ones with one flat number hiding a rising infra bill and unpaid on-call time.</p>
+
+    <h3>Is value-based pricing worth it for hosting?</h3>
+    <p>It's the most profitable model when it fits, but it needs a mature client who treats the app as revenue rather than an expense, and a track record that earns the conversation. For most agencies, pass-through infrastructure plus a management fee is the reliable default, and value-based pricing is something you grow into on your most important accounts.</p>
+
+    <h3>Should each client app have its own server?</h3>
+    <p>Usually yes, for two reasons that both help pricing. Isolation limits the blast radius when one app has a problem, and a dedicated bill per client makes pass-through pricing trivial to calculate and explain. Shared servers can work for very small or low-risk apps, but the moment cost attribution or a security boundary matters, per-client separation pays for itself.</p>
+
+    <h3>How is pricing custom app hosting different from reselling shared hosting?</h3>
+    <p>Reselling works because operating a shared site is nearly free, so a thin markup is pure margin. Custom app hosting has real operating costs and real labor, so the markup model alone loses money. You have to charge for management as its own line, which is the shift from reselling a commodity to selling an operations service.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Two line items beat one flat number every time an app breaks.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Pricing App Hosting for Clients: The Agency Playbook for AI and Custom Apps","description":"How to price app hosting for clients without losing money: separate infrastructure from your management fee, compare four pricing models, cap variable AI usage costs, and use a decision framework built for custom and AI-built apps.","image":"https://www.kloudbean.com/blog/pricing-ai-app-hosting-for-clients/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/pricing-ai-app-hosting-for-clients/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How should an agency price hosting for client apps?","acceptedAnswer":{"@type":"Answer","text":"Price it as two parts: infrastructure passed through at cost or a small markup, and a separate monthly management fee for your labor and risk. This keeps your margin visible and stops an unpredictable infra bill or a single incident from quietly turning a profitable account into a loss. Only fall back to a single flat fee when the app is genuinely low-variance."}},
+{"@type":"Question","name":"Why can't I price app hosting like a WordPress care plan?","acceptedAnswer":{"@type":"Answer","text":"Care plans price predictable labor on cheap, near-free hosting, so a flat fee has room for profit. Apps have real infrastructure costs that scale, unpredictable maintenance, and novel failure modes. A flat number that worked for a static site leaves you absorbing both the variable cost and the incident risk on an app, which you will not notice until the hours and the invoices diverge."}},
+{"@type":"Question","name":"Should I mark up hosting or bill it at cost?","acceptedAnswer":{"@type":"Answer","text":"Either works if you also charge a management fee. A modest markup on infrastructure is fair if you handle procurement, but a markup alone rarely covers incident response and updates. The safest structure is infrastructure at or near cost, passed through and visible, plus a management fee that reflects the actual work of keeping the app online."}},
+{"@type":"Question","name":"How do I handle AI usage costs like inference and API calls?","acceptedAnswer":{"@type":"Answer","text":"Pass them through or cap them, and decide before you sign. Pass-through means usage-driven costs appear on the client invoice at cost. A cap means you include a defined allowance and bill or throttle above it. What you must avoid is an all-inclusive flat fee sitting on top of a usage cost you do not control, because one busy month can erase your margin."}},
+{"@type":"Question","name":"What is a fair management fee for an app?","acceptedAnswer":{"@type":"Answer","text":"There is no universal number, because it depends on the app complexity, how often it changes, and your on-call exposure. Price it on the work, not as a percentage of the hosting bill, which has little to do with how hard the app is to run. Estimate the monthly hours for monitoring, updates, and expected incidents, and price that plus a buffer for the unplanned."}},
+{"@type":"Question","name":"How do I stop a client's app from eating my profit?","acceptedAnswer":{"@type":"Answer","text":"Separate infrastructure from management so you can see your margin, cap or pass through variable usage costs, and scope incident hours into the price or bill them separately. The accounts that lose money are almost always the ones with one flat number hiding a rising infra bill and unpaid on-call time."}},
+{"@type":"Question","name":"Is value-based pricing worth it for hosting?","acceptedAnswer":{"@type":"Answer","text":"It is the most profitable model when it fits, but it needs a mature client who treats the app as revenue rather than an expense, and a track record that earns the conversation. For most agencies, pass-through infrastructure plus a management fee is the reliable default, and value-based pricing is something you grow into on your most important accounts."}},
+{"@type":"Question","name":"Should each client app have its own server?","acceptedAnswer":{"@type":"Answer","text":"Usually yes, for two reasons that both help pricing. Isolation limits the blast radius when one app has a problem, and a dedicated bill per client makes pass-through pricing trivial to calculate and explain. Shared servers can work for very small or low-risk apps, but the moment cost attribution or a security boundary matters, per-client separation pays for itself."}},
+{"@type":"Question","name":"How is pricing custom app hosting different from reselling shared hosting?","acceptedAnswer":{"@type":"Answer","text":"Reselling works because operating a shared site is nearly free, so a thin markup is pure margin. Custom app hosting has real operating costs and real labor, so the markup model alone loses money. You have to charge for management as its own line, which is the shift from reselling a commodity to selling an operations service."}}
+]}
+]}
+</script>
+</body>
+</html>
