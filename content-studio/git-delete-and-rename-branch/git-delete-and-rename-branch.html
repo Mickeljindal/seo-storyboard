@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Git Delete Branch and Rename Branch: Local and Remote, One Reference</title>
+<meta name="description" content="Git delete branch and rename branch, local and remote, in one reference: branch -d vs -D, git push origin --delete, git branch -m, why remotes have no rename, fixing upstream tracking, and pruning stale refs.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/git-delete-and-rename-branch/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Git Delete Branch and Rename Branch: Local and Remote, One Reference">
+<meta property="og:description" content="One reference for the whole branch family: delete local, delete remote, rename local, why you cannot rename a remote branch directly, fixing upstream tracking, and pruning stale refs.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Git reference · Branches</span>
+  <h1>Git Delete Branch and Rename Branch: Local and Remote, One Reference</h1>
+  <p class="byline">By Kloudbean Engineering · Local, remote, and the copy in between.</p>
+
+  <figure><img src="images/hero.png" alt="A diagram of the three things Git calls a branch: a local branch, a remote branch, and a remote-tracking ref"></figure>
+
+  <p class="lead">Search git delete branch and you get a dozen answers for one narrow case, none of which mention the remote, the rename, or the teammate whose afternoon you just complicated. This is the whole family in one page. Deleting and renaming branches, local and remote, with the exact commands and the reasons behind each one. Read the first section and the rest of it stops feeling like guesswork.</p>
+
+  <div class="tldr">
+    <strong>The short, useful version</strong>
+    <p>To delete a local branch, run git branch -d name, or -D to force one that is not merged. To delete a remote branch, run git push origin --delete name. To rename locally, use git branch -m old new. There is no remote rename: push the new name, delete the old one, then reset tracking with git push -u origin new. Prune leftovers with git fetch --prune.</p>
+  </div>
+
+  <h2>The three things Git calls a branch</h2>
+  <p>Almost every branch mistake comes from one confusion: the word branch means three different things, and they live in three different places. Get these straight and delete, rename, push, and prune all stop being scary.</p>
+  <p><strong>A local branch</strong> is a movable pointer to a commit on your own machine. It is what you check out, edit, and commit to. It is cheap, really just a small file under <code>.git/refs/heads/</code>, and creating or deleting one changes nothing for anyone else.</p>
+  <p><strong>A remote branch</strong> is the branch that lives on the remote, for example on GitHub or GitLab. It only changes when someone pushes to it or deletes it. It is shared. That is the one that touches other people.</p>
+  <p><strong>A remote-tracking ref</strong>, written like <code>origin/feature</code>, is the one that trips everyone up. It is a read-only copy on your machine that records where the remote branch was the last time you talked to the remote. It does not update live. <code>git fetch</code> refreshes it. So <code>origin/feature</code> can point at a branch that was deleted on the remote an hour ago and keep pointing there until you fetch with pruning.</p>
+  <p>Once you see those as three separate objects, the commands line up. Deleting a local branch touches only the first. Deleting a remote branch is a push that touches the second. Cleaning up the stale third is exactly what <code>git fetch --prune</code> is for.</p>
+
+  <figure>
+    <svg viewBox="0 0 820 320" role="img" aria-labelledby="br-t br-d" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#f6f7fb;border:1px solid #e6e9f2;border-radius:16px">
+      <title id="br-t">One branch name can mean three different things</title>
+      <desc id="br-d">A local branch lives on your machine and is what you edit. A remote branch lives on the remote such as GitHub. A remote-tracking ref like origin/feature is a read-only cache on your machine that git fetch updates. Deleting one does not delete the others.</desc>
+      <text x="28" y="38" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">One name, three different things</text>
+
+      <rect x="28" y="60" width="452" height="234" rx="14" fill="#ffffff" stroke="#cbd2e0"/>
+      <text x="48" y="88" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12" font-weight="700" letter-spacing="1.5">YOUR MACHINE</text>
+
+      <rect x="48" y="104" width="372" height="56" rx="9" fill="#40b75f"/>
+      <text x="68" y="130" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="14" font-weight="600">feature</text>
+      <text x="68" y="149" fill="#eafff0" font-family="Poppins,sans-serif" font-size="11.5">local branch: the one you edit and commit to</text>
+
+      <rect x="48" y="176" width="372" height="56" rx="9" fill="#ffffff" stroke="#4F1AF3" stroke-dasharray="5 4"/>
+      <text x="68" y="202" fill="#4F1AF3" font-family="JetBrains Mono,monospace" font-size="14" font-weight="600">origin/feature</text>
+      <text x="68" y="221" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11.5">remote-tracking ref: a read-only cache</text>
+
+      <text x="48" y="258" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11.5">git fetch updates the cache.</text>
+      <text x="48" y="276" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11.5">git fetch --prune drops it once the remote branch is gone.</text>
+
+      <rect x="556" y="60" width="238" height="234" rx="14" fill="#ffffff" stroke="#cbd2e0"/>
+      <text x="576" y="88" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12" font-weight="700" letter-spacing="1.5">REMOTE: ORIGIN</text>
+
+      <rect x="576" y="104" width="198" height="56" rx="9" fill="#000f27"/>
+      <text x="596" y="130" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="14" font-weight="600">feature</text>
+      <text x="596" y="149" fill="#c7d0e6" font-family="Poppins,sans-serif" font-size="11.5">remote branch (e.g. on GitHub)</text>
+
+      <text x="596" y="200" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11.5">shared. changes only</text>
+      <text x="596" y="218" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11.5">when someone pushes</text>
+      <text x="596" y="236" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11.5">or deletes it.</text>
+
+      <line x1="420" y1="122" x2="574" y2="122" stroke="#40b75f" stroke-width="2.5" marker-end="url(#arg)"/>
+      <text x="497" y="114" text-anchor="middle" fill="#40b75f" font-family="JetBrains Mono,monospace" font-size="11" font-weight="600">git push</text>
+
+      <line x1="574" y1="146" x2="422" y2="188" stroke="#4F1AF3" stroke-width="2.5" stroke-dasharray="5 4" marker-end="url(#arp)"/>
+      <text x="497" y="182" text-anchor="middle" fill="#4F1AF3" font-family="JetBrains Mono,monospace" font-size="11" font-weight="600">git fetch</text>
+
+      <defs>
+        <marker id="arg" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#40b75f"/></marker>
+        <marker id="arp" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#4F1AF3"/></marker>
+      </defs>
+    </svg>
+    <figcaption>The same name, feature, refers to three separate objects. A local delete leaves the remote branch untouched, and deleting the remote branch leaves your stale origin/feature cache behind until you prune it.</figcaption>
+  </figure>
+
+  <h2>Delete a local branch</h2>
+  <p>To delete a local branch, first switch to a different branch, because Git will not let you delete the branch you are currently standing on. Then use <code>git branch -d</code>.</p>
+  <pre><code># move off the branch first
+git switch main
+
+# delete a branch that is already merged (safe)
+git branch -d old-feature
+
+# force-delete a branch even if it is not merged
+git branch -D old-feature</code></pre>
+  <p>The lowercase <code>-d</code> is the safe one. It refuses to delete a branch whose commits are not merged into the branch you are on, so it will not quietly throw away work. If Git stops you with a warning that the branch is not fully merged, that is the safety net doing its job, not an error to bulldoze past.</p>
+  <p>The uppercase <code>-D</code> is force. It deletes no matter the merge state. Reach for it when you genuinely want the commits gone, say an experiment you are abandoning, and you have read the warning and mean it.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Command</th><th>What it does</th><th>When to use it</th></tr></thead>
+    <tbody>
+      <tr><td><code>git branch -d</code></td><td>Deletes only if the branch is merged</td><td>Your safe default. It protects unmerged work.</td></tr>
+      <tr><td><code>git branch -D</code></td><td>Force deletes, merged or not</td><td>You are sure you want those commits gone.</td></tr>
+    </tbody>
+  </table>
+  <p>One reassuring fact: even <code>-D</code> rarely destroys work the instant you run it. The deleted commits sit in your reflog for a while, so <code>git reflog</code> can often help you recover a branch you dropped by mistake. Do not build a workflow on that, but do not panic either.</p>
+
+  <h2>Delete a remote branch</h2>
+  <p>Deleting your local copy does nothing to the remote. To remove the branch that lives on the remote, you push a deletion.</p>
+  <pre><code># the modern, readable form
+git push origin --delete old-feature
+
+# the older refspec form does exactly the same thing
+git push origin :old-feature</code></pre>
+  <p>Both forms delete the same remote branch. The <code>--delete</code> form is easier to read and remember. The older colon form, <code>git push origin :old-feature</code>, literally means push nothing into that remote branch, which Git reads as delete it. You will still meet the colon form in old answers and scripts, so it is worth recognizing.</p>
+  <p>Because this is a push, you need write access to the remote. If the delete is rejected on permissions, the problem is your access, not the command. And deleting a shared branch deserves a pause: once it is gone it is gone for the whole team, so make sure the work is merged or genuinely unwanted first.</p>
+
+  <h2>Rename a local branch</h2>
+  <p>Renaming a local branch is one command, <code>git branch -m</code> (the m is for move).</p>
+  <pre><code># rename the branch you are currently on
+git branch -m new-name
+
+# rename a branch you are not on: old name, then new name
+git branch -m old-name new-name</code></pre>
+  <p>If you are already on the branch you want to rename, give <code>-m</code> a single argument, the new name. If you are somewhere else, give it two, the old name then the new name. That is the entire local story, and it happens instantly. Nothing leaves your machine yet.</p>
+  <p>The catch is that this rename does not reach the remote on its own, and it quietly breaks the branch's upstream link. So a local rename is only step one of a bigger job whenever that branch already exists on the remote, which is the next section.</p>
+
+  <h2>Rename a remote branch (there is no direct command)</h2>
+  <p>Here is the fact that catches people out: Git has no command to rename a branch on the remote. The remote understands only two moves, create a branch and delete a branch. A remote rename is really a create-the-new-name plus delete-the-old-name, done in the right order.</p>
+  <p>So renaming a branch that already lives on the remote is a four-step move:</p>
+  <pre><code># 1. rename it locally
+git branch -m old-name new-name
+
+# 2. push the new name and set it as the upstream
+git push -u origin new-name
+
+# 3. delete the old branch on the remote
+git push origin --delete old-name
+
+# 4. teammates (and you) prune the stale reference
+git fetch --prune</code></pre>
+  <p>Step by step: rename locally, push the new name and set it as upstream with <code>-u</code>, delete the old branch on the remote, and finally have everyone prune so the old <code>origin/old-name</code> reference disappears. If the old branch happens to be the default branch on GitHub or GitLab, change the default in the host settings first, otherwise the remote will refuse to delete it.</p>
+  <p>This is also where you remember that a rename, to anyone who already pulled, behaves like a delete plus a brand new branch. Their old branch keeps pointing at a name that no longer exists on the remote. Tell your teammates, or you will answer the same puzzled message a few times over.</p>
+
+  <h2>Fix upstream tracking after a rename</h2>
+  <p>Upstream tracking is the link that lets you type <code>git push</code> and <code>git pull</code> with no arguments and have Git know which remote branch you mean. A rename, or a delete-and-recreate, breaks that link. The symptom is Git complaining that the current branch has no upstream, or a push landing on the wrong name.</p>
+  <pre><code># see what each local branch is tracking
+git branch -vv
+
+# set (or reset) the upstream for the current branch
+git push -u origin new-name
+
+# or relink without pushing, if the remote branch already exists
+git branch --set-upstream-to=origin/new-name</code></pre>
+  <p><code>git branch -vv</code> shows what each local branch is tracking, which is the quickest way to spot a broken or wrong link. To fix it, push once with <code>-u</code> (short for <code>--set-upstream</code>) to push and set the link in a single step. If the remote branch already exists and you only want to point at it, <code>git branch --set-upstream-to</code> does that without a push. After either, plain <code>git push</code> and <code>git pull</code> work again.</p>
+
+  <h2>Prune remote-tracking refs that no longer exist</h2>
+  <p>When a branch is deleted on the remote, your machine does not find out on its own. Your <code>origin/that-branch</code> reference lingers, which is why <code>git branch -r</code> keeps listing branches a colleague deleted last week.</p>
+  <pre><code># remove remote-tracking refs whose remote branch is gone
+git fetch --prune
+
+# find local branches already merged into main (safe cleanup)
+git branch --merged main</code></pre>
+  <p><code>git fetch --prune</code> fetches and, in the same pass, removes any remote-tracking refs whose remote branch has disappeared. Run it and the ghosts vanish. If you want that behavior every time, set <code>fetch.prune</code> to true in your Git config so a plain <code>git fetch</code> always prunes. Pair it with <code>git branch --merged</code> to find local branches that are fully merged and safe to delete, which is the usual tidy-up.</p>
+
+  <h2>What a delete or rename does to your teammates</h2>
+  <p>Local operations are private. Anything that touches the remote is not, and this is the part worth slowing down for.</p>
+  <p>Deleting a remote branch removes it for everyone. If a teammate was working from it and had not pushed, their local copy survives, but the shared reference they were pushing to is gone, and their next push may recreate it or fail depending on their setup. Renaming a remote branch, because it is a delete plus a create, has the same effect: to a colleague the old name simply vanished and a new one appeared.</p>
+  <p>Force-pushing is the sharpest edge of all. If you rewrite history on a shared branch and force-push, anyone who already pulled now has a diverged copy, and merging it back can drag in the very commits you tried to remove. The safer habit on shared branches is <code>git push --force-with-lease</code> instead of a bare <code>--force</code>, because it refuses to overwrite work you have not seen yet. Better still, avoid rewriting shared history at all unless the whole team agreed to it.</p>
+  <p>The short version. Private branch, do what you like. Shared branch, talk first.</p>
+
+  <h2>Every command in one table</h2>
+  <p>Bookmark this. It is the whole family in one grid, with concrete example names you can swap for your own.</p>
+  <table class="cmp">
+    <thead><tr><th>Task</th><th>Command</th></tr></thead>
+    <tbody>
+      <tr><td>Delete a merged local branch</td><td><code>git branch -d old-feature</code></td></tr>
+      <tr><td>Force-delete an unmerged local branch</td><td><code>git branch -D old-feature</code></td></tr>
+      <tr><td>Delete a remote branch</td><td><code>git push origin --delete old-feature</code></td></tr>
+      <tr><td>Rename the branch you are on</td><td><code>git branch -m new-name</code></td></tr>
+      <tr><td>Rename another local branch</td><td><code>git branch -m old-name new-name</code></td></tr>
+      <tr><td>Push a renamed branch and set upstream</td><td><code>git push -u origin new-name</code></td></tr>
+      <tr><td>Relink upstream without pushing</td><td><code>git branch --set-upstream-to=origin/new-name</code></td></tr>
+      <tr><td>Prune stale remote-tracking refs</td><td><code>git fetch --prune</code></td></tr>
+      <tr><td>See what each branch tracks</td><td><code>git branch -vv</code></td></tr>
+      <tr><td>List local / remote branches</td><td><code>git branch</code> / <code>git branch -r</code></td></tr>
+      <tr><td>List merged (cleanup candidates)</td><td><code>git branch --merged main</code></td></tr>
+    </tbody>
+  </table>
+  <p>If you only keep two rules from all of this: lowercase deletes safely and uppercase forces, and there is no remote rename, only push-new then delete-old.</p>
+
+  <h2>Branches, CI/CD, and your deploys</h2>
+  <p>Branch names stop being harmless labels the moment you wire up continuous deployment. The branch a pipeline watches is the branch that ships. Rename or delete the wrong one and a deploy can quietly stop firing, or a stale preview environment can hang around pointing at a branch that no longer exists.</p>
+  <p>So the cleanup habits above pay off directly in a pipeline. Prune dead branches, keep the deploy branch's name stable, and reset upstream tracking after a rename so pushes land where the pipeline is listening. If you connect a repo to a managed pipeline like Kloudbean's, where CI/CD connects a Git repo and builds and deploys on every push, the branch you point it at is the contract, so keep it tidy and predictable. The mechanics of that setup live in the guides on <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD that auto-deploys from GitHub</a> and <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploying a Node app to managed cloud</a>. And since a remote branch delete is a push, it leans on the same <a href="https://www.kloudbean.com/blog/ssh-key-authentication/">SSH key access</a> your normal pushes use. Per-branch preview environments usually carry their own config too, which is where <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">handling environment variables properly</a> keeps things sane.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:19px">Ship the branch you meant to ship.</p>
+    <p style="margin:0">Kloudbean's managed CI/CD connects your Git repo and deploys on every push, with deployment history and live build logs in one dashboard. Managed CI/CD · Deploy on every push · Live build logs · Free migration · Free trial. See <a href="https://www.kloudbean.com/">kloudbean.com</a> and <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I delete a local Git branch?</h3>
+    <p>Switch to another branch first, since Git will not let you delete the branch you are on, then run git branch -d followed by the branch name. The lowercase -d only deletes a branch whose work is already merged, which protects you from losing commits. Use git branch -D to force the deletion when you are certain.</p>
+
+    <h3>What is the difference between git branch -d and -D?</h3>
+    <p>Lowercase -d is the safe delete. It refuses to remove a branch that has commits not merged into your current branch. Uppercase -D forces the delete regardless of merge state. Use -d by default and reach for -D only when you truly want to discard unmerged work.</p>
+
+    <h3>How do I delete a remote branch?</h3>
+    <p>Push a deletion with git push origin --delete followed by the branch name. The older form git push origin :branch-name does the same thing. Because it is a push you need write access to the remote, and the branch disappears for everyone once you run it.</p>
+
+    <h3>How do I rename a local branch?</h3>
+    <p>Use git branch -m. If you are on the branch, pass just the new name. If you are on a different branch, pass the old name then the new name. The rename is instant and local, and it does not touch the remote or update tracking on its own.</p>
+
+    <h3>Can I rename a remote branch directly?</h3>
+    <p>No. Git has no command that renames a branch on the remote. You rename it locally, push the new name with git push -u, delete the old remote branch with git push origin --delete, and then everyone prunes. If the branch is the default on GitHub, change the default in settings before deleting the old one.</p>
+
+    <h3>Why does my deleted branch still show up in git branch -r?</h3>
+    <p>Because git branch -r lists remote-tracking refs, which are a cached copy on your machine, not the live remote. When someone deletes a branch on the remote, your cache keeps it until you refresh. Run git fetch --prune to remove remote-tracking refs whose remote branch no longer exists.</p>
+
+    <h3>How do I fix the upstream after renaming a branch?</h3>
+    <p>Renaming breaks the tracking link, so a plain git push stops knowing where to go. Push once with git push -u origin new-name to push and set the upstream together. To relink without pushing, use git branch --set-upstream-to=origin/new-name. Check the result with git branch -vv.</p>
+
+    <h3>Does deleting or force-pushing a branch affect my teammates?</h3>
+    <p>Deleting a remote branch removes it for everyone, and renaming one looks like a delete plus a new branch to them. Force-pushing rewritten history is the riskiest, since anyone who already pulled ends up with a diverged copy. Prefer git push --force-with-lease on shared branches and tell the team before rewriting history.</p>
+
+    <h3>How do I delete a branch on GitHub?</h3>
+    <p>You can delete it from the GitHub web interface on the branches page, or from your terminal with git push origin --delete followed by the branch name. Both remove the same remote branch. After a merged pull request, GitHub also shows a delete branch button on the pull request itself.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Delete with -d, force with -D, and prune the leftovers.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Git Delete Branch and Rename Branch: Local and Remote, One Reference","description":"One reference for deleting and renaming Git branches, local and remote: git branch -d versus -D, git push origin --delete, git branch -m, why there is no direct remote rename, fixing upstream tracking, and pruning stale remote-tracking refs.","image":"https://www.kloudbean.com/blog/git-delete-and-rename-branch/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/git-delete-and-rename-branch/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I delete a local Git branch?","acceptedAnswer":{"@type":"Answer","text":"Switch to another branch first, since Git will not let you delete the branch you are on, then run git branch -d followed by the branch name. The lowercase -d only deletes a branch whose work is already merged, which protects you from losing commits. Use git branch -D to force the deletion when you are certain."}},
+{"@type":"Question","name":"What is the difference between git branch -d and -D?","acceptedAnswer":{"@type":"Answer","text":"Lowercase -d is the safe delete. It refuses to remove a branch that has commits not merged into your current branch. Uppercase -D forces the delete regardless of merge state. Use -d by default and reach for -D only when you truly want to discard unmerged work."}},
+{"@type":"Question","name":"How do I delete a remote branch?","acceptedAnswer":{"@type":"Answer","text":"Push a deletion with git push origin --delete followed by the branch name. The older form git push origin :branch-name does the same thing. Because it is a push you need write access to the remote, and the branch disappears for everyone once you run it."}},
+{"@type":"Question","name":"How do I rename a local branch?","acceptedAnswer":{"@type":"Answer","text":"Use git branch -m. If you are on the branch, pass just the new name. If you are on a different branch, pass the old name then the new name. The rename is instant and local, and it does not touch the remote or update tracking on its own."}},
+{"@type":"Question","name":"Can I rename a remote branch directly?","acceptedAnswer":{"@type":"Answer","text":"No. Git has no command that renames a branch on the remote. You rename it locally, push the new name with git push -u, delete the old remote branch with git push origin --delete, and then everyone prunes. If the branch is the default on GitHub, change the default in settings before deleting the old one."}},
+{"@type":"Question","name":"Why does my deleted branch still show up in git branch -r?","acceptedAnswer":{"@type":"Answer","text":"Because git branch -r lists remote-tracking refs, which are a cached copy on your machine, not the live remote. When someone deletes a branch on the remote, your cache keeps it until you refresh. Run git fetch --prune to remove remote-tracking refs whose remote branch no longer exists."}},
+{"@type":"Question","name":"How do I fix the upstream after renaming a branch?","acceptedAnswer":{"@type":"Answer","text":"Renaming breaks the tracking link, so a plain git push stops knowing where to go. Push once with git push -u origin new-name to push and set the upstream together. To relink without pushing, use git branch --set-upstream-to=origin/new-name. Check the result with git branch -vv."}},
+{"@type":"Question","name":"Does deleting or force-pushing a branch affect my teammates?","acceptedAnswer":{"@type":"Answer","text":"Deleting a remote branch removes it for everyone, and renaming one looks like a delete plus a new branch to them. Force-pushing rewritten history is the riskiest, since anyone who already pulled ends up with a diverged copy. Prefer git push --force-with-lease on shared branches and tell the team before rewriting history."}},
+{"@type":"Question","name":"How do I delete a branch on GitHub?","acceptedAnswer":{"@type":"Answer","text":"You can delete it from the GitHub web interface on the branches page, or from your terminal with git push origin --delete followed by the branch name. Both remove the same remote branch. After a merged pull request, GitHub also shows a delete branch button on the pull request itself."}}
+]}
+]}
+</script>
+</body>
+</html>

@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GraphQL vs REST: An Honest Engineering Comparison (and When to Use Each)</title>
+<meta name="description" content="GraphQL vs REST, explained by engineers: what each really is, the over-fetching problem GraphQL fixes, the caching and N+1 costs it adds, and a clear rule for choosing.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/graphql-vs-rest/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="GraphQL vs REST: An Honest Engineering Comparison (and When to Use Each)">
+<meta property="og:description" content="What each API style really is, where GraphQL genuinely wins, the caching and N+1 costs it quietly adds, and a simple rule for choosing between them.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">API design · Engineering comparison</span>
+  <h1>GraphQL vs REST: An Honest Engineering Comparison (and When to Use Each)</h1>
+  <p class="byline">By Kloudbean Engineering · Choose for your clients, not the hype cycle.</p>
+
+  <figure><img src="images/hero.png" alt="A side-by-side of a REST call over-fetching many fields versus a precise GraphQL query returning exactly the fields requested"></figure>
+
+  <p class="lead">GraphQL vs REST is one of those debates that generates more heat than light, usually because people compare a feature list instead of the tradeoffs that actually bite in production. Both are ways to build an API over HTTP. REST has been the default for years. GraphQL showed up to fix a specific pain, and it brought a fresh set of its own. So here is the honest engineering version: what each really is, where GraphQL genuinely wins, what it quietly costs you, and a simple rule for choosing.</p>
+
+  <div class="tldr">
+    <strong>The short, useful version</strong>
+    <p>REST models your data as resources you hit with HTTP verbs. GraphQL exposes one endpoint and a typed query language where the client asks for exactly the fields it wants. GraphQL shines when many different clients need different data shapes. REST stays simpler for CRUD apps and public APIs, with easier caching. Neither is a winner in the abstract.</p>
+  </div>
+
+  <h2>What REST and GraphQL actually are</h2>
+  <p>Strip away the tooling and the two are simpler than the arguments around them suggest.</p>
+  <p><strong>REST</strong> models your backend as resources. A user, an order, a product, each gets a URL, and you act on it with HTTP verbs: GET to read, POST to create, PUT or PATCH to update, DELETE to remove. Call GET /users/42 and you get user 42 back, usually as JSON, in whatever shape the server decided. The rules are conventions, not a strict spec, which is why no two REST APIs feel quite alike. But everyone already understands the shape, and that familiarity is worth a lot.</p>
+  <p><strong>GraphQL</strong> takes a different bet. Instead of many endpoints you get one, usually /graphql, plus a typed schema that describes every type and field the API exposes. The client sends a query naming exactly the fields it wants, and the server answers in that exact shape, nothing extra. It is a query language sitting in front of whatever databases and services you actually have. The schema is the contract, and it is strongly typed, so tooling can validate a query before it ever runs.</p>
+  <p>One line to hold onto: REST is about resources and verbs, GraphQL is about a single endpoint and a query language. Almost every difference downstream falls out of that one design choice.</p>
+
+  <h2>The problem GraphQL solves: over-fetching and under-fetching</h2>
+  <p>GraphQL did not appear for fun. It came out of a real problem at scale: mobile clients talking to APIs designed for a different screen.</p>
+  <p><strong>Over-fetching</strong> is when an endpoint hands you far more than you need. Say you want a user's name and avatar for a header. GET /users/42 returns the name and avatar, plus email, address, billing settings, notification preferences, timestamps, and more. You wanted two fields. You paid to serialize, send, and parse twenty. On a phone on a patchy connection, that waste is real.</p>
+  <p><strong>Under-fetching</strong> is the mirror image. One endpoint does not have everything the screen needs, so you fire a second request, then a third. Load the user, then load their recent posts from /users/42/posts, then load comments for each post. That is round-trip sprawl, and latency stacks up fast.</p>
+  <p>GraphQL's core win is that it kills both in one move. The client sends a single query describing exactly the fields and relationships it wants, across what would have been several REST endpoints, and gets one response in that shape. One round trip, exactly the data. Now picture a web app, an iOS app, and an Android app that each need slightly different fields from the same backend. With REST you either build custom endpoints for each or make them all over-fetch. With GraphQL, each client just asks for its own shape. That is the concrete reason big product teams adopted it, and it is a genuinely good one.</p>
+
+  <figure>
+    <svg viewBox="0 0 840 380" role="img" aria-labelledby="api-t api-d" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#f6f7fb;border:1px solid #e6e9f2;border-radius:16px">
+      <title id="api-t">Over-fetching in REST versus a precise GraphQL query</title>
+      <desc id="api-d">On the left a REST call to a user endpoint returns many fields when only two are needed, then a second request is needed for the posts. On the right one GraphQL query to a single endpoint asks for just the name and post titles and gets exactly that in one round trip.</desc>
+
+      <text x="24" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Same screen, two ways to fetch its data</text>
+
+      <text x="24" y="66" fill="#000f27" font-family="Poppins,sans-serif" font-size="14" font-weight="700">REST</text>
+      <text x="72" y="66" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">over-fetch, then a second round trip</text>
+      <rect x="24" y="80" width="250" height="26" rx="5" fill="#000f27"/>
+      <text x="38" y="98" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="12">GET /users/42</text>
+      <rect x="24" y="116" width="372" height="150" rx="8" fill="#ffffff" stroke="#e6e9f2"/>
+      <text x="40" y="140" fill="#40b75f" font-family="JetBrains Mono,monospace" font-size="12.5">name        needed</text>
+      <text x="40" y="162" fill="#40b75f" font-family="JetBrains Mono,monospace" font-size="12.5">avatarUrl   needed</text>
+      <text x="40" y="184" fill="#98a2b3" font-family="JetBrains Mono,monospace" font-size="12.5">email       wasted</text>
+      <text x="40" y="206" fill="#98a2b3" font-family="JetBrains Mono,monospace" font-size="12.5">address     wasted</text>
+      <text x="40" y="228" fill="#98a2b3" font-family="JetBrains Mono,monospace" font-size="12.5">billing     wasted</text>
+      <text x="40" y="250" fill="#98a2b3" font-family="JetBrains Mono,monospace" font-size="12.5">createdAt   wasted</text>
+      <rect x="24" y="282" width="292" height="26" rx="5" fill="#000f27"/>
+      <text x="38" y="300" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="12">GET /users/42/posts</text>
+      <text x="24" y="332" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">Two trips, four wasted fields.</text>
+
+      <line x1="414" y1="56" x2="414" y2="342" stroke="#cbd2e0" stroke-width="1.5"/>
+
+      <text x="434" y="66" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="14" font-weight="700">GraphQL</text>
+      <text x="512" y="66" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">exactly the fields, one trip</text>
+      <rect x="434" y="80" width="250" height="26" rx="5" fill="#4F1AF3"/>
+      <text x="448" y="98" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="12">POST /graphql</text>
+      <rect x="434" y="116" width="382" height="150" rx="8" fill="#000f27"/>
+      <text x="450" y="142" fill="#e6e9f2" font-family="JetBrains Mono,monospace" font-size="12.5">{ user(id: 42) {</text>
+      <text x="450" y="164" fill="#40b75f" font-family="JetBrains Mono,monospace" font-size="12.5">    name</text>
+      <text x="450" y="186" fill="#40b75f" font-family="JetBrains Mono,monospace" font-size="12.5">    posts(last: 3) { title }</text>
+      <text x="450" y="208" fill="#e6e9f2" font-family="JetBrains Mono,monospace" font-size="12.5">  }</text>
+      <text x="450" y="230" fill="#e6e9f2" font-family="JetBrains Mono,monospace" font-size="12.5">}</text>
+      <rect x="434" y="282" width="382" height="26" rx="5" fill="#40b75f"/>
+      <text x="448" y="300" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">Response mirrors the query. One round trip.</text>
+      <text x="434" y="332" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">Nothing wasted, no second request.</text>
+    </svg>
+    <figcaption>Over-fetching in REST (many fields, two round trips) versus a precise GraphQL query (exact fields, one round trip). That precision on the right is GraphQL's core win.</figcaption>
+  </figure>
+
+  <h2>The same data, fetched two ways</h2>
+  <p>Here is the difference in actual requests. Say a profile screen needs a user's name and the titles of their three latest posts.</p>
+  <p>With REST, that is typically two round trips, and each one hands back more than you asked for:</p>
+  <pre><code>GET /users/42
+=&gt; { id, name, email, avatarUrl, address, phone, createdAt, ... }
+
+GET /users/42/posts?limit=3
+=&gt; [ { id, title, body, createdAt, ... }, ... ]</code></pre>
+  <p>You over-fetch on both calls (all those extra fields) and under-fetch overall (two trips for one screen). With GraphQL, it is one request to one endpoint:</p>
+  <pre><code>POST /graphql
+
+{
+  user(id: 42) {
+    name
+    posts(last: 3) {
+      title
+    }
+  }
+}</code></pre>
+  <p>And the response mirrors the query exactly, nothing more:</p>
+  <pre><code>{
+  "data": {
+    "user": {
+      "name": "Ada",
+      "posts": [
+        { "title": "Indexing basics" },
+        { "title": "Why my query was slow" },
+        { "title": "Pooling connections" }
+      ]
+    }
+  }
+}</code></pre>
+  <p>That mirroring is the thing to notice. The client controls the shape, so the same endpoint serves a data-hungry web dashboard and a lean mobile screen with no server change between them.</p>
+
+  <h2>The costs GraphQL adds, and nobody warns you about</h2>
+  <p>Every post that sells you GraphQL stops at the win above. The honest ones keep going, because that flexibility is not free. Here is what you take on.</p>
+  <p><strong>HTTP caching gets harder.</strong> This is the big one people underestimate. REST rides on HTTP's own caching: a GET to a stable URL can be cached by the browser, a CDN, and a reverse proxy, all keyed on the URL, all for free. GraphQL usually sends every request as a POST to a single /graphql URL, and POST is not cacheable by that machinery. So you lose easy edge and HTTP caching and rebuild it at the application layer with persisted queries or a normalized client cache. It is solvable. But you are now doing work that HTTP handed REST for nothing.</p>
+  <p><strong>The N+1 query problem moves into your resolvers.</strong> In GraphQL, each field can have a resolver, a small function that fetches that piece of data. Ask for 10 posts and each post's author, and a naive server runs one query for the posts, then one query per post for its author. That is 11 queries for what should be two. This pattern will quietly hammer your database. The standard fix is DataLoader, a batching-and-caching layer that collects those author lookups within a single tick and issues one batched query instead. You will reach for it early, and forgetting it is the most common GraphQL performance bug there is. It is also why <a href="https://www.kloudbean.com/blog/database-connection-pooling/">connection pooling</a> and a properly sized <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a> matter more under GraphQL than people expect.</p>
+  <p><strong>Schema and resolver complexity is real work.</strong> You define a typed schema, write resolvers for every type and field, wire them to your data sources, and keep the whole thing consistent as it grows. On the client you usually add a library like Apollo or urql. That is more moving parts than a route that returns JSON. For a small app, the overhead can outweigh the benefit outright.</p>
+  <p><strong>File uploads and errors get clunkier.</strong> REST handles uploads with plain multipart form posts, a solved problem in every framework. GraphQL has no native upload, so you bolt on a spec or a library, or you just handle uploads over a separate REST route anyway. Errors are odd too. A GraphQL response often returns HTTP 200 even when something failed, with the problem tucked into an errors array in the body. REST leaning on status codes (404, 401, 500) is blunter, but it is easier to reason about and to monitor.</p>
+  <p><strong>It is easy to write an accidental expensive query.</strong> Because clients compose their own queries, someone can request deeply nested related data (users, their posts, each post's comments, each comment's author) and trigger an enormous amount of work in one innocent-looking request. Public GraphQL APIs need query depth limits, complexity analysis, and sometimes timeouts to stay safe. A fixed REST endpoint cannot be abused in quite the same open-ended way.</p>
+
+  <h2>GraphQL vs REST, dimension by dimension</h2>
+  <p>Same tradeoffs as above, in a form you can scan and share with your team.</p>
+  <table class="cmp">
+    <thead><tr><th>Dimension</th><th>REST</th><th>GraphQL</th></tr></thead>
+    <tbody>
+      <tr><td>Shape of the API</td><td>Many endpoints, one per resource</td><td>One endpoint, a typed schema</td></tr>
+      <tr><td>Getting related data</td><td>Multiple round trips or custom endpoints</td><td>One query with nested fields</td></tr>
+      <tr><td>Over and under-fetching</td><td>Common, response shape is fixed</td><td>Client picks the exact fields</td></tr>
+      <tr><td>HTTP caching</td><td>Easy: GET plus URL plus CDN</td><td>Harder: POST to one URL</td></tr>
+      <tr><td>Learning curve</td><td>Low, familiar HTTP</td><td>Higher: schema, resolvers, client library</td></tr>
+      <tr><td>Versioning</td><td>Often /v1, /v2 endpoints</td><td>Evolve the schema, deprecate fields</td></tr>
+      <tr><td>File uploads</td><td>Straightforward multipart</td><td>Clunky, needs an extra spec or library</td></tr>
+      <tr><td>Error handling</td><td>HTTP status codes</td><td>Usually 200 with an errors array</td></tr>
+      <tr><td>Best fit</td><td>CRUD apps, public APIs</td><td>Many client shapes, backend aggregation</td></tr>
+    </tbody>
+  </table>
+
+  <h2>So when should you reach for GraphQL?</h2>
+  <p>Here is the part most comparisons dodge. A clear recommendation.</p>
+  <p><strong>Reach for GraphQL when</strong> you have many different clients (web, iOS, Android, third-party developers) that each need different shapes of the same data. Or when you are aggregating several backend services and databases behind one API, and a single typed graph is genuinely simpler than orchestrating a pile of REST calls. Or when your frontend iterates fast and you are tired of shipping a new endpoint every time the UI wants one more field.</p>
+  <p><strong>Stick with REST when</strong> you are building CRUD over resources, which is most apps. When you want a public API that outside developers can cache, bookmark, and understand in an afternoon. When your team is small and the schema-plus-resolver overhead would cost more than it returns.</p>
+  <p>My honest take, after watching both in production: most apps are well served by REST, and a fair amount of GraphQL adoption is resume-driven rather than problem-driven. REST is boring, cacheable, and everyone on the team already gets it. GraphQL earns its keep in a specific situation, many clients with divergent data needs or a gateway aggregating multiple services, and it is genuinely strong there. Outside that, you are often paying the complexity tax for flexibility you never use. And you do not have to pick a side for life. Plenty of teams run REST for the public, cacheable surface and a GraphQL gateway for their own rich internal clients. Use each where it is strong.</p>
+
+  <h2>Where these APIs actually run</h2>
+  <p>Whichever you choose, the runtime underneath is the same unglamorous, important thing: your API is app code on a server, talking to a database. A REST service and a GraphQL server are both just a process listening on a port. In Node that is usually Express (see <a href="https://www.kloudbean.com/blog/deploy-express-app/">deploy an Express app</a>, or the broader <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploy a Node app to managed cloud</a>). In Python it is FastAPI or Django (see <a href="https://www.kloudbean.com/blog/deploy-fastapi-app/">deploy a FastAPI app</a>). GraphQL runs inside those same frameworks. It is a library you add, not a different kind of server.</p>
+  <p>And notice what decides your API's real performance. It is rarely REST vs GraphQL. It is the database behind it. That N+1 problem lands on your database as load, so a pooled connection setup and a right-sized managed database do more for tail latency than the API style ever will. Get the data layer right first, then argue about the query language.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:19px">Ship the API, not the server headaches.</p>
+    <p style="margin:0">REST or GraphQL, it is a Node or Python app that still needs a server, a database, and backups. Kloudbean runs managed servers for Express, FastAPI, Django and more across several clouds, with managed databases and automatic backups, so you can focus on the schema instead of the sysadmin. See <a href="https://www.kloudbean.com/">kloudbean.com</a> and <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is the difference between GraphQL and REST?</h3>
+    <p>REST exposes many endpoints, one per resource, and you use HTTP verbs to act on them, getting back whatever shape the server defines. GraphQL exposes a single endpoint and a typed schema, and the client sends a query asking for exactly the fields it wants. In short, REST is resources and verbs, GraphQL is one endpoint and a query language.</p>
+
+    <h3>Is GraphQL faster than REST?</h3>
+    <p>Not inherently. GraphQL can feel quicker on the client because it collapses several round trips into one and skips over-fetching, which helps a lot on mobile. But on the server a careless GraphQL setup triggers the N+1 problem and hits the database harder than a tuned REST endpoint would. Real performance comes from your data layer and caching, not the API style itself.</p>
+
+    <h3>When should I use GraphQL instead of REST?</h3>
+    <p>Use GraphQL when many different clients need different shapes of the same data, or when you are aggregating several backend services behind one API. Those are the cases where letting each client ask for its own fields pays off. For straightforward CRUD apps and public APIs, REST is usually the simpler and better fit.</p>
+
+    <h3>What are over-fetching and under-fetching?</h3>
+    <p>Over-fetching is when an endpoint returns more data than you need, wasting bandwidth and parsing time. Under-fetching is when one endpoint does not have everything a screen needs, so you make extra requests to fill the gaps. GraphQL addresses both by letting the client request exactly the fields it wants in a single query.</p>
+
+    <h3>What is the N+1 problem in GraphQL, and how does DataLoader help?</h3>
+    <p>If you request a list of items and a related field on each, a naive resolver runs one query for the list plus one query per item, so N items cost N+1 queries. DataLoader batches those per-item lookups within a single tick into one query and caches the results, which turns N+1 back into a small constant. It is the standard fix and you want it early.</p>
+
+    <h3>Why is HTTP caching harder with GraphQL?</h3>
+    <p>REST uses GET requests against stable URLs, which browsers, CDNs, and proxies cache for free based on the URL. GraphQL usually sends a POST to one endpoint, and POST responses are not cached by that same machinery. So you rebuild caching at the application layer with persisted queries or a normalized client cache instead of getting it from HTTP.</p>
+
+    <h3>Can I use GraphQL and REST together in one app?</h3>
+    <p>Yes, and many teams do. A common pattern is REST for the public, cacheable surface and simple CRUD, with a GraphQL gateway for rich internal clients that need flexible data shapes. They are not mutually exclusive, so pick the style that fits each part of your system.</p>
+
+    <h3>Is REST outdated now that GraphQL exists?</h3>
+    <p>No. REST is still the default for most APIs, and for good reasons: it is simple, it caches over plain HTTP, and every developer already understands it. GraphQL solves a specific set of problems rather than replacing REST. Choosing REST today is a perfectly sound engineering decision.</p>
+
+    <h3>Do I need a special database to use GraphQL?</h3>
+    <p>No. GraphQL sits in front of whatever data sources you already have: SQL, NoSQL, other APIs, or a mix. Your resolvers fetch from those sources, so a managed relational database like PostgreSQL or MySQL works fine. What matters more is batching queries and pooling connections so resolvers do not overload the database.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · One endpoint or many, the right call is the one your clients actually need.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"GraphQL vs REST: An Honest Engineering Comparison (and When to Use Each)","description":"What each API style really is, where GraphQL genuinely wins over-fetching and under-fetching, the HTTP caching and N+1 costs it quietly adds, a dimension-by-dimension table, and a clear rule for choosing between REST and GraphQL.","image":"https://www.kloudbean.com/blog/graphql-vs-rest/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/graphql-vs-rest/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is the difference between GraphQL and REST?","acceptedAnswer":{"@type":"Answer","text":"REST exposes many endpoints, one per resource, and you use HTTP verbs to act on them, getting back whatever shape the server defines. GraphQL exposes a single endpoint and a typed schema, and the client sends a query asking for exactly the fields it wants. In short, REST is resources and verbs, GraphQL is one endpoint and a query language."}},
+{"@type":"Question","name":"Is GraphQL faster than REST?","acceptedAnswer":{"@type":"Answer","text":"Not inherently. GraphQL can feel quicker on the client because it collapses several round trips into one and skips over-fetching, which helps a lot on mobile. But on the server a careless GraphQL setup triggers the N+1 problem and hits the database harder than a tuned REST endpoint would. Real performance comes from your data layer and caching, not the API style itself."}},
+{"@type":"Question","name":"When should I use GraphQL instead of REST?","acceptedAnswer":{"@type":"Answer","text":"Use GraphQL when many different clients need different shapes of the same data, or when you are aggregating several backend services behind one API. Those are the cases where letting each client ask for its own fields pays off. For straightforward CRUD apps and public APIs, REST is usually the simpler and better fit."}},
+{"@type":"Question","name":"What are over-fetching and under-fetching?","acceptedAnswer":{"@type":"Answer","text":"Over-fetching is when an endpoint returns more data than you need, wasting bandwidth and parsing time. Under-fetching is when one endpoint does not have everything a screen needs, so you make extra requests to fill the gaps. GraphQL addresses both by letting the client request exactly the fields it wants in a single query."}},
+{"@type":"Question","name":"What is the N+1 problem in GraphQL, and how does DataLoader help?","acceptedAnswer":{"@type":"Answer","text":"If you request a list of items and a related field on each, a naive resolver runs one query for the list plus one query per item, so N items cost N+1 queries. DataLoader batches those per-item lookups within a single tick into one query and caches the results, which turns N+1 back into a small constant. It is the standard fix and you want it early."}},
+{"@type":"Question","name":"Why is HTTP caching harder with GraphQL?","acceptedAnswer":{"@type":"Answer","text":"REST uses GET requests against stable URLs, which browsers, CDNs, and proxies cache for free based on the URL. GraphQL usually sends a POST to one endpoint, and POST responses are not cached by that same machinery. So you rebuild caching at the application layer with persisted queries or a normalized client cache instead of getting it from HTTP."}},
+{"@type":"Question","name":"Can I use GraphQL and REST together in one app?","acceptedAnswer":{"@type":"Answer","text":"Yes, and many teams do. A common pattern is REST for the public, cacheable surface and simple CRUD, with a GraphQL gateway for rich internal clients that need flexible data shapes. They are not mutually exclusive, so pick the style that fits each part of your system."}},
+{"@type":"Question","name":"Is REST outdated now that GraphQL exists?","acceptedAnswer":{"@type":"Answer","text":"No. REST is still the default for most APIs, and for good reasons: it is simple, it caches over plain HTTP, and every developer already understands it. GraphQL solves a specific set of problems rather than replacing REST. Choosing REST today is a perfectly sound engineering decision."}},
+{"@type":"Question","name":"Do I need a special database to use GraphQL?","acceptedAnswer":{"@type":"Answer","text":"No. GraphQL sits in front of whatever data sources you already have: SQL, NoSQL, other APIs, or a mix. Your resolvers fetch from those sources, so a managed relational database like PostgreSQL or MySQL works fine. What matters more is batching queries and pooling connections so resolvers do not overload the database."}}
+]}
+]}
+</script>
+</body>
+</html>

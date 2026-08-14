@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What Is an SSH Tunnel? Encrypted Port Forwarding, Explained</title>
+<meta name="description" content="What an SSH tunnel is: encrypted port forwarding over a connection you already trust. The three types (local -L, remote -R, dynamic -D SOCKS) with real commands, reaching a database through a bastion, and how a tunnel differs from a VPN or a VPC.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/what-is-an-ssh-tunnel/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="What Is an SSH Tunnel? Encrypted Port Forwarding, Explained">
+<meta property="og:description" content="A plain-English guide to SSH tunneling: the three kinds of port forwarding with real commands, reaching a private database through a bastion, and how a tunnel differs from a VPN or a VPC.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">SSH · Infra concepts</span>
+  <h1>What Is an SSH Tunnel? Encrypted Port Forwarding, Explained</h1>
+  <p class="byline">By Kloudbean Engineering · One encrypted hop, exactly the ports you name.</p>
+
+  <figure><img src="images/hero.png" alt="What an SSH tunnel is: encrypted port forwarding that carries one port's traffic through the SSH connection you already trust"></figure>
+
+  <p class="lead">If you have ever needed to reach a database that only a private server can see, or open a service from a remote box on your laptop as though it were local, you have met the problem SSH tunnels solve. So what is an SSH tunnel? It is encrypted port forwarding. SSH quietly carries the traffic for one port inside the same secure connection you already use to log in, so nothing new has to face the internet. This guide walks the three kinds of forwarding with real commands, the exact job each one does, and how a tunnel differs from a VPN or a VPC.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>An SSH tunnel is encrypted port forwarding: SSH carries another port's traffic inside the secure connection you logged in with. Local forwarding (-L) pulls a remote service to your machine, remote forwarding (-R) pushes a local one outward, and dynamic forwarding (-D) is a SOCKS proxy. It is not a full VPN, so close it when you are done.</p>
+  </div>
+
+  <h2>What is an SSH tunnel, really?</h2>
+  <p>Start with what SSH already does. When you run <code>ssh</code> to log in to a server, it opens an encrypted channel between your machine and that box. A tunnel reuses that same channel for more than a shell. You tell SSH to forward a port, and from then on traffic sent to that port travels through the encrypted connection and comes out the other side, handed to whatever destination you named.</p>
+  <p>That is the whole idea. Port forwarding turns your SSH session into a secure pipe. The encryption is free, because SSH is already encrypting everything on that connection. And there is no second login: the tunnel rides the SSH credentials you already have, which is exactly why it is so convenient and also something to think about carefully later on.</p>
+  <p>Three flags decide which way the pipe runs: <code>-L</code>, <code>-R</code>, and <code>-D</code>. Get those three straight and you understand tunneling.</p>
+
+  <figure>
+    <svg viewBox="0 0 860 300" role="img" aria-labelledby="tun-t tun-d" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#f6f7fb;border:1px solid #e6e9f2;border-radius:16px">
+      <title id="tun-t">How a local SSH tunnel carries traffic</title>
+      <desc id="tun-d">Your machine forwards a local port through an encrypted SSH connection to the SSH server, which then makes a plain connection to the target database on the private network.</desc>
+      <text x="30" y="38" fill="#000f27" font-family="Poppins,sans-serif" font-size="15" font-weight="700">A local tunnel: ssh -L 5432:db-internal:5432 user@bastion</text>
+
+      <rect x="30" y="66" width="180" height="86" rx="12" fill="#ffffff" stroke="#000f27" stroke-width="2"/>
+      <text x="120" y="100" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="14" font-weight="600">Your machine</text>
+      <text x="120" y="124" text-anchor="middle" fill="#5b6a86" font-family="JetBrains Mono,monospace" font-size="12">127.0.0.1:5432</text>
+
+      <rect x="340" y="66" width="180" height="86" rx="12" fill="#000f27"/>
+      <text x="430" y="100" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="14" font-weight="600">SSH server</text>
+      <text x="430" y="124" text-anchor="middle" fill="#c7d0e0" font-family="Poppins,sans-serif" font-size="12">bastion / jump host</text>
+
+      <rect x="650" y="66" width="180" height="86" rx="12" fill="#ffffff" stroke="#40b75f" stroke-width="2"/>
+      <text x="740" y="100" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="14" font-weight="600">Database</text>
+      <text x="740" y="124" text-anchor="middle" fill="#5b6a86" font-family="JetBrains Mono,monospace" font-size="12">db-internal:5432</text>
+
+      <line x1="210" y1="109" x2="334" y2="109" stroke="#4F1AF3" stroke-width="4"/>
+      <polygon points="340,109 326,102 326,116" fill="#4F1AF3"/>
+      <text x="272" y="94" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11" font-weight="600">encrypted</text>
+      <text x="272" y="142" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11">SSH, port 22</text>
+
+      <line x1="520" y1="109" x2="644" y2="109" stroke="#40b75f" stroke-width="4"/>
+      <polygon points="650,109 636,102 636,116" fill="#40b75f"/>
+      <text x="585" y="94" text-anchor="middle" fill="#40b75f" font-family="Poppins,sans-serif" font-size="11" font-weight="600">plain</text>
+      <text x="585" y="142" text-anchor="middle" fill="#40b75f" font-family="Poppins,sans-serif" font-size="11">on the private side</text>
+
+      <text x="30" y="196" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Reading it</text>
+      <text x="30" y="220" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12.5">Your app connects to 127.0.0.1:5432 as if the database were local. SSH encrypts that traffic,</text>
+      <text x="30" y="242" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12.5">carries it to the server, and the server opens the final hop to db-internal on the private side.</text>
+      <text x="30" y="264" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12.5">The database never has to be exposed to the internet. Only the SSH server does.</text>
+    </svg>
+    <figcaption>A local forward (-L) makes a remote service look local. The internet-facing part is the SSH server; the database stays on the private side.</figcaption>
+  </figure>
+
+  <h2>The three kinds of port forwarding</h2>
+  <p>The three flags map to three directions. Local forwarding pulls something from the far side to you. Remote forwarding pushes something from your side outward. Dynamic forwarding turns the connection into a general-purpose proxy. Here they are side by side.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Type</th><th>Flag</th><th>Direction</th><th>Typical job</th></tr></thead>
+    <tbody>
+      <tr><td>Local</td><td><code>-L</code></td><td>your machine to a remote target</td><td>reach a database or admin page behind a bastion</td></tr>
+      <tr><td>Remote</td><td><code>-R</code></td><td>a remote host back to your machine</td><td>expose a local dev server or webhook endpoint</td></tr>
+      <tr><td>Dynamic</td><td><code>-D</code></td><td>your machine to many destinations (SOCKS)</td><td>route a browser or tool through the server</td></tr>
+    </tbody>
+  </table>
+  <p>Two more flags show up on all three. <code>-N</code> says do not run a remote command, just hold the tunnel open, which is what you want when you need forwarding and not a shell. <code>-f</code> pushes SSH into the background once the connection is up. So a background, shell-less local tunnel is <code>ssh -fN -L ...</code> and you get your terminal back.</p>
+
+  <h2>Local port forwarding (-L): reach a service you cannot hit directly</h2>
+  <p>This is the everyday reason people tunnel. A managed database sits on a private network and refuses connections from the open internet. Your app server or a bastion can reach it, and you have SSH access to that box, so you forward the port.</p>
+  <pre><code># Local 5432 reaches db-internal:5432 through the server
+ssh -L 5432:db-internal:5432 user@bastion.example.com
+
+# Now connect as if the database were on your own machine:
+psql -h 127.0.0.1 -p 5432 -U appuser mydb</code></pre>
+  <p>Read <code>-L</code> left to right as local side, then target. The shape is <code>-L [bind:]localport:targethost:targetport</code>. Your machine listens on <code>localport</code> (5432 above), and the SSH server opens the final hop to <code>targethost:targetport</code>. The subtlety worth internalizing: <code>targethost</code> is resolved and reached from the server's point of view, not yours. So <code>db-internal</code> only has to exist on the server's side of the network. <a href="https://www.kloudbean.com/blog/dns-explained/">DNS resolves that name</a> on the server, and your laptop never needs to see it.</p>
+  <p>The same trick reaches an admin panel, a metrics dashboard, or <a href="https://www.kloudbean.com/blog/docker-container-hosting/">a service running in a container</a> that is only bound to localhost on the server. When the target is two hops away, behind a jump host, ProxyJump chains them in one command:</p>
+  <pre><code># Hop through the bastion, then reach the private host
+ssh -J user@bastion.example.com user@db-host.internal</code></pre>
+  <p>By default the local side binds to <code>127.0.0.1</code>, so only your machine can use the tunnel. That default is a good one. Leave it unless you have a clear reason to open it wider.</p>
+
+  <h2>Remote port forwarding (-R): expose a local service outward</h2>
+  <p>Remote forwarding runs the other way. You open a port on the remote server that reaches back into your machine. Traffic arriving on the server's port travels down your existing SSH connection and out to a destination on your side.</p>
+  <pre><code># The remote host's port 8080 reaches your laptop's port 3000
+ssh -R 8080:localhost:3000 user@remote.example.com</code></pre>
+  <p>Now someone on <code>remote.example.com</code> who hits <code>localhost:8080</code> is really talking to whatever runs on your laptop at port 3000. This is how you show a local dev site to a server, receive a webhook on a machine that cannot see your laptop directly, or give a teammate on the remote host a look at your work in progress.</p>
+  <p>One catch trips everyone once. By default the server binds a remote forward to its own loopback, so only processes on the server itself can use it. To make the forwarded port reachable from other machines, the server's <code>sshd</code> needs <code>GatewayPorts</code> turned on, and you should treat that as the security decision it is. Opening a port on a shared server to the wider network is not something to do casually.</p>
+
+  <h2>Dynamic port forwarding (-D): a one-command SOCKS proxy</h2>
+  <p>Local and remote forwarding each handle one destination. Dynamic forwarding handles many. It starts a SOCKS proxy on a local port, and any app that speaks SOCKS can send traffic through the server to wherever it needs to go, deciding the destination per request.</p>
+  <pre><code># Start a SOCKS5 proxy on local port 1080, routed through the server
+ssh -D 1080 user@server.example.com</code></pre>
+  <p>Point a browser or tool at <code>socks5://127.0.0.1:1080</code> and its traffic now exits from the server. That is handy for reaching a set of internal hosts without a separate <code>-L</code> for each, or for checking how a site behaves from the server's network and region. Not every tool honors a SOCKS proxy. For those, a helper like <code>proxychains</code> pushes their traffic through it. Think of <code>-D</code> as the general option and <code>-L</code> as the precise one.</p>
+
+  <h2>SSH tunnel vs VPN vs VPC: what is actually different?</h2>
+  <p>These three get mixed up constantly, and the confusion leads people to reach for a heavy tool when a one-line tunnel would do, or to assume a tunnel protects more than it does.</p>
+  <table class="cmp">
+    <thead><tr><th></th><th>SSH tunnel</th><th>VPN</th><th>VPC</th></tr></thead>
+    <tbody>
+      <tr><td>What it is</td><td>port forwarding over an SSH login</td><td>a network-level encrypted link</td><td>an isolated private network in a cloud</td></tr>
+      <tr><td>Scope</td><td>only the ports you name</td><td>your whole machine joins a network</td><td>where your resources live</td></tr>
+      <tr><td>Set up by</td><td>anyone with SSH access</td><td>a network admin or client app</td><td>your cloud or infra team</td></tr>
+      <tr><td>Encrypts traffic</td><td>yes, through SSH</td><td>yes</td><td>no, it is isolation, not encryption</td></tr>
+      <tr><td>Reach for it when</td><td>quick, targeted access to a service</td><td>ongoing access to many resources</td><td>deciding where servers and data sit</td></tr>
+    </tbody>
+  </table>
+  <p>The short version: a tunnel forwards specific ports over the SSH connection you already have. A VPN puts your entire machine onto a remote network at the IP layer. And <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">a VPC</a> is not an access method at all. It is the private network your servers and databases sit inside. You might use an SSH tunnel to reach a database that lives in a VPC, which is a good sign you have understood all three.</p>
+
+  <h2>The security reality: a tunnel rides your SSH login</h2>
+  <p>A tunnel is only as safe as the SSH login it rides on. That is the sentence to remember. Opening a tunnel grants no new authentication. It borrows the access you already have, so the first control is protecting that access. Use <a href="https://www.kloudbean.com/blog/ssh-key-authentication/">key-based SSH authentication</a> and turn off password logins, because a forwarded port now sits behind whatever protects your SSH.</p>
+  <p>A few more habits keep tunnels from turning into quiet liabilities:</p>
+  <ul>
+    <li>It is not a VPN. A tunnel forwards only the ports you name, not your whole network. That narrowness is a feature, least privilege by default, but do not mistake it for network-wide protection.</li>
+    <li>Close them when you are done. A forgotten local forward is mostly harmless, but a forgotten remote forward can leave a path into your machine open longer than you think.</li>
+    <li>Restrict forwarding on the server side. <code>sshd</code> can limit or disable forwarding with <code>AllowTcpForwarding</code>, and <code>GatewayPorts</code> stays off unless you deliberately turn it on. Disable the kinds of forwarding a given account does not need.</li>
+    <li>Keep local forwards on loopback. The <code>127.0.0.1</code> default means other machines on your network cannot ride your tunnel. Change it only with a reason.</li>
+    <li>Use a locked-down user for tunnel-only access. If an account exists just to forward a port, it does not need a shell or broad permissions.</li>
+  </ul>
+
+  <h2>Where SSH tunnels fit your stack</h2>
+  <p>Any server you can SSH into can host these tunnels, with nothing extra to install, which is what makes the technique so durable. For access you repeat, save it in your SSH config so it becomes a single short command:</p>
+  <pre><code># ~/.ssh/config
+Host db-tunnel
+  HostName bastion.example.com
+  User deploy
+  LocalForward 5432 db-internal:5432
+  IdentityFile ~/.ssh/id_ed25519
+# then just: ssh -N db-tunnel</code></pre>
+  <p>If a tunnel needs to survive a dropped link, <code>autossh</code> restarts it for you. For reaching a managed database, the normal pattern is a local forward through your app server or a jump host, paired with IP allow-listing on the database so only that server is allowed to connect. On a Kloudbean <a href="https://www.kloudbean.com/blog/what-is-a-managed-server/">managed server</a> you get full SSH access, so every command in this guide works as written. And if you want resources to sit on a standing private network rather than a per-session tunnel, that is a job for a VPC, not SSH forwarding.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:19px">Tunnels are a tool, not a home for your infrastructure.</p>
+    <p style="margin:0">Kloudbean gives you full SSH access to every managed server, so the forwarding patterns here work out of the box. Full SSH access · Managed servers · Automatic backups · Free SSL · IP allow-listing · Free migration. See <a href="https://www.kloudbean.com/">kloudbean.com</a> and <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is an SSH tunnel in simple terms?</h3>
+    <p>An SSH tunnel is port forwarding over an SSH connection. SSH already encrypts the link you use to log in to a server, and a tunnel reuses that link to carry traffic for another port. You name a port, SSH forwards its traffic through the encrypted channel, and hands it to a destination on the other side. Nothing new has to face the internet.</p>
+
+    <h3>What is the difference between local, remote, and dynamic port forwarding?</h3>
+    <p>Local forwarding (-L) pulls a remote service to your machine, so you connect to a local port and reach something on the server's side. Remote forwarding (-R) does the reverse, opening a port on the server that reaches back to your machine. Dynamic forwarding (-D) starts a SOCKS proxy that can route to many destinations through the server. Local is precise, dynamic is general.</p>
+
+    <h3>How do I tunnel to a database through a bastion host?</h3>
+    <p>Run a local forward such as ssh -L 5432:db-internal:5432 user@bastion, then point your database client at 127.0.0.1:5432. Your machine listens locally and the SSH server opens the final hop to the database on its private side. If the database is another hop away, add ProxyJump with -J to chain through the bastion first.</p>
+
+    <h3>Is an SSH tunnel the same as a VPN?</h3>
+    <p>No. A tunnel forwards only the specific ports you name over your SSH login, while a VPN puts your whole machine onto a remote network at the IP layer. A tunnel is quicker to set up and narrower in scope, which is often safer, but it does not give you network-wide access. Reach for a tunnel for one or two services and a VPN for ongoing access to many.</p>
+
+    <h3>What does the -L flag do in ssh?</h3>
+    <p>The -L flag sets up local port forwarding. The shape is -L localport:targethost:targetport, so your machine listens on localport and the SSH server connects onward to targethost:targetport. The target is resolved from the server's point of view, which is how you reach hosts that only the server can see. It is the flag you use to reach a private database or admin page.</p>
+
+    <h3>What is dynamic port forwarding and how is it a SOCKS proxy?</h3>
+    <p>Dynamic forwarding with -D opens a local SOCKS proxy instead of forwarding one fixed destination. Any app that speaks SOCKS sends its traffic to that local port, and SSH routes each request through the server to wherever it needs to go. Point a browser at socks5://127.0.0.1:1080 after running ssh -D 1080 user@server. It is the option for reaching many internal hosts without one forward each.</p>
+
+    <h3>Do SSH tunnels slow down my connection?</h3>
+    <p>A little, since traffic makes an extra hop through the server and is encrypted along the way, but for reaching a database or an admin page the overhead is rarely noticeable. Throughput depends on the server's link and location more than on SSH itself. For very heavy transfers a tunnel is not the right tool, though for everyday access it is fine.</p>
+
+    <h3>How do I keep an SSH tunnel open or run it in the background?</h3>
+    <p>Add -N so SSH holds the tunnel without running a shell, and -f to send it to the background once connected, as in ssh -fN -L 5432:db-internal:5432 user@server. Save the forward in your ~/.ssh/config to make it a single short command. If the link drops and you need it back automatically, autossh will restart the tunnel for you.</p>
+
+    <h3>Are SSH tunnels secure?</h3>
+    <p>A tunnel is as safe as the SSH login it rides on, because it borrows your existing access rather than adding new authentication. Use key-based authentication, disable password logins, and close tunnels when you are done, especially remote forwards. On the server, keep GatewayPorts off unless you need it and disable forwarding for accounts that do not require it.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Name the port, ride the login, close the tunnel when you are done.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"What Is an SSH Tunnel? Encrypted Port Forwarding, Explained","description":"A plain-English guide to SSH tunneling: what a tunnel is, the three kinds of port forwarding with real commands, reaching a private database through a bastion, dynamic SOCKS proxying, the security reality, and how a tunnel differs from a VPN or a VPC.","image":"https://www.kloudbean.com/blog/what-is-an-ssh-tunnel/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/what-is-an-ssh-tunnel/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is an SSH tunnel in simple terms?","acceptedAnswer":{"@type":"Answer","text":"An SSH tunnel is port forwarding over an SSH connection. SSH already encrypts the link you use to log in to a server, and a tunnel reuses that link to carry traffic for another port. You name a port, SSH forwards its traffic through the encrypted channel, and hands it to a destination on the other side. Nothing new has to face the internet."}},
+{"@type":"Question","name":"What is the difference between local, remote, and dynamic port forwarding?","acceptedAnswer":{"@type":"Answer","text":"Local forwarding (-L) pulls a remote service to your machine, so you connect to a local port and reach something on the server side. Remote forwarding (-R) does the reverse, opening a port on the server that reaches back to your machine. Dynamic forwarding (-D) starts a SOCKS proxy that can route to many destinations through the server. Local is precise, dynamic is general."}},
+{"@type":"Question","name":"How do I tunnel to a database through a bastion host?","acceptedAnswer":{"@type":"Answer","text":"Run a local forward such as ssh -L 5432:db-internal:5432 user@bastion, then point your database client at 127.0.0.1:5432. Your machine listens locally and the SSH server opens the final hop to the database on its private side. If the database is another hop away, add ProxyJump with -J to chain through the bastion first."}},
+{"@type":"Question","name":"Is an SSH tunnel the same as a VPN?","acceptedAnswer":{"@type":"Answer","text":"No. A tunnel forwards only the specific ports you name over your SSH login, while a VPN puts your whole machine onto a remote network at the IP layer. A tunnel is quicker to set up and narrower in scope, which is often safer, but it does not give you network-wide access. Reach for a tunnel for one or two services and a VPN for ongoing access to many."}},
+{"@type":"Question","name":"What does the -L flag do in ssh?","acceptedAnswer":{"@type":"Answer","text":"The -L flag sets up local port forwarding. The shape is -L localport:targethost:targetport, so your machine listens on localport and the SSH server connects onward to targethost:targetport. The target is resolved from the server point of view, which is how you reach hosts that only the server can see. It is the flag you use to reach a private database or admin page."}},
+{"@type":"Question","name":"What is dynamic port forwarding and how is it a SOCKS proxy?","acceptedAnswer":{"@type":"Answer","text":"Dynamic forwarding with -D opens a local SOCKS proxy instead of forwarding one fixed destination. Any app that speaks SOCKS sends its traffic to that local port, and SSH routes each request through the server to wherever it needs to go. Point a browser at socks5://127.0.0.1:1080 after running ssh -D 1080 user@server. It is the option for reaching many internal hosts without one forward each."}},
+{"@type":"Question","name":"Do SSH tunnels slow down my connection?","acceptedAnswer":{"@type":"Answer","text":"A little, since traffic makes an extra hop through the server and is encrypted along the way, but for reaching a database or an admin page the overhead is rarely noticeable. Throughput depends on the server link and location more than on SSH itself. For very heavy transfers a tunnel is not the right tool, though for everyday access it is fine."}},
+{"@type":"Question","name":"How do I keep an SSH tunnel open or run it in the background?","acceptedAnswer":{"@type":"Answer","text":"Add -N so SSH holds the tunnel without running a shell, and -f to send it to the background once connected, as in ssh -fN -L 5432:db-internal:5432 user@server. Save the forward in your ~/.ssh/config to make it a single short command. If the link drops and you need it back automatically, autossh will restart the tunnel for you."}},
+{"@type":"Question","name":"Are SSH tunnels secure?","acceptedAnswer":{"@type":"Answer","text":"A tunnel is as safe as the SSH login it rides on, because it borrows your existing access rather than adding new authentication. Use key-based authentication, disable password logins, and close tunnels when you are done, especially remote forwards. On the server, keep GatewayPorts off unless you need it and disable forwarding for accounts that do not require it."}}
+]}
+]}
+</script>
+</body>
+</html>

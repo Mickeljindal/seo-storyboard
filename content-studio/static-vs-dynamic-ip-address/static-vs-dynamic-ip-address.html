@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Static vs Dynamic IP Address: Which One Do You Actually Need?</title>
+<meta name="description" content="Static vs dynamic IP address, explained. How DHCP hands out changing addresses, why servers need a fixed one, public versus private IPs, and how to decide if you need a static IP.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/static-vs-dynamic-ip-address/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Static vs Dynamic IP Address: Which One Do You Actually Need?">
+<meta property="og:description" content="A plain-English guide to static and dynamic IP addresses: how DHCP leases work, public vs private IPs, the real cases where a fixed address matters, and how to decide.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Networking concepts · Explainer</span>
+  <h1>Static vs Dynamic IP Address: Which One Do You Actually Need?</h1>
+  <p class="byline">By Kloudbean Engineering · An address that stays put, and one that quietly does not.</p>
+
+  <figure><img src="images/hero.png" alt="Static vs dynamic IP address explained: a fixed address versus one that changes on each DHCP lease"></figure>
+
+  <p class="lead">Your home internet probably has a different public IP address today than it did last month, and you never noticed or cared. A server cannot get away with that. The whole static vs dynamic IP address question comes down to one plain thing: does the address need to stay put, or is it fine for it to change? This guide covers how addresses get handed out, the concrete cases where a fixed one matters, and how to decide if you need a static IP.</p>
+
+  <div class="tldr">
+    <strong>Short answer</strong>
+    <p>A static IP address stays the same for the life of the device or server. A dynamic IP is handed out temporarily by DHCP and can change when the lease renews. Home connections are dynamic because it is cheaper and simpler. Servers want a static IP so DNS records, firewalls, and mail keep working.</p>
+  </div>
+
+  <h2>Static vs dynamic IP address: what is the actual difference?</h2>
+  <p>An IP address is just the number that identifies your device on a network, the way a street address identifies a building. The difference between static and dynamic IP is about how long that number sticks around.</p>
+  <p>A <strong>static IP</strong> is fixed. It gets assigned once and stays the same until someone changes it on purpose. A <strong>dynamic IP</strong> is temporary. Your network hands it out on loan, and it can be swapped for a different one later. That is the whole dynamic IP meaning in one line: an address you hold for a while, not one you own.</p>
+  <p>Neither is better in the abstract. They solve different problems. Here is the shape of it before we get into why.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Aspect</th><th>Dynamic IP</th><th>Static IP</th></tr></thead>
+    <tbody>
+      <tr><td>How it is assigned</td><td>Leased automatically by DHCP</td><td>Fixed, set once and kept</td></tr>
+      <tr><td>Does it change</td><td>Can change when the lease renews</td><td>Stays the same</td></tr>
+      <tr><td>Who usually gets it</td><td>Home and mobile connections</td><td>Servers, mail, VPN endpoints</td></tr>
+      <tr><td>Setup effort</td><td>None, it just works</td><td>A little config, sometimes a fee</td></tr>
+      <tr><td>Good for</td><td>Browsing, streaming, everyday devices</td><td>Anything the outside world reaches by address</td></tr>
+    </tbody>
+  </table>
+  <p>Most people reading this already have a dynamic IP at home and have never had a reason to think about it. The real question is whether something you want to run needs the fixed kind.</p>
+
+  <h2>How does a device get an IP address in the first place?</h2>
+  <p>Almost every network you join runs DHCP, the Dynamic Host Configuration Protocol. When your laptop or phone connects, it basically asks "anyone got an address for me?" and a DHCP server loans it one for a set period called a lease.</p>
+  <p>While the lease is valid, the address is yours. When it is close to expiring, your device asks to renew. Often it gets the same address back, so things feel stable for a while. But not always. If the device was off for a stretch, or the network is busy, or the ISP reshuffles its pool, you can come back to a different address. That is the dynamic part, and it happens quietly in the background.</p>
+  <p>A static assignment skips the lottery. Instead of asking DHCP each time, the address is pinned: either configured directly on the machine, or reserved for it so the DHCP server always hands back the same one. It does not drift.</p>
+  <p>So why is home internet dynamic by default? Money and simplicity, mostly. An ISP has a big pool of public addresses and a lot of customers, and not everyone is online at the same moment. Loaning addresses out dynamically lets them share a smaller pool, and it means zero setup for the customer. Servers have the opposite priority, which is where we are headed.</p>
+
+  <figure>
+    <svg viewBox="0 0 820 350" role="img" aria-labelledby="ip-t ip-d" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#f6f7fb;border:1px solid #e6e9f2;border-radius:16px">
+      <title id="ip-t">What the address does over time</title>
+      <desc id="ip-d">Two timelines of the same connection. The dynamic row shows the address changing at each DHCP lease renewal, from 203.0.113.45 to 198.51.100.7 to 203.0.113.88. The static row shows 203.0.113.10 unchanged across all three points in time.</desc>
+      <text x="26" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">What the address does over time</text>
+
+      <text x="26" y="74" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="13" font-weight="700">Dynamic (DHCP lease)</text>
+      <rect x="70" y="88" width="150" height="42" rx="6" fill="#4F1AF3"/>
+      <text x="145" y="114" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="13">203.0.113.45</text>
+      <rect x="336" y="88" width="150" height="42" rx="6" fill="#4F1AF3"/>
+      <text x="411" y="114" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="13">198.51.100.7</text>
+      <rect x="602" y="88" width="150" height="42" rx="6" fill="#4F1AF3"/>
+      <text x="677" y="114" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="13">203.0.113.88</text>
+      <line x1="224" y1="109" x2="330" y2="109" stroke="#98a2b3" stroke-width="1.5"/>
+      <polygon points="330,109 322,105 322,113" fill="#98a2b3"/>
+      <text x="277" y="102" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">renews</text>
+      <line x1="490" y1="109" x2="596" y2="109" stroke="#98a2b3" stroke-width="1.5"/>
+      <polygon points="596,109 588,105 588,113" fill="#98a2b3"/>
+      <text x="543" y="102" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="10.5">renews</text>
+      <text x="145" y="150" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">day 1</text>
+      <text x="411" y="150" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">weeks later</text>
+      <text x="677" y="150" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">later still</text>
+
+      <text x="26" y="212" fill="#40b75f" font-family="Poppins,sans-serif" font-size="13" font-weight="700">Static (fixed assignment)</text>
+      <rect x="70" y="226" width="150" height="42" rx="6" fill="#40b75f"/>
+      <text x="145" y="252" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="13">203.0.113.10</text>
+      <rect x="336" y="226" width="150" height="42" rx="6" fill="#40b75f"/>
+      <text x="411" y="252" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="13">203.0.113.10</text>
+      <rect x="602" y="226" width="150" height="42" rx="6" fill="#40b75f"/>
+      <text x="677" y="252" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="13">203.0.113.10</text>
+      <line x1="224" y1="247" x2="330" y2="247" stroke="#98a2b3" stroke-width="1.5"/>
+      <polygon points="330,247 322,243 322,251" fill="#98a2b3"/>
+      <line x1="490" y1="247" x2="596" y2="247" stroke="#98a2b3" stroke-width="1.5"/>
+      <polygon points="596,247 588,243 588,251" fill="#98a2b3"/>
+      <text x="145" y="288" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">day 1</text>
+      <text x="411" y="288" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">weeks later</text>
+      <text x="677" y="288" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="11">later still</text>
+
+      <text x="26" y="326" fill="#000f27" font-family="Poppins,sans-serif" font-size="12">Dynamic addresses can change when the lease renews. Static addresses stay pinned, so DNS records and allowlists keep working.</text>
+    </svg>
+    <figcaption>A dynamic address can change when the DHCP lease renews. A static one stays pinned, so DNS records and firewall allowlists keep pointing to the right place.</figcaption>
+  </figure>
+
+  <h2>Public vs private IP: two labels people mix up</h2>
+  <p>Before going further, clear up a confusion that trips people constantly. Static versus dynamic is one distinction. Public versus private is a completely different one, and they stack.</p>
+  <p>A <strong>private IP</strong> lives inside your local network. Your router hands these out from reserved ranges like <code>192.168.x.x</code> or <code>10.x.x.x</code>, and they are not reachable from the public internet. Your laptop, your printer, and your phone each have one so they can talk on the LAN. Private ranges get more attention in <a href="https://www.kloudbean.com/blog/what-is-a-vpc/">what a VPC is</a>, where keeping a database on a private address is the entire point.</p>
+  <p>A <strong>public IP</strong> is the single address the outside world sees for your network, assigned by your ISP or, for a server, by your cloud provider. When a website loads your page, it is talking to a public IP.</p>
+  <p>Here is the catch: each of those can be static or dynamic on its own. Your laptop's private address might shuffle around your home network while your router's public address is the one that actually faces the internet. When someone says "my IP changed and broke my site," they nearly always mean the public one.</p>
+
+  <h2>When do you actually need a static IP?</h2>
+  <p>Here is the useful test. You need a static IP whenever something outside your machine has written down your address and expects it to keep working. If nothing points back at you, a dynamic IP is fine. Walk through the real cases:</p>
+  <ul>
+    <li><strong>Hosting a server that a DNS A record points to.</strong> DNS turns a name like <code>example.com</code> into an IP. That mapping, the A record, has to point at an address that stays put. <a href="https://www.kloudbean.com/blog/dns-explained/">DNS explained</a> goes deeper, but the short version is that the A record and the server's IP have to agree, and they cannot if the IP keeps moving.</li>
+    <li><strong>IP allowlisting into a firewall or database.</strong> A common security move is "only let this one address connect." The moment your address changes, you have locked yourself out, and your old address may get handed to a stranger.</li>
+    <li><strong>Running a mail server.</strong> Mail is the strictest. Receiving servers check the sending IP and its reverse DNS (a PTR record) before they trust your mail. Both need a stable IP to line up, which is why you basically cannot run reputable mail on a dynamic address.</li>
+    <li><strong>Site-to-site and VPN links.</strong> When two offices or a VPN endpoint connect, each side is configured with the other's fixed address. A moving target does not work.</li>
+  </ul>
+  <p>A table makes the call quick:</p>
+
+  <table class="cmp">
+    <thead><tr><th>Use case</th><th>Static or dynamic?</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Browsing, streaming, gaming at home</td><td>Dynamic is fine</td><td>Nothing outside points back at your address</td></tr>
+      <tr><td>Hosting a website a DNS A record points to</td><td>Static</td><td>The A record must keep pointing at a live address</td></tr>
+      <tr><td>Allowlisting your IP into a firewall or database</td><td>Static</td><td>An allowlist entry breaks the moment the IP changes</td></tr>
+      <tr><td>Running a mail server</td><td>Static, plus a matching PTR record</td><td>Receivers check the IP and its reverse DNS before trusting mail</td></tr>
+      <tr><td>Site-to-site or VPN links</td><td>Static</td><td>Both ends configure each other by fixed address</td></tr>
+      <tr><td>Remote access (SSH or RDP) to one box</td><td>Static helps</td><td>You connect to a known address every time</td></tr>
+    </tbody>
+  </table>
+
+  <p>Concretely, the two most common places a fixed IP shows up look like this. A DNS A record naming the address:</p>
+  <pre><code>; DNS zone: point the name at the server's fixed IP
+example.com.        A     203.0.113.10
+www.example.com.    A     203.0.113.10</code></pre>
+  <p>And a firewall rule that only trusts that one address:</p>
+  <pre><code># Only this address may reach the database port
+ufw allow from 203.0.113.10 to any port 5432</code></pre>
+
+  <h2>The failure mode: my service broke because the IP changed</h2>
+  <p>This is the pain that sends most people looking up static IPs in the first place, so it is worth naming clearly.</p>
+  <p>You point your domain's A record at your home connection. It works great for a week. Then your ISP quietly renews your lease and hands you a new public IP. Your A record still names the old one. Now your domain points at an address that is no longer yours, and your site is unreachable. Worse, that old address gets recycled to another customer, so visitors may land on a stranger's router.</p>
+  <p>Same story with allowlists. You add your office IP to a database firewall, everything is fine, then the address rotates overnight and every connection is refused in the morning. The database did exactly what you told it to. The address just moved out from under it.</p>
+  <p>There is a workaround for the DNS case called Dynamic DNS: a small client watches your address and updates the DNS record whenever it changes. It is fine for a home lab or a personal project. It is not a real fix for anything serious, and it does nothing for mail, where the IP reputation and the PTR record still need to be stable. If a thing matters, give it a fixed address instead of chasing a moving one.</p>
+
+  <h2>IPv4 is running out, so how do servers keep a stable address?</h2>
+  <p>There is a reason addresses get recycled at all, and it is scarcity. The original addressing scheme, IPv4, uses 32-bit numbers, which works out to roughly 4.3 billion possible addresses. That sounded like plenty in the 1980s. It is not enough for a planet full of phones, laptops, servers, and smart doorbells, so IPv4 addresses are a genuinely limited resource that providers manage carefully.</p>
+  <p>That scarcity is exactly why your ISP loans addresses dynamically. Recycling a pool among customers who are not all online at once stretches a limited supply. IPv6, the newer scheme, has an address space so large the scarcity mostly disappears, and it is slowly taking over, but most public services are still reached over IPv4 today.</p>
+  <p>Servers sidestep the whole problem. When you provision a server with a cloud provider, it gets a public IP that belongs to that server for as long as it exists. You did not have to negotiate with an ISP or hope the lease holds. That fixed public address is what makes a cloud server the clean way to get a static IP for a server: you point your DNS at it, add it to your allowlists, and it stays where you left it. Managed hosting bundles the server and that stable address together, which <a href="https://www.kloudbean.com/blog/what-is-a-managed-server/">what a managed server is</a> breaks down further.</p>
+
+  <h2>So, do you need a static IP?</h2>
+  <p>Boil it down. If you use the internet the way most people do, browsing, streaming, gaming, working, a dynamic IP is completely fine and you will never think about it. There is no benefit to paying for a static address you are not pointing anything at.</p>
+  <p>You want a fixed public IP when you host something the outside world reaches by address: a website behind a DNS A record, a mail server, a VPN or site-to-site link, or any service sitting behind an IP allowlist. In those cases a changing address is not a quirk, it is an outage waiting to happen.</p>
+  <p>The cleanest way to get one is not to fight your home ISP for a static IP. It is to put the thing that needs a fixed address on a server that comes with one. Pointing a domain at that address, with a certificate on top, is covered in <a href="https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/">custom domain and SSL for your app</a>, and how the encryption behind it works is in <a href="https://www.kloudbean.com/blog/ssl-tls-explained/">SSL and TLS explained</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:19px">Give your server an address that stays put.</p>
+    <p style="margin:0">If you want a fixed public IP without negotiating with an ISP, a managed cloud server from Kloudbean comes with a stable public address you can point a DNS A record at, plus IP access control to allow or deny connections by CIDR. See <a href="https://www.kloudbean.com/">kloudbean.com</a> and <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is the difference between a static and a dynamic IP address?</h3>
+    <p>A static IP address is fixed: it is assigned once and stays the same until someone deliberately changes it. A dynamic IP is temporary, handed out by DHCP for a limited lease and able to change when that lease renews. Static suits servers and anything reached by address; dynamic suits everyday home and mobile connections.</p>
+
+    <h3>What does dynamic IP mean?</h3>
+    <p>A dynamic IP means your address is loaned to you rather than owned. When your device joins a network, a DHCP server assigns an address for a set lease period. You keep it while the lease is valid, but you can be given a different one later, which is why it is called dynamic.</p>
+
+    <h3>Do I need a static IP address?</h3>
+    <p>Only if something outside your machine relies on your address staying the same. Hosting a website behind a DNS record, running a mail server, using IP allowlists, or connecting VPN endpoints all need a fixed IP. For normal browsing, streaming, and gaming, a dynamic IP is perfectly fine.</p>
+
+    <h3>Why do home internet connections use dynamic IPs?</h3>
+    <p>Mostly cost and simplicity. An ISP has more customers than it has public addresses in use at any one moment, so it loans addresses from a shared pool with DHCP. That stretches a limited supply of IPv4 addresses and means the customer has nothing to configure.</p>
+
+    <h3>When can a dynamic IP address change?</h3>
+    <p>When the DHCP lease renews and the server hands back a different address. That can happen after your device or router is offline for a while, after a reboot, when the ISP reshuffles its pool, or simply when the lease expires. Often you get the same address back, but there is no promise of it.</p>
+
+    <h3>What is the difference between a public and a private IP?</h3>
+    <p>A private IP lives inside your local network on ranges like 192.168.x.x or 10.x.x.x and is not reachable from the internet. A public IP is the single address the outside world sees for your network. They are separate from static versus dynamic, and each can be either static or dynamic.</p>
+
+    <h3>Do I need a static IP to host a website?</h3>
+    <p>The server that hosts the site needs a stable public IP, because your domain name points at that address through a DNS A record. If the address changed, the record would point at nothing. The easy path is a cloud server that comes with a fixed public IP, rather than hosting from a dynamic home connection.</p>
+
+    <h3>Does a mail server need a static IP and a PTR record?</h3>
+    <p>Yes. Receiving mail servers check the sending IP and its reverse DNS, the PTR record, before trusting a message. Both must be stable and must match, so a dynamic address is a non-starter for reputable mail. This is one of the strictest cases for needing a fixed IP.</p>
+
+    <h3>How does a cloud server get a stable public IP?</h3>
+    <p>When you provision a server with a cloud provider, it is assigned a public IP that stays with that server for its lifetime. You do not lease it from an ISP, so it does not rotate underneath you. That fixed address is what you point DNS at and add to allowlists.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Know which addresses move, and pin the ones that should not.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Static vs Dynamic IP Address: Which One Do You Actually Need?","description":"A plain-English guide to static and dynamic IP addresses: how DHCP leases hand out changing addresses, why servers need a fixed one, the difference between public and private IPs, the real cases where a static IP matters, and how to decide.","image":"https://www.kloudbean.com/blog/static-vs-dynamic-ip-address/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/static-vs-dynamic-ip-address/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is the difference between a static and a dynamic IP address?","acceptedAnswer":{"@type":"Answer","text":"A static IP address is fixed: it is assigned once and stays the same until someone deliberately changes it. A dynamic IP is temporary, handed out by DHCP for a limited lease and able to change when that lease renews. Static suits servers and anything reached by address; dynamic suits everyday home and mobile connections."}},
+{"@type":"Question","name":"What does dynamic IP mean?","acceptedAnswer":{"@type":"Answer","text":"A dynamic IP means your address is loaned to you rather than owned. When your device joins a network, a DHCP server assigns an address for a set lease period. You keep it while the lease is valid, but you can be given a different one later, which is why it is called dynamic."}},
+{"@type":"Question","name":"Do I need a static IP address?","acceptedAnswer":{"@type":"Answer","text":"Only if something outside your machine relies on your address staying the same. Hosting a website behind a DNS record, running a mail server, using IP allowlists, or connecting VPN endpoints all need a fixed IP. For normal browsing, streaming, and gaming, a dynamic IP is perfectly fine."}},
+{"@type":"Question","name":"Why do home internet connections use dynamic IPs?","acceptedAnswer":{"@type":"Answer","text":"Mostly cost and simplicity. An ISP has more customers than it has public addresses in use at any one moment, so it loans addresses from a shared pool with DHCP. That stretches a limited supply of IPv4 addresses and means the customer has nothing to configure."}},
+{"@type":"Question","name":"When can a dynamic IP address change?","acceptedAnswer":{"@type":"Answer","text":"When the DHCP lease renews and the server hands back a different address. That can happen after your device or router is offline for a while, after a reboot, when the ISP reshuffles its pool, or simply when the lease expires. Often you get the same address back, but there is no promise of it."}},
+{"@type":"Question","name":"What is the difference between a public and a private IP?","acceptedAnswer":{"@type":"Answer","text":"A private IP lives inside your local network on ranges like 192.168.x.x or 10.x.x.x and is not reachable from the internet. A public IP is the single address the outside world sees for your network. They are separate from static versus dynamic, and each can be either static or dynamic."}},
+{"@type":"Question","name":"Do I need a static IP to host a website?","acceptedAnswer":{"@type":"Answer","text":"The server that hosts the site needs a stable public IP, because your domain name points at that address through a DNS A record. If the address changed, the record would point at nothing. The easy path is a cloud server that comes with a fixed public IP, rather than hosting from a dynamic home connection."}},
+{"@type":"Question","name":"Does a mail server need a static IP and a PTR record?","acceptedAnswer":{"@type":"Answer","text":"Yes. Receiving mail servers check the sending IP and its reverse DNS, the PTR record, before trusting a message. Both must be stable and must match, so a dynamic address is a non-starter for reputable mail. This is one of the strictest cases for needing a fixed IP."}},
+{"@type":"Question","name":"How does a cloud server get a stable public IP?","acceptedAnswer":{"@type":"Answer","text":"When you provision a server with a cloud provider, it is assigned a public IP that stays with that server for its lifetime. You do not lease it from an ISP, so it does not rotate underneath you. That fixed address is what you point DNS at and add to allowlists."}}
+]}
+]}
+</script>
+</body>
+</html>
