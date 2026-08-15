@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Turn Your AI Prototype Into a Product People Will Pay For</title>
+<meta name="description" content="How to turn your AI prototype into a product people actually pay for. The honest gap between a working demo and a real product: persistent database, auth, billing, rate limits, secrets, backups, and always-on hosting.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/turn-your-ai-prototype-into-a-paid-product/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Turn Your AI Prototype Into a Product People Will Pay For">
+<meta property="og:description" content="The demo works on your laptop. Here is the invisible gap between that and a product people trust and pay for: database, auth, billing, rate limits, secrets, backups, and going always-on.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">AI apps · Readiness guide</span>
+  <h1>Turn Your AI Prototype Into a Product People Will Pay For</h1>
+  <p class="byline">By Kloudbean Engineering · A demo proves it can work. A product proves it keeps working.</p>
+
+  <figure><img src="images/hero.png" alt="A readiness map showing the gap between an AI prototype that works on a laptop and a product with a database, auth, billing, and always-on hosting"></figure>
+
+  <p class="lead">You built something with Cursor, Lovable, Bolt, v0, or Replit, and it actually works. The demo runs on your laptop, the AI wrote most of it, and people who see it say they would use it. So now you want to turn your AI prototype into a product, the kind people pay for and come back to. Here is what the build-with-AI tutorials skip: the distance from a working demo to a product people trust is mostly invisible work. Not more features. The plumbing underneath. This is the honest gap analysis for taking an AI prototype to production.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>A working demo and a paid product are different things. The demo proves your idea. The product has to keep other people's data safe and available when you are asleep. To close that gap you need a persistent database, real auth, billing, rate limits, secrets kept off the client, error handling, backups, and an always-on host. None of it is glamorous. All of it is the difference.</p>
+  </div>
+
+  <h2>Why turning your AI prototype into a product is the hard part</h2>
+  <p>Building the demo was the fun part, and AI made it fast. But a demo only has to work once, in your hands, on your machine. A product has to work for strangers, at the same time, with their data, when you are asleep. Those are different problems.</p>
+  <p>The first is a coding problem, and you have basically solved it. The second is an operations problem, and it is the one that quietly sinks most AI-built apps. That is my honest opinion after watching a lot of promising demos never survive contact with real users. If you want the deeper version of how these apps fall over, <a href="https://www.kloudbean.com/blog/why-ai-apps-fail-in-production/">why AI apps fail in production</a> walks through the specific failure modes. Here we will take the gap piece by piece, so you can tick each one off before you ask anyone to pay.</p>
+
+  <h2>Demo versus product: what actually changes</h2>
+  <p>Every gap comes down to the same shift: a demo is for you, a product is for people you will never meet. Line the two up and the work becomes obvious.</p>
+  <table class="cmp">
+    <thead><tr><th></th><th>The demo</th><th>The product</th></tr></thead>
+    <tbody>
+      <tr><td>Who uses it</td><td>You and a few friends</td><td>Strangers, at the same time</td></tr>
+      <tr><td>Their data</td><td>Fine to lose</td><td>Must persist and be recoverable</td></tr>
+      <tr><td>Secrets</td><td>Hard-coded, who cares</td><td>Server-side, out of the code</td></tr>
+      <tr><td>Cost of a call</td><td>Your own test spend</td><td>Anyone can trigger the bill</td></tr>
+      <tr><td>Uptime</td><td>Your laptop is open</td><td>Runs while you sleep</td></tr>
+      <tr><td>When it breaks</td><td>You restart it</td><td>It handles it, or it pages you</td></tr>
+    </tbody>
+  </table>
+  <p>Every row is a corner a demo cuts that a product cannot. And none of it shows up in the interface, which is exactly why it is so easy to skip until a user finds it for you.</p>
+
+  <h2>Your data needs somewhere real to live</h2>
+  <p>This is the big one, so start here. A common trap we see: the prototype stores everything in SQLite or a local JSON file, because the AI reached for the simplest thing that runs. On your laptop it is perfect. Then you deploy, push one update, and every signup, every row, every uploaded file is gone. Not corrupted. Gone. That file lived on the same disposable box as your code, and redeploying replaced the box.</p>
+  <p>A product keeps data in a managed database that lives separately from the app, so deploys never touch it. Usually that is PostgreSQL or MySQL, managed so backups and patching are not your job. My blunt take: SQLite is great in development and wrong in production for anything with users. Moving to a managed database early is the single highest-value thing you can do, and <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a> is not the scary part people expect. If your prototype leans on Supabase, <a href="https://www.kloudbean.com/blog/do-i-need-supabase/">whether you actually need Supabase</a> is worth a read before you commit.</p>
+
+  <!-- ADD IMAGE: real console screenshot of launching a managed PostgreSQL or MySQL database, src -> images/launch-database.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The dashboard launching a managed PostgreSQL or MySQL database, separate from the app server.</em><small>Shows data living somewhere a redeploy cannot wipe.</small></span></figure>
+
+  <figure>
+    <svg viewBox="0 0 820 360" role="img" aria-labelledby="pp-t pp-d" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#f6f7fb;border:1px solid #e6e9f2;border-radius:16px">
+      <title id="pp-t">A prototype data path versus a product data path</title>
+      <desc id="pp-d">In a prototype the browser talks to an app that holds the API key and stores data in a local file on the same box, which is wiped on redeploy. In a product the key stays server-side, requests pass a rate limit, and data lives in a separate managed database with backups.</desc>
+      <text x="30" y="38" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Where the data and the keys actually sit</text>
+
+      <text x="30" y="72" fill="#b42318" font-family="Poppins,sans-serif" font-size="13" font-weight="700">Prototype: everything on one disposable box</text>
+      <rect x="30" y="84" width="360" height="118" rx="10" fill="#ffffff" stroke="#f2b8b5"/>
+      <rect x="46" y="104" width="96" height="34" rx="5" fill="#000f27"/><text x="94" y="126" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="11">browser</text>
+      <rect x="158" y="104" width="120" height="34" rx="5" fill="#000f27"/><text x="218" y="120" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="10">app + API key</text><text x="218" y="132" text-anchor="middle" fill="#f2b8b5" font-family="JetBrains Mono,monospace" font-size="9">key in browser</text>
+      <rect x="294" y="104" width="80" height="34" rx="5" fill="#000f27"/><text x="334" y="126" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="10">SQLite file</text>
+      <line x1="142" y1="121" x2="158" y2="121" stroke="#8a94a6" stroke-width="2"/><line x1="278" y1="121" x2="294" y2="121" stroke="#8a94a6" stroke-width="2"/>
+      <text x="210" y="180" text-anchor="middle" fill="#b42318" font-family="Poppins,sans-serif" font-size="12">redeploy replaces the box, the data is gone</text>
+
+      <text x="430" y="72" fill="#0a7d33" font-family="Poppins,sans-serif" font-size="13" font-weight="700">Product: data and keys live in the right place</text>
+      <rect x="430" y="84" width="360" height="204" rx="10" fill="#ffffff" stroke="#40b75f"/>
+      <rect x="446" y="104" width="96" height="34" rx="5" fill="#000f27"/><text x="494" y="126" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="11">browser</text>
+      <rect x="558" y="104" width="96" height="34" rx="5" fill="#4F1AF3"/><text x="606" y="126" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="10">rate limit</text>
+      <rect x="670" y="104" width="104" height="34" rx="5" fill="#000f27"/><text x="722" y="120" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="10">app</text><text x="722" y="132" text-anchor="middle" fill="#9fe6b6" font-family="JetBrains Mono,monospace" font-size="9">key server-side</text>
+      <line x1="542" y1="121" x2="558" y2="121" stroke="#8a94a6" stroke-width="2"/><line x1="654" y1="121" x2="670" y2="121" stroke="#8a94a6" stroke-width="2"/>
+      <rect x="558" y="170" width="216" height="40" rx="6" fill="#40b75f"/><text x="666" y="195" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">managed database, separate box</text>
+      <line x1="722" y1="138" x2="722" y2="170" stroke="#8a94a6" stroke-width="2"/>
+      <rect x="558" y="228" width="216" height="34" rx="6" fill="#ffffff" stroke="#40b75f"/><text x="666" y="250" text-anchor="middle" fill="#0a7d33" font-family="Poppins,sans-serif" font-size="11">automatic backups</text>
+      <line x1="666" y1="210" x2="666" y2="228" stroke="#8a94a6" stroke-width="2"/>
+    </svg>
+    <figcaption>The prototype keeps the key in the browser and the data on the same box it deploys over. The product moves both to where they belong.</figcaption>
+  </figure>
+
+  <h2>Accounts and auth: who gets in and who sees what</h2>
+  <p>A demo usually has one user: you. A product has accounts, and the moment you have accounts you inherit a whole category of questions. Who can log in. Whose data is whose. What happens when someone forgets their password. Can user A see user B's records, and the answer had better be no.</p>
+  <p>Do not hand-roll this if you can avoid it. Lean on a proven auth library or provider rather than inventing session logic yourself. And here is a classic AI-prototype bug worth checking for right now: the app decides who you are in the browser but never re-checks on the server. Anyone who opens dev tools can then ask the API for someone else's data, and it politely hands it over. Authorization has to happen on the server, on every request that touches private data. Every time.</p>
+
+  <h2>If you want people to pay, billing has to be real</h2>
+  <p>If the plan is to make money from an AI app, at some point money has to change hands, and that is its own build. Most people reach for Stripe, and it is a sane default. But billing is more than a checkout button. You have got trials, failed cards, refunds, someone cancelling, someone upgrading mid-month, and your app has to react when the payment provider tells it a subscription changed. That is what webhooks are for, and skipping them is how people end up with paying customers who lost access, or cancelled customers who still have it.</p>
+  <p>One firm rule: never handle raw card numbers yourself. Let Stripe or a similar processor carry that weight and the compliance that comes with it. Treat charging money as a feature you build and test like any other, not a switch you flip on launch day.</p>
+
+  <!-- ADD IMAGE: author supplies a shot of their own billing or subscription states, src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Your billing flow showing more than checkout: a failed payment, a cancellation, and an upgrade.</em><small>The states that matter are the ones after the first successful charge.</small></span></figure>
+
+  <h2>Rate limits, or one user drains your budget</h2>
+  <p>This one bites AI apps specifically, so pay attention even if you skip the rest. Your prototype calls an LLM API on every request, and in the demo that is a few cents. Now put it on the open internet with nothing capping the calls. One curious user, one loose script, one person who leaves a tab looping, and they can burn through your entire OpenAI or Anthropic budget in an afternoon. We see this hit people who did everything else right.</p>
+  <p>The fix is layered. Rate limit per user and per IP so no single caller can flood you. Set a hard spending cap in the provider dashboard as a backstop. Cache identical requests. Put the expensive calls behind login so anonymous traffic cannot trigger them. Treat every AI API call as money leaving your account, because that is exactly what it is.</p>
+
+  <h2>Secrets stay on the server, and other config that breaks in production</h2>
+  <p>The single most common security mistake in AI-built apps: the API key sits right there in the frontend code, shipped to every browser that loads the page. If a secret is in client-side JavaScript, it is public. Full stop. Anyone can open the network tab and copy it. AI assistants do this constantly, because inlining the key is the shortest path to a demo that runs.</p>
+  <p>Keys belong server-side, in environment variables, never committed to your repo and never sent to the client. The same goes for the other config trap: URLs hard-coded to <code>localhost:3000</code> or <code>127.0.0.1</code>. They work on your machine and break the instant the app runs anywhere else. Anything that differs between your laptop and production, the database URL, the API base, every key, belongs in environment variables rather than baked into the code. <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">Environment variables done right</a> covers the whole pattern.</p>
+
+  <h2>When it breaks: error handling and backups</h2>
+  <p>Demos assume the happy path. The API always answers, the input is always valid, the network is always up. Products meet reality: timeouts, malformed input, a third-party service having a bad day. If one unhandled error takes your whole app down, that is a demo-grade response to a product-grade problem. Catch errors, log them somewhere you will actually look, and show the user something human instead of a stack trace.</p>
+  <p>Then backups. Automatic backups you have tested restoring at least once. A backup you have never restored is a hope, not a backup, and the day you need it is a bad day to discover the difference. While you are at it, <a href="https://www.kloudbean.com/blog/test-ai-generated-app-before-launch/">test your AI-generated app before launch</a> against the ugly inputs a demo never sees.</p>
+
+  <h2>The last gap: running it always-on</h2>
+  <p>Everything above assumes one last thing: your app is actually running, all the time, somewhere that is not your laptop. A prototype runs while your terminal is open. A product runs when you are asleep, on a weekend, during a demo to an investor. That means a real host with a persistent, always-on process, not a function that goes cold between requests and makes your first visitor wait for it to wake up.</p>
+  <p>This is the point where Kloudbean fits. You get a managed server that keeps your app process running with no serverless cold starts, managed PostgreSQL or MySQL with automatic backups so your data outlives every deploy, environment variables and runtime config set in the dashboard instead of hard-coded, and Git-based deploys straight from GitHub, all from one place with free SSL. The plumbing this whole article is about, handled for you, so your attention stays on the product. The end-to-end walkthrough lives in <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploying an AI-built app to production</a>.</p>
+
+  <!-- ADD IMAGE: real console screenshot of Git-based deployment from GitHub, src -> images/git-deployment.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Connecting a GitHub repo and deploying, with the app running as a persistent process.</em><small>The always-on step that a laptop cannot cover.</small></span></figure>
+
+  <h2>Your readiness checklist before you charge anyone</h2>
+  <p>Before you put a price on it, run down this list. Tick every box and you have closed the gap between a demo and something people can rely on.</p>
+  <ul>
+    <li><strong>Persistent data.</strong> Lives in a managed database, not a local file a redeploy wipes.</li>
+    <li><strong>Real accounts.</strong> Auth with server-side checks on who can see what.</li>
+    <li><strong>Working billing.</strong> Wired up and tested, including failed payments and cancellations.</li>
+    <li><strong>Cost controls.</strong> Rate limits plus a provider spending cap, so one user cannot drain your budget.</li>
+    <li><strong>Secrets server-side.</strong> Every key in environment variables, nothing in the client or the repo.</li>
+    <li><strong>Graceful failure.</strong> Errors handled and logged, no single failure takes the app down.</li>
+    <li><strong>Tested backups.</strong> Automatic, and you have restored one at least once.</li>
+    <li><strong>Always-on.</strong> Running on a real host, not your laptop.</li>
+  </ul>
+  <p>A deeper, more granular version is in the <a href="https://www.kloudbean.com/blog/ai-app-production-readiness-checklist/">AI app production readiness checklist</a>. You do not need all of this to keep building. You do need it before you ask someone to trust you with their data and their card.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:19px">Ready to run it like a product, not a demo?</p>
+    <p style="margin:0">Kloudbean gives you a managed server, managed databases with automatic backups, environment config, and Git deploys from one dashboard, so the app you built with AI can go always-on without you turning into a full-time sysadmin. See <a href="https://www.kloudbean.com/">kloudbean.com</a> and <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.5em 0 0; font-size:14px; opacity:.85">Managed PostgreSQL and MySQL · Automatic backups · Free SSL · Git deploys · Always-on processes · One dashboard</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What is the difference between an AI prototype and a real product?</h3>
+    <p>A prototype proves the idea works once, usually on your machine, with you as the only user. A product has to work for many strangers at the same time, keep their data safe and recoverable, take payments, and stay up when you are not watching. The code is often the smaller half. The gap is the database, auth, billing, rate limits, secrets, error handling, backups, and always-on hosting.</p>
+
+    <h3>Why does my AI app lose its data every time I redeploy?</h3>
+    <p>Almost always because the app stores data in SQLite or a local file that sits on the same disposable server as your code. When you redeploy, that server is replaced and the file goes with it. The fix is to keep data in a managed database that lives separately from the app, so deploys never touch it. Managed PostgreSQL or MySQL is the usual choice.</p>
+
+    <h3>Do I need a database to turn my prototype into a product?</h3>
+    <p>For anything with users, accounts, or saved state, yes. A local file works in development but loses everything on redeploy and cannot handle more than one process safely. A managed PostgreSQL or MySQL database gives you persistence, backups, and room to grow. If your app is genuinely stateless you might skip it, but most products are not.</p>
+
+    <h3>How do I stop one user from running up my OpenAI bill?</h3>
+    <p>Add rate limiting per user and per IP so no single caller can flood your endpoints. Set a hard spending cap in your AI provider dashboard as a backstop. Cache repeated or identical requests, and put expensive calls behind login so anonymous traffic cannot trigger them. Treat every API call as real money, because each one is.</p>
+
+    <h3>Where should I store API keys in an AI-built app?</h3>
+    <p>Server-side only, in environment variables, never in client code and never committed to your repository. If a key is in frontend JavaScript, it ships to every browser and anyone can read it. Keep secrets in your host's environment settings, load them at runtime, and rotate any key that has ever been exposed.</p>
+
+    <h3>Do I need user accounts and auth before I can charge money?</h3>
+    <p>If different people will have their own data or their own paid access, then yes. You need real accounts with checks done on the server, not just in the browser. Auth and billing go together, because your payment system needs to know which account is paying. Lean on an established auth library or provider rather than building session logic from scratch.</p>
+
+    <h3>What is the easiest way to add payments to an AI app?</h3>
+    <p>Most builders use Stripe, and it is a reasonable default. It handles checkout, subscriptions, failed cards, and refunds, and it tells your app about changes through webhooks. The work is not the checkout button, it is reacting correctly when a payment fails or a customer cancels. Never handle raw card numbers yourself, let the payment processor do that.</p>
+
+    <h3>How do I keep my AI app running when my laptop is off?</h3>
+    <p>You need a host that runs your app as a persistent, always-on process, separate from your laptop. A prototype only runs while your terminal is open. A managed server keeps the process alive around the clock, without the cold starts you get from serverless functions. Point your domain at it, add SSL, and it stays reachable whether or not you are online.</p>
+
+    <h3>How long does it take to turn an AI prototype into a product?</h3>
+    <p>It depends on how many of the gaps your prototype already crosses, but plan for real work beyond the demo. Swapping SQLite for a managed database, adding auth and billing, setting rate limits, moving secrets to environment variables, and deploying always-on are each their own task. The upside is that none of them are exotic, and a managed platform takes the hosting and database operations off your plate.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Build the demo with AI. Close the gap before you take a payment.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Turn Your AI Prototype Into a Product People Will Pay For","description":"How to turn your AI prototype into a product people actually pay for. The honest gap between a working demo and a real product: persistent database, auth, billing, rate limits, secrets, backups, and always-on hosting.","image":"https://www.kloudbean.com/blog/turn-your-ai-prototype-into-a-paid-product/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@id":"https://kloudbean.com/#organization"},"mainEntityOfPage":"https://www.kloudbean.com/blog/turn-your-ai-prototype-into-a-paid-product/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is the difference between an AI prototype and a real product?","acceptedAnswer":{"@type":"Answer","text":"A prototype proves the idea works once, usually on your machine, with you as the only user. A product has to work for many strangers at the same time, keep their data safe and recoverable, take payments, and stay up when you are not watching. The code is often the smaller half. The gap is the database, auth, billing, rate limits, secrets, error handling, backups, and always-on hosting."}},
+{"@type":"Question","name":"Why does my AI app lose its data every time I redeploy?","acceptedAnswer":{"@type":"Answer","text":"Almost always because the app stores data in SQLite or a local file that sits on the same disposable server as your code. When you redeploy, that server is replaced and the file goes with it. The fix is to keep data in a managed database that lives separately from the app, so deploys never touch it. Managed PostgreSQL or MySQL is the usual choice."}},
+{"@type":"Question","name":"Do I need a database to turn my prototype into a product?","acceptedAnswer":{"@type":"Answer","text":"For anything with users, accounts, or saved state, yes. A local file works in development but loses everything on redeploy and cannot handle more than one process safely. A managed PostgreSQL or MySQL database gives you persistence, backups, and room to grow. If your app is genuinely stateless you might skip it, but most products are not."}},
+{"@type":"Question","name":"How do I stop one user from running up my OpenAI bill?","acceptedAnswer":{"@type":"Answer","text":"Add rate limiting per user and per IP so no single caller can flood your endpoints. Set a hard spending cap in your AI provider dashboard as a backstop. Cache repeated or identical requests, and put expensive calls behind login so anonymous traffic cannot trigger them. Treat every API call as real money, because each one is."}},
+{"@type":"Question","name":"Where should I store API keys in an AI-built app?","acceptedAnswer":{"@type":"Answer","text":"Server-side only, in environment variables, never in client code and never committed to your repository. If a key is in frontend JavaScript, it ships to every browser and anyone can read it. Keep secrets in your host's environment settings, load them at runtime, and rotate any key that has ever been exposed."}},
+{"@type":"Question","name":"Do I need user accounts and auth before I can charge money?","acceptedAnswer":{"@type":"Answer","text":"If different people will have their own data or their own paid access, then yes. You need real accounts with checks done on the server, not just in the browser. Auth and billing go together, because your payment system needs to know which account is paying. Lean on an established auth library or provider rather than building session logic from scratch."}},
+{"@type":"Question","name":"What is the easiest way to add payments to an AI app?","acceptedAnswer":{"@type":"Answer","text":"Most builders use Stripe, and it is a reasonable default. It handles checkout, subscriptions, failed cards, and refunds, and it tells your app about changes through webhooks. The work is not the checkout button, it is reacting correctly when a payment fails or a customer cancels. Never handle raw card numbers yourself, let the payment processor do that."}},
+{"@type":"Question","name":"How do I keep my AI app running when my laptop is off?","acceptedAnswer":{"@type":"Answer","text":"You need a host that runs your app as a persistent, always-on process, separate from your laptop. A prototype only runs while your terminal is open. A managed server keeps the process alive around the clock, without the cold starts you get from serverless functions. Point your domain at it, add SSL, and it stays reachable whether or not you are online."}},
+{"@type":"Question","name":"How long does it take to turn an AI prototype into a product?","acceptedAnswer":{"@type":"Answer","text":"It depends on how many of the gaps your prototype already crosses, but plan for real work beyond the demo. Swapping SQLite for a managed database, adding auth and billing, setting rate limits, moving secrets to environment variables, and deploying always-on are each their own task. The upside is that none of them are exotic, and a managed platform takes the hosting and database operations off your plate."}}
+]},
+{"@type":"Organization","@id":"https://kloudbean.com/#organization","name":"Kloudbean","legalName":"Secured Orbis Pvt. Ltd.","url":"https://kloudbean.com","description":"Kloudbean is a managed multi-cloud hosting platform by Secured Orbis Pvt. Ltd. It runs your whole stack from one dashboard, application servers, managed databases, object storage, and a built-in load balancer across seven cloud providers, so builders, agencies, and founders can deploy, host, and own their apps without operating raw cloud."}
+]}
+</script>
+</body>
+</html>
