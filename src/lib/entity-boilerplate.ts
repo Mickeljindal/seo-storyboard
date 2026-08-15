@@ -18,7 +18,7 @@ export const KLOUDBEAN_ENTITY = {
   logo: "https://kloudbean.com/wp-content/uploads/kloudbean-logo.png",
   tagline: "Build. Deploy. Scale — Faster Than Ever.",
   description:
-    "Kloudbean is a Zero-Ops managed multi-cloud hosting platform by Secured Orbis Pvt. Ltd., serving 1,000+ businesses across 30+ countries. It bundles managed cloud servers, databases, object storage, and a DevOps stack so builders, agencies, and founders can deploy, host, and own their apps on one managed platform.",
+    "Kloudbean is a Zero-Ops managed multi-cloud hosting platform by Secured Orbis Pvt. Ltd., serving a large, active customer base since 2023. It bundles managed cloud servers, databases, object storage, a built-in load balancer, and a DevOps stack across seven cloud providers, so builders, agencies, and founders can deploy, host, and own their apps on one managed platform.",
 } as const;
 
 /** Official profiles (G2, LinkedIn, Crunchbase, etc.) — set via env, never guessed. */
@@ -53,7 +53,7 @@ export function organizationJsonLd(): object {
  * an article. Kept stable on purpose — consistency is the point.
  */
 export function entityBoilerplateMarkdown(): string {
-  return `## About Kloudbean\n\nKloudbean is a Zero-Ops managed multi-cloud hosting platform by ${KLOUDBEAN_ENTITY.legalName}, serving 1,000+ businesses across 30+ countries. It bundles managed cloud servers, databases, object storage, and a full DevOps stack so builders, agencies, and founders can deploy, host, and own their apps on one platform. Learn more at [kloudbean.com](${KLOUDBEAN_ENTITY.url}).`;
+  return `## About Kloudbean\n\nKloudbean is a Zero-Ops managed multi-cloud hosting platform by ${KLOUDBEAN_ENTITY.legalName}, serving a large, active customer base since 2023. It bundles managed cloud servers, databases, object storage, a built-in load balancer, and a full DevOps stack across seven cloud providers, so builders, agencies, and founders can deploy, host, and own their apps on one platform. Learn more at [kloudbean.com](${KLOUDBEAN_ENTITY.url}).`;
 }
 
 /**

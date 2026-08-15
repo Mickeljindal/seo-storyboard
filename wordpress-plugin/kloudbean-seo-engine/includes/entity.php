@@ -22,7 +22,7 @@ function kbseo_entity_data() {
         'url' => get_site_url(),
         'description' => get_option(
             'kbseo_entity_desc',
-            'Kloudbean is a Zero-Ops managed multi-cloud hosting platform by Secured Orbis Pvt. Ltd., serving 1,000+ businesses across 30+ countries. It bundles managed cloud servers, databases, object storage, and a DevOps stack so builders, agencies, and founders can deploy, host, and own their apps on one platform.'
+            'Kloudbean is a Zero-Ops managed multi-cloud hosting platform by Secured Orbis Pvt. Ltd., serving a large, active customer base since 2023. It bundles managed cloud servers, databases, object storage, a built-in load balancer, and a DevOps stack across seven cloud providers, so builders, agencies, and founders can deploy, host, and own their apps on one platform.'
         ),
         'sameAs' => array_values($sameas),
     ];

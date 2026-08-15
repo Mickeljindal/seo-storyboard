@@ -51,7 +51,7 @@ const ICP_CARDS = [
 const MOAT = [
   { icon: Zap, title: "The deployment gap is our wedge", desc: "Millions of apps are now built with Lovable, Bolt, Cursor, and Replit — and they all hit the same wall: 'works on localhost, dies online.' Kloudbean is the one-click answer. We meet builders exactly at that moment of pain." },
   { icon: Layers, title: "One server, every app", desc: "Agencies and founders consolidate 10–20+ apps, sites, and self-hosted tools (n8n, Supabase, GitLab) onto one managed server they own — replacing SaaS sprawl and PaaS bill-shock. Real customers cut $4,000/mo to ~$100." },
-  { icon: Globe, title: "Global reach, local edge", desc: "1,000+ businesses across 30+ countries. Win worldwide on managed-multi-cloud value, and own regulated niches like KSA with in-Kingdom GCP Dammam residency that Vercel, Render, and Railway can't match." },
+  { icon: Globe, title: "Global reach, local edge", desc: "A large, active customer base worldwide since 2023. Win worldwide on managed-multi-cloud value, and own regulated niches like KSA with in-Kingdom GCP Dammam residency that Vercel, Render, and Railway can't match." },
 ];
 
 /* ---------------------------------------------------------------- */
