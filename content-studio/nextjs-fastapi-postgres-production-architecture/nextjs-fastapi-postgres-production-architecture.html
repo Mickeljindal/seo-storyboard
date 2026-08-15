@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Next.js + FastAPI + PostgreSQL: The Production Architecture</title>
+<meta name="description" content="The production architecture for a Next.js frontend, a FastAPI backend, and PostgreSQL: one origin or two, how FastAPI runs under Uvicorn and Gunicorn, where Next.js should call the API, connection pooling, background jobs, SSL and backups.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/nextjs-fastapi-postgres-production-architecture/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Next.js + FastAPI + PostgreSQL: The Production Architecture">
+<meta property="og:description" content="The split-stack architecture for a JS frontend and a Python API: one origin or two, how FastAPI runs, where Next.js calls the API, pooling, background jobs, SSL and backups.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Production architecture · Next.js + FastAPI</span>
+  <h1>Next.js + FastAPI + PostgreSQL: The Production Architecture</h1>
+  <p class="byline">By Kloudbean Engineering · Two runtimes don't have to mean two origins.</p>
+
+  <figure><img src="images/hero.png" alt="A layered diagram of a Next.js frontend, a FastAPI backend, and a PostgreSQL database in production"></figure>
+
+  <p class="lead">You built the frontend in Next.js and the backend in FastAPI, and now you have to run both in production with a real database behind them. That is a different problem from a single-runtime app, because a Next.js FastAPI PostgreSQL production architecture involves two separate processes in two languages that still have to feel like one product to the browser. This guide walks the decisions that specific split forces on you: one origin or two, how FastAPI actually runs, where Next.js should call the API, and how PostgreSQL sits behind it all. No fluff, no invented benchmarks, just the shape that holds up.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>Run Next.js and FastAPI as two long-lived processes and put PostgreSQL behind them as a managed database. The cleanest default is to keep both on one server behind a reverse proxy so they share an origin, which skips CORS and keeps your secrets server-side. Split to separate origins only when you have a concrete reason, then add connection pooling, a background worker if you need one, SSL, and backups as the app grows.</p>
+  </div>
+
+  <h2>Why a Next.js and FastAPI app is always two processes</h2>
+  <p>Next.js runs on Node. FastAPI is a Python app. You can't run Python inside a Node process, so the moment you pick this stack you've committed to two long-running processes in two languages. That single fact drives almost every decision below.</p>
+  <p>This is what makes the polyglot case different from an all-Node stack. If your backend were Express or Nest, you'd have one runtime and could even collapse everything into a single process. Here you can't, and that's fine. The question is never "one process or two," because it's always two. The real question is where those two processes live and how they talk to each other.</p>
+  <p>So don't waste energy trying to smuggle FastAPI in as a subprocess of Next.js, or rewriting a perfectly good Python API into TypeScript just to unify the language. The split is normal. You just have to lay it out well.</p>
+
+  <h2>One origin or two? The decision that shapes the rest</h2>
+  <p>Here's the fork that matters most, and it's worth deciding on purpose instead of by accident.</p>
+  <p><strong>Option A, one origin.</strong> Both processes live on the same server. A reverse proxy (Nginx or Caddy) terminates TLS, serves the Next.js app, and forwards a path like <code>/api</code> to FastAPI on an internal port. To the browser it's all one domain, one origin.</p>
+  <p><strong>Option B, two origins.</strong> The frontend sits on <code>app.example.com</code> and the API on <code>api.example.com</code>, often on separate servers. Now the browser sees two origins, and that's genuinely cross-origin.</p>
+  <p>My opinion, stated plainly: colocate on one origin unless you have a real reason to split. Same origin means no CORS to configure, cookies just work, your secrets stay on the server, and you manage one certificate and one deploy target. The moment you go cross-origin you inherit CORS and cross-origin auth (SameSite cookies, credentialed requests, preflights), which is a whole class of "works locally, breaks in production" bugs. That exact failure and its fix are covered in <a href="https://www.kloudbean.com/blog/fix-cors-error-node-production/">CORS errors in production</a>; the browser rule is identical whether your API is Node or FastAPI, you just configure it with FastAPI's <code>CORSMiddleware</code> instead.</p>
+  <p>Good reasons to split do exist: the API also serves a mobile app or third parties, two teams ship on very different cadences, or you need to scale the API independently of the frontend. If one of those is true, split with your eyes open. The broader version of this call is in <a href="https://www.kloudbean.com/blog/do-i-need-separate-frontend-and-backend-servers/">do I need separate frontend and backend servers</a>, and the case for keeping everything together is in <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">hosting your app, API, and database on one server</a>.</p>
+  <table class="cmp">
+    <thead><tr><th></th><th>One origin (colocated)</th><th>Two origins (split)</th></tr></thead>
+    <tbody>
+      <tr><td>Reverse proxy routing</td><td>/ to Next.js, /api to FastAPI</td><td>Separate hosts, separate proxies</td></tr>
+      <tr><td>CORS</td><td>None needed</td><td>Must configure allowed origins</td></tr>
+      <tr><td>Cookies and auth</td><td>Same-origin, straightforward</td><td>SameSite and credentials to manage</td></tr>
+      <tr><td>TLS certificates</td><td>One</td><td>One per origin</td></tr>
+      <tr><td>Independent scaling</td><td>Harder, same box</td><td>Easier, scale each side</td></tr>
+      <tr><td>Best for</td><td>Most apps, especially early</td><td>Multiple clients or separate teams</td></tr>
+    </tbody>
+  </table>
+
+  <h2>What the Next.js + FastAPI + PostgreSQL architecture looks like</h2>
+  <p>Top to bottom, the request path is short: the browser talks to Next.js, Next.js (or the browser) talks to FastAPI, and FastAPI talks to PostgreSQL. Each layer has one job and one thing that tends to bite it in production.</p>
+
+  <!-- ADD IMAGE: swap the SVG below for a polished render if desired. src -> images/layers.png -->
+  <figure>
+    <svg viewBox="0 0 820 410" role="img" aria-labelledby="arch-t arch-d" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#f6f7fb;border:1px solid #e6e9f2;border-radius:16px">
+      <title id="arch-t">A Next.js frontend, a FastAPI backend, and a PostgreSQL database in production</title>
+      <desc id="arch-d">The browser talks to a Next.js server over HTTPS. Next.js and FastAPI run as two processes on one server behind a reverse proxy that gives them one origin. FastAPI queries a managed PostgreSQL database over a pooled connection, and the database has automatic backups.</desc>
+      <defs>
+        <marker id="ah" markerWidth="10" markerHeight="8" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#000f27"/>
+        </marker>
+      </defs>
+      <text x="30" y="32" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">One request path, four layers</text>
+
+      <rect x="320" y="48" width="180" height="42" rx="8" fill="#000f27"/>
+      <text x="410" y="74" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13">Browser / client</text>
+      <line x1="410" y1="90" x2="410" y2="120" stroke="#000f27" stroke-width="2" marker-end="url(#ah)"/>
+      <text x="420" y="110" fill="#4b5568" font-family="JetBrains Mono,monospace" font-size="11">HTTPS</text>
+
+      <rect x="120" y="124" width="580" height="146" rx="12" fill="#ffffff" stroke="#4F1AF3" stroke-width="1.5" stroke-dasharray="6 5"/>
+      <text x="140" y="146" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="12" font-weight="600">One server, one origin: reverse proxy sends /api to FastAPI</text>
+
+      <rect x="150" y="160" width="250" height="64" rx="8" fill="#4F1AF3"/>
+      <text x="275" y="188" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">Next.js server</text>
+      <text x="275" y="208" text-anchor="middle" fill="#e7e0ff" font-family="JetBrains Mono,monospace" font-size="11">SSR · SSG · ISR · routes</text>
+
+      <rect x="430" y="160" width="240" height="64" rx="8" fill="#000f27"/>
+      <text x="550" y="188" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">FastAPI (ASGI)</text>
+      <text x="550" y="208" text-anchor="middle" fill="#b9c2d6" font-family="JetBrains Mono,monospace" font-size="11">Uvicorn workers · Gunicorn</text>
+
+      <line x1="400" y1="192" x2="430" y2="192" stroke="#000f27" stroke-width="2" marker-end="url(#ah)"/>
+      <text x="410" y="248" text-anchor="middle" fill="#4b5568" font-family="Poppins,sans-serif" font-size="11">server-side calls stay here: no CORS, secrets stay server-side</text>
+
+      <line x1="410" y1="270" x2="410" y2="308" stroke="#000f27" stroke-width="2" marker-end="url(#ah)"/>
+      <text x="420" y="294" fill="#4b5568" font-family="JetBrains Mono,monospace" font-size="11">pooled SQL</text>
+
+      <rect x="250" y="310" width="260" height="64" rx="8" fill="#40b75f"/>
+      <text x="380" y="338" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13" font-weight="600">PostgreSQL (managed)</text>
+      <text x="380" y="358" text-anchor="middle" fill="#e6f6ec" font-family="JetBrains Mono,monospace" font-size="11">pool · backups · IP allow-list</text>
+
+      <line x1="510" y1="342" x2="556" y2="342" stroke="#000f27" stroke-width="2" marker-end="url(#ah)"/>
+      <rect x="558" y="316" width="172" height="52" rx="8" fill="#ffffff" stroke="#40b75f" stroke-width="1.5" stroke-dasharray="6 5"/>
+      <text x="644" y="346" text-anchor="middle" fill="#0a7d33" font-family="Poppins,sans-serif" font-size="12">Automatic backups</text>
+    </svg>
+    <figcaption>Read it top to bottom: the browser only ever needs your origin, and each layer below it does one job.</figcaption>
+  </figure>
+
+  <table class="cmp">
+    <thead><tr><th>Layer</th><th>What runs there</th><th>The production concern</th></tr></thead>
+    <tbody>
+      <tr><td>Browser / client</td><td>The user's device</td><td>Only sees public data and auth tokens, never DB credentials</td></tr>
+      <tr><td>Next.js</td><td>A Node process (SSR, SSG, ISR, route handlers)</td><td>Server-side data fetching; holds server-only env secrets</td></tr>
+      <tr><td>Reverse proxy</td><td>Nginx or Caddy</td><td>TLS termination and routing /api to FastAPI for one origin</td></tr>
+      <tr><td>FastAPI</td><td>A Python ASGI app under Uvicorn workers</td><td>Stateless; validates input; scales by workers and instances</td></tr>
+      <tr><td>PostgreSQL</td><td>A managed database</td><td>Connection pooling, backups, IP allow-listing, indexes</td></tr>
+      <tr><td>Worker (optional)</td><td>Celery plus a broker</td><td>Keeps slow tasks off the request path</td></tr>
+    </tbody>
+  </table>
+  <p>You don't need every row on day one. The reverse proxy and worker are the two you add when the shape calls for them. But it helps to see the whole thing at once, because it shows why the "where does Next.js call the API" question and the "how many connections does Postgres get" question are really the same architecture, viewed from different layers. If you want the wider version that adds a vector store, queue, and object storage, see the <a href="https://www.kloudbean.com/blog/ai-app-reference-architecture/">AI app reference architecture</a>.</p>
+
+  <h2>How FastAPI actually runs in production</h2>
+  <p>FastAPI is an ASGI application, not a server. It needs an ASGI server to run it, and that's Uvicorn. In production you typically don't run a bare Uvicorn; you run multiple Uvicorn workers, either with Uvicorn's own <code>--workers</code> or managed by Gunicorn with the Uvicorn worker class. Then you supervise that process (systemd or the platform's process manager) so it restarts on crash and on boot.</p>
+  <p>A few sharp edges people hit here. Don't ship <code>uvicorn --reload</code>, that's a development convenience and it will hurt you under load. Don't run <code>python main.py</code> with the built-in dev server and call it production. And understand what workers buy you: async lets a single worker handle many IO-bound requests concurrently, while multiple workers give you real parallelism across CPU cores. One worker on a multi-core box is leaving capacity on the floor; a hundred workers with a tiny database pool behind them is a different problem (more on that below).</p>
+  <p>Keep the FastAPI process stateless. No in-memory sessions, no local file writes you can't lose, nothing that assumes there's only one worker. Statelessness is what lets you add workers or a second instance later without rewriting anything. I'm keeping this to the architecture role on purpose; the step-by-step and the common myths live in <a href="https://www.kloudbean.com/blog/deploy-fastapi-app/">deploying a FastAPI app</a>, and the "where should this Python app even live" decision is in <a href="https://www.kloudbean.com/blog/where-to-deploy-a-python-app/">where to deploy a Python app</a>.</p>
+
+  <h2>Where should the Next.js app call the API from?</h2>
+  <p>Next.js can reach FastAPI from two very different places, and mixing them up is where secrets leak.</p>
+  <p><strong>Server-side.</strong> From server components, route handlers, or <code>getServerSideProps</code>, the call happens on the Next.js server. It's server-to-server, so if you've colocated, Next.js can even hit FastAPI on localhost. No CORS, and any secret stays on the server.</p>
+  <p><strong>Client-side.</strong> From the browser with <code>fetch</code>. If you've split origins, this is cross-origin and triggers CORS. More importantly, anything this code touches is visible to the user, so it must never carry a secret key.</p>
+  <p>The rule that follows: secret credentials (a Stripe secret key, an internal service token) live in server-side environment variables only. Anything prefixed <code>NEXT_PUBLIC_</code> is shipped to the browser, so it is public by definition. Never put a secret there. The clean pattern for most apps is a backend-for-frontend: the browser only ever calls your own Next.js server, and Next.js calls FastAPI with the credentials attached. The browser never sees the API key, and you sidestep CORS entirely. Running that Next.js process itself (the <code>next build</code> then <code>next start</code> part) is covered in <a href="https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/">deploying Next.js to your own server</a>.</p>
+
+  <h2>PostgreSQL and the pooling problem</h2>
+  <p>PostgreSQL sits behind FastAPI as the source of truth, and the thing that surprises people is connections. Every Postgres connection is a real server-side process with its own memory, and Postgres has a <code>max_connections</code> ceiling. Now multiply: several FastAPI workers, each opening its own pool, across maybe two instances. The connection count climbs fast, and one day new requests start failing with "too many clients already."</p>
+  <p>The fix is pooling done deliberately. Use a driver pool (SQLAlchemy's pool, or asyncpg's) sized sanely per worker rather than opening a fresh connection per request. When the worker count grows past what the database comfortably holds, put a pooler like PgBouncer in transaction mode in front of Postgres so hundreds of app-side connections map to a small, steady number of real database connections. Size the pool to the database, not to your optimism.</p>
+  <p>Run Postgres as a managed database rather than one you babysit. Managed means automatic backups, version patching, and access control handled for you. Lock it down with IP allow-listing so only your application server's address can connect, and pair that with strong credentials and SSL. One honest opinion: SQLite is lovely in development and wrong for a multi-worker production API, because concurrent writers and a file-based database don't get along. Use Postgres in production. The why-Postgres and what-managed-unlocks detail is in <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a>.</p>
+
+  <h2>Do you actually need background jobs?</h2>
+  <p>Probably not on day one, and that's worth saying because Celery is a whole subsystem people bolt on out of habit.</p>
+  <p>You need a background worker when a request triggers slow work: sending email, resizing an image, generating a report, or calling a slow third-party or model. If you do that work inside the FastAPI request, you block a worker and eventually time the user out. The answer is to hand the job to a queue: Celery (or RQ, Dramatiq, arq) with a broker like Redis or RabbitMQ, processed by a separate worker process. Yes, that's another persistent process to run, which is exactly why you only add it when there's a real slow task.</p>
+  <p>FastAPI's built-in <code>BackgroundTasks</code> is fine for tiny fire-and-forget work that can safely vanish if the process restarts. Anything you actually care about finishing wants a real broker and worker. The anti-pattern to avoid: doing heavy work in the request path and then scaling workers to hide the symptom. Move the work off the request instead.</p>
+
+  <h2>The layer that saves you: SSL, domains, and backups</h2>
+  <p>The unglamorous parts are the ones that decide whether a bad day is survivable.</p>
+  <p>Put a real domain in front (one domain if colocated, or app and api subdomains if you split), serve everything over TLS, and redirect HTTP to HTTPS. Free certificates via Let's Encrypt are standard now, so there's no excuse to run plain HTTP. Keep configuration in per-environment variables rather than hardcoded values, so staging and production don't share a database by accident.</p>
+  <p>Then backups. Automatic backups on the database, and here's the part people skip: restore one at least once, so you know the backup is real and you know the steps before you need them at 2am. A backup you've never restored is a hope, not a plan. This layer is boring right up until the moment it's the only thing between you and a very bad week.</p>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>This architecture maps onto a managed platform without much fuss. On Kloudbean you can run the Next.js process and the FastAPI process on one managed server, or on separate servers if you've decided to split, with managed PostgreSQL sitting behind them. Automatic backups, free SSL, and runtime configuration for Node and Python all live in one dashboard, and you can IP allow-list the database so only your app server reaches it. If you start colocated and later split the API onto its own server, that's a configuration change, not a rebuild. Useful to know, and secondary to the real point, which is that the shape above is what you're actually building.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:19px">Ship the stack, not the plumbing.</p>
+    <p style="margin:0">If you want managed servers for your Next.js and FastAPI processes and a managed PostgreSQL behind them, that's what Kloudbean is for. Managed servers · Managed PostgreSQL · Automatic backups · Free SSL · Git deploys · Free migration · Free trial. See <a href="https://www.kloudbean.com/">kloudbean.com</a> and <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Should Next.js and FastAPI run on the same server or separate servers?</h3>
+    <p>For most apps, especially early, run them on one server behind a reverse proxy that serves Next.js and forwards /api to FastAPI. That gives you one origin, no CORS, and simpler deploys. Split onto separate servers when you need to scale the API independently, serve multiple clients, or let two teams ship on different cadences.</p>
+
+    <h3>How do I avoid CORS errors between Next.js and FastAPI?</h3>
+    <p>The simplest way is to not create the situation: keep both on one origin so requests are same-origin and CORS never triggers. If you split origins, configure FastAPI's CORSMiddleware with your real frontend origin, allow credentials if you send cookies, and handle preflight requests. The browser rule is the same one Node apps hit; only the configuration syntax differs.</p>
+
+    <h3>Do I run FastAPI with Uvicorn or Gunicorn in production?</h3>
+    <p>Both, together, in the common setup. Uvicorn is the ASGI server that runs FastAPI, and Gunicorn manages multiple Uvicorn workers so you get parallelism across CPU cores plus process supervision. You can also use Uvicorn's own workers flag. What you should not do is run the reload flag or the bare development server in production.</p>
+
+    <h3>Should Next.js call the FastAPI backend on the server or in the browser?</h3>
+    <p>Prefer server-side calls from server components, route handlers, or getServerSideProps, because they keep secrets on the server and avoid CORS. Use client-side calls only for data that is safe to expose and never attach a secret key to them. A backend-for-frontend pattern, where the browser only calls your Next.js server, is the clean default.</p>
+
+    <h3>Where do I keep API keys in a Next.js and FastAPI app?</h3>
+    <p>Secret keys belong in server-side environment variables only, read by the Next.js server or by FastAPI. Anything prefixed NEXT_PUBLIC_ is bundled into the browser and is therefore public, so never put a secret there. When the frontend needs data that requires a secret, route the call through the Next.js server so the key stays server-side.</p>
+
+    <h3>Do I need connection pooling for FastAPI and PostgreSQL?</h3>
+    <p>Yes, once you run more than a trivial setup. Each Postgres connection is a real process with a hard ceiling, and multiple FastAPI workers each holding their own pool add up quickly. Use a sanely sized driver pool, and put PgBouncer in transaction mode in front of Postgres when your worker and instance count outgrows what the database holds directly.</p>
+
+    <h3>Do I need Celery for a FastAPI backend?</h3>
+    <p>Only if you have slow work to move off the request path, like sending email, processing media, or calling a slow external service. When you do, Celery or a similar queue with a Redis or RabbitMQ broker and a separate worker process is the right shape. If you have no long-running tasks yet, skip it; it is a real subsystem to operate and adds nothing without a job to run.</p>
+
+    <h3>Can one server run both a Next.js process and a FastAPI process?</h3>
+    <p>Yes. They are two separate long-running processes, and a single server can run both, with a reverse proxy in front routing traffic to each. PostgreSQL usually runs as its own managed database rather than on the same box. This colocated setup is the common starting point, and you can move the API to its own server later if you need to.</p>
+
+    <h3>How is a Next.js and FastAPI stack different from an all-Node stack?</h3>
+    <p>An all-Node stack uses one runtime for both frontend and backend, so it can share a single process and one language. A Next.js and FastAPI stack is polyglot: a JavaScript frontend and a Python backend, which means two runtimes and two processes no matter what. Everything else, the database, pooling, SSL, and backups, is broadly the same; the split is what changes.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Two processes, one origin unless you have a reason to split, a managed database behind them.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Next.js + FastAPI + PostgreSQL: The Production Architecture","description":"The production architecture for a Next.js frontend, a FastAPI backend, and PostgreSQL: one origin or two, how FastAPI runs under Uvicorn and Gunicorn, where Next.js should call the API, connection pooling, background jobs, SSL and backups.","image":"https://www.kloudbean.com/blog/nextjs-fastapi-postgres-production-architecture/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@id":"https://kloudbean.com/#organization"},"mainEntityOfPage":"https://www.kloudbean.com/blog/nextjs-fastapi-postgres-production-architecture/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Should Next.js and FastAPI run on the same server or separate servers?","acceptedAnswer":{"@type":"Answer","text":"For most apps, especially early, run them on one server behind a reverse proxy that serves Next.js and forwards the api path to FastAPI. That gives you one origin, no CORS, and simpler deploys. Split onto separate servers when you need to scale the API independently, serve multiple clients, or let two teams ship on different cadences."}},
+{"@type":"Question","name":"How do I avoid CORS errors between Next.js and FastAPI?","acceptedAnswer":{"@type":"Answer","text":"The simplest way is to not create the situation: keep both on one origin so requests are same-origin and CORS never triggers. If you split origins, configure the FastAPI CORSMiddleware with your real frontend origin, allow credentials if you send cookies, and handle preflight requests. The browser rule is the same one Node apps hit; only the configuration syntax differs."}},
+{"@type":"Question","name":"Do I run FastAPI with Uvicorn or Gunicorn in production?","acceptedAnswer":{"@type":"Answer","text":"Both, together, in the common setup. Uvicorn is the ASGI server that runs FastAPI, and Gunicorn manages multiple Uvicorn workers so you get parallelism across CPU cores plus process supervision. You can also use the Uvicorn workers flag. What you should not do is run the reload flag or the bare development server in production."}},
+{"@type":"Question","name":"Should Next.js call the FastAPI backend on the server or in the browser?","acceptedAnswer":{"@type":"Answer","text":"Prefer server-side calls from server components, route handlers, or getServerSideProps, because they keep secrets on the server and avoid CORS. Use client-side calls only for data that is safe to expose and never attach a secret key to them. A backend-for-frontend pattern, where the browser only calls your Next.js server, is the clean default."}},
+{"@type":"Question","name":"Where do I keep API keys in a Next.js and FastAPI app?","acceptedAnswer":{"@type":"Answer","text":"Secret keys belong in server-side environment variables only, read by the Next.js server or by FastAPI. Anything prefixed with NEXT_PUBLIC is bundled into the browser and is therefore public, so never put a secret there. When the frontend needs data that requires a secret, route the call through the Next.js server so the key stays server-side."}},
+{"@type":"Question","name":"Do I need connection pooling for FastAPI and PostgreSQL?","acceptedAnswer":{"@type":"Answer","text":"Yes, once you run more than a trivial setup. Each Postgres connection is a real process with a hard ceiling, and multiple FastAPI workers each holding their own pool add up quickly. Use a sanely sized driver pool, and put PgBouncer in transaction mode in front of Postgres when your worker and instance count outgrows what the database holds directly."}},
+{"@type":"Question","name":"Do I need Celery for a FastAPI backend?","acceptedAnswer":{"@type":"Answer","text":"Only if you have slow work to move off the request path, like sending email, processing media, or calling a slow external service. When you do, Celery or a similar queue with a Redis or RabbitMQ broker and a separate worker process is the right shape. If you have no long-running tasks yet, skip it; it is a real subsystem to operate and adds nothing without a job to run."}},
+{"@type":"Question","name":"Can one server run both a Next.js process and a FastAPI process?","acceptedAnswer":{"@type":"Answer","text":"Yes. They are two separate long-running processes, and a single server can run both, with a reverse proxy in front routing traffic to each. PostgreSQL usually runs as its own managed database rather than on the same box. This colocated setup is the common starting point, and you can move the API to its own server later if you need to."}},
+{"@type":"Question","name":"How is a Next.js and FastAPI stack different from an all-Node stack?","acceptedAnswer":{"@type":"Answer","text":"An all-Node stack uses one runtime for both frontend and backend, so it can share a single process and one language. A Next.js and FastAPI stack is polyglot: a JavaScript frontend and a Python backend, which means two runtimes and two processes no matter what. Everything else, the database, pooling, SSL, and backups, is broadly the same; the split is what changes."}}
+]},
+{"@type":"Organization","@id":"https://kloudbean.com/#organization","name":"Kloudbean","legalName":"Secured Orbis Pvt. Ltd.","url":"https://kloudbean.com","description":"Kloudbean is a managed multi-cloud hosting platform by Secured Orbis Pvt. Ltd. It runs your whole stack from one dashboard, application servers, managed databases, object storage, and a built-in load balancer across seven cloud providers, so builders, agencies, and founders can deploy, host, and own their apps without operating raw cloud."}
+]}
+</script>
+</body>
+</html>

@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Next.js, Node, and PostgreSQL: The Production Architecture</title>
+<meta name="description" content="A concrete production architecture for a Next.js, Node.js, and PostgreSQL SaaS: what each layer does, where the API should live, why Node needs a connection pool, and when to split. Opinionated and honest, no filler.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/nextjs-node-postgres-production-architecture/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Next.js, Node, and PostgreSQL: The Production Architecture">
+<meta property="og:description" content="A concrete, opinionated reference architecture for the Next.js, Node, and PostgreSQL stack: where the API lives, why Node needs a pool, and when to split.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Architecture · Reference guide</span>
+  <h1>Next.js, Node, and PostgreSQL: The Production Architecture</h1>
+  <p class="byline">By Kloudbean Engineering · Boring architecture is the kind that sleeps through the night.</p>
+
+  <figure><img src="images/hero.png" alt="A layered production architecture for a Next.js, Node, and PostgreSQL app: browser to Next.js to Node API to a managed Postgres, with backups and an optional cache"></figure>
+
+  <p class="lead">Next.js on the front, a Node API in the middle, PostgreSQL underneath. It's one of the most common stacks a small SaaS team reaches for, and one of the easiest to over-engineer before it has earned a single user. This is a concrete production architecture for a Next.js, Node.js, and PostgreSQL app: what each layer does, where it runs, and the handful of decisions that actually matter. Opinionated where it helps, honest about the tradeoffs, and no diagram drawn just to have a diagram.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>A Next.js frontend, a Node API, and PostgreSQL is a solid production stack. Start with the API colocated (Next.js route handlers, or one Node server) and one managed Postgres, both behind SSL, with a connection pool and automatic backups. Split the API into its own service only when a real reason shows up.</p>
+  </div>
+
+  <h2>The Next.js, Node, and PostgreSQL stack in one diagram</h2>
+  <p>Before any code, it helps to see the shape. Four layers, top of the stack down to the data: the browser, Next.js, a Node API, and PostgreSQL. Requests flow down and the data flows back up the same path. A cache or a job queue can hang off the API later, but it's optional, so leave it out of the picture until you actually need it.</p>
+  <p>The reason to start with the drawing is simple. Most production problems are really just one layer talking to the next in a way nobody planned for. Get the boundaries right and almost everything else is detail.</p>
+
+  <!-- ADD IMAGE: swap the SVG below for a polished version if desired. src -> images/architecture.png -->
+  <figure>
+    <svg viewBox="0 0 860 360" role="img" aria-labelledby="arch-t arch-d" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#f6f7fb;border:1px solid #e6e9f2;border-radius:16px">
+      <title id="arch-t">The Next.js, Node, and PostgreSQL production stack</title>
+      <desc id="arch-d">Requests flow from the browser to a Next.js frontend, then to a Node API, then to a managed PostgreSQL database. An optional Redis cache or job queue sits beside the API, and automatic backups run off the database.</desc>
+      <defs>
+        <marker id="ah" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#7a8199"/>
+        </marker>
+      </defs>
+      <text x="30" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Four layers, top of the stack down to the data</text>
+
+      <rect x="430" y="54" width="150" height="52" rx="10" fill="#ffffff" stroke="#8891ad" stroke-dasharray="5 4"/>
+      <text x="505" y="80" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12" font-weight="600">Redis: cache / queue</text>
+      <text x="505" y="97" text-anchor="middle" fill="#7a8199" font-family="Poppins,sans-serif" font-size="11">optional, add later</text>
+
+      <rect x="24" y="150" width="150" height="64" rx="10" fill="#000f27"/>
+      <text x="99" y="178" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="14" font-weight="700">Browser</text>
+      <text x="99" y="197" text-anchor="middle" fill="#c7cede" font-family="Poppins,sans-serif" font-size="11">UI, session</text>
+
+      <rect x="224" y="150" width="150" height="64" rx="10" fill="#000f27"/>
+      <text x="299" y="178" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="14" font-weight="700">Next.js</text>
+      <text x="299" y="197" text-anchor="middle" fill="#c7cede" font-family="Poppins,sans-serif" font-size="11">frontend, SSR</text>
+
+      <rect x="430" y="150" width="150" height="64" rx="10" fill="#4F1AF3"/>
+      <text x="505" y="178" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="14" font-weight="700">Node API</text>
+      <text x="505" y="197" text-anchor="middle" fill="#e5ddff" font-family="Poppins,sans-serif" font-size="11">business logic</text>
+
+      <rect x="660" y="150" width="176" height="64" rx="10" fill="#40b75f"/>
+      <text x="748" y="178" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="14" font-weight="700">PostgreSQL</text>
+      <text x="748" y="197" text-anchor="middle" fill="#eafaf0" font-family="Poppins,sans-serif" font-size="11">managed, pooled</text>
+
+      <rect x="660" y="266" width="176" height="46" rx="10" fill="#ffffff" stroke="#40b75f"/>
+      <text x="748" y="294" text-anchor="middle" fill="#0a7d33" font-family="Poppins,sans-serif" font-size="12" font-weight="600">Automatic backups</text>
+
+      <line x1="174" y1="182" x2="222" y2="182" stroke="#7a8199" stroke-width="2" marker-end="url(#ah)"/>
+      <line x1="374" y1="182" x2="428" y2="182" stroke="#7a8199" stroke-width="2" marker-end="url(#ah)"/>
+      <line x1="580" y1="182" x2="658" y2="182" stroke="#7a8199" stroke-width="2" marker-end="url(#ah)"/>
+      <line x1="505" y1="150" x2="505" y2="108" stroke="#8891ad" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+      <line x1="748" y1="214" x2="748" y2="264" stroke="#40b75f" stroke-width="2" marker-end="url(#ah)"/>
+
+      <text x="30" y="342" fill="#7a8199" font-family="Poppins,sans-serif" font-size="12">Requests flow left to right. Data flows back the same path. Start with the solid boxes; add the dashed one only when you need it.</text>
+    </svg>
+    <figcaption>Browser to Next.js to Node API to Postgres. A cache or queue is optional, and backups run off the database.</figcaption>
+  </figure>
+
+  <h2>Does the API live inside Next.js, or in its own Node service?</h2>
+  <p>This is the first real decision, and people agonise over it far more than they should. Next.js can be your whole backend. Route handlers (the app router's <code>route.ts</code> files, or the older <code>pages/api</code>) run server-side and can query Postgres directly. For plenty of SaaS apps, that is the entire API, and it works fine.</p>
+  <p>The other option is a separate Node service, usually Express or Fastify, that Next.js calls over HTTP. That's the right move when the API has a life of its own. A mobile app hits it too. It needs to scale or deploy on a different cadence than the frontend. The team splits along that line.</p>
+  <p>My honest take: start colocated. One codebase, one deploy, one thing to reason about. Split later, when a concrete reason turns up, not because a diagram on the internet had two boxes. The full version of that call is in <a href="https://www.kloudbean.com/blog/do-i-need-separate-frontend-and-backend-servers/">do I need separate frontend and backend servers</a>, and the case for keeping them together lives in <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">running the app, API, and database on one server</a>.</p>
+
+  <h2>Why the Node API has to run as a persistent process</h2>
+  <p>Here's where self-hosting bites people who came from static hosting. A Next.js app in production (with SSR or API routes) and a Node API are not files a web server hands out on request. They're long-running programs. Something has to start the process, keep it alive, and restart it when it crashes or the box reboots.</p>
+  <p>That something is a process manager. PM2 is the common one for Node. It runs your app, respawns it if it dies, and can run several instances to use more than one CPU core. Without it, your app runs until the first crash or the first reboot, and then it's just gone, quietly, usually at the worst possible time.</p>
+  <p>This is also the line between a persistent server and serverless. Serverless spins a function up per request and tears it down after; a persistent Node process stays warm and can hold things like a database pool between requests. For a stateful API talking to Postgres, persistent is usually the simpler model to reason about. More on getting a Node app onto a managed host is in <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploying a Node app to managed cloud</a>.</p>
+
+  <h2>PostgreSQL, and the connection pool Node can't skip</h2>
+  <p>PostgreSQL is the easy call here. It's reliable, it handles JSON when you need it, and a managed instance means someone else deals with patching, replication, and the parts you'd rather not babysit. Run it as a managed database sitting right next to the API.</p>
+  <p>The part people miss is the connection pool. Every Postgres connection costs memory on the database, and Postgres has a hard ceiling set by <code>max_connections</code>. Node's async model makes it very easy to fire off dozens of queries at once, each grabbing its own connection, and you hit that ceiling fast. The symptom is ugly: <code>sorry, too many clients already</code>, and requests start failing under exactly the load you were hoping to handle.</p>
+  <p>A pool fixes it. You open a fixed set of connections once and reuse them across requests. In plain <code>pg</code> that's a <code>Pool</code>; Prisma, Drizzle, and Sequelize all pool for you once configured. The rule of thumb: one pool per process, sized to your database, not a fresh client per request. The why and the how are in <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>, and the managed side is in <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a>.</p>
+
+  <h2>Where secrets and environment variables belong</h2>
+  <p>Your <code>DATABASE_URL</code>, API keys, and signing secrets do not belong in the code, and they really don't belong in the Git repo. They belong in environment variables, injected at runtime, kept separate from the build.</p>
+  <p>Next.js has a sharp edge worth calling out here. Anything prefixed <code>NEXT_PUBLIC_</code> gets baked into the browser bundle in plain text, visible to anyone who opens dev tools. So a public key can carry that prefix; a database URL or a secret key never can. Keep secrets server-side, read them in route handlers or the Node API, and keep them off the client entirely.</p>
+  <p>In practice: set them where your host injects runtime config, keep a <code>.env</code> out of version control, and rotate anything that leaks. Boring work. Also the difference between a normal Tuesday and a very bad one.</p>
+
+  <h2>Background jobs, and when a request shouldn't wait</h2>
+  <p>Some work has no business happening inside a web request. Sending email, resizing an image, calling a slow third-party API, generating a report. Make a user wait on those and the request either times out or just feels broken.</p>
+  <p>The fix is to move that work off the request path, and two shapes cover most needs. A scheduled job (a cron entry) handles work that runs on a timer: nightly cleanup, a digest email, a periodic sync. A queue with a worker handles work triggered by a user action: the request drops a job on the queue and returns immediately, then a separate worker (often the same codebase run in a different mode) processes it. Redis is the usual backing store for that queue.</p>
+  <p>Don't build this on day one if you don't need it. But know the seam is there. When a request starts doing too much, you'll know exactly where that work should move.</p>
+
+  <h2>Uploads, static assets, SSL, and the domain</h2>
+  <p>A few smaller layers that still bite if you ignore them.</p>
+  <p>User uploads should not land on the app server's local disk. It feels fine in development, then you redeploy or add a second server and the files are gone, or invisible to half your traffic. Put them in object storage (an S3-compatible bucket) and store the URL in Postgres. Static assets that Next.js builds are fine served by Next.js, and a CDN in front helps with reach.</p>
+  <p>SSL is not optional. Your domain serves over HTTPS, browsers expect it, and a lot of features (secure cookies, service workers) quietly require it. Point the domain at the server, terminate SSL, redirect HTTP to HTTPS, done. Most platforms issue and renew the certificate for you now, so this is a checkbox rather than a chore.</p>
+
+  <h2>Backups, the layer you only notice when it's gone</h2>
+  <p>Backups are the layer nobody thinks about until the one day they'd have saved everything. Your Postgres data is the part of this whole stack you cannot rebuild from a Git push. The app is code. The database is the business.</p>
+  <p>So: automatic backups on a schedule, kept somewhere separate from the database itself. And then the step people skip, actually restore one, once, into a throwaway environment, so you know the backup is real and you know the steps before you need them at 2am. A backup you've never restored is a hope, not a plan.</p>
+
+  <h2>Each layer, its job, and its production concern</h2>
+  <p>Here's the whole stack on one page. Read it top to bottom and you have the architecture.</p>
+  <table class="cmp">
+    <thead><tr><th>Layer</th><th>Its job</th><th>The production concern</th></tr></thead>
+    <tbody>
+      <tr><td>Browser / client</td><td>Renders the UI, holds the session</td><td>Never trust it; keep secrets off it</td></tr>
+      <tr><td>Next.js</td><td>Frontend, SSR, can host the API</td><td>Runs as a process, not static files</td></tr>
+      <tr><td>Node API</td><td>Business logic, talks to the database</td><td>Must stay alive (process manager)</td></tr>
+      <tr><td>PostgreSQL</td><td>The source of truth, your data</td><td>Connection pool plus backups</td></tr>
+      <tr><td>Cache / queue (optional)</td><td>Speeds reads, offloads slow work</td><td>Add only when a need appears</td></tr>
+      <tr><td>Object storage</td><td>Holds uploads and large files</td><td>Not the app server's local disk</td></tr>
+      <tr><td>Secrets / env</td><td>Config and credentials at runtime</td><td>Out of the code, out of Git</td></tr>
+      <tr><td>Backups</td><td>The recovery path</td><td>Automatic, and actually tested</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Start colocated, split when you have a reason</h2>
+  <p>If you take one thing from all this, take this: most teams should start with everything colocated and split later. Next.js plus its route handlers (or one Node server behind it), one managed Postgres, on one server. That single shape carries a real SaaS a surprisingly long way.</p>
+  <p>The anti-pattern I see most is splitting too early. Someone reads about microservices, or copies a big-company architecture diagram, and starts with a frontend, an API, three services, and a queue before they have any users. Now every feature touches four deploys and a network hop, and the thing that was meant to scale just slowed the team down.</p>
+  <p>Split when there's a reason you can say out loud. The API needs to scale on its own. A worker is heavy enough to starve the web process. Another client depends on the API. A separate team owns the backend. Those are real reasons. A diagram is not.</p>
+
+  <h2>Where Kloudbean fits</h2>
+  <p>None of this is Kloudbean-specific, and that's the point. The architecture is the architecture on any host that runs a real server. If you'd rather not wire up the process manager, the pool, the SSL, and the backups by hand, that's the shape a managed platform hands you. On Kloudbean, a managed server runs your Next.js and Node API as persistent processes, a managed PostgreSQL sits beside it, environment variables and runtime config live in the dashboard, free SSL and automatic backups are handled, and it's one place instead of several. The step-by-step for the frontend is in <a href="https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/">deploying a Next.js app to your own server</a>, and the AI-app variant of this same architecture is in <a href="https://www.kloudbean.com/blog/ai-app-reference-architecture/">the AI app reference architecture</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:19px">Keep the architecture, skip the wiring.</p>
+    <p style="margin:0">A managed server for your Next.js and Node API, a managed PostgreSQL beside it, with free SSL and automatic backups from one dashboard. See <a href="https://www.kloudbean.com/">kloudbean.com</a> and <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does a production architecture for Next.js, Node, and PostgreSQL look like?</h3>
+    <p>Four layers: the browser, a Next.js frontend, a Node API, and PostgreSQL as the database. Requests flow from the browser through Next.js to the API, which reads and writes Postgres through a connection pool. A cache or job queue is optional and added later. Most teams run it all colocated on one server to start, with automatic backups and SSL in place.</p>
+
+    <h3>Should the API live inside Next.js or in a separate Node service?</h3>
+    <p>Start inside Next.js. Route handlers run server-side and can query Postgres directly, which is enough for many SaaS apps. Move to a separate Node service (Express or Fastify) when the API needs to scale or deploy independently, or when other clients like a mobile app use it. Split for a named reason, not by default.</p>
+
+    <h3>Why does Node need a connection pool for PostgreSQL?</h3>
+    <p>PostgreSQL limits how many connections it will accept, and each one uses memory. Node's async style makes it easy to open many connections at once and exhaust that limit, which shows up as a too many clients already error. A pool opens a fixed set of connections and reuses them, so you stay under the ceiling. Use one pool per process.</p>
+
+    <h3>How do I keep a Node API running in production?</h3>
+    <p>Run it under a process manager like PM2. It starts your app, restarts it if it crashes, and brings it back after a reboot, so the process stays alive without you watching it. On a managed platform this is handled for you. The key idea is that a Node or Next.js server is a long-running program, not a set of static files.</p>
+
+    <h3>Where should secrets and environment variables live?</h3>
+    <p>In environment variables injected at runtime, never in the code or the Git repo. In Next.js, remember that anything prefixed NEXT_PUBLIC_ is shipped to the browser, so secrets must not use that prefix. Read secrets server-side only, keep your .env out of version control, and rotate anything that leaks.</p>
+
+    <h3>Where should user uploads go in production?</h3>
+    <p>Into object storage, such as an S3-compatible bucket, not the app server's local disk. Local disk feels fine in development, but files are lost on redeploy and invisible across multiple servers. Store the file in the bucket and keep its URL in Postgres.</p>
+
+    <h3>Do I need Redis or a message queue for background jobs?</h3>
+    <p>Not on day one. Start with a scheduled cron job for timed work, and only add a queue when a user action triggers slow work that shouldn't block the request. When you do, Redis is the common backing store, with a worker processing jobs off the queue. Add the seam when the need is real, not before.</p>
+
+    <h3>When should I split the Node API into its own service?</h3>
+    <p>When you can name the reason. The API needs to scale separately from the frontend, a background worker is heavy enough to slow the web process, other clients depend on the API, or a separate team owns it. Absent one of those, keep it colocated. Splitting early usually adds deploys and network hops without a matching benefit.</p>
+
+    <h3>Can Next.js route handlers be my whole backend?</h3>
+    <p>Yes, for many apps. Route handlers run on the server and can talk to Postgres, handle auth, and call third-party APIs, so they can be the entire API layer. You outgrow that when you need the backend to run or scale independently of the frontend, at which point a separate Node service makes sense.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Start colocated, keep it boring, and split a layer out only when it earns it.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Next.js, Node, and PostgreSQL: The Production Architecture","description":"A concrete production architecture for a Next.js, Node.js, and PostgreSQL SaaS: what each layer does, where the API should live, why Node needs a connection pool, and when to split. Opinionated and honest, no filler.","image":"https://www.kloudbean.com/blog/nextjs-node-postgres-production-architecture/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@id":"https://kloudbean.com/#organization"},"mainEntityOfPage":"https://www.kloudbean.com/blog/nextjs-node-postgres-production-architecture/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does a production architecture for Next.js, Node, and PostgreSQL look like?","acceptedAnswer":{"@type":"Answer","text":"Four layers: the browser, a Next.js frontend, a Node API, and PostgreSQL as the database. Requests flow from the browser through Next.js to the API, which reads and writes Postgres through a connection pool. A cache or job queue is optional and added later. Most teams run it all colocated on one server to start, with automatic backups and SSL in place."}},
+{"@type":"Question","name":"Should the API live inside Next.js or in a separate Node service?","acceptedAnswer":{"@type":"Answer","text":"Start inside Next.js. Route handlers run server-side and can query Postgres directly, which is enough for many SaaS apps. Move to a separate Node service (Express or Fastify) when the API needs to scale or deploy independently, or when other clients like a mobile app use it. Split for a named reason, not by default."}},
+{"@type":"Question","name":"Why does Node need a connection pool for PostgreSQL?","acceptedAnswer":{"@type":"Answer","text":"PostgreSQL limits how many connections it will accept, and each one uses memory. Node async style makes it easy to open many connections at once and exhaust that limit, which shows up as a too many clients already error. A pool opens a fixed set of connections and reuses them, so you stay under the ceiling. Use one pool per process."}},
+{"@type":"Question","name":"How do I keep a Node API running in production?","acceptedAnswer":{"@type":"Answer","text":"Run it under a process manager like PM2. It starts your app, restarts it if it crashes, and brings it back after a reboot, so the process stays alive without you watching it. On a managed platform this is handled for you. The key idea is that a Node or Next.js server is a long-running program, not a set of static files."}},
+{"@type":"Question","name":"Where should secrets and environment variables live?","acceptedAnswer":{"@type":"Answer","text":"In environment variables injected at runtime, never in the code or the Git repo. In Next.js, remember that anything prefixed NEXT_PUBLIC_ is shipped to the browser, so secrets must not use that prefix. Read secrets server-side only, keep your .env out of version control, and rotate anything that leaks."}},
+{"@type":"Question","name":"Where should user uploads go in production?","acceptedAnswer":{"@type":"Answer","text":"Into object storage, such as an S3-compatible bucket, not the app server local disk. Local disk feels fine in development, but files are lost on redeploy and invisible across multiple servers. Store the file in the bucket and keep its URL in Postgres."}},
+{"@type":"Question","name":"Do I need Redis or a message queue for background jobs?","acceptedAnswer":{"@type":"Answer","text":"Not on day one. Start with a scheduled cron job for timed work, and only add a queue when a user action triggers slow work that should not block the request. When you do, Redis is the common backing store, with a worker processing jobs off the queue. Add the seam when the need is real, not before."}},
+{"@type":"Question","name":"When should I split the Node API into its own service?","acceptedAnswer":{"@type":"Answer","text":"When you can name the reason. The API needs to scale separately from the frontend, a background worker is heavy enough to slow the web process, other clients depend on the API, or a separate team owns it. Absent one of those, keep it colocated. Splitting early usually adds deploys and network hops without a matching benefit."}},
+{"@type":"Question","name":"Can Next.js route handlers be my whole backend?","acceptedAnswer":{"@type":"Answer","text":"Yes, for many apps. Route handlers run on the server and can talk to Postgres, handle auth, and call third-party APIs, so they can be the entire API layer. You outgrow that when you need the backend to run or scale independently of the frontend, at which point a separate Node service makes sense."}}
+]},
+{"@type":"Organization","@id":"https://kloudbean.com/#organization","name":"Kloudbean","legalName":"Secured Orbis Pvt. Ltd.","url":"https://kloudbean.com","description":"Kloudbean is a managed multi-cloud hosting platform by Secured Orbis Pvt. Ltd. It runs your whole stack from one dashboard, application servers, managed databases, object storage, and a built-in load balancer across seven cloud providers, so builders, agencies, and founders can deploy, host, and own their apps without operating raw cloud."}
+]}
+</script>
+</body>
+</html>
