@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Do I Need Cloudflare? An Honest, Feature-by-Feature Answer</title>
+<meta name="description" content="Do I need Cloudflare? It depends which part you mean. What Cloudflare actually does, whether the free plan is enough for a small site, when you can skip it, and how to decide.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/do-i-need-cloudflare/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Do I Need Cloudflare? An Honest, Feature-by-Feature Answer">
+<meta property="og:description" content="Cloudflare is a bundle, not a yes or no. What it actually does, whether the free plan is enough for a small site, when you can skip it, and how to decide.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Web infrastructure · Decision guide</span>
+  <h1>Do I Need Cloudflare? An Honest, Feature-by-Feature Answer</h1>
+  <p class="byline">By Kloudbean Engineering · Cloudflare is a bundle, not a yes or no.</p>
+
+  <figure><img src="images/hero.png" alt="A map of the Cloudflare bundle: DNS, CDN, DDoS protection, WAF, and SSL, and which need each one solves"></figure>
+
+  <p class="lead">Do I need Cloudflare? It's one of those questions where the honest reply is another question: which part of Cloudflare do you mean? Cloudflare isn't a single feature. It's a stack of them sold together, and most of the confusion comes from treating one yes-or-no answer as if it covers all of them at once. So let's pull the bundle apart, piece by piece, so you can see what you'd actually be switching on and whether you need it.</p>
+
+  <div class="tldr">
+    <strong>The short answer</strong>
+    <p>Cloudflare is a bundle: managed DNS, CDN caching, DDoS protection, a WAF, and SSL. The real question is which of those you need. For most small public sites the free plan is worth turning on (managed DNS, basic CDN, a DDoS buffer) with little downside, so it's often worth a try. You rarely need the paid tiers unless you have a specific WAF, performance, or enterprise requirement. And if your host already handles SSL, caching, and basic protection, or your tool is internal with no public exposure, you may not need it at all.</p>
+  </div>
+
+  <h2>The honest answer: it depends which part you mean</h2>
+  <p>There's no clean yes or no, because Cloudflare packs at least five separate jobs into one signup: managed DNS, a CDN for caching, DDoS protection, a web application firewall (the WAF), and SSL certificates. When someone says you "need Cloudflare," they're really recommending some subset of those, usually without saying which one.</p>
+  <p>So here's the position, plainly. For most small and mid-sized public sites, the free plan is worth turning on. You get managed DNS, basic CDN caching, and a DDoS buffer, with very little downside. That's genuinely useful, and it's free, which is a rare pairing. Credit where it's due: Cloudflare's free tier is a real gift to the small web.</p>
+  <p>What you almost certainly don't need early on are the paid tiers. Those exist for deeper WAF rules, finer performance tuning, and enterprise features. Paying for them before you've hit the problem they solve is buying a ceiling you're nowhere near. And there are real situations where you can skip Cloudflare completely. We'll get to those.</p>
+
+  <h2>What does Cloudflare actually do?</h2>
+  <p>Before you can decide, you need to see the parts. A clean way to define it: Cloudflare is a service that sits between your visitors and your server, bundling several jobs into one layer that your traffic passes through. Each job is worth understanding on its own.</p>
+  <ul>
+    <li><strong>Managed DNS.</strong> It hosts your domain's DNS records and answers lookups from a fast global network. If you're fuzzy on what that means, here's <a href="https://www.kloudbean.com/blog/dns-explained/">what DNS is and how a lookup works</a>. Reliable, quick-to-edit DNS is the piece almost everyone benefits from.</li>
+    <li><strong>CDN caching.</strong> It stores copies of your static files at locations near your visitors, so a page in Sydney isn't fetched all the way from a server in Virginia. Here's <a href="https://www.kloudbean.com/blog/cdn-explained/">what a CDN actually does</a>. Great for a global audience or heavy static content, less critical for a small local site.</li>
+    <li><strong>DDoS protection.</strong> It absorbs and filters flood traffic before it reaches your server, so an attack aimed at knocking you offline hits Cloudflare's capacity instead of yours. This is <a href="https://www.kloudbean.com/blog/ddos-protection-explained/">how a DDoS flood works</a> and why a buffer in front helps.</li>
+    <li><strong>A WAF (web application firewall).</strong> It inspects requests and blocks common attacks like SQL injection and cross-site scripting before they reach your app. Here's <a href="https://www.kloudbean.com/blog/what-a-waf-does/">what a WAF blocks</a>. This is the piece that mostly lives behind the paid tiers.</li>
+    <li><strong>SSL/TLS.</strong> It can issue and terminate the HTTPS certificate for your domain at its edge, so browsers show the padlock. Useful, unless your host already hands you free SSL, in which case it's redundant.</li>
+  </ul>
+  <p>Read that list again and a pattern jumps out. Some of these you want almost always (DNS). Some depend on your audience (CDN). Some depend on your risk (DDoS, WAF). And one you might already have (SSL). That's why "do I need Cloudflare" can't have a single answer.</p>
+
+  <h2>Where Cloudflare actually sits</h2>
+  <p>The mental model that makes the rest easy: Cloudflare is a layer in front of your server, not a replacement for it. You point your domain at Cloudflare, and Cloudflare forwards clean traffic to your origin. Every feature in the bundle does its job at that hop, before a request ever reaches your app.</p>
+
+  <!-- ADD IMAGE: swap the SVG below for a polished render if desired. src -> images/cloudflare-request-path.png -->
+  <figure>
+    <svg viewBox="0 0 820 340" role="img" aria-labelledby="cf-t cf-d" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#f6f7fb;border:1px solid #e6e9f2;border-radius:16px">
+      <title id="cf-t">Where Cloudflare sits between a visitor and your server</title>
+      <desc id="cf-d">A visitor request first reaches Cloudflare's edge, which resolves DNS, serves cached content through the CDN, filters flood traffic with DDoS protection, screens malicious requests with the WAF, and terminates SSL. Clean traffic then continues to your origin server, which runs your app and database.</desc>
+      <text x="30" y="40" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Cloudflare is a layer in front of your server, not a replacement</text>
+
+      <rect x="24" y="120" width="150" height="90" rx="10" fill="#000f27"/>
+      <text x="99" y="160" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="14" font-weight="600">Visitor</text>
+      <text x="99" y="182" text-anchor="middle" fill="#c7cede" font-family="JetBrains Mono,monospace" font-size="11">browser request</text>
+
+      <line x1="174" y1="165" x2="214" y2="165" stroke="#000f27" stroke-width="2"/>
+      <polygon points="214,159 226,165 214,171" fill="#000f27"/>
+
+      <rect x="228" y="70" width="330" height="200" rx="12" fill="#ffffff" stroke="#4F1AF3" stroke-width="2"/>
+      <text x="393" y="98" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="14" font-weight="700">Cloudflare edge (the bundle)</text>
+      <rect x="248" y="112" width="132" height="30" rx="5" fill="#4F1AF3"/><text x="314" y="132" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="11">DNS</text>
+      <rect x="406" y="112" width="132" height="30" rx="5" fill="#4F1AF3"/><text x="472" y="132" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="11">CDN cache</text>
+      <rect x="248" y="150" width="132" height="30" rx="5" fill="#4F1AF3"/><text x="314" y="170" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="11">DDoS filter</text>
+      <rect x="406" y="150" width="132" height="30" rx="5" fill="#4F1AF3"/><text x="472" y="170" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="11">WAF rules</text>
+      <rect x="248" y="188" width="290" height="30" rx="5" fill="#4F1AF3"/><text x="393" y="208" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="11">SSL / HTTPS terminated here</text>
+      <text x="393" y="246" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11">each piece is a feature you can turn on or leave off</text>
+
+      <line x1="558" y1="165" x2="598" y2="165" stroke="#40b75f" stroke-width="2"/>
+      <polygon points="598,159 610,165 598,171" fill="#40b75f"/>
+
+      <rect x="612" y="120" width="180" height="90" rx="10" fill="#40b75f"/>
+      <text x="702" y="158" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="14" font-weight="600">Your origin server</text>
+      <text x="702" y="182" text-anchor="middle" fill="#eafaef" font-family="JetBrains Mono,monospace" font-size="11">your app + database</text>
+    </svg>
+    <figcaption>Cloudflare proxies your traffic. Your server still runs your app, it just stops being the first thing the public internet touches.</figcaption>
+  </figure>
+
+  <h2>Which Cloudflare feature solves which need</h2>
+  <p>Instead of asking "do I need Cloudflare," ask "which of these needs do I actually have." Map each feature to the problem it solves and the decision turns concrete.</p>
+  <table class="cmp">
+    <thead><tr><th>Cloudflare feature</th><th>What it actually does</th><th>You need it if</th></tr></thead>
+    <tbody>
+      <tr><td>Managed DNS</td><td>Hosts your DNS records, resolves lookups from a global network</td><td>You want reliable, quick-to-edit DNS (nearly everyone)</td></tr>
+      <tr><td>CDN caching</td><td>Caches static files at edge locations near visitors</td><td>You have a global audience or heavy static content</td></tr>
+      <tr><td>DDoS protection</td><td>Absorbs and filters flood traffic before your server sees it</td><td>You are a plausible target or have been hit before</td></tr>
+      <tr><td>WAF</td><td>Screens malicious requests (SQLi, XSS, bad bots) by rule</td><td>You run a public app with logins, forms, or payments</td></tr>
+      <tr><td>SSL/TLS</td><td>Issues and terminates the HTTPS certificate at the edge</td><td>Your host does not already give you free SSL</td></tr>
+      <tr><td>The free plan</td><td>Bundles managed DNS, basic CDN, a DDoS buffer, shared SSL</td><td>You want the basics at no cost (most small sites)</td></tr>
+    </tbody>
+  </table>
+  <p>If you scan that and only the DNS row feels like a clear yes, that's a completely normal result for a small site. It means the free plan covers you and you can stop there.</p>
+
+  <h2>Do I need Cloudflare for a small site?</h2>
+  <p>For a typical small site or blog, turning on the free plan is a reasonable default. It gives you solid managed DNS, some caching, and a DDoS cushion, and it costs nothing. The main downside is one more account in front of your domain, which can add a step when you're debugging DNS or caching. That's a small price, and usually worth paying.</p>
+  <p>The paid tiers are a different question. Here's roughly where the line sits:</p>
+  <table class="cmp">
+    <thead><tr><th></th><th>Free plan</th><th>Paid tiers</th></tr></thead>
+    <tbody>
+      <tr><td>Managed DNS</td><td>Yes</td><td>Yes</td></tr>
+      <tr><td>CDN caching</td><td>Yes, basic</td><td>Yes, with finer control</td></tr>
+      <tr><td>DDoS protection</td><td>Yes</td><td>Yes, plus more controls</td></tr>
+      <tr><td>SSL certificate</td><td>Yes, shared</td><td>Yes, more options</td></tr>
+      <tr><td>WAF</td><td>Very limited</td><td>Full managed and custom rules</td></tr>
+      <tr><td>Caching and performance rules</td><td>Minimal</td><td>Configurable</td></tr>
+      <tr><td>Typical fit</td><td>Most small sites</td><td>Public apps needing WAF depth or tuning</td></tr>
+    </tbody>
+  </table>
+  <p>Notice what's driving the paid column: a real WAF, fine caching control, and performance features. If you don't yet have the kind of public, attackable app that needs a tuned WAF, you're not the customer those tiers were built for. Start free. Upgrade when a concrete need shows up, not before.</p>
+
+  <h2>When you can skip Cloudflare</h2>
+  <p>Being fair to Cloudflare doesn't mean everyone should run it. A few cases where you can comfortably pass:</p>
+  <ul>
+    <li><strong>Internal tools with no public exposure.</strong> An admin panel behind a VPN or an IP allow-list isn't facing the open internet, so the DDoS and WAF value mostly evaporates. Locking down access does more than a CDN would.</li>
+    <li><strong>Your host already covers the basics.</strong> If your platform gives you free SSL, sensible caching, and baseline protection, the overlap with Cloudflare's free tier shrinks. You might still want its DNS or global CDN, but "I have no protection at all" isn't your situation.</li>
+    <li><strong>Tiny, local, low-stakes sites.</strong> A brochure site for a local business with a handful of daily visitors gains little from a global edge network. Adding Cloudflare isn't wrong, it's just not solving a problem you have.</li>
+  </ul>
+  <p>None of these mean Cloudflare is bad. They mean the specific value it adds is small for your case, and simplicity has its own worth.</p>
+
+  <h2>When Cloudflare is genuinely worth the paid tiers</h2>
+  <p>On the other side, there are clear moments to pay. Reach for the paid plans when you run a <strong>public app that handles logins, forms, or payments</strong> and you want a real managed WAF screening requests. Reach for them when you have a <strong>global audience and static-heavy pages</strong> where fine caching control measurably improves load times. Reach for them if you've <strong>been attacked before</strong> or are a plausible target, and the baseline mitigation isn't enough. And reach for them when a <strong>compliance or enterprise requirement</strong> calls for specific edge controls or logging.</p>
+  <p>In those cases the paid tiers buy something concrete, and the money is well spent. The mistake isn't paying Cloudflare. It's paying before you have the problem.</p>
+
+  <h2>A quick way to decide</h2>
+  <p>You can settle this in about a minute.</p>
+  <p><strong>Is your site public-facing at all?</strong> If it's an internal tool behind access controls, you probably don't need Cloudflare. Lock down access instead. If it's public, keep going.</p>
+  <p><strong>Does your host already give you SSL, caching, and basic protection?</strong> If yes, you might only want Cloudflare for DNS or a global CDN, if anything. If no, the free plan fills real gaps.</p>
+  <p><strong>Do you handle logins, payments, or sensitive data, or are you a likely target?</strong> If yes, the paid WAF and deeper protection start to earn their cost. If no, the free plan is almost certainly enough.</p>
+  <p>Run those three and you'll land on one of three honest outcomes: skip it, use the free plan, or pay for a specific need. All three are correct answers for the right site.</p>
+
+  <h2>What your host might already cover</h2>
+  <p>Here's the part people forget: some of what you'd reach to Cloudflare for might already be handled wherever your app runs. A good managed host gives you free SSL out of the box and applies baseline server hardening, so you're not starting from a wide-open box that badly needs a shield.</p>
+  <p>Kloudbean is one example. Every Kloudbean server comes with free SSL and baseline hardening (a Shorewall firewall plus Fail2ban) as standard, so the "I have zero protection" starting point isn't where you begin. If you do want Cloudflare's edge on top, it's available as a paid add-on on any plan, and included for Enterprise. Two honest caveats, though: Cloudflare isn't unique to Kloudbean (plenty of hosts resell it), and it isn't free for everyone here (the add-on is paid outside Enterprise). The useful takeaway is simpler than any sales pitch. Check what your host already gives you before assuming you must bolt Cloudflare on.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:19px">Turn on the parts you need, skip the rest.</p>
+    <p style="margin:0">If you'd rather start on a host that already covers the basics, Kloudbean ships free SSL and baseline server hardening (Shorewall plus Fail2ban) as standard, with Cloudflare available as an optional paid add-on. See <a href="https://www.kloudbean.com/">kloudbean.com</a> and <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.5em 0 0; font-size:14px; opacity:.85">Free SSL · Baseline hardening · Automatic backups · Managed databases · Free migration · Simple Git deploy</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Do I need Cloudflare for my website?</h3>
+    <p>It depends what you want from it. Cloudflare bundles managed DNS, CDN caching, DDoS protection, a WAF, and SSL. For most small public sites the free plan is worth turning on for the DNS and DDoS buffer alone, with little downside. You don't need it for an internal tool, and you may not need it if your host already handles SSL and basic protection.</p>
+
+    <h3>Is Cloudflare necessary?</h3>
+    <p>No, it isn't strictly necessary for most sites to function. Your site works without it. Cloudflare adds convenience, caching, and a layer of protection. Whether that's worth it depends on your audience, your risk, and what your host already provides. Necessary is the wrong word. Useful for many, optional for all, is closer to the truth.</p>
+
+    <h3>What does Cloudflare actually do?</h3>
+    <p>It sits between your visitors and your server as a proxy layer. In that layer it resolves DNS, caches static content through a CDN, filters flood traffic with DDoS protection, screens malicious requests with a WAF, and can handle your SSL certificate. It's five jobs bundled into one signup, which is why the answer to needing it is never a simple yes.</p>
+
+    <h3>Is the Cloudflare free plan enough?</h3>
+    <p>For a lot of small and mid-sized sites, yes. The free plan covers managed DNS, basic CDN caching, a DDoS buffer, and shared SSL. The paid tiers mainly add a deeper WAF, finer caching and performance control, and enterprise features. If you don't have a specific need for those, the free plan is usually enough. Start there and upgrade only when a real problem appears.</p>
+
+    <h3>Do I need Cloudflare if my host already gives me SSL?</h3>
+    <p>Not for the SSL. If your host issues free SSL, that part of Cloudflare is redundant. You might still want Cloudflare for its managed DNS or a global CDN. But free SSL from your host removes one of the common reasons people add Cloudflare in the first place.</p>
+
+    <h3>Does Cloudflare make my site load faster?</h3>
+    <p>It can, for the right site. Its CDN caches static files close to visitors, which cuts distance-related delay for a global audience. For a small site whose visitors sit near the server already, the speed gain is minor. Caching helps most when you have static content and geographically spread users. It's not a magic speed switch for every site.</p>
+
+    <h3>Can I use Cloudflare with any hosting provider?</h3>
+    <p>Generally yes. Cloudflare works at the DNS and proxy layer, so it sits in front of almost any host. You point your domain's DNS at Cloudflare and it forwards traffic to your origin server. That's also why it isn't exclusive to any one platform. Many hosts even resell Cloudflare as an add-on.</p>
+
+    <h3>Do I need the paid Cloudflare plans?</h3>
+    <p>Usually not, at least not early. The paid tiers are built for deeper WAF rules, fine caching and performance control, and enterprise features. If you run a public app with logins or payments, or you're a likely attack target, they start to earn their cost. If you're a small site, the free plan almost certainly covers you.</p>
+
+    <h3>Will Cloudflare protect me from every attack?</h3>
+    <p>No, and any honest answer says so. Cloudflare's DDoS protection and WAF stop a large class of common attacks at the edge, which is valuable. But they don't fix insecure code, weak passwords, leaked credentials, or application logic flaws. Cloudflare is one layer. Secure your app, your secrets, and your server too.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Turn on the parts you need. Skip the parts you don't.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Do I Need Cloudflare? An Honest, Feature-by-Feature Answer","description":"Do I need Cloudflare? It depends which part you mean. What Cloudflare actually does, whether the free plan is enough for a small site, when you can skip it, and how to decide.","image":"https://www.kloudbean.com/blog/do-i-need-cloudflare/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@id":"https://kloudbean.com/#organization"},"mainEntityOfPage":"https://www.kloudbean.com/blog/do-i-need-cloudflare/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Do I need Cloudflare for my website?","acceptedAnswer":{"@type":"Answer","text":"It depends what you want from it. Cloudflare bundles managed DNS, CDN caching, DDoS protection, a WAF, and SSL. For most small public sites the free plan is worth turning on for the DNS and DDoS buffer alone, with little downside. You do not need it for an internal tool, and you may not need it if your host already handles SSL and basic protection."}},
+{"@type":"Question","name":"Is Cloudflare necessary?","acceptedAnswer":{"@type":"Answer","text":"No, it is not strictly necessary for most sites to function. Your site works without it. Cloudflare adds convenience, caching, and a layer of protection. Whether that is worth it depends on your audience, your risk, and what your host already provides. Necessary is the wrong word. Useful for many, optional for all, is closer to the truth."}},
+{"@type":"Question","name":"What does Cloudflare actually do?","acceptedAnswer":{"@type":"Answer","text":"It sits between your visitors and your server as a proxy layer. In that layer it resolves DNS, caches static content through a CDN, filters flood traffic with DDoS protection, screens malicious requests with a WAF, and can handle your SSL certificate. It is five jobs bundled into one signup, which is why the answer to needing it is never a simple yes."}},
+{"@type":"Question","name":"Is the Cloudflare free plan enough?","acceptedAnswer":{"@type":"Answer","text":"For a lot of small and mid-sized sites, yes. The free plan covers managed DNS, basic CDN caching, a DDoS buffer, and shared SSL. The paid tiers mainly add a deeper WAF, finer caching and performance control, and enterprise features. If you do not have a specific need for those, the free plan is usually enough. Start there and upgrade only when a real problem appears."}},
+{"@type":"Question","name":"Do I need Cloudflare if my host already gives me SSL?","acceptedAnswer":{"@type":"Answer","text":"Not for the SSL. If your host issues free SSL, that part of Cloudflare is redundant. You might still want Cloudflare for its managed DNS or a global CDN. But free SSL from your host removes one of the common reasons people add Cloudflare in the first place."}},
+{"@type":"Question","name":"Does Cloudflare make my site load faster?","acceptedAnswer":{"@type":"Answer","text":"It can, for the right site. Its CDN caches static files close to visitors, which cuts distance-related delay for a global audience. For a small site whose visitors sit near the server already, the speed gain is minor. Caching helps most when you have static content and geographically spread users. It is not a magic speed switch for every site."}},
+{"@type":"Question","name":"Can I use Cloudflare with any hosting provider?","acceptedAnswer":{"@type":"Answer","text":"Generally yes. Cloudflare works at the DNS and proxy layer, so it sits in front of almost any host. You point your domain DNS at Cloudflare and it forwards traffic to your origin server. That is also why it is not exclusive to any one platform. Many hosts even resell Cloudflare as an add-on."}},
+{"@type":"Question","name":"Do I need the paid Cloudflare plans?","acceptedAnswer":{"@type":"Answer","text":"Usually not, at least not early. The paid tiers are built for deeper WAF rules, fine caching and performance control, and enterprise features. If you run a public app with logins or payments, or you are a likely attack target, they start to earn their cost. If you are a small site, the free plan almost certainly covers you."}},
+{"@type":"Question","name":"Will Cloudflare protect me from every attack?","acceptedAnswer":{"@type":"Answer","text":"No, and any honest answer says so. Cloudflare DDoS protection and WAF stop a large class of common attacks at the edge, which is valuable. But they do not fix insecure code, weak passwords, leaked credentials, or application logic flaws. Cloudflare is one layer. Secure your app, your secrets, and your server too."}}
+]},
+{"@type":"Organization","@id":"https://kloudbean.com/#organization","name":"Kloudbean","legalName":"Secured Orbis Pvt. Ltd.","url":"https://kloudbean.com","description":"Kloudbean is a managed multi-cloud hosting platform by Secured Orbis Pvt. Ltd. It runs your whole stack from one dashboard, application servers, managed databases, object storage, and a built-in load balancer across seven cloud providers, so builders, agencies, and founders can deploy, host, and own their apps without operating raw cloud."}
+]}
+</script>
+</body>
+</html>

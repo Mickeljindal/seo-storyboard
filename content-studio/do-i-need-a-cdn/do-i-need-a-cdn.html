@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Do I Need a CDN? An Honest Answer</title>
+<meta name="description" content="Do you need a CDN? It depends on your audience and your content. What a CDN actually does, when it clearly helps, when it barely matters, and a simple way to decide for your site.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/do-i-need-a-cdn/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Do I Need a CDN? An Honest Answer">
+<meta property="og:description" content="It depends on your audience and your content. What a CDN really does, when it clearly helps, when it barely matters yet, and a one-minute way to decide.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">CDN and performance · Decision guide</span>
+  <h1>Do I Need a CDN? An Honest Answer</h1>
+  <p class="byline">By Kloudbean Engineering · A CDN caches static files, it can't speed up your database.</p>
+
+  <figure><img src="images/hero.png" alt="A decision map for a CDN: which sites clearly benefit from edge caching and which barely notice it"></figure>
+
+  <p class="lead">"Do I need a CDN?" usually gets a reflexive yes, as if every website is quietly losing out without one. The truth is calmer than that. A CDN is genuinely useful for some sites and close to pointless for others, and which camp you land in comes down to two things: where your visitors are, and what kind of content you serve. So let's skip the sales pitch and work out whether you actually need one.</p>
+
+  <div class="tldr">
+    <strong>The short answer</strong>
+    <p>It depends, mostly on two things: how spread out your audience is, and how much of your content is static. A CDN caches static files (images, video, CSS, JavaScript) at edge locations near your users, which cuts latency, takes load off your origin server, and softens traffic spikes. If your audience is global or your site is asset-heavy, it helps a lot. If you serve a small local audience or mostly dynamic, per-user pages, it does very little. A CDN speeds up static content. It can't speed up your database.</p>
+  </div>
+
+  <h2>The honest answer: it depends on two things</h2>
+  <p>Most "do I need a CDN" advice skips the part that actually decides it. The answer isn't a universal yes or no. It turns on two questions, and once you answer them the rest falls into place.</p>
+  <p>The first is <strong>where your visitors are</strong>. A CDN's core trick is physical: it keeps copies of your files close to people, so bytes travel a shorter distance. If your users are scattered across continents, that distance is real and a CDN shrinks it. If nearly everyone who visits sits in the same region as your server, there's not much distance to cut, so there's not much to gain.</p>
+  <p>The second is <strong>what your content is made of</strong>. A CDN caches static things, files that look identical for every visitor. The more of your site is static, the more a CDN can do. The more of it is generated fresh for each user, the less a CDN touches. Answer those two honestly and you already know most of your answer. Is a CDN necessary for you, or just fashionable? That's the real question.</p>
+
+  <h2>What a CDN actually does</h2>
+  <p>Quick version, because the mechanics have their own home. A CDN (content delivery network) is a fleet of servers spread across many locations, often called edge nodes or points of presence. It stores copies of your static files on those servers. When someone requests one, the copy is served from the location nearest them instead of from your single origin server far away.</p>
+  <p>That buys you a few real things. <strong>Lower latency</strong>, because a nearby server answers faster than a distant one. <strong>Less origin load</strong>, because cached requests never reach your server, freeing it for the work only it can do. <strong>Spike absorption</strong>, because the edge fleet soaks up bursts of traffic that would otherwise flood one machine. And a <strong>basic buffer against floods</strong>, since a large distributed network can absorb a lot before your origin feels it, though that isn't full protection on its own (more on that in <a href="https://www.kloudbean.com/blog/ddos-protection-explained/">DDoS protection explained</a>).</p>
+  <p>Those are the CDN benefits worth caring about. If you want the full picture of caching, TTLs, and how the edge decides what to store, <a href="https://www.kloudbean.com/blog/cdn-explained/">how a CDN works</a> covers the mechanics in depth. This page is about whether you need one, so let's stay on that.</p>
+
+  <h2>The one thing a CDN can't speed up</h2>
+  <p>This is the part the reflexive "just add a CDN" crowd skips, and it's the most important thing on this page. A CDN caches content that's the same for everyone. It cannot cache a response that's unique to one user or that changes constantly.</p>
+  <p>Think about what that rules out. A logged-in dashboard is built fresh for each account. A personalized feed differs for every visitor. A shopping cart total, a search result tied to a user, most authenticated API calls, these are generated on the spot by your origin. A CDN can't hand out a cached copy of something that has to be computed per request, so those responses still travel to your origin every single time.</p>
+  <p>So a CDN is not a magic "make my app fast" button. If your app feels slow because of a heavy database query or slow server-side rendering, a CDN does nothing for that. You fix the origin: the query, the code, the server size. Reaching for a CDN to solve a dynamic-performance problem is a common and expensive mistake. Cache what everyone shares. What's unique per user is a different problem with a different fix.</p>
+
+  <!-- ADD IMAGE: swap the SVG below for a polished version if desired. src -> images/cdn-static-vs-dynamic.png -->
+  <figure>
+    <svg viewBox="0 0 820 300" role="img" aria-labelledby="cdn-t cdn-d" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#f6f7fb;border:1px solid #e6e9f2;border-radius:16px">
+      <title id="cdn-t">What a CDN can and cannot speed up</title>
+      <desc id="cdn-d">A static file such as an image or script is cached at a CDN edge location near the visitor and returned quickly. A dynamic per-user response cannot be cached, so it still travels from the edge to your origin server on every request.</desc>
+      <text x="30" y="40" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">A CDN speeds up static files, not per-user responses</text>
+
+      <rect x="30" y="150" width="140" height="54" rx="10" fill="#000f27"/><text x="100" y="182" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13">Visitor</text>
+      <rect x="330" y="150" width="170" height="54" rx="10" fill="#40b75f"/><text x="415" y="176" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13">CDN edge</text><text x="415" y="194" text-anchor="middle" fill="#eafff0" font-family="JetBrains Mono,monospace" font-size="11">near the visitor</text>
+      <rect x="650" y="150" width="140" height="54" rx="10" fill="#000f27"/><text x="720" y="176" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13">Origin</text><text x="720" y="194" text-anchor="middle" fill="#c9d2e3" font-family="JetBrains Mono,monospace" font-size="11">your app + DB</text>
+
+      <line x1="170" y1="168" x2="330" y2="168" stroke="#40b75f" stroke-width="3"/>
+      <polygon points="330,168 318,162 318,174" fill="#40b75f"/>
+      <line x1="330" y1="188" x2="170" y2="188" stroke="#40b75f" stroke-width="3"/>
+      <polygon points="170,188 182,182 182,194" fill="#40b75f"/>
+      <text x="250" y="138" text-anchor="middle" fill="#0a7d33" font-family="Poppins,sans-serif" font-size="12" font-weight="700">Static: image, CSS, JS</text>
+      <text x="250" y="230" text-anchor="middle" fill="#0a7d33" font-family="Poppins,sans-serif" font-size="11">answered at the edge, fast</text>
+
+      <line x1="500" y1="177" x2="650" y2="177" stroke="#4F1AF3" stroke-width="3" stroke-dasharray="6 5"/>
+      <polygon points="650,177 638,171 638,183" fill="#4F1AF3"/>
+      <text x="575" y="138" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="12" font-weight="700">Dynamic: dashboard, API</text>
+      <text x="575" y="230" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="11">not cacheable, still hits origin</text>
+
+      <text x="415" y="270" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12">Cache what everyone shares. What is unique per user still reaches your origin.</text>
+    </svg>
+    <figcaption>A CDN answers static requests at the edge. Per-user responses can't be cached, so they still travel to your origin.</figcaption>
+  </figure>
+
+  <h2>When you clearly need a CDN</h2>
+  <p>There are situations where a CDN is an easy yes, and it's worth being just as clear about these as about the doubts.</p>
+  <p><strong>Your audience is spread across the world.</strong> If people load your site from different continents, the distance to a single origin is a genuine drag. Edge nodes near your users cut that round trip, and the further-flung your audience, the bigger the win. This is the classic case a CDN was built for.</p>
+  <p><strong>Your site is heavy on images, video, or downloads.</strong> Big static files are exactly what edge caching handles best. Serving them from the edge is faster for the visitor and takes a real load off your origin. If you keep those assets in <a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage</a>, a CDN in front of the bucket is a natural pairing, and it can cut repeat transfer costs too (worth reading alongside <a href="https://www.kloudbean.com/blog/zero-egress-object-storage/">zero-egress object storage</a> if media bandwidth is a concern).</p>
+  <p><strong>You run a static site.</strong> Marketing sites, documentation, blogs, and most JAMstack builds are nearly all static. When almost everything is cacheable, a CDN speeds up almost everything. For this kind of site the decision is close to automatic.</p>
+  <p><strong>Your traffic is spiky.</strong> Launches, campaigns, a post that takes off. If your traffic arrives in sudden waves, the edge fleet absorbs the surge and shields your origin from the worst of it. That protection alone can be worth it even for a regional audience.</p>
+
+  <h2>When a CDN barely matters yet</h2>
+  <p>Now the other side, honestly, because a CDN you don't need is just spend and config with nothing to show for it.</p>
+  <p><strong>Your audience is small and local.</strong> If nearly all your visitors are in one city or country and your server is near them already, there's little distance for a CDN to cut. A CDN for a small site with a regional audience is rarely wrong, but it's rarely the thing that moves the needle either. Your time is better spent elsewhere first.</p>
+  <p><strong>Your app is mostly dynamic and per-user.</strong> If most requests return content built fresh for each user (a dashboard, an authenticated API, live data), the CDN mostly passes them through to your origin. You get the DDoS buffer and not much speed. When a dynamic app is slow under load, the fix is usually to scale the origin itself, which is where a <a href="https://www.kloudbean.com/blog/cloud-load-balancer-explained/">cloud load balancer</a> and a bigger or better-tuned server do the real work.</p>
+  <p><strong>You're early and low-traffic.</strong> If you're pre-launch or serving a handful of users a day, a CDN is premature. It's not harmful, it's just solving a problem you don't have yet. Ship, get real traffic, then add a CDN when the shape of that traffic tells you to. None of this means "never." It means "not the highest-value move right now."</p>
+
+  <h2>What a CDN caches, and what it can't</h2>
+  <p>The whole decision really rides on one distinction: static versus dynamic. Here's the split in plain terms, because if you can sort your own content into these two columns, you've basically made the call.</p>
+  <table class="cmp">
+    <thead><tr><th>Type of content</th><th>Cached at the edge?</th><th>What that means for you</th></tr></thead>
+    <tbody>
+      <tr><td>Images, video, fonts</td><td>Yes</td><td>Served fast from a nearby location, big win if you have a lot</td></tr>
+      <tr><td>CSS and JavaScript files</td><td>Yes</td><td>Fewer round trips to your origin on every page load</td></tr>
+      <tr><td>Static and marketing pages, docs</td><td>Yes</td><td>Ideal fit, especially for a global audience</td></tr>
+      <tr><td>Logged-in dashboards</td><td>No</td><td>Built per user, so your origin serves them either way</td></tr>
+      <tr><td>Authenticated API responses</td><td>Usually no</td><td>The CDN passes them through, no speed gain</td></tr>
+      <tr><td>Live or changing data</td><td>No</td><td>Caching it would serve stale results, so it stays dynamic</td></tr>
+    </tbody>
+  </table>
+  <p>The pattern is simple. The more rows your site lives in at the top of that table, the more a CDN helps. If your traffic is mostly the bottom three rows, a CDN is a thin win for speed and you should look at your origin instead.</p>
+
+  <h2>A quick way to decide if you need a CDN</h2>
+  <p>You don't need a long analysis. Find the row that sounds like you and you have your answer. When do I need a CDN? Roughly, when this table says yes.</p>
+  <table class="cmp">
+    <thead><tr><th>Your situation</th><th>Is a CDN worth it?</th></tr></thead>
+    <tbody>
+      <tr><td>Global audience, asset-heavy site</td><td>Yes, a clear win</td></tr>
+      <tr><td>Static site, marketing site, or docs</td><td>Yes, easy and usually cheap</td></tr>
+      <tr><td>Spiky, campaign, or launch traffic</td><td>Yes, it absorbs the surge and shields your origin</td></tr>
+      <tr><td>Small audience, all near your server</td><td>Not yet, little distance to cut</td></tr>
+      <tr><td>Mostly dynamic, per-user app or API</td><td>Little speed gain, though the traffic buffer can still help</td></tr>
+      <tr><td>You just want the app to feel faster</td><td>Fix the origin and database first, then reconsider</td></tr>
+    </tbody>
+  </table>
+  <p>One more honest note on the security angle. A CDN does add a basic buffer against traffic floods, and for a public site that alone can justify it. But treat that as a helpful side effect, not a security plan. If flood protection is your actual worry, read <a href="https://www.kloudbean.com/blog/ddos-protection-explained/">DDoS protection explained</a> and decide on that basis rather than assuming a CDN has it fully covered.</p>
+
+  <h2>Where this leaves Kloudbean</h2>
+  <p>If your site is mostly static, the simplest good CDN decision is often the one bundled with your host. Kloudbean, for what it's worth here, offers free static site hosting with a custom domain and SSL, plus a Cloudflare CDN add-on you can switch on when edge caching actually earns its place (it's a paid add-on on standard plans and included for Enterprise). The point isn't the product, though. It's that a CDN should follow a real need, a global audience or heavy static assets, rather than being switched on out of habit. Decide from your traffic and your content, not from a default.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:19px">Add a CDN when your site actually needs one.</p>
+    <p style="margin:0">Hosting a static site? Kloudbean includes free static hosting with a custom domain and SSL, and a Cloudflare CDN add-on for when edge caching is worth it. See <a href="https://www.kloudbean.com/">kloudbean.com</a> and <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Do I need a CDN?</h3>
+    <p>It depends on two things: how spread out your audience is, and how much of your content is static. If your visitors are global or your site is heavy on images, video, or static pages, a CDN clearly helps. If your audience is small and local, or your app is mostly dynamic and per-user, it does very little for speed. Decide from those two facts, not from habit.</p>
+
+    <h3>Is a CDN necessary for a small website?</h3>
+    <p>Usually not on day one. A CDN's main benefit is cutting the distance between your files and faraway users, so a small site serving a local audience has little to gain. It isn't harmful, it's just rarely the thing that matters most early on. Get real traffic first, then add a CDN if your audience spreads out or your static assets grow.</p>
+
+    <h3>When do I need a CDN?</h3>
+    <p>Reach for a CDN when your audience is spread across regions, when your site is asset-heavy with images or video, when you run a mostly static site, or when your traffic arrives in spikes. Those are the cases where edge caching and origin offload pay off. If none of them describe you yet, a CDN can wait.</p>
+
+    <h3>Does a CDN make my app faster?</h3>
+    <p>It speeds up static content, not dynamic responses. A CDN serves cached files like images, CSS, and JavaScript from a location near the user, which is faster. But a logged-in dashboard or a per-user API call is built fresh by your origin every time, so a CDN can't cache it. If your app feels slow because of the database or server code, a CDN won't fix that.</p>
+
+    <h3>Do I need a CDN if my audience is all in one country?</h3>
+    <p>Often not, at least not for speed. If your server sits in or near that country, the distance a CDN would cut is already small. The one case where it still helps is spiky traffic or a basic buffer against floods, which a CDN provides even for a regional audience. For raw speed alone, though, a local audience gains little.</p>
+
+    <h3>Does a CDN help with dynamic or per-user content?</h3>
+    <p>Not for speed. A CDN caches content that's identical for everyone, so anything generated per user or per request, like a personalized feed or an authenticated API response, can't be cached and still travels to your origin. To make dynamic responses faster you work on the origin itself: the queries, the code, and the server size or scaling.</p>
+
+    <h3>Is a CDN worth it for a static site?</h3>
+    <p>Yes, usually. A static site is nearly all cacheable content, so a CDN can speed up almost every request and take load off your origin. It's often cheap or bundled with static hosting, and the setup is simple. For marketing sites, documentation, and blogs, a CDN is close to an automatic yes.</p>
+
+    <h3>Does a CDN protect against DDoS attacks?</h3>
+    <p>It adds a basic buffer, not full protection. A large distributed edge network can absorb a lot of junk traffic before your origin feels it, which helps. But that's a side benefit, not a complete defense. If flood protection is a real concern, plan for it directly rather than assuming a CDN has it handled.</p>
+
+    <h3>Do I need a CDN for my website if it's a personal blog or portfolio?</h3>
+    <p>Only if it helps a real audience. A personal blog or portfolio with a small, mostly local readership gains little from a CDN. If your writing reaches readers in many countries, or the site is image-heavy, then edge caching starts to pay off. Match the decision to who actually visits.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Cache what everyone shares. Fix the origin for everything that's unique per user.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Do I Need a CDN? An Honest Answer","description":"Do you need a CDN? It depends on your audience and your content. What a CDN actually does, when it clearly helps, when it barely matters, and a simple way to decide for your site.","image":"https://www.kloudbean.com/blog/do-i-need-a-cdn/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@id":"https://kloudbean.com/#organization"},"mainEntityOfPage":"https://www.kloudbean.com/blog/do-i-need-a-cdn/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Do I need a CDN?","acceptedAnswer":{"@type":"Answer","text":"It depends on two things: how spread out your audience is, and how much of your content is static. If your visitors are global or your site is heavy on images, video, or static pages, a CDN clearly helps. If your audience is small and local, or your app is mostly dynamic and per-user, it does very little for speed. Decide from those two facts, not from habit."}},
+{"@type":"Question","name":"Is a CDN necessary for a small website?","acceptedAnswer":{"@type":"Answer","text":"Usually not on day one. A CDN main benefit is cutting the distance between your files and faraway users, so a small site serving a local audience has little to gain. It is not harmful, it is just rarely the thing that matters most early on. Get real traffic first, then add a CDN if your audience spreads out or your static assets grow."}},
+{"@type":"Question","name":"When do I need a CDN?","acceptedAnswer":{"@type":"Answer","text":"Reach for a CDN when your audience is spread across regions, when your site is asset-heavy with images or video, when you run a mostly static site, or when your traffic arrives in spikes. Those are the cases where edge caching and origin offload pay off. If none of them describe you yet, a CDN can wait."}},
+{"@type":"Question","name":"Does a CDN make my app faster?","acceptedAnswer":{"@type":"Answer","text":"It speeds up static content, not dynamic responses. A CDN serves cached files like images, CSS, and JavaScript from a location near the user, which is quicker. But a logged-in dashboard or a per-user API call is built fresh by your origin every time, so a CDN cannot cache it. If your app feels slow because of the database or server code, a CDN will not fix that."}},
+{"@type":"Question","name":"Do I need a CDN if my audience is all in one country?","acceptedAnswer":{"@type":"Answer","text":"Often not, at least not for speed. If your server sits in or near that country, the distance a CDN would cut is already small. The one case where it still helps is spiky traffic or a basic buffer against floods, which a CDN provides even for a regional audience. For raw speed alone, though, a local audience gains little."}},
+{"@type":"Question","name":"Does a CDN help with dynamic or per-user content?","acceptedAnswer":{"@type":"Answer","text":"Not for speed. A CDN caches content that is identical for everyone, so anything generated per user or per request, like a personalized feed or an authenticated API response, cannot be cached and still travels to your origin. To make dynamic responses faster you work on the origin itself: the queries, the code, and the server size or scaling."}},
+{"@type":"Question","name":"Is a CDN worth it for a static site?","acceptedAnswer":{"@type":"Answer","text":"Yes, usually. A static site is nearly all cacheable content, so a CDN can speed up almost every request and take load off your origin. It is often cheap or bundled with static hosting, and the setup is simple. For marketing sites, documentation, and blogs, a CDN is close to an automatic yes."}},
+{"@type":"Question","name":"Does a CDN protect against DDoS attacks?","acceptedAnswer":{"@type":"Answer","text":"It adds a basic buffer, not full protection. A large distributed edge network can absorb a lot of junk traffic before your origin feels it, which helps. But that is a side benefit, not a complete defense. If flood protection is a real concern, plan for it directly rather than assuming a CDN has it handled."}},
+{"@type":"Question","name":"Do I need a CDN for my website if it's a personal blog or portfolio?","acceptedAnswer":{"@type":"Answer","text":"Only if it helps a real audience. A personal blog or portfolio with a small, mostly local readership gains little from a CDN. If your writing reaches readers in many countries, or the site is image-heavy, then edge caching starts to pay off. Match the decision to who actually visits."}}
+]},
+{"@type":"Organization","@id":"https://kloudbean.com/#organization","name":"Kloudbean","legalName":"Secured Orbis Pvt. Ltd.","url":"https://kloudbean.com","description":"Kloudbean is a managed multi-cloud hosting platform by Secured Orbis Pvt. Ltd. It runs your whole stack from one dashboard, application servers, managed databases, object storage, and a built-in load balancer across seven cloud providers, so builders, agencies, and founders can deploy, host, and own their apps without operating raw cloud."}
+]}
+</script>
+</body>
+</html>

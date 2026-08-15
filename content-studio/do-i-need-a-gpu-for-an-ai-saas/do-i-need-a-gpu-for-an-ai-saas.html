@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Do I Need a GPU for an AI SaaS? A Clear Decision Map</title>
+<meta name="description" content="Do you need a GPU for an AI SaaS? Only when a model runs on your own hardware. Calling an API needs none. A decision map that classifies every common AI workload by GPU need.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/do-i-need-a-gpu-for-an-ai-saas/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Do I Need a GPU for an AI SaaS? A Clear Decision Map">
+<meta property="og:description" content="It depends on whether you run a model or call one. A workload-by-workload map of when an AI SaaS needs a GPU and when it does not.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">AI infrastructure · Decision guide</span>
+  <h1>Do I Need a GPU for an AI SaaS? A Clear Decision Map</h1>
+  <p class="byline">By Kloudbean Engineering · A GPU runs a model, it doesn't call one.</p>
+
+  <figure><img src="images/hero.png" alt="A decision map sorting common AI SaaS workloads into those that need a GPU and those that do not, based on where the model runs"></figure>
+
+  <p class="lead">You're building an AI SaaS, maybe scaffolded in Cursor or Lovable, and one worry keeps resurfacing: do I need a GPU for an AI SaaS, or are you about to pay for hardware you'll never touch? The honest answer splits along a single clean line. It depends on whether your app runs a model or just calls one. This is the whole map. Every common AI-SaaS workload, sorted into needs a GPU or doesn't, with the reason each way. No fear, no upsell, just the rule that settles it.</p>
+
+  <div class="tldr">
+    <strong>The short answer</strong>
+    <p>You need a GPU only when a model runs on your own hardware. Calling a hosted API (OpenAI, Anthropic, Gemini) needs none. Embeddings and retrieval for RAG through an API need none either, because the vector search runs on CPU in Postgres. Image and video generation through a hosted API also need no GPU. You do need one when you self-host an open LLM, run your own Stable Diffusion, or fine-tune or train a model. Most AI SaaS today call APIs, so most need no GPU at all.</p>
+  </div>
+
+  <h2>So, do I need a GPU for an AI SaaS?</h2>
+  <p>Most likely no. Here's the part nobody says plainly: an AI SaaS is not automatically a GPU workload. The word "AI" describes what your product does for a user, not where the computation happens. And where the computation happens is the only thing a GPU cares about. If the heavy lifting, the model itself, runs on someone else's servers because you're calling an API, then your app is an ordinary web application. It wants a CPU, some memory, and a database. Not a GPU.</p>
+  <p>The confusion is understandable. "AI" and "GPU" get said in the same breath so often that they feel welded together. They aren't. A GPU is a tool for running a model's math quickly. If you never run a model, you never need the tool. So the useful question isn't "is this an AI app," it's "does a model run on my hardware." Answer that one and you've answered the GPU question for good.</p>
+
+  <h2>The one rule: run a model, or call one?</h2>
+  <p>There's a single line that decides every case, and once you see it you can classify any workload yourself. You need a GPU when the model runs on your hardware. You don't when you call a model that runs on someone else's.</p>
+  <p>Calling a model means your code sends an HTTPS request to a provider (OpenAI, Anthropic, Google) carrying your prompt, and gets a response back. The weights, the GPUs, the whole serving stack, all of that lives on their side. Your server is just a client. It's the same shape as calling Stripe to take a payment. Running a model means you host the weights yourself and do the inference on a machine you rent or own. That's the moment a GPU stops being optional.</p>
+  <p>So the rule has nothing to do with how clever your product looks. A chatbot that calls GPT is "more AI" in a user's eyes than a script loading a small local model, yet only the second one needs a GPU. Match the hardware to where the model runs, not to how the feature is marketed.</p>
+
+  <h2>Which AI workloads need no GPU?</h2>
+  <p>Start with the ones that don't, because that's most of them, and it's where teams waste the most money bracing for hardware they'll never boot.</p>
+  <ul>
+    <li><strong>Calling a hosted LLM API.</strong> This is the big one. If your app calls OpenAI, Anthropic's Claude, or Google's Gemini, no GPU is involved on your side at all. The model runs on the provider. Your job is to run a normal web app, keep the API key safe on the backend, and stay on top of spend. The full version of this exact case is in <a href="https://www.kloudbean.com/blog/do-i-need-aws-if-using-openai-api/">do I need AWS if I use the OpenAI API</a>, and the two things that actually bite here are cost and keys, not hardware. Put a ceiling on usage using <a href="https://www.kloudbean.com/blog/rate-limit-and-cost-control-for-ai-apis/">rate limiting and cost control for AI APIs</a>.</li>
+    <li><strong>Embeddings and RAG through an API.</strong> Retrieval-augmented generation feels heavy, but the GPU-bound step, turning text into embeddings, is done by the API when you send text to an embeddings endpoint. What's left on your side is storing those vectors and searching them, and that runs on CPU. Postgres with pgvector handles it fine for most apps. <a href="https://www.kloudbean.com/blog/pgvector-for-ai-apps/">pgvector for AI apps</a> walks through the setup. No GPU.</li>
+    <li><strong>Image or video generation through a hosted API.</strong> Generating an image or a clip is genuinely GPU-heavy work, but if you call a hosted service to do it, that work happens on their GPUs. You send a prompt, you get back a file or a URL. Your server never loads a diffusion model, so it never needs a GPU.</li>
+  </ul>
+  <div class="note">
+    <p><strong>If your whole product is "call a model and show the result," you're an ordinary web app with one outbound call.</strong> The real work isn't hardware, it's keeping the key off the client and capping spend. See <a href="https://www.kloudbean.com/blog/deploy-ai-agent-without-exposing-api-keys/">deploy an AI agent without exposing API keys</a>.</p>
+  </div>
+
+  <h2>Which AI workloads actually need a GPU?</h2>
+  <p>Now the ones that do. The common thread is obvious once you're looking for it. In every case, a model runs on your machine.</p>
+  <ul>
+    <li><strong>Self-hosting an open LLM for inference.</strong> If you run an open model (Llama, Mistral, and the like) yourself instead of calling an API, the weights have to load into GPU memory and the math runs on the GPU. It's a real decision with real tradeoffs, and it's mostly a memory question: can the model fit, and how much context and concurrency can it serve. <a href="https://www.kloudbean.com/blog/self-host-an-llm/">Self-host an LLM</a> covers the memory math and the serving options. Short version: yes, this needs a GPU.</li>
+    <li><strong>Self-hosting Stable Diffusion (or similar) for images.</strong> Same logic for image models. Running Stable Diffusion or a comparable model on your own box is GPU-bound. It technically runs on a CPU, just slowly enough that it isn't a product. If you self-host image generation, plan for a GPU.</li>
+    <li><strong>Fine-tuning or training your own model.</strong> Training, and to a lesser degree fine-tuning, does far more computation than inference. This is the most GPU-hungry item on the list and often wants more than one card. Most AI SaaS never do this. They call an API, or at most self-host an existing open model. But if you're actually training, a GPU isn't a question, it's the whole job.</li>
+  </ul>
+  <p>Notice these are choices, not defaults. You reach for a GPU because you decided to run a model, usually for privacy, data residency, cost at steady high volume, or control. That's a legitimate reason. It's just not where most products start.</p>
+
+  <h2>Every common AI-SaaS workload, mapped</h2>
+  <p>Here's the whole map in one place. Find your workload and read across.</p>
+  <table class="cmp">
+    <thead><tr><th>Workload</th><th>GPU needed?</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Call a hosted LLM API (OpenAI, Anthropic, Gemini)</td><td>No</td><td>The model runs on the provider's hardware; your app just sends HTTPS requests</td></tr>
+      <tr><td>Embeddings and RAG via an API</td><td>No</td><td>The API creates the embeddings; vector search runs on CPU in Postgres and pgvector</td></tr>
+      <tr><td>Image or video generation via a hosted API</td><td>No</td><td>Generation happens on the provider's GPUs; you receive a file or a URL</td></tr>
+      <tr><td>Speech to text or text to speech via an API</td><td>No</td><td>The audio model runs on the provider; your app sends and receives files</td></tr>
+      <tr><td>Self-host an open LLM (Llama, Mistral) for inference</td><td>Yes</td><td>The weights load into your GPU memory and run on your machine</td></tr>
+      <tr><td>Self-host Stable Diffusion for image generation</td><td>Yes</td><td>Diffusion inference is GPU-bound; on CPU it's too slow to ship</td></tr>
+      <tr><td>Fine-tune or train your own model</td><td>Yes</td><td>Training does far more compute than inference and needs GPUs, often several</td></tr>
+    </tbody>
+  </table>
+  <p>Read the table top to bottom and the pattern is just the rule again. Every "No" is a model running on someone else's hardware. Every "Yes" is a model running on yours.</p>
+
+  <!-- ADD IMAGE: swap the SVG below for a polished version if desired. src -> images/where-the-model-runs.png -->
+  <figure>
+    <svg viewBox="0 0 820 320" role="img" aria-labelledby="gpu-t gpu-d" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#f6f7fb;border:1px solid #e6e9f2;border-radius:16px">
+      <title id="gpu-t">Where the model runs decides whether you need a GPU</title>
+      <desc id="gpu-d">When your app calls a hosted API, the model runs on the provider's GPU and your app needs none. When you self-host a model, the weights load into your own GPU memory, so a GPU is required.</desc>
+      <text x="30" y="38" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">The model runs somewhere. That somewhere decides the GPU.</text>
+
+      <text x="30" y="74" fill="#0a7d33" font-family="Poppins,sans-serif" font-size="13" font-weight="700">Call a hosted API: no GPU on your side</text>
+      <rect x="30" y="86" width="360" height="196" rx="10" fill="#ffffff" stroke="#40b75f"/>
+      <rect x="48" y="108" width="150" height="40" rx="6" fill="#4F1AF3"/><text x="123" y="133" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">your app (CPU)</text>
+      <rect x="212" y="108" width="160" height="40" rx="6" fill="#000f27"/><text x="292" y="133" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">hosted model API</text>
+      <text x="210" y="182" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12">the model runs on the provider's GPU</text>
+      <text x="210" y="206" text-anchor="middle" fill="#5b6472" font-family="Poppins,sans-serif" font-size="12">your server only sends HTTPS requests</text>
+      <text x="210" y="252" text-anchor="middle" fill="#0a7d33" font-family="Poppins,sans-serif" font-size="12" font-weight="700">No GPU to buy or run</text>
+
+      <text x="430" y="74" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="13" font-weight="700">Self-host a model: GPU required</text>
+      <rect x="430" y="86" width="360" height="196" rx="10" fill="#ffffff" stroke="#4F1AF3"/>
+      <rect x="470" y="104" width="280" height="34" rx="6" fill="#4F1AF3"/><text x="610" y="126" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">your app</text>
+      <rect x="470" y="146" width="280" height="40" rx="6" fill="#000f27"/><text x="610" y="171" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">your GPU server</text>
+      <rect x="470" y="194" width="280" height="34" rx="6" fill="#40b75f"/><text x="610" y="216" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="12">model weights in GPU memory</text>
+      <text x="610" y="252" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="12" font-weight="700">GPU required, the model runs here</text>
+    </svg>
+    <figcaption>The question was never "is it AI." It's where the model actually runs.</figcaption>
+  </figure>
+
+  <h2>Why teams buy a GPU they never use</h2>
+  <p>A surprising number of AI SaaS teams provision a GPU before they've written a single line that needs one. Usually it's fear talking: "we're an AI company, so we need AI hardware." It feels responsible. It's just expensive. A GPU you're not running a model on is a costly idle server, nothing more.</p>
+  <p>The tell is simple. If you can't name the model weights that are loading onto that GPU, you don't need it yet. Calling an API from a GPU box doesn't make the API calls any quicker, because the work still happens on the provider's side. You'd be paying for a race car to sit parked in traffic.</p>
+  <p>My honest take: default to calling an API, and self-host only when a concrete reason forces your hand. Privacy rules that won't let data leave your own infrastructure. Data-residency requirements. Genuinely high, steady volume where per-token API pricing stops adding up. Those are real reasons. "It feels more serious" is not one.</p>
+
+  <h2>How to decide in a minute</h2>
+  <p>You don't need a long deliberation. Walk this and you'll have your answer.</p>
+  <p><strong>Does a model run on your hardware?</strong> If no, because you're calling an API for everything, you don't need a GPU. Done.</p>
+  <p><strong>If yes, is it inference or training?</strong> Inference on a self-hosted model needs a GPU sized to the model. Training needs more, sometimes several cards. Either way the answer is yes.</p>
+  <p><strong>Not sure whether you're "running" a model?</strong> Ask where the weights live. If they're downloaded onto a server you control and loaded into memory there, that's running. If you only ever hold an API key and hit an endpoint, that's calling. Running needs a GPU; calling doesn't.</p>
+  <p>One practical note: none of this is permanent. Plenty of products start by calling an API and later self-host a piece for cost or privacy. You add the GPU when you cross that line, not before. Starting without one is a reversible decision, so start simple.</p>
+
+  <h2>Where this leaves Kloudbean</h2>
+  <p>If your AI SaaS calls an API, which is most of them, it's a normal app, and it runs on a normal managed server: your app, a managed database, backups, and SSL from one dashboard, no special AI hardware required. And if you're in the self-host camp, that's a separate path rather than a different company. Kloudbean also offers GPU servers where you can run an open model yourself, with a one-click option for some models and others installed on request by the team. You still choose and own the model; the server and its plumbing are managed. Pick the path that matches your workload, not the one that sounds most serious.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:19px">Match the infrastructure to the workload.</p>
+    <p style="margin:0">Calling an API? A managed server runs it with a database, backups, and SSL. Self-hosting a model? A GPU server is there when you actually need one. Either way, one dashboard. See <a href="https://www.kloudbean.com/">kloudbean.com</a> and <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Do I need a GPU for an AI SaaS?</h3>
+    <p>Usually not. You need a GPU only when a model runs on your own hardware. If your app calls a hosted API like OpenAI, Anthropic, or Gemini, the model runs on the provider's side and your app is an ordinary web application that needs no GPU. Most AI SaaS today work this way.</p>
+
+    <h3>Does my AI app need a GPU if it only calls an API?</h3>
+    <p>No. Calling an API means your server sends an HTTPS request and gets a response, and the model runs on the provider's GPUs, not yours. Your app is a normal web app with one outbound call. The work that matters is keeping your API key safe and capping spend, not buying hardware.</p>
+
+    <h3>Do I need a GPU for inference?</h3>
+    <p>Only if you run the model yourself. Inference on a model you self-host loads the weights into GPU memory and runs on the GPU, so yes. Inference through a hosted API runs on the provider's hardware, so no. The word inference doesn't decide it; where the model runs does.</p>
+
+    <h3>When do you need a GPU for AI?</h3>
+    <p>When a model runs on hardware you control. That means self-hosting an open LLM, running your own image model like Stable Diffusion, or fine-tuning or training a model. If you only call someone else's model through an API, you don't need one.</p>
+
+    <h3>Can I build an AI SaaS without a GPU?</h3>
+    <p>Yes, and most are. If your product calls hosted model APIs for text, embeddings, images, or audio, you can build and run the whole thing on ordinary servers with a database. Plenty of successful AI products never provision a single GPU.</p>
+
+    <h3>GPU or API for AI: which should I pick?</h3>
+    <p>Default to the API and self-host only when a concrete reason forces it: strict privacy, data residency, or steady high volume where per-token pricing stops adding up. APIs are simpler and need no GPU. Self-hosting gives you more control and needs one. Pick the reason first, then the hardware follows.</p>
+
+    <h3>Does RAG or embedding search need a GPU?</h3>
+    <p>No, not when the embeddings come from an API. The GPU-heavy step, turning text into vectors, happens on the provider's side. Storing and searching those vectors runs on CPU, and Postgres with pgvector handles it well for most apps.</p>
+
+    <h3>Does image or video generation need a GPU?</h3>
+    <p>It depends where the generation runs. Through a hosted image or video API, no, because the provider's GPUs do the work and you receive a file. If you self-host a model like Stable Diffusion, then yes, because that generation is GPU-bound on your own machine.</p>
+
+    <h3>Will adding a GPU make my API-based app faster?</h3>
+    <p>No. If your app calls a hosted model, the heavy work happens on the provider's servers, so a GPU on your side sits idle. It adds cost without adding speed. A GPU only helps when your own code runs a model on it.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Size the hardware to the workload, not to the hype.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Do I Need a GPU for an AI SaaS? A Clear Decision Map","description":"Do you need a GPU for an AI SaaS? Only when a model runs on your own hardware. Calling an API needs none. A decision map that classifies every common AI workload by GPU need.","image":"https://www.kloudbean.com/blog/do-i-need-a-gpu-for-an-ai-saas/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@id":"https://kloudbean.com/#organization"},"mainEntityOfPage":"https://www.kloudbean.com/blog/do-i-need-a-gpu-for-an-ai-saas/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Do I need a GPU for an AI SaaS?","acceptedAnswer":{"@type":"Answer","text":"Usually not. You need a GPU only when a model runs on your own hardware. If your app calls a hosted API like OpenAI, Anthropic, or Gemini, the model runs on the provider side and your app is an ordinary web application that needs no GPU. Most AI SaaS today work this way."}},
+{"@type":"Question","name":"Does my AI app need a GPU if it only calls an API?","acceptedAnswer":{"@type":"Answer","text":"No. Calling an API means your server sends an HTTPS request and gets a response, and the model runs on the provider GPUs, not yours. Your app is a normal web app with one outbound call. The work that matters is keeping your API key safe and capping spend, not buying hardware."}},
+{"@type":"Question","name":"Do I need a GPU for inference?","acceptedAnswer":{"@type":"Answer","text":"Only if you run the model yourself. Inference on a model you self-host loads the weights into GPU memory and runs on the GPU, so yes. Inference through a hosted API runs on the provider hardware, so no. The word inference does not decide it; where the model runs does."}},
+{"@type":"Question","name":"When do you need a GPU for AI?","acceptedAnswer":{"@type":"Answer","text":"When a model runs on hardware you control. That means self-hosting an open LLM, running your own image model like Stable Diffusion, or fine-tuning or training a model. If you only call someone else model through an API, you do not need one."}},
+{"@type":"Question","name":"Can I build an AI SaaS without a GPU?","acceptedAnswer":{"@type":"Answer","text":"Yes, and most are. If your product calls hosted model APIs for text, embeddings, images, or audio, you can build and run the whole thing on ordinary servers with a database. Plenty of successful AI products never provision a single GPU."}},
+{"@type":"Question","name":"GPU or API for AI: which should I pick?","acceptedAnswer":{"@type":"Answer","text":"Default to the API and self-host only when a concrete reason forces it: strict privacy, data residency, or steady high volume where per-token pricing stops adding up. APIs are simpler and need no GPU. Self-hosting gives you more control and needs one. Pick the reason first, then the hardware follows."}},
+{"@type":"Question","name":"Does RAG or embedding search need a GPU?","acceptedAnswer":{"@type":"Answer","text":"No, not when the embeddings come from an API. The GPU-heavy step, turning text into vectors, happens on the provider side. Storing and searching those vectors runs on CPU, and Postgres with pgvector handles it well for most apps."}},
+{"@type":"Question","name":"Does image or video generation need a GPU?","acceptedAnswer":{"@type":"Answer","text":"It depends where the generation runs. Through a hosted image or video API, no, because the provider GPUs do the work and you receive a file. If you self-host a model like Stable Diffusion, then yes, because that generation is GPU-bound on your own machine."}},
+{"@type":"Question","name":"Will adding a GPU make my API-based app faster?","acceptedAnswer":{"@type":"Answer","text":"No. If your app calls a hosted model, the heavy work happens on the provider servers, so a GPU on your side sits idle. It adds cost without adding speed. A GPU only helps when your own code runs a model on it."}}
+]},
+{"@type":"Organization","@id":"https://kloudbean.com/#organization","name":"Kloudbean","legalName":"Secured Orbis Pvt. Ltd.","url":"https://kloudbean.com","description":"Kloudbean is a managed multi-cloud hosting platform by Secured Orbis Pvt. Ltd. It runs your whole stack from one dashboard, application servers, managed databases, object storage, and a built-in load balancer across seven cloud providers, so builders, agencies, and founders can deploy, host, and own their apps without operating raw cloud."}
+]}
+</script>
+</body>
+</html>

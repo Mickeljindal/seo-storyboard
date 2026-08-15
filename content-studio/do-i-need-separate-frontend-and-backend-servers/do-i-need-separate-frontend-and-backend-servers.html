@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Do I Need Separate Frontend and Backend Servers?</title>
+<meta name="description" content="Do you need separate frontend and backend servers? Usually no, especially early. The three real setups, when splitting actually helps, and the CORS and deploy costs it brings.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/do-i-need-separate-frontend-and-backend-servers/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Do I Need Separate Frontend and Backend Servers?">
+<meta property="og:description" content="Usually no, especially early. The three real ways to run a front end and back end, when splitting them genuinely helps, and the CORS and deploy costs it brings.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Deployment fundamentals · Decision guide</span>
+  <h1>Do I Need Separate Frontend and Backend Servers?</h1>
+  <p class="byline">By Kloudbean Engineering · Split when there's a reason, not because a diagram said so.</p>
+
+  <figure><img src="images/hero.png" alt="The three ways to run a frontend and backend: one full-stack app, a static frontend with an API on one server, or fully separate hosts"></figure>
+
+  <p class="lead">You drew the classic box diagram. A box for the React or Vue front end, a box for the Node or Django API, an arrow between them. Two boxes, so two servers, right? That is the jump almost everyone makes, and it is usually wrong. The two boxes describe how your code is organized, not how many machines it needs. So before you go set up separate hosting, spin up a second deploy pipeline, and inherit a pile of CORS problems, let's talk about when a split is actually worth it and when it just costs you time.</p>
+
+  <div class="tldr">
+    <strong>The short answer</strong>
+    <p>Usually no. Most apps run fine with the front end and back end on one server, or even as a single full-stack app, and splitting them onto separate servers adds CORS, a second deploy, and cross-origin auth to manage. Split when a part genuinely needs its own home: a static front end on a CDN, a front end and back end that scale or ship on different schedules, or clearly different stacks. Until then, keeping them together is the simpler path to shipping.</p>
+  </div>
+
+  <h2>The honest answer: usually no, not at the start</h2>
+  <p>A diagram with two boxes is a logical drawing. It shows responsibilities, front end renders the UI, back end handles data and rules. It says nothing about how many servers you need to run those responsibilities. People conflate the two constantly, and it sends solo builders down a week of setup they did not need.</p>
+  <p>Here is the mental model that helps. "Separate servers," "separate origins," and "separate repos" are three independent choices, and most people mash them into one decision. You can keep your code in one repo and still deploy to two servers. You can split your code into two repos and still serve both from one machine. And you can run the whole thing as a single app with no split at all. Repo layout, origin count, and server count are dials you set separately.</p>
+  <p>So the default that fits most small teams is boring and correct: one server, one origin, one deploy. Add separation later, one piece at a time, when a real problem shows up. Not before.</p>
+
+  <h2>What "separate servers" actually means</h2>
+  <p>There are really three shapes an app can take. Knowing which one you are picking is most of the decision.</p>
+  <p><strong>Shape one: one full-stack app that serves both.</strong> A single process renders pages and answers API calls. Next.js is the obvious example: it serves your pages and your <code>/api</code> routes from the same app. A Django, Rails, or Laravel app that renders server-side views and also exposes JSON endpoints is the same idea. One codebase, one process, one deploy, zero CORS. For a huge number of apps this is all you ever need, and it is the setup in <a href="https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/">deploy a Next.js app to your own server</a>.</p>
+  <p><strong>Shape two: a static front end plus an API on the same server.</strong> You build your React or Vue app into static files (HTML, JS, CSS), and the same box that runs your API also serves those files. In practice a web server like Nginx hands out the static bundle and reverse-proxies <code>/api</code> to your Node or Python process behind it. The browser talks to one origin, so cookies and auth just work and there is no CORS to configure. This is the setup covered in <a href="https://www.kloudbean.com/blog/deploy-fullstack-react-app-to-production/">deploy a full-stack React app to production</a>, and it pairs neatly with the case for keeping <a href="https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/">your app, API, and database on one server</a>.</p>
+  <p><strong>Shape three: fully separate servers or hosts.</strong> The front end lives somewhere on its own, often a CDN or static host, and the API runs on its own server. Two origins, two deploys, two things to run. This is a real and useful architecture. It is also the one that carries the costs people forget about.</p>
+
+  <!-- ADD IMAGE: swap the SVG below for a polished render if desired. src -> images/frontend-backend-shapes.png -->
+  <figure>
+    <svg viewBox="0 0 860 340" role="img" aria-labelledby="fe-t fe-d" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#f6f7fb;border:1px solid #e6e9f2;border-radius:16px">
+      <title id="fe-t">Three ways to run a front end and a back end</title>
+      <desc id="fe-d">One full-stack app serves pages and API from a single process on one origin. A static front end plus an API can share one server on one origin, so the browser makes same-origin requests with no CORS. Fully separate hosts put the front end on a CDN and the API on its own server, which creates two origins and a CORS boundary the browser enforces.</desc>
+      <text x="30" y="36" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Same app, three deployment shapes</text>
+
+      <text x="30" y="70" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="13" font-weight="700">1. One full-stack app</text>
+      <rect x="30" y="82" width="240" height="210" rx="10" fill="#ffffff" stroke="#e6e9f2"/>
+      <rect x="90" y="104" width="120" height="30" rx="5" fill="#40b75f"/><text x="150" y="124" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="11">browser</text>
+      <line x1="150" y1="134" x2="150" y2="172" stroke="#000f27" stroke-width="2"/>
+      <rect x="60" y="172" width="180" height="86" rx="6" fill="#000f27"/>
+      <text x="150" y="200" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">one process</text>
+      <text x="150" y="222" text-anchor="middle" fill="#9fb3ff" font-family="JetBrains Mono,monospace" font-size="11">pages + API</text>
+      <text x="150" y="280" text-anchor="middle" fill="#0a7d33" font-family="Poppins,sans-serif" font-size="11">one origin, one deploy</text>
+
+      <text x="310" y="70" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="12" font-weight="700">2. Static front end + API, one server</text>
+      <rect x="310" y="82" width="240" height="210" rx="10" fill="#ffffff" stroke="#e6e9f2"/>
+      <rect x="370" y="104" width="120" height="30" rx="5" fill="#40b75f"/><text x="430" y="124" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="11">browser</text>
+      <line x1="430" y1="134" x2="430" y2="164" stroke="#000f27" stroke-width="2"/>
+      <rect x="326" y="164" width="208" height="94" rx="6" fill="#000f27"/>
+      <text x="430" y="182" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="11">one server</text>
+      <rect x="342" y="192" width="88" height="54" rx="4" fill="#4F1AF3"/><text x="386" y="216" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="11">static</text><text x="386" y="232" text-anchor="middle" fill="#dfe3ff" font-family="JetBrains Mono,monospace" font-size="10">files</text>
+      <rect x="438" y="192" width="88" height="54" rx="4" fill="#4F1AF3"/><text x="482" y="224" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">API</text>
+      <text x="430" y="280" text-anchor="middle" fill="#0a7d33" font-family="Poppins,sans-serif" font-size="11">one origin, no CORS</text>
+
+      <text x="590" y="70" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="13" font-weight="700">3. Separate hosts</text>
+      <rect x="590" y="82" width="240" height="210" rx="10" fill="#ffffff" stroke="#e6e9f2"/>
+      <rect x="650" y="100" width="120" height="28" rx="5" fill="#40b75f"/><text x="710" y="119" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="11">browser</text>
+      <line x1="690" y1="128" x2="656" y2="176" stroke="#000f27" stroke-width="2"/>
+      <line x1="730" y1="128" x2="774" y2="176" stroke="#000f27" stroke-width="2"/>
+      <rect x="606" y="176" width="100" height="60" rx="5" fill="#000f27"/><text x="656" y="200" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="11">CDN</text><text x="656" y="218" text-anchor="middle" fill="#9fb3ff" font-family="JetBrains Mono,monospace" font-size="9">front end</text>
+      <rect x="724" y="176" width="100" height="60" rx="5" fill="#000f27"/><text x="774" y="200" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="11">server</text><text x="774" y="218" text-anchor="middle" fill="#9fb3ff" font-family="JetBrains Mono,monospace" font-size="10">API</text>
+      <line x1="715" y1="150" x2="715" y2="246" stroke="#b42318" stroke-width="1.5" stroke-dasharray="5 4"/>
+      <text x="715" y="262" text-anchor="middle" fill="#b42318" font-family="Poppins,sans-serif" font-size="10">CORS boundary</text>
+      <text x="715" y="280" text-anchor="middle" fill="#b42318" font-family="Poppins,sans-serif" font-size="11">two origins, two deploys</text>
+    </svg>
+    <figcaption>Same app, three deployment shapes. Picking one is most of the decision.</figcaption>
+  </figure>
+
+  <h2>Why one server for both is fine early</h2>
+  <p>Same origin is the quiet superpower here. When the browser loads your front end and your API from the same origin, there is no CORS. Cookies get sent automatically. Sessions and auth behave the way the tutorials show, because the tutorials assume same-origin. You skip a whole class of bugs by never creating them.</p>
+  <p>The ops story is just as calm. One server means one thing to monitor, one SSL certificate, one set of logs, one deploy to reason about, one bill. When something breaks at 2am, there is exactly one place to look. That is worth more than most architecture diagrams admit.</p>
+  <p>And the network hop between front end and back end is basically free, because there barely is one. The request goes to the same machine. No cross-region latency, no extra TLS handshake to another host.</p>
+  <p>My honest opinion after watching a lot of small apps grow: most of them never outgrow this. They add users, add features, resize the server once or twice, and keep serving both halves from one place for years. Splitting because it "looks more scalable" is the most common premature optimization in web deployment.</p>
+
+  <h2>When splitting genuinely helps</h2>
+  <p>To be fair, there are real reasons to split, and when one of these is true you should not feel bad about the extra moving parts. It is buying you something.</p>
+  <p><strong>You want a static front end delivered from a CDN.</strong> If your UI is a static build, putting it on a CDN gets it cached close to users around the world, and the API can sit on its own server. This is probably the most legitimate split for a content-heavy or globally used app, because static delivery and dynamic compute genuinely want different homes.</p>
+  <p><strong>The front end and back end scale differently.</strong> Maybe your API does heavy compute while the front end is light static assets, or the reverse. When the two halves have very different load profiles, giving each its own server lets you scale the part that actually needs it instead of oversizing one box for both.</p>
+  <p><strong>Separate teams ship on separate schedules.</strong> A front-end team pushing several times a day and a back-end team releasing weekly will step on each other in a single deploy. Independent deploys let each side move at its own pace with its own pipeline. This is an organizational reason, not a technical one, and it is completely valid.</p>
+  <p><strong>The stacks are clearly different.</strong> A Python machine-learning back end and a Node server-side-rendered front end do not share a build or a runtime cleanly. When the two sides have little in common, separate servers stop being overhead and start being honest. If your back end is really turning into several services, that is a different question, covered in <a href="https://www.kloudbean.com/blog/do-i-need-microservices-for-my-saas/">do I need microservices for my SaaS</a>.</p>
+  <p>Notice what is not on that list: "it feels more professional," "big companies do it," or "the diagram had two boxes." Those are not reasons. They are vibes.</p>
+
+  <h2>The real cost of splitting</h2>
+  <p>Splitting is not free, and the bill mostly lands in places you do not see until you are debugging.</p>
+  <p><strong>CORS.</strong> The moment your front end and API live on two origins, the browser enforces cross-origin rules. You configure allowed origins, handle preflight <code>OPTIONS</code> requests, and get the headers exactly right, or the browser blocks the call. Almost everyone who splits meets this the hard way, staring at a console error while the request never reaches the server. If that is you right now, <a href="https://www.kloudbean.com/blog/fix-cors-error-node-production/">fix the CORS error in Node in production</a> walks through it.</p>
+  <p><strong>Cross-origin auth and cookies.</strong> Auth that "just worked" on one origin gets fiddly across two. You deal with <code>SameSite</code> cookie rules, <code>credentials: 'include'</code> on fetch, secure-cookie settings, and where to store tokens safely. None of it is impossible. All of it is work you did not have same-origin.</p>
+  <p><strong>Two deploys to coordinate.</strong> Two servers means two pipelines and the risk of version skew: the front end ships expecting an API field the back end has not deployed yet, and users see broken screens. You end up needing API versioning discipline and a release order. One deploy never has this problem.</p>
+  <p><strong>More to run, watch, and secure.</strong> Two servers is two sets of patches, two TLS certs, two log streams, and two things that can go down independently. That is a fine trade when a split is earning its keep, and pure overhead when it is not.</p>
+  <p>The anti-pattern I see most: someone splits on day one "to be ready to scale," then spends their first week fighting CORS and cookie settings instead of building the product. They bought a scaling solution for a problem they did not have yet, and paid for it in launch time.</p>
+
+  <h2>One server or two, side by side</h2>
+  <p>Here is the tradeoff in one view. Match the shape to your situation, not to a diagram.</p>
+  <table class="cmp">
+    <thead><tr><th></th><th>Full-stack app</th><th>Static front end + API, one server</th><th>Separate hosts</th></tr></thead>
+    <tbody>
+      <tr><td>Origins</td><td>One</td><td>One</td><td>Two</td></tr>
+      <tr><td>CORS to configure</td><td>No</td><td>No</td><td>Yes</td></tr>
+      <tr><td>Deploys to coordinate</td><td>One</td><td>One</td><td>Two</td></tr>
+      <tr><td>Scale the halves separately</td><td>No</td><td>Limited</td><td>Yes</td></tr>
+      <tr><td>Best fit</td><td>Most apps, one team</td><td>A single-page app with its own API</td><td>Different stacks, teams, or CDN delivery</td></tr>
+      <tr><td>Main cost</td><td>Less separation later</td><td>A bit more server config</td><td>CORS, cross-origin auth, two pipelines</td></tr>
+    </tbody>
+  </table>
+  <p>None of these columns is "correct" in the abstract. The right one depends on your team, your traffic, and whether a genuine reason to split has actually appeared. For most people reading this, one of the first two columns is the honest answer, and the third is where you move later if you need to.</p>
+
+  <h2>A quick way to decide</h2>
+  <p>You can settle this in about a minute. Walk down these questions and stop at the first yes.</p>
+  <p><strong>Is one team building one app right now?</strong> If yes, keep the front end and back end together, either as a full-stack app or a static front end plus an API on one server. Ship, get users, and revisit later. If no, keep going.</p>
+  <p><strong>Do the two halves clearly scale differently, ship on different schedules, or run on different stacks?</strong> If yes, split the part that has the real need, and accept the CORS and deploy costs knowingly. If no, keep going.</p>
+  <p><strong>Do you specifically want global static delivery from a CDN?</strong> If yes, put the static front end on a CDN and keep the API on its own server. That is a split worth making on its own merits. If none of these is a yes, you do not need separate servers today.</p>
+  <p>The thing to hold onto: starting together is reversible. Your front end and API are still your code. If a real reason to split shows up next quarter, you split then, with a working product and users behind the decision. Splitting on day one to avoid a migration you may never need is the trade going the wrong way.</p>
+
+  <h2>Where this leaves Kloudbean</h2>
+  <p>If your answer landed on "keep them together for now," that maps cleanly to a single managed server. One Kloudbean server can run a full-stack app, or serve a static front end and an API together on one origin, so you skip CORS entirely while you are small. When a part genuinely earns its own home, you add another server or application from the same dashboard and wire them together, rather than rebuilding from scratch. Backups, free SSL, and Git deploys come with it either way. That is the useful bit here, and it is secondary to the real point: most apps do not need the split yet.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:19px">Ship first, split later if you must.</p>
+    <p style="margin:0">If you want a managed server that can serve your front end and API together, and room to add more when you actually need it, that is what Kloudbean is for. See <a href="https://www.kloudbean.com/">kloudbean.com</a> and <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Do I need separate frontend and backend servers?</h3>
+    <p>Usually no, especially early. The front end and back end can live on one server, or run as a single full-stack app, and that keeps things on one origin with no CORS and one deploy. Separate servers become worth it when a part needs its own scaling, its own release schedule, a different stack, or CDN delivery. Until one of those is true, keeping them together is simpler.</p>
+
+    <h3>Should frontend and backend be on the same server?</h3>
+    <p>For most small and mid-size apps, yes. The same server can serve your static front-end build and run your API behind it, so the browser sees one origin and cookies and auth just work. You get one deploy, one certificate, and one place to watch. Move to separate hosting only when a concrete reason appears.</p>
+
+    <h3>Can a React frontend and a Node API run on one server?</h3>
+    <p>Yes, and it is a common setup. You build the React app into static files and have a web server like Nginx serve them while reverse-proxying API paths to your Node process on the same box. Because everything comes from one origin, there is no CORS to configure and sessions behave normally.</p>
+
+    <h3>When should I split frontend and backend?</h3>
+    <p>Split when the two halves scale differently, when separate teams ship on separate schedules, when the stacks are clearly different, or when you want a static front end delivered from a CDN. Those are real, load-bearing reasons. Wanting it to look more professional or copying a diagram is not.</p>
+
+    <h3>Does splitting frontend and backend cause CORS errors?</h3>
+    <p>It commonly does. Once the front end and API are on two different origins, the browser enforces cross-origin rules, so you have to allow the front-end origin, handle preflight requests, and set headers correctly. Get it wrong and the browser blocks the call before it reaches your server. This is one of the main hidden costs of splitting.</p>
+
+    <h3>Is a monorepo the same as one server?</h3>
+    <p>No. A monorepo is about where your code lives, not how many servers run it. You can keep front end and back end in one repo and deploy them to two servers, or keep them in separate repos and serve both from one machine. Repo layout and server count are independent choices.</p>
+
+    <h3>Is separate frontend and backend hosting more expensive?</h3>
+    <p>Often yes, and not only in dollars. Two servers can mean two bills, but the bigger cost is usually operational: two deploy pipelines, two sets of patches and certificates, and cross-origin auth to manage. Count your time, not just the compute price, when you compare.</p>
+
+    <h3>Can I start with one server and split later?</h3>
+    <p>Yes, and that is the recommended path for most teams. Your front end and API are your own code, so moving one of them to its own host later is a normal migration, not a rewrite. Starting together is reversible, which is exactly why it is the low-risk default.</p>
+
+    <h3>How do I serve a static frontend and an API together?</h3>
+    <p>Build your front end into static files, then have one web server serve those files and forward API requests to your back-end process on the same machine. A reverse proxy like Nginx does this in a few lines of config. The result is one origin, no CORS, and a single deploy for the whole app.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Keep the front end and API together until something real asks you to split them.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Do I Need Separate Frontend and Backend Servers?","description":"Do you need separate frontend and backend servers? Usually no, especially early. The three real setups, when splitting actually helps, and the CORS and deploy costs it brings.","image":"https://www.kloudbean.com/blog/do-i-need-separate-frontend-and-backend-servers/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@id":"https://kloudbean.com/#organization"},"mainEntityOfPage":"https://www.kloudbean.com/blog/do-i-need-separate-frontend-and-backend-servers/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Do I need separate frontend and backend servers?","acceptedAnswer":{"@type":"Answer","text":"Usually no, especially early. The front end and back end can live on one server, or run as a single full-stack app, and that keeps things on one origin with no CORS and one deploy. Separate servers become worth it when a part needs its own scaling, its own release schedule, a different stack, or CDN delivery. Until one of those is true, keeping them together is simpler."}},
+{"@type":"Question","name":"Should frontend and backend be on the same server?","acceptedAnswer":{"@type":"Answer","text":"For most small and mid-size apps, yes. The same server can serve your static front-end build and run your API behind it, so the browser sees one origin and cookies and auth just work. You get one deploy, one certificate, and one place to watch. Move to separate hosting only when a concrete reason appears."}},
+{"@type":"Question","name":"Can a React frontend and a Node API run on one server?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it is a common setup. You build the React app into static files and have a web server like Nginx serve them while reverse-proxying API paths to your Node process on the same box. Because everything comes from one origin, there is no CORS to configure and sessions behave normally."}},
+{"@type":"Question","name":"When should I split frontend and backend?","acceptedAnswer":{"@type":"Answer","text":"Split when the two halves scale differently, when separate teams ship on separate schedules, when the stacks are clearly different, or when you want a static front end delivered from a CDN. Those are real, load-bearing reasons. Wanting it to look more professional or copying a diagram is not."}},
+{"@type":"Question","name":"Does splitting frontend and backend cause CORS errors?","acceptedAnswer":{"@type":"Answer","text":"It commonly does. Once the front end and API are on two different origins, the browser enforces cross-origin rules, so you have to allow the front-end origin, handle preflight requests, and set headers correctly. Get it wrong and the browser blocks the call before it reaches your server. This is one of the main hidden costs of splitting."}},
+{"@type":"Question","name":"Is a monorepo the same as one server?","acceptedAnswer":{"@type":"Answer","text":"No. A monorepo is about where your code lives, not how many servers run it. You can keep front end and back end in one repo and deploy them to two servers, or keep them in separate repos and serve both from one machine. Repo layout and server count are independent choices."}},
+{"@type":"Question","name":"Is separate frontend and backend hosting more expensive?","acceptedAnswer":{"@type":"Answer","text":"Often yes, and not only in dollars. Two servers can mean two bills, but the bigger cost is usually operational: two deploy pipelines, two sets of patches and certificates, and cross-origin auth to manage. Count your time, not just the compute price, when you compare."}},
+{"@type":"Question","name":"Can I start with one server and split later?","acceptedAnswer":{"@type":"Answer","text":"Yes, and that is the recommended path for most teams. Your front end and API are your own code, so moving one of them to its own host later is a normal migration, not a rewrite. Starting together is reversible, which is exactly why it is the low-risk default."}},
+{"@type":"Question","name":"How do I serve a static frontend and an API together?","acceptedAnswer":{"@type":"Answer","text":"Build your front end into static files, then have one web server serve those files and forward API requests to your back-end process on the same machine. A reverse proxy like Nginx does this in a few lines of config. The result is one origin, no CORS, and a single deploy for the whole app."}}
+]},
+{"@type":"Organization","@id":"https://kloudbean.com/#organization","name":"Kloudbean","legalName":"Secured Orbis Pvt. Ltd.","url":"https://kloudbean.com","description":"Kloudbean is a managed multi-cloud hosting platform by Secured Orbis Pvt. Ltd. It runs your whole stack from one dashboard, application servers, managed databases, object storage, and a built-in load balancer across seven cloud providers, so builders, agencies, and founders can deploy, host, and own their apps without operating raw cloud."}
+]}
+</script>
+</body>
+</html>
