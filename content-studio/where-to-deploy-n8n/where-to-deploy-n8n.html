@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where to Deploy n8n: n8n Cloud vs Self-Hosting</title>
+<meta name="description" content="Where to deploy n8n: n8n Cloud vs self-hosting the open-source version, compared fairly. The n8n-specific traits that decide it, and what a host must provide if you self-host.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/where-to-deploy-n8n/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Where to Deploy n8n: n8n Cloud vs Self-Hosting">
+<meta property="og:description" content="n8n Cloud vs self-hosting, compared fairly. The traits that decide it, and what a host must provide if you self-host: an always-on server, a database, persistent storage, and a stable HTTPS webhook URL.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Self-hosted tools · Decision guide</span>
+  <h1>Where to Deploy n8n: n8n Cloud vs Self-Hosting</h1>
+  <p class="byline">By Kloudbean Engineering · It holds your credentials, so where it runs matters.</p>
+
+  <figure><img src="images/hero.png" alt="Where to deploy n8n: n8n Cloud versus self-hosting the same open-source automation tool"></figure>
+
+  <p class="lead">So you've built a few workflows in n8n, they work, and now there's a real question to answer: where to deploy n8n so it runs reliably without babysitting. Two answers dominate. There's n8n Cloud, the managed service the n8n team runs for you, and there's self-hosting the open-source version on a server you control. People treat this like a tribal argument. It isn't one. n8n has a handful of specific traits that quietly settle the decision, and once you can see them, picking a home for it gets a lot easier.</p>
+
+  <div class="tldr">
+    <strong>The short answer</strong>
+    <p>n8n is an open-source workflow-automation tool, and you can run it two ways. n8n Cloud is the managed service: quickest to start, zero operations, newest features first. Self-hosting runs the same open-source software on a server you control, which keeps your stored credentials on your own infrastructure and makes cost track your server instead of a per-execution plan. Wherever you self-host, n8n needs to stay running, needs a database and persistent storage, and needs a stable public URL with SSL for its webhooks. Pick Cloud for hands-off speed. Self-host when data control or cost predictability matters more.</p>
+  </div>
+
+  <h2>Where to deploy n8n: the two real options</h2>
+  <p>Start with what n8n actually is, because it changes the framing. n8n is open-source workflow automation, a self-hostable cousin of tools like Zapier and Make. A trigger fires, a chain of nodes does the work, and the whole thing runs as software you can either rent or run yourself.</p>
+  <p>That gives you two real places to deploy it.</p>
+  <p>n8n Cloud is the hosted service the n8n company operates. You sign in, build workflows, and never touch a server. Self-hosting means taking the open-source edition and running it on infrastructure you control, whether that's a raw VPS you configure by hand or a managed platform that stands it up for you.</p>
+  <p>Here's the part worth sitting with: it's the same core software either way. The nodes, the editor, and the workflows all behave the same. So the decision isn't really about features. It's about who operates the thing and where your data and credentials physically live. Frame it that way and most of the noise falls away.</p>
+  <p>One thing this page is not: a setup tutorial. The mechanics of installing it, wiring the database, and setting the environment variables live in the <a href="https://www.kloudbean.com/blog/self-host-n8n/">self-host n8n</a> walkthrough. This page is only the where-and-who decision.</p>
+
+  <h2>Why n8n isn't a normal web app</h2>
+  <p>Most deployment advice assumes a normal web app: it wakes when a request arrives, serves it, and can happily scale to zero when idle. n8n breaks that assumption in a few ways, and those breaks are exactly what decide where it should run.</p>
+  <p><strong>It has to stay awake.</strong> n8n runs scheduled workflows and catches incoming webhooks. A cron trigger that should fire at 9am only fires if n8n is actually running at 9am. A webhook only gets caught if n8n is listening when the sender calls. That rules out scale-to-zero serverless hosting, the kind that spins down when idle and cold-starts on the next request. A sleeping n8n misses the schedule and drops the webhook. It needs to stay running, full stop.</p>
+  <p><strong>It needs a database.</strong> Your workflows, execution history, and saved credentials have to persist somewhere durable. n8n can use its bundled SQLite for a quick test, but for anything real you want it pointed at a proper database, usually PostgreSQL. That isn't optional polish. Lose the database and you lose your automations and their stored connections.</p>
+  <p><strong>It needs persistent storage.</strong> Beyond the database, n8n keeps state on disk. On ephemeral hosting where the filesystem resets on every redeploy, that state evaporates. It needs a disk that survives restarts and deploys.</p>
+  <p><strong>Its webhooks need a stable public URL with SSL.</strong> External services call your workflows over HTTPS. For that to work, n8n needs a fixed public address with a valid certificate that the sender can reach every time. A URL that keeps changing, or one without SSL, quietly breaks integrations and you often don't notice until a workflow silently stops firing.</p>
+  <p>And the quiet one that matters most: <strong>n8n stores sensitive third-party credentials.</strong> Every service you connect leaves an API key, a token, or a login behind. n8n encrypts those and saves them wherever it runs. So the question isn't purely technical. Where n8n runs is where the keys to your other tools sit. That makes it a data-control decision as much as a hosting one.</p>
+
+  <h2>n8n Cloud vs self-hosted: the honest tradeoff</h2>
+  <p>The tradeoff is the familiar one, convenience against control. n8n Cloud does the operations for you and hands you a running product. Self-hosting hands you the keys and the responsibilities that come with them. Neither is smarter in the abstract. They fit different situations.</p>
+  <table class="cmp">
+    <thead><tr><th></th><th>n8n Cloud</th><th>Self-hosted n8n</th></tr></thead>
+    <tbody>
+      <tr><td>Time to first workflow</td><td>Sign in and build</td><td>Install or one-click, then set config</td></tr>
+      <tr><td>Who runs the server, upgrades, backups</td><td>The n8n team</td><td>You, or your managed platform</td></tr>
+      <tr><td>Newest features</td><td>Land here first</td><td>Arrive when you update</td></tr>
+      <tr><td>Where credentials and data live</td><td>Their available regions</td><td>Any region you can run a server in</td></tr>
+      <tr><td>Cost shape</td><td>Scales with executions and plan</td><td>Flat server cost, bounded by your server</td></tr>
+      <tr><td>Staying always-on for webhooks and schedules</td><td>Handled for you</td><td>Yours to keep running</td></tr>
+      <tr><td>Best for</td><td>Quickest hands-off start</td><td>Data control, cost predictability at volume</td></tr>
+    </tbody>
+  </table>
+  <p>Read the last two rows twice, they carry the decision. If a hands-off start is what you value most, Cloud is a strong, honest answer. If keeping credentials on your own infrastructure and a predictable bill matter more, self-hosting earns its weight. Most people know which line is theirs the moment they read it.</p>
+
+  <!-- ADD IMAGE: swap the SVG below for a polished version if desired. src -> images/n8n-always-on.png -->
+  <figure>
+    <svg viewBox="0 0 820 320" role="img" aria-labelledby="n8n-t n8n-d" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#f6f7fb;border:1px solid #e6e9f2;border-radius:16px">
+      <title id="n8n-t">Why n8n has to stay awake</title>
+      <desc id="n8n-d">Webhooks and scheduled triggers keep arriving, so n8n must be running to catch them. It reads and writes to a database that holds workflows and encrypted credentials, needs persistent storage, and needs tested backups. Scale-to-zero hosting lets it sleep and miss those triggers.</desc>
+      <text x="30" y="36" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Why n8n has to stay awake</text>
+
+      <text x="40" y="74" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="700">Triggers keep arriving</text>
+      <rect x="40" y="86" width="190" height="40" rx="6" fill="#000f27"/><text x="135" y="111" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="12">incoming webhook</text>
+      <rect x="40" y="136" width="190" height="40" rx="6" fill="#000f27"/><text x="135" y="161" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="12">cron schedule</text>
+
+      <line x1="234" y1="131" x2="292" y2="131" stroke="#4F1AF3" stroke-width="2"/>
+      <polygon points="292,125 302,131 292,137" fill="#4F1AF3"/>
+
+      <rect x="305" y="86" width="200" height="90" rx="10" fill="#4F1AF3"/>
+      <text x="405" y="123" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="18" font-weight="700">n8n</text>
+      <text x="405" y="148" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">always running</text>
+
+      <line x1="507" y1="131" x2="546" y2="131" stroke="#4F1AF3" stroke-width="2"/>
+      <polygon points="546,125 556,131 546,137" fill="#4F1AF3"/>
+
+      <text x="560" y="74" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="700">What it must persist</text>
+      <rect x="560" y="86" width="234" height="40" rx="6" fill="#000f27"/><text x="677" y="111" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="11">database: workflows + credentials</text>
+      <rect x="560" y="136" width="234" height="40" rx="6" fill="#000f27"/><text x="677" y="161" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="11">persistent storage</text>
+      <rect x="560" y="186" width="234" height="40" rx="6" fill="#40b75f"/><text x="677" y="211" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="11">tested backups</text>
+
+      <text x="410" y="266" text-anchor="middle" fill="#b42318" font-family="Poppins,sans-serif" font-size="12">Scale-to-zero lets it sleep, and a sleeping n8n misses the webhook and skips the schedule.</text>
+      <text x="410" y="290" text-anchor="middle" fill="#5b6472" font-family="Poppins,sans-serif" font-size="12">Webhooks also need a stable public URL with SSL, so the sender always finds it.</text>
+    </svg>
+    <figcaption>Scale-to-zero lets n8n sleep, and a sleeping n8n misses the webhook and skips the schedule. That single trait decides more than any feature list.</figcaption>
+  </figure>
+
+  <h2>What n8n Cloud does better</h2>
+  <p>Let me be fair here, because n8n Cloud is genuinely good and pretending otherwise wastes your time.</p>
+  <p>It gets you running quickest. You sign in and build, with nothing to install and no server to think about. For a first automation or a small team, that head start is real.</p>
+  <p>It removes operations entirely. The n8n team runs the servers, patches the software, keeps it always-on, and handles the platform's backups. You never think about a full disk, a certificate that expired, or a version upgrade at an awkward hour. When it's just you and a to-do list, that's a lot of weight you don't carry.</p>
+  <p>And it gets new features first. n8n ships to its hosted platform before those changes reach the self-hosted release, so if you want the newest capabilities the day they land, Cloud is where they land. If speed and zero ops are what you value most, that's a perfectly grown-up choice.</p>
+
+  <h2>What self-hosting actually gives you</h2>
+  <p>The flip side is just as real. Self-hosting isn't about the software being better. It's the same software. What you gain is control over the things a hosted plan decides for you.</p>
+  <p>You choose where the data and credentials live. Self-hosting lets you put n8n on a server in a region you pick and keep those encrypted third-party keys on infrastructure you control. For a lot of teams, that alone is the reason.</p>
+  <p>Your cost shape changes. A flat server doesn't care whether you run ten workflows or ten thousand, so as execution volume grows, the bill is bounded by your server rather than a per-execution plan. It behaves more like a fixed line than a meter that keeps nudging up.</p>
+  <p>You control the stack. Your versions, your config, your tuning, on a box you can see and reason about. And there's no lock-in worth the name, because it's the open-source edition you can move whenever you want. The same cloud-versus-self-host call shows up for other open tools too, and the reasoning carries over cleanly to <a href="https://www.kloudbean.com/blog/self-hosted-supabase-vs-supabase-cloud/">self-hosted Supabase vs Supabase Cloud</a> if you're weighing more than one.</p>
+
+  <h2>What a host must provide to run n8n</h2>
+  <p>If you land on the self-host path, the traits above turn into a short shopping list. Whatever you run n8n on, raw VPS or managed platform, it needs to provide these.</p>
+  <ul>
+    <li><strong>An always-on server.</strong> Not scale-to-zero, not serverless that idles down. n8n has to be running to catch schedules and webhooks.</li>
+    <li><strong>A real database.</strong> Ideally a <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a> so your workflows and encrypted credentials persist and get backed up, rather than sitting in a throwaway SQLite file.</li>
+    <li><strong>Persistent storage.</strong> A disk that survives restarts and redeploys, so n8n's state doesn't reset underneath you.</li>
+    <li><strong>A stable public URL with SSL.</strong> A fixed HTTPS address for the webhook endpoints, with a certificate that renews itself so integrations keep working.</li>
+    <li><strong>Backups you've actually restored.</strong> Because your automations and their credentials live in that database, a tested backup is the difference between a bad hour and a bad month. The <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups guide</a> covers doing this properly.</li>
+    <li><strong>Room to grow.</strong> Enough CPU and memory for your busiest workflows, and a straightforward way to resize when volume climbs.</li>
+  </ul>
+  <p>If a platform can't offer all of these, it's the wrong home for n8n, no matter how cheap it looks. This is also why a <a href="https://www.kloudbean.com/blog/what-is-a-managed-server/">managed server</a> tends to fit n8n well: the always-on box, the database, SSL, and the backups come as one thing rather than six you assemble.</p>
+
+  <h2>Choose n8n Cloud if...</h2>
+  <p>Be honest with yourself against this list. If most of it sounds like you, stay on Cloud and don't feel like you're missing out.</p>
+  <ul>
+    <li>You want the shortest path to running automations and would rather spend your energy building workflows.</li>
+    <li>You don't want to operate a server, keep it patched, or own the backups.</li>
+    <li>You want the newest n8n features the day they ship.</li>
+    <li>You're comfortable with pricing that scales with executions, and with where their regions place your data.</li>
+    <li>Your volume sits comfortably inside a plan and the bill isn't stinging.</li>
+  </ul>
+  <p>There's no prize for self-hosting when hosted fits. For plenty of teams, this is the right and sensible answer.</p>
+
+  <h2>Consider self-hosting if...</h2>
+  <p>And if most of this list is you, the operational weight is probably worth carrying.</p>
+  <ul>
+    <li>Your workflows hold credentials for systems you'd rather keep on infrastructure you control.</li>
+    <li>A rule, a client, or a regulator says your data must stay in a specific country.</li>
+    <li>Your execution volume is climbing and you want a flat, predictable server cost instead of a per-execution bill.</li>
+    <li>You want full control over versions, config, and the box it runs on.</li>
+    <li>You already run your own infrastructure, so n8n is one more service on a setup you operate anyway.</li>
+  </ul>
+  <p>Notice none of these is "because self-hosting is more hardcore." They're concrete needs. Have one, and self-hosting pays off. Have none, and it's cost without a matching benefit.</p>
+
+  <h2>If you self-host, where does it run?</h2>
+  <p>If you've decided to self-host, you still need somewhere to run it, and you don't have to hand-assemble the pieces. On Kloudbean, n8n is a one-click app that deploys onto a managed server that stays running, with a managed PostgreSQL for its workflows and credentials, free SSL for the webhook URL, and automatic backups. Your workflows and the credentials they hold stay yours, in the cloud and region you choose. That's the honest boundary of managed: the platform runs the server, the stack, SSL, and backups, while you own your automations and your data.</p>
+  <p>None of this makes it a replacement for n8n Cloud. If a hands-off hosted service is what you want, n8n Cloud is the cleaner fit. This is simply one place to self-host if you've decided that's your path, and the general playbook for standing up a self-run app is in <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploy an AI-built app to production</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:19px">Decided to self-host? Give it a soft landing.</p>
+    <p style="margin:0 0 .5em">Launch n8n in one click on a managed, always-on server, with a managed database, free SSL for the webhook URL, and automatic backups, your workflows and credentials staying yours. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>, or see plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:14px; opacity:.85">One-click n8n · Managed PostgreSQL · Automatic backups · Free SSL · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Where should I deploy n8n?</h3>
+    <p>Deploy n8n on n8n Cloud if you want the quickest, hands-off start and are happy with usage-based pricing and their regions. Self-host it on a server you control if you want your stored credentials on your own infrastructure, a flat cost as execution volume grows, or data in a specific region. The software is identical either way, so the real question is who operates it and where your data lives.</p>
+
+    <h3>Should I use n8n Cloud or self-host n8n?</h3>
+    <p>Use n8n Cloud when zero operations and being on the newest version matter most, and self-host when data control, region choice, or cost predictability at higher volume matter more. Cloud removes all the ops work. Self-hosting gives you the box, the credentials, and a bill bounded by your server rather than a per-execution plan. Match the choice to what you actually value.</p>
+
+    <h3>Why is serverless or scale-to-zero a poor fit for n8n?</h3>
+    <p>Because n8n runs scheduled workflows and receives webhooks, so it has to be running to catch them. Scale-to-zero hosting spins the app down when idle and cold-starts it on the next request. A scheduled workflow whose trigger arrives while the app is asleep simply doesn't fire, and a webhook sent to a sleeping instance is missed. n8n needs a home that stays running.</p>
+
+    <h3>Does self-hosted n8n need a separate database?</h3>
+    <p>For anything real, yes. n8n can use a bundled SQLite file for a quick test, but a proper database, usually PostgreSQL, is what you want for durable workflow data, execution history, and stored credentials. A managed PostgreSQL is the clean option because it's backed up and maintained for you, so the data your automations depend on isn't sitting in a fragile local file.</p>
+
+    <h3>Do n8n webhooks need a public URL with SSL?</h3>
+    <p>Yes. Webhook triggers work by external services sending HTTPS requests to your n8n instance, so it needs a fixed public address with a valid SSL certificate the sender can reach every time. If the URL changes or lacks SSL, those calls fail and the affected workflows quietly stop firing. A stable domain with automatic SSL is part of what any host for n8n has to provide.</p>
+
+    <h3>Is self-hosting n8n cheaper than n8n Cloud?</h3>
+    <p>Past a certain execution volume it often is, because a self-hosted server is a flat cost while hosted pricing scales with usage and plan. For light use the hosted option is usually the better deal once you count your own time running a server. Model your realistic busy month rather than your quiet one, and compare current pricing yourself instead of trusting a rule of thumb.</p>
+
+    <h3>Where are my credentials stored when I self-host n8n?</h3>
+    <p>On the server where n8n runs. Every connected service leaves an encrypted API key, token, or login in n8n's database, so self-hosting keeps those on infrastructure you control rather than a third party's. That's the main reason data-sensitive teams self-host. It also means protecting that server and its database, with strong credentials and tested backups, is squarely your responsibility.</p>
+
+    <h3>Can I move from n8n Cloud to self-hosted later?</h3>
+    <p>Yes, and it's a normal path. You export your workflows and credentials from the Cloud instance and import them into your self-hosted one, then re-point any webhook URLs to the new address. Do it while the Cloud instance is still live and verify before you cut over, so starting on Cloud never locks you in. It's the same software on both ends.</p>
+
+    <h3>What does a host need to provide to run n8n?</h3>
+    <p>An always-on server that doesn't scale to zero, a durable database (ideally managed PostgreSQL) for workflows and credentials, persistent storage that survives redeploys, a stable public URL with SSL for webhooks, and reliable, tested backups. Enough room to grow for busy workflows rounds it out. A managed server bundles these into one thing instead of six you wire together yourself.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Decide who runs it, then decide where.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Where to Deploy n8n: n8n Cloud vs Self-Hosting","description":"Where to deploy n8n: n8n Cloud vs self-hosting the open-source version, compared fairly. The n8n-specific traits that decide it, and what a host must provide if you self-host.","image":"https://www.kloudbean.com/blog/where-to-deploy-n8n/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@id":"https://kloudbean.com/#organization"},"mainEntityOfPage":"https://www.kloudbean.com/blog/where-to-deploy-n8n/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Where should I deploy n8n?","acceptedAnswer":{"@type":"Answer","text":"Deploy n8n on n8n Cloud if you want the quickest, hands-off start and are happy with usage-based pricing and their regions. Self-host it on a server you control if you want your stored credentials on your own infrastructure, a flat cost as execution volume grows, or data in a specific region. The software is identical either way, so the real question is who operates it and where your data lives."}},
+{"@type":"Question","name":"Should I use n8n Cloud or self-host n8n?","acceptedAnswer":{"@type":"Answer","text":"Use n8n Cloud when zero operations and being on the newest version matter most, and self-host when data control, region choice, or cost predictability at higher volume matter more. Cloud removes all the ops work. Self-hosting gives you the box, the credentials, and a bill bounded by your server rather than a per-execution plan. Match the choice to what you actually value."}},
+{"@type":"Question","name":"Why is serverless or scale-to-zero a poor fit for n8n?","acceptedAnswer":{"@type":"Answer","text":"Because n8n runs scheduled workflows and receives webhooks, so it has to be running to catch them. Scale-to-zero hosting spins the app down when idle and cold-starts it on the next request. A scheduled workflow whose trigger arrives while the app is asleep simply does not fire, and a webhook sent to a sleeping instance is missed. n8n needs a home that stays running."}},
+{"@type":"Question","name":"Does self-hosted n8n need a separate database?","acceptedAnswer":{"@type":"Answer","text":"For anything real, yes. n8n can use a bundled SQLite file for a quick test, but a proper database, usually PostgreSQL, is what you want for durable workflow data, execution history, and stored credentials. A managed PostgreSQL is the clean option because it is backed up and maintained for you, so the data your automations depend on is not sitting in a fragile local file."}},
+{"@type":"Question","name":"Do n8n webhooks need a public URL with SSL?","acceptedAnswer":{"@type":"Answer","text":"Yes. Webhook triggers work by external services sending HTTPS requests to your n8n instance, so it needs a fixed public address with a valid SSL certificate the sender can reach every time. If the URL changes or lacks SSL, those calls fail and the affected workflows quietly stop firing. A stable domain with automatic SSL is part of what any host for n8n has to provide."}},
+{"@type":"Question","name":"Is self-hosting n8n cheaper than n8n Cloud?","acceptedAnswer":{"@type":"Answer","text":"Past a certain execution volume it often is, because a self-hosted server is a flat cost while hosted pricing scales with usage and plan. For light use the hosted option is usually the better deal once you count your own time running a server. Model your realistic busy month rather than your quiet one, and compare current pricing yourself instead of trusting a rule of thumb."}},
+{"@type":"Question","name":"Where are my credentials stored when I self-host n8n?","acceptedAnswer":{"@type":"Answer","text":"On the server where n8n runs. Every connected service leaves an encrypted API key, token, or login in n8n's database, so self-hosting keeps those on infrastructure you control rather than a third party's. That is the main reason data-sensitive teams self-host. It also means protecting that server and its database, with strong credentials and tested backups, is squarely your responsibility."}},
+{"@type":"Question","name":"Can I move from n8n Cloud to self-hosted later?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it is a normal path. You export your workflows and credentials from the Cloud instance and import them into your self-hosted one, then re-point any webhook URLs to the new address. Do it while the Cloud instance is still live and verify before you cut over, so starting on Cloud never locks you in. It is the same software on both ends."}},
+{"@type":"Question","name":"What does a host need to provide to run n8n?","acceptedAnswer":{"@type":"Answer","text":"An always-on server that does not scale to zero, a durable database (ideally managed PostgreSQL) for workflows and credentials, persistent storage that survives redeploys, a stable public URL with SSL for webhooks, and reliable, tested backups. Enough room to grow for busy workflows rounds it out. A managed server bundles these into one thing instead of six you wire together yourself."}}
+]},
+{"@type":"Organization","@id":"https://kloudbean.com/#organization","name":"Kloudbean","legalName":"Secured Orbis Pvt. Ltd.","url":"https://kloudbean.com","description":"Kloudbean is a managed multi-cloud hosting platform by Secured Orbis Pvt. Ltd. It runs your whole stack from one dashboard, application servers, managed databases, object storage, and a built-in load balancer across seven cloud providers, so builders, agencies, and founders can deploy, host, and own their apps without operating raw cloud."}
+]}
+</script>
+</body>
+</html>

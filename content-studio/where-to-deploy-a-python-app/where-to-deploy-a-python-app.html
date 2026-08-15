@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where to Deploy a Python App: An Honest Decision Guide</title>
+<meta name="description" content="Where to deploy a Python app (Django, FastAPI, or Flask): the real options compared. A managed platform, a raw VPS you run yourself, or serverless functions, and which one actually fits your app.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/where-to-deploy-a-python-app/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Where to Deploy a Python App: An Honest Decision Guide">
+<meta property="og:description" content="Django, FastAPI, or Flask: a managed platform, a raw VPS, or serverless functions? A fair decision guide that starts with how your Python app actually runs.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Python hosting · Decision guide</span>
+  <h1>Where to Deploy a Python App: An Honest Decision Guide</h1>
+  <p class="byline">By Kloudbean Engineering · Match the host to how your Python app actually runs.</p>
+
+  <figure><img src="images/hero.png" alt="How a Python web app runs: a persistent process behind a WSGI or ASGI server, versus serverless functions that spin up per request"></figure>
+
+  <p class="lead">So you've built a Python web app, maybe a Django project, a FastAPI service, or a small Flask app, and now the real question is where to deploy a Python app without picking the wrong home. Every option promises to be easy, and most "best Python hosting" lists just rank logos. This guide does the opposite. It starts with how your app actually runs, then walks the three real kinds of home, a managed platform, a raw VPS you run yourself, or serverless functions, and says plainly which one fits which job. No always-win pitch.</p>
+
+  <div class="tldr">
+    <strong>The short answer</strong>
+    <p>It depends on how your app runs. A Django, Flask, or FastAPI app is a long-running process that sits behind a WSGI or ASGI server, so a persistent home (a managed platform, or a VPS you run yourself) suits an always-on app with a database and background jobs. Serverless functions fit light, bursty, stateless endpoints, but their cold starts and request timeouts get in the way of long requests, streaming, and steady background work.</p>
+  </div>
+
+  <h2>The honest answer: it depends on how your app runs</h2>
+  <p>Most "where to deploy" posts hand you a ranked list of platforms. That's backwards. The home that's perfect for a tiny webhook is a poor fit for a Django app with a database and a queue of background jobs, and a setup built for one long-running API is overkill for a function that runs for a second a day. So start with your app, not the logo on the pricing page.</p>
+  <p>A Python web app has a shape worth naming out loud. It's a program that starts up once, loads your framework and your code into memory, and then stays running, answering requests as they arrive. That one fact, that it's a persistent process, quietly decides most of this. Some hosts are built to keep a process alive around the clock. Others spin your code up per request and tear it down after. Neither is wrong. They're built for different kinds of work, and the trick is knowing which kind you have.</p>
+  <p>So the real decision isn't "which platform is best." It's "does my app want an always-on process, and where should its data and its background work live." Answer that and the shortlist writes itself.</p>
+
+  <h2>WSGI, ASGI, and why a Python web app is a long-running process</h2>
+  <p>Here's the part the platform ads skip, and it's the part that actually decides where your app is happy. A Python web framework doesn't talk to the internet directly. It speaks through a standard interface, and there are two of them.</p>
+  <p>Django and Flask are, by default, WSGI apps. WSGI is the classic synchronous interface: a request comes in, a worker handles it start to finish, then picks up the next one. FastAPI is an ASGI app. ASGI is the newer asynchronous interface that also handles WebSockets and long-lived connections, which is why FastAPI gets reached for on real-time and high-concurrency work. Django can run under ASGI too, once you opt in.</p>
+  <p>Either way, something has to run that app as a real process. That's the job of a server like Gunicorn (the common WSGI choice) or Uvicorn (the common ASGI choice), usually set up to launch several worker processes and restart them if they die. In production you often pair them, with Gunicorn managing a pool of Uvicorn workers for an async app. The mental model to carry: your code is a long-lived process, or a small pool of them, waiting for requests. It has warm memory, open database connections, maybe a cache. It doesn't want to be born and killed on every request.</p>
+  <p>That single detail is the fork in the road. A host that keeps that process alive is a natural fit. A host that runs code per request, then freezes it, is working against the grain of a typical web app, and you'll feel that friction most on the slow parts, the streaming parts, and the always-on parts of your product.</p>
+
+  <h2>What a Python app needs wherever you host it</h2>
+  <p>Before comparing homes, get clear on the full shape of what you're deploying. A Python web app is rarely just the web process. Most real apps need a few pieces, and where each one lives matters as much as where the app lives.</p>
+  <ul>
+    <li><strong>The app process itself.</strong> Your Django, FastAPI, or Flask code, run by Gunicorn or Uvicorn workers, kept alive and restarted if it crashes.</li>
+    <li><strong>A database.</strong> Almost always PostgreSQL or MySQL. It wants to sit close to your app so queries stay quick, and it wants backups. A managed database saves you from babysitting it.</li>
+    <li><strong>Somewhere for background tasks.</strong> If you send email, process images, or run anything slow, you'll reach for Celery or RQ, and those workers are extra long-running processes with a broker (often Redis) behind them.</li>
+    <li><strong>Secrets.</strong> API keys and the database URL kept out of your code, in environment variables, never committed to Git.</li>
+    <li><strong>A domain with SSL.</strong> A custom domain and an HTTPS certificate, which most hosts can handle for you now.</li>
+    <li><strong>Backups.</strong> Automatic, and tested at least once, because the day you need one is not the day to discover it never ran.</li>
+  </ul>
+  <p>Notice how much of that assumes things stay running: the web workers, the task workers, the broker. That's the tell. A typical Python app is a small cluster of persistent processes plus a database, not a single stateless function. Keep that picture in mind as we look at the three ways to host it.</p>
+
+  <h2>The three real options: managed platform, raw VPS, or serverless</h2>
+  <p>Strip away the brand names and there are three genuine categories, not fifty. Each is a real answer for a real situation.</p>
+  <table class="cmp">
+    <thead><tr><th></th><th>Managed platform</th><th>Raw VPS (you run it)</th><th>Serverless functions</th></tr></thead>
+    <tbody>
+      <tr><td>What you get</td><td>A server with the app and database handled</td><td>Root on a plain Linux box</td><td>Code that runs per request</td></tr>
+      <tr><td>Who runs the OS, SSL, backups</td><td>The platform</td><td>You</td><td>The provider</td></tr>
+      <tr><td>Fits a long-running process</td><td>Yes</td><td>Yes</td><td>Not really</td></tr>
+      <tr><td>Background jobs, WebSockets</td><td>Yes</td><td>Yes</td><td>Hard or unsupported</td></tr>
+      <tr><td>Setup effort</td><td>Low</td><td>High</td><td>Low for simple endpoints</td></tr>
+      <tr><td>Pick it when</td><td>You want an always-on app without server ops</td><td>You want full control and will do the ops</td><td>The work is short, bursty, and stateless</td></tr>
+    </tbody>
+  </table>
+  <p>A managed platform gives you a real, always-on server, with the operating system, SSL, and backups handled, so your persistent process has a stable home and you don't patch anything at midnight. A raw VPS is the same always-on server, but the whole job of running it, OS updates, the web server, SSL renewal, backups, security, is yours. Serverless functions flip the model: no server to mind, your code runs on demand and scales down to nothing when idle, which is lovely for the right workload and awkward for the wrong one.</p>
+  <p>None of these is the winner. They're answers to different questions, so the useful move is to match the option to how your app behaves. The next two sections do exactly that.</p>
+
+  <h2>Choose serverless if the work is light, bursty, and stateless</h2>
+  <p>Serverless functions get a lot of hate from people who used them for the wrong job, which is unfair, because for the right job they're excellent. Reach for serverless when your workload looks like this:</p>
+  <ul>
+    <li>Short requests that finish quickly and return.</li>
+    <li>Traffic that's spiky or unpredictable, including long quiet stretches where scaling to zero genuinely saves money.</li>
+    <li>Stateless endpoints: a webhook receiver, a form handler, a small API that reads and writes a database and gets out.</li>
+    <li>Work you're happy to have cold-start occasionally, because it isn't latency-critical.</li>
+  </ul>
+  <p>For those shapes, serverless is a genuinely good answer. You don't run a server, you don't pay for idle time, and it scales up under a burst without you doing anything.</p>
+  <p>Now the honest catch, and it's the reason serverless struggles as a home for a whole web app. Functions have <strong>cold starts</strong>: when one hasn't run recently, the platform has to spin it up before it can answer, which adds a delay to that first request. They have <strong>request timeouts</strong>: a function is meant to finish quickly, so long requests, big file processing, and streaming responses can hit a ceiling and get cut off. And they're <strong>stateless by design</strong>: no warm memory between calls, no long-lived WebSocket, no place to run a Celery worker that sits and waits for jobs. You can bolt background work onto a serverless architecture, but now you're assembling queues and schedulers to recreate what a persistent process gave you for free.</p>
+  <p>So serverless is a scalpel, not a house. Perfect for the light and bursty edges of your product. Frustrating as the place your entire Django or FastAPI app lives, if that app does anything long, stateful, or always-on.</p>
+
+  <h2>Choose a persistent server if it's a real always-on app</h2>
+  <p>If your Python app is a product people log into during the day, it almost certainly wants a persistent server, either a managed platform or a VPS you run yourself. Pick this side when:</p>
+  <ul>
+    <li>The app should be <strong>always on</strong>, answering instantly, with no cold start on the first request after a quiet spell.</li>
+    <li>You run <strong>background jobs</strong>: Celery or RQ workers churning through email, reports, image processing, or scheduled tasks.</li>
+    <li>You use <strong>WebSockets or long-lived connections</strong>, common with FastAPI for real-time features.</li>
+    <li>Traffic is <strong>steady</strong> rather than rare and spiky, so paying for a running server is paying for something you actually use.</li>
+    <li>You want your <strong>database and cache close by</strong>, with predictable latency and a bill that doesn't jump around with every request.</li>
+  </ul>
+  <p>This is the shape of most SaaS backends, dashboards, APIs with real users, and anything with a job queue. A persistent process keeps its warm memory and open connections, handles a WebSocket without ceremony, and runs a worker that waits patiently for the next job. There's no cold-start penalty because it never went cold.</p>
+  <p>The split between a managed platform and a raw VPS then comes down to one thing: do you want to run the server, or just your app? A VPS is cheaper on paper and gives you total control, but you own every operational task on it, which is the whole argument in <a href="https://www.kloudbean.com/blog/do-i-need-a-vps-for-my-saas/">do I need a VPS for my SaaS</a>. A managed platform costs a little more and hands the ops back to the provider. Same always-on server underneath, different amount of your time spent keeping it alive.</p>
+
+  <!-- ADD IMAGE: swap the SVG below for a polished version if desired. src -> images/persistent-vs-serverless.png -->
+  <figure>
+    <svg viewBox="0 0 820 340" role="img" aria-labelledby="py-t py-d" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#f6f7fb;border:1px solid #e6e9f2;border-radius:16px">
+      <title id="py-t">A persistent Python server versus serverless functions</title>
+      <desc id="py-d">On a persistent server, a process manager like Gunicorn or Uvicorn keeps several warm worker processes alive to answer requests, with a background worker and a database alongside. On serverless, each request may trigger a cold start before the function runs, and long or stateful work runs into request timeouts.</desc>
+      <text x="30" y="38" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">How your Python app runs in each home</text>
+
+      <text x="30" y="74" fill="#0a7d33" font-family="Poppins,sans-serif" font-size="13" font-weight="700">Persistent server: the process stays warm</text>
+      <rect x="30" y="86" width="360" height="222" rx="10" fill="#ffffff" stroke="#40b75f"/>
+      <rect x="48" y="104" width="150" height="32" rx="5" fill="#000f27"/><text x="123" y="125" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="12">requests</text>
+      <rect x="212" y="104" width="160" height="32" rx="5" fill="#4F1AF3"/><text x="292" y="125" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="11">Gunicorn / Uvicorn</text>
+      <rect x="48" y="146" width="98" height="32" rx="5" fill="#000f27"/><text x="97" y="167" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="11">worker 1</text>
+      <rect x="154" y="146" width="98" height="32" rx="5" fill="#000f27"/><text x="203" y="167" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="11">worker 2</text>
+      <rect x="260" y="146" width="112" height="32" rx="5" fill="#000f27"/><text x="316" y="167" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="11">worker 3</text>
+      <rect x="48" y="188" width="150" height="32" rx="5" fill="#40b75f"/><text x="123" y="209" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="11">Celery worker</text>
+      <rect x="212" y="188" width="160" height="32" rx="5" fill="#40b75f"/><text x="292" y="209" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="12">database</text>
+      <text x="210" y="252" text-anchor="middle" fill="#0a7d33" font-family="Poppins,sans-serif" font-size="12">always warm, holds connections</text>
+      <text x="210" y="272" text-anchor="middle" fill="#0a7d33" font-family="Poppins,sans-serif" font-size="12">handles jobs and websockets</text>
+
+      <text x="430" y="74" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="13" font-weight="700">Serverless: code runs per request</text>
+      <rect x="430" y="86" width="360" height="222" rx="10" fill="#ffffff" stroke="#4F1AF3"/>
+      <rect x="470" y="110" width="280" height="32" rx="6" fill="#000f27"/><text x="610" y="131" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="12">request arrives</text>
+      <rect x="470" y="150" width="280" height="32" rx="6" fill="#8a5cf6"/><text x="610" y="171" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="12">cold start (if idle)</text>
+      <rect x="470" y="190" width="280" height="32" rx="6" fill="#4F1AF3"/><text x="610" y="211" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">function runs, then stops</text>
+      <text x="610" y="252" text-anchor="middle" fill="#5b6472" font-family="Poppins,sans-serif" font-size="12">great for short, bursty endpoints</text>
+      <text x="610" y="272" text-anchor="middle" fill="#5b6472" font-family="Poppins,sans-serif" font-size="12">long or stateful work hits timeouts</text>
+    </svg>
+    <figcaption>The same Python app, two very different homes. A persistent server keeps warm workers ready; serverless spins code up per request and stops it after.</figcaption>
+  </figure>
+
+  <h2>The costs that don't show up in a deploy demo</h2>
+  <p>Every host has a slick five-minute deploy demo. The demo is never where the decision actually lives. Three quieter questions matter more.</p>
+  <p><strong>Where does the database live?</strong> A Python app without a database is rare, and a database far from your app makes every query slower and complicates backups. The tidiest setups keep the app and a managed database close together, which is one reason <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a> tends to sit right next to the app rather than three networks away. If a platform treats the database as an afterthought, that's a cost you pay later.</p>
+  <p><strong>Where do background tasks run?</strong> If you use Celery or RQ, those workers need a persistent home and a broker. On a persistent server, that's just another process. On serverless, it's an architecture you assemble. Count that work before you commit.</p>
+  <p><strong>What happens on the slow path?</strong> The happy-path demo is always fast. The real test is the slow request: a big export, an upload, a streamed response, a report that takes a while. That's exactly where serverless timeouts bite and where a persistent process shrugs. Deploying an AI feature makes this sharper still, since model calls can be slow, a theme in <a href="https://www.kloudbean.com/blog/best-hosting-for-ai-saas/">hosting for an AI SaaS</a>.</p>
+  <p>None of these show up when you're clicking through a deploy tutorial. All of them show up in month three. It's the same lesson the Node crowd learns, laid out in <a href="https://www.kloudbean.com/blog/where-to-deploy-nodejs-app/">where to deploy a Node.js app</a>: the deploy demo is the easy part, and it's the least important part of the decision.</p>
+
+  <h2>A quick way to decide where to deploy a Python app</h2>
+  <p>You don't need a spreadsheet. Walk these three questions and you'll have your answer.</p>
+  <p><strong>Is your app always-on, or is sleeping fine?</strong> A background webhook or an occasional script can happily scale to zero, so serverless is a fair fit. A product with logged-in users can't afford a cold start on every quiet morning, so it wants a persistent server. If you're unsure, assume always-on, because most apps with real users are.</p>
+  <p><strong>Does it hold state or run background work?</strong> WebSockets, a Celery or RQ queue, scheduled jobs, in-memory caches. If yes to any, a persistent server is the natural home, and serverless will have you rebuilding those pieces the hard way. If it's genuinely stateless and short, serverless stays on the table.</p>
+  <p><strong>Do you want to run the server, or just your app?</strong> If you enjoy ops and want full control, a raw VPS is honest and cheap. If you'd rather ship features and let someone else patch the OS and renew SSL, a managed platform is the same server with the grunt work removed. Both are persistent; they differ only in who does the maintenance.</p>
+  <p>Three questions, and the category is clear. From there, the how-to guides get specific: <a href="https://www.kloudbean.com/blog/deploy-django-app/">deploy a Django app</a>, <a href="https://www.kloudbean.com/blog/deploy-fastapi-app/">deploy a FastAPI app</a>, and <a href="https://www.kloudbean.com/blog/deploy-flask-app/">deploy a Flask app</a> each walk the actual steps once you've picked a home.</p>
+
+  <h2>Where this leaves Kloudbean</h2>
+  <p>If your Python app is an always-on process that wants a database nearby and a place for background jobs, that's the shape of a managed server. It's one of the things Kloudbean does: a managed server that runs Django, Flask, or FastAPI, with the runtime settings you'd normally hand-edit exposed in the UI, a managed database beside it, automatic backups, free SSL, and cron jobs set from the dashboard, all in one place across several clouds. It isn't serverless, so there's no scale-to-zero, and for an always-on app that's usually the point rather than a loss. Whether you land on Kloudbean, another managed platform, or a VPS you run yourself, the rule holds: match the home to how your app runs.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:19px">Run your Python app as the long-lived process it is.</p>
+    <p style="margin:0">If you want a managed server for your Django, FastAPI, or Flask app, a managed database beside it, backups, free SSL, and cron from the dashboard, all in one place, that's what Kloudbean is for. See <a href="https://www.kloudbean.com/">kloudbean.com</a> and <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Where should I deploy a Python app?</h3>
+    <p>It depends on how your app runs. A Django, Flask, or FastAPI app is a long-running process, so an always-on app with a database and background jobs fits a persistent server, either a managed platform or a VPS you run yourself. Serverless functions suit short, bursty, stateless endpoints. Match the home to the workload rather than picking by brand.</p>
+
+    <h3>Where do I deploy a Django app?</h3>
+    <p>A Django app runs as a WSGI process (or ASGI, once you opt in) behind a server like Gunicorn, so it wants a persistent home. A managed platform or a VPS both keep that process alive, with a database and backups nearby. Serverless can work for a tiny stateless Django endpoint, but a real app with logins and background jobs belongs on an always-on server.</p>
+
+    <h3>Where do I deploy a FastAPI app?</h3>
+    <p>FastAPI is an ASGI app, usually run with Uvicorn workers, and it shines with async and WebSocket work, so it strongly prefers a persistent server that keeps those connections open. A managed platform or a VPS both fit. Serverless undercuts what FastAPI is good at, since cold starts and timeouts fight long-lived connections and streaming responses.</p>
+
+    <h3>What is the best host for a Python web app?</h3>
+    <p>There isn't a single best one, there's a best fit for your app. An always-on app with a database and background jobs is happiest on a persistent server, managed if you'd rather not do ops. A light, bursty, stateless endpoint can suit serverless. Decide by how your app runs, not by which platform has the loudest marketing.</p>
+
+    <h3>Can I deploy a Python app on serverless functions?</h3>
+    <p>Yes, for the right workload. Short, stateless endpoints that finish quickly are a good match, and scaling to zero saves money during quiet spells. The trouble starts with long requests, streaming, WebSockets, and background workers, which run into cold starts and request timeouts. For a whole always-on app, a persistent server is usually the calmer choice.</p>
+
+    <h3>Do I need Gunicorn or Uvicorn to deploy a Python app?</h3>
+    <p>In production, effectively yes. A framework's built-in development server isn't meant for real traffic. WSGI apps like Django and Flask commonly run under Gunicorn; ASGI apps like FastAPI run under Uvicorn, often with Gunicorn managing the workers. The server launches several worker processes and keeps them alive, which is exactly what a persistent host is built to support.</p>
+
+    <h3>Where do background tasks like Celery run?</h3>
+    <p>On a long-running worker process, separate from your web process, with a broker such as Redis behind it. That's straightforward on a persistent server: it's just another process you keep alive. On serverless it's harder, because there's no always-on worker to sit and wait for jobs, so you end up assembling queues and schedulers to fake one.</p>
+
+    <h3>Do I need a separate database for my Python app?</h3>
+    <p>Almost always, yes. You'll want PostgreSQL or MySQL rather than a file-based store once real users arrive, and it should sit close to your app with backups turned on. A managed database handles the upkeep for you. Keeping the app and its database near each other keeps queries quick and backups simple.</p>
+
+    <h3>Is a VPS or a managed platform better for Python app hosting?</h3>
+    <p>Both give you the same always-on server your app wants; they differ in who runs it. A VPS is cheaper and gives full control, but the OS updates, SSL, backups, and security are all yours. A managed platform hands that maintenance back to the provider so you can focus on the app. Pick based on whether you want to run the server or just your code.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · A Python web app is a long-running process. Give it a home that keeps it running.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Where to Deploy a Python App: An Honest Decision Guide","description":"Where to deploy a Python app (Django, FastAPI, or Flask): the real options compared. A managed platform, a raw VPS you run yourself, or serverless functions, and which one actually fits your app.","image":"https://www.kloudbean.com/blog/where-to-deploy-a-python-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@id":"https://kloudbean.com/#organization"},"mainEntityOfPage":"https://www.kloudbean.com/blog/where-to-deploy-a-python-app/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Where should I deploy a Python app?","acceptedAnswer":{"@type":"Answer","text":"It depends on how your app runs. A Django, Flask, or FastAPI app is a long-running process, so an always-on app with a database and background jobs fits a persistent server, either a managed platform or a VPS you run yourself. Serverless functions suit short, bursty, stateless endpoints. Match the home to the workload rather than picking by brand."}},
+{"@type":"Question","name":"Where do I deploy a Django app?","acceptedAnswer":{"@type":"Answer","text":"A Django app runs as a WSGI process (or ASGI, once you opt in) behind a server like Gunicorn, so it wants a persistent home. A managed platform or a VPS both keep that process alive, with a database and backups nearby. Serverless can work for a tiny stateless Django endpoint, but a real app with logins and background jobs belongs on an always-on server."}},
+{"@type":"Question","name":"Where do I deploy a FastAPI app?","acceptedAnswer":{"@type":"Answer","text":"FastAPI is an ASGI app, usually run with Uvicorn workers, and it shines with async and WebSocket work, so it strongly prefers a persistent server that keeps those connections open. A managed platform or a VPS both fit. Serverless undercuts what FastAPI is good at, since cold starts and timeouts fight long-lived connections and streaming responses."}},
+{"@type":"Question","name":"What is the best host for a Python web app?","acceptedAnswer":{"@type":"Answer","text":"There is not a single best one, there is a best fit for your app. An always-on app with a database and background jobs is happiest on a persistent server, managed if you would rather not do ops. A light, bursty, stateless endpoint can suit serverless. Decide by how your app runs, not by which platform has the loudest marketing."}},
+{"@type":"Question","name":"Can I deploy a Python app on serverless functions?","acceptedAnswer":{"@type":"Answer","text":"Yes, for the right workload. Short, stateless endpoints that finish quickly are a good match, and scaling to zero saves money during quiet spells. The trouble starts with long requests, streaming, WebSockets, and background workers, which run into cold starts and request timeouts. For a whole always-on app, a persistent server is usually the calmer choice."}},
+{"@type":"Question","name":"Do I need Gunicorn or Uvicorn to deploy a Python app?","acceptedAnswer":{"@type":"Answer","text":"In production, effectively yes. A framework built-in development server is not meant for real traffic. WSGI apps like Django and Flask commonly run under Gunicorn; ASGI apps like FastAPI run under Uvicorn, often with Gunicorn managing the workers. The server launches several worker processes and keeps them alive, which is exactly what a persistent host is built to support."}},
+{"@type":"Question","name":"Where do background tasks like Celery run?","acceptedAnswer":{"@type":"Answer","text":"On a long-running worker process, separate from your web process, with a broker such as Redis behind it. That is straightforward on a persistent server: it is just another process you keep alive. On serverless it is harder, because there is no always-on worker to sit and wait for jobs, so you end up assembling queues and schedulers to fake one."}},
+{"@type":"Question","name":"Do I need a separate database for my Python app?","acceptedAnswer":{"@type":"Answer","text":"Almost always, yes. You will want PostgreSQL or MySQL rather than a file-based store once real users arrive, and it should sit close to your app with backups turned on. A managed database handles the upkeep for you. Keeping the app and its database near each other keeps queries quick and backups simple."}},
+{"@type":"Question","name":"Is a VPS or a managed platform better for Python app hosting?","acceptedAnswer":{"@type":"Answer","text":"Both give you the same always-on server your app wants; they differ in who runs it. A VPS is cheaper and gives full control, but the OS updates, SSL, backups, and security are all yours. A managed platform hands that maintenance back to the provider so you can focus on the app. Pick based on whether you want to run the server or just your code."}}
+]},
+{"@type":"Organization","@id":"https://kloudbean.com/#organization","name":"Kloudbean","legalName":"Secured Orbis Pvt. Ltd.","url":"https://kloudbean.com","description":"Kloudbean is a managed multi-cloud hosting platform by Secured Orbis Pvt. Ltd. It runs your whole stack from one dashboard, application servers, managed databases, object storage, and a built-in load balancer across seven cloud providers, so builders, agencies, and founders can deploy, host, and own their apps without operating raw cloud."}
+]}
+</script>
+</body>
+</html>
