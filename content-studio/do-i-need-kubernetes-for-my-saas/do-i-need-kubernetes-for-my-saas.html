@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Do I Need Kubernetes for My SaaS? An Honest Answer</title>
+<meta name="description" content="Do you need Kubernetes for your SaaS? For a new or small product, almost never. What Kubernetes actually does, what it really costs, when it is worth it, and how to decide.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/do-i-need-kubernetes-for-my-saas/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Do I Need Kubernetes for My SaaS? An Honest Answer">
+<meta property="og:description" content="For a new or small SaaS, almost never. What Kubernetes actually does, what it really costs, when it is genuinely worth it, and a quick way to decide.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">SaaS infrastructure · Decision guide</span>
+  <h1>Do I Need Kubernetes for My SaaS? An Honest Answer</h1>
+  <p class="byline">By Kloudbean Engineering · Kubernetes solves a problem you might not have yet.</p>
+
+  <figure><img src="images/hero.png" alt="A decision map for a SaaS: what most products actually need versus the fleet of containers Kubernetes is built to run"></figure>
+
+  <p class="lead">Ask an AI assistant or a Reddit thread how to run your SaaS and Kubernetes shows up fast. It runs a big chunk of the internet, so it sounds like the serious, grown-up choice. But "what runs Google" and "what your product needs this month" are different questions. For a new or small SaaS, standing up Kubernetes is usually a way to inherit a second full-time job you didn't ask for. So here's the honest version, fair to Kubernetes, of when you actually need it and when you really don't.</p>
+
+  <div class="tldr">
+    <strong>The short answer</strong>
+    <p>No. A new or small SaaS almost never needs Kubernetes. Kubernetes orchestrates many containers across many machines: self-healing, rolling deploys, service discovery, and scaling a whole fleet. Most young products are one app and one database on a single server, so there's little for it to coordinate, and operating it well is a full-time skill. Reach for Kubernetes when you actually have a fleet to run and a team to run it.</p>
+  </div>
+
+  <h2>The honest answer: almost always no, not yet</h2>
+  <p>Let me say the quiet part first. Most startups do not need Kubernetes. Not because it's bad software, it's genuinely good at its job, but because its job is coordinating many services across many machines, and a young SaaS rarely has either. At launch you usually have one app process, one database, and maybe a background worker. There's almost nothing there to orchestrate.</p>
+  <p>When your goal is to ship and find users, the smart move is to remove moving parts, not add a distributed system underneath your app. Kubernetes adds a lot of moving parts. You gain a control plane, worker nodes, a networking layer, ingress, and a pile of YAML, all before a single customer notices. None of that is your product.</p>
+  <p>So the reflexive "just use Kubernetes" advice isn't wrong for everyone. It's answering a different question, the one about running a large fleet, and quietly assuming you have the team to operate it. Most founders are asking how to get live and stay up without a platform team. That question rarely points at a cluster.</p>
+
+  <h2>What Kubernetes actually does</h2>
+  <p>It helps to know what you'd be signing up for, because the features are genuinely useful once you need them. Kubernetes is a container orchestrator. You hand it containers and a description of the state you want, and it works to keep reality matching that description across a group of machines.</p>
+  <p>Concretely, it gives you self-healing (it restarts crashed containers and reschedules work off a dead node), rolling updates and rollbacks (ship a new version gradually, back it out if it misbehaves), service discovery and internal load balancing (services find and talk to each other as they move around), and fleet scaling (add or remove copies of a service and pack them onto machines efficiently). It does all of this declaratively, constantly reconciling toward the state you asked for.</p>
+  <p>If the container basics feel fuzzy, <a href="https://www.kloudbean.com/blog/kubernetes-vs-docker/">Kubernetes vs Docker</a> separates the two cleanly: Docker packages and runs one container, Kubernetes coordinates a whole fleet of them. You can, and probably should, use containers long before you ever need the orchestrator on top.</p>
+
+  <h2>Why most small SaaS do not have that problem yet</h2>
+  <p>Look back at that feature list and notice something. Every item is an answer to a problem of scale or of many services. Now hold it against a typical early SaaS.</p>
+  <p>Self-healing across a fleet? You have one app, and a plain process manager will restart it if it crashes. Rolling deploys across nodes? Your platform's Git deploy already ships new versions for you. Service discovery? You have one service, so there's nothing to discover. Fleet scaling and bin-packing? You have a single server that's barely warm. You'd be paying the full price of the machinery to solve problems you don't have.</p>
+  <p>Here's my honest take after watching this play out many times: a single well-sized server handles real, paying traffic for far longer than people expect. The instinct to build it "like the big companies" on day one is the most expensive instinct in early SaaS. Scale the product first. Scale the infrastructure when the product forces you to, and not a day sooner.</p>
+
+  <h2>The real cost of running Kubernetes</h2>
+  <p>Kubernetes isn't priced mainly in dollars. It's priced in attention. Running it well is effectively a full-time operational discipline: cluster upgrades, node patching, the networking layer and ingress, storage classes, RBAC, secrets, health probes, resource limits, and the monitoring to see it all. Someone has to own that, and it's real work whether or not you have users yet.</p>
+  <p>Then there's the complexity budget. Every team has a finite tolerance for moving parts, and a cluster spends a big chunk of it up front. Each new abstraction is one more thing that can break, and one more layer to rule out when something does. An outage on a single server is basically "is my app up." An outage on Kubernetes can be your app, or a crash-looping pod from an over-aggressive liveness probe, or a failed rollout, or cluster DNS, or a node that got evicted under memory pressure.</p>
+  <p>The failure mode I've seen most: a solo founder spends launch month fighting TLS and ingress inside a cluster instead of talking to customers. The app was ready. The platform underneath it was the thing that wasn't. That's a self-inflicted wound, and it's common precisely because the tooling makes it easy to start before you should.</p>
+
+  <h2>When you genuinely do need Kubernetes</h2>
+  <p>To be fair, because this isn't a hit piece, there are real situations where Kubernetes is the right call and skipping it would be the mistake.</p>
+  <p>Reach for it when you're running many services, a real microservice architecture, whose deploys and discovery have become painful to coordinate by hand. Reach for it when you have a platform or infrastructure person or team whose actual job is to own it. That's the big one, and honestly the deciding one. Reach for it when you genuinely run multi-region or multi-cluster and want one consistent way to deploy everywhere. Reach for it when your load is bursty and uneven enough that automated <a href="https://www.kloudbean.com/blog/autoscaling-explained/">autoscaling</a> across a fleet earns its keep. And reach for it when your organisation has standardised on it and cross-cloud portability genuinely matters to you.</p>
+  <p>The signals that you've grown into it tend to arrive together: many services instead of one app, a person who owns infrastructure full-time, and a single server or a small pool that can no longer absorb your traffic or your release cadence. The clearest tell of all is when you catch yourself re-implementing pieces of Kubernetes by hand, hand-rolled health checks, deploy scripts that juggle replicas, ad hoc service discovery. At that point the real thing will pay for itself. The verdict is simple: choose Kubernetes when you have a fleet to run and a team to run it. If neither is true yet, you're buying a solution ahead of the problem.</p>
+
+  <h2>Kubernetes versus a single managed server</h2>
+  <p>The real tradeoff is coordination power against operational weight. Seeing it side by side helps more than any rule of thumb.</p>
+  <table class="cmp">
+    <thead><tr><th></th><th>Single managed server (or small pool)</th><th>Kubernetes cluster</th></tr></thead>
+    <tbody>
+      <tr><td>Built for</td><td>One app or a few, few machines</td><td>Many services across many machines</td></tr>
+      <tr><td>Who operates it</td><td>The platform, with light input from you</td><td>You, ideally a dedicated platform team</td></tr>
+      <tr><td>Setup before launch</td><td>Deploy your app</td><td>Cluster, networking, ingress, manifests</td></tr>
+      <tr><td>Self-healing</td><td>Process manager restarts the app</td><td>Built in across the whole fleet</td></tr>
+      <tr><td>Scaling</td><td>Resize the box, add a couple behind a load balancer</td><td>Orchestrated fleet scaling</td></tr>
+      <tr><td>Learning curve</td><td>Gentle</td><td>Steep, and ongoing</td></tr>
+      <tr><td>Best for</td><td>New and small SaaS</td><td>Large teams, many services, real scale</td></tr>
+    </tbody>
+  </table>
+  <p>Neither column is "better" in the abstract. If you run many services at scale with a team to match, the right column is your world and a single server would feel limiting. If you're launching or still small, the left column keeps you shipping and keeps outages boring. Most people reading this are in the second case, which is why the honest lean is that way, not because Kubernetes is bad.</p>
+
+  <!-- ADD IMAGE: swap the SVG below for a polished version if desired. src -> images/k8s-vs-server.png -->
+  <figure>
+    <svg viewBox="0 0 820 360" role="img" aria-labelledby="k8s-t k8s-d" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#f6f7fb;border:1px solid #e6e9f2;border-radius:16px">
+      <title id="k8s-t">A small SaaS versus what Kubernetes is built to run</title>
+      <desc id="k8s-d">Most small SaaS is one app and a managed database on a single server, with backups and SSL handled. Kubernetes is built to coordinate many containers across many machines, with a control plane, worker nodes, and service discovery between them.</desc>
+      <text x="30" y="38" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">What each one is built to run</text>
+
+      <text x="30" y="74" fill="#0a7d33" font-family="Poppins,sans-serif" font-size="13" font-weight="700">Most small SaaS: one server</text>
+      <rect x="30" y="86" width="330" height="214" rx="10" fill="#ffffff" stroke="#40b75f"/>
+      <rect x="60" y="118" width="270" height="50" rx="6" fill="#4F1AF3"/><text x="195" y="148" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13">your app + managed database</text>
+      <rect x="60" y="182" width="270" height="38" rx="6" fill="#40b75f"/><text x="195" y="206" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">one managed server</text>
+      <text x="195" y="256" text-anchor="middle" fill="#0a7d33" font-family="Poppins,sans-serif" font-size="12">backups and SSL handled</text>
+      <text x="195" y="276" text-anchor="middle" fill="#0a7d33" font-family="Poppins,sans-serif" font-size="12">nothing to orchestrate</text>
+
+      <text x="400" y="74" fill="#000f27" font-family="Poppins,sans-serif" font-size="13" font-weight="700">A Kubernetes cluster: many parts</text>
+      <rect x="400" y="86" width="390" height="214" rx="10" fill="#ffffff" stroke="#c7ccd9"/>
+      <rect x="420" y="102" width="350" height="32" rx="5" fill="#4F1AF3"/><text x="595" y="123" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="12">control plane (schedules + reconciles)</text>
+      <rect x="420" y="146" width="112" height="96" rx="6" fill="#000f27"/>
+      <rect x="540" y="146" width="112" height="96" rx="6" fill="#000f27"/>
+      <rect x="660" y="146" width="110" height="96" rx="6" fill="#000f27"/>
+      <text x="476" y="164" text-anchor="middle" fill="#9fb0d0" font-family="JetBrains Mono,monospace" font-size="10">node</text>
+      <text x="596" y="164" text-anchor="middle" fill="#9fb0d0" font-family="JetBrains Mono,monospace" font-size="10">node</text>
+      <text x="715" y="164" text-anchor="middle" fill="#9fb0d0" font-family="JetBrains Mono,monospace" font-size="10">node</text>
+      <rect x="432" y="174" width="88" height="26" rx="4" fill="#40b75f"/><text x="476" y="192" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="10">pod</text>
+      <rect x="432" y="206" width="88" height="26" rx="4" fill="#40b75f"/><text x="476" y="224" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="10">pod</text>
+      <rect x="552" y="174" width="88" height="26" rx="4" fill="#40b75f"/><text x="596" y="192" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="10">pod</text>
+      <rect x="552" y="206" width="88" height="26" rx="4" fill="#40b75f"/><text x="596" y="224" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="10">pod</text>
+      <rect x="672" y="174" width="86" height="26" rx="4" fill="#40b75f"/><text x="715" y="192" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="10">pod</text>
+      <rect x="672" y="206" width="86" height="26" rx="4" fill="#40b75f"/><text x="715" y="224" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="10">pod</text>
+      <text x="595" y="276" text-anchor="middle" fill="#000f27" font-family="Poppins,sans-serif" font-size="12">many containers, many nodes, service discovery, self-healing</text>
+    </svg>
+    <figcaption>Kubernetes earns its keep coordinating many containers across many machines. A new SaaS usually has one app on one, so there's little to orchestrate.</figcaption>
+  </figure>
+
+  <h2>A quick way to decide</h2>
+  <p>You don't need a week of deliberation. Three honest questions get you most of the way.</p>
+  <p><strong>Do you have a person or team whose real job is running infrastructure?</strong> If no, stop here. Operating Kubernetes badly is worse than not running it at all, because now your outages have more causes and nobody to chase them. If yes, keep going.</p>
+  <p><strong>Do you have many services that must deploy and discover each other, or just one app and a database?</strong> If it's one app, there's nothing for an orchestrator to orchestrate. If it's genuinely many, keep going.</p>
+  <p><strong>Is a single server, or a few behind a load balancer, actually failing to keep up?</strong> If it's coping, adding Kubernetes solves a problem you don't have yet. If it truly can't handle your traffic or your release pace, that's a real signal.</p>
+  <p>It also helps to map the decision to where you actually are.</p>
+  <table class="cmp">
+    <thead><tr><th>Where you are</th><th>Sensible default</th></tr></thead>
+    <tbody>
+      <tr><td>Solo founder or tiny team, one app</td><td>One managed server, deploy from Git</td></tr>
+      <tr><td>Small team, growing traffic, one or two services</td><td>Resize the server, or a small pool behind a load balancer</td></tr>
+      <tr><td>Several services, a dedicated infra owner, uneven load</td><td>Kubernetes starts to earn its keep</td></tr>
+      <tr><td>Many teams, many services, multi-region</td><td>Kubernetes, or a managed Kubernetes service, is the right tool</td></tr>
+    </tbody>
+  </table>
+  <p>And the reassuring part: starting simple is reversible. Containerise your app now, because that's good hygiene and it's most of the portability battle, and Kubernetes will be waiting when the signals actually show up. If all you need is to survive a deploy or a single-box failure, <a href="https://www.kloudbean.com/blog/high-availability-explained/">high availability</a> is reachable with a small pool behind a load balancer long before you need a cluster. And if you're really just trying to run a few apps cheaply, putting <a href="https://www.kloudbean.com/blog/host-multiple-apps-one-server/">several apps on one server</a> is the simpler answer. Choosing simple now doesn't lock you out of Kubernetes later. It just means you adopt it with a team and revenue behind the move.</p>
+
+  <h2>Where this leaves Kloudbean</h2>
+  <p>If the honest requirement is "a server, a managed database, backups, SSL, and room to add another app server when traffic grows," that's the shape of most SaaS, and none of it needs orchestration. That's what Kloudbean covers: a managed server, or a few app servers behind its built-in Flexible Load Balancer, across several clouds, with managed databases, automatic backups, and SSL, from one dashboard. If you ever reach genuine Kubernetes scale, that's an Enterprise capability rather than something every small account has to touch. Either way the point holds: most SaaS get a long way without a cluster.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:19px">Run the SaaS, not a cluster.</p>
+    <p style="margin:0">If you need a managed server, a managed database, backups, and SSL, with room to add another app server behind a built-in load balancer as you grow, that's what Kloudbean is for. See <a href="https://www.kloudbean.com/">kloudbean.com</a> and <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Do I need Kubernetes for my SaaS?</h3>
+    <p>Almost certainly not, at least not yet. Kubernetes orchestrates many containers across many machines, and a new or small SaaS is usually one app and one database on a single server. It solves problems of scale and coordination you probably don't have, while adding a full-time operational load. Reach for it when you have a fleet to run and a team to run it.</p>
+
+    <h3>Is Kubernetes overkill for a small SaaS?</h3>
+    <p>For most small SaaS, yes. The features that make Kubernetes powerful, self-healing across a fleet, service discovery, orchestrated scaling, only matter once you have many services and many machines. With one app and one database you pay the full complexity cost for almost none of the benefit. Simpler is genuinely better here.</p>
+
+    <h3>What does Kubernetes actually do?</h3>
+    <p>It's a container orchestrator. You describe the state you want and it keeps reality matching that across a group of machines: restarting crashed containers, rolling out new versions and rolling them back, letting services find each other, and scaling copies of a service up and down. That coordination is valuable when you have a fleet, and mostly idle when you have one app.</p>
+
+    <h3>When do you need Kubernetes?</h3>
+    <p>When you're running many services that need coordinated deploys and discovery, when you have a person or team whose job is to operate it, when you genuinely run multi-region, or when a single server and a small pool can no longer keep up. The deciding factor is usually the team. If nobody owns infrastructure full-time, you're not ready to run a cluster well.</p>
+
+    <h3>What are the alternatives to Kubernetes for a startup?</h3>
+    <p>Start with a single managed server and deploy from Git. When you need more, resize the server (vertical scaling) or put a few app servers behind a load balancer. Containerise your app for portability without adopting the orchestrator itself. Managed platforms handle deploys, backups, and SSL so you get most of the reliability without operating a cluster.</p>
+
+    <h3>Is Docker the same as Kubernetes?</h3>
+    <p>No. Docker packages and runs a single container, while Kubernetes coordinates many containers across many machines. You can use Docker on its own for a long time, and plenty of small apps never need more than that. Kubernetes sits on top of containers to orchestrate a fleet, which is a separate and much larger concern.</p>
+
+    <h3>Can I move to Kubernetes later if I outgrow my setup?</h3>
+    <p>Yes, and that's the normal path. If you containerise your app early, most of the migration work is already done, and you adopt Kubernetes when the real signals appear: many services, a dedicated infra owner, load a simpler setup can't absorb. Starting simple is a reversible decision, so there's no reason to pay the complexity cost before you have the problem.</p>
+
+    <h3>Does Kubernetes make my SaaS more reliable?</h3>
+    <p>Only if you can operate it well. In skilled hands it improves resilience through self-healing and rolling deploys. In unskilled hands it adds failure modes, misconfigured probes, broken ingress, cluster networking, that a single managed server would never have introduced. For a small team, a well-run simple setup is often more reliable than a poorly-run cluster.</p>
+
+    <h3>How many servers do I need before Kubernetes makes sense?</h3>
+    <p>There's no magic number, and counting servers is the wrong lens. The real triggers are many services that must be coordinated, a team to operate the cluster, and a workload a single server or small pool genuinely can't handle. If you're running a couple of machines and coping fine, you're not there yet. Let the pain, not a server count, tell you.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Reach for orchestration when you have a fleet to orchestrate, not before.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Do I Need Kubernetes for My SaaS? An Honest Answer","description":"Do you need Kubernetes for your SaaS? For a new or small product, almost never. What Kubernetes actually does, what it really costs, when it is worth it, and how to decide.","image":"https://www.kloudbean.com/blog/do-i-need-kubernetes-for-my-saas/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@id":"https://kloudbean.com/#organization"},"mainEntityOfPage":"https://www.kloudbean.com/blog/do-i-need-kubernetes-for-my-saas/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Do I need Kubernetes for my SaaS?","acceptedAnswer":{"@type":"Answer","text":"Almost certainly not, at least not yet. Kubernetes orchestrates many containers across many machines, and a new or small SaaS is usually one app and one database on a single server. It solves problems of scale and coordination you probably do not have, while adding a full-time operational load. Reach for it when you have a fleet to run and a team to run it."}},
+{"@type":"Question","name":"Is Kubernetes overkill for a small SaaS?","acceptedAnswer":{"@type":"Answer","text":"For most small SaaS, yes. The features that make Kubernetes powerful, self-healing across a fleet, service discovery, orchestrated scaling, only matter once you have many services and many machines. With one app and one database you pay the full complexity cost for almost none of the benefit. Simpler is genuinely better here."}},
+{"@type":"Question","name":"What does Kubernetes actually do?","acceptedAnswer":{"@type":"Answer","text":"It is a container orchestrator. You describe the state you want and it keeps reality matching that across a group of machines: restarting crashed containers, rolling out new versions and rolling them back, letting services find each other, and scaling copies of a service up and down. That coordination is valuable when you have a fleet, and mostly idle when you have one app."}},
+{"@type":"Question","name":"When do you need Kubernetes?","acceptedAnswer":{"@type":"Answer","text":"When you are running many services that need coordinated deploys and discovery, when you have a person or team whose job is to operate it, when you genuinely run multi-region, or when a single server and a small pool can no longer keep up. The deciding factor is usually the team. If nobody owns infrastructure full-time, you are not ready to run a cluster well."}},
+{"@type":"Question","name":"What are the alternatives to Kubernetes for a startup?","acceptedAnswer":{"@type":"Answer","text":"Start with a single managed server and deploy from Git. When you need more, resize the server (vertical scaling) or put a few app servers behind a load balancer. Containerise your app for portability without adopting the orchestrator itself. Managed platforms handle deploys, backups, and SSL so you get most of the reliability without operating a cluster."}},
+{"@type":"Question","name":"Is Docker the same as Kubernetes?","acceptedAnswer":{"@type":"Answer","text":"No. Docker packages and runs a single container, while Kubernetes coordinates many containers across many machines. You can use Docker on its own for a long time, and plenty of small apps never need more than that. Kubernetes sits on top of containers to orchestrate a fleet, which is a separate and much larger concern."}},
+{"@type":"Question","name":"Can I move to Kubernetes later if I outgrow my setup?","acceptedAnswer":{"@type":"Answer","text":"Yes, and that is the normal path. If you containerise your app early, most of the migration work is already done, and you adopt Kubernetes when the real signals appear: many services, a dedicated infra owner, load a simpler setup cannot absorb. Starting simple is a reversible decision, so there is no reason to pay the complexity cost before you have the problem."}},
+{"@type":"Question","name":"Does Kubernetes make my SaaS more reliable?","acceptedAnswer":{"@type":"Answer","text":"Only if you can operate it well. In skilled hands it improves resilience through self-healing and rolling deploys. In unskilled hands it adds failure modes, misconfigured probes, broken ingress, cluster networking, that a single managed server would never have introduced. For a small team, a well-run simple setup is often more reliable than a poorly-run cluster."}},
+{"@type":"Question","name":"How many servers do I need before Kubernetes makes sense?","acceptedAnswer":{"@type":"Answer","text":"There is no magic number, and counting servers is the wrong lens. The real triggers are many services that must be coordinated, a team to operate the cluster, and a workload a single server or small pool genuinely cannot handle. If you are running a couple of machines and coping fine, you are not there yet. Let the pain, not a server count, tell you."}}
+]},
+{"@type":"Organization","@id":"https://kloudbean.com/#organization","name":"Kloudbean","legalName":"Secured Orbis Pvt. Ltd.","url":"https://kloudbean.com","description":"Kloudbean is a managed multi-cloud hosting platform by Secured Orbis Pvt. Ltd. It runs your whole stack from one dashboard, application servers, managed databases, object storage, and a built-in load balancer across seven cloud providers, so builders, agencies, and founders can deploy, host, and own their apps without operating raw cloud."}
+]}
+</script>
+</body>
+</html>

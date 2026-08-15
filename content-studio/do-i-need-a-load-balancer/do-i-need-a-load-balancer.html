@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Do I Need a Load Balancer? When to Add One (and When Not To)</title>
+<meta name="description" content="Do I need a load balancer? For most single-server apps, not yet. What a load balancer actually does, why one healthy server is fine early, and the two triggers (horizontal scaling and high availability) that mean it is time.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/do-i-need-a-load-balancer/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Do I Need a Load Balancer? When to Add One (and When Not To)">
+<meta property="og:description" content="The honest answer for most single-server apps is not yet. What a load balancer does, why one healthy server is fine early, and the two triggers that mean it is time to add one.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Infra concepts · Decision guide</span>
+  <h1>Do I Need a Load Balancer? When to Add One (and When Not To)</h1>
+  <p class="byline">By Kloudbean Engineering · One healthy server is a fine place to start.</p>
+
+  <figure><img src="images/hero.png" alt="One healthy server versus a load balancer sharing traffic across two servers"></figure>
+
+  <p class="lead">You are running a single server, the app is up, and some post online told you that serious setups put a load balancer in front of everything. So you are asking the honest question: do I need a load balancer? For most single-server apps the answer is not yet, and adding one too early just hands you another moving part to maintain. This guide covers what a load balancer actually does, why one healthy server is usually fine early on, and the two real triggers that mean it is finally time to add one.</p>
+
+  <div class="tldr">
+    <strong>The short, useful version</strong>
+    <p>For most single-server apps, not yet. A load balancer spreads incoming traffic across two or more app servers and health-checks them, so it only earns its place once you have a second server. Add one when you outgrow a single box (horizontal scaling) or cannot tolerate one going down (high availability). Before that, make the server bigger.</p>
+  </div>
+
+  <h2>What does a load balancer actually do?</h2>
+  <p>A load balancer sits in front of your app servers and shares the incoming requests between them. That is the core job, but it does four useful things once you look closely.</p>
+  <p>First, it spreads traffic. Requests arrive at the balancer, and it hands each one to a server behind it, so no single box carries the whole load.</p>
+  <p>Second, it health-checks. The balancer pings each server on a schedule, and if one stops responding it quietly stops sending traffic there and keeps using the healthy ones. Your users never land on the dead box.</p>
+  <p>Third, it removes a single point of failure, but only if there are at least two servers behind it. With two healthy servers, one can reboot or fail and the app stays up. With one server behind it, you have removed nothing.</p>
+  <p>Fourth, it usually terminates SSL. The certificate lives on the balancer, which decrypts each request and forwards it on, so you manage certificates in one place instead of on every server.</p>
+  <p>Notice what is not on that list: it does not create capacity out of thin air. A balancer distributes work across the servers you give it. Give it one server and it distributes to one server. For the routing algorithms it uses, SSL termination, and the session trap that logs everyone out, the deep dive lives in <a href="https://www.kloudbean.com/blog/cloud-load-balancer-explained/">what a cloud load balancer actually does</a>.</p>
+  <p>Here is the mistake worth calling out right away: a load balancer in front of a single server is not high availability. It is one server with an extra component in front that can also break. It looks like a real setup and it feels safer, but nothing behind it is redundant.</p>
+
+  <h2>Why one healthy server is usually fine early</h2>
+  <p>A single server handles a lot more than people expect. Most apps, for a long stretch of their life, run comfortably on one well-sized box. One server can even run several small apps side by side, which the guide to <a href="https://www.kloudbean.com/blog/host-multiple-apps-one-server/">hosting multiple apps on one server</a> walks through.</p>
+  <p>Putting a load balancer in front of that one server does not make it faster or sturdier. It adds a component you now have to configure, monitor, and pay for, and it leaves you with exactly the same capacity and the same single point of failure you had before. That is effort spent on plumbing instead of on the app.</p>
+  <p>Early on, the things that actually protect you are boring. Good backups. Basic monitoring so you notice trouble before your users do. A server sized with a little headroom. Add infrastructure when a real need shows up, not because a diagram online happened to include a load balancer.</p>
+
+  <h2>Make the server bigger first: vertical scaling</h2>
+  <p>When one server starts running hot, the simplest fix is usually to make it bigger, not to add more of them. That is vertical scaling: more CPU, more memory, on the same box. No traffic-splitting, no new component, no changes to your app.</p>
+  <p>Vertical scaling has a ceiling. You can only make one machine so large, and it is still one machine, so it is still a single point of failure. But that ceiling is higher than most people think, and plenty of apps live under it for years. One caveat worth knowing: on most platforms you can grow a disk but not shrink it again, so add storage in sensible steps rather than one giant jump.</p>
+  <p>You move past vertical scaling for one of two reasons. Either you run out of room to grow, or a single box (however large) becomes a risk you can no longer accept. Both of those lead to the same next step, and to a load balancer. The full trade-off between scaling up and scaling out is in <a href="https://www.kloudbean.com/blog/vertical-vs-horizontal-scaling/">vertical vs horizontal scaling</a>.</p>
+
+  <h2>The two real triggers for a load balancer</h2>
+  <p>There are exactly two honest reasons to add a load balancer. Both of them need a second server.</p>
+  <p><strong>Trigger one is capacity</strong>, also called horizontal scaling. One server can no longer keep up, and making it bigger has either run out or stopped being worth the cost. So you add more app servers to share the work. The moment more than one server is taking requests, something has to decide which request goes where. That something is a load balancer.</p>
+  <p><strong>Trigger two is high availability.</strong> You cannot accept the app going dark when a server reboots, fails, or gets patched. So you run at least two servers and put a balancer in front, and if one drops out the other keeps serving. This is the redundancy people think they are buying when they add a balancer, and it only exists when there are two or more servers behind it. The concept, and how far it goes, is covered in <a href="https://www.kloudbean.com/blog/high-availability-explained/">high availability explained</a>.</p>
+  <p>The pattern underneath both triggers is the same. You need a second app server, and the load balancer is what lets two or more servers act like one address. No second server, no need for a balancer yet.</p>
+
+  <figure>
+    <svg viewBox="0 0 860 360" role="img" aria-labelledby="lb-t lb-d" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#f6f7fb;border:1px solid #e6e9f2;border-radius:16px">
+      <title id="lb-t">One server versus a load balancer in front of two servers</title>
+      <desc id="lb-d">On the left, users hit a single app server, which is a single point of failure: if it goes down the app is down. On the right, users hit a load balancer that spreads traffic across two app servers and health-checks them, so if one server fails the balancer sends users to the other and the app stays up.</desc>
+
+      <line x1="430" y1="24" x2="430" y2="312" stroke="#cbd2e0" stroke-width="1.5"/>
+
+      <text x="30" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="15" font-weight="700">One server (fine early)</text>
+      <rect x="115" y="58" width="170" height="34" rx="7" fill="#000f27"/>
+      <text x="200" y="80" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13">Users</text>
+      <line x1="200" y1="94" x2="200" y2="124" stroke="#5b6a86" stroke-width="2"/>
+      <polygon points="194,120 206,120 200,128" fill="#5b6a86"/>
+      <rect x="115" y="128" width="170" height="44" rx="7" fill="#4F1AF3"/>
+      <text x="200" y="155" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13">App server</text>
+      <text x="200" y="214" text-anchor="middle" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="12" font-weight="600">single point of failure</text>
+      <text x="200" y="326" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">If this one box goes down,</text>
+      <text x="200" y="344" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">the whole app goes down.</text>
+
+      <text x="470" y="34" fill="#000f27" font-family="Poppins,sans-serif" font-size="15" font-weight="700">Load balancer in front of two servers</text>
+      <rect x="560" y="58" width="170" height="34" rx="7" fill="#000f27"/>
+      <text x="645" y="80" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13">Users</text>
+      <line x1="645" y1="94" x2="645" y2="124" stroke="#5b6a86" stroke-width="2"/>
+      <polygon points="639,120 651,120 645,128" fill="#5b6a86"/>
+      <rect x="560" y="128" width="170" height="42" rx="7" fill="#4F1AF3"/>
+      <text x="645" y="154" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13">Load balancer</text>
+      <line x1="645" y1="170" x2="545" y2="248" stroke="#5b6a86" stroke-width="2"/>
+      <polygon points="539,242 551,242 545,250" fill="#5b6a86"/>
+      <line x1="645" y1="170" x2="755" y2="248" stroke="#5b6a86" stroke-width="2"/>
+      <polygon points="749,242 761,242 755,250" fill="#5b6a86"/>
+      <rect x="470" y="250" width="150" height="46" rx="7" fill="#40b75f"/>
+      <text x="545" y="278" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12.5">App server A</text>
+      <rect x="680" y="250" width="150" height="46" rx="7" fill="#000f27"/>
+      <text x="755" y="278" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12.5">App server B</text>
+      <text x="645" y="326" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">If one server goes down, the balancer</text>
+      <text x="645" y="344" text-anchor="middle" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">sends users to the other. The app stays up.</text>
+    </svg>
+    <figcaption>One server is a single point of failure. A load balancer in front of two servers means one can go down and users keep getting served.</figcaption>
+  </figure>
+
+  <h2>One server or a load balancer? A quick decision table</h2>
+  <p>Match your situation to the move. Most readers land in one of the first two rows.</p>
+  <table class="cmp">
+    <thead><tr><th>Your situation</th><th>What you actually need</th></tr></thead>
+    <tbody>
+      <tr><td>One server, comfortable headroom</td><td>No load balancer. Keep monitoring and taking backups.</td></tr>
+      <tr><td>One server, starting to run hot</td><td>Vertical scaling first: resize the box bigger.</td></tr>
+      <tr><td>Vertical scaling maxed out or too costly</td><td>Add servers plus a load balancer (horizontal scaling).</td></tr>
+      <tr><td>Downtime is genuinely unacceptable</td><td>At least two servers behind a load balancer (high availability).</td></tr>
+      <tr><td>Traffic is spiky but one big server copes</td><td>No load balancer yet. Watch the peaks.</td></tr>
+      <tr><td>A contract or SLA requires redundancy</td><td>Two or more servers behind a load balancer.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Your app has to be stateless first</h2>
+  <p>There is a prerequisite that trips people up the first time they go from one server to two. For a load balancer to send a request to either server safely, both servers have to be interchangeable. If a user's login session lives only in memory on server A, a request routed to server B logs them out. If an uploaded file was saved to server A's local disk, server B cannot find it.</p>
+  <p>So before you load-balance, session state moves to a shared store (a database or Redis, say), and file uploads move to object storage instead of local disk. Get this wrong and the symptom is unmistakable: users start getting logged out at random, or uploaded images vanish for half of them. It is the most common reason a freshly load-balanced app misbehaves, and it has nothing to do with the balancer itself.</p>
+
+  <h2>So, do I need a load balancer? A simple framework</h2>
+  <p>Here is the whole decision in one line: add a load balancer when you have, or are about to have, a second app server, whether that is for capacity or for uptime. Not before.</p>
+  <p>Walk it through with one server:</p>
+  <ul>
+    <li>Comfortable, with headroom to spare? You do not need a load balancer. Keep an eye on it.</li>
+    <li>Running hot? Scale it up first. Vertical scaling is the cheaper, simpler move.</li>
+    <li>Outgrown the biggest sensible single server? Add servers and a load balancer. That is horizontal scaling.</li>
+    <li>Downtime genuinely unacceptable? That is your reason to run two servers behind a balancer for high availability, even if one could handle the traffic on its own.</li>
+  </ul>
+  <p>None of this is dogma. If you know a launch or a campaign is about to land and you want capacity and redundancy in place beforehand, standing up two servers and a balancer ahead of time is a deliberate, reasonable call. Planning ahead is fine. The mistake is adding a balancer by reflex, with a single server behind it, and believing you bought something you did not.</p>
+
+  <h2>Where a built-in load balancer fits</h2>
+  <p>When you do hit one of those triggers, the last thing you want is to bolt on a separate load-balancing product and wire it up by hand. It helps a lot when the balancer is simply a feature you switch on next to your servers.</p>
+  <p>That is how it works on Kloudbean. The Flexible Load Balancer (FLB) is built in and can be enabled on any account when you need it, with application pools to group the servers it sends traffic to, SSL management handled in one place, and access logs so you can see what it is doing. Until you reach a trigger, you leave it off and run your single server. When capacity or availability makes it time, you turn it on.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:19px">Reach a trigger? Turn the balancer on.</p>
+    <p style="margin:0">Kloudbean's Flexible Load Balancer is built in, so when a second server makes sense you enable it instead of assembling it: application pools, SSL management, and access logs included. See <a href="https://www.kloudbean.com/">kloudbean.com</a> and <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:.5em 0 0; color:#5b6a86; font-size:14px">Built-in load balancer · Application pools · SSL management · Access logs · Managed databases · Automatic backups · Free SSL</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Do I need a load balancer for a small app?</h3>
+    <p>Usually not. A small app on one healthy, well-sized server doesn't need a load balancer, and adding one just gives you another component to run without adding capacity or redundancy. Revisit the question when you add a second server, either for more capacity or so the app survives one box going down.</p>
+
+    <h3>When do I need a load balancer?</h3>
+    <p>When you've got more than one app server, or you're about to. That happens for two reasons: you've outgrown a single server and are scaling out (horizontal scaling), or you can't tolerate downtime and want at least two servers so one can fail (high availability). Both need something to spread traffic, and that's the load balancer.</p>
+
+    <h3>Is a load balancer necessary for a single server?</h3>
+    <p>No. With one server behind it, a load balancer doesn't add capacity and doesn't remove the single point of failure, because that one server is still the only thing serving requests. It just adds cost and a moving part. It earns its place once there are two or more servers to balance across.</p>
+
+    <h3>What does a load balancer actually do?</h3>
+    <p>It spreads incoming requests across two or more app servers, health-checks each one and routes around any that stop responding, and often terminates SSL so certificates live in one place. With at least two healthy servers behind it, it also removes the single point of failure that one server represents.</p>
+
+    <h3>Should I scale up or add a load balancer first?</h3>
+    <p>Scale up first, in most cases. Making one server bigger (vertical scaling) is simpler than running several servers behind a balancer, with no traffic-splitting and no stateless refactor. Move to a load balancer and multiple servers when vertical scaling runs out, or when one server (however large) is a risk you can't accept.</p>
+
+    <h3>Does a load balancer make my app faster?</h3>
+    <p>Not on its own. A load balancer spreads load across servers, it doesn't speed up a single request. If your one server is overloaded, more servers behind a balancer can cut queuing, but a bigger server or a CDN for static files often helps more. Don't add one expecting a speed boost.</p>
+
+    <h3>Can a load balancer sit in front of just one server?</h3>
+    <p>It can, and people sometimes do it to prepare for a second server or to handle SSL in one place. But with a single server behind it you get no extra capacity and no redundancy, so it isn't high availability. It's one server with an extra component that can also fail.</p>
+
+    <h3>What is the difference between horizontal scaling and high availability?</h3>
+    <p>Horizontal scaling is about capacity: you add servers so the app handles more load. High availability is about uptime: you run more than one server so the app survives one of them failing. They often use the same setup, several servers behind a load balancer, but the reason differs.</p>
+
+    <h3>Do I need a load balancer if I use a CDN?</h3>
+    <p>They solve different problems. A CDN caches static content close to users and takes load off your server, but dynamic requests still hit your app. A load balancer spreads those dynamic requests across multiple app servers. A CDN can delay the day you need a balancer, but it won't replace one once you run more than one server.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Add the balancer when you add the second server, not before.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Do I Need a Load Balancer? When to Add One (and When Not To)","description":"A decision guide to whether an app needs a load balancer: what a load balancer actually does, why one healthy server is fine early, vertical scaling first, and the two triggers (horizontal scaling and high availability) that mean it is time to add one.","image":"https://www.kloudbean.com/blog/do-i-need-a-load-balancer/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@id":"https://kloudbean.com/#organization"},"mainEntityOfPage":"https://www.kloudbean.com/blog/do-i-need-a-load-balancer/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Do I need a load balancer for a small app?","acceptedAnswer":{"@type":"Answer","text":"Usually not. A small app on one healthy, well-sized server doesn't need a load balancer, and adding one just gives you another component to run without adding capacity or redundancy. Revisit the question when you add a second server, either for more capacity or so the app survives one box going down."}},
+{"@type":"Question","name":"When do I need a load balancer?","acceptedAnswer":{"@type":"Answer","text":"When you've got more than one app server, or you're about to. That happens for two reasons: you've outgrown a single server and are scaling out (horizontal scaling), or you can't tolerate downtime and want at least two servers so one can fail (high availability). Both need something to spread traffic, and that's the load balancer."}},
+{"@type":"Question","name":"Is a load balancer necessary for a single server?","acceptedAnswer":{"@type":"Answer","text":"No. With one server behind it, a load balancer doesn't add capacity and doesn't remove the single point of failure, because that one server is still the only thing serving requests. It just adds cost and a moving part. It earns its place once there are two or more servers to balance across."}},
+{"@type":"Question","name":"What does a load balancer actually do?","acceptedAnswer":{"@type":"Answer","text":"It spreads incoming requests across two or more app servers, health-checks each one and routes around any that stop responding, and often terminates SSL so certificates live in one place. With at least two healthy servers behind it, it also removes the single point of failure that one server represents."}},
+{"@type":"Question","name":"Should I scale up or add a load balancer first?","acceptedAnswer":{"@type":"Answer","text":"Scale up first, in most cases. Making one server bigger (vertical scaling) is simpler than running several servers behind a balancer, with no traffic-splitting and no stateless refactor. Move to a load balancer and multiple servers when vertical scaling runs out, or when one server (however large) is a risk you can't accept."}},
+{"@type":"Question","name":"Does a load balancer make my app faster?","acceptedAnswer":{"@type":"Answer","text":"Not on its own. A load balancer spreads load across servers, it doesn't speed up a single request. If your one server is overloaded, more servers behind a balancer can cut queuing, but a bigger server or a CDN for static files often helps more. Don't add one expecting a speed boost."}},
+{"@type":"Question","name":"Can a load balancer sit in front of just one server?","acceptedAnswer":{"@type":"Answer","text":"It can, and people sometimes do it to prepare for a second server or to handle SSL in one place. But with a single server behind it you get no extra capacity and no redundancy, so it isn't high availability. It's one server with an extra component that can also fail."}},
+{"@type":"Question","name":"What is the difference between horizontal scaling and high availability?","acceptedAnswer":{"@type":"Answer","text":"Horizontal scaling is about capacity: you add servers so the app handles more load. High availability is about uptime: you run more than one server so the app survives one of them failing. They often use the same setup, several servers behind a load balancer, but the reason differs."}},
+{"@type":"Question","name":"Do I need a load balancer if I use a CDN?","acceptedAnswer":{"@type":"Answer","text":"They solve different problems. A CDN caches static content close to users and takes load off your server, but dynamic requests still hit your app. A load balancer spreads those dynamic requests across multiple app servers. A CDN can delay the day you need a balancer, but it won't replace one once you run more than one server."}}
+]},
+{"@type":"Organization","@id":"https://kloudbean.com/#organization","name":"Kloudbean","legalName":"Secured Orbis Pvt. Ltd.","url":"https://kloudbean.com","description":"Kloudbean is a managed multi-cloud hosting platform by Secured Orbis Pvt. Ltd. It runs your whole stack from one dashboard, application servers, managed databases, object storage, and a built-in load balancer across seven cloud providers, so builders, agencies, and founders can deploy, host, and own their apps without operating raw cloud."}
+]}
+</script>
+</body>
+</html>

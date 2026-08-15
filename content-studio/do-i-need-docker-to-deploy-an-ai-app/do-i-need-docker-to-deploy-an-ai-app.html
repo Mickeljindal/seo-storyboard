@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Do I Need Docker to Deploy an AI App? Usually Not</title>
+<meta name="description" content="Do you need Docker to deploy an app? Usually no. What Docker really solves, what it costs a solo builder, how managed platforms deploy from Git with no Dockerfile, and when Docker is actually worth it.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/do-i-need-docker-to-deploy-an-ai-app/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Do I Need Docker to Deploy an AI App? Usually Not">
+<meta property="og:description" content="The honest answer is no, you do not need Docker to ship. What Docker solves, what it costs a solo builder, how platforms deploy from Git with no Dockerfile, and when Docker earns its place.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Deploy AI apps · Decision guide</span>
+  <h1>Do I Need Docker to Deploy an App? Usually Not</h1>
+  <p class="byline">By Kloudbean Engineering · Most apps ship just fine without it.</p>
+
+  <figure><img src="images/hero.png" alt="Two paths to production compared: a plain Git deploy with no Dockerfile, next to a longer Docker image build and run"></figure>
+
+  <p class="lead">You built something with Cursor, Lovable, or Bolt, it runs fine on your laptop, and now every deploy tutorial and half of Reddit insists you containerize it first. Before you lose an afternoon to a Dockerfile, answer the question people actually paste into Google: do I need Docker to deploy an app? Short version, no. Not to ship. This guide covers what Docker really solves, what it quietly costs a solo builder, and the handful of cases where it genuinely earns its keep.</p>
+
+  <div class="tldr">
+    <strong>The short version</strong>
+    <p>No, you don't need Docker to deploy an app. Most managed platforms build and run a normal Node or Python app straight from Git, with no Dockerfile at all. Docker starts to pay off when you have fiddly system dependencies, a team that needs identical environments, or several services to wire together. For one AI-built app, skip it and ship.</p>
+  </div>
+
+  <h2>So, do I need Docker to deploy an app?</h2>
+  <p>Let's separate two things that get tangled together. Deploying means getting your code running on a server the internet can reach, with your environment variables set and a process that stays up. Docker is one way to package that code. It is not the deployment itself, and it is not required for one.</p>
+  <p>The confusion is understandable. Docker shows up in nearly every modern tutorial, so it starts to feel like a law of physics. It isn't. Plenty of production apps serving real users ship without a single Dockerfile, and your AI-built app is almost certainly one of them.</p>
+  <p>So the honest answer to "do I need Docker to deploy an app" is no, you don't, at least not to get live. Whether you <em>should</em> is the more interesting question, and it depends entirely on your situation. Let's do that part properly.</p>
+
+  <h2>What Docker actually solves</h2>
+  <p>Before knocking Docker off its pedestal, give it a fair hearing. It solves real problems, and it solves them well.</p>
+  <p><strong>First, a reproducible environment.</strong> A Docker image bundles your code with the exact runtime version, system libraries, and OS packages it needs. The thing that runs in production is the thing you built and tested. No drift.</p>
+  <p><strong>Second, it kills "works on my machine".</strong> When every developer, your CI pipeline, and the server all run the identical image, the classic "but it runs locally" bug largely disappears. That's a real relief on a team.</p>
+  <p><strong>Third, it packages system-level dependencies.</strong> Some apps lean on native tools: ffmpeg for video, ImageMagick for images, a headless Chromium for Playwright, a specific libpq or GDAL build. Installing those by hand on a fresh server is fiddly and easy to get subtly wrong. A Dockerfile bakes them in once, and they travel with the app.</p>
+  <p>There's also isolation and portability, which flow from the same idea. The container carries its own little world, so it runs the same wherever containers run. None of this is marketing. If your app has these needs, Docker is a good answer.</p>
+
+  <h2>What Docker costs you (the part tutorials skip)</h2>
+  <p>Here's what the enthusiastic tutorials tend to leave out. Docker is not free. You pay for it in time and complexity, and for a solo or non-expert builder that bill can be steep.</p>
+  <p><strong>You have to write and maintain a Dockerfile.</strong> A working one is easy. A <em>good</em> one, small base image, correct layer ordering so the cache actually helps, a non-root user, multi-stage builds to keep the image lean, is a skill you pick up over weeks, not minutes.</p>
+  <p><strong>You have to build and store images.</strong> That means build time on every change, a container registry to push to, and image sizes that balloon if you're not careful. A sloppy image can be many times larger than it needs to be.</p>
+  <p><strong>And you've added a whole layer to learn and debug.</strong> When something breaks, you're no longer just debugging your app. You're also debugging the container: port mapping, mounted volumes, how environment variables get passed in, why the build works locally but not in CI. Every one of those is a new failure mode.</p>
+  <p>My honest take? For a first deploy of a single app, that tax rarely pays for itself. You wanted to ship a product, not become a container engineer this week.</p>
+
+  <h2>How platforms deploy without a Dockerfile</h2>
+  <p>So if not Docker, then what? The answer most managed platforms reach for is a build system that reads your project and figures it out.</p>
+  <p>You push to Git. The platform detects a Node or Python app, installs your dependencies, runs your build command, and starts the process your config points to. No Dockerfile, no image to manage, nothing for you to hand-write. It's the same push-to-deploy loop that <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">continuous deployment from GitHub</a> is built around.</p>
+  <p>Here's the nuance worth holding onto: many of these platforms <em>do</em> run your app in a container behind the scenes. The difference is that they build and manage it, and you never see it. "No Docker for you" means "no Dockerfile to write and maintain", not "no containers anywhere". That distinction is the whole reason this decision exists.</p>
+  <p>In practice, the work on your side looks like this.</p>
+  <pre><code># Deploy without Docker: push, and the platform builds and starts it
+git add .
+git commit -m "ship it"
+git push origin main</code></pre>
+  <p>The platform reads your start command and dependency list, and that's usually all it needs to ship the app.</p>
+  <pre><code>{
+  "scripts": {
+    "build": "vite build",
+    "start": "node server.js"
+  }
+}</code></pre>
+
+  <h2>Two paths to production, side by side</h2>
+  <p>The two routes look like this. One is a straight line. The other has more boxes, and each box is a thing you own and can break.</p>
+
+  <figure>
+    <svg viewBox="0 0 820 340" role="img" aria-labelledby="path-t path-d" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#f6f7fb;border:1px solid #e6e9f2;border-radius:16px">
+      <title id="path-t">Two paths to production: deploy from Git versus deploy with Docker</title>
+      <desc id="path-d">The top path deploys straight from Git: you push code, the platform installs dependencies, builds, and runs it, with no Dockerfile. The bottom path uses Docker: you write a Dockerfile, build an image, push it to a registry, and run it as a container. Same destination, more steps to own.</desc>
+      <defs>
+        <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="#98a2b3"></path>
+        </marker>
+      </defs>
+      <text x="26" y="38" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Two ways to get to production</text>
+
+      <text x="26" y="76" fill="#40b75f" font-family="Poppins,sans-serif" font-size="13" font-weight="700">Deploy from Git (no Dockerfile)</text>
+      <rect x="26" y="90" width="140" height="48" rx="8" fill="#40b75f"></rect>
+      <text x="96" y="119" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13">git push</text>
+      <line x1="168" y1="114" x2="196" y2="114" stroke="#98a2b3" stroke-width="2" marker-end="url(#ah)"></line>
+      <rect x="198" y="90" width="210" height="48" rx="8" fill="#0a1f45"></rect>
+      <text x="303" y="110" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">platform installs deps,</text>
+      <text x="303" y="127" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">builds and starts it</text>
+      <line x1="410" y1="114" x2="438" y2="114" stroke="#98a2b3" stroke-width="2" marker-end="url(#ah)"></line>
+      <rect x="440" y="90" width="130" height="48" rx="8" fill="#40b75f"></rect>
+      <text x="505" y="119" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="13">app is live</text>
+      <text x="588" y="110" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">You write app code.</text>
+      <text x="588" y="127" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">That is all.</text>
+
+      <line x1="26" y1="168" x2="794" y2="168" stroke="#e6e9f2" stroke-width="1.5"></line>
+
+      <text x="26" y="200" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="13" font-weight="700">Deploy with Docker</text>
+      <rect x="26" y="212" width="132" height="48" rx="8" fill="#4F1AF3"></rect>
+      <text x="92" y="241" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">write Dockerfile</text>
+      <line x1="160" y1="236" x2="186" y2="236" stroke="#98a2b3" stroke-width="2" marker-end="url(#ah)"></line>
+      <rect x="188" y="212" width="120" height="48" rx="8" fill="#4F1AF3"></rect>
+      <text x="248" y="241" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">build image</text>
+      <line x1="310" y1="236" x2="336" y2="236" stroke="#98a2b3" stroke-width="2" marker-end="url(#ah)"></line>
+      <rect x="338" y="212" width="146" height="48" rx="8" fill="#4F1AF3"></rect>
+      <text x="411" y="241" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">push to registry</text>
+      <line x1="486" y1="236" x2="512" y2="236" stroke="#98a2b3" stroke-width="2" marker-end="url(#ah)"></line>
+      <rect x="514" y="212" width="128" height="48" rx="8" fill="#4F1AF3"></rect>
+      <text x="578" y="241" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">run container</text>
+      <line x1="644" y1="236" x2="670" y2="236" stroke="#98a2b3" stroke-width="2" marker-end="url(#ah)"></line>
+      <rect x="672" y="212" width="120" height="48" rx="8" fill="#40b75f"></rect>
+      <text x="732" y="241" text-anchor="middle" fill="#ffffff" font-family="Poppins,sans-serif" font-size="12">app is live</text>
+
+      <text x="26" y="300" fill="#5b6a86" font-family="Poppins,sans-serif" font-size="12">Same destination. The Docker path buys you control and portability, and costs you steps to maintain.</text>
+    </svg>
+    <figcaption>Same destination. The Git path is fewer steps you own; the Docker path trades extra steps for extra control.</figcaption>
+  </figure>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>Deploy from Git</th><th>Deploy with Docker</th></tr></thead>
+    <tbody>
+      <tr><td>What you write</td><td>App code and a start command</td><td>App code, plus a Dockerfile</td></tr>
+      <tr><td>What builds it</td><td>The platform, from your repo</td><td>You build an image, then run it</td></tr>
+      <tr><td>Learning curve</td><td>Low</td><td>Moderate to steep</td></tr>
+      <tr><td>Best for</td><td>One standard app, solo or small team</td><td>Complex environments, teams, many services</td></tr>
+      <tr><td>Where it bites</td><td>Less control over the exact image</td><td>More moving parts to maintain and debug</td></tr>
+    </tbody>
+  </table>
+
+  <h2>When Docker genuinely earns its place</h2>
+  <p>Now the fair flip side. There are real situations where I'd reach for Docker without hesitating. Use Docker if:</p>
+  <ul>
+    <li>Your app needs fiddly native or system dependencies your host can't easily provide. If you're fighting to get ffmpeg, GDAL, or a specific system library onto the server, a Dockerfile ends that fight for good.</li>
+    <li>You need exact parity across a team, or across dev, CI, and production. When "works on my machine" is costing real hours, one shared image is worth the setup.</li>
+    <li>You have several services that run together. An app plus a background worker plus a queue plus a database is where docker compose shines, because it declares every piece and how they connect in one file.</li>
+    <li>You want portability between hosts. An image runs the same on anything that runs containers, which keeps you from being welded to one provider's build system.</li>
+    <li>Your app already ships as an image. If upstream hands you a container, run the container. Don't fight it.</li>
+  </ul>
+  <p>Notice the pattern. Docker earns its place when the environment is complicated, the team is bigger than one, or you're juggling several moving parts. That's exactly when reproducibility stops being a nice-to-have.</p>
+
+  <h2>When to skip Docker</h2>
+  <p>And the mirror image. Skip Docker if:</p>
+  <ul>
+    <li>You're shipping one Node or Python app with standard dependencies.</li>
+    <li>You're solo, or on a small team, and nobody's a container expert.</li>
+    <li>Your host already deploys from Git, so the reproducibility problem is mostly handled for you.</li>
+    <li>You mainly want the thing live so you can iterate on the actual product.</li>
+  </ul>
+  <p>That covers the large majority of AI-built and vibe-coded apps. If your app talks to a database and an API and renders some pages, you're in skip-it territory. And you can always add Docker later, the day one of the "use Docker if" points comes true. Adding it when you need it is easy. Adopting it before you need it just slows you down.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Your situation</th><th>Docker?</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>One AI-built Node or Python app, standard deps</td><td>Skip it</td><td>A Git deploy already gives you a repeatable build</td></tr>
+      <tr><td>Native deps like ffmpeg, GDAL, headless Chromium</td><td>Use Docker</td><td>Bakes the exact system libraries into the app</td></tr>
+      <tr><td>A team hitting works-on-my-machine bugs</td><td>Use Docker</td><td>One image, identical everywhere</td></tr>
+      <tr><td>App plus worker plus queue plus database</td><td>Use Docker (Compose)</td><td>Declares each service and how they connect</td></tr>
+      <tr><td>You expect to move between hosts</td><td>Lean Docker</td><td>The image runs the same wherever containers run</td></tr>
+      <tr><td>You just want it live today</td><td>Skip it</td><td>A Dockerfile is one more thing to write, build, and debug</td></tr>
+    </tbody>
+  </table>
+
+  <h2>A Dockerfile is not magic, here is one</h2>
+  <p>To demystify it, here's a minimal Dockerfile for a Node app. It's genuinely not scary. But read it for what it is: one more file you now own, keep updated, and debug when it misbehaves.</p>
+  <pre><code># A minimal Node Dockerfile: not scary, but one more file to own
+FROM node:lts-slim
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --omit=dev
+COPY . .
+EXPOSE 3000
+CMD ["node", "server.js"]</code></pre>
+  <p>That's the deal in a nutshell. Real control, real power, and real maintenance. If you decide you <em>do</em> want containers, the practical side of running them is covered in <a href="https://www.kloudbean.com/blog/docker-container-hosting/">Docker container hosting</a>, and the question of whether you then need an orchestrator on top is <a href="https://www.kloudbean.com/blog/kubernetes-vs-docker/">Kubernetes vs Docker</a>. Most small apps don't.</p>
+
+  <h2>The verdict: use Docker if, skip it if</h2>
+  <p>So, do you need Docker to deploy an app? No. You need a place to run your code and a way to get it there. Docker is one way to package that code, and a good one when your situation calls for it, but it's optional, not mandatory.</p>
+  <p>Use it when the environment is genuinely complicated, when a team needs identical setups, or when you're running several services at once. Skip it when you're one person shipping one app and you just want users on it. And remember you can start simple and add Docker the moment a real reason shows up. That's not a compromise. It's the sensible order.</p>
+  <p>One more thing, because it trips people up constantly. If your app runs locally but falls over on the server, that's almost never a Docker problem. It's usually config, and <a href="https://www.kloudbean.com/blog/why-my-ai-app-works-locally-but-not-in-production/">why your AI app works locally but not in production</a> walks through the usual suspects. Getting an AI-built app live end to end is covered in <a href="https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/">deploy your AI-built app to production</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:19px">Want the simple path?</p>
+    <p style="margin:0">Skip the Dockerfile and deploy straight from Git. Kloudbean connects to your Git repo and builds and deploys your Node or Python app on every push, so you can spend your time on the product instead of maintaining a container. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> and see <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Do I need Docker to deploy an app?</h3>
+    <p>No. Deploying just means getting your code running on a reachable server, and Docker is only one way to package it. Most managed platforms build and run a normal Node or Python app straight from a Git push, with no Dockerfile at all. Reach for Docker when your situation calls for it, not by default.</p>
+
+    <h3>Do I need Docker for my SaaS?</h3>
+    <p>Not to launch. A typical SaaS built as one app with a database and an API deploys fine from Git without Docker. Docker becomes worth it once you are running several services together, need identical environments across a team, or depend on native system libraries. Until then it is optional.</p>
+
+    <h3>Can I deploy a Node or Python app without Docker?</h3>
+    <p>Yes, and most people do. Managed platforms detect the framework, install your dependencies, run the build, and start the process, all from a Git push. You provide a start command and your dependency list, and the platform handles the rest. No Dockerfile required.</p>
+
+    <h3>What does Docker actually solve?</h3>
+    <p>Three real things. It gives you a reproducible environment so production matches what you built, it ends works-on-my-machine bugs by running the same image everywhere, and it packages fiddly system dependencies like ffmpeg or a headless browser so you are not installing them by hand. Those are genuine wins when you need them.</p>
+
+    <h3>When should I use Docker?</h3>
+    <p>Use Docker when the environment is complicated or the team is bigger than one. Concretely: fiddly native dependencies, exact parity across dev, CI, and production, several services that run together, or portability between hosts. If none of those apply, you can skip it and add it later the day one becomes true.</p>
+
+    <h3>Do I need Docker for an AI or vibe-coded app?</h3>
+    <p>Usually not. An app built with Cursor, Lovable, or Bolt is generally a standard Node or Python project, which deploys straight from Git. Containerizing it first mostly adds work without adding value. Ship it the simple way, then reach for Docker only if a real need appears later.</p>
+
+    <h3>Does Docker make my app run faster?</h3>
+    <p>No. Docker is about packaging and consistency, not speed. A containerized app runs at roughly the same speed as the same app running directly on the server. The value is fewer environment surprises, not more performance. Choose it for reproducibility, never for a speed boost.</p>
+
+    <h3>Is Docker hard to learn if I am not a DevOps engineer?</h3>
+    <p>A basic Dockerfile is approachable in an afternoon. A good one, small, cached well, secure, and lean, takes real practice. The bigger cost is the new debugging surface: container networking, volumes, and build quirks are extra things that can break. For a solo builder shipping one app, that curve often is not worth it yet.</p>
+
+    <h3>Do managed platforms use Docker behind the scenes?</h3>
+    <p>Often, yes. Many platforms run your app inside a container that they build and manage for you. The point is that you never write or maintain the Dockerfile. So no Docker for you means no container work on your plate, not that containers are absent entirely.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Use Docker when it earns its place, skip it when it doesn't.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Do I Need Docker to Deploy an AI App? Usually Not","description":"The honest answer is no, you do not need Docker to ship. What Docker actually solves, what it costs a solo builder, how managed platforms deploy from Git with no Dockerfile, and the cases where Docker genuinely earns its place.","image":"https://www.kloudbean.com/blog/do-i-need-docker-to-deploy-an-ai-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@id":"https://kloudbean.com/#organization"},"mainEntityOfPage":"https://www.kloudbean.com/blog/do-i-need-docker-to-deploy-an-ai-app/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Do I need Docker to deploy an app?","acceptedAnswer":{"@type":"Answer","text":"No. Deploying just means getting your code running on a reachable server, and Docker is only one way to package it. Most managed platforms build and run a normal Node or Python app straight from a Git push, with no Dockerfile at all. Reach for Docker when your situation calls for it, not by default."}},
+{"@type":"Question","name":"Do I need Docker for my SaaS?","acceptedAnswer":{"@type":"Answer","text":"Not to launch. A typical SaaS built as one app with a database and an API deploys fine from Git without Docker. Docker becomes worth it once you are running several services together, need identical environments across a team, or depend on native system libraries. Until then it is optional."}},
+{"@type":"Question","name":"Can I deploy a Node or Python app without Docker?","acceptedAnswer":{"@type":"Answer","text":"Yes, and most people do. Managed platforms detect the framework, install your dependencies, run the build, and start the process, all from a Git push. You provide a start command and your dependency list, and the platform handles the rest. No Dockerfile required."}},
+{"@type":"Question","name":"What does Docker actually solve?","acceptedAnswer":{"@type":"Answer","text":"Three real things. It gives you a reproducible environment so production matches what you built, it ends works-on-my-machine bugs by running the same image everywhere, and it packages fiddly system dependencies like ffmpeg or a headless browser so you are not installing them by hand. Those are genuine wins when you need them."}},
+{"@type":"Question","name":"When should I use Docker?","acceptedAnswer":{"@type":"Answer","text":"Use Docker when the environment is complicated or the team is bigger than one. Concretely: fiddly native dependencies, exact parity across dev, CI, and production, several services that run together, or portability between hosts. If none of those apply, you can skip it and add it later the day one becomes true."}},
+{"@type":"Question","name":"Do I need Docker for an AI or vibe-coded app?","acceptedAnswer":{"@type":"Answer","text":"Usually not. An app built with Cursor, Lovable, or Bolt is generally a standard Node or Python project, which deploys straight from Git. Containerizing it first mostly adds work without adding value. Ship it the simple way, then reach for Docker only if a real need appears later."}},
+{"@type":"Question","name":"Does Docker make my app run faster?","acceptedAnswer":{"@type":"Answer","text":"No. Docker is about packaging and consistency, not speed. A containerized app runs at roughly the same speed as the same app running directly on the server. The value is fewer environment surprises, not more performance. Choose it for reproducibility, never for a speed boost."}},
+{"@type":"Question","name":"Is Docker hard to learn if I am not a DevOps engineer?","acceptedAnswer":{"@type":"Answer","text":"A basic Dockerfile is approachable in an afternoon. A good one, small, cached well, secure, and lean, takes real practice. The bigger cost is the new debugging surface: container networking, volumes, and build quirks are extra things that can break. For a solo builder shipping one app, that curve often is not worth it yet."}},
+{"@type":"Question","name":"Do managed platforms use Docker behind the scenes?","acceptedAnswer":{"@type":"Answer","text":"Often, yes. Many platforms run your app inside a container that they build and manage for you. The point is that you never write or maintain the Dockerfile. So no Docker for you means no container work on your plate, not that containers are absent entirely."}}
+]},
+{"@type":"Organization","@id":"https://kloudbean.com/#organization","name":"Kloudbean","legalName":"Secured Orbis Pvt. Ltd.","url":"https://kloudbean.com","description":"Kloudbean is a managed multi-cloud hosting platform by Secured Orbis Pvt. Ltd. It runs your whole stack from one dashboard, application servers, managed databases, object storage, and a built-in load balancer across seven cloud providers, so builders, agencies, and founders can deploy, host, and own their apps without operating raw cloud."}
+]}
+</script>
+</body>
+</html>
