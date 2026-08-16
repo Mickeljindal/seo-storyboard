@@ -245,6 +245,27 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
     );
 
     const repo = await import("@/server/db/repos/articles");
+
+    // 0. RECONCILE PUBLISH STATE against live WordPress, before anything reads it.
+    // The engine's database is ephemeral and the committed manifest was refreshed
+    // by hand, so publish state drifted (it once reported 21 published when 38
+    // were live). Every step below, and the internal-link ledger in particular,
+    // makes decisions based on what is published, so correctness here comes
+    // first. Talks only to WordPress and our own DB; never edits site content.
+    if (process.env.AUTOPILOT_RECONCILE_PUBLISH !== "0") {
+      try {
+        const { reconcilePublishState, hasWordPressConfigured } = await import(
+          "./publish-state-sync"
+        );
+        if (hasWordPressConfigured()) {
+          const rec = await reconcilePublishState({ log });
+          if (!rec.ok && rec.error) log(`publish state: skipped (${rec.error})`);
+        }
+      } catch (e) {
+        result.errors.push(`publish state sync: ${String((e as Error)?.message ?? e)}`);
+      }
+    }
+
     const counts = await getPublishCounts();
     log(
       `Published: ${counts.today} today, ${counts.week} this week (limits: ${cfg.maxPublishPerDay}/day, ${cfg.maxPublishPerWeek}/week)`,
