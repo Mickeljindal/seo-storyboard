@@ -557,6 +557,23 @@ export async function runAutopilotCycle(): Promise<AutopilotRunResult> {
       }
     }
 
+    // 6c. PENDING INTERNAL LINKS — repair links that were deferred at publish
+    // time because their target was not live yet. The publisher heals inbound
+    // links the moment an article goes live; this is the catch-up pass for
+    // anything published outside the engine, interrupted mid-run, or backfilled.
+    if (process.env.AUTOPILOT_HEAL_LINKS !== "0") {
+      try {
+        const { drainPendingLinks } = await import("./internal-link-healer");
+        const healed = await drainPendingLinks({
+          limit: Number(process.env.AUTOPILOT_HEAL_LINKS_PER_RUN || 40),
+          log,
+        });
+        for (const e of healed.errors.slice(0, 5)) result.errors.push(`link heal: ${e}`);
+      } catch (e) {
+        result.errors.push(`link healing: ${String((e as Error)?.message ?? e)}`);
+      }
+    }
+
     // 6b. JOB QUEUE — drain durable bulk jobs (build/optimize/publish) server-side.
     try {
       const { drainJobs } = await import("./job-queue");

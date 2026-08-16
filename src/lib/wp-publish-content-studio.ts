@@ -317,6 +317,10 @@ export type PublishResult = {
   images?: number;
   updated?: boolean;
   category?: string;
+  /** Links unwrapped because their target is not published yet (recorded for repair). */
+  linksDeferred?: number;
+  /** Links restored in other posts because this article is now live. */
+  linksHealed?: number;
   error?: string;
 };
 
@@ -377,6 +381,23 @@ export async function publishContentStudioArticle(
     body = body.split(`src="${u.src}"`).join(`src="${u.url}"`);
     imagesUploaded++;
     if (featuredId == null && u.hero) featuredId = u.id;
+  }
+
+  // Never publish a link we cannot honour. Articles link to each other but go
+  // live at different times, so any link whose target is still unpublished is
+  // unwrapped to plain text and recorded in the pending-links ledger. When the
+  // target is published later, the healer wraps those exact words back into a
+  // real link. Keeps 404s off the live site without holding back the article.
+  let deferredCount = 0;
+  try {
+    const { applyDeferralAndRecord } = await import("./internal-link-deferral");
+    const res = await applyDeferralAndRecord(body, slug);
+    body = res.html;
+    deferredCount = res.deferred.length;
+  } catch (e) {
+    // A ledger problem must not block a publish; the worst case is that the
+    // article ships with the links it was written with.
+    console.warn(`[publish] link deferral skipped for ${slug}:`, (e as Error)?.message);
   }
 
   // Convert the article's own body into native Gutenberg blocks so the post
@@ -452,6 +473,20 @@ export async function publishContentStudioArticle(
     }
   }
 
+  // This article is now live, so anything that was waiting to link TO it can be
+  // repaired. Runs after the publish is recorded so the healer sees correct
+  // state, and best-effort so a link repair can never fail a successful publish.
+  let linksHealed = 0;
+  if (status === "publish" && slug) {
+    try {
+      const { healLinksForTarget } = await import("./internal-link-healer");
+      const healed = await healLinksForTarget(slug);
+      linksHealed = healed.applied;
+    } catch (e) {
+      console.warn(`[publish] link healing skipped for ${slug}:`, (e as Error)?.message);
+    }
+  }
+
   return {
     ok: true,
     link: post.link,
@@ -459,6 +494,8 @@ export async function publishContentStudioArticle(
     images: imagesUploaded,
     updated: !!existingPostId,
     category: categoryName,
+    linksDeferred: deferredCount,
+    linksHealed,
   };
 }
 
