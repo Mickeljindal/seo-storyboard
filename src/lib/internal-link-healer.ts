@@ -116,6 +116,12 @@ async function applyRows(
         source_post_id: src.wpPostId,
         target_url: targetUrl,
         anchor_text: row.anchor_text,
+        // We unwrapped this exact phrase at publish time, so it should be in the
+        // body. If it is not, the post was edited: close the row instead of
+        // appending the link into some other paragraph.
+        strict: true,
+        // A link-only edit must not look like a content refresh.
+        preserve_modified: true,
       });
 
       if (res.ok && res.applied) {

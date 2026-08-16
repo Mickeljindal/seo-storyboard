@@ -25,6 +25,14 @@
  *   - /apply-link NEVER touches the post title, slug, or removes anything.
  *   - Classic content: only inserts if the anchor text isn't already linked
  *     anywhere in the post, and only wraps the FIRST occurrence.
+ *   - strict (bool, default false): when true, ONLY wrap the anchor phrase where
+ *     it already appears; never fall back to appending a link elsewhere. The
+ *     deferred-link healer sets this, because it unwrapped that exact phrase at
+ *     publish time and a miss means the post has since been edited.
+ *   - preserve_modified (bool, default TRUE): keep the existing post_modified
+ *     timestamp. Adding one link is not a content update, and bumping the date on
+ *     every insertion would mark hundreds of posts as freshly updated and make
+ *     our update dates meaningless to search engines.
  *   - Elementor pages: appends into a dedicated "Related reading" section
  *     (idempotent — re-applying updates that one section, never duplicates).
  *   - Rate-limited like every other write endpoint.
@@ -139,7 +147,7 @@ const KBSEO_RELATED_MARKER = 'kbseo-related-links';
  * occurrence of the anchor text found in a plain-text paragraph (skips
  * headings/existing links). Returns true if inserted.
  */
-function kbseo_insert_classic_link($post, $anchor, $target_url) {
+function kbseo_insert_classic_link($post, $anchor, $target_url, $strict = false, $preserve_modified = true) {
     $content = $post->post_content;
 
     // Already linked to this exact URL anywhere? Don't add a duplicate.
@@ -151,9 +159,15 @@ function kbseo_insert_classic_link($post, $anchor, $target_url) {
     $replacement = '<a href="' . esc_url($target_url) . '">$1</a>';
     $new_content = preg_replace($pattern, $replacement, $content, 1, $count);
     if ($count > 0 && $new_content !== $content) {
-        wp_update_post(['ID' => $post->ID, 'post_content' => $new_content]);
+        kbseo_update_content($post, $new_content, $preserve_modified);
         return true;
     }
+
+    // STRICT: the caller guaranteed this phrase should be present, because it
+    // unwrapped that exact phrase itself at publish time. It is not here, so the
+    // post changed underneath us. Report "not applied" and let the caller close
+    // the row, rather than planting the link in an arbitrary paragraph.
+    if ($strict) return false;
 
     // Fallback: anchor phrase not found verbatim in the body — append a
     // sentence linking out, inserted after the first paragraph so it doesn't
@@ -172,7 +186,7 @@ function kbseo_insert_classic_link($post, $anchor, $target_url) {
     }
     unset($p);
     if (!$inserted) return false;
-    wp_update_post(['ID' => $post->ID, 'post_content' => implode('</p>', $paragraphs)]);
+    kbseo_update_content($post, implode('</p>', $paragraphs), $preserve_modified);
     return true;
 }
 
@@ -258,6 +272,20 @@ function kbseo_apply_link($request) {
     if ($post_id <= 0 || !$target_url || !$anchor) {
         return new WP_Error('invalid_body', 'source_post_id, target_url, anchor_text are required', ['status' => 400]);
     }
+    // STRICT MODE: only wrap the anchor phrase where it already appears. Used by
+    // the deferred-link healer, which unwrapped that exact phrase itself at
+    // publish time and therefore knows it should be present. If it is not, the
+    // post was edited, and appending a floating link somewhere else would put it
+    // in a place the writer never chose. Off by default so the discovery-based
+    // scanner keeps its existing append fallback.
+    $strict = !empty($data['strict']);
+    // Adding one link is not a content update. Bumping post_modified on every
+    // insertion would mark hundreds of posts as freshly updated and teach search
+    // engines that our update dates mean nothing. Preserve by default.
+    $preserve_modified = array_key_exists('preserve_modified', $data)
+        ? !empty($data['preserve_modified'])
+        : true;
+
     $post = get_post($post_id);
     if (!$post) return new WP_Error('not_found', 'Source post not found', ['status' => 404]);
 
@@ -266,18 +294,38 @@ function kbseo_apply_link($request) {
     $method = 'none';
 
     if ($is_elementor) {
+        // Elementor content lives in post meta, so this path never touches
+        // post_modified and has nothing to preserve.
         $applied = kbseo_insert_elementor_link($post_id, $anchor, $target_url);
         $method = 'elementor_html_splice';
     } else {
-        $applied = kbseo_insert_classic_link($post, $anchor, $target_url);
-        $method = 'classic_inline';
+        $applied = kbseo_insert_classic_link($post, $anchor, $target_url, $strict, $preserve_modified);
+        $method = $strict ? 'classic_inline_strict' : 'classic_inline';
     }
 
     return [
         'ok' => true,
         'applied' => $applied,
         'method' => $method,
+        'strict' => $strict,
+        'preserved_modified' => $preserve_modified,
         'post_id' => $post_id,
         'link' => get_permalink($post_id),
     ];
+}
+
+/**
+ * Update post_content, optionally keeping the existing modified timestamp.
+ *
+ * wp_update_post() refreshes post_modified unless the value is supplied, so the
+ * original timestamps are passed straight back to hold them still. That keeps a
+ * link-only edit from looking like a content refresh.
+ */
+function kbseo_update_content($post, $new_content, $preserve_modified) {
+    $args = ['ID' => $post->ID, 'post_content' => $new_content];
+    if ($preserve_modified) {
+        $args['post_modified'] = $post->post_modified;
+        $args['post_modified_gmt'] = $post->post_modified_gmt;
+    }
+    return wp_update_post($args);
 }

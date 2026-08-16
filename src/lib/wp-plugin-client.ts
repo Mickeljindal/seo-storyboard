@@ -616,16 +616,31 @@ export type ApplyLinkResult = {
   ok: boolean;
   applied?: boolean;
   method?: string;
+  strict?: boolean;
+  preserved_modified?: boolean;
   post_id?: number;
   link?: string;
   error?: string;
 };
 
-/** Insert one internal link into a live post/page (classic content or Elementor). */
+/**
+ * Insert one internal link into a live post/page (classic content or Elementor).
+ *
+ * `strict` limits the plugin to wrapping the anchor phrase where it already
+ * appears, with no fallback to appending a link elsewhere. The deferred-link
+ * healer sets it, because it unwrapped that exact phrase itself at publish time,
+ * so a miss means the post has since been edited.
+ *
+ * `preserve_modified` defaults to true in the plugin: adding one link is not a
+ * content update, and bumping the date every time would make our update dates
+ * meaningless.
+ */
 export async function applyLink(payload: {
   source_post_id: number;
   target_url: string;
   anchor_text: string;
+  strict?: boolean;
+  preserve_modified?: boolean;
 }): Promise<ApplyLinkResult> {
   const r = await pluginPost<ApplyLinkResult>("/apply-link", payload);
   return "ok" in r ? (r as ApplyLinkResult) : { ok: false, error: (r as { error: string }).error };
