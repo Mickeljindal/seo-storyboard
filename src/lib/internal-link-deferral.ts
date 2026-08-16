@@ -29,8 +29,13 @@ export type DeferredLink = {
 
 export type DeferralResult = {
   html: string;
-  /** Links kept because their target is already live. */
+  /** Links kept because their target is already live at the URL we wrote. */
   kept: number;
+  /**
+   * Links kept but pointed at the target's REAL published URL, because the live
+   * post lives at a different slug than the folder name we linked to.
+   */
+  rewritten: number;
   /** Links unwrapped to plain text, to be restored when the target goes live. */
   deferred: DeferredLink[];
   /** Self-referential links unwrapped and not recorded. */
@@ -91,34 +96,65 @@ function countOccurrences(haystack: string, needle: string): number {
   return haystack.split(needle).length - 1;
 }
 
+/** Compare URLs ignoring protocol, www, and a trailing slash. */
+function normaliseUrl(u: string): string {
+  return u
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\/+$/, "")
+    .toLowerCase();
+}
+
 /**
  * Rewrite a body so it only contains links we can honour right now.
  *
- * `isLive` decides whether a target slug is already published. Anything else is
- * unwrapped and returned in `deferred` for the caller to record.
+ * `resolveLiveUrl` returns the real published URL for a slug, or null when that
+ * article is not live yet.
+ *
+ * Returning the URL rather than a boolean matters more than it looks. Writers
+ * link to `/blog/<folder-slug>/`, but a WordPress post can live at a different
+ * slug: `server-backups-guide` is published at
+ * `/blog/server-backups-that-actually-restore-a-practical-guide/`. Treating
+ * "is it live?" as the only question would keep 531 links across the library
+ * pointing at URLs that 404 even though the article exists. So a live target's
+ * href is corrected to wherever the post actually is.
  */
 export function deferUnpublishedLinks(
   bodyHtml: string,
   fromSlug: string,
-  isLive: (slug: string) => boolean,
+  resolveLiveUrl: (slug: string) => string | null,
 ): DeferralResult {
   const candidates: { targetSlug: string; anchorText: string }[] = [];
   let kept = 0;
+  let rewritten = 0;
   let selfLinks = 0;
 
-  const html = bodyHtml.replace(BLOG_LINK_RE, (whole, targetSlug: string, inner: string) => {
-    // A link to the article itself is noise. Drop the link, keep the words.
-    if (targetSlug === fromSlug) {
-      selfLinks++;
+  const html = bodyHtml.replace(
+    BLOG_LINK_RE,
+    (whole: string, targetSlug: string, inner: string) => {
+      // A link to the article itself is noise. Drop the link, keep the words.
+      if (targetSlug === fromSlug) {
+        selfLinks++;
+        return inner;
+      }
+      const liveUrl = resolveLiveUrl(targetSlug);
+      if (liveUrl) {
+        const writtenUrl = `https://www.kloudbean.com/blog/${targetSlug}/`;
+        if (normaliseUrl(liveUrl) === normaliseUrl(writtenUrl)) {
+          kept++;
+          return whole;
+        }
+        // The post is live somewhere else. Point at the real URL.
+        rewritten++;
+        return whole.replace(
+          /href="https?:\/\/(?:www\.)?kloudbean\.com\/blog\/[a-z0-9-]+\/?"/i,
+          `href="${liveUrl}"`,
+        );
+      }
+      candidates.push({ targetSlug, anchorText: anchorCandidate(inner) });
       return inner;
-    }
-    if (isLive(targetSlug)) {
-      kept++;
-      return whole;
-    }
-    candidates.push({ targetSlug, anchorText: anchorCandidate(inner) });
-    return inner;
-  });
+    },
+  );
 
   // Decide which candidates are safe to promise, now that the final body exists.
   // Ambiguity is judged against what will actually be published, not the source.
@@ -133,25 +169,34 @@ export function deferUnpublishedLinks(
     else unrecoverable++;
   }
 
-  return { html, kept, deferred, selfLinks, unrecoverable };
+  return { html, kept, rewritten, deferred, selfLinks, unrecoverable };
 }
 
 /**
- * Slugs that are currently published, straight from the database.
+ * Published articles mapped to the URL they actually live at.
  *
  * Trustworthy now that publish state is reconciled against live WordPress on
- * every autopilot cycle (see publish-state-sync.ts). Before that fix this set
- * was stale, which is exactly how the engine came to believe 21 articles were
- * live when 38 were.
+ * every autopilot cycle (see publish-state-sync.ts). Before that fix this was
+ * stale, which is how the engine came to believe 21 articles were live when 38
+ * were.
+ *
+ * Falls back to the canonical folder-slug URL when a published row somehow has
+ * no recorded URL, which is the best guess available.
  */
-export async function loadLiveSlugs(): Promise<Set<string>> {
+export async function loadLiveUrls(): Promise<Map<string, string>> {
   const articlesRepo = await import("@/server/db/repos/articles");
   const rows = await articlesRepo.listArticles({ limit: 5000 });
-  const out = new Set<string>();
+  const out = new Map<string, string>();
   for (const r of rows) {
-    if (r.status === "published" && r.url_slug) out.add(r.url_slug);
+    if (r.status !== "published" || !r.url_slug) continue;
+    out.set(r.url_slug, r.published_url ?? `https://www.kloudbean.com/blog/${r.url_slug}/`);
   }
   return out;
+}
+
+/** Slugs that are currently published. Thin wrapper over loadLiveUrls(). */
+export async function loadLiveSlugs(): Promise<Set<string>> {
+  return new Set((await loadLiveUrls()).keys());
 }
 
 /**
@@ -164,11 +209,11 @@ export async function loadLiveSlugs(): Promise<Set<string>> {
 export async function applyDeferralAndRecord(
   bodyHtml: string,
   fromSlug: string,
-  opts: { liveSlugs?: Set<string>; log?: (m: string) => void } = {},
+  opts: { liveUrls?: Map<string, string>; log?: (m: string) => void } = {},
 ): Promise<DeferralResult & { recorded: number }> {
   const log = opts.log ?? (() => {});
-  const live = opts.liveSlugs ?? (await loadLiveSlugs());
-  const result = deferUnpublishedLinks(bodyHtml, fromSlug, (s) => live.has(s));
+  const live = opts.liveUrls ?? (await loadLiveUrls());
+  const result = deferUnpublishedLinks(bodyHtml, fromSlug, (s) => live.get(s) ?? null);
 
   let recorded = 0;
   if (fromSlug) {
@@ -186,9 +231,10 @@ export async function applyDeferralAndRecord(
     }
   }
 
-  if (result.deferred.length || result.selfLinks) {
+  if (result.deferred.length || result.selfLinks || result.rewritten) {
     log(
-      `internal links: ${result.kept} live kept, ${result.deferred.length} deferred` +
+      `internal links: ${result.kept} kept, ${result.rewritten} pointed at real URL, ` +
+        `${result.deferred.length} deferred` +
         `${result.selfLinks ? `, ${result.selfLinks} self-link(s) unwrapped` : ""}`,
     );
   }
