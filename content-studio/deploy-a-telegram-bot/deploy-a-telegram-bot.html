@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deploy a Telegram Bot: Polling, Webhooks and 24/7 Hosting</title>
+<meta name="description" content="How to deploy a Telegram bot that runs 24/7 for real users: long polling vs webhooks and when each wins, a real setWebhook call, keeping the token out of your code, durable state, and process supervision.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/deploy-a-telegram-bot/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Deploy a Telegram Bot: Polling, Webhooks and 24/7 Hosting">
+<meta property="og:description" content="Long polling or webhooks, why a bot needs an always-on process, and the small set of things that keep it alive after you close your laptop.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Bots &amp; long-running processes · Field guide</span>
+  <h1>Deploy a Telegram Bot: Polling, Webhooks and Staying Online 24/7</h1>
+  <p class="byline">By Kloudbean Engineering · A bot that only runs on your laptop is a demo, not a bot.</p>
+
+  <figure><img src="images/hero.png" alt="Two paths for a Telegram bot in production: the bot polling Telegram for updates, or Telegram posting updates to an HTTPS webhook endpoint"></figure>
+
+  <p class="lead">Your bot works. You typed <code>/start</code>, it answered, and for about ten minutes that felt like magic. Then you closed the terminal and it died. To deploy a Telegram bot for actual users you have to answer one architectural question first, long polling or webhooks, and then solve four unglamorous problems: an always-on process, a token that isn't in your repo, state that survives a restart, and something that restarts the bot when it crashes at 3am. This is the field guide for python-telegram-bot, aiogram, Telegraf and grammY, in that order of "things that will bite you."</p>
+
+  <div class="tldr">
+    <strong>The short answer</strong>
+    <p>To deploy a Telegram bot, run it as a persistent process rather than a serverless function. Use long polling first, since it needs no public URL and no certificate. Switch to webhooks when you need instant delivery at higher volume, which requires a public HTTPS endpoint with a valid cert. Keep the token in an environment variable and state in a real database.</p>
+  </div>
+
+  <h2>What it actually takes to deploy a Telegram bot</h2>
+  <p>Strip out the framework talk and Telegram bot hosting comes down to five requirements. Everything else in this article is detail on one of them.</p>
+  <ul>
+    <li><strong>A process that stays running.</strong> Your bot is a loop, or an HTTP server, that must be alive when a user types. Not warmed up on demand. Alive.</li>
+    <li><strong>A delivery mechanism.</strong> Either your bot asks Telegram for updates (polling) or Telegram pushes them to you (webhooks). Pick one on purpose.</li>
+    <li><strong>A public HTTPS endpoint with a valid certificate, if and only if you chose webhooks.</strong> Telegram will not post updates to plain HTTP, and it will not accept a broken chain.</li>
+    <li><strong>Durable state.</strong> Anything you want to remember between restarts belongs in a database, not a variable.</li>
+    <li><strong>Supervision.</strong> Processes die. Networks blip. Something needs to bring the bot back without you noticing.</li>
+  </ul>
+  <p>Notice how short that list is. You don't need Kubernetes, a load balancer, or a queue to run a bot with a few thousand users. Most bots are one small process and one small database.</p>
+
+  <h2>Long polling vs webhooks: the one decision that shapes everything</h2>
+  <p>This is the fork in the road, and it's genuinely Telegram-specific. The Bot API gives you two ways to receive updates and they imply completely different hosting.</p>
+  <p>With <strong>long polling</strong>, your bot calls <code>getUpdates</code> in a loop. Telegram holds the request open until there's something to send or the timeout expires. Your bot is a client, making outbound calls only. It can sit behind NAT, on a machine with no domain, with no inbound port open at all. That's why it just works on your laptop.</p>
+  <p>With <strong>webhooks</strong>, you register a URL and Telegram sends each update to it as an HTTPS POST. Now your bot is a server. It needs a public hostname, a certificate Telegram trusts, and a route that answers fast. In exchange you get push delivery with no polling overhead, and a shape that scales cleanly because you're just handling HTTP requests.</p>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>Long polling</th><th>Webhooks</th></tr></thead>
+    <tbody>
+      <tr><td>Who initiates</td><td>Your bot calls Telegram</td><td>Telegram calls your bot</td></tr>
+      <tr><td>Public URL needed</td><td>No</td><td>Yes, HTTPS with a valid cert</td></tr>
+      <tr><td>Works behind NAT or a firewall</td><td>Yes</td><td>No, inbound must reach you</td></tr>
+      <tr><td>Setup cost</td><td>Almost none</td><td>Domain, cert, route, secret token</td></tr>
+      <tr><td>Scaling shape</td><td>One consumer per bot token</td><td>Ordinary HTTP, easy to add capacity</td></tr>
+      <tr><td>Multiple instances</td><td>Conflict, only one may poll</td><td>Fine behind a balancer</td></tr>
+      <tr><td>Wins when</td><td>You are shipping, iterating, or under moderate load</td><td>High message volume, latency matters, or you already run a web app</td></tr>
+    </tbody>
+  </table>
+
+  <p><strong>An opinion, since you're going to ask:</strong> use long polling until something forces you off it. Most bots never need webhooks. Polling is fewer moving parts, the same code runs locally and in production, and the failure mode is obvious: the process is down. Webhooks add a domain, a certificate, a public route, and a class of silent failures where Telegram delivers to a URL that quietly 500s and a user tells you about it. Earn your way onto webhooks with a real reason: volume where polling round-trips add up, a latency requirement, or an existing web app where adding a route beats running a second process.</p>
+
+  <!-- ADD IMAGE: swap this SVG for a rendered diagram if you prefer. src -> images/polling-vs-webhook.png -->
+  <figure>
+    <svg viewBox="0 0 820 300" role="img" aria-labelledby="tg-t tg-d" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:#f6f7fb;border:1px solid #e6e9f2;border-radius:16px">
+      <title id="tg-t">Long polling compared with webhook delivery</title>
+      <desc id="tg-d">In polling, the bot process makes outbound getUpdates calls to the Telegram API, so no inbound connection or certificate is required. In webhook mode, the Telegram API sends HTTPS POST requests to a public endpoint on your server, which requires a domain and a valid certificate.</desc>
+      <text x="30" y="36" fill="#000f27" font-family="Poppins,sans-serif" font-size="16" font-weight="700">Which way does the connection go?</text>
+
+      <text x="30" y="70" fill="#4F1AF3" font-family="Poppins,sans-serif" font-size="13" font-weight="700">Long polling: outbound only</text>
+      <rect x="30" y="82" width="360" height="176" rx="10" fill="#ffffff" stroke="#dcd3fd"/>
+      <rect x="52" y="120" width="130" height="44" rx="6" fill="#000f27"/><text x="117" y="147" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="12">bot process</text>
+      <rect x="242" y="120" width="126" height="44" rx="6" fill="#4F1AF3"/><text x="305" y="147" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="12">Telegram</text>
+      <path d="M182 136 L238 136" stroke="#4F1AF3" stroke-width="2" fill="none" marker-end="url(#a1)"/>
+      <path d="M238 152 L186 152" stroke="#9aa3b8" stroke-width="2" stroke-dasharray="4 4" fill="none" marker-end="url(#a2)"/>
+      <text x="210" y="196" text-anchor="middle" fill="#5b6478" font-family="Poppins,sans-serif" font-size="11">getUpdates, held open</text>
+      <text x="210" y="228" text-anchor="middle" fill="#0a7d33" font-family="Poppins,sans-serif" font-size="12">no domain, no cert, no open port</text>
+
+      <text x="430" y="70" fill="#0a7d33" font-family="Poppins,sans-serif" font-size="13" font-weight="700">Webhook: inbound HTTPS</text>
+      <rect x="430" y="82" width="360" height="176" rx="10" fill="#ffffff" stroke="#bfe6c9"/>
+      <rect x="452" y="120" width="126" height="44" rx="6" fill="#4F1AF3"/><text x="515" y="147" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="12">Telegram</text>
+      <rect x="638" y="120" width="130" height="44" rx="6" fill="#000f27"/><text x="703" y="147" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono,monospace" font-size="12">your server</text>
+      <path d="M578 142 L634 142" stroke="#40b75f" stroke-width="2" fill="none" marker-end="url(#a3)"/>
+      <text x="606" y="196" text-anchor="middle" fill="#5b6478" font-family="Poppins,sans-serif" font-size="11">POST /tg/&#60;secret path&#62;</text>
+      <text x="606" y="228" text-anchor="middle" fill="#b42318" font-family="Poppins,sans-serif" font-size="12">needs a valid HTTPS certificate</text>
+
+      <defs>
+        <marker id="a1" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#4F1AF3"/></marker>
+        <marker id="a2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#9aa3b8"/></marker>
+        <marker id="a3" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#40b75f"/></marker>
+      </defs>
+    </svg>
+    <figcaption>Polling makes your bot a client. Webhooks make it a server. That single difference decides what your hosting must provide.</figcaption>
+  </figure>
+
+  <h2>Switching to webhooks without breaking your bot</h2>
+  <p>When you do move, it's two API calls and one rule. Register the URL, then stop polling. You cannot do both: if a webhook is set and you call <code>getUpdates</code>, Telegram replies <code>409 Conflict</code> and tells you the webhook is active. That error message is the most common "my bot went silent" cause after a half-finished migration.</p>
+  <pre><code># register the endpoint. path segment is random, not guessable.
+curl -X POST "https://api.telegram.org/bot$BOT_TOKEN/setWebhook" \
+  -d "url=https://bot.example.com/tg/$WEBHOOK_PATH" \
+  -d "secret_token=$WEBHOOK_SECRET" \
+  -d "allowed_updates=[\"message\",\"callback_query\"]"
+
+# check what Telegram thinks is happening
+curl "https://api.telegram.org/bot$BOT_TOKEN/getWebhookInfo"
+
+# going back to polling? drop the webhook first.
+curl -X POST "https://api.telegram.org/bot$BOT_TOKEN/deleteWebhook"</code></pre>
+  <p>Two details worth internalising. <code>secret_token</code> makes Telegram send an <code>X-Telegram-Bot-Api-Secret-Token</code> header with every update, and your handler should reject any request that doesn't match. Without it, anyone who guesses your URL can feed your bot fake updates. And <code>getWebhookInfo</code> is your first debugging stop, because it reports <code>last_error_message</code> and <code>pending_update_count</code>, which together tell you whether Telegram is failing to reach you or your handler is failing to answer.</p>
+  <p>Your handler must answer quickly. Telegram retries slow deliveries, so a webhook that does a 30 second API call inline earns duplicate updates and a growing backlog. Acknowledge with a 200, then do the slow work. A tiny job queue in Redis is the usual fix, and <a href="https://www.kloudbean.com/blog/managed-redis-hosting/">managed Redis</a> saves you running one yourself.</p>
+
+  <!-- ADD IMAGE: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A terminal showing the getWebhookInfo response with url, pending_update_count and last_error_message visible.</em><small>This is the screenshot people actually need when a bot goes quiet.</small></span></figure>
+
+  <h2>Why a bot wants an always-on process</h2>
+  <p>Here is the part that trips up people coming from web deploys. A web app can scale to zero because nothing happens between requests. A polling bot is the opposite: the loop <em>is</em> the app. Kill it and you're not slow, you're absent. Telegram queues updates for a while, so a short restart is survivable, but a process that gets suspended after fifteen minutes of quiet is not a bot, it's a bot-shaped outage.</p>
+  <p>Cold starts hurt in a subtler way. Bots are conversational, so a boot delay before your framework even parses the update reads as a broken bot, especially in multi-step flows where every answer waits again.</p>
+  <p>To be fair, plenty of bots are fine without a dedicated server. A webhook-only bot that just replies to single commands, holds no in-memory state, and calls no slow APIs is a genuinely good fit for a serverless function or a free tier. If your bot is a stateless "reply to /price with a number" thing, deploy it that way and enjoy the simplicity. Honest advice, even though it isn't the answer this article is set up to give.</p>
+  <p>What pushes you onto a persistent server is any of these being true:</p>
+  <ul>
+    <li>You poll, so you need a long-lived outbound connection that nothing suspends.</li>
+    <li>You hold in-memory context, a cache, a rate limiter, or an open connection pool between updates.</li>
+    <li>You run background work: scheduled digests, reminders, a job worker, a queue consumer.</li>
+    <li>You need replies that feel instant, with no boot penalty on the first message after a quiet spell.</li>
+  </ul>
+
+  <h2>Get the bot token out of your code, today</h2>
+  <p>The single most common bot mistake is a token hard-coded in <code>bot.py</code> and pushed to GitHub. A Telegram bot token is a complete credential. Anyone holding it can read your bot's messages and send as your bot. Scanners find them fast, and public repos get scraped constantly.</p>
+  <p>Read it from the environment, always, and let the app crash loudly if it's missing. A bot that starts with an empty token and fails mysteriously later is worse than one that refuses to boot.</p>
+  <pre><code># python-telegram-bot / aiogram
+import os
+TOKEN = os.environ["BOT_TOKEN"]   # KeyError at boot beats a silent 401
+
+# Telegraf / grammY
+const token = process.env.BOT_TOKEN;
+if (!token) throw new Error('BOT_TOKEN is not set');</code></pre>
+  <p>Keep <code>.env</code> in <code>.gitignore</code>, and set the real value in your host's environment or runtime config rather than a file you might commit by accident. If a token has ever touched a repo, revoke it in BotFather with <code>/revoke</code> and take the new one. Rotating is thirty seconds of work. The patterns are covered properly in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a> and <a href="https://www.kloudbean.com/blog/secrets-management/">secrets management</a>.</p>
+
+  <h2>A Python dict is not a database</h2>
+  <p>The anti-pattern I see most in bot code, after the committed token, is this:</p>
+  <pre><code>user_state = {}   # chat_id -&gt; step in the conversation
+
+async def on_message(update, context):
+    step = user_state.get(update.effective_chat.id, 0)
+    user_state[update.effective_chat.id] = step + 1</code></pre>
+  <p>It works in testing and loses every conversation on every restart. Worse, it fails quietly. Nobody gets an error. Users just land back at step one, or the bot answers as if it's never met them, and you get a vague report that it's "sometimes weird."</p>
+  <p>Put anything you'd be annoyed to lose in a real datastore. Postgres or MySQL for users, subscriptions, and history. Redis for in-flight conversation steps and rate limits, where TTL expiry is exactly the behaviour you want. Both survive a restart, and the managed versions come with automatic backups so a bad migration isn't fatal. Wiring it up is the same job as any other app, walked through in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a>.</p>
+  <p>One design note: make your handlers idempotent. Telegram retries webhook deliveries, and a duplicate that charges twice or sends two confirmations is a support ticket. Store the <code>update_id</code> you last processed and skip repeats.</p>
+
+  <!-- ADD IMAGE: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Side by side: an in-memory dict losing conversation state after a restart, versus the same state read back from a database.</em><small>The failure that produces no error message.</small></span></figure>
+
+  <h2>Keep the process alive after it crashes</h2>
+  <p>Your bot will crash. A malformed update, an upstream timeout, a network partition mid-poll. What matters is whether it returns in two seconds or stays down until you check your phone.</p>
+  <p>For Node bots, PM2 is the pragmatic choice. It restarts on exit, survives a reboot once you've saved the process list, and gives you logs in one place.</p>
+  <pre><code># Node: Telegraf, grammY
+pm2 start bot.js --name tg-bot --time --max-memory-restart 300M
+
+# Python works too, via the interpreter flag
+pm2 start bot.py --name tg-bot --interpreter python3 --time
+
+pm2 save          # survive a server reboot
+pm2 logs tg-bot   # what did it say before it died
+pm2 restart tg-bot --update-env   # after changing env vars</code></pre>
+  <p>That <code>--update-env</code> flag matters more than it looks. A plain <code>pm2 restart</code> reuses the old environment, so a token or database URL you just changed won't be picked up, and you'll debug the wrong thing for twenty minutes. Details on the rest of PM2 are in <a href="https://www.kloudbean.com/blog/pm2-process-manager-guide/">the PM2 process manager guide</a>. If you prefer systemd for a Python bot, use <code>Restart=always</code> with a <code>RestartSec</code> of a few seconds; the mechanism differs, the requirement doesn't.</p>
+  <p>Add one restart guard: cap automatic restarts so a bot that crashes on boot doesn't spin in a tight loop hammering the Telegram API. And log the update that killed it, otherwise you're guessing.</p>
+
+  <h2>What this means for where you host it</h2>
+  <p>Read back the requirements and the hosting shape writes itself: a process that never sleeps, a valid HTTPS endpoint if you chose webhooks, a database that outlives a restart, and a supervisor. That's a small managed server, not a function platform, and it's the setup <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploying a Node app to a managed cloud</a> describes. On Kloudbean it lines up directly: a persistent Node or Python process under PM2 with no spin-down, free SSL so your webhook URL presents a certificate Telegram accepts, managed PostgreSQL, MySQL or Redis with automatic backups beside it, the token set as runtime config in the UI instead of a file, Git deploys from GitHub, and flat pricing from $8/mo. Same reasoning applies if you're running <a href="https://www.kloudbean.com/blog/discord-bot-hosting/">a Discord bot</a>, which needs a persistent gateway connection for the same underlying reason.</p>
+
+  <!-- ADD IMAGE: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>The environment variables screen with BOT_TOKEN set, value masked.</em><small>Shows the token living outside the repo.</small></span></figure>
+
+  <h2>When your bot goes quiet: a short triage list</h2>
+  <p>Bots fail in repeatable ways. Work down this list before rewriting code.</p>
+  <ul>
+    <li><strong>Is the process running?</strong> <code>pm2 list</code> or <code>systemctl status</code>. Half of all bot outages end here.</li>
+    <li><strong>409 Conflict on getUpdates.</strong> Either a webhook is still set, or a second copy of the bot is polling the same token. Local dev instances are the usual culprit. Use a separate test bot for development.</li>
+    <li><strong>Webhook set but nothing arriving.</strong> Check <code>getWebhookInfo</code> for <code>last_error_message</code>. Certificate problems and 502s from a stopped app both show up there.</li>
+    <li><strong>401 Unauthorized.</strong> The token is wrong, empty, or revoked. Check the environment your process actually loaded, not the file you edited.</li>
+    <li><strong>Replies stopped mid-conversation.</strong> Classic in-memory state loss after a restart. Check your uptime against when it broke.</li>
+    <li><strong>429 Too Many Requests.</strong> You're over Telegram's rate limits. Respect the <code>retry_after</code> value and queue your sends instead of looping.</li>
+  </ul>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:19px">Give your bot a box that stays awake.</p>
+    <p style="margin:0">A persistent process, free SSL, and a managed database with backups, from one dashboard. See <a href="https://www.kloudbean.com/">kloudbean.com</a> and <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I deploy a Telegram bot so it runs 24/7?</h3>
+    <p>Put the bot on a server that stays on, run it as a supervised process with PM2 or systemd so it restarts after a crash, read the token from an environment variable, and store state in a database rather than memory. Start with long polling, which needs no public URL. Add a webhook later only if volume or latency requires it.</p>
+
+    <h3>Should I use webhooks or long polling for my Telegram bot?</h3>
+    <p>Use long polling unless you have a concrete reason not to. It needs no domain, no certificate, and no inbound port, and the same code runs locally and in production. Webhooks are better at high message volume and when latency matters, but they require a public HTTPS endpoint with a valid certificate and a handler that responds fast.</p>
+
+    <h3>Can I host a Telegram bot on a serverless function?</h3>
+    <p>Yes, for a webhook bot that is stateless and replies quickly. It is a reasonable fit for simple command bots. It does not work for long polling, which needs a persistent outbound connection, and it suits bots poorly when they hold in-memory context, run scheduled jobs, or must answer without a cold start delay.</p>
+
+    <h3>Why does my Telegram bot stop working when I close my laptop?</h3>
+    <p>Because the bot is the process you were running. Closing the terminal or sleeping the machine ends it, and with long polling nothing is asking Telegram for updates any more. Telegram holds updates briefly then moves on. The fix is to run the same code on an always-on server under a process manager.</p>
+
+    <h3>Do I need a domain and SSL certificate for a Telegram bot?</h3>
+    <p>Only for webhooks. Telegram will not deliver updates over plain HTTP and rejects certificates it cannot validate, so a webhook endpoint needs a real hostname and a trusted certificate. With long polling you need neither, since your bot only makes outbound calls to the Telegram API.</p>
+
+    <h3>Where should I store my Telegram bot token?</h3>
+    <p>In an environment variable or your host's runtime configuration, never in source code. Keep .env files out of version control. If a token has ever been committed or shared, revoke it in BotFather and use the new one. Treat it as a full credential, because anyone with it can act as your bot.</p>
+
+    <h3>How do I keep conversation state between messages?</h3>
+    <p>Store it outside the process. Redis suits in-flight conversation steps and rate limits because keys can expire on their own. Postgres or MySQL suits users, settings and history. A dictionary in memory looks fine in testing and silently loses every conversation on restart, which is the hardest bot bug to diagnose.</p>
+
+    <h3>What does 409 Conflict mean on the Telegram Bot API?</h3>
+    <p>It means two things are trying to receive updates for the same token. Either a webhook is registered while your code calls getUpdates, or a second copy of the bot is polling, often a forgotten local instance. Delete the webhook before polling, and use a separate test bot for development.</p>
+
+    <h3>How much server do I need for a Telegram bot?</h3>
+    <p>Less than most people expect. A small instance handles a bot with a modest user base comfortably, since most bots are IO bound on API calls rather than CPU bound. Size up when you add heavy work like media processing or model calls. Adding a managed database matters more than adding CPU.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Poll until you have a reason not to. Then make the process, the token, and the state boring.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Deploy a Telegram Bot: Polling, Webhooks and Staying Online 24/7","description":"How to deploy a Telegram bot that runs 24/7 for real users: long polling vs webhooks and when each wins, a real setWebhook call, keeping the token out of your code, durable state, and process supervision.","image":"https://www.kloudbean.com/blog/deploy-a-telegram-bot/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@id":"https://kloudbean.com/#organization"},"mainEntityOfPage":"https://www.kloudbean.com/blog/deploy-a-telegram-bot/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I deploy a Telegram bot so it runs 24/7?","acceptedAnswer":{"@type":"Answer","text":"Put the bot on a server that stays on, run it as a supervised process with PM2 or systemd so it restarts after a crash, read the token from an environment variable, and store state in a database rather than memory. Start with long polling, which needs no public URL. Add a webhook later only if volume or latency requires it."}},
+{"@type":"Question","name":"Should I use webhooks or long polling for my Telegram bot?","acceptedAnswer":{"@type":"Answer","text":"Use long polling unless you have a concrete reason not to. It needs no domain, no certificate, and no inbound port, and the same code runs locally and in production. Webhooks are better at high message volume and when latency matters, but they require a public HTTPS endpoint with a valid certificate and a handler that responds fast."}},
+{"@type":"Question","name":"Can I host a Telegram bot on a serverless function?","acceptedAnswer":{"@type":"Answer","text":"Yes, for a webhook bot that is stateless and replies quickly. It is a reasonable fit for simple command bots. It does not work for long polling, which needs a persistent outbound connection, and it suits bots poorly when they hold in-memory context, run scheduled jobs, or must answer without a cold start delay."}},
+{"@type":"Question","name":"Why does my Telegram bot stop working when I close my laptop?","acceptedAnswer":{"@type":"Answer","text":"Because the bot is the process you were running. Closing the terminal or sleeping the machine ends it, and with long polling nothing is asking Telegram for updates any more. Telegram holds updates briefly then moves on. The fix is to run the same code on an always-on server under a process manager."}},
+{"@type":"Question","name":"Do I need a domain and SSL certificate for a Telegram bot?","acceptedAnswer":{"@type":"Answer","text":"Only for webhooks. Telegram will not deliver updates over plain HTTP and rejects certificates it cannot validate, so a webhook endpoint needs a real hostname and a trusted certificate. With long polling you need neither, since your bot only makes outbound calls to the Telegram API."}},
+{"@type":"Question","name":"Where should I store my Telegram bot token?","acceptedAnswer":{"@type":"Answer","text":"In an environment variable or your host's runtime configuration, never in source code. Keep .env files out of version control. If a token has ever been committed or shared, revoke it in BotFather and use the new one. Treat it as a full credential, because anyone with it can act as your bot."}},
+{"@type":"Question","name":"How do I keep conversation state between messages?","acceptedAnswer":{"@type":"Answer","text":"Store it outside the process. Redis suits in-flight conversation steps and rate limits because keys can expire on their own. Postgres or MySQL suits users, settings and history. A dictionary in memory looks fine in testing and silently loses every conversation on restart, which is the hardest bot bug to diagnose."}},
+{"@type":"Question","name":"What does 409 Conflict mean on the Telegram Bot API?","acceptedAnswer":{"@type":"Answer","text":"It means two things are trying to receive updates for the same token. Either a webhook is registered while your code calls getUpdates, or a second copy of the bot is polling, often a forgotten local instance. Delete the webhook before polling, and use a separate test bot for development."}},
+{"@type":"Question","name":"How much server do I need for a Telegram bot?","acceptedAnswer":{"@type":"Answer","text":"Less than most people expect. A small instance handles a bot with a modest user base comfortably, since most bots are IO bound on API calls rather than CPU bound. Size up when you add heavy work like media processing or model calls. Adding a managed database matters more than adding CPU."}}
+]},
+{"@type":"Organization","@id":"https://kloudbean.com/#organization","name":"Kloudbean","legalName":"Secured Orbis Pvt. Ltd.","url":"https://kloudbean.com","description":"Kloudbean is a managed multi-cloud hosting platform by Secured Orbis Pvt. Ltd. It runs your whole stack from one dashboard, application servers, managed databases, object storage, and a built-in load balancer across seven cloud providers, so builders, agencies, and founders can deploy, host, and own their apps without operating raw cloud."}
+]}
+</script>
+</body>
+</html>

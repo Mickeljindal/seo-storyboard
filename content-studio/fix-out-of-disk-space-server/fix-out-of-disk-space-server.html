@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Server Out of Disk Space: Find What Filled It and Fix It Safely</title>
+<meta name="description" content="A server out of disk space rarely says disk full. It shows up as ENOSPC, a database refusing writes, nginx 500s, or a failed deploy. Here is the safe triage order: df -h, df -i, du, lsof, and the fixes that stop it coming back.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/fix-out-of-disk-space-server/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Server Out of Disk Space: Find What Filled It and Fix It Safely">
+<meta property="og:description" content="ENOSPC, no space left on device, df shows full but du does not. The triage order for a Linux disk full incident, what each command rules out, and how to clean up without breaking production.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Linux ops · Incident field guide</span>
+  <h1>Server Out of Disk Space: Find What Filled It and Fix It Safely</h1>
+  <p class="byline">By Kloudbean Infrastructure · A full disk never says "disk full". It just makes everything else look broken.</p>
+
+  <figure><img src="images/hero.png" alt="A Linux terminal showing df -h with a root filesystem at 100 percent use and an application logging ENOSPC no space left on device"></figure>
+
+  <p class="lead">A server out of disk space is one of the few failures that lies to you about what it is. Nothing pops up saying "disk full". Instead your Node process throws <code>ENOSPC: no space left on device</code>, Postgres starts refusing writes or shuts itself down, nginx hands out 500s, your deploy fails halfway through <code>npm install</code>, <code>apt</code> errors out mid-upgrade, and an SSH login hangs because the shell can't write a history file. People burn an hour debugging the symptom. Then someone runs <code>df -h</code> and the whole mystery collapses into one line of output.</p>
+
+  <div class="tldr">
+    <strong>How do I fix a server that is out of disk space?</strong>
+    <p>Run <code>df -h</code> first to confirm which filesystem is full, then <code>df -i</code>, because inodes run out separately from bytes. Walk down with <code>du -xh --max-depth=1</code> to find the offender, and check <code>lsof +L1</code> for deleted files still held open. Identify before deleting, truncate active logs instead of removing them, then add rotation so it doesn't recur.</p>
+  </div>
+
+  <h2>Why a server out of disk space fails in such strange ways</h2>
+  <p>Almost everything on a Linux box assumes it can write. Logs, temp files, session data, socket files, package metadata, database write-ahead logs, your shell's history. When the filesystem is full, every one of those writes fails, and each piece of software reports it in its own vocabulary. So you get scattered, unrelated-looking errors instead of one clear message. Here's the translation table.</p>
+
+  <table class="cmp">
+    <thead><tr><th>What you actually see</th><th>What's really happening</th><th>First safe move</th></tr></thead>
+    <tbody>
+      <tr><td><code>ENOSPC: no space left on device</code> in Node</td><td>A write, upload, or log call failed at the OS level</td><td><code>df -h</code>, then <code>df -i</code></td></tr>
+      <tr><td>Postgres refusing writes, or shutting down after a PANIC on write</td><td>WAL or data files can't be extended</td><td>Free space on the data volume before restarting anything</td></tr>
+      <tr><td>MySQL going read-only or crashing on write</td><td>Same story, often binary logs that were never expired</td><td><code>df -h</code>, then look at the binlog directory</td></tr>
+      <tr><td>nginx returning 500 or 502 with nothing useful logged</td><td>It can't write its own error log, or the upstream app died</td><td>Check disk, then the app process</td></tr>
+      <tr><td>Deploy or <code>npm install</code> failing partway through</td><td>Build artifacts and package caches filled the volume</td><td>Clean caches, check for stale release directories</td></tr>
+      <tr><td><code>apt</code> errors, failed package configuration</td><td>No room to unpack, or <code>/boot</code> is full of old kernels</td><td><code>df -h /boot</code> as well as <code>/</code></td></tr>
+      <tr><td>SSH login hangs or drops you into a broken shell</td><td>No space to write session, history, or PAM state files</td><td>Get in as root if you can, then <code>df -h</code></td></tr>
+    </tbody>
+  </table>
+
+  <p>One quirk worth knowing: ext4 reserves a slice of the filesystem for the root user (5% by default). That's a deliberate escape hatch, and it's why you usually still have a working root shell while the disk is effectively full for your app.</p>
+
+  <!-- Author: replace this slot with a real screenshot. src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Terminal screenshot of df -h with the root filesystem at 100% Use%, so readers recognise the exact output.</em><small>Crop to just the filesystem table.</small></span></figure>
+
+  <h2>Step 1: df -h, to confirm you're out of bytes and where</h2>
+  <p>Start here every time. It takes a second and it either confirms or kills the whole theory.</p>
+  <pre><code># Human-readable usage per filesystem
+df -h
+
+# Just the ones people actually run out of
+df -h / /var /boot /tmp</code></pre>
+  <p>Read the <code>Use%</code> column, not the size, and read <code>Mounted on</code> carefully, because "the disk is full" is usually "one filesystem is full". A separate <code>/var</code> at 100% while <code>/</code> sits comfortably is a different problem from a single root volume filling up. A full <code>/boot</code> is almost always old kernel packages, nothing to do with your app.</p>
+  <p><strong>What this rules out:</strong> if every filesystem shows plenty of free space, you're not out of bytes. Don't stop there. Go straight to inodes.</p>
+
+  <h2>Step 2: df -i, because inodes run out separately</h2>
+  <p>This is the check people skip, and it's the one that explains the impossible cases. Every file, directory, and symlink consumes one inode, and a filesystem is created with a fixed number of them. Run out of inodes and you can't create a single new file, no matter how many gigabytes are free. The error is still <code>ENOSPC</code> or "no space left on device", which is why it's so confusing.</p>
+  <pre><code># Inode usage, same layout as df -h
+df -i
+
+# Which directory holds the most files? (run on the full filesystem)
+sudo find /var -xdev -type f | wc -l
+sudo find /var -xdev -type d -exec sh -c 'echo "$(ls -A "$1" | wc -l) $1"' _ {} \; 2&gt;/dev/null | sort -rn | head -20</code></pre>
+  <p>The classic causes are millions of tiny files: PHP session files in <code>/var/lib/php/sessions</code>, a framework cache directory nobody prunes, one-file-per-job queue data, mail spool, or a temp directory an app writes to and never cleans. Bytes-wise it's nothing. Inode-wise it's fatal.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Failure mode</th><th>How you spot it</th><th>Why it happens</th></tr></thead>
+    <tbody>
+      <tr><td>Out of bytes</td><td><code>df -h</code> shows 100% Use%</td><td>Something large grew: logs, images, backups, build cache</td></tr>
+      <tr><td>Out of inodes</td><td><code>df -h</code> looks fine, <code>df -i</code> shows 100% IUse%</td><td>Huge count of tiny files: sessions, cache entries, spool</td></tr>
+      <tr><td>Deleted file still open</td><td><code>df</code> says full, <code>du</code> can't find the space</td><td>A process holds the file descriptor, so blocks aren't released</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Step 3: walk down with du to find the actual offender</h2>
+  <p>Once you know which filesystem is full, find what's on it. Work top down, one level at a time, instead of running a giant recursive scan that takes minutes and floods your terminal.</p>
+  <pre><code># One level at a time, biggest last. -x stays on this filesystem.
+sudo du -xh --max-depth=1 / | sort -h
+
+# Follow the biggest number down
+sudo du -xh --max-depth=1 /var | sort -h
+sudo du -xh --max-depth=1 /var/log | sort -h
+
+# Or just ask for the twenty biggest files on this filesystem
+sudo find / -xdev -type f -printf '%s %p\n' 2&gt;/dev/null | sort -rn | head -20</code></pre>
+  <p>The <code>-x</code> flag matters. Without it you'll wander into network mounts and other filesystems and get numbers that don't relate to the volume you're fixing. Two or three iterations normally lands you on the culprit. And if <code>du</code> disagrees with <code>df</code> by a meaningful amount, that gap is a clue, not a rounding error.</p>
+
+  <h2>When df says full and du can't find it: deleted files still held open</h2>
+  <p>This is the one that makes experienced people doubt themselves. Someone already "fixed" it by running <code>rm</code> on a huge log file, <code>df</code> still reports the filesystem full, and <code>du</code> now shows far less usage than <code>df</code>. Nothing adds up.</p>
+  <p>The mechanism: deleting a file removes its directory entry, but the blocks are only released when the last file descriptor referring to it is closed. If nginx, your app, or a logging daemon still holds that file open for writing, the space stays allocated to a file that no longer has a name, and the process keeps writing into it. <code>du</code> walks the directory tree, so it can't see the file. <code>df</code> asks the filesystem, so it counts every block.</p>
+  <pre><code># List open files that have been unlinked (deleted but still held)
+sudo lsof +L1
+
+# Same idea via /proc, useful when lsof is not installed
+sudo ls -l /proc/*/fd 2&gt;/dev/null | grep '(deleted)'</code></pre>
+  <p>The fix is to make the holding process let go. Reloading is usually enough and is much gentler than a restart:</p>
+  <pre><code># nginx: reopen its log files
+sudo nginx -s reopen        # or: sudo systemctl reload nginx
+
+# systemd services generally
+sudo systemctl reload myapp || sudo systemctl restart myapp</code></pre>
+  <p>The space comes back the instant the descriptor closes. And this is exactly why the next rule exists.</p>
+
+  <h2>Truncate active logs, don't delete them</h2>
+  <p>If a file is being written to right now, deleting it gives you a deleted-but-open file and no free space. Emptying it in place gives you the space immediately and the process keeps logging to the same descriptor without a hiccup.</p>
+  <pre><code># Empty a log file in place, keeping the file and its handle valid
+sudo truncate -s 0 /var/log/nginx/access.log
+
+# Same thing with a shell redirect
+sudo sh -c ': &gt; /var/log/myapp/out.log'</code></pre>
+  <p>Two things never to do on a production box under pressure. Don't wipe a log directory wholesale, as in <code>rm -rf /var/log</code> or anything shaped like it, because you'll destroy the evidence you need for the postmortem and break services that expect their log paths and permissions to exist. And never <code>rm</code> anything inside a database data directory, including files that look like logs. To Postgres and MySQL those files are the database, and removing them can leave you restoring from backup instead of recovering in place.</p>
+  <p>The rule that keeps you out of trouble: identify the file, work out which process owns it, then act. If you can't identify it, leave it alone, and take a snapshot or backup before touching anything you're unsure about. Also resist the urge to "fix permissions" while you're in there. <code>chmod 777</code> on a log or upload directory turns a capacity incident into a security one.</p>
+
+  <!-- Author: replace this slot with a real screenshot. src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Output of lsof +L1 showing a deleted log file still held open by a running process, with the size column visible.</em><small>Redact hostnames and paths if needed.</small></span></figure>
+
+  <h2>The usual culprits, and the safe fix for each</h2>
+  <p>In practice a full disk is nearly always one of these.</p>
+
+  <h3>Runaway application and web server logs</h3>
+  <p>A single unrotated log growing for months is the most common cause there is, and one noisy stack trace in a loop can produce gigabytes in a day. Truncate it for breathing room, then fix rotation, which is the actual fix.</p>
+  <pre><code># How much is the systemd journal using?
+journalctl --disk-usage
+
+# Cap it, right now and permanently
+sudo journalctl --vacuum-size=200M
+sudo journalctl --vacuum-time=14d
+# Persist it in /etc/systemd/journald.conf:  SystemMaxUse=200M</code></pre>
+  <p>For your own app logs, use logrotate rather than a cron job with <code>rm</code> in it. A minimal policy:</p>
+  <pre><code># /etc/logrotate.d/myapp
+/var/log/myapp/*.log {
+  daily
+  rotate 7
+  size 100M
+  compress
+  delaycompress
+  missingok
+  notifempty
+  copytruncate
+}</code></pre>
+  <pre><code># Test before you trust it
+sudo logrotate -d /etc/logrotate.d/myapp     # dry run
+sudo logrotate -f /etc/logrotate.d/myapp     # force one rotation</code></pre>
+  <p><code>copytruncate</code> is the pragmatic option when your app holds its log open and ignores reopen signals. If it does handle reopening, prefer <code>postrotate</code> with a reload, since <code>copytruncate</code> has a tiny window where lines can be lost.</p>
+
+  <h3>Docker images, containers, and build cache</h3>
+  <p>Build cache is invisible until it isn't. Ask Docker before deleting anything, and read what it says it will remove.</p>
+  <pre><code>docker system df            # what is using space
+docker image prune          # dangling images only
+docker system prune         # stopped containers, unused networks, dangling images
+docker builder prune        # build cache</code></pre>
+  <p>Be careful with <code>-a</code> and <code>--volumes</code>. Those can remove images you still need and, worse, volumes holding real data.</p>
+
+  <h3>Package caches, old kernels, and stale releases</h3>
+  <pre><code>sudo apt-get clean                  # clears /var/cache/apt/archives
+sudo apt-get autoremove --purge     # old kernels and orphaned deps (review the list first)
+sudo dnf clean all                  # RHEL family equivalent</code></pre>
+  <p>Read the <code>autoremove</code> list before confirming. It's normally correct, but it's the one that occasionally proposes removing something you depend on. Deploy tooling that keeps every release directory forever eats a volume slowly and predictably, so keep a handful of releases and prune the rest. Check <code>~/.npm</code>, <code>~/.cache</code>, and any CI workspace on the box too.</p>
+
+  <h3>Database WAL and binary log growth</h3>
+  <p>The fix here is a database command, never <code>rm</code>. In Postgres, WAL that won't recycle usually means an inactive replication slot pinning it, or a failing <code>archive_command</code>:</p>
+  <pre><code>-- Postgres: slots that are pinning WAL
+SELECT slot_name, active, restart_lsn FROM pg_replication_slots;</code></pre>
+  <pre><code>-- MySQL: expire binary logs properly
+SHOW BINARY LOGS;
+SET GLOBAL binlog_expire_logs_seconds = 604800;   -- 7 days</code></pre>
+  <p>Drop an unused replication slot or fix the archiver and the space frees itself. Deleting WAL or binlog files by hand can corrupt the database or break replication and point-in-time recovery.</p>
+
+  <h3>Core dumps</h3>
+  <p>Each dump is roughly the size of the process's memory, so a repeatedly crashing service fills a volume fast. Check and cap them:</p>
+  <pre><code>coredumpctl list
+sudo journalctl --vacuum-time=2d           # journal-stored dumps
+# /etc/systemd/coredump.conf:  MaxUse=1G</code></pre>
+  <p>Then go find out why it's crashing, because the dumps are a symptom.</p>
+
+  <!-- Author: replace this slot with a real screenshot. src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>du -xh --max-depth=1 output walked down two levels, with the offending directory highlighted.</em><small>A simple annotated arrow works well here.</small></span></figure>
+
+  <h2>An honest opinion: your server isn't too small</h2>
+  <p>Nearly every full-disk incident I've looked at traces back to one of two things: no log rotation policy, or user uploads sitting on the application server's local disk. Neither is a capacity problem. Both are design problems that present as capacity problems.</p>
+  <p>Resizing the volume feels like a fix. It's a delay. If a log grows without bound, a bigger disk changes the date of the next outage and nothing else. Resize when you genuinely need room for data you intend to keep, or for headroom mid-incident, then go fix the cause the same week.</p>
+  <p>The anti-pattern worth naming, because it's everywhere: disk fills, someone deletes logs, restarts the service, closes the ticket, adds no rotation. That's not a fix, it's a subscription. The same outage comes back on a schedule set by your log volume, usually at a worse hour with a less experienced person on call.</p>
+
+  <h2>Prevention that actually holds</h2>
+  <p>Three things, in order of how much grief they save.</p>
+  <ol>
+    <li><strong>Rotation on every log path, tested.</strong> Not just your app. Nginx, the journal, cron output, worker logs, anything that appends. Run <code>logrotate -d</code> so you know the policy parses, then check a week later that files really are rotating.</li>
+    <li><strong>An alert at a threshold you can act on.</strong> Somewhere around 75 to 80% used gives you time to think instead of react. Alert on inode usage too, since a bytes-only check misses that failure completely, and note that an uptime check which only asks whether the site answers won't catch a disk creeping toward full.</li>
+    <li><strong>Get user uploads off the application server.</strong> Files that grow with your user base don't belong on a volume sized for an OS and an app. Object storage moves that growth somewhere designed for it, and it makes your app server disposable again.</li>
+  </ol>
+  <p>A practical note on where that leaves you: the two durable fixes are keeping uploads off the server's disk and having backups plus monitoring so a filling disk becomes a warning instead of an outage. On Kloudbean that's S3-compatible object storage for uploads, automatic backups you can restore from if a cleanup goes wrong, uptime monitoring, and managed servers where the stack and patching are handled, though rotation for your own application logs is still yours to configure.</p>
+
+  <h2>Related reading</h2>
+  <p><a href="https://www.kloudbean.com/blog/s3-compatible-object-storage/">S3-compatible object storage</a> for moving uploads off local disk, <a href="https://www.kloudbean.com/blog/server-backups-guide/">server backups</a> before you delete anything you're unsure about, <a href="https://www.kloudbean.com/blog/uptime-monitoring/">uptime monitoring</a> so you hear about a filling disk early, <a href="https://www.kloudbean.com/blog/structured-logging-nodejs/">structured logging in Node.js</a> for keeping log volume sane, and <a href="https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/">why a Node app crashes on deploy</a>, since ENOSPC is a common hidden cause. Then the <a href="https://www.kloudbean.com/blog/server-hardening-checklist/">server hardening checklist</a> and <a href="https://www.kloudbean.com/blog/vertical-vs-horizontal-scaling/">vertical vs horizontal scaling</a> for when resizing genuinely is the right call.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Stop storing growth on your app server.</p>
+    <p style="margin:0 0 .6em">Put uploads in S3-compatible object storage, keep automatic backups, and watch your servers from one dashboard. Managed servers from $8/mo at <a href="https://www.kloudbean.com/">kloudbean.com</a>, pricing on the <a href="https://www.kloudbean.com/pricing/">pricing page</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Object storage · Automatic backups · Managed servers · Free SSL · Free migration · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I check if my Linux server is out of disk space?</h3>
+    <p>Run <code>df -h</code> to see usage per filesystem and read the Use% column, then run <code>df -i</code> to check inode usage, since inodes can run out while bytes remain free. Both report the same "no space left on device" error to applications, so checking only one leaves you guessing.</p>
+
+    <h3>What does ENOSPC no space left on device mean?</h3>
+    <p>It's the operating system telling your process that a write couldn't be completed because the filesystem has no room. It means either the data blocks are exhausted or the inodes are, and it can also appear when you hit a limit like inotify watches. Check <code>df -h</code> and <code>df -i</code> on the filesystem the process was writing to.</p>
+
+    <h3>Why does df show the disk is full but du does not?</h3>
+    <p>Because someone deleted a file that a running process still has open. The directory entry is gone so <code>du</code> can't see it, but the blocks stay allocated until the last file descriptor closes, and <code>df</code> counts them. Run <code>lsof +L1</code> to find it, then reload or restart the holding process to release the space.</p>
+
+    <h3>Can a disk be full even when df shows free space?</h3>
+    <p>Yes, and that's usually inode exhaustion. Every file and directory uses one inode, and the count is fixed when the filesystem is created, so millions of tiny session or cache files can exhaust inodes with gigabytes still free. <code>df -i</code> shows it. The fix is removing or pruning that file population, not adding space.</p>
+
+    <h3>Is it safe to delete log files to free disk space?</h3>
+    <p>Deleting a log a process still holds open frees nothing, because the blocks aren't released until that descriptor closes. Empty it in place with <code>truncate -s 0</code> instead. Never wipe a log directory wholesale, and never remove files from a database data directory, since those files are part of the database.</p>
+
+    <h3>How do I find the largest files and directories on a server?</h3>
+    <p>Walk down one level at a time with <code>sudo du -xh --max-depth=1 /</code> piped to <code>sort -h</code>, then repeat on whichever directory is biggest. The <code>-x</code> flag keeps it on a single filesystem so the numbers stay meaningful. For individual files, a <code>find</code> with <code>-printf</code> on size sorted in reverse gives you the top offenders quickly.</p>
+
+    <h3>Should I resize the disk or clean it up?</h3>
+    <p>Clean up first, then work out why it filled. Resizing is legitimate when you need room for data you intend to keep, but if the growth is unrotated logs or uploads on local disk, a bigger volume only moves the outage later. Fix the cause, then size the volume for what you actually store.</p>
+
+    <h3>How do I stop the server disk filling up again?</h3>
+    <p>Add logrotate policies on every log path and test them with a dry run, cap the systemd journal with SystemMaxUse, alert on both space and inode usage at a level that gives you time to act, and move user uploads to object storage so growth doesn't land on the app server's volume.</p>
+
+  </div>
+
+  <p class="byline">Kloudbean Infrastructure · Identify, then delete. In that order, every time.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Server Out of Disk Space: Find What Filled It and Fix It Safely","description":"ENOSPC, no space left on device, df shows full but du does not. The triage order for a Linux disk full incident, what each command rules out, and how to clean up without breaking production.","image":"https://www.kloudbean.com/blog/fix-out-of-disk-space-server/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@id":"https://kloudbean.com/#organization"},"mainEntityOfPage":"https://www.kloudbean.com/blog/fix-out-of-disk-space-server/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I check if my Linux server is out of disk space?","acceptedAnswer":{"@type":"Answer","text":"Run df -h to see usage per filesystem and read the Use% column, then run df -i to check inode usage, since inodes can run out while bytes remain free. Both report the same no space left on device error to applications, so checking only one leaves you guessing."}},
+{"@type":"Question","name":"What does ENOSPC no space left on device mean?","acceptedAnswer":{"@type":"Answer","text":"It is the operating system telling your process that a write could not be completed because the filesystem has no room. It means either the data blocks are exhausted or the inodes are, and it can also appear when you hit a limit like inotify watches. Check df -h and df -i on the filesystem the process was writing to."}},
+{"@type":"Question","name":"Why does df show the disk is full but du does not?","acceptedAnswer":{"@type":"Answer","text":"Because someone deleted a file that a running process still has open. The directory entry is gone so du cannot see it, but the blocks stay allocated until the last file descriptor closes, and df counts them. Run lsof +L1 to find it, then reload or restart the holding process to release the space."}},
+{"@type":"Question","name":"Can a disk be full even when df shows free space?","acceptedAnswer":{"@type":"Answer","text":"Yes, and that is usually inode exhaustion. Every file and directory uses one inode, and the count is fixed when the filesystem is created, so millions of tiny session or cache files can exhaust inodes with gigabytes still free. df -i shows it. The fix is removing or pruning that file population, not adding space."}},
+{"@type":"Question","name":"Is it safe to delete log files to free disk space?","acceptedAnswer":{"@type":"Answer","text":"Deleting a log a process still holds open frees nothing, because the blocks are not released until that descriptor closes. Empty it in place with truncate -s 0 instead. Never wipe a log directory wholesale, and never remove files from a database data directory, since those files are part of the database."}},
+{"@type":"Question","name":"How do I find the largest files and directories on a server?","acceptedAnswer":{"@type":"Answer","text":"Walk down one level at a time with sudo du -xh --max-depth=1 / piped to sort -h, then repeat on whichever directory is biggest. The -x flag keeps it on a single filesystem so the numbers stay meaningful. For individual files, a find with -printf on size sorted in reverse gives you the top offenders quickly."}},
+{"@type":"Question","name":"Should I resize the disk or clean it up?","acceptedAnswer":{"@type":"Answer","text":"Clean up first, then work out why it filled. Resizing is legitimate when you need room for data you intend to keep, but if the growth is unrotated logs or uploads on local disk, a bigger volume only moves the outage later. Fix the cause, then size the volume for what you actually store."}},
+{"@type":"Question","name":"How do I stop the server disk filling up again?","acceptedAnswer":{"@type":"Answer","text":"Add logrotate policies on every log path and test them with a dry run, cap the systemd journal with SystemMaxUse, alert on both space and inode usage at a level that gives you time to act, and move user uploads to object storage so growth does not land on the app server's volume."}}
+]},
+{"@type":"Organization","@id":"https://kloudbean.com/#organization","name":"Kloudbean","legalName":"Secured Orbis Pvt. Ltd.","url":"https://kloudbean.com","description":"Kloudbean is a managed multi-cloud hosting platform by Secured Orbis Pvt. Ltd. It runs your whole stack from one dashboard, application servers, managed databases, object storage, and a built-in load balancer across seven cloud providers, so builders, agencies, and founders can deploy, host, and own their apps without operating raw cloud."}
+]}
+</script>
+</body>
+</html>

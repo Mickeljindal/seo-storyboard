@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ECONNRESET in Node.js: What It Means and How to Fix It</title>
+<meta name="description" content="ECONNRESET in Node means the connection was open and then torn down by the peer. Learn what read ECONNRESET and write ECONNRESET tell you, why socket hang up shows up with it, and how to fix each cause.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/fix-econnreset-node/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ECONNRESET in Node.js: What It Means and How to Fix It">
+<meta property="og:description" content="ECONNRESET meaning, read versus write ECONNRESET, the idle keep-alive socket that causes most of them, and the error handler pattern that stops it crashing your process.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Node.js · Error field guide</span>
+  <h1>ECONNRESET in Node.js: What It Means and How to Fix It</h1>
+  <p class="byline">By Kloudbean Engineering · The connection existed. Then somebody killed it. Find out who.</p>
+
+  <figure><img src="images/hero.png" alt="A Node.js process losing an open socket mid-request with the error read ECONNRESET printed in the terminal"></figure>
+
+  <p class="lead">If you're trying to fix ECONNRESET in Node.js, start with what the error actually proves. An ECONNRESET in Node means a connection was already established and then the peer on the other end sent a TCP RST, tearing it down while you were still using it. That's a completely different bug from <code>ECONNREFUSED</code>, where nothing ever answered and the connection never opened at all. So don't go hunting for a wrong hostname or a stopped service. Something accepted you, then hung up. Your job is to work out what, and why.</p>
+
+  <div class="tldr">
+    <strong>What does ECONNRESET mean in Node.js?</strong>
+    <p>ECONNRESET means the peer sent a TCP reset on an already open connection, so your socket died mid-flight. The usual cause is a pooled or keep-alive socket the other side had quietly closed while your app still believed it was usable. Fix it by keeping your idle timeout shorter than the peer's, handling the socket <code>error</code> event, and retrying only idempotent requests.</p>
+  </div>
+
+  <h2>What ECONNRESET actually means</h2>
+  <p>At the TCP level, a reset is a packet that says "this connection is over, right now, no negotiation." Not a polite FIN that closes the stream in an orderly way. A hard stop. When your Node process is reading from or writing to that socket at the moment the RST lands, libuv surfaces it as an <code>ECONNRESET</code> error and your promise rejects or your stream emits <code>error</code>.</p>
+  <p>The thing to hold onto: a reset can only happen on a connection that existed. Handshake completed, DNS resolved, port open, service there. That one fact rules out most of what people check first.</p>
+  <p>Two neighbours are worth naming once so you don't mix them up. <a href="https://www.kloudbean.com/blog/fix-econnrefused-node/">ECONNREFUSED</a> means the connection was actively refused because nothing was listening, so it failed instantly. <code>ETIMEDOUT</code> means nothing answered within your time limit, so you never got a decision either way. ECONNRESET sits between them: you got in, and then you got thrown out.</p>
+
+  <h2>Read the error properly: read ECONNRESET vs write ECONNRESET</h2>
+  <p>Node tells you more than most people notice. The message carries the syscall that failed, and that word is a real clue:</p>
+  <pre><code>Error: read ECONNRESET
+    at TCP.onStreamRead (node:internal/stream_base_commons:217:20) {
+  errno: -104,
+  code: 'ECONNRESET',
+  syscall: 'read'
+}</code></pre>
+  <p><strong><code>read ECONNRESET</code></strong> means you were waiting on data when the reset arrived. You'd sent your request (or you were idle mid-connection) and were expecting a response. Typically the peer decided the connection was done before you did.</p>
+  <p><strong><code>write ECONNRESET</code></strong> means you were pushing bytes when it died. You were mid-upload, mid-body, mid-query. That points at the peer rejecting what you were sending, or dying while receiving it. Note that a write to a socket the peer has already fully closed often surfaces as <code>EPIPE</code> instead, so seeing both in the same log usually means the same underlying event caught at slightly different moments.</p>
+  <p>You'll also see the phrase <code>socket hang up</code>, which Node reports as <code>ECONNRESET</code> from <code>http</code> when a response never completed. Same family, same investigation.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Error</th><th>What happened at the TCP level</th><th>What it proves</th></tr></thead>
+    <tbody>
+      <tr><td><code>ECONNREFUSED</code></td><td>Peer replied with RST to your SYN</td><td>Nothing was listening on that host and port</td></tr>
+      <tr><td><code>ETIMEDOUT</code></td><td>No reply at all inside the deadline</td><td>Packets are being dropped, or the peer is stuck</td></tr>
+      <tr><td><code>ECONNRESET</code></td><td>RST arrived on an established connection</td><td>The peer was there, accepted you, then tore it down</td></tr>
+      <tr><td><code>EPIPE</code></td><td>You wrote to a socket already closed at the other end</td><td>Same story as a reset, caught while writing</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ADD IMAGE: annotated terminal screenshot of a read ECONNRESET stack trace with code, errno and syscall circled. src -> images/econnreset-stack.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Terminal: a real <code>read ECONNRESET</code> stack trace, with <code>code</code>, <code>errno</code> and <code>syscall</code> circled.</em><small>The syscall field is the part readers skip. Make it obvious.</small></span></figure>
+
+  <h2>So who reset the connection?</h2>
+  <p>This is the whole diagnosis. A reset always has an author, and there are only a few candidates. Work down them in this order.</p>
+  <ol>
+    <li>A peer closed an idle socket your connection pool still thought was alive.</li>
+    <li>A proxy or load balancer in the middle hit its own idle timeout.</li>
+    <li>The server process crashed or restarted while your request was in flight.</li>
+    <li>You sent a body bigger than the peer was willing to accept.</li>
+    <li>TLS or protocol mismatch, so the peer gave up on the conversation.</li>
+    <li>A client simply hung up. Normal. Not your bug.</li>
+  </ol>
+
+  <h3>1. The stale pooled connection (start here)</h3>
+  <p>Here's my honest opinion after enough of these: most ECONNRESET reports aren't a network fault at all. They're idle connection reuse. Check your pool's idle timeout before you go blaming the network, the cloud, or the database.</p>
+  <p>The mechanism is simple. Your pool opens a connection, uses it, and parks it as idle. The peer has its own idea of how long an idle connection should live, and it's often shorter than yours. So the peer closes or resets it. Your pool never noticed, because nobody was reading. The next request checks out that dead socket, writes to it, and gets a reset. Classic symptom: it happens on the first request after a quiet period, and never under sustained load.</p>
+  <p>The fix is a rule, not a magic number: <strong>your idle timeout must be shorter than the peer's.</strong> Then you close the socket while it's still yours to close.</p>
+  <pre><code>const { Pool } = require("pg");
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 10,
+  // Retire idle clients before the database or any proxy does.
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
+});
+
+// An idle client can die between queries. Without this listener,
+// that error is unhandled and can take the process down.
+pool.on("error", (err) => {
+  console.error({ code: err.code, syscall: err.syscall }, "idle client error; pool will replace it");
+});</code></pre>
+  <p>The same trap exists for outbound HTTP. Node 19 and later enable keep-alive on the global agent by default, which is good for performance and means you now own the idle-socket problem whether you asked for it or not:</p>
+  <pre><code>const http = require("node:http");
+
+const agent = new http.Agent({
+  keepAlive: true,
+  keepAliveMsecs: 1000,
+  maxSockets: 50,
+  // Drop the socket before the upstream's idle window closes.
+  timeout: 25000,
+});</code></pre>
+  <p>To pick the number, find the peer's idle timeout and go under it. On a Node HTTP server the relevant knob is <code>server.keepAliveTimeout</code>, which defaults to 5 seconds. On MySQL it's <code>wait_timeout</code>. Behind nginx it's <code>keepalive_timeout</code>. Read the real value rather than guessing, then subtract a margin.</p>
+  <p>More on the pool side of this in <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>.</p>
+
+  <h3>2. A proxy or load balancer in the middle</h3>
+  <p>Both ends can be healthy and you'll still get resets, because something between them decided the connection had gone stale. Load balancers, reverse proxies, NAT gateways and service meshes all keep their own idle timers.</p>
+  <p>The tell is that resets cluster around a suspiciously round duration. Quick requests are fine, requests that sit for slightly over a minute die. That's an intermediary, not your code. Keep your own client timeout below theirs so you fail predictably instead of getting reset, and stop holding sockets open through long silent gaps. If a request genuinely needs minutes, return a job ID and let the client poll. When these show up as gateway errors in the browser, <a href="https://www.kloudbean.com/blog/fix-502-bad-gateway-node-nginx/">502 Bad Gateway with Node and nginx</a> is the proxy-facing half of the story.</p>
+
+  <h3>3. The server crashed or restarted mid-request</h3>
+  <p>When a process dies, the kernel resets its open connections, so every in-flight request becomes an ECONNRESET on the client side. If you're seeing resets and your app is also restarting, stop debugging sockets. You have a crash, and the reset is just the shrapnel.</p>
+  <p>Deploys do the same thing on purpose. A restart kills the old process, and anything it was serving gets cut off unless that process winds down properly: stop accepting new connections, drain what's in flight, then exit. That's what <a href="https://www.kloudbean.com/blog/graceful-shutdown-nodejs/">graceful shutdown in Node.js</a> is for. If the restarts aren't deliberate, <a href="https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/">why your Node app keeps crashing on deploy</a> is the better thread to pull. Either way, tell a crash from a network event by timing: correlate reset timestamps against process start times and deploy history.</p>
+
+  <!-- ADD IMAGE: diagram of the four reset authors, client, proxy, server process, database, with an RST arrow from each. src -> images/who-reset-it.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Diagram: the four candidates that can send the RST (client, proxy or load balancer, app process, database) with an arrow from each back to your app.</em><small>This is the article's core idea. Worth a real illustration.</small></span></figure>
+
+  <h3>4. The body was too big for the peer</h3>
+  <p>Send an upload or a JSON payload past a limit and some peers respond with a status code, while others just stop reading and reset the connection. From your side that's a <code>write ECONNRESET</code> partway through a large request, and it reproduces reliably with the same file, which is the giveaway. It's a size problem, not a flake.</p>
+  <p>Check every limit on the path, because there's usually more than one: nginx <code>client_max_body_size</code> (default 1m, so this bites early), the <code>limit</code> option on Express body parsers, and whatever your upstream API enforces. Raise the one clipping you, or stop pushing large files through your app process and upload straight to object storage.</p>
+
+  <h3>5. TLS or protocol mismatch</h3>
+  <p>Talk plain HTTP to a TLS port, or offer a protocol version the peer won't accept, and the conversation ends abruptly. You get a reset, or a very confusing handshake error, because the peer is not going to explain itself to a client it doesn't understand. Quick check:</p>
+  <pre><code># Does TLS actually negotiate to this host and port?
+openssl s_client -connect db.example.com:5432 -servername db.example.com
+
+# Is the URL scheme wrong? http:// against a TLS-only port resets fast.
+curl -v https://api.example.com/health</code></pre>
+  <p>Usually it's one of two things: an <code>http://</code> URL against a TLS-only endpoint, or a client pinned to a TLS version the server has since disabled. Neither is a network problem.</p>
+
+  <h3>6. The client just hung up</h3>
+  <p>This one wastes a lot of debugging time. If a user closes a tab, kills the app, or loses signal mid-request, your server gets a reset. Nothing is broken. That's what leaving looks like at the TCP level. Client resets belong at <code>warn</code> or <code>info</code>, never <code>error</code>, and they should never page anyone. Node gives you a dedicated hook:</p>
+  <pre><code>server.on("clientError", (err, socket) => {
+  // A client that vanished is not an incident. Log it and move on.
+  if (err.code === "ECONNRESET" || !socket.writable) return;
+  socket.end("HTTP/1.1 400 Bad Request\r\n\r\n");
+});</code></pre>
+  <p>The way to keep this separable is to log the fields rather than the prose, so you can filter inbound client resets out of your alerting without losing them entirely. <a href="https://www.kloudbean.com/blog/structured-logging-nodejs/">Structured logging in Node.js</a> goes into how to shape that.</p>
+
+  <h2>Why an unhandled socket error crashes the process</h2>
+  <p>An ECONNRESET on a socket is not a rejected promise you can ignore. Sockets are <code>EventEmitter</code> instances, and an <code>'error'</code> event with no listener gets thrown as an uncaught exception, which ends the process. That's how an app dies from a database connection dropping in the background while nobody was even querying it. So attach handlers to everything long-lived you own: servers, outbound requests, pools, Redis clients, raw <code>net</code> sockets.</p>
+  <pre><code>const net = require("node:net");
+
+const socket = net.connect({ host: "127.0.0.1", port: 6379 });
+
+socket.on("error", (err) => {
+  if (err.code === "ECONNRESET") {
+    // Expected: the peer tore down an established connection.
+    logger.warn({ code: err.code, syscall: err.syscall }, "peer reset the connection");
+    reconnectWithBackoff();
+    return;
+  }
+  logger.error({ err }, "unexpected socket error");
+});
+
+// Outbound HTTP requests need the same treatment.
+const req = http.request(options, handleResponse);
+req.on("error", (err) => logger.warn({ code: err.code }, "request failed"));
+req.end();</code></pre>
+  <p>And a global safety net, purely so you find out about the ones you missed:</p>
+  <pre><code>process.on("uncaughtException", (err) => {
+  logger.fatal({ err }, "uncaught exception, shutting down");
+  // Log, then exit. Do not pretend the process is healthy.
+  process.exit(1);
+});</code></pre>
+  <p>Note the exit. Staying alive after an uncaught exception leaves you running on unknown state, and the bug that follows is far harder to find than the crash you suppressed.</p>
+
+  <h2>Two anti-patterns to avoid</h2>
+  <p>The first is the empty catch. Wrapping the call in <code>try { ... } catch (e) {}</code> makes the log noise stop, and that's all it does. You've converted a visible connection failure into silently missing data, and you've thrown away <code>code</code> and <code>syscall</code>, the two fields that would have told you who reset you. Handle it, classify it, log it. Don't swallow it.</p>
+  <p>The second is blanket auto-retry. Retrying a GET after a reset is fine. Retrying a POST that charges a card, sends an email, or inserts a row is how you get duplicates, because a reset gives you no information about whether the peer processed the request before the connection died. It might have committed and lost the response. Only retry when the operation is idempotent, or when you're carrying an idempotency key the peer honours.</p>
+  <pre><code>const IDEMPOTENT = new Set(["GET", "HEAD", "OPTIONS", "PUT", "DELETE"]);
+
+function shouldRetry(err, method) {
+  if (err.code !== "ECONNRESET") return false;
+  return IDEMPOTENT.has(method); // POST needs an idempotency key, not a retry
+}</code></pre>
+
+  <table class="cmp">
+    <thead><tr><th>Symptom</th><th>Likely author of the reset</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td>First request after an idle period fails</td><td>Stale pooled or keep-alive socket</td><td>Set your idle timeout below the peer's</td></tr>
+      <tr><td>Fails at a consistent round duration</td><td>Proxy or load balancer idle timer</td><td>Lower your client timeout, or make the work async</td></tr>
+      <tr><td>Bursts of resets at deploy time</td><td>Process restart cutting requests off</td><td>Drain in-flight requests on SIGTERM</td></tr>
+      <tr><td>Same large upload fails every time</td><td>Body size limit on a peer</td><td>Raise the limit or upload direct to storage</td></tr>
+      <tr><td>Fails immediately on connect, every time</td><td>TLS or scheme mismatch</td><td>Fix the scheme or the TLS version</td></tr>
+      <tr><td>Scattered inbound resets on your server</td><td>Clients disconnecting</td><td>Log at warn, do not alert</td></tr>
+    </tbody>
+  </table>
+
+  <h2>What to check when it only happens in production</h2>
+  <p>Resets are awkward to debug remotely because the cause usually sits outside your code: an intermediary's timer, or a process that restarted. Two pieces of evidence settle most of them. Your app's own logs at the moment of the reset, streamed rather than fished out afterwards. And a straight answer to "did the process restart?", which turns a mysterious burst of resets into an obvious cause. Whatever platform you're on, make sure you can see both.</p>
+  <p>Practical note: On Kloudbean, app and build logs stream live in the console next to deployment history, and Node apps run as persistent processes under PM2, so a restart shows up as a restart instead of an unexplained wave of resets, and managed databases keep access controlled while you're poking at connection settings.</p>
+  <p>Also worth checking on the database side: whether the server-side idle or wait timeout is shorter than your pool's, which is the same rule from earlier applied to whatever you're connecting to. <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">Managed PostgreSQL hosting</a> covers where those settings live.</p>
+
+  <!-- ADD IMAGE: screenshot of live streaming app logs beside deployment history, showing a restart lined up with a reset burst. src -> images/live-logs.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Screenshot: live app logs next to deployment history, with a process restart lined up against a burst of resets.</em><small>Shows the correlation trick rather than describing it.</small></span></figure>
+
+  <h2>Related reading</h2>
+  <p>The sibling error, when nothing was listening at all: <a href="https://www.kloudbean.com/blog/fix-econnrefused-node/">ECONNREFUSED in Node.js</a>. Connection layer: <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>. Restart half: <a href="https://www.kloudbean.com/blog/graceful-shutdown-nodejs/">graceful shutdown in Node.js</a> and <a href="https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/">Node app crashing on deploy</a>. And to make any of this findable later, <a href="https://www.kloudbean.com/blog/structured-logging-nodejs/">structured logging in Node.js</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">See the restart, and you've found the reset.</p>
+    <p style="margin:0 0 .6em">Run your Node app on Kloudbean with live app and build logs, deployment history, persistent processes under PM2, and managed databases in the same dashboard. Deploy from GitHub, from $8/mo. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or check <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Live logs · Deployment history · Managed databases · Automatic backups · Free SSL · GitHub deploys</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does ECONNRESET mean in Node.js?</h3>
+    <p>It means the peer sent a TCP reset on a connection that was already established, so your socket was torn down while you were still using it. The connection existed, which rules out DNS problems and nothing-listening problems. Something accepted your connection and then ended it abruptly.</p>
+
+    <h3>What is the difference between read ECONNRESET and write ECONNRESET?</h3>
+    <p>The syscall in the message tells you what your process was doing when the reset landed. <code>read ECONNRESET</code> means you were waiting for data, usually because the peer considered the connection finished before you did. <code>write ECONNRESET</code> means you were sending bytes, which points at the peer rejecting your payload or dying mid-receive.</p>
+
+    <h3>Is ECONNRESET the same as socket hang up?</h3>
+    <p>They're the same underlying event seen from different layers. Node's <code>http</code> module reports <code>socket hang up</code> with the code <code>ECONNRESET</code> when a response never completed because the connection went away. Debug it the same way: work out who closed the connection and why.</p>
+
+    <h3>Why do I get ECONNRESET only on the first request after being idle?</h3>
+    <p>That's the classic stale connection pattern. Your pool or keep-alive agent parked a socket as idle, the peer closed it on its own shorter timer, and your app didn't notice because nobody was reading. The next request writes to a dead socket and gets a reset. Set your idle timeout below the peer's.</p>
+
+    <h3>How do I stop ECONNRESET from crashing my Node process?</h3>
+    <p>Attach an <code>error</code> listener to every socket, HTTP request, pool and client you keep around. Sockets are event emitters, and an <code>error</code> event with no listener is thrown as an uncaught exception, which ends the process. Add a top-level <code>uncaughtException</code> handler that logs and then exits, so you find the ones you missed.</p>
+
+    <h3>Should I retry a request that failed with ECONNRESET?</h3>
+    <p>Only if the operation is idempotent. A reset gives you no information about whether the peer processed your request before the connection died, so retrying a POST that charges a card or inserts a row can create duplicates. Retry GET, HEAD and PUT freely; for writes, use an idempotency key the peer honours.</p>
+
+    <h3>Is ECONNRESET the same as ECONNREFUSED?</h3>
+    <p>No, and the distinction saves you time. ECONNREFUSED means nothing was listening, so the connection never opened. ECONNRESET means a connection was established and then reset. ETIMEDOUT is a third case where nothing answered at all inside your deadline, so you got no decision either way.</p>
+
+    <h3>Can a load balancer or proxy cause ECONNRESET?</h3>
+    <p>Yes, and it's easy to miss because both your client and your server look healthy. Proxies, load balancers and NAT gateways keep their own idle timers, and when one fires the connection is reset. The tell is that failures cluster around a consistent duration rather than a consistent request.</p>
+
+    <h3>Should I log client-side ECONNRESET as an error?</h3>
+    <p>Not as an error, no. When a user closes a tab or loses signal mid-request, your server sees a reset, and that's just what leaving looks like at the TCP level. Log those at warn or info with the code and syscall attached so you can filter them out of alerting, and keep genuine errors loud.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · A reset always has an author. Name it before you fix anything.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Organization","@id":"https://kloudbean.com/#organization","name":"Kloudbean","url":"https://www.kloudbean.com/","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},
+{"@type":"Article","headline":"ECONNRESET in Node.js: What It Means and How to Fix It","description":"ECONNRESET meaning, read versus write ECONNRESET, the idle keep-alive socket that causes most of them, and the error handler pattern that stops it crashing your process.","image":"https://www.kloudbean.com/blog/fix-econnreset-node/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@id":"https://kloudbean.com/#organization"},"mainEntityOfPage":"https://www.kloudbean.com/blog/fix-econnreset-node/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does ECONNRESET mean in Node.js?","acceptedAnswer":{"@type":"Answer","text":"It means the peer sent a TCP reset on a connection that was already established, so your socket was torn down while you were still using it. The connection existed, which rules out DNS problems and nothing-listening problems. Something accepted your connection and then ended it abruptly."}},
+{"@type":"Question","name":"What is the difference between read ECONNRESET and write ECONNRESET?","acceptedAnswer":{"@type":"Answer","text":"The syscall in the message tells you what your process was doing when the reset landed. read ECONNRESET means you were waiting for data, usually because the peer considered the connection finished before you did. write ECONNRESET means you were sending bytes, which points at the peer rejecting your payload or dying mid-receive."}},
+{"@type":"Question","name":"Is ECONNRESET the same as socket hang up?","acceptedAnswer":{"@type":"Answer","text":"They are the same underlying event seen from different layers. Node's http module reports socket hang up with the code ECONNRESET when a response never completed because the connection went away. Debug it the same way: work out who closed the connection and why."}},
+{"@type":"Question","name":"Why do I get ECONNRESET only on the first request after being idle?","acceptedAnswer":{"@type":"Answer","text":"That is the classic stale connection pattern. Your pool or keep-alive agent parked a socket as idle, the peer closed it on its own shorter timer, and your app did not notice because nobody was reading. The next request writes to a dead socket and gets a reset. Set your idle timeout below the peer's."}},
+{"@type":"Question","name":"How do I stop ECONNRESET from crashing my Node process?","acceptedAnswer":{"@type":"Answer","text":"Attach an error listener to every socket, HTTP request, pool and client you keep around. Sockets are event emitters, and an error event with no listener is thrown as an uncaught exception, which ends the process. Add a top-level uncaughtException handler that logs and then exits, so you find the ones you missed."}},
+{"@type":"Question","name":"Should I retry a request that failed with ECONNRESET?","acceptedAnswer":{"@type":"Answer","text":"Only if the operation is idempotent. A reset gives you no information about whether the peer processed your request before the connection died, so retrying a POST that charges a card or inserts a row can create duplicates. Retry GET, HEAD and PUT freely; for writes, use an idempotency key the peer honours."}},
+{"@type":"Question","name":"Is ECONNRESET the same as ECONNREFUSED?","acceptedAnswer":{"@type":"Answer","text":"No, and the distinction saves you time. ECONNREFUSED means nothing was listening, so the connection never opened. ECONNRESET means a connection was established and then reset. ETIMEDOUT is a third case where nothing answered at all inside your deadline, so you got no decision either way."}},
+{"@type":"Question","name":"Can a load balancer or proxy cause ECONNRESET?","acceptedAnswer":{"@type":"Answer","text":"Yes, and it is easy to miss because both your client and your server look healthy. Proxies, load balancers and NAT gateways keep their own idle timers, and when one fires the connection is reset. The tell is that failures cluster around a consistent duration rather than a consistent request."}},
+{"@type":"Question","name":"Should I log client-side ECONNRESET as an error?","acceptedAnswer":{"@type":"Answer","text":"Not as an error, no. When a user closes a tab or loses signal mid-request, your server sees a reset, and that is just what leaving looks like at the TCP level. Log those at warn or info with the code and syscall attached so you can filter them out of alerting, and keep genuine errors loud."}}
+]}
+]}
+</script>
+</body>
+</html>

@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ETIMEDOUT in Node.js: How to Fix connect ETIMEDOUT</title>
+<meta name="description" content="ETIMEDOUT in Node.js means nothing answered at all. Here is what connect ETIMEDOUT proves, how to tell it apart from a request timeout your own client imposed, and the commands that find the block.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/fix-etimedout-node/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ETIMEDOUT in Node.js: How to Fix connect ETIMEDOUT">
+<meta property="og:description" content="Silence is the clue. What ETIMEDOUT proves about your network path, the DROP versus REJECT rule that explains it, and the checks that rule causes out one by one.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Node.js · Outbound connections</span>
+  <h1>ETIMEDOUT in Node.js: How to Fix connect ETIMEDOUT</h1>
+  <p class="byline">By Kloudbean Engineering · Silence is the clue. Nobody said no. Nobody said anything.</p>
+
+  <figure><img src="images/hero.png" alt="A Node.js app sending a TCP handshake outbound and receiving no reply at all, ending in connect ETIMEDOUT"></figure>
+
+  <p class="lead">Your app tries to reach a database, an internal service, or a third-party API, and eventually gives up with <code>Error: connect ETIMEDOUT 10.0.3.14:5432</code>. To fix ETIMEDOUT in Node you first have to read what it proves, and the ETIMEDOUT meaning is narrower than most people assume: nothing answered. Not "the service is broken," not "the credentials are wrong." Your packets went out and nothing came back. That silence is the most useful diagnostic signal you'll get all day, because it points away from your code and towards the network path.</p>
+
+  <div class="tldr">
+    <strong>What does ETIMEDOUT mean in Node.js?</strong>
+    <p>ETIMEDOUT means your app sent packets to a host and port and received no reply before the clock ran out. A refused connection proves something answered and said no. A timeout proves nothing answered at all, which is nearly always a packet-level block: a firewall dropping traffic, the wrong port, or an address that isn't reachable. Test the path with <code>nc -zv</code> before touching your code.</p>
+  </div>
+
+  <h2>Silence versus refusal, and why the difference decides your next hour</h2>
+  <p>TCP is chatty about failure when it's allowed to be. If you knock on a port where no process is listening, the machine sends back a RST packet, and Node hands you <code>ECONNREFUSED</code>. Something was there. It read your packet and rejected it. That's a fast, loud, informative no.</p>
+  <p>ETIMEDOUT is the opposite. You sent a SYN and never got a SYN-ACK or anything else. The kernel keeps retransmitting for a while, then gives up. Because you got no response, you learned almost nothing about the far end. You did learn something big about the middle: something between you and the peer is swallowing traffic, or the address you're aiming at isn't where you think it is.</p>
+  <p>The mechanism behind that is a firewall rule choice, and it's worth internalising because it explains most production timeouts:</p>
+  <ul>
+    <li>A <strong>REJECT</strong> (or <code>reject-with tcp-reset</code>) rule sends an explicit rejection. You get a refusal, fast.</li>
+    <li>A <strong>DROP</strong> rule sends nothing. Your packet disappears into a black hole. You get a timeout, slowly.</li>
+  </ul>
+  <p>Most cloud security groups, most default server firewalls, and Shorewall-style setups drop by default rather than reject, because dropping doesn't confirm to a scanner that the host exists. Which means: <em>if you're getting ETIMEDOUT on a port that should be open, a drop rule is the first thing to suspect, not the last.</em> ECONNRESET is a third animal again, that's a connection that was established and then torn down mid-flight; there's a sibling guide for each of those two, linked below.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Error</th><th>What actually happened</th><th>What it proves</th><th>Where to look first</th></tr></thead>
+    <tbody>
+      <tr><td><code>ECONNREFUSED</code></td><td>Peer replied with RST</td><td>Host reachable, nothing listening on that port</td><td>Is the service running, is the port right</td></tr>
+      <tr><td><code>ETIMEDOUT</code></td><td>No reply at all</td><td>Packets are being dropped, or the address is unreachable</td><td>Firewall or security group, allow-list, DNS, wrong host</td></tr>
+      <tr><td><code>ECONNRESET</code></td><td>Connection established, then killed</td><td>You reached the service and it or something in between cut the socket</td><td>Idle timeouts, proxy limits, peer crash, TLS mismatch</td></tr>
+    </tbody>
+  </table>
+
+  <!-- Replace with a real screenshot: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Concrete hint: a terminal showing the same host tested twice, once returning "Connection refused" and once hanging until timeout, side by side.</em><small>Optional note: this single contrast teaches the whole article.</small></span></figure>
+
+  <h2>connect ETIMEDOUT is not the same as a Node request timeout</h2>
+  <p>Two very different failures both end up looking like "it timed out," and conflating them sends people hunting in the wrong layer.</p>
+  <p><code>connect ETIMEDOUT</code> comes from the operating system. The TCP handshake never completed. You never had a connection, so no bytes of your request were ever sent. The <code>syscall</code> field on the error object says <code>connect</code>, and the message carries the IP and port.</p>
+  <p>A <strong>request or socket timeout</strong> comes from your own client library. The handshake succeeded, your request went out, and then <em>you</em> decided to stop waiting. The peer is alive and reachable; it's just slow, or stuck, or it's the one waiting on something else. Axios raises this as <code>ECONNABORTED</code> with a "timeout of 5000ms exceeded" message; <code>undici</code> and <code>fetch</code> surface it as a <code>HeadersTimeoutError</code>, <code>BodyTimeoutError</code>, or an <code>AbortError</code> if you used a signal.</p>
+  <p>Read the error object rather than the string. It tells you which one you have:</p>
+  <pre><code>try {
+  await callUpstream();
+} catch (err) {
+  console.error({
+    code: err.code,        // ETIMEDOUT, ECONNABORTED, ECONNREFUSED, ECONNRESET
+    syscall: err.syscall,  // "connect" means the handshake never completed
+    address: err.address,  // the IP it actually tried
+    port: err.port,
+    cause: err.cause?.code // undici and fetch nest the real cause here
+  });
+}</code></pre>
+  <p>If <code>syscall</code> is <code>connect</code>, stop reading your application code. It's a path problem. If there's no <code>connect</code> syscall and the code came from your HTTP client, it's a slowness problem, and the peer is where you look.</p>
+
+  <h2>Four commands, and what each one rules out</h2>
+  <p>Run these from the machine that's failing, not from your laptop. That's the whole point: your laptop has a different network path, and a check that passes locally tells you nothing about production.</p>
+  <pre><code># 1. Can I complete a TCP handshake to that host and port at all?
+nc -zv db.internal 5432
+#    succeeded  -> the path is open; your problem is above TCP (auth, app, slowness)
+#    refused    -> path is open, nothing listening on that port
+#    hangs/times out -> packets are being dropped: firewall, security group, or allow-list
+
+# 2. Same question when nc is not installed
+timeout 5 bash -c '&lt;/dev/tcp/db.internal/5432' &amp;&amp; echo open || echo "blocked or closed"
+
+# 3. Where does the HTTP request actually stall?
+curl -v --max-time 10 https://api.example.com/health
+#    stops after "Trying 203.0.113.9:443..." -> handshake never completed, packet-level block
+#    reaches "Connected to" then stalls    -> you got through; the peer is slow
+
+# 4. Is the name resolving to an address that still exists?
+dig +short api.example.com
+dig +short db.internal
+#    empty result   -> DNS problem, you would normally see ENOTFOUND instead
+#    stale/odd IP   -> you are timing out against an address that moved</code></pre>
+  <p>On a box where <code>nc</code> and <code>curl</code> are both missing, <code>telnet db.internal 5432</code> gives the same three outcomes: a blank cursor means the handshake worked, "Connection refused" means the service isn't there, hanging on "Trying..." means dropped packets.</p>
+  <p>Here's the discipline that saves time. Each result <em>eliminates</em> a layer. A successful <code>nc</code> permanently rules out firewalls for that host and port, so don't go back and re-check them. A hanging <code>nc</code> permanently rules out credentials, connection strings, ORM config, and pool settings, because none of those are involved before a handshake completes. People burn hours rotating database passwords over an ETIMEDOUT. The password was never sent.</p>
+
+  <!-- Replace with a real screenshot: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Concrete hint: annotated output of curl -v stalling at "Trying 203.0.113.9:443..." with the stall point circled.</em></span></figure>
+
+  <h2>The real causes of connect ETIMEDOUT, and the fix for each</h2>
+  <p>Ordered by how often they turn out to be the answer on a server that was working yesterday.</p>
+  <ol>
+    <li><strong>A firewall or security group is dropping packets.</strong> The classic. Someone tightened a rule, or the server was rebuilt with defaults, and the port your app needs is no longer allowed. Because the rule drops rather than rejects, you get silence. Fix: allow the source (your app server's IP, or its CIDR range) to the destination port, in every layer that exists. Cloud security group and host firewall are two separate gates and both must open.</li>
+    <li><strong>The database only accepts allow-listed addresses.</strong> Most managed databases refuse traffic from unknown sources by silently dropping it, which is exactly why you get a timeout rather than an authentication error. Fix: add your app server's IP to the database's allow-list. This is the single most common cause of "the connection string is right and it still times out."</li>
+    <li><strong>Wrong port.</strong> You're aiming at 3306 and it's 3307, or you're using the pooler port instead of the direct one. Sometimes this gives a refusal; when a drop rule covers everything but the real port, it gives a timeout instead. Fix: confirm the listening port on the peer with <code>ss -tlnp</code>.</li>
+    <li><strong>The provider blocks that outbound port.</strong> Egress isn't always open. Port 25 is widely blocked for SMTP, and some networks restrict other ports outbound. Your app looks broken; it's the network policy. Fix: use the submission port your provider supports, or an API-based service instead of raw SMTP.</li>
+    <li><strong>DNS resolves to an unreachable or stale address.</strong> The name resolves fine, so you don't get <code>ENOTFOUND</code>, but the IP behind it is old, is a private address you can't route to, or belongs to something that no longer exists. Fix: compare <code>dig</code> output against where the service actually lives. If resolution itself is dragging, <a href="https://www.kloudbean.com/blog/fix-slow-dns-lookup/">slow DNS lookups</a> add latency on top of everything else.</li>
+    <li><strong>The peer is genuinely overloaded.</strong> Its accept queue is full, or it's out of connections, so new handshakes go unanswered. Fix: this one is on the other side. Check the peer's own load and connection limits, and if it's your database, look at how many connections your app opens. Unbounded connection growth is what <a href="https://www.kloudbean.com/blog/database-connection-pooling/">connection pooling</a> exists to prevent.</li>
+  </ol>
+  <p>One more pattern, because it looks supernatural: works from your laptop, times out from the server. That's not a code difference. Different network, different rules. Test from the failing host and the mystery evaporates. If you need a temporary path in to prove the database is healthy, <a href="https://www.kloudbean.com/blog/what-is-an-ssh-tunnel/">an SSH tunnel</a> is right for that check and wrong for production traffic.</p>
+
+  <h2>Set explicit timeouts, because a hung request is worse than a fast failure</h2>
+  <p>Here's the opinion I'll defend: every outbound call should have an explicit timeout you chose. Node's defaults are not a plan. Left alone, a request can hang for a long time while holding a socket and often a database connection or an inbound request handler.</p>
+  <p>Think about what that costs. One upstream stops answering. Every inbound request that touches it parks and waits, and requests keep arriving, so in-flight handlers accumulate, all blocked on the same silence, all holding pool slots. Your health check still passes because the process is alive. Then the pool is exhausted and requests with nothing to do with the broken upstream start failing too. One slow dependency became a full outage, quietly.</p>
+  <p>A fast failure is a much better outcome. You can retry it, serve a fallback, degrade a feature, or return something the caller can act on. A request that's still waiting gives you nothing.</p>
+  <pre><code>// fetch / undici: bound the whole operation
+const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+
+// node:http and https: two separate timeouts, both matter
+const req = https.request(url, { timeout: 3000 }, onResponse); // connect phase
+req.setTimeout(5000, () =&gt; req.destroy(new Error("socket timeout"))); // idle socket
+
+// axios
+axios.get(url, { timeout: 3000 });
+
+// pg: fail fast on connect, and do not let a query hang forever
+new Pool({
+  connectionTimeoutMillis: 3000,
+  idleTimeoutMillis: 30000,
+  statement_timeout: 10000
+});</code></pre>
+  <p>Note that <code>timeout</code> on <code>https.request</code> only covers the connect phase. If you don't also bound the socket, you've protected yourself from ETIMEDOUT and left the slow-peer case wide open. Two knobs, two failure modes.</p>
+
+  <h2>The anti-pattern: raising the timeout until the error stops</h2>
+  <p>The error says timeout, so the instinct is to make the timeout bigger. It works, in the sense that the log line goes away. Then 3 seconds becomes 30, and 30 becomes 120, and you've quietly built something worse.</p>
+  <p>You didn't fix the cause. You converted a fast failure into a slow one and gave it more time to pile up. A 30 second timeout means each stuck request occupies a handler and a pool slot for 30 seconds. Under any real traffic, that's how a single dropped-packet rule takes down an entire service. And you've destroyed your own signal: the fast timeout was telling you exactly where to look.
+
+  Raise a timeout only when you have evidence the peer legitimately needs that long, a large export or a heavyweight report, and then raise it on that one call, not globally. If the number you need is "whatever makes the error disappear," it's a firewall rule, an allow-list, or a wrong address. Go find it.</p>
+  <p>The other half of this is visibility. Log the code, the syscall, the address and port on every failed outbound call, or you'll be guessing next time. <a href="https://www.kloudbean.com/blog/structured-logging-nodejs/">Structured logging</a> makes the difference between "the API timed out" and "we timed out connecting to 10.0.3.14:5432 from web-2," which is a fix instead of a shrug.</p>
+
+  <!-- Replace with a real screenshot: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Concrete hint: a small diagram of one hanging upstream call consuming request handlers until the pool is exhausted.</em></span></figure>
+
+  <h2>Timeouts to a database are usually a rule, not a bug</h2>
+  <p>When the peer is a managed database, resist the urge to debug your ORM. Nothing in your ORM runs before a handshake completes. If <code>nc -zv</code> hangs against your database host, the only live question is which addresses that database is willing to talk to.</p>
+  <p>That's a config question, and it should take seconds to answer. On Kloudbean, managed databases use controlled access with IP Access Control (allow and deny, CIDR supported), and the server and database sit in the same dashboard with live logs, so you can confirm which source addresses are permitted instead of guessing.</p>
+  <p>That doesn't make timeouts impossible. A dropped packet elsewhere on the internet is still a dropped packet. It just removes the guessing from the cause that produces the most of them.</p>
+
+  <h2>A note on the neighbours</h2>
+  <p>Timeout errors are a family and it's easy to grab the wrong guide. If your <em>own</em> app is the slow one and a proxy in front of it gave up, that's a <a href="https://www.kloudbean.com/blog/fix-504-gateway-timeout/">504 gateway timeout</a>, the mirror image of this page: there, you're the peer that went silent. If you got a refusal rather than silence, <a href="https://www.kloudbean.com/blog/fix-econnrefused-node/">ECONNREFUSED in Node.js</a> has a completely different fix list. And if timeouts only show up against your database under load, <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL hosting</a> covers the sizing side.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">See your server and your database access rules in one place.</p>
+    <p style="margin:0 0 .6em">Run your Node app with a managed database on Kloudbean, with IP Access Control, automatic backups, free SSL, and Git deploys, so "which addresses can reach this database" is one screen away. Plans start from $8/mo; check current pricing at <a href="https://www.kloudbean.com/pricing/">kloudbean.com/pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Managed databases · IP allow-listing · Automatic backups · Free SSL · Git deploys · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does ETIMEDOUT mean in Node.js?</h3>
+    <p>It means your app tried to reach a host and port and got no response at all before the operating system gave up. Unlike a refusal, which proves something answered and rejected you, a timeout proves nothing answered. That usually means packets are being dropped by a firewall or an allow-list, or the address you are aiming at is not reachable.</p>
+
+    <h3>What is the difference between connect ETIMEDOUT and a request timeout?</h3>
+    <p>connect ETIMEDOUT comes from the operating system and means the TCP handshake never completed, so your request was never sent. A request or socket timeout comes from your own HTTP client after the connection succeeded, which means the peer is reachable but slow. Check the syscall field on the error: if it says connect, it is a network path problem.</p>
+
+    <h3>Why does a firewall cause a timeout instead of a connection refused error?</h3>
+    <p>Because of how the rule is written. A REJECT rule sends back an explicit rejection, which surfaces as ECONNREFUSED. A DROP rule sends nothing at all, so your packets vanish and you wait until the clock runs out. Most cloud security groups and server firewalls drop by default, which is why blocked traffic shows up as a timeout.</p>
+
+    <h3>How do I test whether a port is actually reachable?</h3>
+    <p>Run nc -zv host port from the machine that is failing, not from your laptop. If it succeeds, the network path is open and your problem is above TCP. If it says refused, the path is fine but nothing is listening. If it hangs, packets are being dropped, so look at firewalls, security groups, and database allow-lists.</p>
+
+    <h3>Why does my database connection time out when the connection string is correct?</h3>
+    <p>Most often the database is only accepting connections from allow-listed addresses and yours is not on the list, so it drops your packets silently. Add your app server IP to the database allow-list. Remember that no credentials are sent before the handshake completes, so an ETIMEDOUT is never a password problem.</p>
+
+    <h3>Should I just increase the timeout to fix ETIMEDOUT?</h3>
+    <p>No. Raising the timeout hides the error without fixing the cause, and it turns a fast failure into a slow one that holds request handlers and connection pool slots for longer. That is how one blocked port becomes a full outage. Raise a timeout only when you have evidence a specific call legitimately needs longer.</p>
+
+    <h3>What timeout should I set on outbound requests in Node?</h3>
+    <p>Set one explicitly rather than relying on defaults. A few seconds for the connect phase is a reasonable starting point, with a separate bound on the idle socket, then tune against what the peer really needs. Use AbortSignal.timeout with fetch, the timeout option with axios, and connectionTimeoutMillis on a Postgres pool.</p>
+
+    <h3>Why does it work on my laptop but time out on the server?</h3>
+    <p>Your laptop takes a different network path, so it passes through different rules. The server may be blocked by a security group, a host firewall, or an allow-list that your home network is not subject to. Always run the reachability checks from the machine that is failing, since a passing test from anywhere else proves nothing.</p>
+
+    <h3>Is ETIMEDOUT the same as ECONNRESET?</h3>
+    <p>No. ECONNRESET means a connection was established and then torn down mid-flight, often by an idle timeout, a proxy limit, or a peer that crashed. ETIMEDOUT means the connection was never established in the first place. Getting a reset actually tells you the network path works, which rules out the entire firewall category.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · When nothing answers, stop debugging your code and start debugging the path.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"ETIMEDOUT in Node.js: How to Fix connect ETIMEDOUT","description":"ETIMEDOUT in Node.js means nothing answered at all. What connect ETIMEDOUT proves, how to tell it apart from a request timeout your own client imposed, and the commands that find the block.","image":"https://www.kloudbean.com/blog/fix-etimedout-node/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@id":"https://kloudbean.com/#organization"},"mainEntityOfPage":"https://www.kloudbean.com/blog/fix-etimedout-node/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does ETIMEDOUT mean in Node.js?","acceptedAnswer":{"@type":"Answer","text":"It means your app tried to reach a host and port and got no response at all before the operating system gave up. Unlike a refusal, which proves something answered and rejected you, a timeout proves nothing answered. That usually means packets are being dropped by a firewall or an allow-list, or the address you are aiming at is not reachable."}},
+{"@type":"Question","name":"What is the difference between connect ETIMEDOUT and a request timeout?","acceptedAnswer":{"@type":"Answer","text":"connect ETIMEDOUT comes from the operating system and means the TCP handshake never completed, so your request was never sent. A request or socket timeout comes from your own HTTP client after the connection succeeded, which means the peer is reachable but slow. Check the syscall field on the error: if it says connect, it is a network path problem."}},
+{"@type":"Question","name":"Why does a firewall cause a timeout instead of a connection refused error?","acceptedAnswer":{"@type":"Answer","text":"Because of how the rule is written. A REJECT rule sends back an explicit rejection, which surfaces as ECONNREFUSED. A DROP rule sends nothing at all, so your packets vanish and you wait until the clock runs out. Most cloud security groups and server firewalls drop by default, which is why blocked traffic shows up as a timeout."}},
+{"@type":"Question","name":"How do I test whether a port is actually reachable?","acceptedAnswer":{"@type":"Answer","text":"Run nc -zv host port from the machine that is failing, not from your laptop. If it succeeds, the network path is open and your problem is above TCP. If it says refused, the path is fine but nothing is listening. If it hangs, packets are being dropped, so look at firewalls, security groups, and database allow-lists."}},
+{"@type":"Question","name":"Why does my database connection time out when the connection string is correct?","acceptedAnswer":{"@type":"Answer","text":"Most often the database is only accepting connections from allow-listed addresses and yours is not on the list, so it drops your packets silently. Add your app server IP to the database allow-list. Remember that no credentials are sent before the handshake completes, so an ETIMEDOUT is never a password problem."}},
+{"@type":"Question","name":"Should I just increase the timeout to fix ETIMEDOUT?","acceptedAnswer":{"@type":"Answer","text":"No. Raising the timeout hides the error without fixing the cause, and it turns a fast failure into a slow one that holds request handlers and connection pool slots for longer. That is how one blocked port becomes a full outage. Raise a timeout only when you have evidence a specific call legitimately needs longer."}},
+{"@type":"Question","name":"What timeout should I set on outbound requests in Node?","acceptedAnswer":{"@type":"Answer","text":"Set one explicitly rather than relying on defaults. A few seconds for the connect phase is a reasonable starting point, with a separate bound on the idle socket, then tune against what the peer really needs. Use AbortSignal.timeout with fetch, the timeout option with axios, and connectionTimeoutMillis on a Postgres pool."}},
+{"@type":"Question","name":"Why does it work on my laptop but time out on the server?","acceptedAnswer":{"@type":"Answer","text":"Your laptop takes a different network path, so it passes through different rules. The server may be blocked by a security group, a host firewall, or an allow-list that your home network is not subject to. Always run the reachability checks from the machine that is failing, since a passing test from anywhere else proves nothing."}},
+{"@type":"Question","name":"Is ETIMEDOUT the same as ECONNRESET?","acceptedAnswer":{"@type":"Answer","text":"No. ECONNRESET means a connection was established and then torn down mid-flight, often by an idle timeout, a proxy limit, or a peer that crashed. ETIMEDOUT means the connection was never established in the first place. Getting a reset actually tells you the network path works, which rules out the entire firewall category."}}
+]},
+{"@type":"Organization","@id":"https://kloudbean.com/#organization","name":"Kloudbean","legalName":"Secured Orbis Pvt. Ltd.","url":"https://kloudbean.com","description":"Kloudbean is a managed multi-cloud hosting platform by Secured Orbis Pvt. Ltd. It runs your whole stack from one dashboard, application servers, managed databases, object storage, and a built-in load balancer across seven cloud providers, so builders, agencies, and founders can deploy, host, and own their apps without operating raw cloud."}
+]}
+</script>
+</body>
+</html>

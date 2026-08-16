@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MongoError: Authentication Failed? Check authSource First</title>
+<meta name="description" content="MongoError authentication failed almost never means the password is wrong. The usual cause is the wrong authSource. Here's how to diagnose it with mongosh, fix the URI, and tell auth failures apart from authorization errors.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/fix-mongoerror-authentication-failed/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MongoError: Authentication Failed? Check authSource First">
+<meta property="og:description" content="Why MongoDB reports authentication failed even with the right password, what authSource does, how to percent-encode passwords in a URI, and the mongosh test that splits the problem in half.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">MongoDB · Error field guide</span>
+  <h1>MongoError: Authentication Failed? Check authSource Before the Password</h1>
+  <p class="byline">By Kloudbean Database · The credentials are usually fine. Mongo is looking for them in the wrong database.</p>
+
+  <figure><img src="images/hero.png" alt="A Node.js app receiving MongoError authentication failed while connecting to MongoDB, with authSource highlighted in the connection string"></figure>
+
+  <p class="lead">Your app boots, tries to connect, and dies with <code>MongoError: Authentication failed</code> or the newer <code>MongoServerError: bad auth : Authentication failed</code>. So you retype the password. Then you reset it. Then you paste it into a note to compare character by character. And it was right the whole time. In most cases mongodb authentication failed isn't a password problem at all, it's an <code>authSource</code> problem: MongoDB checks credentials against one specific authentication database, and your connection string is pointing it somewhere else. Let's fix that, then work through the other real causes.</p>
+
+  <div class="tldr">
+    <strong>Why does MongoDB say authentication failed when the password is right?</strong>
+    <p>Because MongoDB verifies a user against one authentication database, and <code>authSource</code> defaults to the database named in your connection string path. If you created the user in <code>admin</code> but connect to <code>/appdb</code>, Mongo looks in <code>appdb</code>, finds no such user, and reports authentication failed. Add <code>?authSource=admin</code>. Then check for special characters in the password that need percent-encoding.</p>
+  </div>
+
+  <h2>What MongoError authentication failed actually means</h2>
+  <p>The message is narrower than it sounds. It means the server received a username, a credential, and the name of an authentication database, and the combination didn't verify. That's it. It doesn't tell you which of the three was wrong, and it deliberately doesn't tell you whether the user exists, because leaking that would help an attacker enumerate accounts. So "authentication failed" covers a user that doesn't exist in the database Mongo looked in, exactly as it covers a genuinely bad password. Same message, very different fixes.</p>
+  <p>Two things it does <em>not</em> mean. It's not a network problem: you got a real reply from a real mongod, so the host and port are fine (if they weren't, you'd be reading <a href="https://www.kloudbean.com/blog/fix-econnrefused-node/">ECONNREFUSED in Node.js</a> instead). And it's not a permissions problem. Permissions produce a different error, which we'll separate out below.</p>
+
+  <h2>The authSource mismatch: the first thing to check</h2>
+  <p>MongoDB stores users inside databases. A user is not global; it belongs to the database it was created in, and that database is its authentication database. When you authenticate, the driver has to tell the server which database to look in. That value is <code>authSource</code>.</p>
+  <p>Here's the trap. If you don't set <code>authSource</code> explicitly, it defaults to the database named in the path of your connection string. Connect to <code>mongodb://appuser:PLACEHOLDER_PASSWORD@10.0.0.5:27017/appdb</code> and the driver asks the server to authenticate <code>appuser</code> against <code>appdb</code>. But nearly every tutorial, and nearly every human at a <code>mongosh</code> prompt, creates the user like this:</p>
+  <pre><code>use admin
+db.createUser({
+  user: "appuser",
+  pwd: passwordPrompt(),
+  roles: [ { role: "readWrite", db: "appdb" } ]
+})</code></pre>
+  <p>Read that carefully. The user lives in <code>admin</code>. Its <em>role</em> applies to <code>appdb</code>. Those are two separate things, and people conflate them constantly. So the credential record is in <code>admin</code>, the driver goes looking in <code>appdb</code>, finds nothing, and you get authentication failed with a perfectly valid password.</p>
+  <p>The fix is one query parameter:</p>
+  <pre><code># Broken: authSource defaults to appdb, where the user does not exist
+mongodb://appuser:PLACEHOLDER_PASSWORD@10.0.0.5:27017/appdb
+
+# Fixed: authenticate against admin, then use appdb
+mongodb://appuser:PLACEHOLDER_PASSWORD@10.0.0.5:27017/appdb?authSource=admin</code></pre>
+  <p>Why it works: <code>authSource=admin</code> separates "where my credentials are stored" from "which database I want to read and write." The path still selects your working database. Only the credential lookup moves.</p>
+  <p>The reverse case exists too. If you created the user with <code>use appdb</code> and then set <code>authSource=admin</code> in the URI out of habit, you get the same error from the opposite direction. The rule to remember: <code>authSource</code> must equal the database you ran <code>createUser</code> in. Nothing else.</p>
+  <p>Not sure where the user lives? Ask, as an admin user:</p>
+  <pre><code>// which users exist in admin
+use admin
+db.getUsers()
+
+// and in the app database
+use appdb
+db.getUsers()</code></pre>
+
+  <!-- ADD IMAGE: a mongosh session running db.getUsers() in admin and in appdb side by side, proving where the user actually lives. Swap for a real screenshot: src -> images/getusers-authsource.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A mongosh session running db.getUsers() in admin and then in appdb, so the reader can see which database actually holds the user.</em><small>Optional: highlight the roles array pointing at a different db than the user lives in.</small></span></figure>
+
+  <h2>Test the credentials with mongosh before you touch app code</h2>
+  <p>This is the step I'd insist on, and it's the one people skip. Before editing a single line of application config, authenticate from a shell. It splits the problem cleanly in half: if <code>mongosh</code> gets in with those credentials, the credentials are good and you have an application configuration bug. If <code>mongosh</code> also fails, the problem is the user, the password, or the auth database, and your app is innocent.</p>
+  <pre><code># Prompted for the password, so it never lands in shell history
+mongosh "mongodb://10.0.0.5:27017/appdb?authSource=admin" \
+  --username appuser --authenticationDatabase admin
+
+# Same test against a hosted or SRV endpoint
+mongosh "mongodb+srv://cluster.example.net/appdb?authSource=admin" --username appuser</code></pre>
+  <p>Pass the flags instead of embedding the password in the URI: the secret stays out of your shell history and process listings, and you skip URI parsing entirely.</p>
+  <p>Run the same test twice, once with <code>--authenticationDatabase admin</code> and once with <code>appdb</code>. Whichever one succeeds is the value your application's <code>authSource</code> needs.</p>
+
+  <h2>Special characters in the password break URI parsing</h2>
+  <p>A MongoDB connection string is a URI, so it has reserved characters. If your password contains <code>@</code>, <code>:</code>, <code>/</code>, <code>?</code>, <code>#</code>, <code>[</code>, <code>]</code>, or <code>%</code>, the driver parses the string in a way you did not intend and sends the wrong credential. An <code>@</code> is the nastiest one, because the parser treats it as the boundary between credentials and host, so half your password gets read as a hostname.</p>
+  <p>Percent-encode the username and password before putting them in a URI. Common substitutions:</p>
+  <table class="cmp">
+    <thead><tr><th>Character</th><th>Encode as</th><th>What happens if you don't</th></tr></thead>
+    <tbody>
+      <tr><td><code>@</code></td><td><code>%40</code></td><td>Parser splits the URI early, host and password both wrong</td></tr>
+      <tr><td><code>:</code></td><td><code>%3A</code></td><td>Password truncated at the colon</td></tr>
+      <tr><td><code>/</code></td><td><code>%2F</code></td><td>Path parsed early, database name lost</td></tr>
+      <tr><td><code>?</code></td><td><code>%3F</code></td><td>Rest of the password read as query options</td></tr>
+      <tr><td><code>#</code></td><td><code>%23</code></td><td>Everything after it silently dropped as a fragment</td></tr>
+      <tr><td><code>%</code></td><td><code>%25</code></td><td>Invalid escape sequence, or a mangled credential</td></tr>
+    </tbody>
+  </table>
+  <p>Let code do it rather than doing it by hand:</p>
+  <pre><code>// Node.js: build the URI from parts, never by string-pasting a raw password
+const user = encodeURIComponent(process.env.MONGO_USER);
+const pass = encodeURIComponent(process.env.MONGO_PASSWORD);
+const uri = `mongodb://${user}:${pass}@${process.env.MONGO_HOST}:27017/appdb?authSource=admin`;</code></pre>
+  <pre><code># Python
+from urllib.parse import quote_plus
+uri = "mongodb://%s:%s@%s:27017/appdb?authSource=admin" % (
+    quote_plus(os.environ["MONGO_USER"]),
+    quote_plus(os.environ["MONGO_PASSWORD"]),
+    os.environ["MONGO_HOST"],
+)</code></pre>
+  <p>An anti-pattern worth naming: pasting the literal password into a connection string in source code. It leaks the secret into git forever, it breaks the moment the password contains a reserved character, and it makes rotation a code deploy instead of a config change. Keep credentials in environment variables and assemble the URI at runtime. <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">Environment variables done right</a> and <a href="https://www.kloudbean.com/blog/secrets-management/">secrets management</a> both go deeper on that.</p>
+
+  <h2>Authentication failed versus not authorized: two different errors</h2>
+  <p>These get lumped together and they shouldn't be. Authentication is "who are you." Authorization is "may you do this." If you logged in successfully but the user has no role on the database you're touching, you'll see something closer to <code>MongoServerError: not authorized on appdb to execute command</code>. That's good news: the credentials work, and you only need to grant a role.</p>
+  <table class="cmp">
+    <thead><tr><th>What you see</th><th>Stage that failed</th><th>Most likely cause</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td>MongoError: Authentication failed</td><td>Authentication</td><td>Wrong authSource, user created in another database</td><td>Set authSource to the database holding the user</td></tr>
+      <tr><td>MongoServerError: bad auth : Authentication failed</td><td>Authentication</td><td>Bad password, or unencoded reserved character in the URI</td><td>Percent-encode credentials, retest with mongosh</td></tr>
+      <tr><td>not authorized on appdb to execute command</td><td>Authorization</td><td>User authenticated but has no role on that database</td><td>Grant readWrite scoped to that database</td></tr>
+      <tr><td>Authentication failed after a password change</td><td>Authentication</td><td>Stale value still in the running environment</td><td>Update the env var and restart the app</td></tr>
+      <tr><td>Command requires authentication</td><td>Authentication</td><td>No credentials sent at all</td><td>Supply user and password in the connection config</td></tr>
+    </tbody>
+  </table>
+  <p>Granting the role, scoped narrowly:</p>
+  <pre><code>use admin
+db.grantRolesToUser("appuser", [ { role: "readWrite", db: "appdb" } ])</code></pre>
+  <p>Give the application a user with <code>readWrite</code> on its own database and nothing more. Don't hand your app a root or cluster-admin account because it's convenient during debugging, then forget to change it. A least-privilege user limits the blast radius of a leaked credential, and it makes errors more informative, since an over-privileged user succeeds at things that should have failed loudly in staging.</p>
+
+  <!-- ADD IMAGE: the two errors side by side in a terminal, authentication failed next to not authorized, to make the distinction visual. Swap for a real screenshot: src -> images/auth-vs-authz.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Two terminal errors side by side: authentication failed next to not authorized on appdb, so the reader learns to tell them apart at a glance.</em><small>Optional: annotate which stage each one failed at.</small></span></figure>
+
+  <h2>The .env causes: invisible characters and stale values</h2>
+  <p>When <code>mongosh</code> works but the app still fails, the problem is almost always what your process actually loaded. Things that look identical to the eye and aren't:</p>
+  <ul>
+    <li><strong>A trailing space.</strong> <code>MONGO_PASSWORD=hunter2 </code> includes that space in many loaders. Mongo receives a different password than the one you see.</li>
+    <li><strong>Quotes that became part of the value.</strong> Some environments strip <code>"..."</code>, some don't. If yours doesn't, the literal quote marks are in the password.</li>
+    <li><strong>A wrapped or newline-split value.</strong> A long URI broken across two lines in a dashboard field silently gains a newline.</li>
+    <li><strong>A stale value after rotation.</strong> The secret store has the new password, the running process still holds the old one from boot. Restart the app after changing it.</li>
+    <li><strong>The wrong environment entirely.</strong> Staging credentials against the production host, or a local <code>.env</code> shadowing the real config.</li>
+  </ul>
+  <p>Print what the process actually has, without printing the secret:</p>
+  <pre><code>node -e 'const p = process.env.MONGO_PASSWORD || "";
+console.log("length:", p.length,
+            "trailing space:", / $/.test(p),
+            "has quotes:", /^["\x27]|["\x27]$/.test(p),
+            "has newline:", /\n|\r/.test(p));'</code></pre>
+  <p>Length plus those four flags is usually enough to spot the culprit, and you never echo the credential itself.</p>
+
+  <h2>Auth mechanism mismatch: SCRAM-SHA-1 versus SCRAM-SHA-256</h2>
+  <p>Modern MongoDB defaults to SCRAM-SHA-256, and older servers and users use SCRAM-SHA-1. A user record stores credentials for the mechanisms it was created with, so a user created under an old default may only carry SCRAM-SHA-1 material. Pin the mechanism explicitly when a driver and server disagree:</p>
+  <pre><code>mongodb://appuser:PLACEHOLDER_PASSWORD@10.0.0.5:27017/appdb?authSource=admin&amp;authMechanism=SCRAM-SHA-256</code></pre>
+  <p>Note the <code>&amp;</code> joining the second option. Two options separated by anything else is another quiet way to produce this error. If pinning SCRAM-SHA-1 makes it work, the honest fix afterwards is to reset that user's password on a current server so it gains SCRAM-SHA-256 credentials, then drop the override.</p>
+
+  <h2>Replica sets and mongodb+srv: put the options in the right place</h2>
+  <p>With a replica set or an SRV endpoint, the URI has more moving parts, and options land in the wrong spot easily. Two rules cover it. Query options belong after the database path, in a single <code>?</code> block joined by <code>&amp;</code>. And with <code>mongodb+srv://</code> you list one hostname, no port, because the seed list arrives over DNS.</p>
+  <pre><code># Replica set, explicit hosts, options after the path
+mongodb://appuser:PLACEHOLDER_PASSWORD@node1:27017,node2:27017,node3:27017/appdb?replicaSet=rs0&amp;authSource=admin&amp;retryWrites=true
+
+# SRV form: one host, no port, same option block
+mongodb+srv://appuser:PLACEHOLDER_PASSWORD@cluster.example.net/appdb?authSource=admin&amp;retryWrites=true</code></pre>
+  <p>SRV records can also carry default options, which is why an SRV URI sometimes behaves differently from the plain form with what looks like the same settings. If an SRV connection fails auth and the equivalent <code>mongodb://</code> string works, set <code>authSource</code> explicitly on the SRV URI rather than trusting an inherited default.</p>
+
+  <h2>A five minute diagnosis order</h2>
+  <ol>
+    <li>Authenticate with <code>mongosh</code> using <code>--authenticationDatabase admin</code>. Works? The app config is wrong, not the credentials.</li>
+    <li>Repeat with <code>appdb</code>. Whichever succeeds is your correct <code>authSource</code>.</li>
+    <li>Both fail? Confirm the user exists where you think, with <code>db.getUsers()</code> in each database.</li>
+    <li>Check the password for reserved characters and percent-encode them, or better, keep the password out of the URI text.</li>
+    <li>Inspect the loaded env value for length, stray quotes, whitespace, newlines.</li>
+    <li>Still failing? Pin <code>authMechanism</code> and check whether the user predates SCRAM-SHA-256.</li>
+  </ol>
+  <p>One thing that should never appear on that list: turning authentication off to get moving. Starting mongod without <code>--auth</code>, or exposing it on a public interface with no credentials, is how unsecured MongoDB instances get found and wiped by automated scans. Fix the connection string instead. And keep access restricted so only your application server can reach the database in the first place.</p>
+
+  <h2>Where this whole class of mistake comes from</h2>
+  <p>Look back at the causes and a pattern shows up. Almost every one traces to a connection string typed by hand, or a user created by hand in whichever database the shell happened to be pointing at. The error isn't really about MongoDB's auth model. It's about humans assembling URIs from memory at 1am. That's a practical note rather than a pitch: on Kloudbean, MongoDB is a one-click managed database that hands you the connection details in the dashboard, with controlled access and automatic backups, and you set the URI as runtime config in the UI, so there's no hand-built string and no user created in the wrong place to begin with.</p>
+  <p>Wherever you run it, the discipline is the same: one canonical connection string per environment, stored as config.</p>
+
+  <!-- ADD IMAGE: the managed database connection details panel, with host, port, user and database shown so the reader sees a supplied URI rather than a hand-typed one. Swap for a real screenshot: src -> images/db-connection-details.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>A managed database details panel showing host, port, user, and database name, illustrating a supplied connection string instead of a hand assembled one.</em><small>Optional: pair it with the app runtime config screen where the URI is set.</small></span></figure>
+
+  <h2>Related reading</h2>
+  <p>Once you're authenticating cleanly, the next questions are about the connection itself. <a href="https://www.kloudbean.com/blog/connect-mongoose-to-mongodb/">Connecting Mongoose to MongoDB</a> covers the driver options, connection events, and models. <a href="https://www.kloudbean.com/blog/managed-mongodb-hosting/">Managed MongoDB hosting</a> covers running the database itself, indexing, and migrating an existing one. For connection stability under load, read <a href="https://www.kloudbean.com/blog/database-connection-pooling/">database connection pooling</a>. And for keeping credentials out of your repo, <a href="https://www.kloudbean.com/blog/secrets-management/">secrets management</a> is the companion piece to this one.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Stop hand-building MongoDB connection strings.</p>
+    <p style="margin:0 0 .6em">Launch a managed MongoDB, copy the connection details from the dashboard, and set them as runtime config for your app. See <a href="https://www.kloudbean.com/">kloudbean.com</a> or check current plans on <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">One-click managed MongoDB · Automatic backups · IP allow-listing · Free SSL · Git deploys</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does MongoError authentication failed mean?</h3>
+    <p>It means the server got a username, a credential, and an authentication database, and that combination did not verify. It intentionally does not say which part was wrong, and it does not reveal whether the user exists. So it covers a valid password checked against the wrong authentication database just as much as a genuinely wrong password.</p>
+
+    <h3>Why does MongoDB say authentication failed when my password is correct?</h3>
+    <p>Usually because of authSource. MongoDB users belong to the database they were created in, and the driver looks in the database named in your connection string path unless you say otherwise. A user created in admin but referenced by a URI ending in /appdb will fail, with the right password, every time. Add authSource=admin.</p>
+
+    <h3>What is authSource in a MongoDB connection string?</h3>
+    <p>It names the database MongoDB should search for the user record when authenticating. It is separate from the database your app reads and writes. If you omit it, it defaults to the database in the URI path, and if that is not where the user was created, authentication fails. Set it to whichever database you ran createUser in.</p>
+
+    <h3>How do I fix MongoServerError bad auth authentication failed?</h3>
+    <p>Test the same credentials with mongosh first, passing the authentication database explicitly. If mongosh gets in, your application URI is the problem: check authSource, check for unencoded characters in the password, and check the value your process actually loaded. If mongosh also fails, the user, password, or auth database is wrong.</p>
+
+    <h3>How do I escape special characters in a MongoDB password?</h3>
+    <p>Percent-encode them before placing them in a URI. An at sign becomes %40, a colon %3A, a slash %2F, a hash %23, a question mark %3F, and a percent sign %25. Better still, do it in code with encodeURIComponent in Node or quote_plus in Python, so you build the URI from environment variables instead of hand-editing text.</p>
+
+    <h3>How do I test MongoDB credentials without running my app?</h3>
+    <p>Connect with mongosh and pass the username and authentication database as flags, letting it prompt for the password. That keeps the secret out of your shell history and skips URI parsing entirely. If it authenticates, the credentials are fine and the bug is in your application config. That single test splits the problem in half.</p>
+
+    <h3>What is the difference between authentication failed and not authorized in MongoDB?</h3>
+    <p>Authentication is proving who you are; authorization is being allowed to do something. Authentication failed means login itself did not succeed. Not authorized on a database means login worked but the user has no role covering that action, which you fix by granting a role scoped to that database rather than by touching credentials.</p>
+
+    <h3>Does mongodb+srv change how authSource works?</h3>
+    <p>The rule is the same, but SRV records can supply default options, so an SRV URI may behave differently from a plain one that looks equivalent. With the SRV form you give one hostname and no port, and query options still go after the database path joined by ampersands. When auth fails on SRV, set authSource explicitly instead of relying on an inherited default.</p>
+
+    <h3>Should my application connect to MongoDB as a root user?</h3>
+    <p>No. Create a user with readWrite on just the database that app uses, and leave administrative accounts for administration. A narrowly scoped user limits what a leaked credential can reach, and it surfaces mistakes early, because an over-privileged account quietly succeeds at operations that should have failed in staging.</p>
+  </div>
+
+  <p class="byline">Kloudbean Database · When auth fails, suspect the lookup before the password.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"MongoError: Authentication Failed? Check authSource Before the Password","description":"Why MongoDB reports authentication failed even with the right password, what authSource does, how to percent-encode passwords in a URI, and the mongosh test that splits the problem in half.","image":"https://www.kloudbean.com/blog/fix-mongoerror-authentication-failed/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@id":"https://kloudbean.com/#organization"},"mainEntityOfPage":"https://www.kloudbean.com/blog/fix-mongoerror-authentication-failed/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does MongoError authentication failed mean?","acceptedAnswer":{"@type":"Answer","text":"It means the server got a username, a credential, and an authentication database, and that combination did not verify. It intentionally does not say which part was wrong, and it does not reveal whether the user exists. So it covers a valid password checked against the wrong authentication database just as much as a genuinely wrong password."}},
+{"@type":"Question","name":"Why does MongoDB say authentication failed when my password is correct?","acceptedAnswer":{"@type":"Answer","text":"Usually because of authSource. MongoDB users belong to the database they were created in, and the driver looks in the database named in your connection string path unless you say otherwise. A user created in admin but referenced by a URI ending in /appdb will fail, with the right password, every time. Add authSource=admin."}},
+{"@type":"Question","name":"What is authSource in a MongoDB connection string?","acceptedAnswer":{"@type":"Answer","text":"It names the database MongoDB should search for the user record when authenticating. It is separate from the database your app reads and writes. If you omit it, it defaults to the database in the URI path, and if that is not where the user was created, authentication fails. Set it to whichever database you ran createUser in."}},
+{"@type":"Question","name":"How do I fix MongoServerError bad auth authentication failed?","acceptedAnswer":{"@type":"Answer","text":"Test the same credentials with mongosh first, passing the authentication database explicitly. If mongosh gets in, your application URI is the problem: check authSource, check for unencoded characters in the password, and check the value your process actually loaded. If mongosh also fails, the user, password, or auth database is wrong."}},
+{"@type":"Question","name":"How do I escape special characters in a MongoDB password?","acceptedAnswer":{"@type":"Answer","text":"Percent-encode them before placing them in a URI. An at sign becomes %40, a colon %3A, a slash %2F, a hash %23, a question mark %3F, and a percent sign %25. Better still, do it in code with encodeURIComponent in Node or quote_plus in Python, so you build the URI from environment variables instead of hand-editing text."}},
+{"@type":"Question","name":"How do I test MongoDB credentials without running my app?","acceptedAnswer":{"@type":"Answer","text":"Connect with mongosh and pass the username and authentication database as flags, letting it prompt for the password. That keeps the secret out of your shell history and skips URI parsing entirely. If it authenticates, the credentials are fine and the bug is in your application config. That single test splits the problem in half."}},
+{"@type":"Question","name":"What is the difference between authentication failed and not authorized in MongoDB?","acceptedAnswer":{"@type":"Answer","text":"Authentication is proving who you are; authorization is being allowed to do something. Authentication failed means login itself did not succeed. Not authorized on a database means login worked but the user has no role covering that action, which you fix by granting a role scoped to that database rather than by touching credentials."}},
+{"@type":"Question","name":"Does mongodb+srv change how authSource works?","acceptedAnswer":{"@type":"Answer","text":"The rule is the same, but SRV records can supply default options, so an SRV URI may behave differently from a plain one that looks equivalent. With the SRV form you give one hostname and no port, and query options still go after the database path joined by ampersands. When auth fails on SRV, set authSource explicitly instead of relying on an inherited default."}},
+{"@type":"Question","name":"Should my application connect to MongoDB as a root user?","acceptedAnswer":{"@type":"Answer","text":"No. Create a user with readWrite on just the database that app uses, and leave administrative accounts for administration. A narrowly scoped user limits what a leaked credential can reach, and it surfaces mistakes early, because an over-privileged account quietly succeeds at operations that should have failed in staging."}}
+]},
+{"@type":"Organization","@id":"https://kloudbean.com/#organization","name":"Kloudbean","legalName":"Secured Orbis Pvt. Ltd.","url":"https://kloudbean.com","description":"Kloudbean is a managed multi-cloud hosting platform by Secured Orbis Pvt. Ltd. It runs your whole stack from one dashboard, application servers, managed databases, object storage, and a built-in load balancer across seven cloud providers, so builders, agencies, and founders can deploy, host, and own their apps without operating raw cloud."}
+]}
+</script>
+</body>
+</html>

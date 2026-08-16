@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Permission denied (publickey): How to Fix SSH Key Rejection</title>
+<meta name="description" content="Permission denied (publickey) means the server rejected every key your client offered. Run ssh -vvv, read which keys were offered, and fix the real cause: wrong key, missing authorized_keys entry, loose permissions, wrong username, or a disabled key type.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/fix-permission-denied-publickey/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Permission denied (publickey): How to Fix SSH Key Rejection">
+<meta property="og:description" content="A diagnosis-first guide to Permission denied (publickey): read the ssh -vvv output, find which key was actually offered, and fix the cause instead of guessing.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">SSH · Lockout field guide</span>
+  <h1>Permission denied (publickey): How to Fix SSH Key Rejection</h1>
+  <p class="byline">By Kloudbean Engineering · The server didn't lose your key. It never got offered one it trusts.</p>
+
+  <figure><img src="images/hero.png" alt="A terminal showing Permission denied (publickey) after an SSH login attempt, with verbose output listing the keys that were offered"></figure>
+
+  <p class="lead">You type your usual <code>ssh</code> command and get back one flat line: <code>Permission denied (publickey).</code> No hint, no retry, no password prompt. That's SSH telling you it finished the authentication conversation and the server refused every credential your client put forward. So the useful question isn't "why is my SSH key not working," it's "which key did my client actually offer, and what did the server say about it?" Answer that and the fix takes a minute. Guess at it and you'll spend an hour regenerating keys you didn't need to touch.</p>
+
+  <div class="tldr">
+    <strong>How do I fix SSH permission denied (publickey)?</strong>
+    <p>Run <code>ssh -vvv user@host</code> first. The verbose log shows exactly which keys your client offered and how the server answered, which is the whole diagnosis. From there it's usually one of five things: the right key isn't loaded, the public key isn't in the server's <code>authorized_keys</code>, permissions on <code>~/.ssh</code> are too loose, you're using the wrong username, or the key type is disabled.</p>
+  </div>
+
+  <h2>What Permission denied (publickey) really means</h2>
+  <p>SSH authentication is a negotiation. Your client says which methods it can use, the server says which it accepts, and then the client offers credentials one at a time. When the server accepts <em>only</em> public-key auth and none of your offered keys match an authorized one, the negotiation ends and you get that single line.</p>
+  <p>Two things follow. The network is fine: you reached the SSH daemon and got a policy decision back, so stop checking firewalls and DNS. And no password prompt appeared because the server never advertised password auth. That's usually deliberate hardening, not a bug.</p>
+  <p>If you want the underlying model of how key auth works before you debug it, our walkthrough of <a href="https://www.kloudbean.com/blog/ssh-key-authentication/">SSH key authentication</a> covers the setup properly. This page is about the moment it stops working.</p>
+
+  <h2>Step one: run ssh -vvv and read the offer</h2>
+  <p>Verbose mode is the entire trick. Three <code>v</code>s gives you the key exchange, the identity files considered, each offer, and the server's response:</p>
+  <pre><code>ssh -vvv ubuntu@203.0.113.10</code></pre>
+  <p>You don't need to read all 120 lines. Scan for four patterns:</p>
+  <pre><code># 1. Which identity files the client will consider
+debug1: identity file /Users/you/.ssh/id_ed25519 type 3
+debug1: identity file /Users/you/.ssh/id_rsa type -1     &lt;- type -1 means the file was not found
+
+# 2. Which methods the server will accept
+debug1: Authentications that can continue: publickey
+
+# 3. Each key actually offered, and the answer
+debug1: Offering public key: /Users/you/.ssh/id_ed25519 ED25519 SHA256:abc123...
+debug1: Authentications that can continue: publickey        &lt;- that key was rejected
+debug1: No more authentication methods to try.
+
+# 4. The verdict
+you@203.0.113.10: Permission denied (publickey).</code></pre>
+  <p>The single most valuable line is <code>Offering public key:</code>. If it never appears, your client offered nothing, so the server was never the problem. If it appears with a path you didn't expect, you're offering the wrong key. If it appears with the right key and the server still refuses, the problem lives on the server side, in <code>authorized_keys</code> or in permissions.</p>
+
+  <table class="cmp">
+    <thead><tr><th>What you see in -vvv</th><th>What it means</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td>No <code>Offering public key</code> line at all</td><td>Client had no usable identity to send</td><td><code>ssh-add</code> the key, or pass <code>-i</code></td></tr>
+      <tr><td><code>identity file ... type -1</code></td><td>That key file doesn't exist</td><td>Point at the key that does exist</td></tr>
+      <tr><td>Offers several keys, all rejected</td><td>Agent is spraying keys; none are authorized</td><td><code>-i key -o IdentitiesOnly=yes</code></td></tr>
+      <tr><td>Right key offered, still rejected</td><td>Not in <code>authorized_keys</code>, or permissions too loose</td><td>Re-add the key, tighten modes to 700/600</td></tr>
+      <tr><td><code>send_pubkey_test: no mutual signature algorithm</code></td><td>Key type disabled by the server</td><td>Use an ed25519 key, or enable rsa-sha2</td></tr>
+      <tr><td>Server offers <code>publickey,password</code></td><td>Password auth exists as a fallback</td><td>Different failure; check the username</td></tr>
+    </tbody>
+  </table>
+
+  <!-- Replace with a real terminal screenshot. src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Concrete hint: annotated ssh -vvv output with the Offering public key line and the rejection highlighted.</em><small>Blur the host IP before publishing.</small></span></figure>
+
+  <h2>Cause 1: your client is offering the wrong key, or none</h2>
+  <p>This is the most common one on a laptop that has collected keys over the years. Check what your agent is holding:</p>
+  <pre><code>ssh-add -l
+# The agent has no identities.   &lt;- nothing to offer
+# 256 SHA256:abc123... you@laptop (ED25519)
+
+ssh-add ~/.ssh/id_ed25519         # load it
+ssh-add -D                        # clear everything and start clean</code></pre>
+  <p>There's a subtler version of this. If the agent holds six keys, SSH offers them in turn, and some servers cut you off after a handful of failed attempts (<code>MaxAuthTries</code> defaults to 6). You then get denied while holding the correct key, because your turn never came. Force a single identity:</p>
+  <pre><code>ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes ubuntu@203.0.113.10</code></pre>
+  <p><code>IdentitiesOnly=yes</code> matters more than people expect. Without it, <code>-i</code> is a suggestion: the agent still offers its own keys alongside yours. Once it works, write it down in <code>~/.ssh/config</code> so you never rely on memory:</p>
+  <pre><code>Host prod
+  HostName 203.0.113.10
+  User ubuntu
+  IdentityFile ~/.ssh/deploy_key
+  IdentitiesOnly yes</code></pre>
+
+  <h2>Cause 2: the public key isn't on the server</h2>
+  <p>Keys live in the account's own <code>~/.ssh/authorized_keys</code> on the server. Not in root's copy, not in some other user's. If you can still reach the box another way, compare the fingerprint you offered against what's authorized:</p>
+  <pre><code># Fingerprint of your local public key
+ssh-keygen -lf ~/.ssh/id_ed25519.pub
+
+# Fingerprints of every key the server trusts for this account
+ssh-keygen -lf ~/.ssh/authorized_keys</code></pre>
+  <p>If your fingerprint isn't in that list, the server has never trusted this key. Add it with the tool built for the job, which appends instead of overwriting and sets the modes correctly:</p>
+  <pre><code>ssh-copy-id -i ~/.ssh/id_ed25519.pub ubuntu@203.0.113.10</code></pre>
+  <p>When you have to paste by hand, paste carefully. A public key is one line. Editors and chat apps love to wrap it, and a wrapped key silently never matches: sshd reads a broken first line, finds no valid key, and denies you with no explanation. Check for it directly:</p>
+  <pre><code># One key per line? Count them.
+wc -l ~/.ssh/authorized_keys
+grep -c '^ssh-' ~/.ssh/authorized_keys   # these two numbers should agree</code></pre>
+
+  <h2>Cause 3: permissions, the silent killer</h2>
+  <p>Here's the one that makes people think SSH is haunted. The key is correct, it's in <code>authorized_keys</code>, and the server still refuses. sshd deliberately ignores key files when their permissions are too permissive, because a world-writable or group-writable <code>authorized_keys</code> means anyone with local write access could grant themselves a login. It's a safety rule, and it fails closed and quietly.</p>
+  <p>Group-writable home directories catch people constantly. If your home is <code>775</code> and you belong to a group someone else is in, sshd treats the whole chain as untrustworthy and skips your keys.</p>
+  <table class="cmp">
+    <thead><tr><th>Path</th><th>Required mode</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td><code>~</code> (home directory)</td><td><code>755</code> or tighter, never group-writable</td><td>A writable parent means the .ssh directory can be swapped</td></tr>
+      <tr><td><code>~/.ssh</code></td><td><code>700</code></td><td>Only the owner may list or change the key store</td></tr>
+      <tr><td><code>~/.ssh/authorized_keys</code></td><td><code>600</code></td><td>Only the owner may add a trusted key</td></tr>
+      <tr><td><code>~/.ssh/id_ed25519</code> (private key)</td><td><code>600</code></td><td>Your client refuses to use a readable private key</td></tr>
+      <tr><td>Ownership of all of the above</td><td>The login user, not root</td><td>Files owned by root are ignored for that account</td></tr>
+    </tbody>
+  </table>
+  <pre><code>chmod 755 ~
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
+chown -R ubuntu:ubuntu /home/ubuntu/.ssh</code></pre>
+  <p>Never reach for <code>chmod 777</code> to make this go away. It won't: sshd will keep ignoring the file, and now every account on the box can rewrite who gets in. Loosening permissions is the opposite of the fix. If you want the reasoning behind the rest of the SSH surface, the <a href="https://www.kloudbean.com/blog/server-hardening-checklist/">server hardening checklist</a> walks through it.</p>
+  <p>On the server, <code>sudo journalctl -u ssh -n 50</code> (or <code>/var/log/auth.log</code>) is where sshd says the quiet part out loud, with lines like <code>Authentication refused: bad ownership or modes for directory /home/ubuntu</code>. The client never sees that. Only the server log does.</p>
+
+  <!-- Replace with your own capture. src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Concrete hint: sshd auth log showing the bad ownership or modes refusal line.</em></span></figure>
+
+  <h2>Cause 4: you're logging in as the wrong user</h2>
+  <p>Every distro image picks a different default account, and your key is authorized for that one account only: <code>ubuntu</code> on Ubuntu, <code>debian</code> on Debian, <code>ec2-user</code> or <code>admin</code> elsewhere. Log in as <code>root</code> when the key lives in <code>/home/ubuntu/.ssh</code> and you're denied, because root's <code>authorized_keys</code> is a different file. Most images also ship with <code>PermitRootLogin</code> disabled, which is the right default. Do admin work through <code>sudo</code> from a normal account. The cheap test is to try the likely names first:</p>
+  <pre><code>for u in ubuntu debian admin ec2-user root; do
+  ssh -o BatchMode=yes -o ConnectTimeout=5 $u@203.0.113.10 true 2&gt;/dev/null \
+    &amp;&amp; echo "works: $u"
+done</code></pre>
+
+  <h2>Cause 5: the key type is disabled on newer OpenSSH</h2>
+  <p>OpenSSH 8.8 turned off the <code>ssh-rsa</code> signature algorithm by default, the one that uses SHA-1. An old RSA key that worked for years can start getting refused the day a server is upgraded, with the same unhelpful message. The tell in <code>-vvv</code> looks like this:</p>
+  <pre><code>debug1: send_pubkey_test: no mutual signature algorithm</code></pre>
+  <p>The right fix is a modern key. Generate one, authorize it, and retire the old one:</p>
+  <pre><code>ssh-keygen -t ed25519 -C "you@laptop"
+ssh-copy-id -i ~/.ssh/id_ed25519.pub ubuntu@203.0.113.10</code></pre>
+  <p>If you must get in with the legacy key right now, you can re-enable the algorithm for that one connection, then replace the key properly:</p>
+  <pre><code>ssh -o PubkeyAcceptedAlgorithms=+ssh-rsa ubuntu@203.0.113.10</code></pre>
+  <p>Treat that as a bridge, not a setting. RSA keys aren't the problem; SHA-1 signatures are, and they were disabled for good reason.</p>
+
+  <h2>What this error is not</h2>
+  <p>Two failures get mixed up with this one. Host key warnings (<code>REMOTE HOST IDENTIFICATION HAS CHANGED</code>) are about the <em>server's</em> identity, not yours, and they're usually a rebuilt box whose stale entry needs removing with <code>ssh-keygen -R hostname</code>. Verify the new fingerprint out of band before you accept it, and don't disable host key checking to make the warning stop. That's the check that catches an impostor. And <code>Permission denied (publickey,password)</code> is a different animal: the server does accept passwords, so your credential or username is simply wrong. Turning password auth back on is a weaker fallback than keys, so if you use it to recover, use it briefly and switch back once your key works.</p>
+
+  <h2>The Git case: git@github.com Permission denied (publickey)</h2>
+  <p>Same error, different surface. <code>git push</code> fails with <code>git@github.com: Permission denied (publickey). fatal: Could not read from remote repository.</code> The username here is always <code>git</code>, so don't change it. What's missing is your public key on the Git host account. Test the connection on its own, away from Git:</p>
+  <pre><code>ssh -T git@github.com
+# Hi you! You have successfully authenticated, but GitHub does not provide shell access.</code></pre>
+  <p>If that greets you by name, SSH is fine and your problem is repository access or a wrong remote URL. If it denies you, add the contents of <code>~/.ssh/id_ed25519.pub</code> to your account's SSH keys and try again. Two more traps worth knowing: an HTTPS remote won't use your key at all (<code>git remote -v</code> will show it), and a deploy key authorized on one repository won't work for another. Once you're back in, our notes on <a href="https://www.kloudbean.com/blog/git-delete-and-rename-branch/">deleting and renaming Git branches</a> cover the cleanup that usually follows a stalled push.</p>
+
+  <!-- Swap for your own screenshot. src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Concrete hint: the SSH keys page of a Git host account with a newly added ed25519 key.</em><small>Redact the fingerprint.</small></span></figure>
+
+  <h2>Keep a second way in before you need one</h2>
+  <p>Here's the opinion I'd argue for: the safest recovery from an SSH lockout is the one you set up before you were locked out. This error is unnerving because the standard fix needs the access you just lost. Build the second path while you still have the first: a console you've tested at least once, a second authorized key on another machine, or a teammate whose key is already on the box.</p>
+  <p>The anti-pattern that turns an annoyance into an outage: editing <code>sshd_config</code> and restarting the daemon while that session is your only way in. If the config has a typo, sshd won't come back and you're finished. Validate first, and keep the old session open while you test a new one in a second terminal:</p>
+  <pre><code>sudo sshd -t                      # syntax check, says nothing if valid
+sudo systemctl reload ssh         # reload keeps existing sessions alive
+# now open a SECOND terminal and prove you can still log in</code></pre>
+  <p>The other quiet trap is the pasted key with a line break in it, mentioned above. It looks right in the file and never matches. Both mistakes have the same root: changing your access path without a verified fallback.</p>
+  <p>This is where a hosting console earns its keep: on Kloudbean you can manage servers and their SSH keys from the dashboard, run <a href="https://www.kloudbean.com/blog/run-a-cron-job-without-ssh/">cron jobs from the UI without SSH</a>, and give teammates scoped access as subusers, so a rejected key on one laptop doesn't cut off every path to the server.</p>
+
+  <h2>Related reading</h2>
+  <p>For the concepts underneath the error, read <a href="https://www.kloudbean.com/blog/ssh-key-authentication/">SSH key authentication</a> and, when you need to reach a service that isn't publicly exposed, <a href="https://www.kloudbean.com/blog/what-is-an-ssh-tunnel/">what an SSH tunnel is</a>. Keys are credentials, so <a href="https://www.kloudbean.com/blog/secrets-management/">secrets management</a> applies to them the same as API tokens.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Manage server access without depending on SSH.</p>
+    <p style="margin:0 0 .6em">Kloudbean gives you servers, SSH keys, cron jobs, and team permissions in one dashboard, with plans from $8/mo. Check current details at <a href="https://www.kloudbean.com/pricing/">kloudbean.com/pricing</a> or start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">SSH key management · Cron from the UI · Subusers and access control · Free SSL · Automatic backups</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does Permission denied (publickey) mean?</h3>
+    <p>It means the SSH server accepted only public-key authentication and rejected every key your client offered. You reached the server and completed the protocol, so it isn't a network or DNS problem. It's a policy decision: none of the offered keys matched an authorized one for that account.</p>
+
+    <h3>How do I see which SSH key was actually offered?</h3>
+    <p>Run <code>ssh -vvv user@host</code> and look for lines beginning <code>Offering public key:</code>. Each one names the exact file that was sent. If no such line appears, your client had nothing to offer, which usually means the key isn't loaded in the agent or isn't specified with <code>-i</code>.</p>
+
+    <h3>Why is my SSH key not working after it worked yesterday?</h3>
+    <p>The usual causes are an agent that lost its keys after a reboot, a rebuilt server whose <code>authorized_keys</code> no longer has your key, permissions changed on your home directory or <code>.ssh</code>, or a server upgrade that disabled old RSA-SHA1 keys. The verbose log tells you which of those it is in a few seconds.</p>
+
+    <h3>What permissions do SSH keys and authorized_keys need?</h3>
+    <p>Set <code>~/.ssh</code> to 700 and <code>~/.ssh/authorized_keys</code> to 600, both owned by the login user, and keep the home directory itself no looser than 755 and never group-writable. sshd deliberately ignores key files when permissions are too open, and it does so without telling the client, which is why the error looks so mysterious.</p>
+
+    <h3>Should I use chmod 777 to fix SSH permission errors?</h3>
+    <p>No. It makes things worse, not better. sshd will still refuse the key because the permissions are too permissive, and now every local account can rewrite who has access. The correct direction is tighter: 700 on the directory, 600 on the files, owned by the right user.</p>
+
+    <h3>How do I fix git@github.com Permission denied (publickey)?</h3>
+    <p>Test the connection with <code>ssh -T git@github.com</code>. If it denies you, add the contents of your public key file to the SSH keys section of your Git host account, then retry. Keep the username as <code>git</code>, and check <code>git remote -v</code>, because an HTTPS remote ignores your SSH key entirely.</p>
+
+    <h3>Why does SSH not even prompt me for a password?</h3>
+    <p>Because the server didn't advertise password authentication as an available method. When only <code>publickey</code> is offered, there's nothing to prompt for, so SSH fails immediately. That's a hardened default. Password auth is a weaker fallback than keys, so if you enable it to recover access, treat it as temporary.</p>
+
+    <h3>Can I get locked out of my server permanently by this error?</h3>
+    <p>Rarely, if you prepared. A provider console, serial console, a second authorized key on another machine, or a teammate's key all give you a path back in. Set at least one of those up before you edit SSH config, since the fix for a lockout normally needs the access you just lost.</p>
+
+    <h3>Why does specifying -i still offer the wrong key?</h3>
+    <p>Because <code>-i</code> adds a key to the list rather than replacing it, so your agent's keys are still offered too. Add <code>-o IdentitiesOnly=yes</code> to send only the key you named. That also avoids hitting the server's limit on failed attempts before your correct key gets its turn.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Read the verbose log before you regenerate a single key.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Organization","@id":"https://kloudbean.com/#organization","name":"Kloudbean","url":"https://www.kloudbean.com/","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},
+{"@type":"Article","headline":"Permission denied (publickey): How to Fix SSH Key Rejection","description":"A diagnosis-first guide to Permission denied (publickey): read the ssh -vvv output, find which key was actually offered, and fix the cause instead of guessing.","image":"https://www.kloudbean.com/blog/fix-permission-denied-publickey/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@id":"https://kloudbean.com/#organization"},"mainEntityOfPage":"https://www.kloudbean.com/blog/fix-permission-denied-publickey/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does Permission denied (publickey) mean?","acceptedAnswer":{"@type":"Answer","text":"It means the SSH server accepted only public-key authentication and rejected every key your client offered. You reached the server and completed the protocol, so it is not a network or DNS problem. It is a policy decision: none of the offered keys matched an authorized one for that account."}},
+{"@type":"Question","name":"How do I see which SSH key was actually offered?","acceptedAnswer":{"@type":"Answer","text":"Run ssh -vvv user@host and look for lines beginning Offering public key. Each one names the exact file that was sent. If no such line appears, your client had nothing to offer, which usually means the key is not loaded in the agent or is not specified with the -i flag."}},
+{"@type":"Question","name":"Why is my SSH key not working after it worked yesterday?","acceptedAnswer":{"@type":"Answer","text":"The usual causes are an agent that lost its keys after a reboot, a rebuilt server whose authorized_keys no longer has your key, permissions changed on your home directory or .ssh, or a server upgrade that disabled old RSA-SHA1 keys. The verbose log tells you which of those it is in a few seconds."}},
+{"@type":"Question","name":"What permissions do SSH keys and authorized_keys need?","acceptedAnswer":{"@type":"Answer","text":"Set ~/.ssh to 700 and ~/.ssh/authorized_keys to 600, both owned by the login user, and keep the home directory itself no looser than 755 and never group-writable. sshd deliberately ignores key files when permissions are too open, and it does so without telling the client, which is why the error looks so mysterious."}},
+{"@type":"Question","name":"Should I use chmod 777 to fix SSH permission errors?","acceptedAnswer":{"@type":"Answer","text":"No. It makes things worse, not better. sshd will still refuse the key because the permissions are too permissive, and now every local account can rewrite who has access. The correct direction is tighter: 700 on the directory, 600 on the files, owned by the right user."}},
+{"@type":"Question","name":"How do I fix git@github.com Permission denied (publickey)?","acceptedAnswer":{"@type":"Answer","text":"Test the connection with ssh -T git@github.com. If it denies you, add the contents of your public key file to the SSH keys section of your Git host account, then retry. Keep the username as git, and check git remote -v, because an HTTPS remote ignores your SSH key entirely."}},
+{"@type":"Question","name":"Why does SSH not even prompt me for a password?","acceptedAnswer":{"@type":"Answer","text":"Because the server did not advertise password authentication as an available method. When only publickey is offered, there is nothing to prompt for, so SSH fails immediately. That is a hardened default. Password auth is a weaker fallback than keys, so if you enable it to recover access, treat it as temporary."}},
+{"@type":"Question","name":"Can I get locked out of my server permanently by this error?","acceptedAnswer":{"@type":"Answer","text":"Rarely, if you prepared. A provider console, serial console, a second authorized key on another machine, or a teammate's key all give you a path back in. Set at least one of those up before you edit SSH config, since the fix for a lockout normally needs the access you just lost."}},
+{"@type":"Question","name":"Why does specifying -i still offer the wrong key?","acceptedAnswer":{"@type":"Answer","text":"Because -i adds a key to the list rather than replacing it, so your agent keys are still offered too. Add -o IdentitiesOnly=yes to send only the key you named. That also avoids hitting the server limit on failed attempts before your correct key gets its turn."}}
+]}
+]}
+</script>
+</body>
+</html>

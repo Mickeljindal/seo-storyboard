@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pm2: command not found After Deploy: Fix the PATH, Not the Install</title>
+<meta name="description" content="pm2 command not found after deploy is almost always a PATH problem, not a broken install. Why pm2 works over SSH but fails in a deploy script or cron job, how to prove which user's environment is wrong, and the fixes in order of robustness.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/fix-pm2-not-found-after-deploy/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="pm2: command not found After Deploy: Fix the PATH, Not the Install">
+<meta property="og:description" content="Why pm2 command not found shows up in deploy scripts, cron jobs, and CI steps even though pm2 runs fine when you SSH in, plus the diagnostic commands and the fixes that actually hold.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Node.js · Deployment field guide</span>
+  <h1>pm2: command not found After Deploy: Fix the PATH, Not the Install</h1>
+  <p class="byline">By Kloudbean Engineering · Written after too many deploy scripts that worked in a terminal and nowhere else.</p>
+
+  <figure><img src="images/hero.png" alt="A deploy script failing with pm2 command not found while the same command runs fine in an interactive SSH session"></figure>
+
+  <p class="lead">Your deploy script ends with <code>pm2 reload app</code> and the log says <code>pm2: command not found</code>. You SSH into the same server, type the same command, and it runs perfectly. So you reinstall PM2. Nothing changes. Here's the thing you need to know before you touch npm again: <code>pm2 command not found</code> is almost never an install problem. It's a PATH problem wearing an install costume. The binary exists. The shell running your deploy just can't see it, because a non-interactive shell loads a different environment than the one you get when you log in.</p>
+
+  <div class="tldr">
+    <strong>Why does pm2 say command not found after deploy?</strong>
+    <p>Because the shell running your deploy script or cron job doesn't load the same PATH as your interactive login shell, so the global PM2 binary isn't on it. PM2 is usually installed fine. Start with <code>command -v pm2</code> inside the failing context, not in your own terminal, then compare it to <code>npm bin -g</code>. Fix it by calling the absolute path or setting PATH in the script.</p>
+  </div>
+
+  <h2>Interactive shells and non-interactive shells are not the same machine</h2>
+  <p>This is the whole explanation, so it's worth being precise about it.</p>
+  <p>When you SSH in and get a prompt, you start a login shell. It reads your profile files, typically <code>~/.bash_profile</code> or <code>~/.profile</code>, and usually <code>~/.bashrc</code> too. Those files are where a Node version manager like nvm, fnm, asdf, or Volta injects itself. That injection is what puts a directory such as <code>~/.nvm/versions/node/v20.11.1/bin</code> onto your PATH. PM2 lives there.</p>
+  <p>Now run a script over SSH non-interactively, or from cron, or as a CI step. That shell is not a login shell and often not even bash. Most <code>.bashrc</code> files bail out early for non-interactive use, with a guard near the top like this:</p>
+  <pre><code># very common near the top of ~/.bashrc
+case $- in
+    *i*) ;;
+      *) return;;
+esac</code></pre>
+  <p>Everything below that line never runs. No nvm init, no PATH additions. Your shell falls back to a bare default, often <code>/usr/bin:/bin</code> plus a couple of sbin directories, and <code>pm2</code> is not in any of them. The binary is on disk. The lookup just fails.</p>
+  <p>Cron is the strictest version of this. It gives you a minimal PATH and does not read your profile at all. Which is why the same script that works when you paste it into a terminal fails silently at 3am.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Where it fails</th><th>What's really happening</th><th>The fix</th></tr></thead>
+    <tbody>
+      <tr><td>Deploy script over SSH</td><td>Non-interactive shell skips .bashrc, so the version manager never initialises</td><td>Set PATH explicitly in the script, or call the absolute path</td></tr>
+      <tr><td>Cron job</td><td>Minimal PATH, no profile files read at all</td><td>Absolute path, or a PATH= line at the top of the crontab</td></tr>
+      <tr><td>CI step (GitHub Actions, GitLab CI)</td><td>Fresh environment on a different machine or user, PM2 was never installed there</td><td>Install it in the job, or run it on the target host over SSH with a full path</td></tr>
+      <tr><td>Works as you, fails as root or deploy user</td><td>PM2 was installed into one user's home directory only</td><td>Install for the user that actually runs it, or use a shared global prefix</td></tr>
+      <tr><td>pm2 exists but the app won't start</td><td>Different bug. PM2 was found and your app is crashing</td><td>Read the logs, that's a crash loop not a PATH issue</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ADD IMAGE: terminal split view. Left: interactive SSH session where `which pm2` prints a path. Right: the same command inside a non-interactive script printing nothing. src -> images/interactive-vs-script.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Terminal split view: <code>which pm2</code> succeeding in an interactive SSH session, and the same command returning nothing inside a non-interactive script.</em><small>This side by side comparison is the clearest way to make the concept land.</small></span></figure>
+
+  <h2>Prove whose environment is broken</h2>
+  <p>Before changing anything, find out where PM2 actually lives and which environment can see it. Run these in your interactive session first:</p>
+  <pre><code># Where is the binary, according to your shell?
+which pm2
+command -v pm2
+
+# Where does npm put global packages and their binaries?
+npm root -g          # e.g. /home/deploy/.nvm/versions/node/v20.11.1/lib/node_modules
+npm bin -g           # e.g. /home/deploy/.nvm/versions/node/v20.11.1/bin
+
+# What does your interactive PATH look like?
+echo $PATH</code></pre>
+  <p>Note that <code>npm bin -g</code> was removed in npm 9. If it errors, use <code>npm prefix -g</code> and append <code>/bin</code>, or just read the parent of <code>npm root -g</code>.</p>
+  <p>Now run the same lookup in the environment that's actually failing. This is the step people skip, and it's the one that answers the question:</p>
+  <pre><code># What does a NON-interactive shell see? (note: no login)
+ssh deploy@server 'command -v pm2; echo "PATH=$PATH"'
+
+# What does a specific user's LOGIN environment see?
+sudo -u deploy -i which pm2
+
+# What does cron see? Add this line temporarily to the crontab:
+* * * * * /usr/bin/env &gt; /tmp/cron-env.txt 2&gt;&amp;1</code></pre>
+  <p>If <code>sudo -u deploy -i which pm2</code> prints a path but <code>ssh deploy@server 'command -v pm2'</code> prints nothing, you have confirmed it: right user, wrong shell type. If neither prints anything, PM2 was installed for a different user entirely. Those are two different bugs with two different fixes, and this pair of commands separates them in about ten seconds.</p>
+
+  <h2>The four causes, in the order you should suspect them</h2>
+
+  <h3>1. PM2 is installed for a different user than the one running the deploy</h3>
+  <p>You installed PM2 as <code>ubuntu</code> or as yourself. Your deploy runs as <code>root</code>, or as a dedicated <code>deploy</code> user, or as <code>www-data</code>. Global npm installs under a version manager land inside that user's home directory, so they are not global in any meaningful sense. They're global to one user.</p>
+  <p>Worse, this cause has a nasty tail: if you started the app as one user and your deploy reloads as another, each user gets its own PM2 daemon and its own process list. You end up with two copies of your app running, both bound to the same port, and one of them losing. Check with:</p>
+  <pre><code># List every pm2 daemon on the box
+ps aux | grep -i 'PM2 v'
+
+# Compare what each user thinks is running
+sudo -u deploy -i pm2 list
+sudo -i pm2 list</code></pre>
+  <p>Pick one user to own the app, permanently. Write it down in the repo. Everything else follows from that decision.</p>
+
+  <h3>2. A Node version manager whose shims are not on the non-interactive PATH</h3>
+  <p>nvm is the classic. It's a shell function, not a binary, and it only exists after <code>~/.nvm/nvm.sh</code> is sourced by an interactive shell. asdf and Volta use shim directories that get prepended to PATH by the same profile files. None of that happens in automation.</p>
+  <p>The trap inside the trap: version managers switch versions. The path <code>~/.nvm/versions/node/v20.11.1/bin/pm2</code> stops existing the moment you install Node 22 and make it your default. Anything hardcoded to the old path breaks, quietly.</p>
+
+  <h3>3. Cron or a CI step with a minimal PATH</h3>
+  <p>Cron gives you something close to <code>/usr/bin:/bin</code> and nothing else. Not your profile, not your version manager, not even your working directory. CI is a different flavour of the same problem: the job runs on a fresh runner where PM2was never installed, so the correct move is usually to SSH into the target host and run the command there rather than expecting the runner to have PM2 at all.</p>
+
+  <h3>4. PM2 is installed locally in the project, not globally</h3>
+  <p>If PM2 is in your <code>devDependencies</code>, the binary sits at <code>./node_modules/.bin/pm2</code>. That directory is only on PATH inside an npm script. Type <code>pm2</code> at a shell prompt in the same folder and you'll get command not found, correctly. And if your build ran with <code>npm ci --omit=dev</code> or <code>NODE_ENV=production</code>, the dev dependency wasn't installed at all, so it's genuinely missing.</p>
+  <pre><code># Is it local?
+ls node_modules/.bin/pm2
+
+# Then run it through npx or the npm bin path
+npx pm2 reload ecosystem.config.js
+# or
+./node_modules/.bin/pm2 reload ecosystem.config.js</code></pre>
+
+  <!-- ADD IMAGE: annotated screenshot of a failing deploy log with the pm2: command not found line highlighted, and the surrounding script lines visible. src -> images/deploy-log-failure.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Deploy log with the <code>pm2: command not found</code> line highlighted, showing the script lines around it.</em><small>Include the shell invocation above it so readers can see it was non-interactive.</small></span></figure>
+
+  <h2>Fixes for pm2 command not found, most robust first</h2>
+
+  <h3>Call the absolute path</h3>
+  <p>Boring, and the most reliable thing you can do in automation. Find the real path once, then use it:</p>
+  <pre><code># Find it (as the user that will run it)
+sudo -u deploy -i command -v pm2
+# /home/deploy/.nvm/versions/node/v20.11.1/bin/pm2
+
+# Use it in the deploy script
+/home/deploy/.nvm/versions/node/v20.11.1/bin/pm2 reload ecosystem.config.js</code></pre>
+  <p>If you're on a version manager, prefer a stable symlink over a version-specific path so a Node upgrade doesn't break the script. On Debian and Ubuntu, <code>update-alternatives</code> or a plain symlink into <code>/usr/local/bin</code> both work, as long as you accept that the symlink is now a thing you maintain.</p>
+
+  <h3>Set PATH explicitly at the top of the script</h3>
+  <p>My preference for anything longer than one command, because it fixes <code>node</code>, <code>npm</code>, and <code>pm2</code> in one line instead of prefixing three absolute paths:</p>
+  <pre><code>#!/usr/bin/env bash
+set -euo pipefail
+
+# Make the environment explicit. Do not inherit it and hope.
+export PATH="/home/deploy/.nvm/versions/node/v20.11.1/bin:$PATH"
+export NODE_ENV=production
+
+cd /var/www/app
+git pull --ff-only
+npm ci --omit=dev
+pm2 reload ecosystem.config.js --update-env
+pm2 save</code></pre>
+  <p>For cron, put it in the crontab itself so every job inherits it:</p>
+  <pre><code>PATH=/home/deploy/.nvm/versions/node/v20.11.1/bin:/usr/local/bin:/usr/bin:/bin
+
+0 3 * * * cd /var/www/app &amp;&amp; pm2 reload api &gt;&gt; /var/log/app-reload.log 2&gt;&amp;1</code></pre>
+
+  <h3>Install PM2 globally for the user that actually runs it</h3>
+  <p>If the deploy user genuinely has no PM2, install it there. As that user:</p>
+  <pre><code>sudo -u deploy -i npm install -g pm2</code></pre>
+  <p>A word of caution on the usual internet advice. Running <code>sudo npm install -g pm2</code> installs into a root-owned system prefix, and it also leaves root-owned files scattered through the npm cache and sometimes in your project. After that, ordinary <code>npm install</code> as your normal user starts throwing <code>EACCES</code>, and the popular response is to keep escalating with sudo until half your toolchain needs root. If you want a genuinely system-wide PM2, set an npm prefix you own instead:</p>
+  <pre><code># Give the deploy user its own global prefix, no sudo needed afterwards
+sudo -u deploy -i bash -c 'mkdir -p ~/.npm-global &amp;&amp; npm config set prefix ~/.npm-global'
+sudo -u deploy -i npm install -g pm2
+# then add ~/.npm-global/bin to PATH in the deploy script</code></pre>
+  <p>And to be explicit about a fix you'll see suggested: don't run your app as root to sidestep this. Root gets you past the permission error and hands every future code-execution bug in your app full control of the box. The whole point of a dedicated deploy user is that a compromise stays small. Same reasoning applies to <code>chmod 777</code> on your app directory, which converts a PATH question into a permissions hole. Fix the lookup, not the ownership model.</p>
+
+  <h2>The engineering opinion: never trust an inherited PATH in automation</h2>
+  <p>Automation should not depend on the ambient environment of whichever shell happened to invoke it. If a script needs a binary, it should either call that binary by absolute path or set PATH itself, at the top, visibly. Anything else is a script that works on your machine and is one Node upgrade or one cron migration away from breaking.</p>
+  <p>That's a small rule with a large payoff. It also makes failures loud instead of mysterious, because a wrong absolute path fails immediately with a clear message rather than falling through to a stale binary somewhere else on the system.</p>
+
+  <h2>The anti-pattern: reinstalling PM2, then sourcing nvm inside the script</h2>
+  <p>Two moves to avoid, both extremely common.</p>
+  <p>The first is reinstalling PM2 again and again. It's the natural reaction to command not found, and it can't work, because the binary was never missing. You'll churn through <code>npm uninstall -g pm2</code> and <code>npm install -g pm2</code>, possibly with sudo, and end up with two PM2 installs in two prefixes and a slightly more confusing PATH than you started with. One <code>command -v pm2</code> in the failing context would have ended it.</p>
+  <p>The second is subtler and feels clever: dropping <code>source ~/.nvm/nvm.sh</code> into the deploy script so nvm becomes available. It usually makes the immediate error go away. What it also does is create a second environment that resembles your interactive one without matching it, and that resemblance is the problem. nvm picks a default version that may not be the version you tested with. If a <code>.nvmrc</code> is present, the version depends on the working directory when the sourcing happened. Now you have a deploy that runs your app on a Node version chosen by a config file you forgot about. Pin the version and set PATH to it explicitly instead. Be boring here.</p>
+
+  <h2>The reboot trap: pm2 startup, pm2 save, and Node version changes</h2>
+  <p>There's a close cousin of this bug that shows up after a reboot rather than a deploy, and it has the same root cause.</p>
+  <p><code>pm2 startup</code> generates a systemd unit for you. Look at what it writes:</p>
+  <pre><code>pm2 startup
+# outputs a command like:
+sudo env PATH=$PATH:/home/deploy/.nvm/versions/node/v20.11.1/bin \
+  /home/deploy/.nvm/versions/node/v20.11.1/lib/node_modules/pm2/bin/pm2 \
+  startup systemd -u deploy --hp /home/deploy</code></pre>
+  <p>That unit hardcodes the Node version that was active when you ran it. Upgrade Node, remove the old version, reboot, and systemd tries to launch PM2 from a directory that no longer exists. Your apps don't come back. Nothing in the boot output looks like a PATH problem, but that's exactly what it is.</p>
+  <p>Check the unit after any Node upgrade:</p>
+  <pre><code>systemctl cat pm2-deploy.service | grep -E 'ExecStart|Environment'
+
+# If the path is stale, regenerate it
+pm2 unstartup systemd
+pm2 startup systemd -u deploy --hp /home/deploy
+pm2 save</code></pre>
+  <p>And remember that <code>pm2 save</code> is the piece that actually persists your process list to <code>~/.pm2/dump.pm2</code>. The startup unit only tells systemd to run <code>pm2 resurrect</code> at boot. If you never ran <code>pm2 save</code> after your last change, resurrection restores an old list, or an empty one. Add <code>pm2 save</code> to the end of every deploy script. It's one line and it removes a whole category of "why is the old version running" confusion. If you're weighing whether to keep PM2 under systemd at all, <a href="https://www.kloudbean.com/blog/pm2-vs-systemd/">PM2 versus systemd</a> works through that trade-off properly.</p>
+
+  <!-- ADD IMAGE: the output of `systemctl cat pm2-deploy.service` with the version-specific Node path in ExecStart underlined. src -> images/pm2-systemd-unit.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Output of <code>systemctl cat pm2-deploy.service</code> with the version-specific Node path in ExecStart marked.</em><small>Shows readers exactly which line goes stale after a Node upgrade.</small></span></figure>
+
+  <h2>When it isn't PATH at all</h2>
+  <p>Two checks before you close the ticket. If <code>pm2 list</code> runs but your app isn't in it, PM2 was found and something else is wrong, usually a crash on boot. That's covered in <a href="https://www.kloudbean.com/blog/pm2-app-keeps-restarting/">why your PM2 app keeps restarting</a> and in <a href="https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/">fixing a Node app that crashes on deploy</a>. And if you're still working out how PM2 should be configured in the first place, the <a href="https://www.kloudbean.com/blog/pm2-process-manager-guide/">PM2 process manager guide</a> covers ecosystem files, cluster mode, and reloads.</p>
+
+  <h2>Where this class of bug comes from</h2>
+  <p>Notice what every cause above has in common. None of them are about PM2. They're all about a hand-rolled deploy path where the shell, the user, and the Node version are implicit rather than declared, and each one drifts independently over months. That drift is the actual bug. PM2 is just the first command in the script unlucky enough to notice.</p>
+  <p>Which is the practical case for not hand-rolling this part. On Kloudbean, applications run persistently under PM2 as part of the platform, deploys come from a Git repo with deployment history and live build logs, Node runtime configuration is set in the UI, and cron jobs are defined in the dashboard rather than in a crontab with its own private PATH, so there's no guessing about which shell or which user ran what. If you'd rather keep your own scripts, the rule from earlier still carries you: declare PATH, don't inherit it.</p>
+  <p>For the wider picture, <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD auto deploy from GitHub</a> covers the deploy side, <a href="https://www.kloudbean.com/blog/run-a-cron-job-without-ssh/">running a cron job without SSH</a> covers the scheduling side, and <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploying a Node app to managed cloud</a> puts the whole flow together.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Stop debugging your deploy script's environment.</p>
+    <p style="margin:0 0 .6em">Push to your repo and Kloudbean builds it, runs your Node app under PM2, and streams the build log so you can see exactly what happened. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a> or check <a href="https://www.kloudbean.com/pricing/">pricing</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Git deploys · Live build logs · Node runtime config in the UI · Cron jobs without SSH · Free trial</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>Why does pm2 work over SSH but not in my deploy script?</h3>
+    <p>Because your interactive SSH session is a login shell that reads your profile files, and those files are what put the global npm bin directory on your PATH. A deploy script runs in a non-interactive shell that skips most of that, so the PM2 binary is on disk but not on PATH. Call it by absolute path or set PATH at the top of the script.</p>
+
+    <h3>How do I fix pm2 command not found in a cron job?</h3>
+    <p>Cron uses a minimal PATH and never reads your profile. Either call the full path to the pm2 binary in the crontab entry, or add a PATH= line at the top of the crontab that includes your global npm bin directory. To see what cron actually has, schedule a temporary job that writes the output of env to a file and read it.</p>
+
+    <h3>Do I need to reinstall PM2 if I get command not found?</h3>
+    <p>Usually not. Run command -v pm2 inside the context that is failing, as the user that is failing. If the binary exists anywhere on the box, reinstalling changes nothing and can leave you with two installs in two prefixes. Reinstall only after you have confirmed PM2 is genuinely absent for that user.</p>
+
+    <h3>How do I find the absolute path to the pm2 binary?</h3>
+    <p>Run npm root -g and take its parent directory, or npm prefix -g and append /bin. On npm 8 and earlier, npm bin -g prints it directly. Under nvm the path looks like /home/user/.nvm/versions/node/v20.11.1/bin/pm2. Confirm with sudo -u deploy -i command -v pm2 so you get the answer for the right user.</p>
+
+    <h3>Why does pm2 work as my user but not as root?</h3>
+    <p>Global npm installs under a version manager go into that user's home directory, so root has its own PATH and its own npm prefix with no PM2 in it. Each user also gets a separate PM2 daemon and process list, which is how people end up with two copies of an app running. Pick one user to own the app and always deploy as that user.</p>
+
+    <h3>What is the difference between npx pm2 and pm2?</h3>
+    <p>npx pm2 runs the copy in your project's node_modules/.bin, while plain pm2 requires the binary to be on your PATH, normally from a global install. If PM2 is a dev dependency, npx is the correct way to call it. Be aware that a production install with --omit=dev will not have it at all.</p>
+
+    <h3>Should I add source ~/.nvm/nvm.sh to my deploy script?</h3>
+    <p>It usually clears the error and it is not a good habit. Sourcing nvm builds a second environment that looks like your interactive one without matching it, and the Node version you get depends on your default and on any .nvmrc in the working directory. Pin the version and export PATH to it explicitly instead.</p>
+
+    <h3>Why did my PM2 apps stop starting on reboot after a Node upgrade?</h3>
+    <p>The systemd unit generated by pm2 startup hardcodes the Node version that was active when you ran it. Upgrade or remove that version and systemd points at a directory that no longer exists. Check the unit with systemctl cat, then run pm2 unstartup and pm2 startup again, and finish with pm2 save so your process list is current.</p>
+
+    <h3>Does pm2 save matter if I already ran pm2 startup?</h3>
+    <p>Yes, they do different jobs. pm2 startup installs the boot service, while pm2 save writes your current process list to the dump file that pm2 resurrect reads. Without a fresh save, a reboot restores whatever the list looked like the last time you saved, or nothing. Put pm2 save at the end of every deploy.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · The binary was always there. The environment was the bug.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"pm2: command not found After Deploy: Fix the PATH, Not the Install","description":"Why pm2 command not found shows up in deploy scripts, cron jobs, and CI steps even though pm2 runs fine when you SSH in, plus the diagnostic commands and the fixes that actually hold.","image":"https://www.kloudbean.com/blog/fix-pm2-not-found-after-deploy/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@id":"https://kloudbean.com/#organization"},"mainEntityOfPage":"https://www.kloudbean.com/blog/fix-pm2-not-found-after-deploy/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Why does pm2 work over SSH but not in my deploy script?","acceptedAnswer":{"@type":"Answer","text":"Because your interactive SSH session is a login shell that reads your profile files, and those files are what put the global npm bin directory on your PATH. A deploy script runs in a non-interactive shell that skips most of that, so the PM2 binary is on disk but not on PATH. Call it by absolute path or set PATH at the top of the script."}},
+{"@type":"Question","name":"How do I fix pm2 command not found in a cron job?","acceptedAnswer":{"@type":"Answer","text":"Cron uses a minimal PATH and never reads your profile. Either call the full path to the pm2 binary in the crontab entry, or add a PATH= line at the top of the crontab that includes your global npm bin directory. To see what cron actually has, schedule a temporary job that writes the output of env to a file and read it."}},
+{"@type":"Question","name":"Do I need to reinstall PM2 if I get command not found?","acceptedAnswer":{"@type":"Answer","text":"Usually not. Run command -v pm2 inside the context that is failing, as the user that is failing. If the binary exists anywhere on the box, reinstalling changes nothing and can leave you with two installs in two prefixes. Reinstall only after you have confirmed PM2 is genuinely absent for that user."}},
+{"@type":"Question","name":"How do I find the absolute path to the pm2 binary?","acceptedAnswer":{"@type":"Answer","text":"Run npm root -g and take its parent directory, or npm prefix -g and append /bin. On npm 8 and earlier, npm bin -g prints it directly. Under nvm the path looks like /home/user/.nvm/versions/node/v20.11.1/bin/pm2. Confirm with sudo -u deploy -i command -v pm2 so you get the answer for the right user."}},
+{"@type":"Question","name":"Why does pm2 work as my user but not as root?","acceptedAnswer":{"@type":"Answer","text":"Global npm installs under a version manager go into that user's home directory, so root has its own PATH and its own npm prefix with no PM2 in it. Each user also gets a separate PM2 daemon and process list, which is how people end up with two copies of an app running. Pick one user to own the app and always deploy as that user."}},
+{"@type":"Question","name":"What is the difference between npx pm2 and pm2?","acceptedAnswer":{"@type":"Answer","text":"npx pm2 runs the copy in your project's node_modules/.bin, while plain pm2 requires the binary to be on your PATH, normally from a global install. If PM2 is a dev dependency, npx is the correct way to call it. Be aware that a production install with --omit=dev will not have it at all."}},
+{"@type":"Question","name":"Should I add source ~/.nvm/nvm.sh to my deploy script?","acceptedAnswer":{"@type":"Answer","text":"It usually clears the error and it is not a good habit. Sourcing nvm builds a second environment that looks like your interactive one without matching it, and the Node version you get depends on your default and on any .nvmrc in the working directory. Pin the version and export PATH to it explicitly instead."}},
+{"@type":"Question","name":"Why did my PM2 apps stop starting on reboot after a Node upgrade?","acceptedAnswer":{"@type":"Answer","text":"The systemd unit generated by pm2 startup hardcodes the Node version that was active when you ran it. Upgrade or remove that version and systemd points at a directory that no longer exists. Check the unit with systemctl cat, then run pm2 unstartup and pm2 startup again, and finish with pm2 save so your process list is current."}},
+{"@type":"Question","name":"Does pm2 save matter if I already ran pm2 startup?","acceptedAnswer":{"@type":"Answer","text":"Yes, they do different jobs. pm2 startup installs the boot service, while pm2 save writes your current process list to the dump file that pm2 resurrect reads. Without a fresh save, a reboot restores whatever the list looked like the last time you saved, or nothing. Put pm2 save at the end of every deploy."}}
+]},
+{"@type":"Organization","@id":"https://kloudbean.com/#organization","name":"Kloudbean","legalName":"Secured Orbis Pvt. Ltd.","url":"https://kloudbean.com","description":"Kloudbean is a managed multi-cloud hosting platform by Secured Orbis Pvt. Ltd. It runs your whole stack from one dashboard, application servers, managed databases, object storage, and a built-in load balancer across seven cloud providers, so builders, agencies, and founders can deploy, host, and own their apps without operating raw cloud."}
+]}
+</script>
+</body>
+</html>

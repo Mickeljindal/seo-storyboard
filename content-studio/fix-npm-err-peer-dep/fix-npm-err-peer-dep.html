@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>npm ERR Peer Dep: How to Read and Fix ERESOLVE Properly</title>
+<meta name="description" content="npm ERR peer dep and ERESOLVE unable to resolve dependency tree are reports, not verdicts. Learn to decode the block, then fix the npm peer dependency conflict in order of correctness, with legacy-peer-deps and overrides in their proper place.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/fix-npm-err-peer-dep/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="npm ERR Peer Dep: How to Read and Fix ERESOLVE Properly">
+<meta property="og:description" content="Decode npm ERR ERESOLVE unable to resolve dependency tree, then fix the peer dependency conflict in order of correctness. Where legacy-peer-deps and overrides belong, and why force is last.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">npm · Error field guide</span>
+  <h1>npm ERR Peer Dep: How to Read and Fix ERESOLVE Properly</h1>
+  <p class="byline">By Kloudbean Engineering · Read the block before you reach for a flag.</p>
+
+  <figure><img src="images/hero.png" alt="An npm ERR ERESOLVE unable to resolve dependency tree block with the Found and peer lines highlighted"></figure>
+
+  <p class="lead">An <code>npm ERR peer dep</code> failure looks like npm blocking you for no reason. It isn't. When you get <code>npm ERR! ERESOLVE unable to resolve dependency tree</code>, npm has finished doing real work and is handing you a report: two packages in your project disagree about which version of a third package should exist, and npm won't pick a winner on your behalf. To fix ERESOLVE you mostly need to read that report properly. The skill takes about five minutes to learn and it turns this from a recurring mystery into a decision you make on purpose.</p>
+
+  <div class="tldr">
+    <strong>How do I fix npm ERR ERESOLVE unable to resolve dependency tree?</strong>
+    <p>Read the block first. The <code>Found:</code> line is the version installed in your project; the <code>peer</code> line is the version some package demands. Then fix the real mismatch: upgrade or downgrade so the ranges overlap, or install a newer release of the complaining package that supports your version. Use <code>--legacy-peer-deps</code> only as a documented stopgap, and prefer <code>overrides</code> for a transitive pin.</p>
+  </div>
+
+  <h2>The error is a report, not a verdict</h2>
+  <p>npm resolves your dependency tree before it writes anything to disk. ERESOLVE means that resolution failed: there is no single version of some package that satisfies everybody who asked for it. So npm stops and prints the conflict rather than quietly installing a tree it knows is inconsistent.</p>
+  <p>That's a feature. Older npm installed cleanly and let a library blow up weeks later against an API it was never written for. An install-time failure is cheap. A production one isn't.</p>
+
+  <h2>Why this started happening to old projects</h2>
+  <p>Peer dependencies are how a package says "I don't bundle React, I plug into the React you already have, and it needs to be roughly this version." Older npm just warned and moved on, so mismatches sat there silently.</p>
+  <p>npm 7 changed that. From npm 7 onward, npm installs peer dependencies automatically and enforces them during resolution instead of warning about them. Nothing in your repository changed. The rules did. That's why you can clone a project that installed fine years ago, run <code>npm install</code> on a current Node release, and hit an npm peer dependency conflict straight away. The conflict was always there. You're just being told about it now.</p>
+
+  <h2>How to read an ERESOLVE block line by line</h2>
+  <p>Here's a typical block, trimmed of noise:</p>
+  <pre><code>npm ERR! code ERESOLVE
+npm ERR! ERESOLVE unable to resolve dependency tree
+npm ERR!
+npm ERR! While resolving: my-app@1.0.0
+npm ERR! Found: react@18.3.1
+npm ERR! node_modules/react
+npm ERR!   react@"^18.2.0" from the root project
+npm ERR!
+npm ERR! Could not resolve dependency:
+npm ERR! peer react@"^17.0.0" from react-fancy-widget@2.1.0
+npm ERR! node_modules/react-fancy-widget
+npm ERR!   react-fancy-widget@"^2.1.0" from the root project</code></pre>
+  <p>Four lines carry the whole story:</p>
+  <ul>
+    <li><strong><code>While resolving: my-app@1.0.0</code></strong> is just context. That's your project.</li>
+    <li><strong><code>Found: react@18.3.1</code></strong> is reality: what your project asks for, and what npm placed in <code>node_modules/react</code>.</li>
+    <li><strong><code>peer react@"^17.0.0" from react-fancy-widget@2.1.0</code></strong> is the demand. <code>react-fancy-widget</code> version 2.1.0 says it needs React 17.x.</li>
+    <li><strong>The <code>node_modules/...</code> paths</strong> tell you where each requirement came from, which matters when the complainer is buried deep in the tree.</li>
+  </ul>
+  <p>Read it as one sentence: <em>you have React 18, and react-fancy-widget@2.1.0 only claims to work with React 17.</em> Now the question isn't "how do I make npm shut up," it's "which of those two is wrong?" That question usually has an obvious answer.</p>
+  <p>Watch for this: the complaining package often isn't the one you were installing. If the error names something you've never typed, you've hit a transitive conflict. Same reading method, different fix, and <code>overrides</code> becomes relevant.</p>
+
+  <!-- Replace this slot with a real screenshot: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Annotated terminal screenshot of a real ERESOLVE block with arrows on the Found line and the peer line.</em><small>The single most useful visual on the page. Highlight only those two lines.</small></span></figure>
+
+  <h2>Fix npm ERR peer dep in order of correctness</h2>
+  <p>Four real fixes and one bad habit. They're not equivalent, and the order matters. Work down the list, not up it.</p>
+
+  <h3>1. Fix the actual version mismatch</h3>
+  <p>This is the correct fix most of the time, because the error is usually telling the truth. Either your project is ahead of the package or the package is ahead of you. Move one of them:</p>
+  <pre><code># Option A: the package is old and you want to stay on React 18.
+# Look for a version of it that supports 18 (see step 2).
+
+# Option B: you jumped a major version too early.
+npm install react@17 react-dom@17
+
+# Check what a package actually wants before you guess
+npm view react-fancy-widget peerDependencies
+npm view react-fancy-widget versions --json | tail -20</code></pre>
+  <p><code>npm view &lt;pkg&gt; peerDependencies</code> is the command most people don't know, and it answers the question directly.</p>
+
+  <h3>2. Check whether a newer release of the complaining package supports you</h3>
+  <p>Often the package fixed this a while ago and your <code>package.json</code> is pinned to an old major. The maintainer shipped a version whose peer range includes React 18, and you haven't picked it up:</p>
+  <pre><code># What is the latest, and what does it require?
+npm view react-fancy-widget version
+npm view react-fancy-widget@latest peerDependencies
+
+# Upgrade the complainer, not your framework
+npm install react-fancy-widget@latest</code></pre>
+  <p>Try this before you downgrade anything. Downgrading React to satisfy one widget is how projects end up two majors behind on everything.</p>
+
+  <h3>3. Use --legacy-peer-deps as a deliberate stopgap</h3>
+  <p><code>--legacy-peer-deps</code> tells npm to behave the way npm 6 did: skip the peer dependency checks entirely and install anyway. It does not repair anything. It restores the older, quieter behaviour where the mismatch simply isn't checked.</p>
+  <pre><code>npm install --legacy-peer-deps</code></pre>
+  <p>Sometimes that's the right call: the package works in practice, the maintainer just hasn't widened the range, and you have a release to ship. Make it visible and temporary. Put it in the repo with a reason, not your shell history:</p>
+  <pre><code># .npmrc  (committed, so every developer and CI run behaves identically)
+legacy-peer-deps=true
+# TODO(2026-Q1): react-fancy-widget@2.1.0 peer range stops at react 17.
+# Remove this once we move to react-fancy-widget@3, which supports 18.</code></pre>
+  <p>A committed <code>.npmrc</code> with a dated note is a known compromise. A flag one developer types is a trap for everyone else.</p>
+
+  <h3>4. Pin a transitive dependency with overrides</h3>
+  <p>When the conflict is deep in the tree and you can't upgrade the package that pulls it in, <code>overrides</code> in <code>package.json</code> forces one version of that dependency everywhere, and it stays in version control where reviewers see it:</p>
+  <pre><code>{
+  "overrides": {
+    "react": "18.3.1"
+  }
+}</code></pre>
+  <p>You can also scope it to the one troublesome subtree:</p>
+  <pre><code>{
+  "overrides": {
+    "react-fancy-widget": {
+      "react": "18.3.1"
+    }
+  }
+}</code></pre>
+  <p>Then reinstall so the lockfile picks it up. It beats a global flag because it's surgical: one package, one version, in the file everyone reads.</p>
+
+  <h3>5. --force, which you should treat as a last resort</h3>
+  <p><code>--force</code> is not a stronger version of <code>--legacy-peer-deps</code>. It's broader. It tells npm to override its own resolution decisions and push through conflicts it flagged as genuinely unresolvable, so it can write a tree that's actually broken: incompatible copies of a package, a library calling an API that doesn't exist in the version it got. Then you're debugging a runtime error whose cause lives in <code>node_modules</code>, not your code. That's a bad afternoon.</p>
+  <p>If <code>--legacy-peer-deps</code> won't get you installed, the conflict is real, and reaching for <code>--force</code> is arguing with a correct diagnosis.</p>
+
+  <table class="cmp">
+    <thead><tr><th>Approach</th><th>What it does</th><th>When it's acceptable</th><th>Correctness</th></tr></thead>
+    <tbody>
+      <tr><td>Upgrade or downgrade to align versions</td><td>Removes the conflict for real</td><td>Almost always the first thing to try</td><td>Best</td></tr>
+      <tr><td>Upgrade the complaining package</td><td>Picks up a wider peer range the maintainer already shipped</td><td>When you're pinned to an old major</td><td>Best</td></tr>
+      <tr><td><code>overrides</code> in package.json</td><td>Pins one dependency, committed and reviewable</td><td>Transitive conflicts you can't upgrade past</td><td>Good, if documented</td></tr>
+      <tr><td><code>--legacy-peer-deps</code></td><td>Skips peer checks and installs anyway</td><td>Short-lived stopgap, committed in <code>.npmrc</code> with a reason</td><td>Tolerable, time-boxed</td></tr>
+      <tr><td><code>--force</code></td><td>Overrides resolution more aggressively; can install a broken tree</td><td>Rarely. Debugging, throwaway spikes</td><td>Worst</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Why leaving --legacy-peer-deps in place is technical debt with a countdown</h2>
+  <p>Here's my actual opinion, and it's a strong one: a permanent <code>--legacy-peer-deps</code> in a Dockerfile or a CI script is debt with an expiry date you didn't choose.</p>
+  <p>It works today because the mismatch happens to be harmless today. Nothing keeps it harmless. One minor bump later, the failure won't say "peer dependency." It'll be something unrelated three layers deep in a stack trace, and nobody will connect it to a flag added months earlier.</p>
+  <p>Fix the version. Don't silence the check. If you must silence it, leave a date and a reason so the next person knows they can remove it.</p>
+
+  <!-- Replace this slot with a real screenshot: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Side by side: a local install succeeding with a warm node_modules, and a clean CI install failing on the same commit.</em><small>Shows the CI trap in one glance.</small></span></figure>
+
+  <h2>The CI trap: it works locally, then fails on a clean install</h2>
+  <p>This one burns hours. You hit ERESOLVE, run <code>npm install --legacy-peer-deps</code>, everything works, you push. The build fails.</p>
+  <p>On your machine <code>node_modules</code> already exists in a working state, so day-to-day commands never redo the resolution that failed. CI has none. It installs from scratch, from your committed files only, and knows nothing about the flag you typed. Same commit, different starting conditions.</p>
+  <p>Which gives you the actual rule: <strong>the fix has to live in <code>package.json</code>, <code>package-lock.json</code>, or a committed <code>.npmrc</code>.</strong> If the only record of it is one developer's terminal, it isn't a fix. It's a local workaround that will fail for every teammate and every build.</p>
+  <p>Worth checking your own repo:</p>
+  <pre><code># Reproduce what CI does, on your machine
+rm -rf node_modules
+npm ci
+
+# If that fails but "npm install" succeeds, your fix isn't committed.</code></pre>
+  <p>This class of "works here, breaks there" bug is everywhere in Node deploys. Same shape as the case-sensitivity trap behind <a href="https://www.kloudbean.com/blog/fix-cannot-find-module-node/">Error: Cannot find module</a>, and a frequent cause of a <a href="https://www.kloudbean.com/blog/fix-node-app-crashing-on-deploy/">Node app crashing on deploy</a>.</p>
+
+  <h2>npm ci versus npm install, and why the lockfile matters</h2>
+  <p>These two commands are not interchangeable, and the difference is exactly why peer conflicts surface in builds.</p>
+  <table class="cmp">
+    <thead><tr><th></th><th><code>npm install</code></th><th><code>npm ci</code></th></tr></thead>
+    <tbody>
+      <tr><td>Reads</td><td><code>package.json</code>, may update the lockfile</td><td><code>package-lock.json</code> only</td></tr>
+      <tr><td>Resolution</td><td>Re-resolves and can pick new versions</td><td>Installs exactly what's locked</td></tr>
+      <tr><td><code>node_modules</code></td><td>Patches what's there</td><td>Deletes it and installs clean</td></tr>
+      <tr><td>Lockfile mismatch</td><td>Updates the lockfile</td><td>Fails immediately</td></tr>
+      <tr><td>Use it for</td><td>Adding or changing dependencies</td><td>CI and production installs</td></tr>
+    </tbody>
+  </table>
+  <p><code>npm ci</code> refusing to proceed when the lockfile disagrees with <code>package.json</code> is the point of it. That strictness is what keeps production matching what you tested. So resolve the conflict locally with <code>npm install</code>, commit the updated lockfile, then confirm <code>npm ci</code> works on a clean tree. That third step is the one people skip.</p>
+
+  <h2>The anti-pattern: deleting package-lock.json to make it go away</h2>
+  <p>Sooner or later someone suggests deleting the lockfile. It appears to work, and it's the worst move on this page.</p>
+  <p>The lockfile records the exact tree you tested against. Delete it and npm re-resolves everything from your ranges, so you can pick up newer versions of packages you never meant to touch, and CI ends up with a different tree from yours. You've traded a specific error for an install that isn't reproducible, and the conflict usually returns anyway.</p>
+  <p>If you must rebuild the tree, do it deliberately and commit the result:</p>
+  <pre><code># deliberate, reviewed, and committed
+rm -rf node_modules
+npm install
+git add package.json package-lock.json
+git commit -m "resolve react peer conflict: bump react-fancy-widget to 3.x"</code></pre>
+  <p>The commit message matters. Six months from now it's the only explanation anyone will have.</p>
+
+  <!-- Replace this slot with a real screenshot: src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Decision tree: read the block, then upgrade the complainer, align versions, use overrides, or a time-boxed legacy-peer-deps.</em><small>Keep force off the happy path entirely.</small></span></figure>
+
+  <h2>A short checklist</h2>
+  <ol>
+    <li>Read <code>Found:</code> and <code>peer</code>. Say the conflict out loud as one sentence.</li>
+    <li>Run <code>npm view &lt;package&gt; peerDependencies</code> so you're working from facts.</li>
+    <li>Is there a newer release of the complaining package? Upgrade that first.</li>
+    <li>Otherwise align versions properly, up or down.</li>
+    <li>Transitive conflict you can't reach? Add a scoped <code>overrides</code> entry.</li>
+    <li>Truly blocked? Commit <code>legacy-peer-deps=true</code> in <code>.npmrc</code> with a dated reason.</li>
+    <li>Commit <code>package.json</code> and <code>package-lock.json</code>, then verify with a clean <code>npm ci</code>.</li>
+    <li>Skip <code>--force</code>.</li>
+  </ol>
+
+  <h2>Most people meet this error in a build log, not a terminal</h2>
+  <p>Installs on your laptop are incremental, so a peer conflict often first shows up during a deploy, where the install runs clean and strict. What you need then is the raw install output, not a red "build failed" badge. Kloudbean's managed CI/CD deploys from your Git repo and streams live build logs into the console alongside deployment history, so you can read the failing build's actual ERESOLVE block and go straight to the <code>Found:</code> and <code>peer</code> lines. Resolving the conflict in <code>package.json</code> is still your job. You just get to see it.</p>
+
+  <figure>
+    <img src="../assets/console/git-deployment.png" alt="Live build logs from a Git deploy in the Kloudbean console showing the npm install step">
+    <figcaption>A clean install runs on every deploy, so a peer conflict shows up in the build log with the full ERESOLVE block.</figcaption>
+  </figure>
+
+  <h2>Related reading</h2>
+  <p>For a build that runs the same way every push, see <a href="https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/">CI/CD auto-deploy from GitHub</a>. If the install works but the app can't find something, read <a href="https://www.kloudbean.com/blog/fix-cannot-find-module-node/">Error: Cannot find module</a>. Builds dying mid-install are often memory: <a href="https://www.kloudbean.com/blog/fix-javascript-heap-out-of-memory-node/">JavaScript heap out of memory</a>. For config drift between local and production, <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables done right</a>, and to place the whole thing, <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploy a Node app to managed cloud</a>.</p>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:20px">See the build log, not just the failure.</p>
+    <p style="margin:0 0 .6em">Deploy your Node app from Git with managed CI/CD that streams live build logs and keeps deployment history, so install errors are readable while you're fixing them. From $8/mo. Start at <a href="https://www.kloudbean.com/">kloudbean.com</a>.</p>
+    <p style="margin:0; font-size:15px; opacity:.9">Git deploys · Live build logs · Deployment history · Free SSL · From $8/mo</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>What does npm ERR ERESOLVE unable to resolve dependency tree mean?</h3>
+    <p>npm could not find one version of a package that satisfies everyone requiring it, so it stopped before writing anything. The <code>Found:</code> line shows what your project installs; the <code>peer</code> line shows what another package demands. It's a report of a real disagreement, not npm being fussy.</p>
+
+    <h3>Is --legacy-peer-deps safe to use?</h3>
+    <p>It's safe in the narrow sense that it installs the tree older npm would have, skipping peer checks rather than breaking anything. As a permanent setting it isn't, because the mismatch it hides is still there and a later version bump can turn it into a confusing runtime error. Use it briefly, commit it in <code>.npmrc</code> with a reason, and remove it.</p>
+
+    <h3>What is the difference between --legacy-peer-deps and --force?</h3>
+    <p><code>--legacy-peer-deps</code> skips peer dependency checking and installs anyway. <code>--force</code> is broader: it overrides npm's resolution decisions more aggressively and can produce a genuinely broken tree. If <code>--legacy-peer-deps</code> won't install, the conflict is real, and <code>--force</code> only moves the failure to runtime.</p>
+
+    <h3>Why did npm install work last year and fail now?</h3>
+    <p>Because npm's behaviour changed, not your code. From npm 7 onward it installs peer dependencies automatically and enforces them during resolution, where older npm only warned. The conflict existed before, silently tolerated. A current npm reports it as an error.</p>
+
+    <h3>Why does the peer dependency error only happen in CI?</h3>
+    <p>Because your machine already has a working <code>node_modules</code>, so nothing redoes the resolution that fails. CI installs from scratch using only committed files and knows nothing about a flag you typed locally. Reproduce it by deleting <code>node_modules</code> and running <code>npm ci</code>.</p>
+
+    <h3>How do I use overrides in package.json to fix a peer dependency conflict?</h3>
+    <p>Add an <code>overrides</code> block naming the dependency and the version you want forced, then reinstall so the lockfile updates. Scope it under the package causing trouble and the rest of the tree stays untouched. Better than a global flag: precise, and reviewable.</p>
+
+    <h3>Should I delete package-lock.json to fix ERESOLVE?</h3>
+    <p>No. The lockfile keeps your install reproducible and production matching what you tested. Deleting it re-resolves every dependency, so you silently pick up versions you never intended, and the conflict usually returns anyway. Resolve it, then commit the updated lockfile.</p>
+
+    <h3>Does npm ci respect legacy-peer-deps?</h3>
+    <p>Yes, when it's in a committed <code>.npmrc</code> or passed as a flag. But it won't tolerate a lockfile that disagrees with <code>package.json</code>, which is why the real fix has to be committed. It installs exactly what's locked and fails fast otherwise.</p>
+
+    <h3>How do I find which package is causing the peer conflict?</h3>
+    <p>The <code>peer ... from &lt;package@version&gt;</code> line names it, and the <code>node_modules/...</code> path below shows where it sits. If you never installed it, it came in transitively, and <code>npm ls &lt;name&gt;</code> shows the chain. Then check its range with <code>npm view &lt;name&gt; peerDependencies</code>.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Fix the version, don't silence the check.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Organization","@id":"https://kloudbean.com/#organization","name":"Kloudbean","url":"https://www.kloudbean.com/","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},
+{"@type":"Article","headline":"npm ERR Peer Dep: How to Read and Fix ERESOLVE Properly","description":"Decode npm ERR ERESOLVE unable to resolve dependency tree, then fix the peer dependency conflict in order of correctness. Where legacy-peer-deps and overrides belong, and why force is last.","image":"https://www.kloudbean.com/blog/fix-npm-err-peer-dep/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@id":"https://kloudbean.com/#organization"},"mainEntityOfPage":"https://www.kloudbean.com/blog/fix-npm-err-peer-dep/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What does npm ERR ERESOLVE unable to resolve dependency tree mean?","acceptedAnswer":{"@type":"Answer","text":"It means npm could not find a single version of some package that satisfies everyone who requires it, so it stopped before writing anything. The Found line shows the version your project installs and the peer line shows the version another package demands. It is a report of a real disagreement, not npm being fussy."}},
+{"@type":"Question","name":"Is --legacy-peer-deps safe to use?","acceptedAnswer":{"@type":"Answer","text":"It is safe in the narrow sense that it installs the same tree older npm would have, skipping peer checks rather than breaking anything. It is unsafe as a permanent setting, because the mismatch it hides is still there and a future version bump can turn it into a confusing runtime error. Use it briefly, commit it in .npmrc with a reason, and remove it."}},
+{"@type":"Question","name":"What is the difference between --legacy-peer-deps and --force?","acceptedAnswer":{"@type":"Answer","text":"The legacy-peer-deps flag skips peer dependency checking and installs anyway. The force flag is broader: it overrides npm resolution decisions more aggressively and can produce a genuinely broken tree with incompatible copies of a package. If legacy-peer-deps will not get you installed, the conflict is real and force will just move the failure to runtime."}},
+{"@type":"Question","name":"Why did npm install work last year and fail now?","acceptedAnswer":{"@type":"Answer","text":"Because npm behaviour changed, not your code. From npm 7 onward, npm installs peer dependencies automatically and enforces them during resolution, where older npm only printed a warning. The conflict existed before; it was silently tolerated. Running the same repository on a current npm surfaces it as an error."}},
+{"@type":"Question","name":"Why does the peer dependency error only happen in CI?","acceptedAnswer":{"@type":"Answer","text":"Because your machine already has a working node_modules, so day-to-day commands do not redo the resolution that fails. CI installs from scratch using only your committed files, and it does not know about a flag you typed locally. Reproduce it by deleting node_modules and running npm ci."}},
+{"@type":"Question","name":"How do I use overrides in package.json to fix a peer dependency conflict?","acceptedAnswer":{"@type":"Answer","text":"Add an overrides block naming the dependency and the version you want forced, then reinstall so the lockfile updates. You can scope it under the specific package causing trouble so the rest of the tree is untouched. It is better than a global flag because it is precise and lives in a file reviewers actually read."}},
+{"@type":"Question","name":"Should I delete package-lock.json to fix ERESOLVE?","acceptedAnswer":{"@type":"Answer","text":"No. The lockfile keeps your install reproducible and production matching what you tested. Deleting it re-resolves every dependency, so you silently pick up versions you never intended, and the conflict usually returns anyway. Resolve it, then commit the updated lockfile."}},
+{"@type":"Question","name":"Does npm ci respect legacy-peer-deps?","acceptedAnswer":{"@type":"Answer","text":"Yes, it honours the setting when it is in a committed .npmrc or passed as a flag, but it will not tolerate a lockfile that disagrees with package.json. That is why the real fix has to be committed. npm ci installs exactly what is locked and fails fast otherwise, which is what you want in a build."}},
+{"@type":"Question","name":"How do I find which package is causing the peer conflict?","acceptedAnswer":{"@type":"Answer","text":"The peer line names it directly, and the node_modules path below it shows where in the tree it sits. If it is a package you never installed, it came in transitively, and npm ls with the package name will show you the chain. Then check its peer range with npm view and peerDependencies."}}
+]}
+]}
+</script>
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Launch a Paid Newsletter: Platform or Self-Hosted?</title>
+<meta name="description" content="Launch a paid newsletter without guessing. The honest tradeoff between a paid newsletter platform like Substack, Ghost Pro or beehiiv and a self-hosted newsletter, plus deliverability, paywalls, payments, and who owns your list.">
+<meta name="author" content="Kloudbean">
+<link rel="canonical" href="https://www.kloudbean.com/blog/launch-a-paid-newsletter/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Launch a Paid Newsletter: Platform or Self-Hosted?">
+<meta property="og:description" content="A decision guide for writers weighing a paid newsletter platform against running it themselves, with the deliverability reality nobody warns you about.">
+<meta property="og:image" content="images/hero.png">
+<meta property="og:site_name" content="Kloudbean">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
+</head>
+<body>
+<article class="wrap">
+  <span class="eyebrow">Creator infrastructure · Decision guide</span>
+  <h1>How to Launch a Paid Newsletter: Platform or Self-Hosted?</h1>
+  <p class="byline">By Kloudbean Engineering · Your list is the business. The platform is plumbing.</p>
+
+  <figure><img src="images/hero.png" alt="A decision map for launching a paid newsletter: hosted platform on one side, self-hosted newsletter stack on the other"></figure>
+
+  <p class="lead">You want to launch a paid newsletter, and about ten minutes into the research you hit the fork: pick a paid newsletter platform like Substack, Ghost Pro or beehiiv, or run a self-hosted newsletter yourself. Most advice on this is written by whoever wants your signup. This isn't. It's a decision guide for a newsletter subscription business, including the part people consistently get wrong, which is email deliverability, and the honest conditions under which becoming your own Substack alternative pays off.</p>
+
+  <div class="tldr">
+    <strong>The short answer</strong>
+    <p>Start on a hosted platform. It handles payments, paywalls and deliverability, which is most of the work. Self-host once a percentage of your subscription revenue costs more than a flat infrastructure bill, or once you need control the platform won't give you. Either way, own your list. That's the asset, not the tool.</p>
+  </div>
+
+  <h2>What launching a paid newsletter actually involves</h2>
+  <p>Strip away the branding and a paid newsletter is four moving parts. Writing is one, and it's the only one you can't hand off.</p>
+  <p>The other three: a <strong>list</strong> (email addresses plus who has paid and who hasn't), a <strong>payment system</strong> that charges cards monthly and handles failures, cancellations and taxes, and a <strong>sending system</strong> that gets your email into an inbox instead of a spam folder. So the decision isn't "which writing tool do I like." It's which of those three you want to be responsible for. Hosted platforms take all three, and that's their whole value proposition. It's a real one.</p>
+
+  <h2>Platform versus self-hosted: the honest tradeoff</h2>
+  <p>The trade isn't complexity versus simplicity. It's a percentage of revenue and a rented audience versus a flat infrastructure cost and full control of your list.</p>
+  <p>Hosted platforms typically take a cut of your subscription revenue, on top of the card processing fee. The exact percentage varies by platform and changes over time, so check current pricing on each rather than trusting a number in a blog post. The structural point is what matters: it's a percentage, so the cost scales with your success. A self-hosted setup is a flat monthly bill, so it doesn't.</p>
+
+  <table class="cmp">
+    <thead><tr><th></th><th>Hosted platform</th><th>Self-hosted newsletter</th></tr></thead>
+    <tbody>
+      <tr><td>Cost shape</td><td>A percentage of subscription revenue</td><td>Flat monthly server plus per-email sending</td></tr>
+      <tr><td>Deliverability</td><td>Handled for you</td><td>Yours to configure and monitor</td></tr>
+      <tr><td>Payments and paywall</td><td>Built in</td><td>You wire up a payment processor</td></tr>
+      <tr><td>Your list</td><td>Exportable, but lives with them</td><td>In your own database</td></tr>
+      <tr><td>Product control</td><td>Within their template</td><td>Whatever you want to build</td></tr>
+      <tr><td>Ops work</td><td>Effectively none</td><td>Updates, backups, monitoring</td></tr>
+      <tr><td>Wins when</td><td>You're starting, or revenue is modest, or you'd rather write</td><td>Revenue is real, or you need control the platform won't give</td></tr>
+    </tbody>
+  </table>
+
+  <p>Read that last row twice. Most writers are in the left column and should stay there a while. A percentage of a small number is a small number, and the work you're avoiding is worth more than that early on.</p>
+
+  <!-- ADD IMAGE: two cost curves, platform revenue share rising with growth versus self-hosted staying flat, crossover marked. src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Two cost curves: platform revenue share rising with growth, self-hosted flat, crossover marked.</em><small>No dollar figures on the axes.</small></span></figure>
+
+  <h2>Why owning your email list matters more than your platform</h2>
+  <p>Here's the thing I'd want a new writer to internalise: your list is the business. Not the archive, not the design, not the platform's discovery features. A list of people who chose to hear from you, some of whom pay, is a direct channel with no algorithm in front of it.</p>
+  <p>So the questions worth asking about any platform are boring and specific. Can you export addresses <em>plus</em> subscription status, not just addresses? Can you switch sending providers without asking permission? If the platform changed its terms, its pricing model or its content policy tomorrow, how many days until you're sending from somewhere else?</p>
+  <p>If the answer to that last one is "I don't know," you're renting your audience. That can still be a good deal, when the landlord does real work for you. Just keep a current export somewhere you control.</p>
+
+  <h2>The part everyone underestimates: deliverability</h2>
+  <p>This is where self-hosting plans quietly fall apart. Sending email is not the same as sending email that arrives.</p>
+  <p>Inbox providers decide whether to accept your mail based on authentication and reputation. Three DNS records are non-negotiable:</p>
+  <ul>
+    <li><strong>SPF</strong> lists which servers may send for your domain. Get it wrong and receivers treat your mail as suspicious.</li>
+    <li><strong>DKIM</strong> signs each message cryptographically, so the receiver can verify it wasn't forged or altered.</li>
+    <li><strong>DMARC</strong> tells receivers what to do when SPF or DKIM fails, and reports who's sending as your domain.</li>
+  </ul>
+  <p>Those are the easy part. One-time configuration, verifiable. The hard part is <strong>sending reputation</strong>. Inbox providers score the IP and domain your mail comes from using history: opens, spam complaints, bounces. A brand new IP has no history, and no history isn't neutral. It's distrusted until it earns trust, which takes weeks of consistent, wanted mail at gradually rising volume. Warming up, it's called. There's no shortcut.</p>
+
+  <h3>The anti-pattern: running your own mail server to save money</h3>
+  <p>This is the mistake I'd most like to talk you out of. You've decided to self-host, you've seen that email providers charge per thousand messages, and you think: I already have a server, I'll run Postfix and send for free.</p>
+  <p>Two things happen. First, you probably can't. Outbound port 25 is blocked by default at most cloud providers to limit spam, and opening it is rarely a self-serve toggle. We wrote up <a href="https://www.kloudbean.com/blog/port-25-blocked-smtp-ports/">why port 25 is blocked and which ports actually work</a> because it catches people constantly. Second, even with it open you'd start from zero reputation on a cloud IP range receivers already distrust. Your paid edition lands in spam, and you find out from a subscriber's complaint rather than a dashboard.</p>
+  <p>The right answer is unglamorous. Send through a transactional email API. Your app talks to the provider over HTTPS or authenticated SMTP submission on port 587, and the provider carries IP reputation, feedback loops and the relationships with inbox providers. You still own your list. You're just not pretending to be a mail operator. Budget for it as a line item, priced per email sent.</p>
+
+  <!-- ADD IMAGE: sending path, your app to a transactional email API to the inbox, with direct port 25 shown blocked. src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Sending path: app to transactional email API to inbox, with port 25 shown blocked.</em><small>Brand navy, purple, green.</small></span></figure>
+
+  <h2>Paywalls and payments, where the real complexity hides</h2>
+  <p>A paywall sounds like a checkbox and turns out to be a small product. Recurring charges, cards that expire mid-subscription, upgrades, downgrades, cancellations, refunds, a gated web archive, and sending the paid edition only to people whose payment is currently good.</p>
+  <p>That last one is sneaky. Your sending logic has to read live subscription state, so a cancellation on the third doesn't get the edition on the fourth. On a platform that link is built. Self-hosted, you build it: the payment processor fires webhooks when a subscription starts, renews, fails or cancels, and your app updates the subscriber record. Not hard code. Code you have to write, test, then trust with your revenue.</p>
+  <p>Add tax. Digital subscriptions can trigger VAT and sales tax duties depending on where subscribers live, and some payment platforms act as merchant of record while others leave it with you. That alone is a fair reason to stay on a platform longer than the raw economics suggest.</p>
+
+  <h2>What you actually run if you self-host</h2>
+  <p>Concretely, a self-hosted newsletter is a short list of pieces:</p>
+  <ul>
+    <li><strong>A newsletter application.</strong> Listmonk for a focused sender and list manager, Ghost for publishing plus paid tiers in one. Walkthroughs: <a href="https://www.kloudbean.com/blog/self-host-listmonk/">self-hosting Listmonk</a> and <a href="https://www.kloudbean.com/blog/self-host-ghost/">self-hosting Ghost</a>.</li>
+    <li><strong>A database.</strong> Listmonk uses PostgreSQL, Ghost uses MySQL. This is where your subscriber list and payment status live.</li>
+    <li><strong>A transactional email provider</strong> for delivery, plugged in as SMTP credentials or an API key.</li>
+    <li><strong>A payment processor</strong> plus webhook handling, unless your app already integrates one.</li>
+    <li><strong>Backups you have restored at least once.</strong> Not configured. Restored. An untested backup is a hypothesis.</li>
+    <li><strong>A scheduler</strong> for timed sends and housekeeping jobs.</li>
+  </ul>
+  <p>Read that list as risk, not cost. The app is replaceable in an afternoon. The email provider is swappable. The database holding your subscriber list and who has paid is the one piece whose loss you can't recover from, because those people exist nowhere else. So self-hosting really comes down to a persistent app plus a database you trust.</p>
+  <p>That's the shape of thing <a href="https://www.kloudbean.com/">Kloudbean</a> runs: Listmonk and Ghost install in one click on a managed server with free SSL, the app process stays running rather than sleeping between requests, scheduled sends can be cron jobs set from the dashboard without SSH, and the <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL or MySQL</a> behind it takes automatic backups, which is exactly the list-protection point above.</p>
+  <p>Wherever you run it, read <a href="https://www.kloudbean.com/blog/server-backups-guide/">how backups actually work</a> and do a test restore. Then diary another one in six months.</p>
+
+  <!-- ADD IMAGE: console screenshot of the one-click app catalogue with the newsletter apps visible. src -> images/your-file.png -->
+  <figure class="img-slot"><span><b>Add image</b><em>Console screenshot of one-click app install, newsletter apps in view.</em><small>Crop out account identifiers.</small></span></figure>
+
+  <h2>When self-hosting starts to make sense</h2>
+  <p>My position: start on a platform, move when the economics or a real control requirement justifies it. Not before. At zero subscribers the platform's cut is zero, and every week spent building a stack is a week not spent writing the thing people would pay for.</p>
+  <p>Signals the maths has flipped:</p>
+  <ul>
+    <li><strong>The revenue share clearly exceeds a flat infrastructure bill.</strong> Compare like for like: platform cut versus server plus database plus sending plus your own time, valued honestly.</li>
+    <li><strong>You need a product the platform can't be.</strong> Custom tiers, a members area, gated tools, a paid community, unusual segmentation, your own front end.</li>
+    <li><strong>Portability has become a business risk.</strong> If this is meaningful income, sitting one policy change away from disruption is a real exposure.</li>
+    <li><strong>You genuinely enjoy running things.</strong> Not a joke. If maintenance is a chore you resent, self-hosted infrastructure decays, and decay is how lists get lost.</li>
+  </ul>
+  <p>Signals to stay put: you're pre-launch, you write more than you tinker, your list is small, or debugging a webhook at 1am sounds like a bad evening. All good reasons. Platforms remove real work, especially on deliverability, and paying a percentage for that is a sane trade. Plenty of paid newsletters will never self-host. They're buying their attention back.</p>
+
+  <h2>The gap I won't paper over</h2>
+  <p>One caveat it would be convenient to skip. Deliverability and sending reputation stay your responsibility wherever your app runs. A managed server keeps the app alive, patches the OS and backs up the database. It can't make an inbox provider trust your domain. That comes from correct DNS records, a genuinely opt-in list, low bounce and complaint rates, and volume that ramps instead of arriving all at once.</p>
+  <p>If you don't want to own that, stay on a platform. Not a cop-out. It's the right call for a lot of people, and it's the biggest thing the hosted options do for you.</p>
+
+  <h2>Related reading</h2>
+  <ul>
+    <li><a href="https://www.kloudbean.com/blog/best-self-hosted-tools/">Self-hosted tools worth running</a> if you like owning your stack.</li>
+    <li><a href="https://www.kloudbean.com/blog/cost-of-running-a-side-project/">What a side project actually costs</a> to keep online.</li>
+  </ul>
+
+  <div class="cta">
+    <p style="margin:0 0 .4em; font-weight:600; font-size:19px">Own the list, not the maintenance.</p>
+    <p style="margin:0">If you decide to self-host, Listmonk or Ghost on a managed server with a backed-up database is the short path. See <a href="https://www.kloudbean.com/">kloudbean.com</a> and <a href="https://www.kloudbean.com/pricing/">pricing</a>, which starts at $8/mo.</p>
+  </div>
+
+  <h2>FAQ</h2>
+  <div class="faq">
+    <h3>How do I launch a paid newsletter from scratch?</h3>
+    <p>Pick one topic and one audience, start free to build a list and a publishing habit, then add a paid tier once you know what people come back for. Use a hosted platform for version one so payments, paywall and delivery are handled. Export your list regularly from day one.</p>
+
+    <h3>Is it worth self-hosting a newsletter instead of using Substack?</h3>
+    <p>It becomes worth it when the platform cut on your subscription revenue clearly exceeds a flat infrastructure bill, or when you need product features the platform will not build. Below that, the operational work costs more than you save. Self-hosting is a growth-stage optimisation, not a launch strategy.</p>
+
+    <h3>Can I send newsletters from my own server?</h3>
+    <p>Technically yes, practically it goes badly. Outbound port 25 is blocked by default at most cloud providers, and a fresh IP has no sending reputation, so your mail lands in spam. Run the newsletter app on your own server, but send through a transactional email API or authenticated SMTP on port 587.</p>
+
+    <h3>What are SPF, DKIM and DMARC and do I need all three?</h3>
+    <p>SPF declares which servers may send for your domain, DKIM signs messages so receivers can verify they were not forged, and DMARC tells receivers what to do when either check fails and reports back to you. Yes, configure all three. They are the minimum for a paid newsletter to reach inboxes.</p>
+
+    <h3>What does a self-hosted newsletter actually cost to run?</h3>
+    <p>Three line items: a server for the app, a database for your subscriber list, and per-email charges from your sending provider. The first two are flat monthly costs, the third scales with list size and send frequency. Compare that total against a percentage of your subscription revenue, and include your time.</p>
+
+    <h3>Who owns my subscriber list on a hosted platform?</h3>
+    <p>You can normally export addresses, and reputable platforms let you. The nuance is whether you can export subscription status too, and how fast you could resume sending elsewhere. Keep a current export you control, and treat the ability to leave as something you check before committing, not after.</p>
+
+    <h3>Should I use Listmonk or Ghost for a paid newsletter?</h3>
+    <p>Ghost if you want publishing, a website and paid membership tiers in one application, since the paywall and payment integration are built in. Listmonk if you already have a site and want a lean list manager and sender, accepting that you wire the payment and access logic yourself. Ghost is the shorter route to charging money.</p>
+
+    <h3>How do I paywall newsletter content properly?</h3>
+    <p>Two gates, not one. Gate the send, so only subscribers with a currently valid payment receive the paid edition, driven by webhooks from your payment processor. And gate the web archive, so a paid post is not readable by anyone holding the link. Missing that second gate is the common mistake.</p>
+
+    <h3>Will my paid newsletter emails land in spam?</h3>
+    <p>They can, especially early. Authenticate with SPF, DKIM and DMARC, send only to people who opted in, remove hard bounces promptly, keep complaint rates low, and raise volume gradually rather than all at once. Deliverability is a reputation you build over weeks, and it stays your job wherever the app runs.</p>
+  </div>
+
+  <p class="byline">Kloudbean Engineering · Write first. Own the list always. Self-host when the numbers, not the vibes, say so.</p>
+</article>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Launch a Paid Newsletter: Platform or Self-Hosted?","description":"Launch a paid newsletter without guessing. The honest tradeoff between a paid newsletter platform like Substack, Ghost Pro or beehiiv and a self-hosted newsletter, plus deliverability, paywalls, payments, and who owns your list.","image":"https://www.kloudbean.com/blog/launch-a-paid-newsletter/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@id":"https://kloudbean.com/#organization"},"mainEntityOfPage":"https://www.kloudbean.com/blog/launch-a-paid-newsletter/"},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I launch a paid newsletter from scratch?","acceptedAnswer":{"@type":"Answer","text":"Pick one topic and one audience, start free to build a list and a publishing habit, then add a paid tier once you know what people come back for. Use a hosted platform for version one so payments, paywall and delivery are handled. Export your list regularly from day one."}},
+{"@type":"Question","name":"Is it worth self-hosting a newsletter instead of using Substack?","acceptedAnswer":{"@type":"Answer","text":"It becomes worth it when the platform cut on your subscription revenue clearly exceeds a flat infrastructure bill, or when you need product features the platform will not build. Below that, the operational work costs more than you save. Self-hosting is a growth-stage optimisation, not a launch strategy."}},
+{"@type":"Question","name":"Can I send newsletters from my own server?","acceptedAnswer":{"@type":"Answer","text":"Technically yes, practically it goes badly. Outbound port 25 is blocked by default at most cloud providers, and a fresh IP has no sending reputation, so your mail lands in spam. Run the newsletter app on your own server, but send through a transactional email API or authenticated SMTP on port 587."}},
+{"@type":"Question","name":"What are SPF, DKIM and DMARC and do I need all three?","acceptedAnswer":{"@type":"Answer","text":"SPF declares which servers may send for your domain, DKIM signs messages so receivers can verify they were not forged, and DMARC tells receivers what to do when either check fails and reports back to you. Yes, configure all three. They are the minimum for a paid newsletter to reach inboxes."}},
+{"@type":"Question","name":"What does a self-hosted newsletter actually cost to run?","acceptedAnswer":{"@type":"Answer","text":"Three line items: a server for the app, a database for your subscriber list, and per-email charges from your sending provider. The first two are flat monthly costs, the third scales with list size and send frequency. Compare that total against a percentage of your subscription revenue, and include your time."}},
+{"@type":"Question","name":"Who owns my subscriber list on a hosted platform?","acceptedAnswer":{"@type":"Answer","text":"You can normally export addresses, and reputable platforms let you. The nuance is whether you can export subscription status too, and how fast you could resume sending elsewhere. Keep a current export you control, and treat the ability to leave as something you check before committing, not after."}},
+{"@type":"Question","name":"Should I use Listmonk or Ghost for a paid newsletter?","acceptedAnswer":{"@type":"Answer","text":"Ghost if you want publishing, a website and paid membership tiers in one application, since the paywall and payment integration are built in. Listmonk if you already have a site and want a lean list manager and sender, accepting that you wire the payment and access logic yourself. Ghost is the shorter route to charging money."}},
+{"@type":"Question","name":"How do I paywall newsletter content properly?","acceptedAnswer":{"@type":"Answer","text":"Two gates, not one. Gate the send, so only subscribers with a currently valid payment receive the paid edition, driven by webhooks from your payment processor. And gate the web archive, so a paid post is not readable by anyone holding the link. Missing that second gate is the common mistake."}},
+{"@type":"Question","name":"Will my paid newsletter emails land in spam?","acceptedAnswer":{"@type":"Answer","text":"They can, especially early. Authenticate with SPF, DKIM and DMARC, send only to people who opted in, remove hard bounces promptly, keep complaint rates low, and raise volume gradually rather than all at once. Deliverability is a reputation you build over weeks, and it stays your job wherever the app runs."}}
+]},
+{"@type":"Organization","@id":"https://kloudbean.com/#organization","name":"Kloudbean","legalName":"Secured Orbis Pvt. Ltd.","url":"https://kloudbean.com","description":"Kloudbean is a managed multi-cloud hosting platform by Secured Orbis Pvt. Ltd. It runs your whole stack from one dashboard, application servers, managed databases, object storage, and a built-in load balancer across seven cloud providers, so builders, agencies, and founders can deploy, host, and own their apps without operating raw cloud."}
+]}
+</script>
+</body>
+</html>
