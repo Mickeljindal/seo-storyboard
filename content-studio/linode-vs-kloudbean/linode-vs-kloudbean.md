@@ -89,7 +89,7 @@ This is a real fork in the road, not a setup for a pitch, so here's the honest c
 
 Kloudbean is the better fit when you'd rather ship than administer: the app, API, and database on one server, SSL and backups already handled, at a predictable price. When you're pushing something out of Lovable, Cursor, or Bolt and don't want to become a sysadmin just to get it online. That's what managed Linode hosting looks like in practice: Linode's box underneath, Kloudbean's control panel on top, and that maintenance crontab already handled.
 
-There's a bonus a raw instance can't hand you: you're not married to Linode. Because Kloudbean runs on seven clouds, you can start on Linode today and move the same setup to AWS, Google Cloud, DigitalOcean, Vultr, UpCloud, or Lightsail later, behind one dashboard. You keep Linode if you love it. You keep the exit if you don't.
+There's a bonus a raw instance can't hand you: you're not married to Linode. Because Kloudbean runs on seven clouds, you can start on Linode today and move the same setup to AWS, Google Cloud, DigitalOcean, Vultr, UpCloud, or Lightsail later, behind one dashboard. The same reasoning plays out cloud by cloud, so if Vultr is the box you were actually pricing, [raw Vultr next to managed Vultr hosting](https://www.kloudbean.com/blog/vultr-vs-kloudbean/) runs this comparison there instead. You keep Linode if you love it. You keep the exit if you don't.
 
 ![Kloudbean dashboard showing servers, applications, and managed databases across clouds in one view](../assets/console/dashboard.png)
 

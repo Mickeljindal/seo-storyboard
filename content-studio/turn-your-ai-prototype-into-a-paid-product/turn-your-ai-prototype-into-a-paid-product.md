@@ -63,7 +63,7 @@ Do not hand-roll this if you can avoid it. Lean on a proven auth library or prov
 
 ## If you want people to pay, billing has to be real
 
-If the plan is to make money from an AI app, at some point money has to change hands, and that is its own build. Most people reach for Stripe, and it is a sane default. But billing is more than a checkout button. You have got trials, failed cards, refunds, someone cancelling, someone upgrading mid-month, and your app has to react when the payment provider tells it a subscription changed. That is what webhooks are for, and skipping them is how people end up with paying customers who lost access, or cancelled customers who still have it.
+If the plan is to make money from an AI app, at some point money has to change hands, and that is its own build. Most people reach for Stripe, and it is a sane default. But billing is more than a checkout button. You have got trials, failed cards, refunds, someone cancelling, someone upgrading mid-month, and your app has to react when the payment provider tells it a subscription changed. That is what webhooks are for, and skipping them is how people end up with paying customers who lost access, or cancelled customers who still have it. If you want the whole shape of that work laid out, from the checkout session to the handler that flips access on and off, we walk through [building a SaaS with Stripe payments](https://www.kloudbean.com/blog/build-a-saas-with-stripe-payments/) end to end.
 
 One firm rule: never handle raw card numbers yourself. Let Stripe or a similar processor carry that weight and the compliance that comes with it. Treat charging money as a feature you build and test like any other, not a switch you flip on launch day.
 

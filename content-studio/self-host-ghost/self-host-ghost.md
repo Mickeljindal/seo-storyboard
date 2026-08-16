@@ -135,7 +135,7 @@ Moving from a paid newsletter, your paying members can usually come across too, 
 
 I'm not going to pretend self-hosting is always right. It isn't.
 
-If you never want to touch a server, and per-member pricing doesn't bother you, Ghost(Pro) is a genuinely good home, and your money supports the people building Ghost. Brand new with no list yet? Substack's zero upfront cost and built-in discovery can help you find your first readers, and there's no shame in starting there. The honest cutoff: once you have a real list and paying members, the fully-owned setup wins on money and control. Before that, convenience can matter more.
+If you never want to touch a server, and per-member pricing doesn't bother you, Ghost(Pro) is a genuinely good home, and your money supports the people building Ghost. Brand new with no list yet? Substack's zero upfront cost and built-in discovery can help you find your first readers, and there's no shame in starting there. The honest cutoff: once you have a real list and paying members, the fully-owned setup wins on money and control. Before that, convenience can matter more. If you're still deciding, our walkthrough of [launching a paid newsletter on a platform or self-hosted](https://www.kloudbean.com/blog/launch-a-paid-newsletter/) works the same call from the revenue side rather than the tooling side.
 
 ## Keeping it updated without drama
 

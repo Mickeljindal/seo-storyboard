@@ -88,12 +88,12 @@ Listmonk is a dedicated mailing list and campaign manager, and it is a delight t
 More earn a mention, and all run as normal apps on a server:
 
 - **Plausible** for privacy-friendly web analytics, instead of Google Analytics. No cookie banner, no shipping visitor behavior to an ad company. It runs on ClickHouse, so it is heavier than it looks, which the [full Plausible guide](https://www.kloudbean.com/blog/self-host-plausible/) explains.
-- **Uptime Kuma** for monitoring and a status page, instead of a paid monitor. It watches your sites and pings you when something's down. Tiny, a few hundred MB.
+- **Uptime Kuma** for monitoring and a status page, instead of a paid monitor. It watches your sites and pings you when something's down. Tiny, a few hundred MB, though [running Uptime Kuma in production](https://www.kloudbean.com/blog/self-host-uptime-kuma/) means thinking about one thing first: a monitor that shares a box with the thing it watches goes quiet at exactly the wrong moment.
 - **Vaultwarden** for passwords, a lightweight, Bitwarden-compatible server. Small footprint, and your vault stays on your own box. It's the highest-trust thing on this list, so read the [full Vaultwarden guide](https://www.kloudbean.com/blog/self-host-vaultwarden/) before you move real passwords in, because backups here are existential.
 - **Directus** for a database-first headless CMS that wraps your existing SQL database instead of owning the schema. The [full Directus guide](https://www.kloudbean.com/blog/self-host-directus/) covers how it differs from Strapi, and the license to watch.
 - **Appwrite** for a Firebase-style backend, with auth, database, storage, and functions in one console. The [full Appwrite guide](https://www.kloudbean.com/blog/self-host-appwrite/) covers how it differs from Supabase.
 - **Mattermost** for team chat that can run air-gapped, instead of Slack. The [full Mattermost guide](https://www.kloudbean.com/blog/self-host-mattermost/) covers when it beats Rocket.Chat.
-- **Baserow** for a standalone no-code database with real-time collaboration, instead of Airtable. The [full Baserow guide](https://www.kloudbean.com/blog/self-host-baserow/) covers how it differs from NocoDB.
+- **Baserow** for a standalone no-code database with real-time collaboration, instead of Airtable. The [full Baserow guide](https://www.kloudbean.com/blog/self-host-baserow/) covers how it differs from NocoDB. If what you actually need is an ops screen rather than a spreadsheet, read the [build versus buy case for an internal team tool](https://www.kloudbean.com/blog/build-an-internal-tool-for-your-team/) before you commit.
 
 ## One-click or server-based? The honest map
 

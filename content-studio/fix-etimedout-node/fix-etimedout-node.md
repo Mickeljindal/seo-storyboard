@@ -28,7 +28,7 @@ The mechanism behind that is a firewall rule choice, and it's worth internalisin
 - A **REJECT** (or `reject-with tcp-reset`) rule sends an explicit rejection. You get a refusal, fast.
 - A **DROP** rule sends nothing. Your packet disappears into a black hole. You get a timeout, slowly.
 
-Most cloud security groups, most default server firewalls, and Shorewall-style setups drop by default rather than reject, because dropping doesn't confirm to a scanner that the host exists. Which means: *if you're getting ETIMEDOUT on a port that should be open, a drop rule is the first thing to suspect, not the last.* ECONNRESET is a third animal again, that's a connection that was established and then torn down mid-flight; there's a sibling guide for each of those two, linked below.
+Most cloud security groups, most default server firewalls, and Shorewall-style setups drop by default rather than reject, because dropping doesn't confirm to a scanner that the host exists. Which means: *if you're getting ETIMEDOUT on a port that should be open, a drop rule is the first thing to suspect, not the last.* ECONNRESET is a third animal again: [a connection that was established and then torn down mid-flight](https://www.kloudbean.com/blog/fix-econnreset-node/) points at idle timeouts, proxy limits or a peer that died, not at firewall rules.
 
 | Error | What actually happened | What it proves | Where to look first |
 |---|---|---|---|

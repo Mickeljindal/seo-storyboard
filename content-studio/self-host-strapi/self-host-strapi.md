@@ -208,7 +208,7 @@ One step people miss: Strapi's default security middleware sets a content securi
 
 ## Deploying Strapi on a managed Node server
 
-Strapi is a Node app, so you deploy it like any Node service: add it to the managed Node runtime, give it a managed PostgreSQL, set the env vars, connect Git. One clarification. There's no one-click "Strapi" button here. You deploy your own Strapi repo onto the managed Node runtime, which is what you want for an app you're customizing. Same general flow as [deploy a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/).
+Strapi is a Node app, so you deploy it like any Node service: add it to the managed Node runtime, give it a managed PostgreSQL, set the env vars, connect Git. One clarification. There's no one-click "Strapi" button here. You deploy your own Strapi repo onto the managed Node runtime, which is what you want for an app you're customizing. Same general flow as [deploy a Node app to a managed cloud](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/), and the step by step, including moving your existing entries across without losing them, is in [how to deploy Strapi to production](https://www.kloudbean.com/blog/deploy-strapi-app/).
 
 ### 1. Launch managed PostgreSQL
 

@@ -140,7 +140,7 @@ Two other traps sink small apps: a missing index that slows a query as data grow
 
 **Why it matters:** manual deploys are how you ship the wrong branch, forget a build step, or leave the server in a half-updated state at the worst time. There's no clean rollback and no record of what shipped. Repeatable beats fast here.
 
-**Fix:** connect your Git repo and deploy from it, so a push to your branch builds and ships automatically with logs you can watch. Your repo becomes the source of truth, not a folder on your laptop, and rolling back is just deploying the previous commit. It's the same loop covered end to end in the [full deploy guide](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/).
+**Fix:** connect your Git repo and deploy from it, so a push to your branch builds and ships automatically with logs you can watch. Your repo becomes the source of truth, not a folder on your laptop, and rolling back is just deploying the previous commit. It's the same loop covered end to end in the [full deploy guide](https://www.kloudbean.com/blog/deploy-ai-built-app-to-production/). If the project still only lives inside the builder, getting the code into a repo is step one, which is where [moving a Replit app to your own server](https://www.kloudbean.com/blog/deploy-replit-app/) begins.
 
 <!-- ADD IMAGE: ../assets/console/git-deployment.png, Code Delivery then Git Deployment, connect repo and branch -->
 

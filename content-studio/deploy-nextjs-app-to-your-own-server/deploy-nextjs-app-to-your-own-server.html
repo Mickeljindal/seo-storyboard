@@ -9,7 +9,7 @@
 <link rel="canonical" href="https://www.kloudbean.com/blog/deploy-nextjs-app-to-your-own-server/">
 <meta property="og:type" content="article">
 <meta property="og:title" content="How to Deploy a Next.js App to Your Own Server">
-<meta property="og:description" content="A built Next.js app is a running Node process, not a static folder. Deploy it to a server you own with next build and next start — SSR, ISR, images, and middleware all working.">
+<meta property="og:description" content="A built Next.js app is a running Node process, not a static folder. Deploy it to a server you own with next build and next start. SSR, ISR, images, and middleware all working.">
 <meta property="og:image" content="images/hero.png">
 <meta property="og:site_name" content="Kloudbean">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,7 +21,7 @@
   <span class="eyebrow">Deploy Next.js</span>
   <h1>How to Deploy a Next.js App to Your Own Server</h1>
 
-  <figure><img src="images/hero.png" alt="Deploy a Next.js app to your own server — next build, next start, no adapter"></figure>
+  <figure><img src="images/hero.png" alt="Deploy a Next.js app to your own server: next build, next start, no adapter"></figure>
 
   <p class="lead">You can deploy Next.js to your own server. Not a stripped-down version of it, the whole framework: SSR, API routes, ISR, image optimization, middleware. Next.js is open source and it runs as an ordinary Node app. The reason people don't realize this is that most tutorials skip the one thing that actually matters when you self-host, which is what your app <em>becomes</em> after you build it.</p>
 
@@ -152,7 +152,7 @@
     <li><strong>Node Version:</strong> match what you build on locally. Node 20+ for a current Next.js.</li>
     <li><strong>Install / Build / Start:</strong> <code>npm ci</code>, then <code>npm run build</code> (which runs <code>next build</code>), then <code>npm start</code> (which runs <code>next start</code>).</li>
   </ul>
-  <p>Hit <strong>Pull &amp; Deploy</strong> and the build log streams live in the console. Got a database? Launch a managed one from <strong>DBS &#8594; Launch Database</strong> (Postgres, MySQL, MariaDB, MongoDB, Redis, or Elasticsearch), on the same box, backed up, reached over the local network. Run your migrations in the build step, for example <code>npx prisma migrate deploy</code>, so the schema exists before the app serves a request. More on that in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a>.</p>
+  <p>Hit <strong>Pull &amp; Deploy</strong> and the build log streams live in the console. Got a database? Launch a managed one from <strong>DBS &#8594; Launch Database</strong> (Postgres, MySQL, MariaDB, MongoDB, Redis, or Elasticsearch), on the same box, backed up, reached over the local network. Run your migrations in the build step, for example <code>npx prisma migrate deploy</code>, so the schema exists before the app serves a request. More on that in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a>. If you're standing up a separate Node API alongside this too, <a href="https://www.kloudbean.com/blog/nextjs-node-postgres-production-architecture/">the Next.js, Node, and PostgreSQL production architecture</a> lays out how those three pieces sit together.</p>
 
   <h3>The one env var rule that's specific to Next.js</h3>
   <p>Under <strong>Runtime Configuration &#8594; Environment Variables</strong> there's a <strong>Paste .env Content</strong> tab. Drop your <code>.env</code> in, convert to key/value, and swap dev values for real ones. Here's the Next.js-specific catch: anything prefixed <code>NEXT_PUBLIC_</code> is baked into the client bundle when <code>next build</code> runs, and frozen there. It's public, so never put a secret behind that prefix. And if you add or change a <code>NEXT_PUBLIC_</code> value <em>after</em> a build, nothing changes until you rebuild. Set it first, then build. Unprefixed variables like <code>DATABASE_URL</code> are read live on the server, which is why they belong in the console and never in the repo. The full mental model is in <a href="https://www.kloudbean.com/blog/environment-variables-done-right/">environment variables, done right</a>.</p>
@@ -216,7 +216,7 @@
     <p>Functionally, no. The framework runs in full. The one difference is geographic: Vercel spreads some execution across a global edge network, while your server sits in one region you choose. For most apps a well-placed server is plenty, and you can add Cloudflare edge caching if you need global reach.</p>
   </div>
 
-  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.</p>
+  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale. Faster Than Ever.</p>
 </article>
 
 <script type="application/ld+json">

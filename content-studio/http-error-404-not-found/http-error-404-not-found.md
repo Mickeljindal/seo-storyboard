@@ -45,7 +45,7 @@ If it's neither case nor SPA routing, work down this short list, which covers al
 
 - **Wrong build output directory.** The server is serving a different folder than the one your build produces (serving the project root instead of `dist` or `build`, for example). Point it at the actual output directory.
 - **A base path or subdirectory mismatch.** If the app is served from a subfolder but built for the root (or the reverse), every asset path is off by that prefix. Set the base path to match where it's actually hosted.
-- **Missing rewrite rules for clean URLs.** Frameworks that expect a front controller (many PHP apps) need a rewrite so requests route through `index.php`; without it, every pretty URL 404s.
+- **Missing rewrite rules for clean URLs.** Frameworks that expect a front controller (many PHP apps) need a rewrite so requests route through `index.php`; without it, every pretty URL 404s. CodeIgniter is the classic case, and [a CodeIgniter 404 on every route but the homepage](https://www.kloudbean.com/blog/codeigniter-404/) is almost always this.
 - **A trailing-slash or index-file assumption.** The server may expect `index.html` in a directory, or may redirect `/page` to `/page/` differently than you assume; a mismatch shows up as a 404.
 
 Each of these is the same underlying story as the rest of the article: the request and what exists on the server don't line up, and the fix is making them line up rather than adding a page.

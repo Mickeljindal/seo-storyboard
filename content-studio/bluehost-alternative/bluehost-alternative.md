@@ -47,7 +47,7 @@ It isn't a bug, it's the model. On a shared plan your site shares one machine wi
 
 ### Why the Bluehost renewal price jumps
 
-The headline price is promotional. You sign up at a friendly intro rate for the first term, then it renews at the standard rate, commonly two to three times higher. The free first-year domain does the same at the normal registrar rate. Stack that on the add-ons you okayed at checkout, and the plan everyone called cheap doesn't feel cheap by year two. That's why "Bluehost renewal price" is such a common search. The product didn't change. The bill did.
+The headline price is promotional. You sign up at a friendly intro rate for the first term, then it renews at the standard rate, commonly two to three times higher. The free first-year domain does the same at the normal registrar rate. Stack that on the add-ons you okayed at checkout, and the plan everyone called cheap doesn't feel cheap by year two. That's why "Bluehost renewal price" is such a common search. The product didn't change. The bill did. Bluehost isn't unusual here either, and the same intro-to-renewal jump is why people go looking for a [Hostinger alternative without the renewal cliff](https://www.kloudbean.com/blog/hostinger-alternative/).
 
 ## The beginner plan has a ceiling. Your own server has room to grow.
 

@@ -44,7 +44,7 @@ A process manager turns that terminal command into a service. It keeps the proce
 
 ## First steps with the PM2 process manager: `pm2 start`
 
-PM2 installs from npm and becomes the thing that owns your process. Global install, then hand it your entry file:
+PM2 installs from npm and becomes the thing that owns your process. Global install, then hand it your entry file. One warning about that global install: it lands in whatever npm prefix your interactive shell uses, so a deploy script or cron job running under a different environment can install fine and still report `pm2: command not found`, which is nearly always [a PATH problem rather than a missing install](https://www.kloudbean.com/blog/fix-pm2-not-found-after-deploy/).
 
 ```
 npm install -g pm2
@@ -176,7 +176,7 @@ pm2 logs api --lines 200
 pm2 flush               # truncate the log files when they get noisy
 ```
 
-There's a trap: by default those log files grow forever, and a full disk takes your app down with them. I've seen a healthy app "mysteriously" die that was really a PM2 log filling the root partition. Install the rotation module once and forget it:
+There's a trap: by default those log files grow forever, and a full disk takes your app down with them. I've seen a healthy app "mysteriously" die that was really a PM2 log filling the root partition, which is one of the first places to look when you're [tracking down what filled a server's disk](https://www.kloudbean.com/blog/fix-out-of-disk-space-server/). Install the rotation module once and forget it:
 
 ```
 pm2 install pm2-logrotate

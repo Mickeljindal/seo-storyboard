@@ -98,7 +98,7 @@ Scale up first. I'll say that flatly, because the industry's fascination with di
 
 Vertical scaling wins on effort. It loses on two things, exactly when you switch. First, the **ceiling**: every provider has a biggest box, and once you're on it there's nowhere up to go. Second, **redundancy**: one server is one power supply, one kernel, one bad deploy from a full outage. No amount of resizing changes the fact that a single box is a single point of failure.
 
-So the rule is short. Resize the box while it's cheap and easy. Reach for more boxes when you bump the ceiling of one machine, or when downtime from a single failure stops being acceptable. Plenty of busy apps [run happily on one well-sized server](https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/) for a long time. Don't build for a fleet on day one.
+So the rule is short. Resize the box while it's cheap and easy. Reach for more boxes when you bump the ceiling of one machine, or when downtime from a single failure stops being acceptable. Those two triggers are the same ones behind [deciding whether you need a load balancer yet](https://www.kloudbean.com/blog/do-i-need-a-load-balancer/), because scaling out is what a balancer is for. Plenty of busy apps [run happily on one well-sized server](https://www.kloudbean.com/blog/host-app-api-and-database-on-one-server/) for a long time. Don't build for a fleet on day one.
 
 ![The Kloudbean console showing how to launch or resize a server to more CPU and RAM, which is vertical scaling](../assets/console/add-server.png)
 

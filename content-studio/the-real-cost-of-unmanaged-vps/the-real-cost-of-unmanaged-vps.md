@@ -10,7 +10,7 @@ secondary_keywords:
   - managed vs unmanaged hosting cost
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 4 — Managed vs Unmanaged & Competitors
+cluster: 4 - Managed vs Unmanaged & Competitors
 ---
 
 ![The real cost of an unmanaged VPS: the sticker price is only the tip](images/hero.png)
@@ -25,7 +25,7 @@ Because it isn't the same box. It's the same box plus a job, and the job never s
 
 ## The sticker price is the down payment
 
-Start with what you actually see. The entry-tier instances that made cheap hosting famous, the ones people mean when they say "just grab a cheap VPS," sit at a few dollars a month. Call it, illustratively, five dollars. That price is real, and it's a genuinely great deal for raw compute. Credit where it's due: the big infrastructure providers (DigitalOcean, Vultr, Linode and friends) turned a server into a commodity you can rent for pocket change, and for the right use that's fantastic.
+Start with what you actually see. The entry-tier instances that made cheap hosting famous, the ones people mean when they say "just grab a cheap VPS," sit at a few dollars a month. Call it, illustratively, five dollars. That price is real, and it's a genuinely great deal for raw compute. Credit where it's due: the big infrastructure providers (DigitalOcean, Vultr, Linode and friends) turned a server into a commodity you can rent for pocket change, and for the right use that's fantastic. Hetzner pushes that pricing further than most, so if it's the specific box you're pricing, [cheap Hetzner servers next to managed hosting](https://www.kloudbean.com/blog/hetzner-vs-kloudbean/) runs this same arithmetic against one named provider.
 
 But raw compute isn't a running application. It's an empty room. Everything that turns that room into a live, secure, backed-up site is missing from the number. The sticker is a down payment. The rest of the bill arrives in hours.
 

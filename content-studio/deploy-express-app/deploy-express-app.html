@@ -119,7 +119,7 @@ app.listen(port, 'localhost');   // or '127.0.0.1'
 
 // reachable by the proxy, health checks, containers
 app.listen(port, '0.0.0.0');</code></pre>
-  <p>On a single managed box Nginx is local, so <code>127.0.0.1</code> often happens to work. But bind to <code>0.0.0.0</code> and you delete a whole class of "works on my machine" surprises: health checks from another interface, a sidecar, a container network, a load balancer probe. It costs nothing and prevents a confusing outage. Just bind to all interfaces and move on.</p>
+  <p>On a single managed box Nginx is local, so <code>127.0.0.1</code> often happens to work. But bind to <code>0.0.0.0</code> and you delete a whole class of "works on my machine" surprises: health checks from another interface, a sidecar, a container network, a load balancer probe. It costs nothing and prevents a confusing outage. Just bind to all interfaces and move on. Worth knowing if you also run Fastify: it binds to <code>localhost</code> by default, so this is the first thing to change when you <a href="https://www.kloudbean.com/blog/deploy-fastify-app/">deploy a Fastify app to production</a>.</p>
 
   <h3>3. Trust the proxy</h3>
   <p>This one is pure Express and it bites quietly. Behind Nginx, every request arrives from <code>127.0.0.1</code>, over plain HTTP, on the internal port. Express believes what it sees. So <code>req.ip</code> is the proxy, <code>req.protocol</code> is <code>http</code>, and <code>req.secure</code> is false, even though your user is on HTTPS. That breaks secure cookies, HTTPS redirects, and rate limiters that key on IP (every request looks like it came from one address). One line fixes it:</p>

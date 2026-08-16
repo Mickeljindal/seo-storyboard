@@ -15,7 +15,7 @@ Two consequences fall out of that, and they shape every hosting decision:
 - **No inbound web traffic.** Nobody's browser connects to your bot. So it needs no domain, no port open to the world, no SSL certificate. That's less to set up than a normal web app, not more.
 - **The process must never stop.** The moment your bot's process dies, the WebSocket drops and the bot shows offline in every server it's in. So what you're really hosting is a persistent background process. A worker. It just has to keep running.
 
-That single requirement, "keep this process running forever," is the whole game. Everything below is about meeting it cheaply and reliably.
+That single requirement, "keep this process running forever," is the whole game. Everything below is about meeting it cheaply and reliably. It's the same constraint that shapes [hosting a Telegram bot with polling or webhooks](https://www.kloudbean.com/blog/deploy-a-telegram-bot/), so if you run bots on both platforms the hosting decisions rhyme.
 
 ## Why free and serverless tiers keep dropping your bot
 

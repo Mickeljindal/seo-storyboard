@@ -10,10 +10,10 @@ secondary_keywords:
   - django deployment checklist
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 3 — App Deployment Tutorials
+cluster: 3 - App Deployment Tutorials
 ---
 
-![Deploy a Django app — Gunicorn, static files and Postgres on a server you own](images/hero.png)
+![Deploy a Django app: Gunicorn, static files and Postgres on a server you own](images/hero.png)
 
 # Deploy a Django App: The Production Checklist
 
@@ -38,7 +38,7 @@ These live in your Django settings and read from environment variables, so one c
 - **`DEBUG = False`.** With `DEBUG` on, an unhandled error renders a full Django debug page to whoever hit it: your traceback, local variables, parts of settings, installed apps. Off is non-negotiable in production.
 - **`SECRET_KEY` from the environment.** It signs sessions, password-reset tokens, and more. Read it from an env var, keep it stable, and never commit it.
 - **`ALLOWED_HOSTS`.** Set it to your domain(s). Django refuses any request whose `Host` header isn't on the list, so an empty list means every request 400s.
-- **`CSRF_TRUSTED_ORIGINS`.** Add your `https://` domain so form posts and the admin work correctly behind TLS.
+- **`CSRF_TRUSTED_ORIGINS`.** Add your `https://` domain so form posts and the admin work correctly behind TLS. Leave it out and every POST comes back as a [CSRF token mismatch you can trace to its cause](https://www.kloudbean.com/blog/fix-csrf-token-mismatch/), usually the origin check rather than anything in your forms.
 - **Database from the environment.** Point `DATABASES` at your managed Postgres via env vars, not the SQLite default. SQLite is lovely in dev and wrong for a real deploy: it lives in a single file on local disk, so it doesn't survive a rebuild and can't be shared across workers.
 
 In code that's a small, boring block near the top of your settings:

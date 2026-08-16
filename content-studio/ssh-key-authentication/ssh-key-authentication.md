@@ -166,7 +166,7 @@ There is a platform layer above the server. Kloudbean's subusers and [User Acces
 
 ### When SSH says Permission denied (publickey)
 
-The error everyone hits, a catch-all for the server turning your key away. Run `ssh -v user@server` and read what it tries. Then the usual suspects, roughly by frequency:
+The error everyone hits, a catch-all for the server turning your key away. Run `ssh -v user@server` and read what it tries. Then the usual suspects, roughly by frequency, and if none of them match, the longer breakdown of [how to fix SSH key rejection](https://www.kloudbean.com/blog/fix-permission-denied-publickey/) works through the rarer causes, like a key type newer OpenSSH refuses or a Git host rejecting the same way:
 
 - **Wrong key offered.** Confirm the right one with `ssh-add -l`, then pin it in `~/.ssh/config` with `IdentityFile` and `IdentitiesOnly yes`.
 - **Agent not running.** If `ssh-add -l` says the agent has no identities, start it and re-add the key from step four.

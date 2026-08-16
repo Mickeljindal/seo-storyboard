@@ -122,7 +122,7 @@ Be honest about the app in front of you rather than copying a reference architec
 - **An agent with user accounts** that should recognise returning users and honour their settings: add durable Postgres memory. This is the big one for most products.
 - **A support bot or research assistant** answering from your knowledge base or a long history: now you need long-term recall with vector search on top of the other two.
 
-If you're building a conversational product specifically, the request path, streaming, and cost pieces live in [how to host an AI chatbot in production](https://www.kloudbean.com/blog/host-ai-chatbot-in-production/). Memory is one layer of that larger picture, and it's the layer that decides whether the thing feels smart or feels like it has amnesia.
+If you're building a conversational product specifically, the request path, streaming, and cost pieces live in [how to host an AI chatbot in production](https://www.kloudbean.com/blog/host-ai-chatbot-in-production/). Memory is one layer of that larger picture, and it's the layer that decides whether the thing feels smart or feels like it has amnesia. If you haven't settled on a runtime yet, the trade-offs are laid out in [where to deploy an AI agent](https://www.kloudbean.com/blog/where-to-deploy-an-ai-agent/), and they matter here because a platform that sleeps between requests keeps throwing away the state you just built.
 
 ## Expiry, retention, and the right to be forgotten
 

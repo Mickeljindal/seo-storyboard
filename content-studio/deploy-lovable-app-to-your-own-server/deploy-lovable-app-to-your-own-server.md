@@ -11,10 +11,10 @@ secondary_keywords:
   - Lovable Supabase deployment
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 1 — Deploy AI / Vibe-Coded Apps
+cluster: 1 - Deploy AI / Vibe-Coded Apps
 ---
 
-![Deploy a Lovable app on a server you own — the React frontend and the Supabase backend, both in one dashboard](images/hero.png)
+![Deploy a Lovable app on a server you own, the React frontend and the Supabase backend, both in one dashboard](images/hero.png)
 
 # Deploy a Lovable App to Your Own Server: the Supabase Half People Forget
 
@@ -101,7 +101,7 @@ Once you're hosting the app yourself, you've got two honest options for the back
 
 **Option one: keep a managed Supabase.** You keep Auth, Storage, Edge Functions, and the Postgres-with-RLS model exactly as Lovable built it. Nothing in the app changes. Kloudbean runs [Supabase as a one-click managed app](https://www.kloudbean.com/blog/self-host-supabase/), so it can sit in the same dashboard as the frontend, backed up and yours.
 
-**Option two: move the data to a plain managed Postgres.** You drop Supabase's auth, storage, and functions layer and own a straight [managed Postgres](https://www.kloudbean.com/blog/managed-postgresql-hosting/) database instead. Cleaner if you barely used those features. More work if you did, because you're now on the hook to replace login, uploads, and any function logic yourself.
+**Option two: move the data to a plain managed Postgres.** You drop Supabase's auth, storage, and functions layer and own a straight [managed Postgres](https://www.kloudbean.com/blog/managed-postgresql-hosting/) database instead. Cleaner if you barely used those features. More work if you did, because you're now on the hook to replace login, uploads, and any function logic yourself. Either way the wiring matters more than the choice, so keep the rules for [connecting a database to your Lovable app](https://www.kloudbean.com/blog/connect-a-database-to-your-lovable-app/) in mind: the connection string belongs on a server, never in the browser bundle.
 
 My honest take: if your app leans on Supabase Auth and Storage, keep Supabase. Rewriting authentication just to say you're "on plain Postgres" is a lot of risk for very little gain, and auth is exactly the thing you don't want to hand-roll under deadline. If Supabase was really just a Postgres with a few tables, and you never touched RLS, auth, or storage, then a managed Postgres is simpler to reason about and one less moving part. Don't move off Supabase to prove a point. Move because the app is genuinely simpler without it.
 
@@ -115,7 +115,7 @@ My honest take: if your app leans on Supabase Auth and Storage, keep Supabase. R
 
 ## Deploying a Lovable app: the two halves, one dashboard
 
-Now the actual moves. The nice part of doing this on Kloudbean is that both halves, the frontend and the backend, live behind one login. No stitching three services together.
+Now the actual moves. The nice part of doing this on Kloudbean is that both halves, the frontend and the backend, live behind one login. No stitching three services together. You also pick which cloud the server sits on, so when a customer or a company standard says AWS specifically, [running your Lovable app on managed AWS](https://www.kloudbean.com/blog/lovable-on-managed-aws/) is this same flow with AWS underneath.
 
 ### Get the code out first
 

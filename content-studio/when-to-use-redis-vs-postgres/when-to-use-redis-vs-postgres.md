@@ -111,7 +111,7 @@ CREATE UNLOGGED TABLE cache_kv (
 );
 ```
 
-So, do you need Redis? Not always, and not always yet. But the moment you're hammering the same rows, need real TTLs, or want sub-millisecond atomic counters, stop bending Postgres into a cache.
+So, do you need Redis? Not always, and not always yet. But the moment you're hammering the same rows, need real TTLs, or want sub-millisecond atomic counters, stop bending Postgres into a cache. If you want that decision framed around a subscription product specifically, shared sessions, rate limits, and background workers included, read [when a SaaS actually starts needing Redis](https://www.kloudbean.com/blog/do-i-need-redis-for-my-saas/).
 
 ## The patterns you'll actually reach for
 

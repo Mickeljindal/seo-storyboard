@@ -143,7 +143,7 @@ app.use(express.json());</code></pre>
   }
 }</code></pre>
   <p>Write your state updates so replaying them is harmless anyway. "Set status to active and period end to X" is safe to run five times. "Add 30 days of credit" is not. Prefer setting absolute values over incrementing, and where you can't, the event-ID guard is your seatbelt.</p>
-  <p>One more thing that saves you later: events can arrive out of order. A <code>customer.subscription.updated</code> from Stripe's retry queue can land after a newer one you already processed. Store the subscription object's timestamp and ignore anything older than what you've already written.</p>
+  <p>One more thing that saves you later: events can arrive out of order. A <code>customer.subscription.updated</code> from Stripe's retry queue can land after a newer one you already processed. Store the subscription object's timestamp and ignore anything older than what you've already written. None of this is Stripe-specific, incidentally, so the same claim table and ordering guard apply to every sender you take callbacks from, which is what <a href="https://www.kloudbean.com/blog/webhooks-guide/">handling webhooks reliably in production</a> covers for Node and Python.</p>
 
   <!-- Swap this slot for a screenshot when you have one. src -> images/your-file.png -->
   <figure class="img-slot"><span><b>Add image</b><em>The Stripe dashboard webhook log showing one event with several delivery attempts, including a failed one and a successful retry.</em><small>This is the screenshot that convinces people idempotency isn't theoretical.</small></span></figure>

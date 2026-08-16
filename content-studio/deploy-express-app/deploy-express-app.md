@@ -58,7 +58,7 @@ app.listen(port, 'localhost');   // or '127.0.0.1'
 app.listen(port, '0.0.0.0');
 ```
 
-On a single managed box Nginx is local, so `127.0.0.1` often happens to work. But bind to `0.0.0.0` and you delete a whole class of "works on my machine" surprises: health checks from another interface, a sidecar, a container network, a load balancer probe. It costs nothing and prevents a confusing outage. Just bind to all interfaces and move on.
+On a single managed box Nginx is local, so `127.0.0.1` often happens to work. But bind to `0.0.0.0` and you delete a whole class of "works on my machine" surprises: health checks from another interface, a sidecar, a container network, a load balancer probe. It costs nothing and prevents a confusing outage. Just bind to all interfaces and move on. Worth knowing if you also run Fastify: it binds to `localhost` by default, so this is the first thing to change when you [deploy a Fastify app to production](https://www.kloudbean.com/blog/deploy-fastify-app/).
 
 ### 3. Trust the proxy
 

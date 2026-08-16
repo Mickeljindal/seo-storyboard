@@ -166,7 +166,7 @@ async function handleEvent(event) {
 
 Write your state updates so replaying them is harmless anyway. "Set status to active and period end to X" is safe to run five times. "Add 30 days of credit" is not. Prefer setting absolute values over incrementing, and where you can't, the event-ID guard is your seatbelt.
 
-One more thing that saves you later: events can arrive out of order. A `customer.subscription.updated` from Stripe's retry queue can land after a newer one you already processed. Store the subscription object's timestamp and ignore anything older than what you've already written.
+One more thing that saves you later: events can arrive out of order. A `customer.subscription.updated` from Stripe's retry queue can land after a newer one you already processed. Store the subscription object's timestamp and ignore anything older than what you've already written. None of this is Stripe-specific, incidentally, so the same claim table and ordering guard apply to every sender you take callbacks from, which is what [handling webhooks reliably in production](https://www.kloudbean.com/blog/webhooks-guide/) covers for Node and Python.
 
 <!-- ADD IMAGE: the Stripe dashboard webhook log showing one event with several delivery attempts, including a failed one and a successful retry. -->
 

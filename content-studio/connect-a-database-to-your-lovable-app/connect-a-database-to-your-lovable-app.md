@@ -152,7 +152,7 @@ If keeping Supabase, your "server" work is lighter, since supabase-js handles th
 
 ### 4. Verify it actually sticks
 
-Redeploy so the app picks up the new variables, then do something real. Sign up a test user, create a record, reload, and confirm it stuck. If it won't connect, it's almost always one of three things: a typo in the connection string, the wrong variable name (your code wants `DATABASE_URL`, you set `DB_URL`), or a frontend built before the value existed. That last one shows up as a blank white page or a `supabaseUrl is required` error on load, because `VITE_` values freeze at build time. Set them first, then build.
+Redeploy so the app picks up the new variables, then do something real. Sign up a test user, create a record, reload, and confirm it stuck. If it won't connect, it's almost always one of three things: a typo in the connection string, the wrong variable name (your code wants `DATABASE_URL`, you set `DB_URL`), or a frontend built before the value existed. That last one shows up as a blank white page or a `supabaseUrl is required` error on load, because `VITE_` values freeze at build time. Set them first, then build. If none of those three is it, work through [why a deployed app can't reach its database](https://www.kloudbean.com/blog/why-ai-app-cant-connect-to-database/), which sorts the error messages by cause so you know whether you're looking at a network block, a credential problem, or an app that never read the variable.
 
 <!-- ADD IMAGE: The live app, logged in, real rows loading from the managed database, padlock in the address bar. -->
 

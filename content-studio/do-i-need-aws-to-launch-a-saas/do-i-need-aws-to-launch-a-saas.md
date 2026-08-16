@@ -51,7 +51,7 @@ Strip the branding away and a typical SaaS needs a short, boring list. Once you 
 - **A domain with SSL.** Your custom domain and an HTTPS certificate, which most platforms now handle for you.
 - **Backups.** Automatic, and tested at least once, so a bad day is recoverable.
 
-That's the real list. Notice what's not on it: Kubernetes, a hand-built VPC, autoscaling groups, a service mesh, or five AWS certifications. You can add sophistication later when a real problem demands it. The [reference architecture for an AI app](https://www.kloudbean.com/blog/ai-app-reference-architecture/) covers how these pieces fit together, and the honest truth is they fit on a single server for a long time.
+That's the real list. Notice what's not on it: Kubernetes, a hand-built VPC, autoscaling groups, a service mesh, or five AWS certifications. You can add sophistication later when a real problem demands it. Orchestration in particular tends to arrive years before it is needed, and [the honest case for running Kubernetes on a SaaS](https://www.kloudbean.com/blog/do-i-need-kubernetes-for-my-saas/) is worth reading before you commit to it. The [reference architecture for an AI app](https://www.kloudbean.com/blog/ai-app-reference-architecture/) covers how these pieces fit together, and the honest truth is they fit on a single server for a long time.
 
 ## When you genuinely do need AWS
 
@@ -74,7 +74,7 @@ The actual tradeoff is control versus time, and it helps to see it plainly rathe
 | Best for | Teams with cloud skills, at scale | Founders and small teams shipping now |
 | The risk | Complexity and bill-shock | Outgrowing it eventually |
 
-Neither column is "better" in the abstract. If you're a platform team running many services at scale, the left column is your world and a managed platform would feel constraining. If you're trying to launch, the right column gets you live faster and keeps your attention on the product. Most people reading this are in the second case, which is why the honest recommendation leans that way, not because AWS is bad.
+Neither column is "better" in the abstract. If you're a platform team running many services at scale, the left column is your world and a managed platform would feel constraining. If you're trying to launch, the right column gets you live faster and keeps your attention on the product. Most people reading this are in the second case, which is why the honest recommendation leans that way, not because AWS is bad. If you want that table filled in with two named products rather than two categories, [the Kloudbean vs AWS head-to-head](https://www.kloudbean.com/blog/kloudbean-vs-aws/) goes row by row, including where AWS is the better answer.
 
 <!-- ADD IMAGE: a simple two-column diagram. Left "Raw AWS": a stack of boxes labelled EC2, VPC, IAM, RDS, security groups, deploy pipeline, all of which you configure. Right "Managed platform": one box "your app + managed database" with "connect repo, deploy" beside it. Brand colors navy #000f27, purple #4F1AF3, green #40b75f. -->
 

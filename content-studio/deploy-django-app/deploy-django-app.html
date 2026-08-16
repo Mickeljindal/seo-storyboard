@@ -21,7 +21,7 @@
   <span class="eyebrow">App deployment</span>
   <h1>Deploy a Django App: The Production Checklist</h1>
 
-  <figure><img src="images/hero.png" alt="Deploy a Django app — Gunicorn, static files and Postgres on a server you own"></figure>
+  <figure><img src="images/hero.png" alt="Deploy a Django app: Gunicorn, static files and Postgres on a server you own"></figure>
 
   <p class="lead"><code>python manage.py runserver</code> is great on your laptop. On the public internet it's the wrong tool. To deploy a Django app for production you really make two moves: swap that development server for a real one, and flip a handful of settings that are harmless in dev and genuinely dangerous once you're live.</p>
   <p>Most Django tutorials stop at "it runs locally." This one is the other half. Two checklists, worked top to bottom: the settings that must change, then the deploy steps that put Gunicorn in front of your app. Get both right and your django production server comes up clean the first time, styling and all.</p>
@@ -103,7 +103,7 @@
     <li><strong><code>DEBUG = False</code>.</strong> With <code>DEBUG</code> on, an unhandled error renders a full Django debug page to whoever hit it: your traceback, local variables, parts of settings, installed apps. Off is non-negotiable in production.</li>
     <li><strong><code>SECRET_KEY</code> from the environment.</strong> It signs sessions, password-reset tokens, and more. Read it from an env var, keep it stable, and never commit it.</li>
     <li><strong><code>ALLOWED_HOSTS</code>.</strong> Set it to your domain(s). Django refuses any request whose <code>Host</code> header isn't on the list, so an empty list means every request 400s.</li>
-    <li><strong><code>CSRF_TRUSTED_ORIGINS</code>.</strong> Add your <code>https://</code> domain so form posts and the admin work correctly behind TLS.</li>
+    <li><strong><code>CSRF_TRUSTED_ORIGINS</code>.</strong> Add your <code>https://</code> domain so form posts and the admin work correctly behind TLS. Leave it out and every POST comes back as a <a href="https://www.kloudbean.com/blog/fix-csrf-token-mismatch/">CSRF token mismatch you can trace to its cause</a>, usually the origin check rather than anything in your forms.</li>
     <li><strong>Database from the environment.</strong> Point <code>DATABASES</code> at your managed Postgres via env vars, not the SQLite default. SQLite is lovely in dev and wrong for a real deploy: it lives in a single file on local disk, so it doesn't survive a rebuild and can't be shared across workers.</li>
   </ul>
   <p>In code that's a small, boring block near the top of your settings:</p>
@@ -193,13 +193,13 @@ gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 3</code></pre>
 
   <h2>FAQ</h2>
   <div class="faq">
-    <h3>Can I run Django with <code>manage.py runserver</code> in production?</h3>
+    <h3>Can I run Django with manage.py runserver in production?</h3>
     <p>No. It's a development server and Django explicitly warns against it. In production you run Gunicorn (or another WSGI server) with the managed web server in front. Use <code>runserver</code> only on your machine.</p>
 
     <h3>What settings must change before going live?</h3>
     <p><code>DEBUG = False</code>, a <code>SECRET_KEY</code> read from the environment, <code>ALLOWED_HOSTS</code> set to your domain, <code>CSRF_TRUSTED_ORIGINS</code> with your HTTPS domain, and a real database (Postgres) via env vars. Those five matter most.</p>
 
-    <h3>Is <code>DEBUG = True</code> really a security risk in production?</h3>
+    <h3>Is DEBUG = True really a security risk in production?</h3>
     <p>Yes. With debug on, any unhandled error shows a detailed page containing your traceback, parts of your settings, and local variables. That hands an attacker a map of your app. Keep it off in production, always.</p>
 
     <h3>Why is my Django site missing its CSS after deploy?</h3>

@@ -26,7 +26,7 @@ So this guide leads with the part that actually decides whether your self-hosted
 
 ## Why self-host GitLab at all
 
-GitLab sells two things: the software and the hosting of it. The software has a free self-managed tier you can run forever. The per-seat pricing lives on their cloud. So the real question isn't "is GitLab expensive," it's "do I want to run it myself on one server, or pay per person every month."
+GitLab sells two things: the software and the hosting of it. The software has a free self-managed tier you can run forever. The per-seat pricing lives on their cloud. So the real question isn't "is GitLab expensive," it's "do I want to run it myself on one server, or pay per person every month." If you haven't settled on a platform yet, that same question is what usually decides [GitLab against GitHub for a team](https://www.kloudbean.com/blog/gitlab-vs-github/), because only one of them ships a free self-managed edition.
 
 Good reasons to run it yourself:
 

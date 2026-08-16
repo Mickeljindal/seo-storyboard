@@ -38,7 +38,7 @@
     <li><strong>Undersized:</strong> your app genuinely needs more memory than the machine or container gives it. Memory usage is stable, just too high for the box.</li>
     <li><strong>Leaking:</strong> your app holds references it never releases, so memory climbs forever until it hits the wall. More RAM only buys time before the same crash.</li>
   </ul>
-  <p>Same symptom, opposite fixes. Guess wrong and you either overpay for a bigger server that still crashes, or you starve an app that was fine and just needed room.</p>
+  <p>Same symptom, opposite fixes. Guess wrong and you either overpay for a bigger server that still crashes, or you starve an app that was fine and just needed room. And read the message before you start digging: heap space is only one of the ceilings a Node process can hit, so a crash that mentions <a href="https://www.kloudbean.com/blog/fix-emfile-too-many-open-files-node/">too many open files, the EMFILE file-descriptor limit</a>, is a different resource running out and more RAM won't touch it.</p>
 
   <h2>The 60-second triage</h2>
   <p>Before you go leak-hunting, run one experiment. Raise the heap limit and watch what happens. This tells you which of the two problems you have.</p>
@@ -146,7 +146,7 @@ module.exports = {
 
   <h2>FAQ</h2>
   <div class="faq">
-    <h3>What does "JavaScript heap out of memory" mean in Node.js?</h3>
+    <h3>What does JavaScript heap out of memory mean in Node.js?</h3>
     <p>It means V8, the engine Node runs on, tried to grow its memory heap past the maximum it's allowed and aborted the process. It's a hard crash, not a warning. The cause is either a genuine memory leak (memory climbs forever) or an app that simply needs more RAM than the server provides.</p>
 
     <h3>How do I increase the Node.js memory limit?</h3>
@@ -164,7 +164,7 @@ module.exports = {
     <h3>Why does my app run fine locally but crash in production?</h3>
     <p>Usually the production container has a memory cap your laptop doesn't, and real traffic pushes past it. Match the heap limit to the container's memory, watch usage under load, and give it enough room. If it climbs without limit under production traffic, it's a leak that your low local traffic never triggered.</p>
 
-    <h3>Does more RAM fix "heap out of memory"?</h3>
+    <h3>Does more RAM fix heap out of memory?</h3>
     <p>It fixes the undersized case and does nothing for a leak. If memory is stable but larger than the box, a server with more RAM solves it cleanly. If memory grows without bound, more RAM only lengthens the time between crashes. Diagnose first, then decide.</p>
 
     <h3>Can Redis help with Node memory problems?</h3>

@@ -147,7 +147,7 @@ curl -i -X POST -F "file=@/tmp/big.bin" https://example.com/upload</code></pre>
 
   <p><strong>Mistake two: reloading and expecting the app limit to have moved.</strong> nginx and your runtime are separate. After nginx accepts the larger body, the next ceiling in the table takes its turn, and you get a 413 again from a different layer. That is not the fix failing. That is the next ceiling, and it is why this error often takes two rounds.</p>
 
-  <p>Setting <code>client_max_body_size 0</code> disables the check. It is occasionally the right call on an internal service, and it is a poor default on anything public, because the limit is what stops an unauthenticated request from filling your disk.</p>
+  <p>Setting <code>client_max_body_size 0</code> disables the check. It is occasionally the right call on an internal service, and it is a poor default on anything public, because the limit is what stops an unauthenticated request from filling your disk. A body that does clear the limit is still buffered on its way to your app, which is where <a href="https://www.kloudbean.com/blog/fix-nginx-413-request-entity-too-large/">the nginx 413 and client_body_buffer_size together</a> matter: past a certain size nginx spools the request to a temp file before your app ever reads it.</p>
 
   <h2>The PHP trap: two limits that must move together</h2>
   <p>This one wastes more time than it should, because the failure is quiet.</p>

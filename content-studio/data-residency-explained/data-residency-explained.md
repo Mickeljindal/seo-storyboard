@@ -94,7 +94,7 @@ You don't need a workshop for this. Walk down the list, stop at the first row th
 | Health, finance, or public-sector data | The region the sector's rules require | Localisation rules beat convenience; confirm the specifics with counsel |
 | Global consumer app, nothing sensitive | The region nearest most users | Optimise for latency and trust; you're free to move as you grow |
 
-Notice how rarely you get to the bottom row. Most real decisions stop at row one or two. A single contract clause tends to end the conversation before latency ever comes up.
+Notice how rarely you get to the bottom row. Most real decisions stop at row one or two. A single contract clause tends to end the conversation before latency ever comes up. And a country's own privacy law sits on top of the region you pick, which is why [hosting in South Korea is a PIPA question as much as a latency one](https://www.kloudbean.com/blog/hosting-in-south-korea/).
 
 ## A worked example
 

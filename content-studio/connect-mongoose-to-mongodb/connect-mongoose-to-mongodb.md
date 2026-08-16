@@ -34,7 +34,7 @@ MONGODB_URI=mongodb://appuser:s3cret@10.0.0.5:27017/appdb
 MONGODB_URI=mongodb://appuser:s3cret@10.0.0.5:27017/appdb?authSource=admin
 ```
 
-Read it apart once and it stops being cryptic. `appuser:s3cret` is the least-privilege user and password. `10.0.0.5:27017` is the internal host and the default MongoDB port. `/appdb` is the database to use. Anything after `?` is options. The reason it lives in an env var, and not in a config file you commit, is covered properly in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/). Short version: secrets in code leak, and rotating a password shouldn't need a code change.
+Read it apart once and it stops being cryptic. `appuser:s3cret` is the least-privilege user and password. `10.0.0.5:27017` is the internal host and the default MongoDB port. `/appdb` is the database to use. Anything after `?` is options. Get `authSource` wrong and the driver hunts for the user in the wrong database, which is why [MongoError: Authentication failed shows up even when the password is right](https://www.kloudbean.com/blog/fix-mongoerror-authentication-failed/). The reason it lives in an env var, and not in a config file you commit, is covered properly in [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/). Short version: secrets in code leak, and rotating a password shouldn't need a code change.
 
 <!-- ADD IMAGE: The app's Environment Variables panel with a MONGODB_URI row, value masked, so readers see where the connection string is stored instead of in code. -->
 

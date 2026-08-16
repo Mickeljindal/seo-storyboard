@@ -10,10 +10,10 @@ secondary_keywords:
   - Next.js managed hosting
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 1 — Deploy AI / Vibe-Coded Apps
+cluster: 1 - Deploy AI / Vibe-Coded Apps
 ---
 
-![Deploy a Next.js app to your own server — next build, next start, no adapter](images/hero.png)
+![Deploy a Next.js app to your own server: next build, next start, no adapter](images/hero.png)
 
 # How to Deploy a Next.js App to Your Own Server
 
@@ -91,7 +91,7 @@ Connect GitHub over OAuth, paste your repository URL, pick the branch, and **Clo
 - **Node Version:** match what you build on locally. Node 20+ for a current Next.js.
 - **Install / Build / Start:** `npm ci`, then `npm run build` (which runs `next build`), then `npm start` (which runs `next start`).
 
-Hit **Pull & Deploy** and the build log streams live in the console. Got a database? Launch a managed one from **DBS → Launch Database** (Postgres, MySQL, MariaDB, MongoDB, Redis, or Elasticsearch), on the same box, backed up, reached over the local network. Run your migrations in the build step, for example `npx prisma migrate deploy`, so the schema exists before the app serves a request. More on that in [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/).
+Hit **Pull & Deploy** and the build log streams live in the console. Got a database? Launch a managed one from **DBS → Launch Database** (Postgres, MySQL, MariaDB, MongoDB, Redis, or Elasticsearch), on the same box, backed up, reached over the local network. Run your migrations in the build step, for example `npx prisma migrate deploy`, so the schema exists before the app serves a request. More on that in [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/). If you're standing up a separate Node API alongside this too, [the Next.js, Node, and PostgreSQL production architecture](https://www.kloudbean.com/blog/nextjs-node-postgres-production-architecture/) lays out how those three pieces sit together.
 
 ### The one env var rule that's specific to Next.js
 

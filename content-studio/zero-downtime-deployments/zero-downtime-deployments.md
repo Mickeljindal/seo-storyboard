@@ -136,7 +136,7 @@ However careful the deploy, sometimes the new version is just bad. Slow, wrong, 
 
 Blue-green gives the cleanest rollback there is: flip traffic to the environment that was live a minute ago. For rolling and everything else, rollback means redeploying the previous known-good build, which is why a deployment history that maps each deploy to a commit earns its keep. You pick the last green one and redeploy. Feature flags add another layer: ship code in a dormant state and turn it on later, so you kill a bad feature by flipping a flag instead of running a whole deploy.
 
-The uncomfortable part: rolling back code is easy, rolling back a destructive migration is not, because the data may already be gone. That's the second reason expand and contract matters. Every step is reversible right up until that final `DROP COLUMN`, so a bad release almost always rolls back at the code layer with the schema left alone. Plan the rollback before you deploy, not while the site is down.
+The uncomfortable part: rolling back code is easy, rolling back a destructive migration is not, because the data may already be gone. That's the second reason expand and contract matters. Every step is reversible right up until that final `DROP COLUMN`, so a bad release almost always rolls back at the code layer with the schema left alone. Plan the rollback before you deploy, not while the site is down, and if you want the order of operations spelled out, see [how to roll back a deployment safely without losing data](https://www.kloudbean.com/blog/roll-back-a-deployment-safely/).
 
 ## Do you actually need blue-green? An honest take
 

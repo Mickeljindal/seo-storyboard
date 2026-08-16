@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>5 Myths About Deploying FastAPI (and What's Actually True)</title>
-<meta name="description" content="FastAPI is fast and async, which spawns a lot of deploy myths — one worker is enough, you need Kubernetes, Uvicorn alone is production. Here's what's real, and how to actually ship it.">
+<meta name="description" content="FastAPI is fast and async, which spawns a lot of deploy myths: one worker is enough, you need Kubernetes, Uvicorn alone is production. Here's what's real, and how to actually ship it.">
 <meta name="author" content="Kloudbean">
 <link rel="canonical" href="https://www.kloudbean.com/blog/deploy-fastapi-app/">
 <meta property="og:type" content="article">
 <meta property="og:title" content="5 Myths About Deploying FastAPI (and What's Actually True)">
-<meta property="og:description" content="The five most common FastAPI deploy myths — async workers, Uvicorn, Kubernetes, blocking calls — replaced with what actually happens in production.">
+<meta property="og:description" content="The five most common FastAPI deploy myths (async workers, Uvicorn, Kubernetes, blocking calls) replaced with what actually happens in production.">
 <meta property="og:image" content="images/hero.png">
 <meta property="og:site_name" content="Kloudbean">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,7 +21,7 @@
   <span class="eyebrow">App deployment</span>
   <h1>5 Myths About Deploying FastAPI (and What's Actually True)</h1>
 
-  <figure><img src="images/hero.png" alt="Deploy a FastAPI app — Uvicorn workers on a real server, scaled sensibly"></figure>
+  <figure><img src="images/hero.png" alt="Deploy a FastAPI app: Uvicorn workers on a real server, scaled sensibly"></figure>
 
   <p class="lead">Everyone has a theory about how to deploy a FastAPI app, and a surprising number of them are folklore. FastAPI is fast, modern, and async, and that reputation quietly breeds bad advice: that "async" means one process can carry the world, that Uvicorn on its own is the finish line, that you need Kubernetes to run it seriously.</p>
   <p>None of those hold up. Believe them and you end up either over-engineering a simple API or watching it fall over the first time real traffic arrives. The root of almost every FastAPI myth is one word people don't fully unpack: <strong>ASGI</strong>. So before the myths, a minute on what ASGI actually changes about how you run the thing.</p>
@@ -188,7 +188,7 @@ async def users():
     <h3>Do I need Kubernetes to run FastAPI in production?</h3>
     <p>No. A single well-sized server with multiple workers handles a lot, and when you outgrow it you add servers behind a load balancer. Kubernetes is useful at large scale but is unnecessary complexity for most FastAPI apps.</p>
 
-    <h3>Does FastAPI's interactive <code>/docs</code> work once deployed?</h3>
+    <h3>Does FastAPI's interactive /docs work once deployed?</h3>
     <p>Yes. FastAPI generates Swagger UI at <code>/docs</code> and ReDoc at <code>/redoc</code> automatically. Once your app is live they're served at your domain with no extra configuration. You can disable them in production if you'd rather not expose the schema publicly.</p>
   </div>
 
@@ -197,7 +197,7 @@ async def users():
 
 <script type="application/ld+json">
 {"@context":"https://schema.org","@graph":[
-{"@type":"Article","headline":"5 Myths About Deploying FastAPI (and What's Actually True)","description":"The five most common FastAPI deploy myths — async workers, Uvicorn, Kubernetes, blocking calls — replaced with what actually happens in production.","image":"https://www.kloudbean.com/blog/deploy-fastapi-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/deploy-fastapi-app/"},
+{"@type":"Article","headline":"5 Myths About Deploying FastAPI (and What's Actually True)","description":"The five most common FastAPI deploy myths (async workers, Uvicorn, Kubernetes, blocking calls) replaced with what actually happens in production.","image":"https://www.kloudbean.com/blog/deploy-fastapi-app/images/hero.png","author":{"@type":"Organization","name":"Kloudbean","url":"https://www.kloudbean.com/"},"publisher":{"@type":"Organization","name":"Kloudbean","logo":{"@type":"ImageObject","url":"https://www.kloudbean.com/logo.png"}},"mainEntityOfPage":"https://www.kloudbean.com/blog/deploy-fastapi-app/"},
 {"@type":"FAQPage","mainEntity":[
 {"@type":"Question","name":"How do I deploy a FastAPI app?","acceptedAnswer":{"@type":"Answer","text":"Push it to GitHub, connect the repo, set the install command to pip install -r requirements.txt, and set the start command to uvicorn main:app --host 0.0.0.0 --port $PORT --workers 4. Add environment variables for your secrets and database, and deploy. It's the same flow as any Python app, with Uvicorn as the server."}},
 {"@type":"Question","name":"What is ASGI, and why does FastAPI need Uvicorn?","acceptedAnswer":{"@type":"Answer","text":"ASGI is the async server interface FastAPI is built on, the async counterpart to WSGI. It lets one worker handle many requests concurrently via an event loop. Uvicorn is an ASGI server that runs it. Gunicorn's plain workers are WSGI, so you either run Uvicorn directly or run Uvicorn worker processes under Gunicorn."}},

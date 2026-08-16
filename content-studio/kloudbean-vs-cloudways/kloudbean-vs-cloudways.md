@@ -48,7 +48,7 @@ This is the one line in the whole comparison that isn't a matter of taste. Cloud
 
 ### Languages: the whole ecosystem, not just PHP
 
-Cloudways is built around PHP, and WordPress and Laravel run well there. Kloudbean runs those too, and then keeps going: Node.js (Express, plus React, Vue, Angular front ends), Python (Django, Flask, FastAPI), Ruby, Java, static sites with free SSL, and one-click apps like n8n and Supabase. If your stack is a WordPress site plus a Node API plus a Python worker, you don't need three hosts. You need one that speaks all three.
+Cloudways is built around PHP, and WordPress and Laravel run well there. Kloudbean runs those too, and then keeps going: Node.js (Express, plus React, Vue, Angular front ends), Python (Django, Flask, FastAPI), Ruby, Java, static sites with free SSL, and one-click apps like n8n and Supabase. If your stack is a WordPress site plus a Node API plus a Python worker, you don't need three hosts. You need one that speaks all three. The full runtime list, the execution model, and the parts Kloudbean deliberately doesn't do are set out in [the technical reference for developers](https://www.kloudbean.com/blog/kloudbean-for-developers/).
 
 ### Managed data: six engines, standalone
 

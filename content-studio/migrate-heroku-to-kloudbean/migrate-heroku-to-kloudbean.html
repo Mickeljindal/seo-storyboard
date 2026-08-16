@@ -91,7 +91,7 @@ pg_dump "$(heroku config:get DATABASE_URL --app your-app-name)" -Fc -f heroku.du
 
 # Restore into the new managed database
 pg_restore --no-owner -d "postgres://user:pass@new-host:5432/appdb" heroku.dump</code></pre>
-  <p>Use <code>--no-owner</code> so the restore doesn't try to recreate Heroku's role names. Then verify before you trust it, count rows in your biggest tables on both sides:</p>
+  <p>Use <code>--no-owner</code> so the restore doesn't try to recreate Heroku's role names. If your app is on MySQL instead, or you want the charset and cutover gotchas in one place, the field guide to <a href="https://www.kloudbean.com/blog/database-migration-pg_dump-mysqldump/">database migration with pg_dump and mysqldump</a> covers both engines. Then verify before you trust it, count rows in your biggest tables on both sides:</p>
   <pre><code>psql "postgres://user:pass@new-host:5432/appdb" -c "SELECT count(*) FROM users;"</code></pre>
   <p>One thing worth planning for: database region. ReadMe's migration forced a MongoDB move between regions because of where the new platform ran, which added work nobody budgeted for. Put your app and database in the same region from the start and you avoid that latency tax entirely.</p>
 

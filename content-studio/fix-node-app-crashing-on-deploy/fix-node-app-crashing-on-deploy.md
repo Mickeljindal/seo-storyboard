@@ -18,7 +18,7 @@ Your dev machine is a very forgiving place. It has every dependency you've ever 
 ## The usual culprits, ranked
 
 1. **Missing environment variables.** The number-one cause. The app reads a config value that isn't set in production, and throws on boot. Set every required variable per environment, and fail loudly at startup if one is missing. See [environment variables done right](https://www.kloudbean.com/blog/environment-variables-done-right/).
-2. **Build or start command didn't run.** A `Cannot find module 'dist/index.js'` means the build never produced the output. Confirm the build runs on deploy and the start script points at real files. See [Cannot find module](https://www.kloudbean.com/blog/fix-cannot-find-module-node/).
+2. **Build or start command didn't run.** A `Cannot find module 'dist/index.js'` means the build never produced the output. Confirm the build runs on deploy and the start script points at real files. See [Cannot find module](https://www.kloudbean.com/blog/fix-cannot-find-module-node/), and if the app came out of an AI builder, check [what belongs in the build command versus the start command](https://www.kloudbean.com/blog/configure-build-and-start-command-ai-app/), because those two fields get swapped constantly.
 3. **Missing dependency in production.** A runtime package sitting in `devDependencies` is skipped by a production install. Move it to `dependencies`.
 4. **Case sensitivity on Linux.** `require("./User")` vs a file named `user.js` works on your Mac and fails on the Linux server. Match the case exactly.
 5. **Port binding.** The app hardcodes a port or ignores `process.env.PORT`, so it binds wrong or clashes. See [EADDRINUSE](https://www.kloudbean.com/blog/fix-eaddrinuse-port-already-in-use-node/).

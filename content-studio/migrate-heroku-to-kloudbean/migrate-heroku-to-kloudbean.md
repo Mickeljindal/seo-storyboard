@@ -78,7 +78,7 @@ pg_dump "$(heroku config:get DATABASE_URL --app your-app-name)" -Fc -f heroku.du
 pg_restore --no-owner -d "postgres://user:pass@new-host:5432/appdb" heroku.dump
 ```
 
-Use `--no-owner` so the restore doesn't try to recreate Heroku's role names. Then verify before you trust it, count rows in your biggest tables on both sides:
+Use `--no-owner` so the restore doesn't try to recreate Heroku's role names. If your app is on MySQL instead, or you want the charset and cutover gotchas in one place, the field guide to [database migration with pg_dump and mysqldump](https://www.kloudbean.com/blog/database-migration-pg_dump-mysqldump/) covers both engines. Then verify before you trust it, count rows in your biggest tables on both sides:
 
 ```bash
 psql "postgres://user:pass@new-host:5432/appdb" -c "SELECT count(*) FROM users;"

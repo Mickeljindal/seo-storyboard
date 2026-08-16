@@ -88,7 +88,7 @@ The flip side is just as real. Self-hosting isn't about the software being bette
 
 You choose where the data and credentials live. Self-hosting lets you put n8n on a server in a region you pick and keep those encrypted third-party keys on infrastructure you control. For a lot of teams, that alone is the reason.
 
-Your cost shape changes. A flat server doesn't care whether you run ten workflows or ten thousand, so as execution volume grows, the bill is bounded by your server rather than a per-execution plan. It behaves more like a fixed line than a meter that keeps nudging up.
+Your cost shape changes. A flat server doesn't care whether you run ten workflows or ten thousand, so as execution volume grows, the bill is bounded by your server rather than a per-execution plan. It behaves more like a fixed line than a meter that keeps nudging up. That matters most when someone else's work drives the volume, which is the central economics problem in [starting an AI automation agency](https://www.kloudbean.com/blog/start-an-ai-automation-agency/): you bill a client a flat monthly fee while their workflows decide how many executions you pay for.
 
 You control the stack. Your versions, your config, your tuning, on a box you can see and reason about. And there's no lock-in worth the name, because it's the open-source edition you can move whenever you want. The same cloud-versus-self-host call shows up for other open tools too, and the reasoning carries over cleanly to [self-hosted Supabase vs Supabase Cloud](https://www.kloudbean.com/blog/self-hosted-supabase-vs-supabase-cloud/) if you're weighing more than one.
 

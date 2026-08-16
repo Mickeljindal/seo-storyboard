@@ -48,7 +48,7 @@ date +%s
 
 To be clear about what this does: it decodes the payload without verifying the signature, so it tells you what the token claims rather than whether the token is trustworthy. That is exactly what you want when debugging expiry, and it is not a security check.
 
-If the token is expired, the real question is why your refresh logic did not renew it. A 401 arriving in production for a token that should have been refreshed is a bug in the refresh path, not a token problem, and re-issuing by hand hides it until next time.
+If the token is expired, the real question is why your refresh logic did not renew it. A 401 arriving in production for a token that should have been refreshed is a bug in the refresh path, not a token problem, and re-issuing by hand hides it until next time. That refresh path is worth designing once rather than patching under pressure, which is what [this practical guide to JWT authentication in Node and Python](https://www.kloudbean.com/blog/jwt-authentication-guide/) works through.
 
 ## Step 3: clock skew, the one that makes no sense
 
@@ -84,7 +84,7 @@ curl -sv http://127.0.0.1:3000/v1/me -H "Authorization: Bearer $TOKEN" 2>&1 | gr
 curl -sv https://api.example.com/v1/me -H "Authorization: Bearer $TOKEN" 2>&1 | grep -i "^< HTTP"
 ```
 
-A 200 from the first and a 401 from the second localises the problem to the proxy in one step. Our [nginx reverse proxy guide](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/) covers the forwarding configuration in full.
+A 200 from the first and a 401 from the second localises the problem to the proxy in one step. Our [nginx reverse proxy guide](https://www.kloudbean.com/blog/nginx-reverse-proxy-for-node/) covers the forwarding configuration in full. One thing to read carefully in that output: if the status is 407 rather than 401, the proxy is not passing your request along at all, it is [demanding proxy credentials of its own](https://www.kloudbean.com/blog/407-proxy-authentication-required/), which is a different fix entirely.
 
 ## Step 5: right token, wrong environment
 

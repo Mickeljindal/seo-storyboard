@@ -10,7 +10,7 @@ secondary_keywords:
   - Cursor app hosting
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 1 — Deploy AI / Vibe-Coded Apps
+cluster: 1 - Deploy AI / Vibe-Coded Apps
 ---
 
 ![From Cursor to production: deploying a Cursor-built app on a server you own](images/hero.png)
@@ -113,7 +113,7 @@ The migration part is the step people skip, and then they hit "relation does not
 npm ci && npx prisma generate && npx prisma migrate deploy && npm run build
 ```
 
-Use `migrate deploy`, not `migrate dev`. The `dev` variant is interactive and can try to reset the database, which is not what you want anywhere near production. Kloudbean runs six managed engines (Postgres, MySQL, MariaDB, Redis, MongoDB, Elasticsearch), so if your app already speaks Mongo or MySQL you're not forced to rewrite it. More on the setup in [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) and the [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) guide.
+Use `migrate deploy`, not `migrate dev`. The `dev` variant is interactive and can try to reset the database, which is not what you want anywhere near production. Kloudbean runs seven managed engines (Postgres, MySQL, MariaDB, Redis, Memcached, MongoDB, Elasticsearch), so if your app already speaks Mongo or MySQL you're not forced to rewrite it. More on the setup in [adding a managed database to your app](https://www.kloudbean.com/blog/add-managed-database-to-your-app/) and the [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) guide.
 
 <!-- ADD IMAGE: Terminal running `npx prisma migrate deploy`, creating tables on the managed database. -->
 
@@ -176,7 +176,7 @@ Built a **separate frontend and backend**, say a Vite React SPA and a standalone
 
 ## Do you actually need Docker for this?
 
-No. Not for a single Cursor app. A Dockerfile and a Kubernetes cluster solve problems you don't have yet: fleets of services, teams shipping in parallel, orchestration across many machines. Your app is a Node process. A managed server runs it directly, restarts it if it falls over, and gets out of the way. If you're ever running dozens of services and need real orchestration, that's an enterprise conversation and a different article. For getting your Cursor build in front of users this week, containers are ceremony you can skip.
+No. Not for a single Cursor app. A Dockerfile and a Kubernetes cluster solve problems you don't have yet: fleets of services, teams shipping in parallel, orchestration across many machines. Your app is a Node process. A managed server runs it directly, restarts it if it falls over, and gets out of the way. If you're ever running dozens of services and need real orchestration, that's an enterprise conversation and a different article. Docker does earn its place once you have fiddly system dependencies or a team that needs identical environments, and [where the Docker line actually falls for an AI-built app](https://www.kloudbean.com/blog/do-i-need-docker-to-deploy-an-ai-app/) walks through those cases. For getting your Cursor build in front of users this week, containers are ceremony you can skip.
 
 ## When it still won't go green
 
@@ -186,7 +186,7 @@ First deploy shows a **503**? The process didn't start. Nine times out of ten it
 /home/admin/hosted-sites/<app_system_user>/app-logs/app.error.log
 ```
 
-Open it in the File Manager or over SSH. One less obvious cause with AI-built TypeScript projects: the build fails because the tools it needs (the TypeScript compiler, Vite, Tailwind) are in `devDependencies`, and something set `NODE_ENV=production` before install, so `npm` skipped them. Either move the build-time tools where they belong or make sure install runs before that variable is set. There's also `sudo adm`, the deploy utility, which runs the whole build-and-ship in one command over SSH. The full 503 playbook is [here](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
+Open it in the File Manager or over SSH. One less obvious cause with AI-built TypeScript projects: the build fails because the tools it needs (the TypeScript compiler, Vite, Tailwind) are in `devDependencies`, and something set `NODE_ENV=production` before install, so `npm` skipped them. Either move the build-time tools where they belong or make sure install runs before that variable is set. Cheapest way to catch this class of failure before the server does: clone your repo into an empty folder and build it there, which is exactly the test behind [whether an AI editor project builds from a clean clone](https://www.kloudbean.com/blog/deploy-windsurf-app/). There's also `sudo adm`, the deploy utility, which runs the whole build-and-ship in one command over SSH. The full 503 playbook is [here](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/).
 
 <!-- ADD IMAGE: app.error.log open in the File Manager, showing the missing-variable line behind the 503. -->
 

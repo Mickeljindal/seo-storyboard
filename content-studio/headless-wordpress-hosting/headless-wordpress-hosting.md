@@ -98,7 +98,7 @@ query {
 }
 ```
 
-Neither is "better." REST is zero-setup and dead simple. GraphQL is more efficient when your pages pull lots of related data. Start with REST unless you already know your pages are query-heavy. For the full how-to on endpoints, auth, and custom fields, the [WordPress REST API guide](https://www.kloudbean.com/blog/wp-rest-api-guide/) is the reference; this piece is the architecture and hosting decision that sits above it.
+Neither is "better." REST is zero-setup and dead simple. GraphQL is more efficient when your pages pull lots of related data. Start with REST unless you already know your pages are query-heavy, and if you want the argument outside a WordPress context, [the honest GraphQL versus REST comparison](https://www.kloudbean.com/blog/graphql-vs-rest/) covers caching and complexity in more depth. For the full how-to on endpoints, auth, and custom fields, the [WordPress REST API guide](https://www.kloudbean.com/blog/wp-rest-api-guide/) is the reference; this piece is the architecture and hosting decision that sits above it.
 
 <!-- ADD IMAGE: the WPGraphQL explorer running a query against your content, or the REST response in a browser at /wp-json/. -->
 

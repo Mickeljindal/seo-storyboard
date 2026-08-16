@@ -101,7 +101,7 @@
   </figure>
 
   <h2>First steps with the PM2 process manager: <code>pm2 start</code></h2>
-  <p>PM2 installs from npm and becomes the thing that owns your process. Global install, then hand it your entry file:</p>
+  <p>PM2 installs from npm and becomes the thing that owns your process. Global install, then hand it your entry file. One warning about that global install: it lands in whatever npm prefix your interactive shell uses, so a deploy script or cron job running under a different environment can install fine and still report <code>pm2: command not found</code>, which is nearly always <a href="https://www.kloudbean.com/blog/fix-pm2-not-found-after-deploy/">a PATH problem rather than a missing install</a>.</p>
 <pre><code>npm install -g pm2
 
 # start your app under PM2 (single process)
@@ -200,7 +200,7 @@ process.send &amp;&amp; process.send('ready');</code></pre>
 pm2 logs api            # just this app, both streams
 pm2 logs api --lines 200
 pm2 flush               # truncate the log files when they get noisy</code></pre>
-  <p>There's a trap: by default those log files grow forever, and a full disk takes your app down with them. I've seen a healthy app "mysteriously" die that was really a PM2 log filling the root partition. Install the rotation module once and forget it:</p>
+  <p>There's a trap: by default those log files grow forever, and a full disk takes your app down with them. I've seen a healthy app "mysteriously" die that was really a PM2 log filling the root partition, which is one of the first places to look when you're <a href="https://www.kloudbean.com/blog/fix-out-of-disk-space-server/">tracking down what filled a server's disk</a>. Install the rotation module once and forget it:</p>
 <pre><code>pm2 install pm2-logrotate</code></pre>
   <p><strong>Memory.</strong> Long-running Node processes tend to creep upward. <code>max_memory_restart: '300M'</code> tells PM2 to recycle a worker once it crosses that line. It's a seatbelt, not a fix: it stops a leak from dragging the box down and buys time, but go find the leak. In cluster mode PM2 recycles one worker at a time, so the app stays up.</p>
   <p><strong>Watching live.</strong> <code>pm2 monit</code> gives you a terminal dashboard with per-process CPU and memory, the fastest way to catch a worker misbehaving or confirm every core is pulling weight.</p>

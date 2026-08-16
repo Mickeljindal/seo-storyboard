@@ -66,7 +66,7 @@ To be fair, there are real reasons to split, and when one of these is true you s
 
 **Separate teams ship on separate schedules.** A front-end team pushing several times a day and a back-end team releasing weekly will step on each other in a single deploy. Independent deploys let each side move at its own pace with its own pipeline. This is an organizational reason, not a technical one, and it is completely valid.
 
-**The stacks are clearly different.** A Python machine-learning back end and a Node server-side-rendered front end do not share a build or a runtime cleanly. When the two sides have little in common, separate servers stop being overhead and start being honest. If your back end is really turning into several services, that is a different question, covered in [do I need microservices for my SaaS](https://www.kloudbean.com/blog/do-i-need-microservices-for-my-saas/).
+**The stacks are clearly different.** A Python machine-learning back end and a Node server-side-rendered front end do not share a build or a runtime cleanly. When the two sides have little in common, separate servers stop being overhead and start being honest. The common version of that pairing is written up in [the Next.js, FastAPI, and PostgreSQL production architecture](https://www.kloudbean.com/blog/nextjs-fastapi-postgres-production-architecture/), which shows where each piece runs once you do split. If your back end is really turning into several services, that is a different question, covered in [do I need microservices for my SaaS](https://www.kloudbean.com/blog/do-i-need-microservices-for-my-saas/).
 
 Notice what is not on that list: "it feels more professional," "big companies do it," or "the diagram had two boxes." Those are not reasons. They are vibes.
 

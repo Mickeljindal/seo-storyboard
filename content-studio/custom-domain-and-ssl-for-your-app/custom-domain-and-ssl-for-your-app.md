@@ -1,7 +1,7 @@
 ---
 title: "How to Add a Custom Domain and Free SSL to Your App"
 slug: custom-domain-and-ssl-for-your-app
-meta_description: "The DNS-to-HTTPS path for a custom domain and SSL for an app: point DNS, issue a free Let's Encrypt certificate, force HTTPS — and why the cert sometimes won't issue (it's almost always DNS)."
+meta_description: "The DNS-to-HTTPS path for a custom domain and SSL for an app: point DNS, issue a free Let's Encrypt certificate, force HTTPS, and why the cert sometimes won't issue (it's almost always DNS)."
 target_keyword: custom domain and SSL for app
 secondary_keywords:
   - point domain to app
@@ -10,10 +10,10 @@ secondary_keywords:
   - DNS for web app
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 1 — Deploy AI / Vibe-Coded Apps
+cluster: 1 - Deploy AI / Vibe-Coded Apps
 ---
 
-![Add a custom domain and free SSL to your app — your domain, the HTTPS padlock, done](images/hero.png)
+![Add a custom domain and free SSL to your app: your domain, the HTTPS padlock, done](images/hero.png)
 
 # How to Add a Custom Domain and Free SSL to Your App
 
@@ -25,7 +25,7 @@ Your app works. It's just living at a temporary address like `something.kloudbea
 
 Most guides hand you a checklist and skip the one idea that prevents the frustration: this is a pipeline with a required order. Each stage depends on the one before it finishing. Skip ahead, and the stage you jumped to fails, not because you did it wrong, but because its prerequisite wasn't done yet. Here's the whole path, and the gotcha waiting at each step.
 
-<!-- DIAGRAM: the DNS-to-SSL flow in five stages — add DNS records, DNS propagates, ACME challenge validates, certificate issued, HTTPS live and auto-renews — with a gotcha at each: www vs apex (add both, redirect one); the wait is real (minutes to hours); the #1 reason a cert won't issue is DNS not pointing at the server yet; check for a CAA record blocking Let's Encrypt; mixed content means load every asset over https. Caption: point DNS first, the certificate can only issue once the name resolves to your server. -->
+<!-- DIAGRAM: the DNS-to-SSL flow in five stages (add DNS records, DNS propagates, ACME challenge validates, certificate issued, HTTPS live and auto-renews), with a gotcha at each: www vs apex (add both, redirect one); the wait is real (minutes to hours); the #1 reason a cert won't issue is DNS not pointing at the server yet; check for a CAA record blocking Let's Encrypt; mixed content means load every asset over https. Caption: point DNS first, the certificate can only issue once the name resolves to your server. -->
 
 ## Stage 1: point your domain at the server
 
@@ -79,7 +79,7 @@ There are narrow cases for paid certificates: an OV or EV certificate that valid
 
 ## Where custom domain and SSL setups actually break
 
-Almost every problem here is one of four, and none is a dead end. It's the ordinary friction of DNS and certificates, and it clears with the right record and a little patience.
+Almost every problem here is one of four, and none is a dead end. It's the ordinary friction of DNS and certificates, and it clears with the right record and a little patience. If DNS and the certificate are both fine and the *app* is what started misbehaving on the new address, that's a separate class of problem: [why an app breaks after you add a custom domain](https://www.kloudbean.com/blog/why-ai-app-breaks-after-custom-domain/) covers the hard-coded URLs, CORS origins, and OAuth callbacks still pointing at the old one.
 
 - **The domain won't load.** Almost always propagation. Confirm the A record points to the correct server IP, then give it time.
 - **The certificate won't issue.** DNS hasn't propagated so the ACME challenge can't confirm control, or a CAA record is blocking Let's Encrypt. Confirm the domain resolves to your server, check for a CAA record, then request again.
@@ -113,7 +113,7 @@ Anywhere from a few minutes to a few hours, occasionally longer. It's inherent t
 **Should I use www or the bare domain?**
 Either is fine. Just pick one as primary and redirect the other to it so your site isn't split across two addresses. Add both in Domain Aliases, choose a canonical one, and redirect the other.
 
-**My padlock shows "Not Secure" even with a certificate. Why?**
+**My padlock shows Not Secure even with a certificate. Why?**
 That's usually mixed content: the page loads over HTTPS but pulls an asset (an image, script, or stylesheet) over plain `http://`. Find the hard-coded `http://` reference in your code and switch it to `https://`, and the warning clears.
 
-By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.
+By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale. Faster Than Ever.

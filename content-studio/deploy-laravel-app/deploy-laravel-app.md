@@ -1,7 +1,7 @@
 ---
 title: "Deploy a Laravel App the Right Way (Queues and All)"
 slug: deploy-laravel-app
-meta_description: "Deploy a Laravel app the right way: the artisan production sequence (config:cache, migrate --force, storage:link) plus the queue worker and scheduler most guides skip — on a managed server you own."
+meta_description: "Deploy a Laravel app the right way: the artisan production sequence (config:cache, migrate --force, storage:link) plus the queue worker and scheduler most guides skip, on a managed server you own."
 target_keyword: deploy laravel app
 secondary_keywords:
   - best laravel hosting
@@ -10,10 +10,10 @@ secondary_keywords:
   - host laravel app
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 3 — App Deployment Tutorials
+cluster: 3 - App Deployment Tutorials
 ---
 
-![Deploy a Laravel app — the web app, the queue worker, and the scheduler, all on one server](images/hero.png)
+![Deploy a Laravel app: the web app, the queue worker, and the scheduler, all on one server](images/hero.png)
 
 # Deploy a Laravel App the Right Way (Queues and All)
 
@@ -144,7 +144,7 @@ Below the app, the server's own logs sit at `/home/admin/hosted-sites/<app_syste
 
 ## What you run, what Kloudbean runs
 
-Laravel is a PHP app, and PHP on Linux is exactly what a managed server runs, so nothing here is a workaround. Kloudbean keeps the box healthy: the PHP runtime, PHP-FPM and the web server, free SSL, the firewall, and server-level backups, on whichever of its seven clouds you pick. You own the Laravel app: its `.env`, its migrations, the queue worker, the scheduled tasks. Clean split, and it's the arrangement most PHP teams actually want. (If your app were .NET on IIS, this wouldn't be your platform. For PHP and Laravel, it's home turf.) Building elsewhere in your stack too? The Python sibling is [deploy a Django app](https://www.kloudbean.com/blog/deploy-django-app/), and the Node path is [deploy a Node app](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/).
+Laravel is a PHP app, and PHP on Linux is exactly what a managed server runs, so nothing here is a workaround. Kloudbean keeps the box healthy: the PHP runtime, PHP-FPM and the web server, free SSL, the firewall, and server-level backups, on whichever of its seven clouds you pick. You own the Laravel app: its `.env`, its migrations, the queue worker, the scheduled tasks. Clean split, and it's the arrangement most PHP teams actually want. (If your app were .NET on IIS, this wouldn't be your platform. For PHP and Laravel, it's home turf.) Building elsewhere in your stack too? The Python sibling is [deploy a Django app](https://www.kloudbean.com/blog/deploy-django-app/), and the Node path is [deploy a Node app](https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/). If your next project is Symfony rather than Laravel, the three-process shape carries straight over, except the background half is [Symfony's Messenger workers in production](https://www.kloudbean.com/blog/deploy-symfony-app/) instead of artisan queues.
 
 **Web, queue, and scheduler. All accounted for.** Deploy your Laravel app on a server you own at [kloudbean.com](https://www.kloudbean.com/). Managed MySQL & Redis · Automatic backups · Free Let's Encrypt SSL · Staging · Git deploy · Free migration · Free trial. Server sizes are on [pricing](https://www.kloudbean.com/pricing/).
 

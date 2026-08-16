@@ -78,7 +78,7 @@ location /api/upload {
 
 **Mistake two: reloading and expecting the app limit to have moved.** nginx and your runtime are separate. After nginx accepts the larger body, the next ceiling in the table takes its turn, and you get a 413 again from a different layer. That is not the fix failing. That is the next ceiling, and it is why this error often takes two rounds.
 
-Setting `client_max_body_size 0` disables the check. It is occasionally the right call on an internal service, and it is a poor default on anything public, because the limit is what stops an unauthenticated request from filling your disk.
+Setting `client_max_body_size 0` disables the check. It is occasionally the right call on an internal service, and it is a poor default on anything public, because the limit is what stops an unauthenticated request from filling your disk. A body that does clear the limit is still buffered on its way to your app, which is where [the nginx 413 and client_body_buffer_size together](https://www.kloudbean.com/blog/fix-nginx-413-request-entity-too-large/) matter: past a certain size nginx spools the request to a temp file before your app ever reads it.
 
 ## The PHP trap: two limits that must move together
 

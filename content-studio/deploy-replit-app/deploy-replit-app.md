@@ -10,10 +10,10 @@ secondary_keywords:
   - host Replit app own server
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 1 — Deploy AI / Vibe-Coded Apps
+cluster: 1 - Deploy AI / Vibe-Coded Apps
 ---
 
-![Deploy a Replit app — migrating Replit DB, Secrets, Auth, and Always-On onto a server you own](images/hero.png)
+![Deploy a Replit app: migrating Replit DB, Secrets, Auth, and Always-On onto a server you own](images/hero.png)
 
 # Deploy a Replit App to Your Own Server: the Migration Map
 
@@ -29,7 +29,7 @@ On Replit, a pile of managed services sit under your code, and your code calls t
 
 None of that exists on a plain Linux server, which is the point of owning one. So each convenience becomes a standard equivalent you control. The code is the easy 90%. The last 10%, the Replit-specific glue, is the actual job. Miss one piece and you get the classic half-migration: the app boots fine, then can't reach its data, because it's still looking for a database that only lived on Replit.
 
-<!-- ADD IMAGE: original SVG migration map — Replit pieces (Replit DB, Secrets, Replit Auth, .replit/replit.nix, Always-On) on the left mapping to standard equivalents (managed Redis/Postgres, env vars, your own auth, start command + runtime, always-on process) on the right -->
+<!-- ADD IMAGE: original SVG migration map, Replit pieces (Replit DB, Secrets, Replit Auth, .replit/replit.nix, Always-On) on the left mapping to standard equivalents (managed Redis/Postgres, env vars, your own auth, start command + runtime, always-on process) on the right -->
 
 ## The pieces, side by side
 

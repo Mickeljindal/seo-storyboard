@@ -222,7 +222,7 @@ sudo systemctl reload ssh</code></pre>
   <figure class="img-slot"><span><b>Add image</b><em>An authorized_keys file with one clearly commented key per teammate, so ownership is obvious at a glance.</em><small>Shows the one-key-per-person habit in practice.</small></span></figure>
 
   <h3>When SSH says Permission denied (publickey)</h3>
-  <p>The error everyone hits, a catch-all for the server turning your key away. Run <code>ssh -v user@server</code> and read what it tries. Then the usual suspects, roughly by frequency:</p>
+  <p>The error everyone hits, a catch-all for the server turning your key away. Run <code>ssh -v user@server</code> and read what it tries. Then the usual suspects, roughly by frequency, and if none of them match, the longer breakdown of <a href="https://www.kloudbean.com/blog/fix-permission-denied-publickey/">how to fix SSH key rejection</a> works through the rarer causes, like a key type newer OpenSSH refuses or a Git host rejecting the same way:</p>
   <ul>
     <li><strong>Wrong key offered.</strong> Confirm the right one with <code>ssh-add -l</code>, then pin it in <code>~/.ssh/config</code> with <code>IdentityFile</code> and <code>IdentitiesOnly yes</code>.</li>
     <li><strong>Agent not running.</strong> If <code>ssh-add -l</code> says the agent has no identities, start it and re-add the key from step four.</li>

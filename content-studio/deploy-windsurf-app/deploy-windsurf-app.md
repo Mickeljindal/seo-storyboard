@@ -10,10 +10,10 @@ secondary_keywords:
   - Windsurf Cascade deploy
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 1 — Deploy AI / Vibe-Coded Apps
+cluster: 1, Deploy AI / Vibe-Coded Apps
 ---
 
-![Deploy a Windsurf app — proving the build is reproducible before shipping to a server you own](images/hero.png)
+![Deploy a Windsurf app: proving the build is reproducible before shipping to a server you own](images/hero.png)
 
 # Deploy a Windsurf App: Does It Build From a Clean Clone?
 
@@ -25,7 +25,7 @@ So the question that actually predicts a clean deploy isn't "does it run for me?
 
 ## Why "it works in Cascade" isn't the same as deploying a Windsurf app
 
-Cascade is powerful because it doesn't just suggest code, it acts. It installs packages, runs migrations, generates files, and edits across your project without waiting for you to type each command. Genuinely useful. The side effect is that your working directory slowly fills with state that isn't fully captured by what's committed to Git. A dependency the agent installed but never added to `package.json`. A build artifact sitting untracked. A tool that happens to be on your `PATH`.
+Cascade is powerful because it doesn't just suggest code, it acts. It installs packages, runs migrations, generates files, and edits across your project without waiting for you to type each command. Genuinely useful. The side effect is that your working directory slowly fills with state that isn't fully captured by what's committed to Git. A dependency the agent installed but never added to `package.json`. A build artifact sitting untracked. A tool that happens to be on your `PATH`. Every agentic tool leaves some version of this residue, which is why the first job when you [deploy a Claude Code app](https://www.kloudbean.com/blog/deploy-claude-code-app/) is reading the diff the agent left behind.
 
 When you run the app locally, all of that invisible state is present, so it works. A server has none of it. It clones your repository into an empty directory and builds from exactly what's committed, nothing more. That's the whole gap in one sentence: local success proves the app runs in your accumulated environment, not that a clean machine can rebuild it. Reproduce it on your own terms first, or the server will do it for you at the worst moment.
 

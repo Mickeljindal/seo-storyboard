@@ -17,7 +17,7 @@ Look at the name in the error. `Cannot find module 'express'` (no slash, no dot)
 
 ## Package not found: the dependencies trap
 
-If a package is missing, the obvious first move is to install it. Confirm it's actually there:
+If a package is missing, the obvious first move is to install it, assuming the install actually completes. An install that aborts with `npm ERR! ERESOLVE` leaves `node_modules` exactly as empty as it was, so [reading the peer dependency conflict npm reports](https://www.kloudbean.com/blog/fix-npm-err-peer-dep/) comes before anything else. Otherwise, confirm the package is really there:
 
 ```bash
 # Is the package installed and at what version?
@@ -108,19 +108,19 @@ GitHub deploys · Live build logs · Consistent Linux builds · Always-on Node �
 
 ## FAQ
 
-**Why does Node say "Cannot find module" when the package is installed?**
+**Why does Node say Cannot find module when the package is installed?**
 Usually because it's installed as a `devDependency` but needed at runtime, so a production install that skips dev dependencies drops it. It can also be a version or workspace mismatch. Run `npm ls <name>` to confirm what's actually installed, and move any runtime package into `dependencies`.
 
-**Why does my app work locally but throw "Cannot find module" on the server?**
+**Why does my app work locally but throw Cannot find module on the server?**
 The most common reason is case sensitivity. macOS and Windows ignore filename case, but Linux doesn't, so importing `./User` as `./user` works on your machine and fails on the server. Match the import to the file's exact case. A build step that didn't run on the server is the other frequent cause.
 
-**How do I fix "Cannot find module" with a relative path?**
+**How do I fix Cannot find module with a relative path?**
 Check three things: that the path is correct, that the filename case matches exactly, and, if you're using ES modules, that you included the `.js` extension. ESM requires the extension, so `./routes/user` must be `./routes/user.js`. Fixing the case and the extension clears most relative-path failures.
 
 **Do I need a file extension in Node imports?**
 With ES modules, yes, relative imports need the explicit extension like `.js`. With CommonJS `require`, the extension is optional. If you switched a project to `"type": "module"` and imports started failing, missing extensions are almost certainly why.
 
-**How do I fix "Cannot find module 'dist/index.js'"?**
+**How do I fix Cannot find module dist/index.js?**
 That path is build output, so the error means the build didn't produce it. Run your build (for TypeScript, `tsc` or your build script) before starting, confirm `dist` exists, and make sure `package.json` `main` and the start script point at the real compiled file. On a fresh server the build must run as part of the deploy.
 
 **Should I commit node_modules to fix this?**

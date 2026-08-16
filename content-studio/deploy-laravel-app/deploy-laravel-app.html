@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Deploy a Laravel App the Right Way (Queues and All)</title>
-<meta name="description" content="Deploy a Laravel app the right way: the artisan production sequence (config:cache, migrate --force, storage:link) plus the queue worker and scheduler most guides skip — on a managed server you own.">
+<meta name="description" content="Deploy a Laravel app the right way: the artisan production sequence (config:cache, migrate --force, storage:link) plus the queue worker and scheduler most guides skip, on a managed server you own.">
 <meta name="author" content="Kloudbean">
 <link rel="canonical" href="https://www.kloudbean.com/blog/deploy-laravel-app/">
 <meta property="og:type" content="article">
@@ -21,7 +21,7 @@
   <span class="eyebrow">App deployment</span>
   <h1>Deploy a Laravel App the Right Way (Queues and All)</h1>
 
-  <figure><img src="images/hero.png" alt="Deploy a Laravel app — the web app, the queue worker, and the scheduler, all on one server"></figure>
+  <figure><img src="images/hero.png" alt="Deploy a Laravel app: the web app, the queue worker, and the scheduler, all on one server"></figure>
 
   <p class="lead">So you're ready to deploy a Laravel app to production. The tricky part isn't the web page. It's that a real Laravel app is rarely one process. It's usually three running side by side: the web app served by PHP-FPM, a <strong>queue worker</strong> grinding through background jobs, and a <strong>scheduler</strong> firing tasks on a timer.</p>
   <p>Get the site live and forget the other two, and the bugs are quiet ones. Password-reset emails never arrive. That CSV export spins forever. The nightly cleanup job just doesn't run, and nobody notices for a week. This guide walks the whole deploy, the artisan production sequence included, so all three come up together.</p>
@@ -198,7 +198,7 @@ SESSION_DRIVER=redis</code></pre>
   <p>Below the app, the server's own logs sit at <code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/app.error.log</code>. Read that before you start changing code on a hunch. The full walkthrough for a stubborn one is <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">fixing a 503 after deploying your app</a>.</p>
 
   <h2>What you run, what Kloudbean runs</h2>
-  <p>Laravel is a PHP app, and PHP on Linux is exactly what a managed server runs, so nothing here is a workaround. Kloudbean keeps the box healthy: the PHP runtime, PHP-FPM and the web server, free SSL, the firewall, and server-level backups, on whichever of its seven clouds you pick. You own the Laravel app: its <code>.env</code>, its migrations, the queue worker, the scheduled tasks. Clean split, and it's the arrangement most PHP teams actually want. (If your app were .NET on IIS, this wouldn't be your platform. For PHP and Laravel, it's home turf.) Building elsewhere in your stack too? The Python sibling is <a href="https://www.kloudbean.com/blog/deploy-django-app/">deploy a Django app</a>, and the Node path is <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploy a Node app</a>.</p>
+  <p>Laravel is a PHP app, and PHP on Linux is exactly what a managed server runs, so nothing here is a workaround. Kloudbean keeps the box healthy: the PHP runtime, PHP-FPM and the web server, free SSL, the firewall, and server-level backups, on whichever of its seven clouds you pick. You own the Laravel app: its <code>.env</code>, its migrations, the queue worker, the scheduled tasks. Clean split, and it's the arrangement most PHP teams actually want. (If your app were .NET on IIS, this wouldn't be your platform. For PHP and Laravel, it's home turf.) Building elsewhere in your stack too? The Python sibling is <a href="https://www.kloudbean.com/blog/deploy-django-app/">deploy a Django app</a>, and the Node path is <a href="https://www.kloudbean.com/blog/deploy-node-app-to-managed-cloud/">deploy a Node app</a>. If your next project is Symfony rather than Laravel, the three-process shape carries straight over, except the background half is <a href="https://www.kloudbean.com/blog/deploy-symfony-app/">Symfony's Messenger workers in production</a> instead of artisan queues.</p>
 
   <div class="cta">
     <p style="margin:0 0 .4em; font-weight:600; font-size:20px">Web, queue, and scheduler. All accounted for.</p>

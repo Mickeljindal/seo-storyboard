@@ -38,7 +38,7 @@
   <p>Look at the name in the error. <code>Cannot find module 'express'</code> (no slash, no dot) is a <strong>package</strong> that Node expected in <code>node_modules</code>. <code>Cannot find module './routes/user'</code> (starts with a dot) is a <strong>file</strong> in your own code. That single distinction splits the whole problem in two. Everything below follows from it.</p>
 
   <h2>Package not found: the dependencies trap</h2>
-  <p>If a package is missing, the obvious first move is to install it. Confirm it's actually there:</p>
+  <p>If a package is missing, the obvious first move is to install it, assuming the install actually completes. An install that aborts with <code>npm ERR! ERESOLVE</code> leaves <code>node_modules</code> exactly as empty as it was, so <a href="https://www.kloudbean.com/blog/fix-npm-err-peer-dep/">reading the peer dependency conflict npm reports</a> comes before anything else. Otherwise, confirm the package is really there:</p>
   <pre><code># Is the package installed and at what version?
 npm ls express
 
@@ -114,19 +114,19 @@ node dist/index.js
 
   <h2>FAQ</h2>
   <div class="faq">
-    <h3>Why does Node say "Cannot find module" when the package is installed?</h3>
+    <h3>Why does Node say Cannot find module when the package is installed?</h3>
     <p>Usually because it's installed as a <code>devDependency</code> but needed at runtime, so a production install that skips dev dependencies drops it. It can also be a version or workspace mismatch. Run <code>npm ls &lt;name&gt;</code> to confirm what's actually installed, and move any runtime package into <code>dependencies</code>.</p>
 
-    <h3>Why does my app work locally but throw "Cannot find module" on the server?</h3>
+    <h3>Why does my app work locally but throw Cannot find module on the server?</h3>
     <p>The most common reason is case sensitivity. macOS and Windows ignore filename case, but Linux doesn't, so importing <code>./User</code> as <code>./user</code> works on your machine and fails on the server. Match the import to the file's exact case. A build step that didn't run on the server is the other frequent cause.</p>
 
-    <h3>How do I fix "Cannot find module" with a relative path?</h3>
+    <h3>How do I fix Cannot find module with a relative path?</h3>
     <p>Check three things: that the path is correct, that the filename case matches exactly, and, if you're using ES modules, that you included the <code>.js</code> extension. ESM requires the extension, so <code>./routes/user</code> must be <code>./routes/user.js</code>. Fixing the case and the extension clears most relative-path failures.</p>
 
     <h3>Do I need a file extension in Node imports?</h3>
     <p>With ES modules, yes, relative imports need the explicit extension like <code>.js</code>. With CommonJS <code>require</code>, the extension is optional. If you switched a project to <code>"type": "module"</code> and imports started failing, missing extensions are almost certainly why.</p>
 
-    <h3>How do I fix "Cannot find module 'dist/index.js'"?</h3>
+    <h3>How do I fix Cannot find module dist/index.js?</h3>
     <p>That path is build output, so the error means the build didn't produce it. Run your build (for TypeScript, <code>tsc</code> or your build script) before starting, confirm <code>dist</code> exists, and make sure <code>package.json</code> <code>main</code> and the start script point at the real compiled file. On a fresh server the build must run as part of the deploy.</p>
 
     <h3>Should I commit node_modules to fix this?</h3>

@@ -148,7 +148,7 @@ A NocoDB instance is a window onto real data, so treat it like one. None of this
 
 ## Point NocoDB at databases you already run
 
-This is where NocoDB earns its keep. Once it's live, open the base settings and add a data source pointing at one of your existing managed databases. NocoDB introspects the tables and gives you an instant spreadsheet UI over them, editable grids, forms, and views, without touching your schema. Give it a scoped database user so non-technical editors can browse and update rows while the credentials stay narrow. It's the fastest way to hand a friendly interface to a database that only had a psql prompt before.
+This is where NocoDB earns its keep. Once it's live, open the base settings and add a data source pointing at one of your existing managed databases. NocoDB introspects the tables and gives you an instant spreadsheet UI over them, editable grids, forms, and views, without touching your schema. Give it a scoped database user so non-technical editors can browse and update rows while the credentials stay narrow. It's the fastest way to hand a friendly interface to a database that only had a psql prompt before. If what those editors want is charts and reporting rather than editable rows, that's a different tool: [self-hosting Metabase in production](https://www.kloudbean.com/blog/self-host-metabase/) reads the same databases, and it carries the same embedded-database trap with H2 in place of SQLite.
 
 If you don't have a database to point at yet, spin one up first: [managed PostgreSQL](https://www.kloudbean.com/blog/managed-postgresql-hosting/) or [managed MySQL](https://www.kloudbean.com/blog/managed-mysql-hosting/), both locked to your app server's IP and backed up. NocoDB then becomes the front door.
 

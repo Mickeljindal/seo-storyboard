@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>How to Add a Custom Domain and Free SSL to Your App</title>
-<meta name="description" content="The DNS-to-HTTPS path for a custom domain and SSL for an app: point DNS, issue a free Let's Encrypt certificate, force HTTPS — and why the cert sometimes won't issue (it's almost always DNS).">
+<meta name="description" content="The DNS-to-HTTPS path for a custom domain and SSL for an app: point DNS, issue a free Let's Encrypt certificate, force HTTPS, and why the cert sometimes won't issue (it's almost always DNS).">
 <meta name="author" content="Kloudbean">
 <link rel="canonical" href="https://www.kloudbean.com/blog/custom-domain-and-ssl-for-your-app/">
 <meta property="og:type" content="article">
 <meta property="og:title" content="How to Add a Custom Domain and Free SSL to Your App">
-<meta property="og:description" content="Point your domain, issue free Let's Encrypt SSL, force HTTPS — and fix the reason a certificate won't issue, stage by stage.">
+<meta property="og:description" content="Point your domain, issue free Let's Encrypt SSL, force HTTPS, and fix the reason a certificate won't issue, stage by stage.">
 <meta property="og:image" content="images/hero.png">
 <meta property="og:site_name" content="Kloudbean">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,7 +21,7 @@
   <span class="eyebrow">Custom domain &amp; SSL</span>
   <h1>How to Add a Custom Domain and Free SSL to Your App</h1>
 
-  <figure><img src="images/hero.png" alt="Add a custom domain and free SSL to your app — your domain, the HTTPS padlock, done"></figure>
+  <figure><img src="images/hero.png" alt="Add a custom domain and free SSL to your app: your domain, the HTTPS padlock, done"></figure>
 
   <p class="lead">Your app works. It's just living at a temporary address like <code>something.kloudbeansite.com</code>, which is fine for a demo and wrong for anything real. Adding a custom domain and SSL for an app is the step that turns a project into a product: your own name in the address bar, and the padlock next to it. This is the path from a bare domain name to a live HTTPS site, told as the four stages it actually moves through, with the specific thing that trips people up at each one. Because the order matters more than anything else, and getting it wrong is exactly why a certificate sometimes just won't issue.</p>
 
@@ -146,7 +146,7 @@
   <p>There are narrow cases for paid certificates: an OV or EV certificate that validates your organization's legal identity, or a wildcard covering unlimited subdomains under one cert. If you have that need, buy it deliberately. For "I just want my app on HTTPS," the free certificate is the right call, full stop.</p>
 
   <h2>Where custom domain and SSL setups actually break</h2>
-  <p>Almost every problem here is one of four, and none is a dead end. It's the ordinary friction of DNS and certificates, and it clears with the right record and a little patience.</p>
+  <p>Almost every problem here is one of four, and none is a dead end. It's the ordinary friction of DNS and certificates, and it clears with the right record and a little patience. If DNS and the certificate are both fine and the <em>app</em> is what started misbehaving on the new address, that's a separate class of problem: <a href="https://www.kloudbean.com/blog/why-ai-app-breaks-after-custom-domain/">why an app breaks after you add a custom domain</a> covers the hard-coded URLs, CORS origins, and OAuth callbacks still pointing at the old one.</p>
   <ul>
     <li><strong>The domain won't load.</strong> Almost always propagation. Confirm the A record points to the correct server IP, then give it time.</li>
     <li><strong>The certificate won't issue.</strong> DNS hasn't propagated so the ACME challenge can't confirm control, or a CAA record is blocking Let's Encrypt. Confirm the domain resolves to your server, check for a CAA record, then request again.</li>
@@ -179,11 +179,11 @@
     <p>Anywhere from a few minutes to a few hours, occasionally longer. It's inherent to how DNS spreads across the internet and isn't something a host or registrar can make instant. Point the records, then give it time before you troubleshoot.</p>
     <h3>Should I use www or the bare domain?</h3>
     <p>Either is fine. Just pick one as primary and redirect the other to it so your site isn't split across two addresses. Add both in Domain Aliases, choose a canonical one, and redirect the other.</p>
-    <h3>My padlock shows "Not Secure" even with a certificate. Why?</h3>
+    <h3>My padlock shows Not Secure even with a certificate. Why?</h3>
     <p>That's usually mixed content: the page loads over HTTPS but pulls an asset (an image, script, or stylesheet) over plain <code>http://</code>. Find the hard-coded <code>http://</code> reference in your code and switch it to <code>https://</code>, and the warning clears.</p>
   </div>
 
-  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.</p>
+  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale. Faster Than Ever.</p>
 </article>
 
 <script type="application/ld+json">

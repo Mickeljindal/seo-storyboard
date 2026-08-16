@@ -54,7 +54,7 @@ A classic mistake is treating Elasticsearch as the only home for some data, usua
 
 ## Do you even need Elasticsearch yet?
 
-Honest opinion, and it might cost us a sale: most apps should start with the full-text search already built into their database. Postgres has real full-text search with `tsvector`, `tsquery`, a GIN index, and ranking through `ts_rank`. MySQL has `FULLTEXT` indexes. For a blog, a help center, a small catalog, that is genuinely enough, and it's one less service to run.
+Honest opinion, and it might cost us a sale: most apps should start with the full-text search already built into their database. Postgres has real full-text search with `tsvector`, `tsquery`, a GIN index, and ranking through `ts_rank`, and it goes further than most people expect once you [see how far Postgres full text search gets you](https://www.kloudbean.com/blog/full-text-search-postgres/). MySQL has `FULLTEXT` indexes. For a blog, a help center, a small catalog, that is genuinely enough, and it's one less service to run.
 
 One clear exception before that, because it is not a judgement call: **Magento 2.4 requires Elasticsearch or OpenSearch** for catalogue search, so if you are running Magento the answer is already yes, and [Magento SEO](https://www.kloudbean.com/blog/magento-seo/) covers why a neglected search service quietly degrades both site search and layered navigation. Elasticsearch is the usual alternative to database search once a plain query starts creaking. You'll feel it when a few things stack up at the same time:
 

@@ -1,7 +1,7 @@
 ---
 title: "5 Myths About Deploying FastAPI (and What's Actually True)"
 slug: deploy-fastapi-app
-meta_description: "FastAPI is fast and async, which spawns a lot of deploy myths — one worker is enough, you need Kubernetes, Uvicorn alone is production. Here's what's real, and how to actually ship it."
+meta_description: "FastAPI is fast and async, which spawns a lot of deploy myths: one worker is enough, you need Kubernetes, Uvicorn alone is production. Here's what's real, and how to actually ship it."
 target_keyword: deploy fastapi app
 secondary_keywords:
   - fastapi production
@@ -10,10 +10,10 @@ secondary_keywords:
   - fastapi deployment
 author: Kloudbean
 hero_image: images/hero.png
-cluster: 3 — App Deployment Tutorials
+cluster: 3 - App Deployment Tutorials
 ---
 
-![Deploy a FastAPI app — Uvicorn workers on a real server, scaled sensibly](images/hero.png)
+![Deploy a FastAPI app: Uvicorn workers on a real server, scaled sensibly](images/hero.png)
 
 # 5 Myths About Deploying FastAPI (and What's Actually True)
 
@@ -138,5 +138,5 @@ Usually a blocking, CPU-heavy, or non-async call inside an `async def` route is 
 **Do I need Kubernetes to run FastAPI in production?**
 No. A single well-sized server with multiple workers handles a lot, and when you outgrow it you add servers behind a load balancer. Kubernetes is useful at large scale but is unnecessary complexity for most FastAPI apps.
 
-**Does FastAPI's interactive `/docs` work once deployed?**
+**Does FastAPI's interactive /docs work once deployed?**
 Yes. FastAPI generates Swagger UI at `/docs` and ReDoc at `/redoc` automatically. Once your app is live they're served at your domain with no extra configuration. You can disable them in production if you'd rather not expose the schema publicly.

@@ -95,7 +95,7 @@ This is the same habit that gives you clean, zero-downtime restarts. Bonus: it m
 
 In production, EADDRINUSE usually means one thing: you started a second copy of an app that was already running. The fixes are boring and reliable.
 
-**Bind to the port you're given.** Never hardcode a port on a server. Read it from the environment, so the platform decides and nothing collides: `const port = process.env.PORT || 3000;`. Keep that value in your environment variables, not in code.
+**Bind to the port you're given.** Never hardcode a port on a server. Read it from the environment, so the platform decides and nothing collides: `const port = process.env.PORT || 3000;`. Keep that value in your environment variables, not in code. Hardcoding 80 or 443 trades this error for a different one, since ports below 1024 need privileges a normal app user doesn't have, which is [why listen EACCES permission denied shows up instead](https://www.kloudbean.com/blog/fix-eacces-permission-denied-node/).
 
 **Let one thing own the process.** If PM2 or systemd runs your app, let it. Use `pm2 restart app` instead of SSHing in and running `node server.js` next to the copy PM2 already has up. One owner per port, always.
 

@@ -139,7 +139,7 @@ Move your data off any local file before you have users, not after. Open **Launc
 
 ### Point your domain, then watch it build
 
-Add your custom domain in the app's domain settings, point its DNS at the server, and install a free auto-renewing SSL certificate. Every deploy shows up in **Build & Deployment History** with live logs, so you can watch pull, install, build, and start stream past. Turn on automated deployment and every `git push` ships itself. That's the CI/CD loop the big platforms sell, on a box you own. If you want just that piece, see [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
+Add your custom domain in the app's domain settings, point its DNS at the server, and install a free auto-renewing SSL certificate. Every deploy shows up in **Build & Deployment History** with live logs, so you can watch pull, install, build, and start stream past. Turn on automated deployment and every `git push` ships itself. That's the CI/CD loop the big platforms sell, on a box you own. Automating the deploy earns its keep almost immediately, even solo, while automating the test run only pays off once you have tests worth running, which is the whole split in [whether you actually need CI/CD](https://www.kloudbean.com/blog/do-i-need-cicd/). If you want just that piece, see [CI/CD auto-deploy from GitHub](https://www.kloudbean.com/blog/ci-cd-auto-deploy-from-github/).
 
 <!-- ADD IMAGE: Build & Deployment History with a deploy open and live logs streaming the pull, install, build, and start steps. -->
 
@@ -164,7 +164,7 @@ Now that the model's in your head, here's where to go for the exact commands for
 - **Rails:** Puma, asset precompile, ActiveRecord migrations. See [deploy a Rails app](https://www.kloudbean.com/blog/deploy-rails-app/).
 - **Go:** a compiled binary you run on a managed server. See [deploy a Go app](https://www.kloudbean.com/blog/deploy-golang-app/).
 
-Different commands, identical shape. Once you've done one, the next is mostly "which install and start command does this framework want?"
+Different commands, identical shape. JVM apps fit it too: you build a jar, then run it as a long-lived process behind the proxy, which is the whole of [deploying a Spring Boot app to production](https://www.kloudbean.com/blog/deploy-spring-boot-app/). Once you've done one, the next is mostly "which install and start command does this framework want?"
 
 ## The honest limits
 

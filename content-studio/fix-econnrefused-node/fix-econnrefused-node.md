@@ -9,7 +9,7 @@ You run your app and it dies with something like `Error: connect ECONNREFUSED 12
 
 ## What ECONNREFUSED actually means
 
-ECONNREFUSED is an operating-system level signal, not a Node.js quirk. When your app opens a socket to, say, `127.0.0.1:5432`, the OS on the other side responds that no process is accepting connections on that port. The machine is reachable, it answered, but the door is shut. That's different from a timeout (nothing answered at all, often a wrong host or a firewall dropping packets silently) and different from `ENOTFOUND` (DNS couldn't resolve the hostname). Knowing you got a refusal, not a timeout, already narrows the problem to "the service isn't there, or it's not where I think it is."
+ECONNREFUSED is an operating-system level signal, not a Node.js quirk. When your app opens a socket to, say, `127.0.0.1:5432`, the OS on the other side responds that no process is accepting connections on that port. The machine is reachable, it answered, but the door is shut. That's different from [a connect ETIMEDOUT, where nothing answered at all](https://www.kloudbean.com/blog/fix-etimedout-node/) and the cause is usually a wrong host or a firewall dropping packets silently, and different from `ENOTFOUND` (DNS couldn't resolve the hostname). Knowing you got a refusal, not a timeout, already narrows the problem to "the service isn't there, or it's not where I think it is."
 
 ## The usual causes, ranked
 
@@ -39,7 +39,7 @@ lsof -i :5432
 ss -tlnp | grep 5432
 ```
 
-If nothing is listening, start the service (or fix why it crashed). If something is listening but on a different port than your app expects, line up the port. Next, check the address your app is using. Print the value you're actually connecting with, not the one you think you set:
+If nothing is listening, start the service (or fix why it crashed). If something is listening but on a different port than your app expects, line up the port. When it's Redis that won't answer, the failure has its own set of causes worth working through, from a bound interface to a missing password, and [how to diagnose a Redis connection error](https://www.kloudbean.com/blog/error-establishing-a-redis-connection/) covers them. Next, check the address your app is using. Print the value you're actually connecting with, not the one you think you set:
 
 ```js
 console.log("DB target:", process.env.DATABASE_URL || "using default localhost:5432");

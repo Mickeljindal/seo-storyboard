@@ -14,6 +14,7 @@
 <meta property="og:site_name" content="Kloudbean">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/article.css">
 <style>
   :root{ --navy:#000f27; --ink:#1c2536; --muted:#5b6a86; --purple:#4F1AF3; --green:#40b75f; --line:#e6e9f2; --bg-soft:#f6f7fb; }
   *{box-sizing:border-box}
@@ -164,7 +165,7 @@ datasource db {
 }</code></pre>
   <p>The migration part is the step people skip, and then they hit "relation does not exist" on first load because the tables were never created. Run migrations as part of the build, not by hand:</p>
   <pre><code>npm ci &amp;&amp; npx prisma generate &amp;&amp; npx prisma migrate deploy &amp;&amp; npm run build</code></pre>
-  <p>Use <code>migrate deploy</code>, not <code>migrate dev</code>. The <code>dev</code> variant is interactive and can try to reset the database, which is not what you want anywhere near production. Kloudbean runs six managed engines (Postgres, MySQL, MariaDB, Redis, MongoDB, Elasticsearch), so if your app already speaks Mongo or MySQL you're not forced to rewrite it. More on the setup in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a> and the <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a> guide.</p>
+  <p>Use <code>migrate deploy</code>, not <code>migrate dev</code>. The <code>dev</code> variant is interactive and can try to reset the database, which is not what you want anywhere near production. Kloudbean runs seven managed engines (Postgres, MySQL, MariaDB, Redis, Memcached, MongoDB, Elasticsearch), so if your app already speaks Mongo or MySQL you're not forced to rewrite it. More on the setup in <a href="https://www.kloudbean.com/blog/add-managed-database-to-your-app/">adding a managed database to your app</a> and the <a href="https://www.kloudbean.com/blog/managed-postgresql-hosting/">managed PostgreSQL</a> guide.</p>
 
   <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
   <figure class="img-slot"><span><b>Add image</b><em>Terminal: <code>npx prisma migrate deploy</code> applying migrations and creating tables on the managed database.</em><small>A real terminal screenshot here is worth a paragraph.</small></span></figure>
@@ -233,12 +234,12 @@ SESSION_SECRET=a-long-random-string</code></pre>
   <figure class="img-slot"><span><b>Add image</b><em>The Applications list on one server: the API on api.yourapp.com and the client on app.yourapp.com, side by side.</em></span></figure>
 
   <h2>Do you actually need Docker for this?</h2>
-  <p>No. Not for a single Cursor app. A Dockerfile and a Kubernetes cluster solve problems you don't have yet: fleets of services, teams shipping in parallel, orchestration across many machines. Your app is a Node process. A managed server runs it directly, restarts it if it falls over, and gets out of the way. If you're ever running dozens of services and need real orchestration, that's an enterprise conversation and a different article. For getting your Cursor build in front of users this week, containers are ceremony you can skip.</p>
+  <p>No. Not for a single Cursor app. A Dockerfile and a Kubernetes cluster solve problems you don't have yet: fleets of services, teams shipping in parallel, orchestration across many machines. Your app is a Node process. A managed server runs it directly, restarts it if it falls over, and gets out of the way. If you're ever running dozens of services and need real orchestration, that's an enterprise conversation and a different article. Docker does earn its place once you have fiddly system dependencies or a team that needs identical environments, and <a href="https://www.kloudbean.com/blog/do-i-need-docker-to-deploy-an-ai-app/">where the Docker line actually falls for an AI-built app</a> walks through those cases. For getting your Cursor build in front of users this week, containers are ceremony you can skip.</p>
 
   <h2>When it still won't go green</h2>
   <p>First deploy shows a <strong>503</strong>? The process didn't start. Nine times out of ten it's a missing environment variable or a wrong start command. Read the app's own log, which is where the real reason sits:</p>
   <pre><code>/home/admin/hosted-sites/&lt;app_system_user&gt;/app-logs/app.error.log</code></pre>
-  <p>Open it in the File Manager or over SSH. One less obvious cause with AI-built TypeScript projects: the build fails because the tools it needs (the TypeScript compiler, Vite, Tailwind) are in <code>devDependencies</code>, and something set <code>NODE_ENV=production</code> before install, so <code>npm</code> skipped them. Either move the build-time tools where they belong or make sure install runs before that variable is set. There's also <code>sudo adm</code>, the deploy utility, which runs the whole build-and-ship in one command over SSH. The full 503 playbook is <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">here</a>.</p>
+  <p>Open it in the File Manager or over SSH. One less obvious cause with AI-built TypeScript projects: the build fails because the tools it needs (the TypeScript compiler, Vite, Tailwind) are in <code>devDependencies</code>, and something set <code>NODE_ENV=production</code> before install, so <code>npm</code> skipped them. Either move the build-time tools where they belong or make sure install runs before that variable is set. Cheapest way to catch this class of failure before the server does: clone your repo into an empty folder and build it there, which is exactly the test behind <a href="https://www.kloudbean.com/blog/deploy-windsurf-app/">whether an AI editor project builds from a clean clone</a>. There's also <code>sudo adm</code>, the deploy utility, which runs the whole build-and-ship in one command over SSH. The full 503 playbook is <a href="https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/">here</a>.</p>
 
   <!-- IMAGE SLOT: swap this figure for a real <figure> with an <img> (src -> images/your-file.png) and a <figcaption> -->
   <figure class="img-slot"><span><b>Add image</b><em>app.error.log open in the File Manager, with the missing-variable line that explains the 503.</em></span></figure>
@@ -278,7 +279,7 @@ SESSION_SECRET=a-long-random-string</code></pre>
     <p>Yes. The code, the data, and the server are yours, with no per-app pricing and no lock-in. Because it's a standard Linux server running standard code, you can move hosts whenever you want.</p>
   </div>
 
-  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale — Faster Than Ever.</p>
+  <p class="byline">By Kloudbean · Managed multi-cloud hosting. Build. Deploy. Scale, Faster Than Ever.</p>
 </article>
 
 <script type="application/ld+json">

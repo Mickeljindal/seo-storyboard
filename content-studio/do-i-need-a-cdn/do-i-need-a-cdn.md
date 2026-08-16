@@ -106,7 +106,7 @@ One more honest note on the security angle. A CDN does add a basic buffer agains
 
 ## Where this leaves Kloudbean
 
-If your site is mostly static, the simplest good CDN decision is often the one bundled with your host. Kloudbean, for what it's worth here, offers free static site hosting with a custom domain and SSL, plus a Cloudflare CDN add-on you can switch on when edge caching actually earns its place (it's a paid add-on on standard plans and included for Enterprise). The point isn't the product, though. It's that a CDN should follow a real need, a global audience or heavy static assets, rather than being switched on out of habit. Decide from your traffic and your content, not from a default.
+If your site is mostly static, the simplest good CDN decision is often the one bundled with your host. Kloudbean, for what it's worth here, offers free static site hosting with a custom domain and SSL, plus a Cloudflare CDN add-on you can switch on when edge caching actually earns its place (it's a paid add-on on standard plans and included for Enterprise). Cloudflare bundles far more than edge caching, so if you're weighing the whole product rather than the CDN slice of it, work through [whether you actually need Cloudflare, feature by feature](https://www.kloudbean.com/blog/do-i-need-cloudflare/). The point isn't the product, though. It's that a CDN should follow a real need, a global audience or heavy static assets, rather than being switched on out of habit. Decide from your traffic and your content, not from a default.
 
 ---
 

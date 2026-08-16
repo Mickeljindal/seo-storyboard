@@ -87,7 +87,7 @@ This one has no real MySQL equivalent, and it's why so many teams quietly standa
 
 ### Replication and the pull of the MySQL ecosystem
 
-MySQL earns its enormous install base here, and it's not nostalgia. Its replication is mature and well-understood, and decades of tooling, tutorials, and hire-able expertise have grown around it. It's the database of WordPress, a huge slice of the web, and the default on most shared hosting. If you live in PHP, or you want the widest pool of people who can operate your database at 2am, MySQL or MariaDB is the frictionless path. Postgres has excellent replication too, both streaming and logical. But the gravity of the MySQL ecosystem is a real reason to choose it, especially for content sites and standard web apps.
+MySQL earns its enormous install base here, and it's not nostalgia. Its replication is mature and well-understood, and decades of tooling, tutorials, and hire-able expertise have grown around it. It's the database of WordPress, a huge slice of the web, and the default on most shared hosting. If you live in PHP, or you want the widest pool of people who can operate your database at 2am, MySQL or MariaDB is the frictionless path. Postgres has excellent replication too, both streaming and logical. But the gravity of the MySQL ecosystem is a real reason to choose it, especially for content sites and standard web apps. It's also why people go looking for [a PlanetScale alternative that is just plain managed MySQL](https://www.kloudbean.com/blog/planetscale-alternative/): they want the ordinary engine and a normal connection string, not a platform-specific workflow wrapped around it.
 
 ## Where people pick wrong
 

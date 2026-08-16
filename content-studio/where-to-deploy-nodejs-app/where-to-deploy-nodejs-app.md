@@ -33,7 +33,7 @@ Every one of these can run a Node app. They differ in what they hand you and wha
 
 **Vercel.** The best place on earth to host a Next.js frontend. For that job nothing beats it. The catch for a Node backend: it's serverless-first, so long-running processes, WebSockets, heavy background jobs, and always-warm APIs fight the model, and function plus egress costs can climb.
 
-**DigitalOcean App Platform.** A straightforward PaaS inside the DO ecosystem. Fine and predictable if you're already there. The catch: it's a lighter PaaS than the big three, so you can outgrow its knobs.
+**DigitalOcean App Platform.** A straightforward PaaS inside the DO ecosystem. Fine and predictable if you're already there. The catch: it's a lighter PaaS than the big three, so you can outgrow its knobs, and when that happens most people go looking for a [DigitalOcean App Platform alternative that hands back the server](https://www.kloudbean.com/blog/digitalocean-app-platform-alternative/) rather than a different PaaS.
 
 **A plain VPS.** The cheapest control money can buy, from any provider. You get root and a bill that doesn't move. The catch is the whole rest of the job: you are now the person who patches the OS at midnight, configures Nginx, renews SSL, sets up backups, and gets paged when it falls over.
 
