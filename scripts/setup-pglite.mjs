@@ -21,15 +21,32 @@ console.log("PGlite local database at:", dataDir);
 
 const client = new PGlite(dataDir);
 
-const schemaPath = path.join(root, "database/migrations/001_schema_pglite.sql");
-const patchPath = path.join(root, "database/migrations/002_patch_columns.sql");
+// Apply the PGlite base schema, then EVERY later migration in filename order.
+// This used to name 001 and 002 explicitly, which meant any new migration was
+// silently skipped locally and the local database quietly drifted from the
+// committed schema. Discovering them keeps that from happening again.
+const migDir = path.join(root, "database/migrations");
+const BASE = "001_schema_pglite.sql";
+const POSTGRES_ONLY = "001_schema.sql"; // the non-PGlite base, not for this engine
 
-await client.exec(fs.readFileSync(schemaPath, "utf8"));
-console.log("✓ Schema:", path.basename(schemaPath));
+await client.exec(fs.readFileSync(path.join(migDir, BASE), "utf8"));
+console.log("✓ Schema:", BASE);
 
-if (fs.existsSync(patchPath)) {
-  await client.exec(fs.readFileSync(patchPath, "utf8"));
-  console.log("✓ Schema:", path.basename(patchPath));
+const later = fs
+  .readdirSync(migDir)
+  .filter((f) => f.endsWith(".sql") && f !== BASE && f !== POSTGRES_ONLY)
+  .sort();
+
+for (const file of later) {
+  try {
+    await client.exec(fs.readFileSync(path.join(migDir, file), "utf8"));
+    console.log("✓ Migration:", file);
+  } catch (e) {
+    // Migrations are written to be idempotent (IF NOT EXISTS), so a failure here
+    // is a real problem worth seeing rather than swallowing.
+    console.error(`✗ Migration ${file} failed:`, e.message);
+    throw e;
+  }
 }
 
 const jiti = createJiti(import.meta.url, {

@@ -694,3 +694,44 @@ export type SitePageRow = typeof sitePages.$inferSelect;
 export type SitePageInsert = typeof sitePages.$inferInsert;
 export type LinkSuggestionRow = typeof linkSuggestions.$inferSelect;
 export type LinkSuggestionInsert = typeof linkSuggestions.$inferInsert;
+
+// ============================================================================
+// PENDING INTERNAL LINKS — the deferred-link ledger.
+//
+// Our articles link to each other, but they go live at different times. A link
+// whose target is not published yet is a 404 for readers and a wasted crawl.
+//
+// So at publish time the publisher keeps links whose target is already live and
+// strips the ones whose target is not, leaving the anchor words as plain text
+// and recording a row here. When the target article is later published, the
+// healer finds every pending row pointing at it and turns those words into real
+// links in the already-published source posts.
+//
+// Keyed by SLUG rather than by post id on purpose: a row can be recorded before
+// either side has a WordPress post, and slugs are the stable identity across the
+// engine, the files on disk, and the live site. Distinct from linkSuggestions,
+// which holds *discovered* opportunities scored from a site scan; these are
+// links the writer actually authored and we owe the reader.
+// ============================================================================
+export const pendingInternalLinks = pgTable("pending_internal_links", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  /** Article the link lives in (already published, or about to be). */
+  fromSlug: text("from_slug").notNull(),
+  /** Article the link should point at, once it is live. */
+  targetSlug: text("target_slug").notNull(),
+  /** Exact words to turn into the link. Left in the body as plain text. */
+  anchorText: text("anchor_text").notNull(),
+  /** pending | applied | skipped | stale */
+  status: text("status").notNull().default("pending"),
+  /** How many times we tried and failed, so a bad row cannot loop forever. */
+  attempts: integer("attempts").default(0),
+  lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true }),
+  appliedAt: timestamp("applied_at", { withTimezone: true }),
+  /** Why it was skipped or what failed, kept for diagnosis. */
+  error: text("error"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type PendingInternalLinkRow = typeof pendingInternalLinks.$inferSelect;
+export type PendingInternalLinkInsert = typeof pendingInternalLinks.$inferInsert;
