@@ -79,6 +79,8 @@ Why it happens: model APIs rate-limit and occasionally blip. That's normal and e
 
 The fix: wrap provider calls in a retry with exponential backoff and jitter. Retry on 429, 500, 502, 503, 504, and network timeouts. When the provider sends a `Retry-After` header, honour it instead of guessing. Cap the number of attempts and set a sane per-request budget so a retry doesn't itself outlive the timeout from two sections ago.
 
+Worth being blunt about this one: no hosting choice fixes it. A retry is a decision inside your own code, and there is no platform setting, ours included, that turns an un-retried provider call into a resilient one. If you only do one thing from this article, do this one, because it is entirely within your control.
+
 **The anti-pattern: retry storms.** The wrong version of a retry is retrying instantly, with no backoff and no cap. When a provider slows down, every one of your requests retries at once, then again, then again. You've turned one provider hiccup into a self-inflicted flood that hammers the API and burns your rate limit faster. Backoff plus jitter plus a hard attempt cap is the whole point. A retry loop with no ceiling is worse than no retry at all.
 
 ## Heavy work runs inside the web request
@@ -88,6 +90,8 @@ The fix: wrap provider calls in a retry with exponential backoff and jitter. Ret
 Why it happens: a web request is meant to be short. When you do minutes of work inside it, you're holding a worker process (and often a database connection) hostage for the whole duration. A handful of those at once and your app has no capacity left to serve anyone. It's the same root cause as the timeout, seen from the resource side.
 
 The fix: move long or bursty work to a background queue with a worker running beside the app. The request enqueues a job and returns immediately with an id; the worker does the slow part; the client polls or gets notified when it's done. In Node, BullMQ on Redis is the standard shape, and [background jobs with BullMQ](https://www.kloudbean.com/blog/nodejs-background-jobs-bullmq/) walks through it. This one change fixes timeouts, keeps the app responsive under load, and lets you retry a failed job without the user resubmitting.
+
+The part that trips people up is where the worker lives. A queue needs two things your platform has to actually allow: a Redis instance to hold the jobs, and a second process that stays awake between them. On a platform that only runs request-scoped functions, that second process is the awkward bit, which is why this fix often forces a hosting change rather than just a code change. [Running an API, a worker, and a database together](https://www.kloudbean.com/blog/run-ai-app-api-worker-database/) is the shape you are aiming for.
 
 ## The provider has an outage and you have no fallback
 
@@ -105,6 +109,8 @@ Why it happens: serverless platforms scale to zero when idle. The first request 
 
 The fix: for a steady, connection-heavy AI backend, run an always-on process instead of scaling to zero. A warm process keeps its connection pool ready and pays no startup cost per request. Serverless genuinely shines for spiky, occasional work, but a chat or agent backend is usually the opposite of that, and the cold-start penalty hits exactly where it hurts most.
 
+This is the one failure on the list that is decided almost entirely by where you host, not by what you write. There is no code change that removes a cold start; either the process is running when the request arrives or it is not. So if you are hitting this, the honest answer is that you have outgrown scale-to-zero for this workload, and [moving an AI app off serverless](https://www.kloudbean.com/blog/move-ai-app-off-serverless/) covers the migration rather than a workaround.
+
 ## Connection exhaustion under load
 
 **What you see.** Fine with one user, fine in your demo, then it falls apart the moment real traffic arrives. The database throws errors like `FATAL: sorry, too many clients already`, or your app logs timeouts waiting for a connection.
@@ -119,17 +125,32 @@ The fix: put a connection pool in front of the database so connections are reuse
 
 Why it happens: it's almost always configuration, not code. The app binds to `127.0.0.1` instead of `0.0.0.0`, so nothing outside the container can reach it. Or it hard-codes a port instead of reading `PORT` from the environment. Or an environment variable that exists in your local `.env` simply isn't set on the host, so an API key or database URL is undefined and the app crashes on boot.
 
-The fix: bind to `0.0.0.0`, read the port from the environment, and set every secret and config value in the host rather than assuming a local file came along for the ride. If you're staring at a 503 right now, [fix a 503 after deploying your app](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/) is the focused walkthrough, and [why your AI app works locally but not in production](https://www.kloudbean.com/blog/why-my-ai-app-works-locally-but-not-in-production/) covers the wider pattern of environment gaps.
+The fix: bind to `0.0.0.0`, read the port from the environment, and set every secret and config value in the host rather than assuming a local file came along for the ride. That last part is worth checking before you debug anything else, because a platform that lets you set and see the app's environment variables and runtime settings without SSH turns this from a guessing game into a screen you can read. If you're staring at a 503 right now, [fix a 503 after deploying your app](https://www.kloudbean.com/blog/fix-503-after-deploying-your-app/) is the focused walkthrough, and [why your AI app works locally but not in production](https://www.kloudbean.com/blog/why-my-ai-app-works-locally-but-not-in-production/) covers the wider pattern of environment gaps.
 
-## Where Kloudbean fits
+## Sort the eight by who actually fixes them
 
-Most of these failures come from an architecture that scales to zero, hides behind a proxy you can't see, and scatters the database somewhere else. Kloudbean's shape removes a chunk of that by default. Apps run as always-on processes, so there are no cold starts and the first request isn't the slow one. You get managed Redis to back a job queue, so heavy work moves out of the web request, and a managed Postgres or MySQL that lives outside the app with room to add a connection pool for the load problem. Node and Python runtimes, the reverse proxy and stack handled for you, free SSL, backups, and deploys from Git on every push. You lock the database down by whitelisting your app server's IP so only it can connect, rather than leaving it open. We run our own tools this way, so it's the setup we actually use.
+Read back through the list and a split appears that is more useful than the list itself. Some of these failures are decided by code you write. Others are decided by the shape of the thing you deployed onto, and no amount of careful coding removes them. Knowing which is which tells you whether your next move is a pull request or a migration.
 
-The honest boundary, because it's what earns trust: managed hosting removes a whole class of infrastructure failures, the cold starts, the vanished environment, the database with nowhere to pool. It does not remove your bugs. A missing retry, a job you left in the request, a hard-coded provider with no fallback: those live in your code, and they stay yours to fix. Full network isolation in a private VPC is an Enterprise capability; on a standard plan, the IP allow-list is how you keep the database off the open internet. Kloudbean makes the running reliable. It can't make an un-retried API call resilient for you.
+| Failure | Fixed by | What that means in practice |
+| --- | --- | --- |
+| No retry on 429s and timeouts | Your code | Backoff, jitter, and an attempt cap. No platform does this for you. |
+| Provider outage, no fallback | Your code | A second model, graceful degradation, a short cache. |
+| Heavy work inside the request | Both | You move it to a queue; the host has to allow a worker that stays awake and a Redis to hold the jobs. |
+| Timeout on long model calls | Both | You choose queue or streaming; the proxy in front sets the ceiling you are working against. |
+| Connection exhaustion | Both | You size the pool; the database's connection limit is the number you size it to. |
+| Buffered streaming | Your host's proxy | A per-route buffering setting, worth verifying in production rather than assuming. |
+| Works locally, fails deployed | Your host's config | Bind address and port are code; the environment variables live on the host. |
+| Cold starts | Your host | Either the process is running when the request lands or it is not. No code fixes this. |
 
-## Run your AI app where the request path doesn't fight you
+The top half is yours no matter where you deploy, and it is worth saying plainly that we cannot help with it. A missing retry stays a missing retry on any infrastructure on earth. The bottom half is the half a hosting decision genuinely settles, and it is why so many of these articles end up recommending the same three things: an always-on process, a queue with somewhere to run its worker, and a database close enough to pool against.
 
-**Move the slow work off the request and let the platform handle the boring reliability layer.** Always-on processes with no cold starts, managed Redis for your job queue, managed Postgres and MySQL for the data, free SSL, and Git deploys, all in one dashboard. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
+That bottom half happens to describe how Kloudbean is put together, which is the reason it keeps coming up in the fixes above rather than being saved for a pitch at the end. Apps run as persistent processes, so the cold-start row disappears by default. Managed Redis backs the queue and a second always-on process runs the worker, which is what the heavy-work row needs. A managed Postgres or MySQL sits beside the app with a known connection ceiling, so pool sizing becomes arithmetic instead of guesswork, and you lock it down by whitelisting your app server's IP. Node and Python runtime settings and environment variables are editable in the dashboard rather than over SSH, which is the config row. We run our own content engine on exactly this shape, written up in [how we host our own AI content engine](https://www.kloudbean.com/blog/how-we-host-our-own-ai-content-engine/).
+
+Where that stops, precisely: it removes infrastructure-shaped failures and leaves code-shaped ones exactly where they were. Private networking and a VPC are part of the Enterprise package, so on a standard plan the IP allow-list is the access model, not a private network. And if your app genuinely idles most of the day, scale-to-zero will cost you less than an always-on server, cold starts and all. The right answer depends on which half of that table your outage is coming from.
+
+## Fix the code half. Let the host cover the other one.
+
+**Write the retries and the fallback yourself, then deploy somewhere the cold starts, the missing worker, and the unreachable database are not on your list.** Persistent processes, managed Redis for the queue, managed Postgres and MySQL beside the app, and runtime config you can read without SSH. Start free at [kloudbean.com](https://www.kloudbean.com/); see plans on [pricing](https://www.kloudbean.com/pricing/).
 
 Always-on (no cold starts) · Managed Redis + Postgres · Automatic backups · Free SSL · Git deploy · Free migration · IP allow-listing
 
